@@ -6,23 +6,38 @@ import "./lib/ECVerify.sol";
 contract MaticChannel {
   string constant prefix = "\x19Ethereum Signed Message:\n";
 
+  // owner of this channel
   address public owner;
+  // matic address
   address public matic;
+
+  // challenge period
   uint8 public challengePeriod;
 
-  // challenge period flag
-  bool public challengePeriodStarted = false;
-
-  // order index for receiver
+  // order index for receiver (receiver => order index)
   mapping (address => uint256) public orderIndexes;
-  // token deposites
-  mapping (address => uint256) public tokenDeposites;
+
+  // token managers (token => token manager)
+  mapping (address => TokenManager) public tokenManagers;
+
+  // Token manager
+  struct TokenManager {
+    uint32 settleBlock; // settlement block
+    uint256 deposit; // total deposit
+    uint256 closingBalance; // closing balance
+  }
 
   // Events
   event Deposit(address indexed sender, address indexed token, uint256 amount);
   event Withdraw(address indexed receiver, address indexed token, bytes32 indexed orderId, uint256 amount);
-  event CloseChannelRequested(address indexed sender, uint256 amount);
+  event SettlementRequested(address indexed owner, address indexed token, uint256 amount, uint32 settleBlock);
+  event Settle(address indexed owner, address indexed token, uint256 amount);
 
+  //
+  // Modifier
+  //
+
+  // only owner
   modifier onlyOwner() {
     require(msg.sender == owner);
     _;
@@ -90,7 +105,10 @@ contract MaticChannel {
     return signer;
   }
 
-  function deposit(address token, uint256 value) external {
+  /// @dev Deposits tokens into this channel (used by anyone)
+  /// @param token The token address for deposit
+  /// @param amount The amount value to be deposited
+  function deposit(address token, uint256 amount) external {
     require(token != 0x0);
     require(addressHasCode(token));
 
@@ -98,21 +116,40 @@ contract MaticChannel {
     StandardToken tokenObj = StandardToken(token);
 
     // transfer tokens from msg.sender to this contract
-    require(tokenObj.transferFrom(msg.sender, address(this), value));
+    require(tokenObj.transferFrom(msg.sender, address(this), amount));
 
     // deposit
-    tokenDeposites[token] += value;
+    tokenManagers[token].deposit += amount;
 
-    // event for deposit
-    Deposit(msg.sender, token, value);
+    // log deposit
+    Deposit(msg.sender, token, amount);
   }
 
-  function close(uint256 balance) onlyOwner external {
-    require(challengePeriodStarted == false);
-    challengePeriodStarted = true;
+  /// @dev Request settlement for given token and amount
+  /// @param token The token address for settlement
+  /// @param amount The amount value to be required for settlement
+  function requestSettlement(address token, uint256 amount) onlyOwner external {
+    // settle block
+    require(tokenManagers[token].settleBlock == 0);
+    // set settlement block
+    tokenManagers[token].settleBlock = uint32(block.number) + challengePeriod;
+
+    // settlement requested
+    SettlementRequested(msg.sender, token, amount, tokenManagers[token].settleBlock);
+  }
+
+  function settle(address token, uint256 amount) onlyOwner external {
+    require(tokenManagers[token].settleBlock != 0);
+    require(block.number > tokenManagers[token].settleBlock);
+
+    // get token instance
+    StandardToken tokenObj = StandardToken(token);
+
+    // transfer balance to amount
+    require(tokenObj.transfer(owner, amount));
 
     // close requested
-    CloseChannelRequested(msg.sender, balance);
+    Settle(msg.sender, token, amount);
   }
 
   function withdraw(address receiver, address token, uint256 amount, bytes sig, bytes maticSig) public {
@@ -122,14 +159,14 @@ contract MaticChannel {
 
     require(signer == owner);
     require(maticSigner == matic);
-    require (tokenDeposites[token] >= amount);
+    require (tokenManagers[token].deposit >= amount);
 
     // get token instance
     StandardToken tokenObj = StandardToken(token);
     // make transfer
     require(tokenObj.transfer(receiver, amount));
     // change deposit amount
-    tokenDeposites[token] -= amount;
+    tokenManagers[token].deposit -= amount;
 
     // Log event
     Withdraw(receiver, token, orderId, amount);
