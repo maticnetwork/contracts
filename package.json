@@ -5,6 +5,8 @@
   "main": "index.js",
   "private": "true",
   "scripts": {
+    "testrpc":
+      "testrpc --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' --gasLimit 13000000",
     "test": "yarn run truffle test"
   },
   "repository": {
@@ -24,6 +26,7 @@
     "babel-preset-stage-3": "^6.24.1"
   },
   "dependencies": {
+    "eth-sig-util": "^1.4.0",
     "ethereumjs-testrpc": "^6.0.1",
     "ethereumjs-util": "^5.1.2",
     "truffle": "^4.0.1"

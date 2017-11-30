@@ -25,11 +25,23 @@ library ECVerify {
       return 0;
     }
 
-    return ecrecover(hash, v, r, s);
+    // get address out of hash and signature
+    address result = ecrecover(hash, v, r, s);
+
+    // ecrecover returns zero on error
+    require(result != 0x0);
+
+    return result;
   }
 
   function ecrecovery(bytes32 hash, uint8 v, bytes32 r, bytes32 s) internal pure returns (address) {
-    return ecrecover(hash, v, r, s);
+    // get address out of hash and signature
+    address result =  ecrecover(hash, v, r, s);
+
+    // ecrecover returns zero on error
+    require(result != 0x0);
+
+    return result;
   }
 
   function ecverify(bytes32 hash, bytes sig, address signer) internal pure returns (bool) {

@@ -1,3 +1,5 @@
+import sigUtil from 'eth-sig-util'
+
 import assertThrows from './helpers/assertThrows'
 import assertRevert from './helpers/assertRevert'
 import {mineToBlockHeight} from './helpers/utils'
@@ -7,6 +9,48 @@ const MaticProtocol = artifacts.require('./MaticProtocol.sol')
 const TestToken = artifacts.require('./TestToken.sol')
 
 const BigNumber = web3.BigNumber
+
+const getBalanceMessage = (
+  contract,
+  receiver,
+  token,
+  matic,
+  orderId,
+  balance
+) => {
+  return [
+    {
+      type: 'address',
+      name: 'contract',
+      value: contract
+    },
+    {
+      type: 'address',
+      name: 'receiver',
+      value: receiver
+    },
+    {
+      type: 'address',
+      name: 'token',
+      value: token
+    },
+    {
+      type: 'address',
+      name: 'matic',
+      value: matic
+    },
+    {
+      type: 'bytes32',
+      name: 'orderId',
+      value: orderId
+    },
+    {
+      type: 'uint256',
+      name: 'balance',
+      value: balance
+    }
+  ]
+}
 
 // Matic channel
 contract('Matic Channel', function(accounts) {
@@ -77,7 +121,7 @@ contract('Matic Channel', function(accounts) {
       assert.equal(depositReceipt.logs[0].event, 'Deposit')
       assert.equal(depositReceipt.logs[0].args.sender, accounts[0])
       assert.equal(depositReceipt.logs[0].args.token, token1.address)
-      assert.equal(depositReceipt.logs[0].args.amount, value.toString())
+      assert.equal(depositReceipt.logs[0].args.balance, value.toString())
 
       // check token balance of contract
       let b1 = await token1.balanceOf(maticChannelContract.address)
@@ -124,7 +168,7 @@ contract('Matic Channel', function(accounts) {
       assert.equal(depositReceipt.logs[0].event, 'Deposit')
       assert.equal(depositReceipt.logs[0].args.sender, accounts[1])
       assert.equal(depositReceipt.logs[0].args.token, token2.address)
-      assert.equal(depositReceipt.logs[0].args.amount, value.toString())
+      assert.equal(depositReceipt.logs[0].args.balance, value.toString())
 
       // check token balance of contract
       let b1 = await token1.balanceOf(maticChannelContract.address)
@@ -217,7 +261,7 @@ contract('Matic Channel', function(accounts) {
       assert.equal(settlementReceipt.logs[0].args.owner, accounts[0])
       assert.equal(settlementReceipt.logs[0].args.token, token1.address)
       assert.equal(
-        settlementReceipt.logs[0].args.amount.toString(),
+        settlementReceipt.logs[0].args.balance.toString(),
         token1Amount.toString()
       )
       assert.equal(
@@ -272,7 +316,7 @@ contract('Matic Channel', function(accounts) {
       assert.equal(settlementReceipt.logs[0].args.owner, accounts[0])
       assert.equal(settlementReceipt.logs[0].args.token, token1.address)
       assert.equal(
-        settlementReceipt.logs[0].args.amount.toString(),
+        settlementReceipt.logs[0].args.balance.toString(),
         token1Amount.toString()
       )
 
@@ -289,9 +333,36 @@ contract('Matic Channel', function(accounts) {
     let token2 = null
     let token1Amount = web3.toWei(100)
 
+    // Sender and private key
+    const sender = '0x9fb29aac15b9a4b7f17c3385939b007540f4d791'
+    const senderPrivateKey = Buffer.from(
+      '9b28f36fbd67381120752d6172ecdcf10e06ab2d9a1367aac00cdcd6ac7855d3',
+      'hex'
+    )
+
+    // Matic owner and private key
+    const maticOwner = '0x96c42c56fdb78294f96b0cfa33c92bed7d75f96a'
+    const maticOwnerPrivateKey = Buffer.from(
+      'c8deb0bea5c41afe8e37b4d1bd84e31adff11b09c8c96ff4b605003cce067cd9',
+      'hex'
+    )
+
     // before task
     before(async function() {
-      maticProtocolContract = await MaticProtocol.new({from: accounts[9]})
+      // fill ethers
+      await web3.eth.sendTransaction({
+        from: accounts[9],
+        to: sender,
+        value: web3.toWei(20)
+      })
+
+      await web3.eth.sendTransaction({
+        from: accounts[9],
+        to: maticOwner,
+        value: web3.toWei(20)
+      })
+
+      maticProtocolContract = await MaticProtocol.new({from: maticOwner})
       const owner = accounts[0]
       const contractReceipt = await maticProtocolContract.createMaticChannel(
         owner,
@@ -301,29 +372,84 @@ contract('Matic Channel', function(accounts) {
       maticChannelContract = MaticChannel.at(channelAddress)
 
       // token creation
-      token1 = await TestToken.new()
-      token2 = await TestToken.new({from: accounts[1]})
+      token1 = await TestToken.new({from: sender})
+      token2 = await TestToken.new({from: sender})
 
       // token allowance to matic contract
       const channelContract = maticChannelContract.address
-      token1.approve(channelContract, web3.toWei(1000)) // 1k tokens
-      token2.approve(channelContract, web3.toWei(1000), {from: accounts[1]}) // 1k tokens
+      token1.approve(channelContract, web3.toWei(1000), {from: sender}) // 1k tokens
+      token2.approve(channelContract, web3.toWei(1000), {from: sender}) // 1k tokens
 
       // token1 deposit
       const depositAmount = web3.toWei(100)
       await maticChannelContract.deposit(
         token1.address,
-        depositAmount // 100 tokens
+        depositAmount, // 100 tokens
+        {from: sender}
       )
 
       // token2 deposit
       await maticChannelContract.deposit(
         token2.address,
         depositAmount, // 100 tokens
-        {from: accounts[1]}
+        {from: sender}
       )
     })
 
-    it('should allow owner to start settlement window', async function() {})
+    it('should allow receivers to withdraw tokens', async function() {
+      let receiver = accounts[4]
+
+      // check order id and index
+      let orderId = await maticChannelContract.generateOrderId(receiver)
+      let orderIndex = await maticChannelContract.orderIndexes(receiver)
+      assert.equal(orderIndex.toString(), String(0))
+
+      let balance = web3.toWei(10)
+
+      // sender's signature
+      let balanceMessage = sigUtil.signTypedData(senderPrivateKey, {
+        data: getBalanceMessage(
+          maticChannelContract.address,
+          receiver,
+          token1.address,
+          maticOwner,
+          orderId,
+          balance
+        )
+      })
+
+      // matic's signature
+      let verifierMessage = sigUtil.signTypedData(maticOwnerPrivateKey, {
+        data: getBalanceMessage(
+          maticChannelContract.address,
+          receiver,
+          token1.address,
+          maticOwner,
+          orderId,
+          balance
+        )
+      })
+
+      // verify
+      let recoveredAddress = await maticChannelContract.verifyBalanceProof(
+        receiver,
+        token1.address,
+        orderId,
+        balance,
+        balanceMessage
+      )
+
+      let recoveredMaticAddress = await maticChannelContract.verifyBalanceProof(
+        receiver,
+        token1.address,
+        orderId,
+        balance,
+        verifierMessage
+      )
+
+      // check recoveredAddress vs sender
+      assert.equal(recoveredAddress, sender)
+      assert.equal(recoveredMaticAddress, maticOwner)
+    })
   })
 })
