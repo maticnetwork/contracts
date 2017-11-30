@@ -105,6 +105,15 @@ contract MaticChannel {
     return signer;
   }
 
+  // @dev Returns token manager
+  // @param token The token address for token manager
+  function getTokenManager (address token) public view returns (uint32, uint256, uint256) {
+    TokenManager memory manager = tokenManagers[token];
+
+    // return token menager info
+    return (manager.settleBlock, manager.deposit, manager.closingBalance);
+  }
+
   /// @dev Deposits tokens into this channel (used by anyone)
   /// @param token The token address for deposit
   /// @param amount The amount value to be deposited
@@ -129,18 +138,29 @@ contract MaticChannel {
   /// @param token The token address for settlement
   /// @param amount The amount value to be required for settlement
   function requestSettlement(address token, uint256 amount) onlyOwner external {
-    // settle block
+    // check for settle block
     require(tokenManagers[token].settleBlock == 0);
+    // check for amount vs deposit
+    require(amount <= tokenManagers[token].deposit);
+
     // set settlement block
     tokenManagers[token].settleBlock = uint32(block.number) + challengePeriod;
+
+    // set closing balance
+    tokenManagers[token].closingBalance = amount;
 
     // settlement requested
     SettlementRequested(msg.sender, token, amount, tokenManagers[token].settleBlock);
   }
 
-  function settle(address token, uint256 amount) onlyOwner external {
+  /// @dev Settle for given token and amount
+  /// @param token The token address for settlement
+  function settle(address token) onlyOwner external {
     require(tokenManagers[token].settleBlock != 0);
     require(block.number > tokenManagers[token].settleBlock);
+
+    // get settlment closing balance
+    uint256 amount = tokenManagers[token].closingBalance;
 
     // get token instance
     StandardToken tokenObj = StandardToken(token);
@@ -152,6 +172,12 @@ contract MaticChannel {
     Settle(msg.sender, token, amount);
   }
 
+  /// @dev Withdraw tokens using signature
+  /// @param receiver The address of a receiver who owns signature
+  /// @param token The token address for withdraw
+  /// @param amount The total token amount for withdraw
+  /// @param sig The signature which receiver receives from owner as part of payment
+  /// @param maticSig The signature which receiver receives from matic network as part of payment validation
   function withdraw(address receiver, address token, uint256 amount, bytes sig, bytes maticSig) public {
     bytes32 orderId = generateOrderId(receiver);
     var signer = verifyBalanceProof(receiver, token, orderId, amount, sig);
