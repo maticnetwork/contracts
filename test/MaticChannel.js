@@ -281,4 +281,49 @@ contract('Matic Channel', function(accounts) {
       assert.equal(b1.toString(), String(0))
     })
   })
+
+  describe('withdraw', async function() {
+    let maticProtocolContract = null
+    let maticChannelContract = null
+    let token1 = null
+    let token2 = null
+    let token1Amount = web3.toWei(100)
+
+    // before task
+    before(async function() {
+      maticProtocolContract = await MaticProtocol.new({from: accounts[9]})
+      const owner = accounts[0]
+      const contractReceipt = await maticProtocolContract.createMaticChannel(
+        owner,
+        5
+      )
+      const channelAddress = contractReceipt.logs[0].args._address
+      maticChannelContract = MaticChannel.at(channelAddress)
+
+      // token creation
+      token1 = await TestToken.new()
+      token2 = await TestToken.new({from: accounts[1]})
+
+      // token allowance to matic contract
+      const channelContract = maticChannelContract.address
+      token1.approve(channelContract, web3.toWei(1000)) // 1k tokens
+      token2.approve(channelContract, web3.toWei(1000), {from: accounts[1]}) // 1k tokens
+
+      // token1 deposit
+      const depositAmount = web3.toWei(100)
+      await maticChannelContract.deposit(
+        token1.address,
+        depositAmount // 100 tokens
+      )
+
+      // token2 deposit
+      await maticChannelContract.deposit(
+        token2.address,
+        depositAmount, // 100 tokens
+        {from: accounts[1]}
+      )
+    })
+
+    it('should allow owner to start settlement window', async function() {})
+  })
 })

@@ -80,14 +80,13 @@ contract MaticChannel {
     return str;
   }
 
-  /// @dev Returns the sender address extracted from the balance proof.
+  /// @dev Returns hash for balance proof message.
   /// @param receiver The address that receives tokens.
   /// @param token The token address for transaction signature.
   /// @param orderId The order id generated for unique transaction.
   /// @param amount The amount of tokens owed by the sender to the receiver.
-  /// @param sig The balance message signed by the sender or receiver.
-  /// @return Address of the balance proof signer.
-  function verifyBalanceProof(address receiver, address token, bytes32 orderId, uint256 amount, bytes sig) public view returns (address) {
+  /// @return proof message The bytes32 message calculated using order information.
+  function getBalanceMessageHash(address receiver, address token, bytes32 orderId, uint256 amount) public view returns (bytes32) {
     // Create message which should be signed by sender
     string memory message = getBalanceMessage(receiver, token, orderId, amount);
     uint messageLength = bytes(message).length;
@@ -98,10 +97,31 @@ contract MaticChannel {
     prefixedMessage = concat(prefixedMessage, message);
 
     // Hash the prefixed message string
-    bytes32 prefixedMessageHash = keccak256(prefixedMessage);
+    return keccak256(prefixedMessage);
+  }
+
+  /// @dev Returns the sender address extracted from the balance proof.
+  /// @param receiver The address that receives tokens.
+  /// @param token The token address for transaction signature.
+  /// @param orderId The order id generated for unique transaction.
+  /// @param amount The amount of tokens owed by the sender to the receiver.
+  /// @param sig The balance message signed by the sender or receiver.
+  /// @return Address of the balance proof signer.
+  function verifyBalanceProof(address receiver, address token, bytes32 orderId, uint256 amount, bytes sig) public view returns (address) {
+    // Hash the prefixed message string
+    bytes32 prefixedMessageHash = getBalanceMessageHash(receiver, token, orderId, amount);
 
     // Derive address from signature
-    address signer = ECVerify.ecrecovery(prefixedMessageHash, sig);
+    return verifyBalanceProofHash(prefixedMessageHash, sig);
+  }
+
+  /// @dev Returns the sender address extracted from the message hash.
+  /// @param messageHash message hash from which address will be extracted.
+  /// @param sig The balance message signed by the sender or receiver.
+  /// @return Address of the balance proof signer.
+  function verifyBalanceProofHash(bytes32 messageHash, bytes sig) public pure returns (address) {
+    // Derive address from signature
+    address signer = ECVerify.ecrecovery(messageHash, sig);
     return signer;
   }
 
@@ -179,20 +199,28 @@ contract MaticChannel {
   /// @param sig The signature which receiver receives from owner as part of payment
   /// @param maticSig The signature which receiver receives from matic network as part of payment validation
   function withdraw(address receiver, address token, uint256 amount, bytes sig, bytes maticSig) public {
+    // check for receiver and token
+    require(receiver != 0x0 && token != 0x0);
+
     bytes32 orderId = generateOrderId(receiver);
-    var signer = verifyBalanceProof(receiver, token, orderId, amount, sig);
-    var maticSigner = verifyBalanceProof(receiver, token, orderId, amount, maticSig);
+    bytes32 messageHash = getBalanceMessageHash(receiver, token, orderId, amount);
+    address signer = verifyBalanceProofHash(messageHash, sig);
+    address maticSigner = verifyBalanceProofHash(messageHash, maticSig);
 
     require(signer == owner);
     require(maticSigner == matic);
     require (tokenManagers[token].deposit >= amount);
 
+    // change order index for receiver
+    orderIndexes[receiver] += 1;
+
+    // change deposit amount
+    tokenManagers[token].deposit -= amount;
+
     // get token instance
     StandardToken tokenObj = StandardToken(token);
     // make transfer
     require(tokenObj.transfer(receiver, amount));
-    // change deposit amount
-    tokenManagers[token].deposit -= amount;
 
     // Log event
     Withdraw(receiver, token, orderId, amount);
