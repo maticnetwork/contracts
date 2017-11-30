@@ -16,16 +16,25 @@ contract('Matic Channel', function(accounts) {
 
     // before task
     before(async function() {
-      maticProtocolContract = await MaticProtocol.new()
+      maticProtocolContract = await MaticProtocol.new({from: accounts[9]})
     })
 
     it('should create channel contract', async function() {
       const maticAddress = maticProtocolContract.address
       const owner = accounts[0]
-      maticChannelContract = await MaticChannel.new(owner, maticAddress, 5)
+      const contractReceipt = await maticProtocolContract.createMaticChannel(
+        owner,
+        5
+      )
 
+      assert.equal(contractReceipt.logs.length, 1)
+      assert.equal(contractReceipt.logs[0].event, 'MaticChannelCreated')
+      assert.equal(contractReceipt.logs[0].args._sender, accounts[0])
+
+      const channelAddress = contractReceipt.logs[0].args._address
+      maticChannelContract = MaticChannel.at(channelAddress)
       assert.equal(await maticChannelContract.owner(), owner)
-      assert.equal(await maticChannelContract.matic(), maticAddress)
+      assert.equal(await maticChannelContract.matic(), accounts[9])
       assert.equal(await maticChannelContract.challengePeriod(), 5)
     })
   })
@@ -38,10 +47,14 @@ contract('Matic Channel', function(accounts) {
 
     // before task
     before(async function() {
-      maticProtocolContract = await MaticProtocol.new()
-      const maticAddress = maticProtocolContract.address
+      maticProtocolContract = await MaticProtocol.new({from: accounts[9]})
       const owner = accounts[0]
-      maticChannelContract = await MaticChannel.new(owner, maticAddress, 5)
+      const contractReceipt = await maticProtocolContract.createMaticChannel(
+        owner,
+        5
+      )
+      const channelAddress = contractReceipt.logs[0].args._address
+      maticChannelContract = MaticChannel.at(channelAddress)
 
       // token creation
       token1 = await TestToken.new()
@@ -131,10 +144,14 @@ contract('Matic Channel', function(accounts) {
 
     // before task
     before(async function() {
-      maticProtocolContract = await MaticProtocol.new()
-      const maticAddress = maticProtocolContract.address
+      maticProtocolContract = await MaticProtocol.new({from: accounts[9]})
       const owner = accounts[0]
-      maticChannelContract = await MaticChannel.new(owner, maticAddress, 5)
+      const contractReceipt = await maticProtocolContract.createMaticChannel(
+        owner,
+        5
+      )
+      const channelAddress = contractReceipt.logs[0].args._address
+      maticChannelContract = MaticChannel.at(channelAddress)
 
       // token creation
       token1 = await TestToken.new()
