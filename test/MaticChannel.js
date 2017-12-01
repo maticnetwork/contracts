@@ -450,6 +450,24 @@ contract('Matic Channel', function(accounts) {
       // check recoveredAddress vs sender
       assert.equal(recoveredAddress, sender)
       assert.equal(recoveredMaticAddress, maticOwner)
+
+      // withdraw tokens
+      assert.equal(await token1.balanceOf(receiver), String(0))
+      let withdrawReceipt = await maticChannelContract.withdraw(receiver, token1.address, balance, balanceMessage, verifierMessage)
+      assert.equal(withdrawReceipt.logs.length, 1)
+      assert.equal(withdrawReceipt.logs[0].event, 'Withdraw')
+      assert.equal(withdrawReceipt.logs[0].args.receiver, receiver)
+      assert.equal(withdrawReceipt.logs[0].args.token, token1.address)
+      assert.equal(withdrawReceipt.logs[0].args.orderId, orderId)
+      assert.equal(withdrawReceipt.logs[0].args.balance, balance.toString())
+
+      // check balance
+      let receiverBalance = await token1.balanceOf(receiver)
+      assert.equal(receiverBalance, balance.toString())
+
+      orderId = await maticChannelContract.generateOrderId(receiver)
+      orderIndex = await maticChannelContract.orderIndexes(receiver)
+      assert.equal(orderIndex.toString(), String(1))
     })
   })
 })
