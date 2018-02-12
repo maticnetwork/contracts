@@ -1,3 +1,5 @@
+/* global assert */
+
 // From OpenZeppelin/zeppelin-solidity
 export default async function(promise, err) {
   try {

@@ -1,29 +1,14 @@
-
-/*
-   You should inherit from StandardToken or, for a token like you would want to
-   deploy in something like Mist, see HumanStandardToken.sol.
-   (This implements ONLY the standard functions and NOTHING else.
-   If you deploy this, you won't have anything useful.)
-
-   Implements ERC 20 Token standard: https://github.com/ethereum/EIPs/issues/20
-   .*/
-pragma solidity ^0.4.17;
+pragma solidity 0.4.18;
 
 import "./ERC20.sol";
 import "./ContractReceiver.sol";
 
+
 /// @title Standard token contract - Standard token implementation.
 contract StandardToken is ERC20 {
 
-  /*
-   *  Data structures
-   */
-  mapping (address => uint256) balances;
-  mapping (address => mapping (address => uint256)) allowed;
-
-  /*
-   *  Public functions
-   */
+  mapping (address => uint256) public balances;
+  mapping (address => mapping (address => uint256)) public allowed;
 
   /// @dev Transfers sender's tokens to a given address, added due to backwards compatibility reasons with ERC20
   /// @param _to Address of token receiver.
@@ -47,22 +32,12 @@ contract StandardToken is ERC20 {
     balances[msg.sender] -= _value;
     balances[_to] += _value;
 
-    if(isContract(_to)) {
+    if (isContract(_to)) {
       ContractReceiver receiver = ContractReceiver(_to);
       receiver.tokenFallback(msg.sender, _value, _data);
     }
     Transfer(msg.sender, _to, _value, _data);
     return true;
-  }
-
-  //assemble the given address bytecode. If bytecode exists then the _addr is a contract.
-  function isContract(address _addr) view internal returns (bool) {
-    uint length;
-    assembly {
-      //retrieve the size of the code on target address, this needs assembly
-      length := extcodesize(_addr)
-    }
-    return (length > 0);
   }
 
   /// @dev Allows allowed third party to transfer tokens from one address to another. Returns success.
@@ -89,7 +64,7 @@ contract StandardToken is ERC20 {
   /// @dev Returns number of tokens owned by given address.
   /// @param _owner Address of token owner.
   /// @return Returns balance of owner.
-  function balanceOf(address _owner) constant public returns (uint256) {
+  function balanceOf(address _owner) public view returns (uint256) {
     return balances[_owner];
   }
 
@@ -106,14 +81,21 @@ contract StandardToken is ERC20 {
     return true;
   }
 
-  /*
-   * Read functions
-   */
   /// @dev Returns number of allowed tokens for given address.
   /// @param _owner Address of token owner.
   /// @param _spender Address of token spender.
   /// @return Returns remaining allowance for spender.
-  function allowance(address _owner, address _spender) constant public returns (uint256) {
+  function allowance(address _owner, address _spender) public view returns (uint256) {
     return allowed[_owner][_spender];
+  }
+
+  //assemble the given address bytecode. If bytecode exists then the _addr is a contract.
+  function isContract(address _addr) internal view returns (bool) {
+    uint length;
+    assembly { // solhint-disable-line
+      //retrieve the size of the code on target address, this needs assembly
+      length := extcodesize(_addr)
+    }
+    return (length > 0);
   }
 }

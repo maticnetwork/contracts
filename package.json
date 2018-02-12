@@ -5,9 +5,11 @@
   "main": "index.js",
   "private": "true",
   "scripts": {
-    "testrpc":
-      "testrpc --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' --gasLimit 13000000",
-    "test": "yarn run truffle test"
+    "testrpc": "testrpc --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' --gasLimit 13000000",
+    "truffle": "truffle",
+    "lint-contracts": "solhint -d contracts/**/*.sol",
+    "lint-js": "eslint src/**/*.js test/**/*.js",
+    "lint": "npm run lint-contracts && npm run lint-js"
   },
   "repository": {
     "type": "git",
@@ -20,10 +22,19 @@
   },
   "homepage": "https://github.com/jdkanani/protocol#readme",
   "devDependencies": {
+    "babel-eslint": "^8.2.1",
     "babel-polyfill": "^6.26.0",
+    "babel-preset-env": "^1.6.1",
     "babel-preset-es2015": "^6.24.1",
     "babel-preset-stage-2": "^6.24.1",
-    "babel-preset-stage-3": "^6.24.1"
+    "babel-preset-stage-3": "^6.24.1",
+    "eslint": "^4.17.0",
+    "eslint-config-standard": "^11.0.0-beta.0",
+    "eslint-plugin-import": "^2.8.0",
+    "eslint-plugin-node": "^6.0.0",
+    "eslint-plugin-promise": "^3.6.0",
+    "eslint-plugin-standard": "^3.0.1",
+    "solhint": "^1.1.10"
   },
   "dependencies": {
     "eth-sig-util": "^1.4.0",

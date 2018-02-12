@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity 0.4.18;
 
 import "./lib/ECVerify.sol";
 import "./mixin/Ownable.sol";
@@ -67,7 +67,7 @@ contract MaticProtocol is Ownable {
   /// @param _challengePeriod Challege period for settlement.
   /// @return Returns address of created contract.
   function createMaticChannel(address _creator, uint8 _challengePeriod) public payable enoughPaid returns (address) {
-    MaticChannel channel = new MaticChannel(_creator, owner, _challengePeriod);
+    MaticChannel channel = new MaticChannel(_creator, address(this), _challengePeriod);
 
     // register created channel
     contractMap[channel] = true;

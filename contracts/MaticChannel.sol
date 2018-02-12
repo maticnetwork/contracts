@@ -1,4 +1,4 @@
-pragma solidity ^0.4.17;
+pragma solidity 0.4.18;
 
 import './token/StandardToken.sol';
 import "./lib/ECVerify.sol";
@@ -167,19 +167,19 @@ contract MaticChannel {
   /// @param token The token address for withdraw
   /// @param balance The total token amount for withdraw
   /// @param sig The signature which receiver receives from owner as part of payment
-  /// @param maticSig The signature which receiver receives from matic network as part of payment validation
-  function withdraw(address receiver, address token, uint256 balance, bytes sig, bytes maticSig) public {
+  /// @param proof Withdraw proof from plasma chain
+  function withdraw(address receiver, address token, uint256 balance, bytes sig, bytes proof) public {
     // check for receiver and token
     require(receiver != 0x0 && token != 0x0);
 
     bytes32 orderId = generateOrderId(receiver);
     bytes32 messageHash = getBalanceMessage(receiver, token, orderId, balance);
     address signer = ECVerify.ecrecovery(messageHash, sig);
-    address maticSigner = ECVerify.ecrecovery(messageHash, maticSig);
+    // address maticSigner = ECVerify.ecrecovery(messageHash, maticSig);
 
     require(signer == owner);
-    require(maticSigner == matic);
-    require(signer != maticSigner); // matic address shouldn't be same as signer
+    // require(maticSigner == matic);
+    // require(signer != maticSigner); // matic address shouldn't be same as signer
     require(tokenManagers[token].deposit >= balance);
 
     // change order index for receiver

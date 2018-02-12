@@ -453,7 +453,13 @@ contract('Matic Channel', function(accounts) {
 
       // withdraw tokens
       assert.equal(await token1.balanceOf(receiver), String(0))
-      let withdrawReceipt = await maticChannelContract.withdraw(receiver, token1.address, balance, balanceMessage, verifierMessage)
+      let withdrawReceipt = await maticChannelContract.withdraw(
+        receiver,
+        token1.address,
+        balance,
+        balanceMessage,
+        verifierMessage
+      )
       assert.equal(withdrawReceipt.logs.length, 1)
       assert.equal(withdrawReceipt.logs[0].event, 'Withdraw')
       assert.equal(withdrawReceipt.logs[0].args.receiver, receiver)
