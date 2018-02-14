@@ -48,6 +48,6 @@ contract ERC20 {
   /// @return Amount of remaining tokens allowed to spent.
   function allowance(address _owner, address _spender) public view returns (uint256 remaining);
 
-  event Transfer(address indexed _from, address indexed _to, uint256 _value, bytes indexed _data); // solhint-disable-line
+  event Transfer(address indexed _from, address indexed _to, uint256 _value, bytes _data); // solhint-disable-line
   event Approval(address indexed _owner, address indexed _spender, uint256 _value);
 }

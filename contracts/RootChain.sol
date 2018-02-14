@@ -55,6 +55,7 @@ contract RootChain is Ownable {
   //
   // Events
   //
+  event ThresholdChange(uint256 newThreshold, uint256 oldThreshold);
   event Deposit(address indexed user, address indexed token, uint256 amount);
   event NewHeaderBlock(
     address indexed proposer,
@@ -75,6 +76,7 @@ contract RootChain is Ownable {
 
   // Change the number of validators required to allow a passed header root
   function updateValidatorThreshold(uint256 newThreshold) public onlyOwner {
+    ThresholdChange(newThreshold, validatorThreshold);
     validatorThreshold = newThreshold;
   }
 
@@ -141,20 +143,20 @@ contract RootChain is Ownable {
   }
 
   function submitHeaderBlock(bytes32 root, uint256 end, bytes sigs) public {
-    uint256 lastBlock = currentChildBlock();
+    uint256 start = currentChildBlock().add(1);
 
     // Make sure we are adding blocks
-    require(end > lastBlock.add(1));
+    require(end > start);
 
     // Make sure enough validators sign off on the proposed header root
     require(
-      checkSignatures(root, lastBlock.add(1), end, sigs) >= validatorThreshold
+      checkSignatures(root, start, end, sigs) >= validatorThreshold
     );
 
     // Add the header root
     HeaderBlock memory headerBlock = HeaderBlock({
       root: root,
-      start: lastBlock.add(1),
+      start: start,
       end: end,
       createdAt: block.timestamp
     });
@@ -162,7 +164,7 @@ contract RootChain is Ownable {
     currentHeaderBlock = currentHeaderBlock.add(1);
 
     // Calculate the reward and issue it
-    // uint256 r = reward.base + reward.a * (end - lastBlock[chainId]);
+    // uint256 r = reward.base + reward.a * (end - start);
     // If we exceed the max reward, anyone can propose the header root
     // if (r > maxReward) {
     //   r = maxReward;
@@ -183,7 +185,11 @@ contract RootChain is Ownable {
   }
 
   function currentChildBlock() public view returns(uint256) {
-    return headerBlocks[currentHeaderBlock].end;
+    if (currentHeaderBlock != 0) {
+      return headerBlocks[currentHeaderBlock.sub(1)].end;
+    }
+
+    return 0;
   }
 
   // Sample a proposer. Likelihood of being chosen is proportional to stake size.
@@ -233,7 +239,8 @@ contract RootChain is Ownable {
       address signer = ECVerify.ecrecovery(h, sigList[i].toData());
       bool duplicate = false;
 
-      if (isStaker(signer)) { // check if signer is stacker
+      // check if signer is stacker and not proposer
+      if (isStaker(signer) && signer != getProposer()) {
         for (uint64 j = 0; j < i; j += 1) {
           if (uniqueStakers[j] == signer) {
             duplicate = true;
@@ -249,5 +256,9 @@ contract RootChain is Ownable {
     }
 
     return totalSigners;
+  }
+
+  function startWithdraw(bytes txBytes, bytes txProof) public {
+
   }
 }
