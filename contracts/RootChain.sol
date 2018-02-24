@@ -353,18 +353,21 @@ contract RootChain is Ownable {
     uint256 amount
   ) internal {
     // check block header
-    HeaderBlock memory h = headerBlocks[headerNumber];
-    bytes32 value = keccak256(
-      blockNumber,
-      blockTime,
-      txRoot,
-      receiptRoot
+    require(
+      keccak256(
+        blockNumber,
+        blockTime,
+        txRoot,
+        receiptRoot
+      ).checkMembership(
+        blockNumber - headerBlocks[headerNumber].start,
+        headerBlocks[headerNumber].root,
+        headerProof
+      )
     );
-    require(value.checkMembership(blockNumber - h.start, h.root, headerProof));
 
     // transfer tokens to current contract
-    ERC20 t = ERC20(rootToken);
-    t.transfer(msg.sender, amount);
+    ERC20(rootToken).transfer(msg.sender, amount);
 
     // broadcast deposit events
     Withdraw(msg.sender, rootToken, amount);
