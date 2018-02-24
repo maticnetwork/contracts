@@ -1,6 +1,6 @@
 # Matic contracts
 
-[![Build Status](https://travis-ci.org/maticnetwork/plasma.svg?branch=master)](https://travis-ci.org/maticnetwork/plasma)
+[![Build Status](https://travis-ci.org/maticnetwork/contracts.svg?branch=master)](https://travis-ci.org/maticnetwork/contracts)
 
 Matic contracts are ethereum smart contracts to power [Matic Network](https://matic.network).
 
