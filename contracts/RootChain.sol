@@ -278,6 +278,8 @@ contract RootChain is Ownable {
 
   // Any user can deposit
   function deposit(address token, uint256 amount) public {
+    require(tokens[token] != address(0x0));
+
     // transfer tokens to current contract
     ERC20 t = ERC20(token);
     require(t.transferFrom(msg.sender, address(this), amount));
@@ -286,11 +288,6 @@ contract RootChain is Ownable {
     Deposit(msg.sender, token, amount);
   }
 
-  event LogBytes(uint256 key, bytes value);
-  event LogBytes32(uint256 key, bytes32 value);
-  event LogInt(uint256 key, uint256 value);
-  event LogBool(uint256 key, bool value);
-  event LogAddress(uint256 key, address value);
   // withdraw tokens
   function withdraw(
     uint256 headerNumber,
@@ -327,29 +324,50 @@ contract RootChain is Ownable {
       receiptAmount
     );
 
-    // check header block value
-    /* _checkBlockHeader(
-      keccak256(blockNumber, blockTime, txRoot, receiptRoot),
+    _withdraw(
+      headerNumber,
       headerProof,
       blockNumber,
-      headerNumber
-    ); */
+      blockTime,
 
-    // withdraw root tokens
-    // _withdraw(rootToken, amount);
+      txRoot,
+      receiptRoot,
+      rootToken,
+      receiptAmount
+    );
   }
 
   //
   // Internal functions
   //
+  function _withdraw(
+    uint256 headerNumber,
+    bytes headerProof,
+    uint256 blockNumber,
+    uint256 blockTime,
 
-  function _withdraw(address token, uint256 amount) internal {
+    bytes32 txRoot,
+    bytes32 receiptRoot,
+
+    address rootToken,
+    uint256 amount
+  ) internal {
+    // check block header
+    HeaderBlock memory h = headerBlocks[headerNumber];
+    bytes32 value = keccak256(
+      blockNumber,
+      blockTime,
+      txRoot,
+      receiptRoot
+    );
+    require(value.checkMembership(blockNumber - h.start, h.root, headerProof));
+
     // transfer tokens to current contract
-    ERC20 t = ERC20(token);
-    t.transfer(msg.sender, amount)
+    ERC20 t = ERC20(rootToken);
+    t.transfer(msg.sender, amount);
 
     // broadcast deposit events
-    Withdraw(msg.sender, token, amount);
+    Withdraw(msg.sender, rootToken, amount);
   }
 
   function _processWithdrawTx(
@@ -384,7 +402,7 @@ contract RootChain is Ownable {
       rawTx[i] = txList[i].toData();
     }
     rawTx[4] = hex"";
-    rawTx[6] = '\x0d'; // '\x3e'
+    rawTx[6] = '\x0d'; // 13
     rawTx[7] = hex"";
     rawTx[8] = hex"";
 
@@ -437,15 +455,5 @@ contract RootChain is Ownable {
 
     // Make sure this receipt is the value on the path via a MerklePatricia proof
     require(MerklePatriciaProof.verify(receiptBytes, path, receiptProof, receiptRoot) == true);
-  }
-
-  function _checkBlockHeader(
-    bytes32 value,
-    bytes proof,
-    uint256 blockNumber,
-    uint256 headerNumber
-  ) internal {
-    HeaderBlock memory h = headerBlocks[headerNumber];
-    require(value.checkMembership(blockNumber - h.start, h.root, proof));
   }
 }

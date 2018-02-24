@@ -10,7 +10,7 @@ import "./BytesLib.sol";
 library RLPEncode {
 
   // Encode an item (bytes)
-	function encodeItem(bytes memory self) internal constant returns (bytes) {
+	function encodeItem(bytes memory self) internal pure returns (bytes) {
     bytes memory encoded;
     if(self.length == 1 && uint(self[0]) < 0x80) {
       encoded = new bytes(1);
@@ -22,7 +22,7 @@ library RLPEncode {
   }
 
   // Encode a list of items
-  function encodeList(bytes[] memory self) internal constant returns (bytes) {
+  function encodeList(bytes[] memory self) internal pure returns (bytes) {
     bytes memory encoded;
     for (uint i=0; i < self.length; i++) {
       encoded = BytesLib.concat(encoded, encodeItem(self[i]));
@@ -33,7 +33,7 @@ library RLPEncode {
 	// Hack to encode nested lists. If you have a list as an item passed here, included
 	// pass = true in that index. E.g.
 	// [item, list, item] --> pass = [false, true, false]
-	function encodeListWithPasses(bytes[] memory self, bool[] pass) internal constant returns (bytes) {
+	function encodeListWithPasses(bytes[] memory self, bool[] pass) internal pure returns (bytes) {
     bytes memory encoded;
     for (uint i=0; i < self.length; i++) {
 			if (pass[i] == true) {
@@ -46,7 +46,7 @@ library RLPEncode {
   }
 
   // Generate the prefix for an item or the entire list based on RLP spec
-  function encodeLength(uint256 L, uint256 offset) internal constant returns (bytes) {
+  function encodeLength(uint256 L, uint256 offset) internal pure returns (bytes) {
     if (L < 56) {
       bytes memory prefix = new bytes(1);
       prefix[0] = byte(L + offset);
@@ -65,7 +65,7 @@ library RLPEncode {
     }
   }
 
-	function getLengthBytes(uint256 x) constant returns (bytes b) {
+	function getLengthBytes(uint256 x) pure returns (bytes b) {
 		// Figure out if we need 1 or two bytes to express the length.
 		// 1 byte gets us to max 255
 		// 2 bytes gets us to max 65535 (no payloads will be larger than this)

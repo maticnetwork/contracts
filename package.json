@@ -8,8 +8,8 @@
     "testrpc":
       "ganache-cli --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' --gasLimit 13000000",
     "truffle": "truffle",
-    "test": "truffle test test/RootChain.js",
-    "test-ci": "scripts/start-geth.sh",
+    "test": "truffle test",
+    "test-ci": "scripts/run-test.sh",
     "lint-contracts": "solhint -d contracts/**/*.sol",
     "lint-js": "eslint src/**/*.js test/**/*.js",
     "lint": "npm run lint-contracts && npm run lint-js"
