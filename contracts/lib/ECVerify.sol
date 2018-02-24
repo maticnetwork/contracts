@@ -1,4 +1,5 @@
-pragma solidity 0.4.18;
+pragma solidity ^0.4.18;
+
 
 library ECVerify {
   function ecrecovery(bytes32 hash, bytes sig) public pure returns (address) {
@@ -10,7 +11,7 @@ library ECVerify {
       return 0;
     }
 
-    assembly {
+    assembly { // solhint-disable-line
       r := mload(add(sig, 32))
       s := mload(add(sig, 64))
       v := and(mload(add(sig, 65)), 255)

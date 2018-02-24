@@ -1,5 +1,5 @@
 /* solhint-disable use-forbidden-name */
-pragma solidity 0.4.18;
+pragma solidity ^0.4.18;
 
 import {PatriciaData} from "./PatriciaData.sol";
 

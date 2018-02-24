@@ -1,3 +1,6 @@
 node_modules
 build
 MaticChannel0.sol
+
+private-blockchain/geth
+private-blockchain/history

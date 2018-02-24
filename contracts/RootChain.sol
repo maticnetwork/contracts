@@ -1,23 +1,35 @@
-pragma solidity 0.4.18;
+pragma solidity ^0.4.18;
 
-import './lib/SafeMath.sol';
+import "./lib/SafeMath.sol";
 import "./lib/ECVerify.sol";
-import './lib/RLP.sol';
+import "./lib/MerklePatriciaProof.sol";
+import "./lib/Merkle.sol";
+import "./lib/RLP.sol";
+import "./lib/BytesLib.sol";
+import "./lib/RLPEncode.sol";
 import "./mixin/Ownable.sol";
 
 import "./token/ERC20.sol";
 
 contract RootChain is Ownable {
   using SafeMath for uint256;
+  using Merkle for bytes32;
   using RLP for bytes;
   using RLP for RLP.RLPItem;
   using RLP for RLP.Iterator;
 
-  // chain identifier (protection against replay attacks)
+  // bytes32 constants
+  bytes32 constant public withdrawSignature = keccak256('\x2e\x1a\x7d\x4d');
+  bytes32 constant public withdrawEventSignature = keccak256('Withdraw(address,address,uint256)');
+
+  // chain identifier
   bytes32 public chain = keccak256('Matic Network v0.0.1-beta.1');
 
   // stake token address
   address public stakeToken;
+
+  // mapping for (root token => child token)
+  mapping(address => address) public tokens;
 
   // The randomness seed of the epoch.
   // This is used to determine the proposer and the validator pool
@@ -55,8 +67,10 @@ contract RootChain is Ownable {
   //
   // Events
   //
+  event TokenMapped(address indexed rootToken, address indexed childToken);
   event ThresholdChange(uint256 newThreshold, uint256 oldThreshold);
   event Deposit(address indexed user, address indexed token, uint256 amount);
+  event Withdraw(address indexed user, address indexed token, uint256 amount);
   event NewHeaderBlock(
     address indexed proposer,
     uint256 indexed start,
@@ -80,9 +94,16 @@ contract RootChain is Ownable {
     validatorThreshold = newThreshold;
   }
 
+  // map child token to root token
+  function mapToken(address rootToken, address childToken) public onlyOwner {
+    tokens[rootToken] = childToken;
+    TokenMapped(rootToken, childToken);
+  }
+
   //
   // Staker functions
   //
+
   function stake(uint256 amount) public {
     require(amount > 0);
 
@@ -129,21 +150,14 @@ contract RootChain is Ownable {
   }
 
   //
-  // User functions
+  // PoS functions
   //
 
-  // Any user can deposit
-  function deposit(address token, uint256 amount) public {
-    // transfer tokens to current contract
-    ERC20 t = ERC20(token);
-    require(t.transferFrom(msg.sender, address(this), amount));
-
-    // broadcast deposit events
-    Deposit(msg.sender, token, amount);
-  }
-
   function submitHeaderBlock(bytes32 root, uint256 end, bytes sigs) public {
-    uint256 start = currentChildBlock().add(1);
+    uint256 start = currentChildBlock();
+    if (start > 0) {
+      start = start.add(1);
+    }
 
     // Make sure we are adding blocks
     require(end > start);
@@ -258,7 +272,180 @@ contract RootChain is Ownable {
     return totalSigners;
   }
 
-  function startWithdraw(bytes txBytes, bytes txProof) public {
+  //
+  // User functions
+  //
 
+  // Any user can deposit
+  function deposit(address token, uint256 amount) public {
+    // transfer tokens to current contract
+    ERC20 t = ERC20(token);
+    require(t.transferFrom(msg.sender, address(this), amount));
+
+    // broadcast deposit events
+    Deposit(msg.sender, token, amount);
+  }
+
+  event LogBytes(uint256 key, bytes value);
+  event LogBytes32(uint256 key, bytes32 value);
+  event LogInt(uint256 key, uint256 value);
+  event LogBool(uint256 key, bool value);
+  event LogAddress(uint256 key, address value);
+  // withdraw tokens
+  function withdraw(
+    uint256 headerNumber,
+    bytes headerProof,
+
+    uint256 blockNumber,
+    uint256 blockTime,
+    bytes32 txRoot,
+    bytes32 receiptRoot,
+    bytes path,
+
+    bytes txBytes,
+    bytes txProof,
+
+    bytes receiptBytes,
+    bytes receiptProof
+  ) public {
+    // process receipt
+    var (rootToken, receiptAmount) = _processWithdrawReceipt(
+      receiptBytes,
+      path,
+      receiptProof,
+      receiptRoot
+    );
+
+    // process withdraw tx
+    _processWithdrawTx(
+      txBytes,
+      path,
+      txProof,
+      txRoot,
+
+      rootToken,
+      receiptAmount
+    );
+
+    // check header block value
+    /* _checkBlockHeader(
+      keccak256(blockNumber, blockTime, txRoot, receiptRoot),
+      headerProof,
+      blockNumber,
+      headerNumber
+    ); */
+
+    // withdraw root tokens
+    // _withdraw(rootToken, amount);
+  }
+
+  //
+  // Internal functions
+  //
+
+  function _withdraw(address token, uint256 amount) internal {
+    // transfer tokens to current contract
+    ERC20 t = ERC20(token);
+    t.transfer(msg.sender, amount)
+
+    // broadcast deposit events
+    Withdraw(msg.sender, token, amount);
+  }
+
+  function _processWithdrawTx(
+    bytes txBytes,
+    bytes path,
+    bytes txProof,
+    bytes32 txRoot,
+
+    address rootToken,
+    uint256 amount
+  ) internal view {
+    // check tx
+    RLP.RLPItem[] memory txList = txBytes.toRLPItem().toList();
+    require(txList.length == 9);
+
+    // check mapped root<->child token
+    require(tokens[rootToken] == txList[3].toAddress());
+
+    // Data check
+    require(txList[5].toData().length == 36);
+    // '0x2e1a7d4d' = sha3('withdraw(uint256)')
+    require(keccak256(BytesLib.slice(txList[5].toData(), 0, 4)) == withdrawSignature);
+    // check amount
+    require(amount > 0 && amount == BytesLib.toUint(txList[5].toData(), 4));
+
+    // Make sure this tx is the value on the path via a MerklePatricia proof
+    require(MerklePatriciaProof.verify(txBytes, path, txProof, txRoot) == true);
+
+    // raw tx
+    bytes[] memory rawTx = new bytes[](9);
+    for (uint8 i = 0; i <= 5; i++) {
+      rawTx[i] = txList[i].toData();
+    }
+    rawTx[4] = hex"";
+    rawTx[6] = '\x0d'; // '\x3e'
+    rawTx[7] = hex"";
+    rawTx[8] = hex"";
+
+    // recover sender from v, r and s
+    require(
+      msg.sender == ecrecover(
+        keccak256(RLPEncode.encodeList(rawTx)),
+        _getV(txList[6].toData(), 13),
+        txList[7].toBytes32(),
+        txList[8].toBytes32()
+      )
+    );
+  }
+
+  function _getV(bytes v, uint8 chainId) internal constant returns (uint8) {
+    if (chainId > 0) {
+      return uint8(BytesLib.toUint(BytesLib.leftPad(v), 0) - (chainId * 2) - 8);
+    } else {
+      return uint8(BytesLib.toUint(BytesLib.leftPad(v), 0));
+    }
+  }
+
+  function _processWithdrawReceipt(
+    bytes receiptBytes,
+    bytes path,
+    bytes receiptProof,
+    bytes32 receiptRoot
+  ) internal view returns (address rootToken, uint256 amount) {
+    // check receipt
+    RLP.RLPItem[] memory items = receiptBytes.toRLPItem().toList();
+    require(items.length == 4);
+
+    // [3][0] -> [child token address, [withdrawEventSignature, root token address, sender], amount]
+    items = items[3].toList()[0].toList();
+    require(items.length == 3);
+    address childToken = items[0].toAddress(); // child token address
+    amount = items[2].toUint(); // amount
+
+    // [3][0][1] -> [withdrawEventSignature, root token address, sender]
+    items = items[1].toList();
+    require(items.length == 3);
+    require(items[0].toBytes32() == withdrawEventSignature); // check for withdraw event signature
+
+    // check if root token is mapped to child token
+    rootToken = BytesLib.toAddress(items[1].toData(), 12); // fetch root token address
+    require(tokens[rootToken] == childToken);
+
+    // check if sender is valid
+    require(msg.sender == BytesLib.toAddress(items[2].toData(), 12));
+
+    // Make sure this receipt is the value on the path via a MerklePatricia proof
+    require(MerklePatriciaProof.verify(receiptBytes, path, receiptProof, receiptRoot) == true);
+  }
+
+  function _checkBlockHeader(
+    bytes32 value,
+    bytes proof,
+    uint256 blockNumber,
+    uint256 headerNumber
+  ) internal {
+    HeaderBlock memory h = headerBlocks[headerNumber];
+    require(value.checkMembership(blockNumber - h.start, h.root, proof));
   }
 }

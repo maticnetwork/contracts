@@ -1,6 +1,6 @@
 /* solhint-disable */
 
-pragma solidity 0.4.18;
+pragma solidity ^0.4.18;
 
 
 /**
@@ -162,8 +162,7 @@ library RLP {
  /// @param self The RLP item.
  /// @return An 'Iterator' over the item.
  function iterator(RLPItem memory self) internal constant returns (Iterator memory it) {
-     if (!isList(self))
-         throw;
+     require(isList(self));
      uint ptr = self._unsafe_memPtr + _payloadOffset(self);
      it._unsafe_item = self;
      it._unsafe_nextPtr = ptr;
@@ -185,8 +184,7 @@ library RLP {
  /// @param self The RLPItem.
  /// @return The decoded string.
  function toData(RLPItem memory self) internal constant returns (bytes memory bts) {
-     if(!isData(self))
-         throw;
+     require(isData(self));
      var (rStartPos, len) = _decode(self);
      bts = new bytes(len);
      _copyToBytes(rStartPos, bts, len);
@@ -197,8 +195,7 @@ library RLP {
  /// @param self The RLP item.
  /// @return Array of RLPItems.
  function toList(RLPItem memory self) internal constant returns (RLPItem[] memory list) {
-     if(!isList(self))
-         throw;
+     require(isList(self));
      var numItems = items(self);
      list = new RLPItem[](numItems);
      var it = iterator(self);
@@ -214,8 +211,7 @@ library RLP {
  /// @param self The RLPItem.
  /// @return The decoded string.
  function toAscii(RLPItem memory self) internal constant returns (string memory str) {
-     if(!isData(self))
-         throw;
+     require(isData(self));
      var (rStartPos, len) = _decode(self);
      bytes memory bts = new bytes(len);
      _copyToBytes(rStartPos, bts, len);
@@ -227,11 +223,9 @@ library RLP {
  /// @param self The RLPItem.
  /// @return The decoded string.
  function toUint(RLPItem memory self) internal constant returns (uint data) {
-     if(!isData(self))
-         throw;
+     require(isData(self));
      var (rStartPos, len) = _decode(self);
-     if (len > 32)
-         throw;
+     require(len <= 32);
      assembly {
          data := div(mload(rStartPos), exp(256, sub(32, len)))
      }
@@ -242,17 +236,14 @@ library RLP {
  /// @param self The RLPItem.
  /// @return The decoded string.
  function toBool(RLPItem memory self) internal constant returns (bool data) {
-     if(!isData(self))
-         throw;
+     require(isData(self));
      var (rStartPos, len) = _decode(self);
-     if (len != 1)
-         throw;
+     require(len == 1);
      uint temp;
      assembly {
          temp := byte(0, mload(rStartPos))
      }
-     if (temp > 1)
-         throw;
+     require(temp == 1 || temp == 0);
      return temp == 1 ? true : false;
  }
 
@@ -267,8 +258,7 @@ library RLP {
     {
         require(isData(self));
         var (rStartPos, len) = _decode(self);
-        if (len != 1)
-            throw;
+        require(len == 1);
         uint temp;
         assembly {
             temp := byte(0, mload(rStartPos))
@@ -311,8 +301,7 @@ library RLP {
     {
         require(isData(self));
         var (rStartPos, len) = _decode(self);
-        if (len != 20)
-            throw;
+        require(len == 20);
         assembly {
             data := div(mload(rStartPos), exp(256, 12))
         }
