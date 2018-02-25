@@ -9,6 +9,10 @@ cache:
     - node_modules
 matrix:
   fast_finish: true
+before_install:
+  - sudo add-apt-repository -y ppa:ethereum/ethereum
+  - sudo apt-get -qq update
+  - sudo apt-get install ethereum
 script:
   - npm run lint
   - npm run test-ci

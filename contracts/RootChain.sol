@@ -207,7 +207,7 @@ contract RootChain is Ownable {
   }
 
   // Sample a proposer. Likelihood of being chosen is proportional to stake size.
-  function getProposer() public constant returns (address) {
+  function getProposer() public view returns (address) {
     // Convert the seed to an index
     uint256 target = uint256(epochSeed) % totalStake;
     // Index of stake list
@@ -420,7 +420,7 @@ contract RootChain is Ownable {
     );
   }
 
-  function _getV(bytes v, uint8 chainId) internal constant returns (uint8) {
+  function _getV(bytes v, uint8 chainId) internal pure returns (uint8) {
     if (chainId > 0) {
       return uint8(BytesLib.toUint(BytesLib.leftPad(v), 0) - (chainId * 2) - 8);
     } else {

@@ -143,7 +143,7 @@ library BytesLib {
     return out;
   }
 
-  function fromBytes32(bytes32 x) internal constant returns (bytes) {
+  function fromBytes32(bytes32 x) internal pure returns (bytes) {
     bytes memory b = new bytes(32);
     for (uint i = 0; i < 32; i++) {
       b[i] = byte(uint8(uint(x) / (2**(8*(19 - i)))));
@@ -151,7 +151,7 @@ library BytesLib {
     return b;
   }
 
-  function fromUint(uint256 _num) internal constant returns (bytes _ret) {
+  function fromUint(uint256 _num) internal pure returns (bytes _ret) {
     // solhint-disable-next-line no-inline-assembly
     assembly {
       _ret := mload(0x10)
