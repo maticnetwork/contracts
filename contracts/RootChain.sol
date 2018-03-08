@@ -276,6 +276,17 @@ contract RootChain is Ownable {
   // User functions
   //
 
+  //function tokenFallback(address _from, uint256 _value, bytes _data) public {
+  //  // check if call is from root token contract
+  //  require(tokens[msg.sender] != address(0x0));
+  //
+  //  // check value
+  //  require(_value > 0);
+  //
+  //  // broadcast deposit event
+  //  Deposit(_from, msg.sender, _value);
+  //}
+
   // Any user can deposit
   function deposit(address token, uint256 amount) public {
     require(tokens[token] != address(0x0));
@@ -284,7 +295,7 @@ contract RootChain is Ownable {
     ERC20 t = ERC20(token);
     require(t.transferFrom(msg.sender, address(this), amount));
 
-    // broadcast deposit events
+    // broadcast deposit event
     Deposit(msg.sender, token, amount);
   }
 
