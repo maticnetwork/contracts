@@ -21,7 +21,7 @@ module.exports = async function(deployer) {
   deployer.link(SafeMath, [RootChain, ChildChain])
   deployer.link(MerklePatriciaProof, [RootChain, ChildChain])
 
-  await deployer.deploy(RootToken)
+  await deployer.deploy(RootToken, 'Test Token', 'TEST')
   const rootToken = await RootToken.deployed()
   await deployer.deploy(RootChain, rootToken.address)
 }

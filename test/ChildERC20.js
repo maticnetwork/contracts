@@ -29,7 +29,7 @@ contract('ChildERC20', async function(accounts) {
 
   describe('Initialization', async function() {
     it('should initialize properly ', async function() {
-      const rootToken = await RootToken.new()
+      const rootToken = await RootToken.new('Test Token', 'TEST')
       const childToken = await ChildToken.new(rootToken.address)
       assert.equal(await childToken.owner(), accounts[0])
       assert.equal(await childToken.token(), rootToken.address)
@@ -42,8 +42,8 @@ contract('ChildERC20', async function(accounts) {
     let childToken
 
     before(async function() {
-      rootToken = await RootToken.new()
-      rootToken2 = await RootToken.new()
+      rootToken = await RootToken.new('Test Token', 'TEST')
+      rootToken2 = await RootToken.new('Test Token', 'TEST')
       childToken = await ChildToken.new(rootToken.address)
     })
 
@@ -70,7 +70,7 @@ contract('ChildERC20', async function(accounts) {
     let amount
 
     before(async function() {
-      rootToken = await RootToken.new()
+      rootToken = await RootToken.new('Test Token', 'TEST')
       childToken = await ChildToken.new(rootToken.address)
       amount = web3.toWei(10)
     })
@@ -94,7 +94,7 @@ contract('ChildERC20', async function(accounts) {
     let amount
 
     before(async function() {
-      rootToken = await RootToken.new()
+      rootToken = await RootToken.new('Test Token', 'TEST')
       childToken = await ChildToken.new(rootToken.address)
       amount = web3.toWei(10)
       await childToken.deposit(amount)

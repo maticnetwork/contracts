@@ -1,6 +1,5 @@
 import bip39 from 'bip39'
 import utils from 'ethereumjs-util'
-import hdkey from 'ethereumjs-wallet/hdkey'
 import {Buffer} from 'safe-buffer'
 
 import assertRevert from './helpers/assertRevert.js'
@@ -92,7 +91,7 @@ contract('RootChain', async function(accounts) {
       // link libs
       await linkLibs(accounts[0])
 
-      stakingToken = await RootToken.new()
+      stakingToken = await RootToken.new('Stake Token', 'STAKE')
       rootChainContract = await RootChain.new(stakingToken.address, {
         from: accounts[0]
       })
@@ -130,7 +129,7 @@ contract('RootChain', async function(accounts) {
       // link libs
       await linkLibs(accounts[0])
 
-      stakingToken = await RootToken.new()
+      stakingToken = await RootToken.new('Stake Token', 'STAKE')
       rootChainContract = await RootChain.new(stakingToken.address, {
         from: accounts[0]
       })
@@ -272,7 +271,7 @@ contract('RootChain', async function(accounts) {
       // link libs
       await linkLibs(accounts[0])
 
-      stakingToken = await RootToken.new()
+      stakingToken = await RootToken.new('Stake Token', 'STAKE')
       rootChainContract = await RootChain.new(stakingToken.address, {
         from: accounts[0]
       })
@@ -368,8 +367,8 @@ contract('RootChain', async function(accounts) {
       // link libs
       await linkLibs(accounts[0])
 
-      stakingToken = await RootToken.new()
-      rootToken = await RootToken.new()
+      stakingToken = await RootToken.new('Stake Token', 'STAKE')
+      rootToken = await RootToken.new('Test Token', 'TEST')
       childToken = await ChildToken.new(rootToken.address)
       rootChainContract = await RootChain.new(stakingToken.address, {
         from: accounts[0]
@@ -413,8 +412,8 @@ contract('RootChain', async function(accounts) {
       // link libs
       await linkLibs(accounts[0])
 
-      stakingToken = await RootToken.new()
-      rootToken = await RootToken.new({from: accounts[9]})
+      stakingToken = await RootToken.new('Stake Token', 'STAKE')
+      rootToken = await RootToken.new('Test Token', 'TEST', {from: accounts[9]})
       rootChainContract = await RootChain.new(stakingToken.address, {
         from: accounts[0]
       })
@@ -507,8 +506,8 @@ contract('RootChain', async function(accounts) {
       // link libs
       await linkLibs(accounts[0])
 
-      stakingToken = await RootToken.new()
-      rootToken = await RootToken.new({from: accounts[9]})
+      stakingToken = await RootToken.new('Stake Token', 'STAKE')
+      rootToken = await RootToken.new('Test Token', 'TEST', {from: accounts[9]})
       rootChainContract = await RootChain.new(stakingToken.address, {
         from: accounts[0]
       })

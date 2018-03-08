@@ -39,7 +39,7 @@ contract('ChildChain', async function(accounts) {
 
     before(async function() {
       childChainContract = await ChildChain.new()
-      rootToken = await RootToken.new()
+      rootToken = await RootToken.new('Test Token', 'TEST')
     })
 
     it('should allow only owner to add new token ', async function() {
@@ -99,8 +99,8 @@ contract('ChildChain', async function(accounts) {
 
     before(async function() {
       childChainContract = await ChildChain.new()
-      rootToken = await RootToken.new()
-      rootToken2 = await RootToken.new()
+      rootToken = await RootToken.new('Test Token', 'TEST')
+      rootToken2 = await RootToken.new('Test Token', 'TEST')
 
       // add token
       const receipt = await childChainContract.addToken(rootToken.address, {

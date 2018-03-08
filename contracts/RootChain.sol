@@ -14,6 +14,7 @@ import "./token/ERC20.sol";
 contract RootChain is Ownable {
   using SafeMath for uint256;
   using Merkle for bytes32;
+  using ECVerify for bytes32;
   using RLP for bytes;
   using RLP for RLP.RLPItem;
   using RLP for RLP.Iterator;
@@ -250,7 +251,7 @@ contract RootChain is Ownable {
     var sigList = sigs.toRLPItem().toList();
     address[] memory uniqueStakers = new address[](sigList.length);
     for (uint64 i = 0; i < sigList.length; i += 1) {
-      address signer = ECVerify.ecrecovery(h, sigList[i].toData());
+      address signer = h.ecrecovery(sigList[i].toData());
       bool duplicate = false;
 
       // check if signer is stacker and not proposer
