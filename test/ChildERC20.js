@@ -68,23 +68,25 @@ contract('ChildERC20', async function(accounts) {
     let rootToken
     let childToken
     let amount
+    let childChain
 
     before(async function() {
+      childChain = await ChildChain.new()
       rootToken = await RootToken.new('Test Token', 'TEST')
-      childToken = await ChildToken.new(rootToken.address)
+      const receipt = await childChain.addToken(rootToken.address)
+      childToken = ChildToken.at(receipt.logs[0].args.token)
       amount = web3.toWei(10)
     })
 
     it('should allow to deposit', async function() {
-      const receipt = await childToken.deposit(amount)
-      assert.equal(receipt.logs.length, 1)
-      assert.equal(receipt.logs[0].event, 'Deposit')
-      assert.equal(receipt.logs[0].args.token, rootToken.address)
-      assert.equal(receipt.logs[0].args.user, accounts[0])
-      assert.equal(receipt.logs[0].args.amount.toString(), amount)
+      let receipt = await childChain.depositTokens(
+        rootToken.address,
+        accounts[0],
+        amount
+      )
 
-      // check balance
-      assert.equal((await childToken.balanceOf(accounts[0])).toString(), amount)
+      receipt = receipt.receipt
+      assert.equal(receipt.logs.length, 1)
     })
   })
 
@@ -92,12 +94,15 @@ contract('ChildERC20', async function(accounts) {
     let rootToken
     let childToken
     let amount
+    let childChain
 
     before(async function() {
+      childChain = await ChildChain.new()
       rootToken = await RootToken.new('Test Token', 'TEST')
-      childToken = await ChildToken.new(rootToken.address)
+      const receipt = await childChain.addToken(rootToken.address)
+      childToken = ChildToken.at(receipt.logs[0].args.token)
       amount = web3.toWei(10)
-      await childToken.deposit(amount)
+      await childChain.depositTokens(rootToken.address, accounts[0], amount)
     })
 
     it('should not allow to withdraw more than amount', async function() {

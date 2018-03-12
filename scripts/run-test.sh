@@ -44,7 +44,7 @@ start_geth() {
   if [ ! -d "$PWD/private-blockchain/geth" ]; then
     geth --datadir "$PWD/private-blockchain" init "$PWD/private-blockchain/genesis.json"
   fi
-  geth --datadir "$PWD/private-blockchain" --targetgaslimit '9000000000000' --rpc --rpcport 8546 --rpccorsdomain "*" --wsorigins "*" --unlock "0x9fb29aac15b9a4b7f17c3385939b007540f4d791,0xacf8eccdca12a0eb6ae4fb1431e26c44e66decdb" --password "$PWD/scripts/password" --networkid 13 --mine > /dev/null &
+  geth --datadir "$PWD/private-blockchain" --targetgaslimit '900000000000000' --rpc --rpcport 8546 --rpccorsdomain "*" --wsorigins "*" --unlock "0x9fb29aac15b9a4b7f17c3385939b007540f4d791,0xacf8eccdca12a0eb6ae4fb1431e26c44e66decdb" --password "$PWD/scripts/password" --networkid 13 --mine > /dev/null &
   geth_pid=$!
 }
 

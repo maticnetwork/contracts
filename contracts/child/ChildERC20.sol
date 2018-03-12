@@ -40,17 +40,21 @@ contract ChildERC20 is StandardToken, Ownable {
     token = _token;
   }
 
-  function deposit(uint256 amount) public {
-    // check for amount
-    require(amount > 0);
-
-    // TODO prove deposit on main chain
+  /**
+   * Deposit tokens
+   *
+   * @param user address for address
+   * @param amount token balance
+   */
+  function deposit(address user, uint256 amount) public onlyOwner {
+    // check for amount and user
+    require(amount > 0 && user != address(0x0));
 
     // increase balance
-    balances[msg.sender] = balances[msg.sender].add(amount);
+    balances[user] = balances[user].add(amount);
 
     // deposit event
-    Deposit(token, msg.sender, amount);
+    Deposit(token, user, amount);
   }
 
   function withdraw(uint256 amount) public {

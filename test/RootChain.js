@@ -555,7 +555,9 @@ contract('RootChain', async function(accounts) {
       // deposit to root & child token
       await rootToken.approve(rootChainContract.address, amount, {from: user})
       await rootChainContract.deposit(rootToken.address, amount, {from: user})
-      await childToken.deposit(amount, {from: user})
+      await childChain.depositTokens(rootToken.address, user, amount, {
+        from: user
+      })
       assert.equal(
         (await rootToken.balanceOf(rootChainContract.address)).toString(),
         amount

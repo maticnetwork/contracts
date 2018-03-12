@@ -61,4 +61,20 @@ contract ChildChain is Ownable {
     ChildERC20 childToken = ChildERC20(childTokenAddress);
     childToken.updateToken(_newRootToken);
   }
+
+  function depositTokens(
+    address rootToken,
+    address user,
+    uint256 amount
+  ) public onlyOwner {
+    // retrieve child tokens
+    address childToken = tokens[rootToken];
+
+    // check if child token is mapped
+    require(childToken != address(0x0));
+
+    // deposit tokens
+    ChildERC20 obj = ChildERC20(childToken);
+    obj.deposit(user, amount);
+  }
 }
