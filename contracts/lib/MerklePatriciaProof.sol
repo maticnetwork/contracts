@@ -24,7 +24,7 @@ library MerklePatriciaProof {
     bytes encodedPath,
     bytes rlpParentNodes,
     bytes32 root
-  ) internal constant returns (bool) {
+  ) public constant returns (bool) {
     RLP.RLPItem memory item = RLP.toRLPItem(rlpParentNodes);
     RLP.RLPItem[] memory parentNodes = RLP.toList(item);
 

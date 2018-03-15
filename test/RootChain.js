@@ -23,9 +23,10 @@ const rlp = utils.rlp
 
 let ECVerify = artifacts.require('./lib/ECVerify.sol')
 let RLP = artifacts.require('./lib/RLP.sol')
-let PatriciaUtils = artifacts.require('./lib/PatriciaUtils.sol')
 let SafeMath = artifacts.require('./lib/SafeMath.sol')
 let MerklePatriciaProof = artifacts.require('./lib/MerklePatriciaProof.sol')
+let Merkle = artifacts.require('./lib/Merkle.sol')
+let RLPEncode = artifacts.require('./lib/RLPEncode.sol')
 
 let RootChain = artifacts.require('./RootChain.sol')
 let ChildChain = artifacts.require('./child/ChildChain.sol')
@@ -48,10 +49,9 @@ contract('RootChain', async function(accounts) {
   async function linkLibs() {
     const libContracts = {
       ECVerify: await ECVerify.new(),
-      RLP: await RLP.new(),
-      PatriciaUtils: await PatriciaUtils.new(),
-      SafeMath: await SafeMath.new(),
-      MerklePatriciaProof: await MerklePatriciaProof.new()
+      MerklePatriciaProof: await MerklePatriciaProof.new(),
+      Merkle: await Merkle.new(),
+      RLPEncode: await RLPEncode.new()
     }
 
     Object.keys(libContracts).forEach(key => {

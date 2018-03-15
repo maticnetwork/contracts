@@ -3,8 +3,6 @@ import utils from 'ethereumjs-util'
 
 let ECVerify = artifacts.require('./lib/ECVerify.sol')
 let RLP = artifacts.require('./lib/RLP.sol')
-let PatriciaUtils = artifacts.require('./lib/PatriciaUtils.sol')
-let SafeMath = artifacts.require('./lib/SafeMath.sol')
 
 let ChildChain = artifacts.require('./child/ChildChain.sol')
 let ChildToken = artifacts.require('./child/ChildERC20.sol')
@@ -17,9 +15,7 @@ contract('ChildERC20', async function(accounts) {
   async function linkLibs() {
     const libContracts = {
       ECVerify: await ECVerify.new(),
-      RLP: await RLP.new(),
-      PatriciaUtils: await PatriciaUtils.new(),
-      SafeMath: await SafeMath.new()
+      RLP: await RLP.new()
     }
 
     Object.keys(libContracts).forEach(key => {

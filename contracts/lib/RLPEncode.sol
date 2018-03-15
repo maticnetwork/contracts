@@ -33,17 +33,17 @@ library RLPEncode {
 	// Hack to encode nested lists. If you have a list as an item passed here, included
 	// pass = true in that index. E.g.
 	// [item, list, item] --> pass = [false, true, false]
-	function encodeListWithPasses(bytes[] memory self, bool[] pass) internal pure returns (bytes) {
-    bytes memory encoded;
-    for (uint i=0; i < self.length; i++) {
-			if (pass[i] == true) {
-				encoded = BytesLib.concat(encoded, self[i]);
-			} else {
-				encoded = BytesLib.concat(encoded, encodeItem(self[i]));
-			}
-    }
-    return BytesLib.concat(encodeLength(encoded.length, 192), encoded);
-  }
+	// function encodeListWithPasses(bytes[] memory self, bool[] pass) internal pure returns (bytes) {
+  //   bytes memory encoded;
+  //   for (uint i=0; i < self.length; i++) {
+	// 		if (pass[i] == true) {
+	// 			encoded = BytesLib.concat(encoded, self[i]);
+	// 		} else {
+	// 			encoded = BytesLib.concat(encoded, encodeItem(self[i]));
+	// 		}
+  //   }
+  //   return BytesLib.concat(encodeLength(encoded.length, 192), encoded);
+  // }
 
   // Generate the prefix for an item or the entire list based on RLP spec
   function encodeLength(uint256 L, uint256 offset) internal pure returns (bytes) {
@@ -65,7 +65,7 @@ library RLPEncode {
     }
   }
 
-	function getLengthBytes(uint256 x) pure returns (bytes b) {
+	function getLengthBytes(uint256 x) internal pure returns (bytes b) {
 		// Figure out if we need 1 or two bytes to express the length.
 		// 1 byte gets us to max 255
 		// 2 bytes gets us to max 65535 (no payloads will be larger than this)

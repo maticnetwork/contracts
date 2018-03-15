@@ -74,8 +74,9 @@ contract RootChain is Ownable {
   event Withdraw(address indexed user, address indexed token, uint256 amount);
   event NewHeaderBlock(
     address indexed proposer,
-    uint256 indexed start,
-    uint256 indexed end,
+    uint256 number,
+    uint256 start,
+    uint256 end,
     bytes32 root
   );
 
@@ -176,6 +177,13 @@ contract RootChain is Ownable {
       createdAt: block.timestamp
     });
     headerBlocks[currentHeaderBlock] = headerBlock;
+    NewHeaderBlock(
+      msg.sender,
+      currentHeaderBlock,
+      headerBlock.start,
+      headerBlock.end,
+      root
+    );
     currentHeaderBlock = currentHeaderBlock.add(1);
 
     // Calculate the reward and issue it
@@ -187,13 +195,6 @@ contract RootChain is Ownable {
     //   require(msg.sender == getProposer());
     // }
     // msg.sender.transfer(r);
-
-    NewHeaderBlock(
-      msg.sender,
-      headerBlock.start,
-      headerBlock.end,
-      root
-    );
 
     // set epoch seed
     epochSeed = keccak256(block.difficulty + block.number + now);

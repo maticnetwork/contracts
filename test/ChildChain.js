@@ -2,7 +2,6 @@ import assertRevert from './helpers/assertRevert.js'
 
 let ECVerify = artifacts.require('./lib/ECVerify.sol')
 let RLP = artifacts.require('./lib/RLP.sol')
-let PatriciaUtils = artifacts.require('./lib/PatriciaUtils.sol')
 let SafeMath = artifacts.require('./lib/SafeMath.sol')
 
 let ChildChain = artifacts.require('./child/ChildChain.sol')
@@ -15,9 +14,7 @@ contract('ChildChain', async function(accounts) {
   async function linkLibs() {
     const libContracts = {
       ECVerify: await ECVerify.new(),
-      RLP: await RLP.new(),
-      PatriciaUtils: await PatriciaUtils.new(),
-      SafeMath: await SafeMath.new()
+      RLP: await RLP.new()
     }
 
     Object.keys(libContracts).forEach(key => {

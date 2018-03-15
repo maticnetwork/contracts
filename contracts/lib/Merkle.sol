@@ -7,7 +7,7 @@ library Merkle {
     uint256 mainIndex,
     bytes32 rootHash,
     bytes proof
-  ) internal pure returns (bool) {
+  ) public pure returns (bool) {
     bytes32 proofElement;
     bytes32 computedHash = leaf;
     uint256 len = (proof.length / 32) * 32;
