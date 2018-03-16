@@ -2,6 +2,7 @@ pragma solidity ^0.4.18;
 
 import "./Ownable.sol";
 
+
 contract Lockable is Ownable {
   bool public locked;
 
