@@ -129,7 +129,11 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      await stakeManager.stake(amount, '0x0', {from: user})
+      const receipt = await stakeManager.stake(amount, '0x0', {from: user})
+      assert.equal(receipt.logs[0].event, 'Staked')
+      assert.equal(receipt.logs[0].args.user, user)
+      assert.equal(receipt.logs[0].args.amount.toString(), amount)
+      assert.equal(receipt.logs[0].args.total.toString(), amount)
 
       // check amount and stake sum
       assert.equal(await stakeManager.totalStaked(), amount)
@@ -191,7 +195,13 @@ contract('StakeManager', async function(accounts) {
       const user = wallets[4].getAddressString()
 
       // unstake
-      await stakeManager.unstake(web3.toWei(26), '0x0', {from: user})
+      const receipt = await stakeManager.unstake(web3.toWei(26), '0x0', {
+        from: user
+      })
+      assert.equal(receipt.logs[0].event, 'Unstaked')
+      assert.equal(receipt.logs[0].args.user, user)
+      assert.equal(receipt.logs[0].args.amount.toString(), web3.toWei(26))
+      assert.equal(receipt.logs[0].args.total.toString(), web3.toWei(100 - 26))
 
       // check amount and stake sum
       assert.equal(await stakeManager.totalStaked(), web3.toWei(126 - 26))
