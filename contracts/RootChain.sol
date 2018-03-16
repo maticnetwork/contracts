@@ -48,8 +48,8 @@ contract RootChain is Ownable {
   uint256 public currentHeaderBlock;
 
   // Constructor
-  function RootChain(address token) public {
-    stakeManager = StakeManagerInterface(token);
+  function RootChain(address _stakeManager) public {
+    setStakeManager(_stakeManager);
   }
 
   //
@@ -75,6 +75,11 @@ contract RootChain is Ownable {
   //
   // PoS functions
   //
+
+  function setStakeManager(address _stakeManager) public onlyOwner {
+    require(_stakeManager != 0x0);
+    stakeManager = StakeManagerInterface(_stakeManager);
+  }
 
   function submitHeaderBlock(bytes32 root, uint256 end, bytes sigs) public {
     uint256 start = currentChildBlock();

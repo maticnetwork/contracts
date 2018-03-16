@@ -32,6 +32,7 @@ let RootChain = artifacts.require('./RootChain.sol')
 let ChildChain = artifacts.require('./child/ChildChain.sol')
 let ChildToken = artifacts.require('./child/ChildERC20.sol')
 let RootToken = artifacts.require('./TestToken.sol')
+let StakeManager = artifacts.require('./StakeManager.sol')
 
 ChildChain.web3 = web3Child
 ChildToken.web3 = web3Child
@@ -57,6 +58,7 @@ contract('RootChain', async function(accounts) {
     Object.keys(libContracts).forEach(key => {
       RootChain.link(key, libContracts[key].address)
       ChildChain.link(key, libContracts[key].address)
+      StakeManager.link(key, libContracts[key].address)
     })
   }
 
@@ -80,180 +82,41 @@ contract('RootChain', async function(accounts) {
   }
 
   function encodeSigs(sigs = []) {
-    return rlp.encode(sigs)
+    return Buffer.concat(sigs.map(s => utils.toBuffer(s)))
   }
 
   describe('initialization', async function() {
-    let stakingToken
-    let rootChainContract
+    let stakeToken
+    let stakeManager
+    let rootChain
 
     before(async function() {
       // link libs
       await linkLibs(accounts[0])
 
-      stakingToken = await RootToken.new('Stake Token', 'STAKE')
-      rootChainContract = await RootChain.new(stakingToken.address, {
-        from: accounts[0]
-      })
+      stakeToken = await RootToken.new('Stake Token', 'STAKE')
+      stakeManager = await StakeManager.new(stakeToken.address)
+      rootChain = await RootChain.new(stakeManager.address)
+      await stakeManager.setRootChain(rootChain.address)
     })
 
-    it('should set token address and owner properly', async function() {
-      assert.equal(await rootChainContract.stakeToken(), stakingToken.address)
+    it('should set stake manager address', async function() {
+      assert.equal(await rootChain.stakeManager(), stakeManager.address)
     })
 
     it('should set owner properly', async function() {
-      assert.equal(await rootChainContract.owner(), accounts[0])
-    })
-  })
-
-  // wallets
-  describe('Wallets', async function() {
-    it('should create wallets for first 5 accounts', async function() {
-      const wallets = generateFirstWallets(mnemonics, 5)
-      assert(wallets.length == 5)
-      assert(wallets[1].getAddressString() == accounts[1])
-      assert(wallets[2].getAddressString() == accounts[2])
-      assert(wallets[3].getAddressString() == accounts[3])
-    })
-  })
-
-  // staking
-  describe('Admin: staking', async function() {
-    let stakingToken
-    let rootChainContract
-    let wallets
-
-    before(async function() {
-      wallets = generateFirstWallets(mnemonics, 5)
-
-      // link libs
-      await linkLibs(accounts[0])
-
-      stakingToken = await RootToken.new('Stake Token', 'STAKE')
-      rootChainContract = await RootChain.new(stakingToken.address, {
-        from: accounts[0]
-      })
-
-      // transfer tokens to other accounts
-      await stakingToken.transfer(
-        wallets[1].getAddressString(),
-        web3.toWei(100)
-      )
-      await stakingToken.transfer(
-        wallets[2].getAddressString(),
-        web3.toWei(100)
-      )
-      await stakingToken.transfer(
-        wallets[3].getAddressString(),
-        web3.toWei(100)
-      )
-      await stakingToken.transfer(
-        wallets[4].getAddressString(),
-        web3.toWei(100)
-      )
+      assert.equal(await rootChain.owner(), accounts[0])
     })
 
-    it('should set the validator threshold to 2', async function() {
-      const receipt = await rootChainContract.updateValidatorThreshold(2)
-      assert.equal(receipt.logs.length, 1)
-      assert.equal(receipt.logs[0].event, 'ThresholdChange')
-      assert.equal(+receipt.logs[0].args.newThreshold, 2)
-      assert.equal(parseInt(await rootChainContract.validatorThreshold()), 2)
-    })
-
-    it('should stake via wallets[1]', async function() {
-      const user = wallets[1].getAddressString()
-      const amount = web3.toWei(1)
-
-      // approve tranfer
-      await stakingToken.approve(rootChainContract.address, amount, {
-        from: user
-      })
-
-      // stake now
-      await rootChainContract.stake(amount, {from: user})
-
-      // check amount and stake sum
-      assert.equal(await rootChainContract.totalStake(), amount)
-      assert.equal(await rootChainContract.getStake(user), amount)
-    })
-
-    it('should stake via wallets[2]', async function() {
-      const user = wallets[2].getAddressString()
-      const amount = web3.toWei(5)
-
-      // approve tranfer
-      await stakingToken.approve(rootChainContract.address, amount, {
-        from: user
-      })
-
-      // stake now
-      await rootChainContract.stake(amount, {from: user})
-
-      // check amount and stake sum
-      assert.equal(await rootChainContract.totalStake(), web3.toWei(6))
-      assert.equal(await rootChainContract.getStake(user), amount)
-    })
-
-    it('should stake via wallets[3]', async function() {
-      const user = wallets[3].getAddressString()
-      const amount = web3.toWei(20)
-
-      // approve tranfer
-      await stakingToken.approve(rootChainContract.address, amount, {
-        from: user
-      })
-
-      // stake now
-      await rootChainContract.stake(amount, {from: user})
-
-      // check amount and stake sum
-      assert.equal(await rootChainContract.totalStake(), web3.toWei(26))
-      assert.equal(await rootChainContract.getStake(user), amount)
-    })
-
-    it('should stake via wallets[4]', async function() {
-      const user = wallets[4].getAddressString()
-      const amount = web3.toWei(100)
-
-      // approve tranfer
-      await stakingToken.approve(rootChainContract.address, amount, {
-        from: user
-      })
-
-      // stake now
-      await rootChainContract.stake(amount, {from: user})
-
-      // check amount and stake sum
-      assert.equal(await rootChainContract.totalStake(), web3.toWei(126))
-      assert.equal(await rootChainContract.getStake(user), amount)
-    })
-
-    it('should destake a small amount from wallets[4]', async() => {
-      const user = wallets[4].getAddressString()
-
-      // destake
-      await rootChainContract.destake(web3.toWei(26), {from: user})
-
-      // check amount and stake sum
-      assert.equal(await rootChainContract.totalStake(), web3.toWei(126 - 26))
-      assert.equal(await rootChainContract.getStake(user), web3.toWei(100 - 26))
-    })
-
-    it('should get the proposer and make sure it is a staker', async() => {
-      const proposer = await rootChainContract.getProposer()
-      assert.isOk(
-        proposer === wallets[1].getAddressString() ||
-          proposer === wallets[2].getAddressString() ||
-          proposer === wallets[3].getAddressString() ||
-          proposer === wallets[4].getAddressString()
-      )
+    it('should set root chain properly for stake manager', async function() {
+      assert.equal(await stakeManager.rootChain(), rootChain.address)
     })
   })
 
   describe('Stakers: header block', async function() {
-    let stakingToken
-    let rootChainContract
+    let stakeToken
+    let stakeManager
+    let rootChain
     let wallets
     let stakes = {
       1: web3.toWei(1),
@@ -266,36 +129,32 @@ contract('RootChain', async function(accounts) {
     let sigs
 
     before(async function() {
-      wallets = generateFirstWallets(mnemonics, Object.keys(stakes).length)
-
       // link libs
       await linkLibs(accounts[0])
 
-      stakingToken = await RootToken.new('Stake Token', 'STAKE')
-      rootChainContract = await RootChain.new(stakingToken.address, {
-        from: accounts[0]
-      })
+      wallets = generateFirstWallets(mnemonics, Object.keys(stakes).length)
+      stakeToken = await RootToken.new('Stake Token', 'STAKE')
+      stakeManager = await StakeManager.new(stakeToken.address)
+      rootChain = await RootChain.new(stakeManager.address)
+      await stakeManager.setRootChain(rootChain.address)
 
       for (var i = 1; i < wallets.length; i++) {
         const amount = stakes[i]
         const user = wallets[i].getAddressString()
 
         // get tokens
-        await stakingToken.transfer(user, amount)
+        await stakeToken.transfer(user, amount)
 
         // approve transfer
-        await stakingToken.approve(rootChainContract.address, amount, {
-          from: user
-        })
+        await stakeToken.approve(stakeManager.address, amount, {from: user})
 
         // stake
-        await rootChainContract.stake(amount, {from: user})
+        await stakeManager.stake(amount, '0x0', {from: user})
       }
 
       // increase threshold to 2
-      await rootChainContract.updateValidatorThreshold(2)
-
-      chain = await rootChainContract.chain()
+      await stakeManager.updateValidatorThreshold(2)
+      chain = await rootChain.chain()
       dummyRoot = utils.bufferToHex(utils.sha3('dummy'))
     })
 
@@ -303,42 +162,32 @@ contract('RootChain', async function(accounts) {
       sigs = utils.bufferToHex(
         encodeSigs(
           getSigs(wallets.slice(1), chain, 0, 10, dummyRoot, [
-            await rootChainContract.getProposer()
+            await stakeManager.getProposer()
           ])
         )
       )
 
-      const signers = await rootChainContract.checkSignatures(
-        dummyRoot,
-        0,
-        10,
-        sigs
-      )
+      const signers = await stakeManager.checkSignatures(dummyRoot, 0, 10, sigs)
 
       // total sigs = wallet.length - proposer - owner
       assert.equal(signers.toNumber(), wallets.length - 2)
 
       // current header block
-      const currentHeaderBlock = await rootChainContract.currentHeaderBlock()
+      const currentHeaderBlock = await rootChain.currentHeaderBlock()
       assert.equal(+currentHeaderBlock, 0)
 
       // check current child block
-      const currentChildBlock = await rootChainContract.currentChildBlock()
+      const currentChildBlock = await rootChain.currentChildBlock()
       assert.equal(+currentChildBlock, 0)
     })
 
     it('should allow proposer to submit block', async function() {
-      const proposer = await rootChainContract.getProposer()
+      const proposer = await stakeManager.getProposer()
 
       // submit header block
-      const receipt = await rootChainContract.submitHeaderBlock(
-        dummyRoot,
-        10,
-        sigs,
-        {
-          from: proposer
-        }
-      )
+      const receipt = await rootChain.submitHeaderBlock(dummyRoot, 10, sigs, {
+        from: proposer
+      })
 
       assert.equal(receipt.logs.length, 1)
       assert.equal(receipt.logs[0].event, 'NewHeaderBlock')
@@ -348,37 +197,38 @@ contract('RootChain', async function(accounts) {
       assert.equal(receipt.logs[0].args.root, dummyRoot)
 
       // current header block
-      const currentHeaderBlock = await rootChainContract.currentHeaderBlock()
+      const currentHeaderBlock = await rootChain.currentHeaderBlock()
       assert.equal(+currentHeaderBlock, 1)
 
       // current child block
-      const currentChildBlock = await rootChainContract.currentChildBlock()
+      const currentChildBlock = await rootChain.currentChildBlock()
       assert.equal(+currentChildBlock, 10)
     })
   })
 
   describe('Token: map tokens', async function() {
-    let stakingToken
+    let stakeToken
     let rootToken
     let childToken
-    let rootChainContract
+    let rootChain
+    let stakeManager
 
     before(async function() {
       // link libs
       await linkLibs(accounts[0])
 
-      stakingToken = await RootToken.new('Stake Token', 'STAKE')
+      stakeToken = await RootToken.new('Stake Token', 'STAKE')
       rootToken = await RootToken.new('Test Token', 'TEST')
+      stakeManager = await StakeManager.new(stakeToken.address)
+      rootChain = await RootChain.new(stakeManager.address)
+      await stakeManager.setRootChain(rootChain.address)
       childToken = await ChildToken.new(rootToken.address)
-      rootChainContract = await RootChain.new(stakingToken.address, {
-        from: accounts[0]
-      })
     })
 
     it('should allow to map token', async function() {
       // check if child has correct root token
       assert.equal(rootToken.address, await childToken.token())
-      const receipt = await rootChainContract.mapToken(
+      const receipt = await rootChain.mapToken(
         rootToken.address,
         childToken.address
       )
@@ -390,16 +240,17 @@ contract('RootChain', async function(accounts) {
 
     it('should have correct mapping', async function() {
       assert.equal(
-        await rootChainContract.tokens(rootToken.address),
+        await rootChain.tokens(rootToken.address),
         childToken.address
       )
     })
   })
 
   describe('Deposit: ERC20 tokens', async function() {
-    let stakingToken
+    let stakeToken
+    let stakeManager
     let rootToken
-    let rootChainContract
+    let rootChain
     let childChain
     let childToken
     let user
@@ -412,11 +263,11 @@ contract('RootChain', async function(accounts) {
       // link libs
       await linkLibs(accounts[0])
 
-      stakingToken = await RootToken.new('Stake Token', 'STAKE')
-      rootToken = await RootToken.new('Test Token', 'TEST', {from: accounts[9]})
-      rootChainContract = await RootChain.new(stakingToken.address, {
-        from: accounts[0]
-      })
+      stakeToken = await RootToken.new('Stake Token', 'STAKE')
+      rootToken = await RootToken.new('Test Token', 'TEST', {from: user})
+      stakeManager = await StakeManager.new(stakeToken.address)
+      rootChain = await RootChain.new(stakeManager.address)
+      await stakeManager.setRootChain(rootChain.address)
 
       // create child chain
       childChain = await ChildChain.new({
@@ -440,8 +291,8 @@ contract('RootChain', async function(accounts) {
       childToken = ChildToken.at(childTokenReceipt.logs[0].args.token)
 
       // map token
-      await rootChainContract.mapToken(rootToken.address, childToken.address)
-      chain = await rootChainContract.chain()
+      await rootChain.mapToken(rootToken.address, childToken.address)
+      chain = await rootChain.chain()
     })
 
     it('should allow anyone to deposit tokens', async function() {
@@ -453,16 +304,10 @@ contract('RootChain', async function(accounts) {
       // deposit
       const amount = web3.toWei(10)
       // approve transfer
-      await rootToken.approve(rootChainContract.address, amount, {
+      await rootToken.approve(rootChain.address, amount, {from: user})
+      const receipt = await rootChain.deposit(rootToken.address, amount, {
         from: user
       })
-      const receipt = await rootChainContract.deposit(
-        rootToken.address,
-        amount,
-        {
-          from: user
-        }
-      )
       assert.equal(receipt.logs.length, 1)
       assert.equal(receipt.logs[0].event, 'Deposit')
       assert.equal(receipt.logs[0].args.user, user)
@@ -472,9 +317,10 @@ contract('RootChain', async function(accounts) {
   })
 
   describe('Withdraw: merkle proof', async function() {
-    let stakingToken
+    let stakeToken
     let rootToken
-    let rootChainContract
+    let rootChain
+    let stakeManager
     let wallets
     let stakes = {
       1: web3.toWei(1),
@@ -506,11 +352,11 @@ contract('RootChain', async function(accounts) {
       // link libs
       await linkLibs(accounts[0])
 
-      stakingToken = await RootToken.new('Stake Token', 'STAKE')
-      rootToken = await RootToken.new('Test Token', 'TEST', {from: accounts[9]})
-      rootChainContract = await RootChain.new(stakingToken.address, {
-        from: accounts[0]
-      })
+      stakeToken = await RootToken.new('Stake Token', 'STAKE')
+      rootToken = await RootToken.new('Test Token', 'TEST', {from: user})
+      stakeManager = await StakeManager.new(stakeToken.address)
+      rootChain = await RootChain.new(stakeManager.address)
+      await stakeManager.setRootChain(rootChain.address)
 
       // create child chain
       childChain = await ChildChain.new({from: user, gas: 6000000})
@@ -524,42 +370,41 @@ contract('RootChain', async function(accounts) {
       childToken = ChildToken.at(childTokenReceipt.logs[0].args.token)
 
       // map token
-      await rootChainContract.mapToken(rootToken.address, childToken.address)
+      await rootChain.mapToken(rootToken.address, childToken.address)
 
       for (var i = 1; i < wallets.length; i++) {
         const amount = stakes[i]
         const user = wallets[i].getAddressString()
 
         // get tokens
-        await stakingToken.transfer(user, amount)
+        await stakeToken.transfer(user, amount)
 
         // approve transfer
-        await stakingToken.approve(rootChainContract.address, amount, {
-          from: user
-        })
+        await stakeToken.approve(stakeManager.address, amount, {from: user})
 
         // stake
-        await rootChainContract.stake(amount, {from: user})
+        await stakeManager.stake(amount, '0x0', {from: user})
       }
 
       // increase threshold to 2
-      await rootChainContract.updateValidatorThreshold(2)
+      await stakeManager.updateValidatorThreshold(2)
 
-      chain = await rootChainContract.chain()
+      chain = await rootChain.chain()
     })
 
     it('should allow to deposit before withdraw', async function() {
+      assert.equal(true, true)
       const user = accounts[9]
       const amount = web3.toWei(10)
 
       // deposit to root & child token
-      await rootToken.approve(rootChainContract.address, amount, {from: user})
-      await rootChainContract.deposit(rootToken.address, amount, {from: user})
+      await rootToken.approve(rootChain.address, amount, {from: user})
+      await rootChain.deposit(rootToken.address, amount, {from: user})
       await childChain.depositTokens(rootToken.address, user, amount, {
         from: user
       })
       assert.equal(
-        (await rootToken.balanceOf(rootChainContract.address)).toString(),
+        (await rootToken.balanceOf(rootChain.address)).toString(),
         amount
       )
       assert.equal((await childToken.balanceOf(user)).toString(), amount)
@@ -593,17 +438,12 @@ contract('RootChain', async function(accounts) {
       sigs = utils.bufferToHex(
         encodeSigs(
           getSigs(wallets.slice(1), chain, start, end, root, [
-            await rootChainContract.getProposer()
+            await stakeManager.getProposer()
           ])
         )
       )
 
-      const signers = await rootChainContract.checkSignatures(
-        root,
-        start,
-        end,
-        sigs
-      )
+      const signers = await stakeManager.checkSignatures(root, start, end, sigs)
 
       // assert for enough signers
       assert.equal(signers.toNumber(), wallets.length - 2)
@@ -619,10 +459,10 @@ contract('RootChain', async function(accounts) {
         )
       )
 
-      const proposer = await rootChainContract.getProposer()
+      const proposer = await stakeManager.getProposer()
 
       // submit header block
-      const receipt = await rootChainContract.submitHeaderBlock(
+      const receipt = await rootChain.submitHeaderBlock(
         utils.bufferToHex(tree.getRoot()),
         end,
         sigs,
@@ -639,11 +479,11 @@ contract('RootChain', async function(accounts) {
       assert.equal(receipt.logs[0].args.root, utils.bufferToHex(tree.getRoot()))
 
       // current header block
-      const currentHeaderBlock = await rootChainContract.currentHeaderBlock()
+      const currentHeaderBlock = await rootChain.currentHeaderBlock()
       assert.equal(+currentHeaderBlock, 1)
 
       // current child block
-      const currentChildBlock = await rootChainContract.currentChildBlock()
+      const currentChildBlock = await rootChain.currentChildBlock()
       assert.equal(+currentChildBlock, end)
     })
 
@@ -672,8 +512,8 @@ contract('RootChain', async function(accounts) {
       const headerProof = await tree.getProof(getBlockHeader(withdrawBlock))
 
       // let's withdraw from root chain :)
-      const headerNumber = await rootChainContract.currentHeaderBlock()
-      const startWithdrawReceipt = await rootChainContract.withdraw(
+      const headerNumber = await rootChain.currentHeaderBlock()
+      const startWithdrawReceipt = await rootChain.withdraw(
         +headerNumber.sub(new BN(1)).toString(), // header block
         utils.bufferToHex(Buffer.concat(headerProof)), // header proof
 
