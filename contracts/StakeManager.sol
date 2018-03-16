@@ -213,8 +213,9 @@ contract StakeManager is StakeManagerInterface, Lockable {
       bool duplicate = false;
 
       // check if signer is stacker and not proposer
+      uint64 index = i / 65;
       if (totalStakedFor(signer) > 0 && signer != getProposer()) {
-        for (uint64 j = 0; j < i; j += 1) {
+        for (uint64 j = 0; j < index; j += 1) {
           if (uniqueStakers[j] == signer) {
             duplicate = true;
             break;
@@ -223,7 +224,7 @@ contract StakeManager is StakeManagerInterface, Lockable {
       }
 
       if (duplicate == false) {
-        uniqueStakers[i] = signer;
+        uniqueStakers[index] = signer;
         totalSigners++;
       }
     }
