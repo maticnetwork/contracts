@@ -184,6 +184,9 @@ contract RootChain is Ownable {
     // check if not already withdrawn
     require(withdraws[txRoot] == false);
 
+    // set flag for withdraw competed
+    withdraws[txRoot] = true;
+
     // process receipt
     var (rootToken, receiptAmount) = _processWithdrawReceipt(
       receiptBytes,
@@ -214,9 +217,6 @@ contract RootChain is Ownable {
       rootToken,
       receiptAmount
     );
-
-    // set flag for withdraw competed
-    withdraws[txRoot] = true;
   }
 
   //
