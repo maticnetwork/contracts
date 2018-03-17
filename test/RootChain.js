@@ -537,6 +537,12 @@ contract('RootChain', async function(accounts) {
       assert.equal(startWithdrawReceipt.logs[0].args.amount, amount.toString())
       assert.equal(startWithdrawReceipt.logs[0].args.user, user)
       assert.equal(startWithdrawReceipt.logs[0].args.token, rootToken.address)
+
+      assert.isOk(
+        await rootChain.withdraws(
+          utils.bufferToHex(withdrawBlock.transactionsRoot)
+        )
+      )
     })
   })
 })

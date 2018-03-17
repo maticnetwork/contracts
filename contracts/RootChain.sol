@@ -52,6 +52,9 @@ contract RootChain is Ownable {
     setStakeManager(_stakeManager);
   }
 
+  // withdraws
+  mapping(bytes32 => bool) public withdraws;
+
   //
   // Events
   //
@@ -178,6 +181,9 @@ contract RootChain is Ownable {
     bytes receiptBytes,
     bytes receiptProof
   ) public {
+    // check if not already withdrawn
+    require(withdraws[txRoot] == false);
+
     // process receipt
     var (rootToken, receiptAmount) = _processWithdrawReceipt(
       receiptBytes,
@@ -208,6 +214,9 @@ contract RootChain is Ownable {
       rootToken,
       receiptAmount
     );
+
+    // set flag for withdraw competed
+    withdraws[txRoot] = true;
   }
 
   //
