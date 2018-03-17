@@ -16,28 +16,15 @@ contract ChildERC20 is StandardToken, Ownable {
   //
   // Events
   //
-  event UpdateRootToken(address newToken, address oldToken);
   event Deposit(address indexed token, address indexed user, uint256 amount);
   event Withdraw(address indexed token, address indexed user, uint256 amount);
 
   // constructor
-  function ChildERC20(address _token) public {
-    updateToken(_token);
-  }
-
-  /**
-   * Update token
-   *
-   * @param _token address for new token
-   */
-  function updateToken(address _token) public onlyOwner {
+  function ChildERC20(address _token, uint8 _decimals) public {
     require(_token != address(0));
 
-    // broadcast update event
-    UpdateRootToken(_token, token);
-
-    // update token
     token = _token;
+    decimals = _decimals;
   }
 
   /**
@@ -57,6 +44,11 @@ contract ChildERC20 is StandardToken, Ownable {
     Deposit(token, user, amount);
   }
 
+  /**
+   * Withdraw tokens
+   *
+   * @param amount tokens
+   */
   function withdraw(uint256 amount) public {
     // check for amount
     require(amount > 0 && balances[msg.sender] >= amount);

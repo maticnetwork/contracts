@@ -6,7 +6,7 @@ let SafeMath = artifacts.require('./lib/SafeMath.sol')
 
 let ChildChain = artifacts.require('./child/ChildChain.sol')
 let ChildToken = artifacts.require('./child/ChildERC20.sol')
-let RootToken = artifacts.require('./TestToken.sol')
+let RootToken = artifacts.require('./token/TestToken.sol')
 
 const zeroAddress = '0x0000000000000000000000000000000000000000'
 
@@ -41,7 +41,7 @@ contract('ChildChain', async function(accounts) {
 
     it('should allow only owner to add new token ', async function() {
       await assertRevert(
-        childChainContract.addToken(rootToken.address, {
+        childChainContract.addToken(rootToken.address, 18, {
           from: accounts[1]
         })
       )
@@ -52,7 +52,7 @@ contract('ChildChain', async function(accounts) {
     })
 
     it('should allow owner to add new token ', async function() {
-      const receipt = await childChainContract.addToken(rootToken.address, {
+      const receipt = await childChainContract.addToken(rootToken.address, 18, {
         from: accounts[0]
       })
       assert.equal(receipt.logs.length, 1)
@@ -73,7 +73,7 @@ contract('ChildChain', async function(accounts) {
 
     it('should not allow to add new token again', async function() {
       await assertRevert(
-        childChainContract.addToken(rootToken.address, {
+        childChainContract.addToken(rootToken.address, 18, {
           from: accounts[0]
         })
       )
@@ -82,55 +82,6 @@ contract('ChildChain', async function(accounts) {
     it('should match mapping', async function() {
       assert.equal(
         await childChainContract.tokens(rootToken.address),
-        childToken.address
-      )
-    })
-  })
-
-  describe('Update token', async function() {
-    let childChainContract
-    let rootToken
-    let rootToken2
-
-    let childToken
-
-    before(async function() {
-      childChainContract = await ChildChain.new()
-      rootToken = await RootToken.new('Test Token', 'TEST')
-      rootToken2 = await RootToken.new('Test Token', 'TEST')
-
-      // add token
-      const receipt = await childChainContract.addToken(rootToken.address, {
-        from: accounts[0]
-      })
-      // get child chain token
-      childToken = ChildToken.at(receipt.logs[0].args.token)
-    })
-
-    it('should not allow others to update token', async function() {
-      // check address
-      assert.equal(await childToken.token(), rootToken.address)
-      await assertRevert(
-        childChainContract.updateToken(rootToken.address, rootToken2.address, {
-          from: accounts[1]
-        })
-      )
-      assert.equal(await childToken.token(), rootToken.address)
-    })
-
-    it('should allow owner to update token ', async function() {
-      // check address
-      assert.equal(await childToken.token(), rootToken.address)
-      await childChainContract.updateToken(
-        rootToken.address,
-        rootToken2.address,
-        {
-          from: accounts[0]
-        }
-      )
-      assert.equal(await childToken.token(), rootToken2.address)
-      assert.equal(
-        await childChainContract.tokens(rootToken2.address),
         childToken.address
       )
     })

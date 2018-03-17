@@ -6,7 +6,7 @@ let RLP = artifacts.require('./lib/RLP.sol')
 
 let ChildChain = artifacts.require('./child/ChildChain.sol')
 let ChildToken = artifacts.require('./child/ChildERC20.sol')
-let RootToken = artifacts.require('./TestToken.sol')
+let RootToken = artifacts.require('./token/TestToken.sol')
 
 const BN = utils.BN
 const zeroAddress = '0x0000000000000000000000000000000000000000'
@@ -26,37 +26,9 @@ contract('ChildERC20', async function(accounts) {
   describe('Initialization', async function() {
     it('should initialize properly ', async function() {
       const rootToken = await RootToken.new('Test Token', 'TEST')
-      const childToken = await ChildToken.new(rootToken.address)
+      const childToken = await ChildToken.new(rootToken.address, 18)
       assert.equal(await childToken.owner(), accounts[0])
       assert.equal(await childToken.token(), rootToken.address)
-    })
-  })
-
-  describe('Admin: update', async function() {
-    let rootToken
-    let rootToken2
-    let childToken
-
-    before(async function() {
-      rootToken = await RootToken.new('Test Token', 'TEST')
-      rootToken2 = await RootToken.new('Test Token', 'TEST')
-      childToken = await ChildToken.new(rootToken.address)
-    })
-
-    it('should allow only owner to update token ', async function() {
-      await assertRevert(
-        childToken.updateToken(rootToken2.address, {
-          from: accounts[1]
-        })
-      )
-      assert.equal(await childToken.token(), rootToken.address)
-    })
-
-    it('should allow owner to update token ', async function() {
-      await childToken.updateToken(rootToken2.address, {
-        from: accounts[0]
-      })
-      assert.equal(await childToken.token(), rootToken2.address)
     })
   })
 
@@ -69,7 +41,7 @@ contract('ChildERC20', async function(accounts) {
     before(async function() {
       childChain = await ChildChain.new()
       rootToken = await RootToken.new('Test Token', 'TEST')
-      const receipt = await childChain.addToken(rootToken.address)
+      const receipt = await childChain.addToken(rootToken.address, 18)
       childToken = ChildToken.at(receipt.logs[0].args.token)
       amount = web3.toWei(10)
     })
@@ -95,7 +67,7 @@ contract('ChildERC20', async function(accounts) {
     before(async function() {
       childChain = await ChildChain.new()
       rootToken = await RootToken.new('Test Token', 'TEST')
-      const receipt = await childChain.addToken(rootToken.address)
+      const receipt = await childChain.addToken(rootToken.address, 18)
       childToken = ChildToken.at(receipt.logs[0].args.token)
       amount = web3.toWei(10)
       await childChain.depositTokens(rootToken.address, accounts[0], amount)

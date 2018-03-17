@@ -31,7 +31,7 @@ let RLPEncode = artifacts.require('./lib/RLPEncode.sol')
 let RootChain = artifacts.require('./RootChain.sol')
 let ChildChain = artifacts.require('./child/ChildChain.sol')
 let ChildToken = artifacts.require('./child/ChildERC20.sol')
-let RootToken = artifacts.require('./TestToken.sol')
+let RootToken = artifacts.require('./token/TestToken.sol')
 let StakeManager = artifacts.require('./StakeManager.sol')
 
 ChildChain.web3 = web3Child

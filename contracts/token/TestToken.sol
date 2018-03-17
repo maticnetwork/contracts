@@ -1,6 +1,6 @@
 pragma solidity ^0.4.18;
 
-import "./token/StandardToken.sol";
+import "./StandardToken.sol";
 
 contract TestToken is StandardToken {
   uint8 public decimals = 18;

@@ -10,7 +10,7 @@ let Merkle = artifacts.require('./lib/Merkle.sol')
 let RLPEncode = artifacts.require('./lib/RLPEncode.sol')
 
 let StakeManager = artifacts.require('./StakeManager.sol')
-let RootToken = artifacts.require('./TestToken.sol')
+let RootToken = artifacts.require('./token/TestToken.sol')
 let RootChain = artifacts.require('./RootChain.sol')
 let ChildChain = artifacts.require('./ChildChain.sol')
 

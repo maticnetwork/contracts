@@ -6,7 +6,7 @@ let RLPEncode = artifacts.require('./lib/RLPEncode.sol')
 
 let StakeManager = artifacts.require('./StakeManager.sol')
 let RootChain = artifacts.require('./RootChain.sol')
-let RootToken = artifacts.require('./TestToken.sol')
+let RootToken = artifacts.require('./token/TestToken.sol')
 let ChildChain = artifacts.require('./child/ChildChain.sol')
 
 module.exports = async function(deployer) {
