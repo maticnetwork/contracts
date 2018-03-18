@@ -222,7 +222,7 @@ contract('RootChain', async function(accounts) {
       stakeManager = await StakeManager.new(stakeToken.address)
       rootChain = await RootChain.new(stakeManager.address)
       await stakeManager.setRootChain(rootChain.address)
-      childToken = await ChildToken.new(rootToken.address)
+      childToken = await ChildToken.new(rootToken.address, 18)
     })
 
     it('should allow to map token', async function() {
@@ -278,9 +278,13 @@ contract('RootChain', async function(accounts) {
       // check owner
       assert.equal(await childChain.owner(), user)
 
-      const childTokenReceipt = await childChain.addToken(rootToken.address, {
-        from: user
-      })
+      const childTokenReceipt = await childChain.addToken(
+        rootToken.address,
+        18,
+        {
+          from: user
+        }
+      )
       assert.equal(childTokenReceipt.logs.length, 1)
       assert.equal(childTokenReceipt.logs[0].event, 'NewToken')
       assert.equal(childTokenReceipt.logs[0].args.rootToken, rootToken.address)
@@ -364,9 +368,13 @@ contract('RootChain', async function(accounts) {
       // check owner
       assert.equal(await childChain.owner(), user)
 
-      const childTokenReceipt = await childChain.addToken(rootToken.address, {
-        from: user
-      })
+      const childTokenReceipt = await childChain.addToken(
+        rootToken.address,
+        18,
+        {
+          from: user
+        }
+      )
       childToken = ChildToken.at(childTokenReceipt.logs[0].args.token)
 
       // map token
