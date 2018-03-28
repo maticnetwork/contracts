@@ -62,7 +62,11 @@ contract('RootChain', async function(accounts) {
     })
   }
 
-  function getSigs(wallets, _chain, _root, _start, _end, exclude = []) {
+  function getSigs(_wallets, _chain, _root, _start, _end, exclude = []) {
+    _wallets.sort((w1, w2) => {
+      return Buffer.compare(w1.getAddress(), w2.getAddress()) >= 0
+    })
+
     let chain = utils.toBuffer(_chain)
     let start = new BN(_start.toString()).toArrayLike(Buffer, 'be', 32)
     let end = new BN(_end.toString()).toArrayLike(Buffer, 'be', 32)
@@ -71,7 +75,7 @@ contract('RootChain', async function(accounts) {
       utils.sha3(Buffer.concat([chain, headerRoot, start, end]))
     )
 
-    return wallets
+    return _wallets
       .map(w => {
         if (exclude.indexOf(w.getAddressString()) === -1) {
           const vrs = utils.ecsign(h, w.getPrivateKey())
@@ -161,7 +165,7 @@ contract('RootChain', async function(accounts) {
     it('should create sigs properly', async function() {
       sigs = utils.bufferToHex(
         encodeSigs(
-          getSigs(wallets.slice(1), chain, 0, 10, dummyRoot, [
+          getSigs(wallets.slice(1), chain, dummyRoot, 0, 10, [
             await stakeManager.getProposer()
           ])
         )
@@ -445,7 +449,7 @@ contract('RootChain', async function(accounts) {
 
       sigs = utils.bufferToHex(
         encodeSigs(
-          getSigs(wallets.slice(1), chain, start, end, root, [
+          getSigs(wallets.slice(1), chain, root, start, end, [
             await stakeManager.getProposer()
           ])
         )

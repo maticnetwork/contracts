@@ -206,26 +206,17 @@ contract StakeManager is StakeManagerInterface, Lockable {
     // total signers
     uint256 totalSigners = 0;
 
-    address[] memory uniqueStakers = new address[](sigs.length / 65);
+    address lastAdd = address(0); // cannot have address(0) as an owner
     for (uint64 i = 0; i < sigs.length; i += 65) {
       bytes memory sigElement = BytesLib.slice(sigs, i, 65);
       address signer = h.ecrecovery(sigElement);
-      bool duplicate = false;
 
       // check if signer is stacker and not proposer
-      uint64 index = i / 65;
-      if (totalStakedFor(signer) > 0 && signer != getProposer()) {
-        for (uint64 j = 0; j < index; j += 1) {
-          if (uniqueStakers[j] == signer) {
-            duplicate = true;
-            break;
-          }
-        }
-      }
-
-      if (duplicate == false) {
-        uniqueStakers[index] = signer;
+      if (totalStakedFor(signer) > 0 && signer != getProposer() && signer > lastAdd) {
+        lastAdd = signer;
         totalSigners++;
+      } else {
+        break;
       }
     }
 
