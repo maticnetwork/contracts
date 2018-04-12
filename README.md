@@ -16,7 +16,3 @@ Run test cases:
 # run test cases
 $ npm run test-ci
 ```
-
-### License
-
-MIT
