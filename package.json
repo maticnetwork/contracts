@@ -5,8 +5,7 @@
   "main": "index.js",
   "private": "true",
   "scripts": {
-    "testrpc":
-      "ganache-cli --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' --gasLimit 13000000",
+    "testrpc": "ganache-cli --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' --gasLimit 13000000",
     "truffle": "truffle",
     "test": "truffle test",
     "test-ci": "scripts/run-test.sh",
