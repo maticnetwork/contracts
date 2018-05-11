@@ -8,6 +8,7 @@ import "./lib/BytesLib.sol";
 import "./lib/RLPEncode.sol";
 import "./mixin/Ownable.sol";
 import "./token/ERC20.sol";
+import "./token/WETH.sol";
 
 import "./StakeManagerInterface.sol";
 
@@ -26,6 +27,9 @@ contract RootChain is Ownable {
   // chain identifier
   // keccak256('Matic Network v0.0.1-beta.1')
   bytes32 public chain = '\x29\x84\x30\x1e\x97\x62\xb1\x4f\x38\x31\x41\xec\x6a\x9a\x76\x61\x40\x91\x03\x73\x7c\x37\xbb\xa9\xe0\xa2\x2b\xe2\x6d\x63\x48\x6d';
+
+  // WETH address
+  address public wethToken;
 
   // stake interface
   StakeManagerInterface public stakeManager;
@@ -47,6 +51,9 @@ contract RootChain is Ownable {
   // current header block number
   uint256 public currentHeaderBlock;
 
+  // current deposit count
+  uint256 public depositCount;
+
   // Constructor
   function RootChain(address _stakeManager) public {
     setStakeManager(_stakeManager);
@@ -59,7 +66,7 @@ contract RootChain is Ownable {
   // Events
   //
   event TokenMapped(address indexed rootToken, address indexed childToken);
-  event Deposit(address indexed user, address indexed token, uint256 amount);
+  event Deposit(address indexed user, address indexed token, uint256 amount, uint256 depositCount);
   event Withdraw(address indexed user, address indexed token, uint256 amount);
   event NewHeaderBlock(
     address indexed proposer,
@@ -73,6 +80,11 @@ contract RootChain is Ownable {
   function mapToken(address rootToken, address childToken) public onlyOwner {
     tokens[rootToken] = childToken;
     TokenMapped(rootToken, childToken);
+  }
+
+  // set WETH
+  function setWETHToken(address _token) public onlyOwner {
+    wethToken = _token;
   }
 
   //
@@ -141,16 +153,38 @@ contract RootChain is Ownable {
   // User functions
   //
 
-  //function tokenFallback(address _from, uint256 _value, bytes _data) public {
-  //  // check if call is from root token contract
-  //  require(tokens[msg.sender] != address(0x0));
-  //
-  //  // check value
-  //  require(_value > 0);
-  //
-  //  // broadcast deposit event
-  //  Deposit(_from, msg.sender, _value);
-  //}
+  function () payable {
+    depositETH();
+  }
+
+  function tokenFallback(address _sender, uint256 _value, bytes _data) public {
+    address token = msg.sender;
+
+    // check if tokens are mapped
+    require(tokens[token] != address(0x0));
+
+    // check value
+    require(_value > 0);
+
+    // generate deposit event and udpate counter
+    _deposit(token, _sender, _value);
+  }
+
+  // deposit ethers
+  function depositETH() public payable {
+    // check incoming ethers
+    require(msg.value > 0);
+
+    // check WETH token
+    require(tokens[wethToken] != address(0x0));
+
+    // transfer ethers to this contract (through WETH)
+    WETH t = WETH(wethToken);
+    t.deposit.value(msg.value)();
+
+    // generate deposit event and udpate counter
+    _deposit(wethToken, msg.sender, msg.value);
+  }
 
   // Any user can deposit
   function deposit(address token, uint256 amount) public {
@@ -160,8 +194,16 @@ contract RootChain is Ownable {
     ERC20 t = ERC20(token);
     require(t.transferFrom(msg.sender, address(this), amount));
 
+    // generate deposit event and udpate counter
+    _deposit(token, msg.sender, amount);
+  }
+
+  function _deposit(address token, address sender, uint256 amount) internal {
     // broadcast deposit event
-    Deposit(msg.sender, token, amount);
+    Deposit(sender, token, amount, depositCount);
+
+    // increase deposit counter
+    depositCount = depositCount.add(1);
   }
 
   // withdraw tokens
