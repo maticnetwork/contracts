@@ -2,6 +2,7 @@ pragma solidity ^0.4.18;
 
 import "./StandardToken.sol";
 
+
 contract TestWETH is StandardToken {
   string public name = "Wrapped Ether";
   string public symbol = "WETH";
