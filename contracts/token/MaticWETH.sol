@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import "./StandardToken.sol";
 
@@ -13,20 +13,20 @@ contract MaticWETH is StandardToken {
 
   function deposit() public payable {
     balances[msg.sender] += msg.value;
-    Deposit(msg.sender, msg.value);
+    emit Deposit(msg.sender, msg.value);
   }
 
   function withdraw(uint wad) public {
     require(balances[msg.sender] >= wad);
     balances[msg.sender] -= wad;
     msg.sender.transfer(wad);
-    Withdrawal(msg.sender, wad);
+    emit Withdrawal(msg.sender, wad);
   }
 
   function withdraw(uint wad, address user) public {
     require(balances[msg.sender] >= wad);
     balances[msg.sender] -= wad;
     user.transfer(wad);
-    Withdrawal(user, wad);
+    emit Withdrawal(user, wad);
   }
 }

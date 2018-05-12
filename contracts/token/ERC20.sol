@@ -1,7 +1,7 @@
 // Abstract contract for the full ERC 20 & ERC 223 Token standards
 // https://github.com/ethereum/EIPs/issues/20
 // https://github.com/ethereum/EIPs/issues/223
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 
 contract ERC20 {

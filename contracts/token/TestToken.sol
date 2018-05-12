@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import "./StandardToken.sol";
 
@@ -8,7 +8,7 @@ contract TestToken is StandardToken {
 
   event MintTokens(address indexed user, uint256 value);
 
-  function TestToken(string _name, string _symbol) public {
+  constructor (string _name, string _symbol) public {
     name = _name;
     symbol = _symbol;
 
@@ -28,6 +28,6 @@ contract TestToken is StandardToken {
   function _mintTokens(address user, uint256 value) internal {
     balances[user] += value;
     totalSupply += value;
-    MintTokens(user, value);
+    emit MintTokens(user, value);
   }
 }

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import "../lib/SafeMath.sol";
 import "../token/StandardToken.sol";
@@ -20,7 +20,7 @@ contract ChildERC20 is StandardToken, Ownable {
   event Withdraw(address indexed token, address indexed user, uint256 amount);
 
   // constructor
-  function ChildERC20(address _token, uint8 _decimals) public {
+  constructor (address _token, uint8 _decimals) public {
     require(_token != address(0));
 
     token = _token;
@@ -41,7 +41,7 @@ contract ChildERC20 is StandardToken, Ownable {
     balances[user] = balances[user].add(amount);
 
     // deposit event
-    Deposit(token, user, amount);
+    emit Deposit(token, user, amount);
   }
 
   /**
@@ -57,6 +57,6 @@ contract ChildERC20 is StandardToken, Ownable {
     balances[msg.sender] = balances[msg.sender].sub(amount);
 
     // withdraw event
-    Withdraw(token, msg.sender, amount);
+    emit Withdraw(token, msg.sender, amount);
   }
 }

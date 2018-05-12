@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import "./ERC20.sol";
 import "./ContractReceiver.sol";
@@ -36,7 +36,7 @@ contract StandardToken is ERC20 {
       ContractReceiver receiver = ContractReceiver(_to);
       receiver.tokenFallback(msg.sender, _value, _data);
     }
-    Transfer(msg.sender, _to, _value, _data);
+    emit Transfer(msg.sender, _to, _value, _data);
     return true;
   }
 
@@ -57,7 +57,7 @@ contract StandardToken is ERC20 {
     balances[_from] -= _value;
     allowed[_from][_to] -= _value;
     bytes memory empty;
-    Transfer(_from, _to, _value, empty);
+    emit Transfer(_from, _to, _value, empty);
     return true;
   }
 
@@ -77,7 +77,7 @@ contract StandardToken is ERC20 {
     require(_value > 0);
 
     allowed[msg.sender][_spender] = _value;
-    Approval(msg.sender, _spender, _value);
+    emit Approval(msg.sender, _spender, _value);
     return true;
   }
 

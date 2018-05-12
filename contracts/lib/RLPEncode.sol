@@ -3,7 +3,7 @@
 // Library for RLP encoding a list of bytes arrays.
 // Modeled after ethereumjs/rlp (https://github.com/ethereumjs/rlp)
 // [Very] modified version of Sam Mayo's library.
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 import "./BytesLib.sol";
 
 

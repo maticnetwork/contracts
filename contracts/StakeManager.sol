@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import "./lib/SafeMath.sol";
 import "./lib/ECVerify.sol";
@@ -51,7 +51,7 @@ contract StakeManager is StakeManagerInterface, Lockable {
   // Constructor
   //
 
-  function StakeManager (address _token) public {
+  constructor (address _token) public {
     require(_token != 0x0);
     tokenObj = ERC20(_token);
   }
@@ -170,7 +170,7 @@ contract StakeManager is StakeManagerInterface, Lockable {
 
   // Change the number of validators required to allow a passed header root
   function updateValidatorThreshold(uint256 newThreshold) public onlyOwner {
-    ThresholdChange(newThreshold, _validatorThreshold);
+    emit ThresholdChange(newThreshold, _validatorThreshold);
     _validatorThreshold = newThreshold;
   }
 

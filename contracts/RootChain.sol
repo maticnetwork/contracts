@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import "./lib/SafeMath.sol";
 import "./lib/MerklePatriciaProof.sol";
@@ -56,7 +56,7 @@ contract RootChain is Ownable {
   uint256 public depositCount;
 
   // Constructor
-  function RootChain(address _stakeManager) public {
+  constructor (address _stakeManager) public {
     setStakeManager(_stakeManager);
   }
 
@@ -104,7 +104,7 @@ contract RootChain is Ownable {
   // map child token to root token
   function mapToken(address rootToken, address childToken) public onlyOwner {
     tokens[rootToken] = childToken;
-    TokenMapped(rootToken, childToken);
+    emit TokenMapped(rootToken, childToken);
   }
 
   // set WETH
@@ -142,7 +142,7 @@ contract RootChain is Ownable {
       createdAt: block.timestamp
     });
     headerBlocks[currentHeaderBlock] = headerBlock;
-    NewHeaderBlock(
+    emit NewHeaderBlock(
       msg.sender,
       currentHeaderBlock,
       headerBlock.start,
@@ -169,7 +169,7 @@ contract RootChain is Ownable {
   // User functions
   //
   // token fallback for ERC223
-  function tokenFallback(address _sender, uint256 _value, bytes _data) public validateDeposit(msg.sender, _value) {
+  function tokenFallback(address _sender, uint256 _value, bytes) public validateDeposit(msg.sender, _value) {
     address token = msg.sender;
 
     // generate deposit event and udpate counter
@@ -208,7 +208,7 @@ contract RootChain is Ownable {
 
   function _depositEvent(address token, address user, uint256 amount) internal {
     // broadcast deposit event
-    Deposit(user, token, amount, depositCount);
+    emit Deposit(user, token, amount, depositCount);
 
     // increase deposit counter
     depositCount = depositCount.add(1);
@@ -307,7 +307,7 @@ contract RootChain is Ownable {
     }
 
     // broadcast deposit events
-    Withdraw(msg.sender, rootToken, amount);
+    emit Withdraw(msg.sender, rootToken, amount);
   }
 
   function _processWithdrawTx(

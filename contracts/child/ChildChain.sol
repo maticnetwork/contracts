@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import "../lib/SafeMath.sol";
 import "../mixin/Ownable.sol";
@@ -20,7 +20,7 @@ contract ChildChain is Ownable {
   //
   event NewToken(address indexed rootToken, address indexed token, uint8 _decimals);
 
-  function ChildChain() public {
+  constructor () public {
 
   }
 
@@ -38,7 +38,7 @@ contract ChildChain is Ownable {
     tokens[_rootToken] = token;
 
     // broadcast new token's event
-    NewToken(_rootToken, token, _decimals);
+    emit NewToken(_rootToken, token, _decimals);
   }
 
   function depositTokens(
