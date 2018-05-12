@@ -12,6 +12,7 @@ import "./token/WETH.sol";
 
 import "./StakeManagerInterface.sol";
 
+
 contract RootChain is Ownable {
   using SafeMath for uint256;
   using Merkle for bytes32;
@@ -76,6 +77,30 @@ contract RootChain is Ownable {
     bytes32 root
   );
 
+  //
+  // Modifiers
+  //
+  /**
+   * @dev Throws if deposit is not valid
+   */
+  modifier validateDeposit(address token, uint256 value) {
+    // token must be supported
+    require(tokens[token] != address(0x0));
+
+    // token amount must be greater than 0
+    require(value > 0);
+
+    _;
+  }
+
+  // deposit ETH by sending to this contract
+  function () public payable {
+    depositEthers(msg.sender);
+  }
+
+  //
+  // Admin functions
+  //
   // map child token to root token
   function mapToken(address rootToken, address childToken) public onlyOwner {
     tokens[rootToken] = childToken;
@@ -90,7 +115,6 @@ contract RootChain is Ownable {
   //
   // PoS functions
   //
-
   function setStakeManager(address _stakeManager) public onlyOwner {
     require(_stakeManager != 0x0);
     stakeManager = StakeManagerInterface(_stakeManager);
@@ -127,15 +151,7 @@ contract RootChain is Ownable {
     );
     currentHeaderBlock = currentHeaderBlock.add(1);
 
-    // Calculate the reward and issue it
-    // uint256 r = reward.base + reward.a * (end - start);
-    // If we exceed the max reward, anyone can propose the header root
-    // if (r > maxReward) {
-    //   r = maxReward;
-    // } else {
-    //   require(msg.sender == stakeManager.getProposer());
-    // }
-    // msg.sender.transfer(r);
+    // TODO add rewards
 
     // finalize commit
     stakeManager.finalizeCommit(msg.sender);
@@ -152,55 +168,47 @@ contract RootChain is Ownable {
   //
   // User functions
   //
-
-  function () payable {
-    depositETH();
-  }
-
-  function tokenFallback(address _sender, uint256 _value, bytes _data) public {
+  // token fallback for ERC223
+  function tokenFallback(address _sender, uint256 _value, bytes _data) public validateDeposit(msg.sender, _value) {
     address token = msg.sender;
 
-    // check if tokens are mapped
-    require(tokens[token] != address(0x0));
-
-    // check value
-    require(_value > 0);
-
     // generate deposit event and udpate counter
-    _deposit(token, _sender, _value);
+    _depositEvent(token, _sender, _value);
   }
 
   // deposit ethers
-  function depositETH() public payable {
-    // check incoming ethers
-    require(msg.value > 0);
+  function depositEthers() public payable {
+    depositEthers(msg.sender);
+  }
 
-    // check WETH token
-    require(tokens[wethToken] != address(0x0));
-
+  // deposit ethers
+  function depositEthers(address user) public payable validateDeposit(wethToken, msg.value) {
     // transfer ethers to this contract (through WETH)
     WETH t = WETH(wethToken);
     t.deposit.value(msg.value)();
 
     // generate deposit event and udpate counter
-    _deposit(wethToken, msg.sender, msg.value);
+    _depositEvent(wethToken, user, msg.value);
   }
 
-  // Any user can deposit
+  // deposit tokens
   function deposit(address token, uint256 amount) public {
-    require(tokens[token] != address(0x0));
+    deposit(token, msg.sender, amount);
+  }
 
+  // deposit tokens for another user
+  function deposit(address token, address user, uint256 amount) public validateDeposit(token, amount) {
     // transfer tokens to current contract
     ERC20 t = ERC20(token);
-    require(t.transferFrom(msg.sender, address(this), amount));
+    require(t.transferFrom(user, address(this), amount));
 
     // generate deposit event and udpate counter
-    _deposit(token, msg.sender, amount);
+    _depositEvent(token, user, amount);
   }
 
-  function _deposit(address token, address sender, uint256 amount) internal {
+  function _depositEvent(address token, address user, uint256 amount) internal {
     // broadcast deposit event
-    Deposit(sender, token, amount, depositCount);
+    Deposit(user, token, amount, depositCount);
 
     // increase deposit counter
     depositCount = depositCount.add(1);
