@@ -20,8 +20,6 @@ export default class MerkleTree {
       )
     )
 
-    console.log(depth, leaves.length)
-
     this.leaves = l
     this.layers = [l]
     this.createHashes(this.leaves)

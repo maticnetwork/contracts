@@ -32,7 +32,7 @@ let RootChain = artifacts.require('./RootChain.sol')
 let ChildChain = artifacts.require('./child/ChildChain.sol')
 let ChildToken = artifacts.require('./child/ChildERC20.sol')
 let RootToken = artifacts.require('./token/TestToken.sol')
-let TestWETH = artifacts.require('./token/TestWETH.sol')
+let MaticWETH = artifacts.require('./token/MaticWETH.sol')
 let StakeManager = artifacts.require('./StakeManager.sol')
 
 ChildChain.web3 = web3Child
@@ -335,6 +335,8 @@ contract('RootChain', async function(accounts) {
   describe('Withdraw: merkle proof', async function() {
     let stakeToken
     let rootToken
+    let wethToken
+    let childWethToken
     let rootChain
     let stakeManager
     let wallets
@@ -370,9 +372,11 @@ contract('RootChain', async function(accounts) {
 
       stakeToken = await RootToken.new('Stake Token', 'STAKE')
       rootToken = await RootToken.new('Test Token', 'TEST', {from: user})
+      wethToken = await MaticWETH.new({from: user})
       stakeManager = await StakeManager.new(stakeToken.address)
       rootChain = await RootChain.new(stakeManager.address)
       await stakeManager.setRootChain(rootChain.address)
+      await rootChain.setWETHToken(wethToken.address)
 
       // create child chain
       childChain = await ChildChain.new({from: user, gas: 6000000})
@@ -380,17 +384,22 @@ contract('RootChain', async function(accounts) {
       // check owner
       assert.equal(await childChain.owner(), user)
 
-      const childTokenReceipt = await childChain.addToken(
-        rootToken.address,
-        18,
-        {
-          from: user
-        }
-      )
+      // root token mapping
+      let childTokenReceipt = await childChain.addToken(rootToken.address, 18, {
+        from: user
+      })
       childToken = ChildToken.at(childTokenReceipt.logs[0].args.token)
 
-      // map token
+      // weth token mapping
+      childTokenReceipt = await childChain.addToken(wethToken.address, 18, {
+        from: user
+      })
+      childWethToken = ChildToken.at(childTokenReceipt.logs[0].args.token)
+
+      // map root token
       await rootChain.mapToken(rootToken.address, childToken.address)
+      // map weth token
+      await rootChain.mapToken(wethToken.address, childWethToken.address)
 
       for (var i = 1; i < wallets.length; i++) {
         const amount = stakes[i]
@@ -412,157 +421,343 @@ contract('RootChain', async function(accounts) {
       chain = await rootChain.chain()
     })
 
-    it('should allow to deposit before withdraw', async function() {
-      assert.equal(true, true)
-      const user = accounts[9]
-      const amount = web3.toWei(10)
+    // ERC20 withdraw
+    describe('ERC20', async function() {
+      it('should allow to deposit before withdraw', async function() {
+        assert.equal(true, true)
+        const user = accounts[9]
+        const amount = web3.toWei(10)
 
-      // deposit to root & child token
-      await rootToken.approve(rootChain.address, amount, {from: user})
-      await rootChain.deposit(rootToken.address, amount, {from: user})
-      await childChain.depositTokens(rootToken.address, user, amount, {
-        from: user
-      })
-      assert.equal(
-        (await rootToken.balanceOf(rootChain.address)).toString(),
-        amount
-      )
-      assert.equal((await childToken.balanceOf(user)).toString(), amount)
-    })
-
-    it('should allow anyone to withdraw tokens from side chain', async function() {
-      const user = accounts[9]
-      const amount = web3.toWei(10)
-
-      // withdraw
-      const obj = await childToken.withdraw(amount, {
-        from: user
-      })
-
-      const receipt = obj.receipt
-      withdraw = await web3Child.eth.getTransaction(receipt.transactionHash)
-      withdrawBlock = await web3Child.eth.getBlock(receipt.blockHash, true)
-      withdrawBlockSlim = await web3Child.eth.getBlock(receipt.blockHash, false)
-      withdrawReceipt = await web3Child.eth.getTransactionReceipt(
-        receipt.transactionHash
-      )
-    })
-
-    it('should allow submit root', async function() {
-      const start = 0
-      const end = withdraw.blockNumber
-      const headers = await getHeaders(start, end, web3Child)
-      tree = new MerkleTree(headers)
-      const root = utils.bufferToHex(tree.getRoot())
-
-      sigs = utils.bufferToHex(
-        encodeSigs(
-          getSigs(wallets.slice(1), chain, root, start, end, [
-            await stakeManager.getProposer()
-          ])
-        )
-      )
-
-      const signers = await stakeManager.checkSignatures(root, start, end, sigs)
-
-      // assert for enough signers
-      assert.equal(signers.toNumber(), wallets.length - 2)
-
-      // verify block header tree
-      const v = getBlockHeader(withdrawBlock)
-      assert.isOk(
-        tree.verify(
-          v,
-          withdrawBlock.number - start,
-          tree.getRoot(),
-          tree.getProof(v)
-        )
-      )
-
-      const proposer = await stakeManager.getProposer()
-
-      // submit header block
-      const receipt = await rootChain.submitHeaderBlock(
-        utils.bufferToHex(tree.getRoot()),
-        end,
-        sigs,
-        {
-          from: proposer
-        }
-      )
-
-      assert.equal(receipt.logs.length, 1)
-      assert.equal(receipt.logs[0].event, 'NewHeaderBlock')
-      assert.equal(receipt.logs[0].args.proposer, proposer)
-      assert.equal(+receipt.logs[0].args.start, start)
-      assert.equal(+receipt.logs[0].args.end, end)
-      assert.equal(receipt.logs[0].args.root, utils.bufferToHex(tree.getRoot()))
-
-      // current header block
-      const currentHeaderBlock = await rootChain.currentHeaderBlock()
-      assert.equal(+currentHeaderBlock, 1)
-
-      // current child block
-      const currentChildBlock = await rootChain.currentChildBlock()
-      assert.equal(+currentChildBlock, end)
-    })
-
-    it('should allow anyone to withdraw tokens', async function() {
-      const user = accounts[9]
-      const amount = web3.toWei(10)
-      // validate tx proof
-      // transaction proof
-      const txProof = await getTxProof(withdraw, withdrawBlock)
-      // check if proof is valid
-      assert.isOk(verifyTxProof(txProof), 'Tx proof must be valid')
-
-      // validate receipt proof
-      const receiptProof = await getReceiptProof(
-        withdrawReceipt,
-        withdrawBlock,
-        web3Child
-      )
-      assert.isOk(
-        verifyReceiptProof(receiptProof),
-        'Receipt proof must be valid'
-      )
-
-      // validate header proof
-      const start = 0
-      const headerProof = await tree.getProof(getBlockHeader(withdrawBlock))
-
-      // let's withdraw from root chain :)
-      const headerNumber = await rootChain.currentHeaderBlock()
-      const startWithdrawReceipt = await rootChain.withdraw(
-        +headerNumber.sub(new BN(1)).toString(), // header block
-        utils.bufferToHex(Buffer.concat(headerProof)), // header proof
-
-        withdrawBlock.number, // block number
-        withdrawBlock.timestamp, // block timestamp
-        utils.bufferToHex(withdrawBlock.transactionsRoot), // tx root
-        utils.bufferToHex(withdrawBlock.receiptsRoot), // tx root
-        utils.bufferToHex(rlp.encode(receiptProof.path)), // key for trie (both tx and receipt)
-
-        utils.bufferToHex(getTxBytes(withdraw)), // tx bytes
-        utils.bufferToHex(rlp.encode(txProof.parentNodes)), // tx proof nodes
-
-        utils.bufferToHex(getReceiptBytes(withdrawReceipt)), // receipt bytes
-        utils.bufferToHex(rlp.encode(receiptProof.parentNodes)), // reciept proof nodes
-        {
+        // deposit to root & child token
+        await rootToken.approve(rootChain.address, amount, {from: user})
+        await rootChain.deposit(rootToken.address, amount, {from: user})
+        await childChain.depositTokens(rootToken.address, user, amount, {
           from: user
-        }
-      )
-
-      assert.equal(startWithdrawReceipt.logs.length, 1)
-      assert.equal(startWithdrawReceipt.logs[0].args.amount, amount.toString())
-      assert.equal(startWithdrawReceipt.logs[0].args.user, user)
-      assert.equal(startWithdrawReceipt.logs[0].args.token, rootToken.address)
-
-      assert.isOk(
-        await rootChain.withdraws(
-          utils.bufferToHex(withdrawBlock.transactionsRoot)
+        })
+        assert.equal(
+          (await rootToken.balanceOf(rootChain.address)).toString(),
+          amount
         )
-      )
+        assert.equal((await childToken.balanceOf(user)).toString(), amount)
+      })
+
+      it('should allow anyone to withdraw tokens from side chain', async function() {
+        const user = accounts[9]
+        const amount = web3.toWei(10)
+
+        // withdraw
+        const obj = await childToken.withdraw(amount, {
+          from: user
+        })
+
+        const receipt = obj.receipt
+        withdraw = await web3Child.eth.getTransaction(receipt.transactionHash)
+        withdrawBlock = await web3Child.eth.getBlock(receipt.blockHash, true)
+        withdrawBlockSlim = await web3Child.eth.getBlock(
+          receipt.blockHash,
+          false
+        )
+        withdrawReceipt = await web3Child.eth.getTransactionReceipt(
+          receipt.transactionHash
+        )
+      })
+
+      it('should allow submit root', async function() {
+        const start = 0
+        const end = withdraw.blockNumber
+        const headers = await getHeaders(start, end, web3Child)
+        tree = new MerkleTree(headers)
+        const root = utils.bufferToHex(tree.getRoot())
+
+        sigs = utils.bufferToHex(
+          encodeSigs(
+            getSigs(wallets.slice(1), chain, root, start, end, [
+              await stakeManager.getProposer()
+            ])
+          )
+        )
+
+        const signers = await stakeManager.checkSignatures(
+          root,
+          start,
+          end,
+          sigs
+        )
+
+        // assert for enough signers
+        assert.equal(signers.toNumber(), wallets.length - 2)
+
+        // verify block header tree
+        const v = getBlockHeader(withdrawBlock)
+        assert.isOk(
+          tree.verify(
+            v,
+            withdrawBlock.number - start,
+            tree.getRoot(),
+            tree.getProof(v)
+          )
+        )
+
+        const proposer = await stakeManager.getProposer()
+
+        // submit header block
+        const receipt = await rootChain.submitHeaderBlock(
+          utils.bufferToHex(tree.getRoot()),
+          end,
+          sigs,
+          {
+            from: proposer
+          }
+        )
+
+        assert.equal(receipt.logs.length, 1)
+        assert.equal(receipt.logs[0].event, 'NewHeaderBlock')
+        assert.equal(receipt.logs[0].args.proposer, proposer)
+        assert.equal(+receipt.logs[0].args.start, start)
+        assert.equal(+receipt.logs[0].args.end, end)
+        assert.equal(
+          receipt.logs[0].args.root,
+          utils.bufferToHex(tree.getRoot())
+        )
+
+        // current header block
+        const currentHeaderBlock = await rootChain.currentHeaderBlock()
+        assert.equal(+currentHeaderBlock, 1)
+
+        // current child block
+        const currentChildBlock = await rootChain.currentChildBlock()
+        assert.equal(+currentChildBlock, end)
+      })
+
+      it('should allow anyone to withdraw tokens', async function() {
+        const user = accounts[9]
+        const amount = web3.toWei(10)
+        // validate tx proof
+        // transaction proof
+        const txProof = await getTxProof(withdraw, withdrawBlock)
+        // check if proof is valid
+        assert.isOk(verifyTxProof(txProof), 'Tx proof must be valid')
+
+        // validate receipt proof
+        const receiptProof = await getReceiptProof(
+          withdrawReceipt,
+          withdrawBlock,
+          web3Child
+        )
+        assert.isOk(
+          verifyReceiptProof(receiptProof),
+          'Receipt proof must be valid'
+        )
+
+        // validate header proof
+        const start = 0
+        const headerProof = await tree.getProof(getBlockHeader(withdrawBlock))
+
+        // let's withdraw from root chain :)
+        const headerNumber = await rootChain.currentHeaderBlock()
+        const startWithdrawReceipt = await rootChain.withdraw(
+          +headerNumber.sub(new BN(1)).toString(), // header block
+          utils.bufferToHex(Buffer.concat(headerProof)), // header proof
+
+          withdrawBlock.number, // block number
+          withdrawBlock.timestamp, // block timestamp
+          utils.bufferToHex(withdrawBlock.transactionsRoot), // tx root
+          utils.bufferToHex(withdrawBlock.receiptsRoot), // tx root
+          utils.bufferToHex(rlp.encode(receiptProof.path)), // key for trie (both tx and receipt)
+
+          utils.bufferToHex(getTxBytes(withdraw)), // tx bytes
+          utils.bufferToHex(rlp.encode(txProof.parentNodes)), // tx proof nodes
+
+          utils.bufferToHex(getReceiptBytes(withdrawReceipt)), // receipt bytes
+          utils.bufferToHex(rlp.encode(receiptProof.parentNodes)), // reciept proof nodes
+          {
+            from: user
+          }
+        )
+
+        assert.equal(startWithdrawReceipt.logs.length, 1)
+        assert.equal(
+          startWithdrawReceipt.logs[0].args.amount,
+          amount.toString()
+        )
+        assert.equal(startWithdrawReceipt.logs[0].args.user, user)
+        assert.equal(startWithdrawReceipt.logs[0].args.token, rootToken.address)
+
+        assert.isOk(
+          await rootChain.withdraws(
+            utils.bufferToHex(withdrawBlock.transactionsRoot)
+          )
+        )
+      })
+    })
+
+    // ETH withdraw
+    describe('ETH', async function() {
+      before(async function() {
+        // make weth a root token
+        rootToken = wethToken
+        childToken = childWethToken
+
+        // deposit ETH to root chain
+        const amount = web3.toWei(2)
+        await web3.eth.sendTransaction({
+          from: user,
+          to: rootChain.address,
+          value: amount
+        })
+
+        // deposit tokens (will be done by bridge)
+        await childChain.depositTokens(rootToken.address, user, amount, {
+          from: user
+        })
+      })
+
+      it('should allow anyone to withdraw tokens from side chain', async function() {
+        const amount = web3.toWei(1)
+
+        // withdraw 1 ether
+        const obj = await childToken.withdraw(amount, {
+          from: user
+        })
+
+        const receipt = obj.receipt
+        withdraw = await web3Child.eth.getTransaction(receipt.transactionHash)
+        withdrawBlock = await web3Child.eth.getBlock(receipt.blockHash, true)
+        withdrawBlockSlim = await web3Child.eth.getBlock(
+          receipt.blockHash,
+          false
+        )
+        withdrawReceipt = await web3Child.eth.getTransactionReceipt(
+          receipt.transactionHash
+        )
+      })
+
+      it('should allow submit root', async function() {
+        const _start = await rootChain.currentChildBlock()
+        const start = parseInt(_start, 10) + 1
+        const end = withdraw.blockNumber
+        const headers = await getHeaders(start, end, web3Child)
+        tree = new MerkleTree(headers)
+        const root = utils.bufferToHex(tree.getRoot())
+
+        sigs = utils.bufferToHex(
+          encodeSigs(
+            getSigs(wallets.slice(1), chain, root, start, end, [
+              await stakeManager.getProposer()
+            ])
+          )
+        )
+
+        const signers = await stakeManager.checkSignatures(
+          root,
+          start,
+          end,
+          sigs
+        )
+
+        // assert for enough signers
+        assert.equal(signers.toNumber(), wallets.length - 2)
+
+        // verify block header tree
+        const v = getBlockHeader(withdrawBlock)
+        assert.isOk(
+          tree.verify(
+            v,
+            withdrawBlock.number - start,
+            tree.getRoot(),
+            tree.getProof(v)
+          )
+        )
+
+        const proposer = await stakeManager.getProposer()
+
+        // submit header block
+        const receipt = await rootChain.submitHeaderBlock(
+          utils.bufferToHex(tree.getRoot()),
+          end,
+          sigs,
+          {
+            from: proposer
+          }
+        )
+
+        assert.equal(receipt.logs.length, 1)
+        assert.equal(receipt.logs[0].event, 'NewHeaderBlock')
+        assert.equal(receipt.logs[0].args.proposer, proposer)
+        assert.equal(+receipt.logs[0].args.start, start)
+        assert.equal(+receipt.logs[0].args.end, end)
+        assert.equal(
+          receipt.logs[0].args.root,
+          utils.bufferToHex(tree.getRoot())
+        )
+
+        // current header block
+        const currentHeaderBlock = await rootChain.currentHeaderBlock()
+        assert.equal(+currentHeaderBlock, 2)
+
+        // current child block
+        const currentChildBlock = await rootChain.currentChildBlock()
+        assert.equal(+currentChildBlock, end)
+      })
+
+      it('should allow anyone to withdraw ETH', async function() {
+        const amount = web3.toWei(1)
+        // validate tx proof
+        // transaction proof
+        const txProof = await getTxProof(withdraw, withdrawBlock)
+        // check if proof is valid
+        assert.isOk(verifyTxProof(txProof), 'Tx proof must be valid')
+
+        // validate receipt proof
+        const receiptProof = await getReceiptProof(
+          withdrawReceipt,
+          withdrawBlock,
+          web3Child
+        )
+        assert.isOk(
+          verifyReceiptProof(receiptProof),
+          'Receipt proof must be valid'
+        )
+
+        // validate header proof
+        const headerProof = await tree.getProof(getBlockHeader(withdrawBlock))
+
+        // let's withdraw from root chain :)
+        const headerNumber = await rootChain.currentHeaderBlock()
+        const startWithdrawReceipt = await rootChain.withdraw(
+          +headerNumber.sub(new BN(1)).toString(), // header block
+          utils.bufferToHex(Buffer.concat(headerProof)), // header proof
+
+          withdrawBlock.number, // block number
+          withdrawBlock.timestamp, // block timestamp
+          utils.bufferToHex(withdrawBlock.transactionsRoot), // tx root
+          utils.bufferToHex(withdrawBlock.receiptsRoot), // tx root
+          utils.bufferToHex(rlp.encode(receiptProof.path)), // key for trie (both tx and receipt)
+
+          utils.bufferToHex(getTxBytes(withdraw)), // tx bytes
+          utils.bufferToHex(rlp.encode(txProof.parentNodes)), // tx proof nodes
+
+          utils.bufferToHex(getReceiptBytes(withdrawReceipt)), // receipt bytes
+          utils.bufferToHex(rlp.encode(receiptProof.parentNodes)), // reciept proof nodes
+          {
+            from: user
+          }
+        )
+
+        assert.equal(startWithdrawReceipt.logs.length, 1)
+        assert.equal(
+          startWithdrawReceipt.logs[0].args.amount,
+          amount.toString()
+        )
+        assert.equal(startWithdrawReceipt.logs[0].args.user, user)
+        assert.equal(startWithdrawReceipt.logs[0].args.token, rootToken.address)
+
+        assert.isOk(
+          await rootChain.withdraws(
+            utils.bufferToHex(withdrawBlock.transactionsRoot)
+          )
+        )
+      })
     })
   })
 
@@ -584,7 +779,7 @@ contract('RootChain', async function(accounts) {
       await linkLibs(accounts[0])
 
       stakeToken = await RootToken.new('Stake Token', 'STAKE')
-      rootToken = await TestWETH.new({from: user})
+      rootToken = await MaticWETH.new({from: user})
       stakeManager = await StakeManager.new(stakeToken.address)
       rootChain = await RootChain.new(stakeManager.address)
       await stakeManager.setRootChain(rootChain.address)
