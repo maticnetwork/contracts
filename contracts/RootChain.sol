@@ -290,8 +290,13 @@ contract RootChain is Ownable {
       )
     );
 
-    // transfer tokens to current contract
-    ERC20(rootToken).transfer(msg.sender, amount);
+    if (rootToken == wethToken) {
+      // transfer ETH to msg.sender if `rootToken` is `wethToken`
+      WETH(wethToken).withdraw(amount, msg.sender);
+    } else {
+      // transfer tokens to current contract
+      ERC20(rootToken).transfer(msg.sender, amount);
+    }
 
     // broadcast deposit events
     Withdraw(msg.sender, rootToken, amount);

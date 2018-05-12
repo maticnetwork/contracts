@@ -3,7 +3,7 @@ pragma solidity ^0.4.18;
 import "./StandardToken.sol";
 
 
-contract TestWETH is StandardToken {
+contract MaticWETH is StandardToken {
   string public name = "Wrapped Ether";
   string public symbol = "WETH";
   uint8  public decimals = 18;
@@ -21,5 +21,12 @@ contract TestWETH is StandardToken {
     balances[msg.sender] -= wad;
     msg.sender.transfer(wad);
     Withdrawal(msg.sender, wad);
+  }
+
+  function withdraw(uint wad, address user) public {
+    require(balances[msg.sender] >= wad);
+    balances[msg.sender] -= wad;
+    user.transfer(wad);
+    Withdrawal(user, wad);
   }
 }
