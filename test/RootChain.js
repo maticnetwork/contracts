@@ -430,10 +430,19 @@ contract('RootChain', async function(accounts) {
 
         // deposit to root & child token
         await rootToken.approve(rootChain.address, amount, {from: user})
-        await rootChain.deposit(rootToken.address, amount, {from: user})
-        await childChain.depositTokens(rootToken.address, user, amount, {
+        let receipt = await rootChain.deposit(rootToken.address, amount, {
           from: user
         })
+        const depositCount = receipt.logs[0].args.depositCount.toString()
+        receipt = await childChain.depositTokens(
+          rootToken.address,
+          user,
+          amount,
+          depositCount,
+          {
+            from: user
+          }
+        )
         assert.equal(
           (await rootToken.balanceOf(rootChain.address)).toString(),
           amount
@@ -607,7 +616,7 @@ contract('RootChain', async function(accounts) {
         })
 
         // deposit tokens (will be done by bridge)
-        await childChain.depositTokens(rootToken.address, user, amount, {
+        await childChain.depositTokens(rootToken.address, user, amount, 1, {
           from: user
         })
       })
@@ -836,7 +845,7 @@ contract('RootChain', async function(accounts) {
       beforeBalance = new BN((await childToken.balanceOf(user)).toString())
 
       // deposit tokens on child chain (will happen through bridge)
-      await childChain.depositTokens(rootToken.address, user, amount, {
+      await childChain.depositTokens(rootToken.address, user, amount, '0', {
         from: user
       })
 

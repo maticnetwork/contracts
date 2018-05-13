@@ -50,11 +50,12 @@ contract('ChildERC20', async function(accounts) {
       let receipt = await childChain.depositTokens(
         rootToken.address,
         accounts[0],
-        amount
+        amount,
+        0
       )
 
       receipt = receipt.receipt
-      assert.equal(receipt.logs.length, 1)
+      assert.equal(receipt.logs.length, 2)
     })
   })
 
@@ -70,7 +71,7 @@ contract('ChildERC20', async function(accounts) {
       const receipt = await childChain.addToken(rootToken.address, 18)
       childToken = ChildToken.at(receipt.logs[0].args.token)
       amount = web3.toWei(10)
-      await childChain.depositTokens(rootToken.address, accounts[0], amount)
+      await childChain.depositTokens(rootToken.address, accounts[0], amount, 0)
     })
 
     it('should not allow to withdraw more than amount', async function() {

@@ -15,10 +15,24 @@ contract ChildChain is Ownable {
   // mapping for (root token => child token)
   mapping(address => address) public tokens;
 
+  // deposit mapping
+  mapping(uint256 => bool) public deposits;
+
   //
   // Events
   //
-  event NewToken(address indexed rootToken, address indexed token, uint8 _decimals);
+  event NewToken(
+    address indexed rootToken,
+    address indexed token,
+    uint8 _decimals
+  );
+  event TokenDeposited(
+    address indexed rootToken,
+    address indexed childToken,
+    address indexed user,
+    uint256 amount,
+    uint256 depositCount
+  );
 
   constructor () public {
 
@@ -44,8 +58,15 @@ contract ChildChain is Ownable {
   function depositTokens(
     address rootToken,
     address user,
-    uint256 amount
+    uint256 amount,
+    uint256 depositCount
   ) public onlyOwner {
+    // check if deposit happens only once
+    require(deposits[depositCount] == false);
+
+    // set deposit flag
+    deposits[depositCount] = true;
+
     // retrieve child tokens
     address childToken = tokens[rootToken];
 
@@ -55,5 +76,8 @@ contract ChildChain is Ownable {
     // deposit tokens
     ChildERC20 obj = ChildERC20(childToken);
     obj.deposit(user, amount);
+
+    // Emit TokenDeposited event
+    emit TokenDeposited(rootToken, childToken, user, amount, depositCount);
   }
 }

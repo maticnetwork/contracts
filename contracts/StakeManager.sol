@@ -121,7 +121,7 @@ contract StakeManager is StakeManagerInterface, Lockable {
     totalStake = totalStake.add(amount);
 
     // broadcast event
-    Staked(user, amount, stakedAmount, data);
+    emit Staked(user, amount, stakedAmount, data);
   }
 
   function unstake(uint256 amount, bytes data) public onlyStaker {
@@ -139,7 +139,7 @@ contract StakeManager is StakeManagerInterface, Lockable {
     tokenObj.transfer(msg.sender, amount);
 
     // broadcast event
-    Unstaked(msg.sender, amount, stakedAmount, data);
+    emit Unstaked(msg.sender, amount, stakedAmount, data);
   }
 
   function totalStakedFor(address addr) public view returns (uint256) {
