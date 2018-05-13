@@ -5,14 +5,19 @@ import {Buffer} from 'safe-buffer'
 import {generateFirstWallets} from './helpers/wallets'
 
 let ECVerify = artifacts.require('./lib/ECVerify.sol')
+let BytesLib = artifacts.require('./lib/BytesLib.sol')
+let RLP = artifacts.require('./lib/RLP.sol')
+let SafeMath = artifacts.require('./lib/SafeMath.sol')
 let MerklePatriciaProof = artifacts.require('./lib/MerklePatriciaProof.sol')
 let Merkle = artifacts.require('./lib/Merkle.sol')
 let RLPEncode = artifacts.require('./lib/RLPEncode.sol')
 
-let StakeManager = artifacts.require('./StakeManager.sol')
-let RootToken = artifacts.require('./token/TestToken.sol')
 let RootChain = artifacts.require('./RootChain.sol')
-let ChildChain = artifacts.require('./ChildChain.sol')
+let ChildChain = artifacts.require('./child/ChildChain.sol')
+let ChildToken = artifacts.require('./child/ChildERC20.sol')
+let RootToken = artifacts.require('./token/TestToken.sol')
+let MaticWETH = artifacts.require('./token/MaticWETH.sol')
+let StakeManager = artifacts.require('./StakeManager.sol')
 
 const BN = utils.BN
 const rlp = utils.rlp
@@ -26,13 +31,23 @@ contract('StakeManager', async function(accounts) {
       ECVerify: await ECVerify.new(),
       MerklePatriciaProof: await MerklePatriciaProof.new(),
       Merkle: await Merkle.new(),
-      RLPEncode: await RLPEncode.new()
+      RLPEncode: await RLPEncode.new(),
+      BytesLib: await BytesLib.new(),
+      SafeMath: await SafeMath.new()
     }
 
+    const contractList = [
+      StakeManager,
+      RootChain,
+      RootToken,
+      ChildChain,
+      ChildToken,
+      MaticWETH
+    ]
     Object.keys(libContracts).forEach(key => {
-      RootChain.link(key, libContracts[key].address)
-      ChildChain.link(key, libContracts[key].address)
-      StakeManager.link(key, libContracts[key].address)
+      contractList.forEach(c => {
+        c.link(key, libContracts[key].address)
+      })
     })
   }
 
@@ -64,6 +79,9 @@ contract('StakeManager', async function(accounts) {
     let stakeManager
 
     before(async function() {
+      // link libs
+      await linkLibs()
+
       stakeToken = await RootToken.new('Stake Token', 'STAKE')
       stakeManager = await StakeManager.new(stakeToken.address, {
         from: accounts[0]
@@ -97,6 +115,9 @@ contract('StakeManager', async function(accounts) {
     let wallets
 
     before(async function() {
+      // link libs
+      await linkLibs()
+
       wallets = generateFirstWallets(mnemonics, 5)
 
       stakeToken = await RootToken.new('Stake Token', 'STAKE')
@@ -239,7 +260,7 @@ contract('StakeManager', async function(accounts) {
 
     before(async function() {
       // link libs
-      await linkLibs(accounts[0])
+      await linkLibs()
 
       wallets = generateFirstWallets(mnemonics, Object.keys(stakes).length)
       stakeToken = await RootToken.new('Stake Token', 'STAKE')

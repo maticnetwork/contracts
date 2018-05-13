@@ -3,7 +3,10 @@ pragma solidity ^0.4.23;
 
 library BytesLib {
   /* solhint-disable function-max-lines */
-  function concat(bytes memory _preBytes, bytes memory _postBytes) internal pure returns (bytes) {
+  function concat(
+    bytes memory _preBytes,
+    bytes memory _postBytes
+  ) public pure returns (bytes) {
     bytes memory tempBytes;
     // solhint-disable-next-line no-inline-assembly
     assembly {
@@ -73,7 +76,11 @@ library BytesLib {
     return tempBytes;
   }
 
-  function slice(bytes _bytes, uint _start, uint _length) internal  pure returns (bytes) {
+  function slice(
+    bytes _bytes,
+    uint _start,
+    uint _length
+  ) public pure returns (bytes) {
     require(_bytes.length >= (_start + _length));
     bytes memory tempBytes;
     // solhint-disable-next-line no-inline-assembly
@@ -130,12 +137,12 @@ library BytesLib {
   /* solhint-enable function-max-lines */
 
   // Pad a bytes array to 32 bytes
-  function leftPad(bytes _bytes) internal pure returns (bytes) {
+  function leftPad(bytes _bytes) public pure returns (bytes) {
     bytes memory newBytes = new bytes(32 - _bytes.length);
     return concat(newBytes, _bytes);
   }
 
-  function toBytes32(bytes b) internal pure returns (bytes32) {
+  function toBytes32(bytes b) public pure returns (bytes32) {
     bytes32 out;
     for (uint i = 0; i < 32; i++) {
       out |= bytes32(b[i] & 0xFF) >> (i * 8);
@@ -143,7 +150,7 @@ library BytesLib {
     return out;
   }
 
-  function fromBytes32(bytes32 x) internal pure returns (bytes) {
+  function fromBytes32(bytes32 x) public pure returns (bytes) {
     bytes memory b = new bytes(32);
     for (uint i = 0; i < 32; i++) {
       b[i] = byte(uint8(uint(x) / (2**(8*(19 - i)))));
@@ -151,7 +158,7 @@ library BytesLib {
     return b;
   }
 
-  function fromUint(uint256 _num) internal pure returns (bytes _ret) {
+  function fromUint(uint256 _num) public pure returns (bytes _ret) {
     // solhint-disable-next-line no-inline-assembly
     assembly {
       _ret := mload(0x10)
@@ -160,7 +167,7 @@ library BytesLib {
     }
   }
 
-  function toUint(bytes _bytes, uint _start) internal pure returns (uint256) {
+  function toUint(bytes _bytes, uint _start) public pure returns (uint256) {
     require(_bytes.length >= (_start + 32));
     uint256 tempUint;
     // solhint-disable-next-line no-inline-assembly
@@ -170,7 +177,7 @@ library BytesLib {
     return tempUint;
   }
 
-  function toAddress(bytes _bytes, uint _start) internal  pure returns (address) {
+  function toAddress(bytes _bytes, uint _start) public  pure returns (address) {
     require(_bytes.length >= (_start + 20));
     address tempAddress;
     // solhint-disable-next-line no-inline-assembly

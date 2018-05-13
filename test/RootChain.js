@@ -22,6 +22,7 @@ const BN = utils.BN
 const rlp = utils.rlp
 
 let ECVerify = artifacts.require('./lib/ECVerify.sol')
+let BytesLib = artifacts.require('./lib/BytesLib.sol')
 let RLP = artifacts.require('./lib/RLP.sol')
 let SafeMath = artifacts.require('./lib/SafeMath.sol')
 let MerklePatriciaProof = artifacts.require('./lib/MerklePatriciaProof.sol')
@@ -49,18 +50,35 @@ const mnemonics =
 
 contract('RootChain', async function(accounts) {
   async function linkLibs() {
-    const libContracts = {
-      ECVerify: await ECVerify.new(),
-      MerklePatriciaProof: await MerklePatriciaProof.new(),
-      Merkle: await Merkle.new(),
-      RLPEncode: await RLPEncode.new()
+    const libList = [
+      ECVerify,
+      MerklePatriciaProof,
+      Merkle,
+      RLPEncode,
+      BytesLib,
+      SafeMath
+    ]
+    const contractList = [StakeManager, RootChain, RootToken, MaticWETH]
+    for (var i = 0; i < libList.length; i++) {
+      const M = libList[i]
+      const l = await M.new()
+      contractList.forEach(c => {
+        c.link(M._json.contractName, l.address)
+      })
     }
 
-    Object.keys(libContracts).forEach(key => {
-      RootChain.link(key, libContracts[key].address)
-      ChildChain.link(key, libContracts[key].address)
-      StakeManager.link(key, libContracts[key].address)
-    })
+    // web3Child
+    const childContractList = [ChildChain, ChildToken]
+    for (var i = 0; i < libList.length; i++) {
+      const M = libList[i]
+      const web3 = M.web3 // backup
+      M.web3 = web3Child // set for now
+      const l = await M.new()
+      M.web3 = web3 // recover
+      childContractList.forEach(c => {
+        c.link(M._json.contractName, l.address)
+      })
+    }
   }
 
   function getSigs(_wallets, _chain, _root, _start, _end, exclude = []) {
@@ -97,7 +115,7 @@ contract('RootChain', async function(accounts) {
 
     before(async function() {
       // link libs
-      await linkLibs(accounts[0])
+      await linkLibs()
 
       stakeToken = await RootToken.new('Stake Token', 'STAKE')
       stakeManager = await StakeManager.new(stakeToken.address)
@@ -784,9 +802,6 @@ contract('RootChain', async function(accounts) {
     before(async function() {
       user = accounts[9]
 
-      // link libs
-      await linkLibs(accounts[0])
-
       stakeToken = await RootToken.new('Stake Token', 'STAKE')
       rootToken = await MaticWETH.new({from: user})
       stakeManager = await StakeManager.new(stakeToken.address)
@@ -820,7 +835,10 @@ contract('RootChain', async function(accounts) {
       childToken = ChildToken.at(childTokenReceipt.logs[0].args.token)
 
       // map token
-      await rootChain.mapToken(rootToken.address, childToken.address)
+      const receipt = await rootChain.mapToken(
+        rootToken.address,
+        childToken.address
+      )
       chain = await rootChain.chain()
     })
 
@@ -842,15 +860,23 @@ contract('RootChain', async function(accounts) {
       assert.isOk(new BN(rootChainETH.toString()).eq(new BN(amount.toString())))
 
       // check ETH balance on child chain
-      beforeBalance = new BN((await childToken.balanceOf(user)).toString())
+      beforeBalance = await childToken.balanceOf(user)
+      beforeBalance = new BN(beforeBalance.toString())
 
       // deposit tokens on child chain (will happen through bridge)
-      await childChain.depositTokens(rootToken.address, user, amount, '0', {
-        from: user
-      })
+      const receipt = await childChain.depositTokens(
+        rootToken.address,
+        user,
+        amount,
+        0,
+        {
+          from: user
+        }
+      )
 
       // check ETH after deposit tokens
-      afterBalance = new BN((await childToken.balanceOf(user)).toString())
+      afterBalance = await childToken.balanceOf(user)
+      afterBalance = new BN(afterBalance.toString())
 
       // check if child token is updated properly
       assert.isOk(afterBalance.sub(beforeBalance).eq(new BN(amount.toString())))

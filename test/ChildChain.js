@@ -1,12 +1,19 @@
 import assertRevert from './helpers/assertRevert.js'
 
 let ECVerify = artifacts.require('./lib/ECVerify.sol')
+let BytesLib = artifacts.require('./lib/BytesLib.sol')
 let RLP = artifacts.require('./lib/RLP.sol')
 let SafeMath = artifacts.require('./lib/SafeMath.sol')
+let MerklePatriciaProof = artifacts.require('./lib/MerklePatriciaProof.sol')
+let Merkle = artifacts.require('./lib/Merkle.sol')
+let RLPEncode = artifacts.require('./lib/RLPEncode.sol')
 
+let RootChain = artifacts.require('./RootChain.sol')
 let ChildChain = artifacts.require('./child/ChildChain.sol')
 let ChildToken = artifacts.require('./child/ChildERC20.sol')
 let RootToken = artifacts.require('./token/TestToken.sol')
+let MaticWETH = artifacts.require('./token/MaticWETH.sol')
+let StakeManager = artifacts.require('./StakeManager.sol')
 
 const zeroAddress = '0x0000000000000000000000000000000000000000'
 
@@ -14,15 +21,34 @@ contract('ChildChain', async function(accounts) {
   async function linkLibs() {
     const libContracts = {
       ECVerify: await ECVerify.new(),
-      RLP: await RLP.new()
+      MerklePatriciaProof: await MerklePatriciaProof.new(),
+      Merkle: await Merkle.new(),
+      RLPEncode: await RLPEncode.new(),
+      BytesLib: await BytesLib.new(),
+      SafeMath: await SafeMath.new()
     }
 
+    const contractList = [
+      StakeManager,
+      RootChain,
+      RootToken,
+      ChildChain,
+      ChildToken,
+      MaticWETH
+    ]
     Object.keys(libContracts).forEach(key => {
-      ChildChain.link(key, libContracts[key].address)
+      contractList.forEach(c => {
+        c.link(key, libContracts[key].address)
+      })
     })
   }
 
   describe('Initialization', async function() {
+    before(async function() {
+      // link libs
+      await linkLibs()
+    })
+
     it('should initialize properly ', async function() {
       const childChainContract = await ChildChain.new()
       assert.equal(await childChainContract.owner(), accounts[0])
@@ -35,6 +61,9 @@ contract('ChildChain', async function(accounts) {
     let childToken
 
     before(async function() {
+      // link libs
+      await linkLibs()
+
       childChainContract = await ChildChain.new()
       rootToken = await RootToken.new('Test Token', 'TEST')
     })

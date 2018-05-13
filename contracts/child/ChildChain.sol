@@ -1,12 +1,12 @@
 pragma solidity ^0.4.23;
 
-import "../lib/SafeMath.sol";
+import "../lib/AttachedSafeMath.sol";
 import "../mixin/Ownable.sol";
 import "./ChildERC20.sol";
 
 
 contract ChildChain is Ownable {
-  using SafeMath for uint256;
+  using AttachedSafeMath for uint256;
 
   //
   // Storage
