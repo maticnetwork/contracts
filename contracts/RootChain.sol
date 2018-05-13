@@ -93,6 +93,14 @@ contract RootChain is Ownable {
     _;
   }
 
+  // Checks if address is contract or not
+  modifier notContract(address user) {
+    // throw if user is contract
+    require(isContract(user) == false);
+
+    _;
+  }
+
   // deposit ETH by sending to this contract
   function () public payable {
     depositEthers(msg.sender);
@@ -182,7 +190,9 @@ contract RootChain is Ownable {
   }
 
   // deposit ethers
-  function depositEthers(address user) public payable validateDeposit(wethToken, msg.value) {
+  function depositEthers(
+    address user
+  ) public payable notContract(user) validateDeposit(wethToken, msg.value) {
     // transfer ethers to this contract (through WETH)
     WETH t = WETH(wethToken);
     t.deposit.value(msg.value)();
@@ -197,7 +207,11 @@ contract RootChain is Ownable {
   }
 
   // deposit tokens for another user
-  function deposit(address token, address user, uint256 amount) public validateDeposit(token, amount) {
+  function deposit(
+    address token,
+    address user,
+    uint256 amount
+  ) public notContract(user) validateDeposit(token, amount) {
     // transfer tokens to current contract
     ERC20 t = ERC20(token);
     require(t.transferFrom(user, address(this), amount));
@@ -395,5 +409,15 @@ contract RootChain is Ownable {
 
     // Make sure this receipt is the value on the path via a MerklePatricia proof
     require(MerklePatriciaProof.verify(receiptBytes, path, receiptProof, receiptRoot) == true);
+  }
+
+  //assemble the given address bytecode. If bytecode exists then the _addr is a contract.
+  function isContract(address _addr) internal view returns (bool) {
+    uint length;
+    assembly { // solhint-disable-line
+      //retrieve the size of the code on target address, this needs assembly
+      length := extcodesize(_addr)
+    }
+    return (length > 0);
   }
 }
