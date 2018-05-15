@@ -22,12 +22,12 @@ contract RootChain is Ownable {
 
   // bytes32 constants
   // keccak256('\x2e\x1a\x7d\x4d')
-  bytes32 constant public withdrawSignature = '\x00\x73\x5d\xe6\x07\x24\xe5\xf7\x8e\x79\x34\x0a\x43\x7f\x3e\x86\x1f\x2e\xfd\xec\x60\x47\xc2\xcb\xf4\x97\xc3\x47\x07\xc9\x59\xbb';
+  bytes32 constant public withdrawSignature = 0x00735de60724e5f78e79340a437f3e861f2efdec6047c2cbf497c34707c959bb;
   // keccak256('Withdraw(address,address,uint256)')
-  bytes32 constant public withdrawEventSignature = '\x9b\x1b\xfa\x7f\xa9\xee\x42\x0a\x16\xe1\x24\xf7\x94\xc3\x5a\xc9\xf9\x04\x72\xac\xc9\x91\x40\xeb\x2f\x64\x47\xc7\x14\xca\xd8\xeb';
+  bytes32 constant public withdrawEventSignature = 0x9b1bfa7fa9ee420a16e124f794c35ac9f90472acc99140eb2f6447c714cad8eb;
   // chain identifier
   // keccak256('Matic Network v0.0.1-beta.1')
-  bytes32 public chain = '\x29\x84\x30\x1e\x97\x62\xb1\x4f\x38\x31\x41\xec\x6a\x9a\x76\x61\x40\x91\x03\x73\x7c\x37\xbb\xa9\xe0\xa2\x2b\xe2\x6d\x63\x48\x6d';
+  bytes32 public chain = 0x2984301e9762b14f383141ec6a9a7661409103737c37bba9e0a22be26d63486d;
 
   // WETH address
   address public wethToken;
