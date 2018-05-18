@@ -46,8 +46,19 @@ contract RootChain is Ownable {
     uint256 createdAt;
   }
 
+  // deposit block
+  struct DepositBlock {
+    uint256 header;
+    address owner;
+    address token;
+    uint256 amount;
+  }
+
   // list of header blocks (address => header block object)
   mapping(uint256 => HeaderBlock) public headerBlocks;
+
+  // list of deposits
+  mapping(uint256 => DepositBlock) public deposits;
 
   // current header block number
   uint256 public currentHeaderBlock;
@@ -223,6 +234,14 @@ contract RootChain is Ownable {
   function _depositEvent(address token, address user, uint256 amount) internal {
     // broadcast deposit event
     emit Deposit(user, token, amount, depositCount);
+
+    // add deposit into deposits
+    deposits[depositCount] = DepositBlock({
+      header: currentHeaderBlock,
+      owner: user,
+      token: token,
+      amount: amount
+    });
 
     // increase deposit counter
     depositCount = depositCount.add(1);

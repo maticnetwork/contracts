@@ -82,7 +82,7 @@ contract('ChildERC20', async function(accounts) {
       )
 
       receipt = receipt.receipt
-      assert.equal(receipt.logs.length, 2)
+      assert.equal(receipt.logs.length, 3)
     })
   })
 
@@ -108,12 +108,23 @@ contract('ChildERC20', async function(accounts) {
     })
 
     it('should allow to withdraw mentioned amount', async function() {
+      const beforeBalance = await childToken.balanceOf(accounts[0])
       const receipt = await childToken.withdraw(amount)
-      assert.equal(receipt.logs.length, 1)
+      assert.equal(receipt.logs.length, 2)
+
       assert.equal(receipt.logs[0].event, 'Withdraw')
       assert.equal(receipt.logs[0].args.token, rootToken.address)
       assert.equal(receipt.logs[0].args.user, accounts[0])
       assert.equal(receipt.logs[0].args.amount.toString(), amount)
+
+      assert.equal(receipt.logs[1].event, 'LogWithdraw')
+      assert.equal(receipt.logs[1].args.input1, beforeBalance.toString())
+      assert.equal(receipt.logs[1].args.amount, amount)
+      assert.isOk(
+        new BN(beforeBalance.toString())
+          .sub(new BN(amount.toString()))
+          .eq(new BN(receipt.logs[1].args.output1.toString()))
+      )
 
       // check balance
       assert.equal((await childToken.balanceOf(accounts[0])).toString(), '0')

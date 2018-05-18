@@ -630,7 +630,8 @@ contract('RootChain', async function(accounts) {
         await web3.eth.sendTransaction({
           from: user,
           to: rootChain.address,
-          value: amount
+          value: amount,
+          gas: 200000
         })
 
         // deposit tokens (will be done by bridge)
@@ -800,6 +801,8 @@ contract('RootChain', async function(accounts) {
     let sigs
 
     before(async function() {
+      await linkLibs()
+
       user = accounts[9]
 
       stakeToken = await RootToken.new('Stake Token', 'STAKE')
@@ -849,7 +852,8 @@ contract('RootChain', async function(accounts) {
       await web3.eth.sendTransaction({
         from: user,
         to: rootChain.address,
-        value: amount
+        value: amount,
+        gas: 200000
       })
       let _afterBalance = await web3.eth.getBalance(rootToken.address)
       let afterBalance = new BN(_afterBalance.toString())

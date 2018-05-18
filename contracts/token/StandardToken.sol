@@ -24,7 +24,7 @@ contract StandardToken is ERC20 {
   /// @param _value Number of tokens to transfer.
   /// @param _data Data to be sent to tokenFallback
   /// @return Returns success of function call.
-  function transfer( address _to, uint256 _value, bytes _data) public returns (bool) {
+  function transfer(address _to, uint256 _value, bytes _data) public returns (bool) {
     require(_to != 0x0);
     require(_value > 0);
     require(balances[msg.sender] >= _value);
