@@ -14,6 +14,7 @@ import {
 import {getHeaders, getBlockHeader} from './helpers/blocks.js'
 import {generateFirstWallets} from './helpers/wallets'
 import MerkleTree from './helpers/merkle-tree.js'
+import {linkLibs, encodeSigs, getSigs} from './helpers/utils'
 
 const web3Child = new web3.constructor(
   new web3.providers.HttpProvider('http://localhost:8546')
@@ -21,20 +22,14 @@ const web3Child = new web3.constructor(
 const BN = utils.BN
 const rlp = utils.rlp
 
-let ECVerify = artifacts.require('./lib/ECVerify.sol')
-let BytesLib = artifacts.require('./lib/BytesLib.sol')
-let RLP = artifacts.require('./lib/RLP.sol')
-let SafeMath = artifacts.require('./lib/SafeMath.sol')
-let MerklePatriciaProof = artifacts.require('./lib/MerklePatriciaProof.sol')
-let Merkle = artifacts.require('./lib/Merkle.sol')
-let RLPEncode = artifacts.require('./lib/RLPEncode.sol')
-
-let RootChain = artifacts.require('./RootChain.sol')
-let ChildChain = artifacts.require('./child/ChildChain.sol')
-let ChildToken = artifacts.require('./child/ChildERC20.sol')
-let RootToken = artifacts.require('./token/TestToken.sol')
-let MaticWETH = artifacts.require('./token/MaticWETH.sol')
-let StakeManager = artifacts.require('./StakeManager.sol')
+import {
+  StakeManager,
+  RootToken,
+  RootChain,
+  ChildChain,
+  ChildToken,
+  MaticWETH
+} from './helpers/contracts'
 
 ChildChain.web3 = web3Child
 ChildToken.web3 = web3Child
@@ -49,65 +44,6 @@ const mnemonics =
   'clock radar mass judge dismiss just intact mind resemble fringe diary casino'
 
 contract('RootChain', async function(accounts) {
-  async function linkLibs() {
-    const libList = [
-      ECVerify,
-      MerklePatriciaProof,
-      Merkle,
-      RLPEncode,
-      BytesLib,
-      SafeMath
-    ]
-    const contractList = [StakeManager, RootChain, RootToken, MaticWETH]
-    for (var i = 0; i < libList.length; i++) {
-      const M = libList[i]
-      const l = await M.new()
-      contractList.forEach(c => {
-        c.link(M._json.contractName, l.address)
-      })
-    }
-
-    // web3Child
-    const childContractList = [ChildChain, ChildToken]
-    for (var i = 0; i < libList.length; i++) {
-      const M = libList[i]
-      const web3 = M.web3 // backup
-      M.web3 = web3Child // set for now
-      const l = await M.new()
-      M.web3 = web3 // recover
-      childContractList.forEach(c => {
-        c.link(M._json.contractName, l.address)
-      })
-    }
-  }
-
-  function getSigs(_wallets, _chain, _root, _start, _end, exclude = []) {
-    _wallets.sort((w1, w2) => {
-      return Buffer.compare(w1.getAddress(), w2.getAddress()) >= 0
-    })
-
-    let chain = utils.toBuffer(_chain)
-    let start = new BN(_start.toString()).toArrayLike(Buffer, 'be', 32)
-    let end = new BN(_end.toString()).toArrayLike(Buffer, 'be', 32)
-    let headerRoot = utils.toBuffer(_root)
-    const h = utils.toBuffer(
-      utils.sha3(Buffer.concat([chain, headerRoot, start, end]))
-    )
-
-    return _wallets
-      .map(w => {
-        if (exclude.indexOf(w.getAddressString()) === -1) {
-          const vrs = utils.ecsign(h, w.getPrivateKey())
-          return utils.toRpcSig(vrs.v, vrs.r, vrs.s)
-        }
-      })
-      .filter(d => d)
-  }
-
-  function encodeSigs(sigs = []) {
-    return Buffer.concat(sigs.map(s => utils.toBuffer(s)))
-  }
-
   describe('initialization', async function() {
     let stakeToken
     let stakeManager
@@ -115,7 +51,7 @@ contract('RootChain', async function(accounts) {
 
     before(async function() {
       // link libs
-      await linkLibs()
+      await linkLibs(web3Child)
 
       stakeToken = await RootToken.new('Stake Token', 'STAKE')
       stakeManager = await StakeManager.new(stakeToken.address)
@@ -152,9 +88,6 @@ contract('RootChain', async function(accounts) {
     let sigs
 
     before(async function() {
-      // link libs
-      await linkLibs(accounts[0])
-
       wallets = generateFirstWallets(mnemonics, Object.keys(stakes).length)
       stakeToken = await RootToken.new('Stake Token', 'STAKE')
       stakeManager = await StakeManager.new(stakeToken.address)
@@ -237,9 +170,6 @@ contract('RootChain', async function(accounts) {
     let stakeManager
 
     before(async function() {
-      // link libs
-      await linkLibs(accounts[0])
-
       stakeToken = await RootToken.new('Stake Token', 'STAKE')
       rootToken = await RootToken.new('Test Token', 'TEST')
       stakeManager = await StakeManager.new(stakeToken.address)
@@ -282,10 +212,6 @@ contract('RootChain', async function(accounts) {
 
     before(async function() {
       user = accounts[9]
-
-      // link libs
-      await linkLibs(accounts[0])
-
       stakeToken = await RootToken.new('Stake Token', 'STAKE')
       rootToken = await RootToken.new('Test Token', 'TEST', {from: user})
       stakeManager = await StakeManager.new(stakeToken.address)
@@ -384,9 +310,6 @@ contract('RootChain', async function(accounts) {
       privateKey = utils.toBuffer(
         generateFirstWallets(mnemonics, 1, 9)[0].privateKey
       )
-
-      // link libs
-      await linkLibs(accounts[0])
 
       stakeToken = await RootToken.new('Stake Token', 'STAKE')
       rootToken = await RootToken.new('Test Token', 'TEST', {from: user})
@@ -801,8 +724,6 @@ contract('RootChain', async function(accounts) {
     let sigs
 
     before(async function() {
-      await linkLibs()
-
       user = accounts[9]
 
       stakeToken = await RootToken.new('Stake Token', 'STAKE')

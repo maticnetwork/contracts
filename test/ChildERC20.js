@@ -1,50 +1,13 @@
 import assertRevert from './helpers/assertRevert.js'
 import utils from 'ethereumjs-util'
 
-let ECVerify = artifacts.require('./lib/ECVerify.sol')
-let BytesLib = artifacts.require('./lib/BytesLib.sol')
-let RLP = artifacts.require('./lib/RLP.sol')
-let SafeMath = artifacts.require('./lib/SafeMath.sol')
-let MerklePatriciaProof = artifacts.require('./lib/MerklePatriciaProof.sol')
-let Merkle = artifacts.require('./lib/Merkle.sol')
-let RLPEncode = artifacts.require('./lib/RLPEncode.sol')
-
-let RootChain = artifacts.require('./RootChain.sol')
-let ChildChain = artifacts.require('./child/ChildChain.sol')
-let ChildToken = artifacts.require('./child/ChildERC20.sol')
-let RootToken = artifacts.require('./token/TestToken.sol')
-let MaticWETH = artifacts.require('./token/MaticWETH.sol')
-let StakeManager = artifacts.require('./StakeManager.sol')
+import {linkLibs} from './helpers/utils'
+import {ChildChain, ChildToken, RootToken} from './helpers/contracts'
 
 const BN = utils.BN
 const zeroAddress = '0x0000000000000000000000000000000000000000'
 
 contract('ChildERC20', async function(accounts) {
-  async function linkLibs() {
-    const libContracts = {
-      ECVerify: await ECVerify.new(),
-      MerklePatriciaProof: await MerklePatriciaProof.new(),
-      Merkle: await Merkle.new(),
-      RLPEncode: await RLPEncode.new(),
-      BytesLib: await BytesLib.new(),
-      SafeMath: await SafeMath.new()
-    }
-
-    const contractList = [
-      StakeManager,
-      RootChain,
-      RootToken,
-      ChildChain,
-      ChildToken,
-      MaticWETH
-    ]
-    Object.keys(libContracts).forEach(key => {
-      contractList.forEach(c => {
-        c.link(key, libContracts[key].address)
-      })
-    })
-  }
-
   describe('Initialization', async function() {
     before(async function() {
       // link libs
@@ -59,7 +22,7 @@ contract('ChildERC20', async function(accounts) {
     })
   })
 
-  describe('Transaction: deposit', async function() {
+  describe('Transaction', async function() {
     let rootToken
     let childToken
     let amount
@@ -83,22 +46,6 @@ contract('ChildERC20', async function(accounts) {
 
       receipt = receipt.receipt
       assert.equal(receipt.logs.length, 3)
-    })
-  })
-
-  describe('Transaction: withdraw', async function() {
-    let rootToken
-    let childToken
-    let amount
-    let childChain
-
-    before(async function() {
-      childChain = await ChildChain.new()
-      rootToken = await RootToken.new('Test Token', 'TEST')
-      const receipt = await childChain.addToken(rootToken.address, 18)
-      childToken = ChildToken.at(receipt.logs[0].args.token)
-      amount = web3.toWei(10)
-      await childChain.depositTokens(rootToken.address, accounts[0], amount, 0)
     })
 
     it('should not allow to withdraw more than amount', async function() {

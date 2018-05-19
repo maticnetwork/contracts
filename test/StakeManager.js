@@ -3,21 +3,8 @@ import utils from 'ethereumjs-util'
 import {Buffer} from 'safe-buffer'
 
 import {generateFirstWallets} from './helpers/wallets'
-
-let ECVerify = artifacts.require('./lib/ECVerify.sol')
-let BytesLib = artifacts.require('./lib/BytesLib.sol')
-let RLP = artifacts.require('./lib/RLP.sol')
-let SafeMath = artifacts.require('./lib/SafeMath.sol')
-let MerklePatriciaProof = artifacts.require('./lib/MerklePatriciaProof.sol')
-let Merkle = artifacts.require('./lib/Merkle.sol')
-let RLPEncode = artifacts.require('./lib/RLPEncode.sol')
-
-let RootChain = artifacts.require('./RootChain.sol')
-let ChildChain = artifacts.require('./child/ChildChain.sol')
-let ChildToken = artifacts.require('./child/ChildERC20.sol')
-let RootToken = artifacts.require('./token/TestToken.sol')
-let MaticWETH = artifacts.require('./token/MaticWETH.sol')
-let StakeManager = artifacts.require('./StakeManager.sol')
+import {linkLibs, encodeSigs, getSigs} from './helpers/utils'
+import {StakeManager, RootToken, RootChain} from './helpers/contracts'
 
 const BN = utils.BN
 const rlp = utils.rlp
@@ -26,54 +13,6 @@ const mnemonics =
   'clock radar mass judge dismiss just intact mind resemble fringe diary casino'
 
 contract('StakeManager', async function(accounts) {
-  async function linkLibs() {
-    const libContracts = {
-      ECVerify: await ECVerify.new(),
-      MerklePatriciaProof: await MerklePatriciaProof.new(),
-      Merkle: await Merkle.new(),
-      RLPEncode: await RLPEncode.new(),
-      BytesLib: await BytesLib.new(),
-      SafeMath: await SafeMath.new()
-    }
-
-    const contractList = [
-      StakeManager,
-      RootChain,
-      RootToken,
-      ChildChain,
-      ChildToken,
-      MaticWETH
-    ]
-    Object.keys(libContracts).forEach(key => {
-      contractList.forEach(c => {
-        c.link(key, libContracts[key].address)
-      })
-    })
-  }
-
-  function getSigs(wallets, _chain, _root, _start, _end, exclude = []) {
-    let chain = utils.toBuffer(_chain)
-    let start = new BN(_start.toString()).toArrayLike(Buffer, 'be', 32)
-    let end = new BN(_end.toString()).toArrayLike(Buffer, 'be', 32)
-    let headerRoot = utils.toBuffer(_root)
-    const h = utils.toBuffer(
-      utils.sha3(Buffer.concat([chain, headerRoot, start, end]))
-    )
-
-    return wallets
-      .map(w => {
-        if (exclude.indexOf(w.getAddressString()) === -1) {
-          const vrs = utils.ecsign(h, w.getPrivateKey())
-          return utils.toRpcSig(vrs.v, vrs.r, vrs.s)
-        }
-      })
-      .filter(d => d)
-  }
-
-  function encodeSigs(sigs = []) {
-    return Buffer.concat(sigs.map(s => utils.toBuffer(s)))
-  }
-
   describe('initialization', async function() {
     let stakeToken
     let stakeManager
@@ -97,17 +36,6 @@ contract('StakeManager', async function(accounts) {
     })
   })
 
-  // wallets
-  describe('Wallets', async function() {
-    it('should create wallets for first 5 accounts', async function() {
-      const wallets = generateFirstWallets(mnemonics, 5)
-      assert(wallets.length == 5)
-      assert(wallets[1].getAddressString() == accounts[1])
-      assert(wallets[2].getAddressString() == accounts[2])
-      assert(wallets[3].getAddressString() == accounts[3])
-    })
-  })
-
   // staking
   describe('Stake', async function() {
     let stakeToken
@@ -115,9 +43,6 @@ contract('StakeManager', async function(accounts) {
     let wallets
 
     before(async function() {
-      // link libs
-      await linkLibs()
-
       wallets = generateFirstWallets(mnemonics, 5)
 
       stakeToken = await RootToken.new('Stake Token', 'STAKE')
@@ -259,9 +184,6 @@ contract('StakeManager', async function(accounts) {
     let sigs
 
     before(async function() {
-      // link libs
-      await linkLibs()
-
       wallets = generateFirstWallets(mnemonics, Object.keys(stakes).length)
       stakeToken = await RootToken.new('Stake Token', 'STAKE')
       stakeManager = await StakeManager.new(stakeToken.address)
