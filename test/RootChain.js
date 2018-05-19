@@ -199,13 +199,15 @@ contract('RootChain', async function(accounts) {
     })
   })
 
-  describe('Deposit: ERC20 tokens', async function() {
+  describe('Deposit', async function() {
     let stakeToken
     let stakeManager
     let rootToken
     let rootChain
+    let wethToken
     let childChain
     let childToken
+    let childWethToken
     let user
     let chain
     let sigs
@@ -214,9 +216,11 @@ contract('RootChain', async function(accounts) {
       user = accounts[9]
       stakeToken = await RootToken.new('Stake Token', 'STAKE')
       rootToken = await RootToken.new('Test Token', 'TEST', {from: user})
+      wethToken = await MaticWETH.new({from: user})
       stakeManager = await StakeManager.new(stakeToken.address)
       rootChain = await RootChain.new(stakeManager.address)
       await stakeManager.setRootChain(rootChain.address)
+      await rootChain.setWETHToken(wethToken.address)
 
       // create child chain
       childChain = await ChildChain.new({
@@ -227,13 +231,9 @@ contract('RootChain', async function(accounts) {
       // check owner
       assert.equal(await childChain.owner(), user)
 
-      const childTokenReceipt = await childChain.addToken(
-        rootToken.address,
-        18,
-        {
-          from: user
-        }
-      )
+      let childTokenReceipt = await childChain.addToken(rootToken.address, 18, {
+        from: user
+      })
       assert.equal(childTokenReceipt.logs.length, 1)
       assert.equal(childTokenReceipt.logs[0].event, 'NewToken')
       assert.equal(childTokenReceipt.logs[0].args.rootToken, rootToken.address)
@@ -243,8 +243,16 @@ contract('RootChain', async function(accounts) {
       )
       childToken = ChildToken.at(childTokenReceipt.logs[0].args.token)
 
-      // map token
+      // weth token
+      childTokenReceipt = await childChain.addToken(wethToken.address, 18, {
+        from: user
+      })
+      childWethToken = ChildToken.at(childTokenReceipt.logs[0].args.token)
+
+      // map tokens
       await rootChain.mapToken(rootToken.address, childToken.address)
+      await rootChain.mapToken(wethToken.address, childWethToken.address)
+
       chain = await rootChain.chain()
     })
 
@@ -274,9 +282,53 @@ contract('RootChain', async function(accounts) {
         parseInt(receipt.logs[0].args.depositCount)
       )
     })
+
+    it('should allow anyone to deposit ETH', async function() {
+      rootToken = wethToken
+      childToken = childWethToken
+
+      let _beforeBalance = await web3.eth.getBalance(rootToken.address)
+      let beforeBalance = new BN(_beforeBalance.toString())
+      const amount = web3.toWei(2)
+      await web3.eth.sendTransaction({
+        from: user,
+        to: rootChain.address,
+        value: amount,
+        gas: 200000
+      })
+      let _afterBalance = await web3.eth.getBalance(rootToken.address)
+      let afterBalance = new BN(_afterBalance.toString())
+      assert.isOk(afterBalance.sub(beforeBalance).eq(new BN(amount.toString())))
+
+      // check root chain token balance (WETH)
+      const rootChainETH = await rootToken.balanceOf(rootChain.address)
+      assert.isOk(new BN(rootChainETH.toString()).eq(new BN(amount.toString())))
+
+      // check ETH balance on child chain
+      beforeBalance = await childToken.balanceOf(user)
+      beforeBalance = new BN(beforeBalance.toString())
+
+      // deposit tokens on child chain (will happen through bridge)
+      const receipt = await childChain.depositTokens(
+        rootToken.address,
+        user,
+        amount,
+        0,
+        {
+          from: user
+        }
+      )
+
+      // check ETH after deposit tokens
+      afterBalance = await childToken.balanceOf(user)
+      afterBalance = new BN(afterBalance.toString())
+
+      // check if child token is updated properly
+      assert.isOk(afterBalance.sub(beforeBalance).eq(new BN(amount.toString())))
+    })
   })
 
-  describe('Withdraw: merkle proof', async function() {
+  describe('Withdraw', async function() {
     let stakeToken
     let rootToken
     let wethToken
@@ -709,102 +761,6 @@ contract('RootChain', async function(accounts) {
           )
         )
       })
-    })
-  })
-
-  describe('Deposit: ETH', async function() {
-    let stakeToken
-    let stakeManager
-    let rootToken
-    let rootChain
-    let childChain
-    let childToken
-    let user
-    let chain
-    let sigs
-
-    before(async function() {
-      user = accounts[9]
-
-      stakeToken = await RootToken.new('Stake Token', 'STAKE')
-      rootToken = await MaticWETH.new({from: user})
-      stakeManager = await StakeManager.new(stakeToken.address)
-      rootChain = await RootChain.new(stakeManager.address)
-      await stakeManager.setRootChain(rootChain.address)
-      await rootChain.setWETHToken(rootToken.address)
-
-      // create child chain
-      childChain = await ChildChain.new({
-        from: user,
-        gas: 6000000
-      })
-
-      // check owner
-      assert.equal(await childChain.owner(), user)
-
-      const childTokenReceipt = await childChain.addToken(
-        rootToken.address,
-        18,
-        {
-          from: user
-        }
-      )
-      assert.equal(childTokenReceipt.logs.length, 1)
-      assert.equal(childTokenReceipt.logs[0].event, 'NewToken')
-      assert.equal(childTokenReceipt.logs[0].args.rootToken, rootToken.address)
-      assert.equal(
-        childTokenReceipt.logs[0].args.token,
-        await childChain.tokens(rootToken.address)
-      )
-      childToken = ChildToken.at(childTokenReceipt.logs[0].args.token)
-
-      // map token
-      const receipt = await rootChain.mapToken(
-        rootToken.address,
-        childToken.address
-      )
-      chain = await rootChain.chain()
-    })
-
-    it('should allow anyone to deposit ETH', async function() {
-      let _beforeBalance = await web3.eth.getBalance(rootToken.address)
-      let beforeBalance = new BN(_beforeBalance.toString())
-      const amount = web3.toWei(2)
-      await web3.eth.sendTransaction({
-        from: user,
-        to: rootChain.address,
-        value: amount,
-        gas: 200000
-      })
-      let _afterBalance = await web3.eth.getBalance(rootToken.address)
-      let afterBalance = new BN(_afterBalance.toString())
-      assert.isOk(afterBalance.sub(beforeBalance).eq(new BN(amount.toString())))
-
-      // check root chain token balance (WETH)
-      const rootChainETH = await rootToken.balanceOf(rootChain.address)
-      assert.isOk(new BN(rootChainETH.toString()).eq(new BN(amount.toString())))
-
-      // check ETH balance on child chain
-      beforeBalance = await childToken.balanceOf(user)
-      beforeBalance = new BN(beforeBalance.toString())
-
-      // deposit tokens on child chain (will happen through bridge)
-      const receipt = await childChain.depositTokens(
-        rootToken.address,
-        user,
-        amount,
-        0,
-        {
-          from: user
-        }
-      )
-
-      // check ETH after deposit tokens
-      afterBalance = await childToken.balanceOf(user)
-      afterBalance = new BN(afterBalance.toString())
-
-      // check if child token is updated properly
-      assert.isOk(afterBalance.sub(beforeBalance).eq(new BN(amount.toString())))
     })
   })
 })
