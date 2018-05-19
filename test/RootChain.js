@@ -16,9 +16,16 @@ import {generateFirstWallets} from './helpers/wallets'
 import MerkleTree from './helpers/merkle-tree.js'
 import {linkLibs, encodeSigs, getSigs} from './helpers/utils'
 
+let ChildChain = artifacts.require('./child/ChildChain.sol')
+let ChildToken = artifacts.require('./child/ChildERC20.sol')
+
 const web3Child = new web3.constructor(
   new web3.providers.HttpProvider('http://localhost:8546')
 )
+
+ChildChain.web3 = web3Child
+ChildToken.web3 = web3Child
+
 const BN = utils.BN
 const rlp = utils.rlp
 
@@ -26,13 +33,8 @@ import {
   StakeManager,
   RootToken,
   RootChain,
-  ChildChain,
-  ChildToken,
   MaticWETH
 } from './helpers/contracts'
-
-ChildChain.web3 = web3Child
-ChildToken.web3 = web3Child
 
 const printReceiptEvents = receipt => {
   receipt.logs.forEach(l => {

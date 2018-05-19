@@ -37,9 +37,7 @@ export async function linkLibs(web3Child) {
     contracts.RootToken,
     contracts.MaticWETH
   ]
-  if (!web3Child) {
-    contractList.push(contracts.ChildChain, contracts.ChildToken)
-  }
+
   for (var i = 0; i < libList.length; i++) {
     const M = libList[i]
     const l = await M.new()
@@ -48,8 +46,8 @@ export async function linkLibs(web3Child) {
     })
   }
 
+  // web3Child
   if (web3Child) {
-    // web3Child
     const childContractList = [contracts.ChildChain, contracts.ChildToken]
     for (var i = 0; i < libList.length; i++) {
       const M = libList[i]
