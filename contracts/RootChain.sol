@@ -5,12 +5,15 @@ import "./lib/MerklePatriciaProof.sol";
 import "./lib/Merkle.sol";
 import "./lib/RLP.sol";
 import "./lib/BytesLib.sol";
+import "./lib/Common.sol";
 import "./lib/RLPEncode.sol";
 import "./mixin/Ownable.sol";
+import "./mixin/RootChainValidator.sol";
 import "./token/ERC20.sol";
 import "./token/WETH.sol";
 
 import "./StakeManagerInterface.sol";
+import "./RootChainInterface.sol";
 
 
 contract RootChain is Ownable {
@@ -34,6 +37,7 @@ contract RootChain is Ownable {
 
   // stake interface
   StakeManagerInterface public stakeManager;
+  mapping(address => bool) public validatorContracts;
 
   // mapping for (root token => child token)
   mapping(address => address) public tokens;
@@ -78,6 +82,8 @@ contract RootChain is Ownable {
   // Events
   //
   event TokenMapped(address indexed rootToken, address indexed childToken);
+  event ValidatorAdded(address indexed validator, address indexed from);
+  event ValidatorRemoved(address indexed validator, address indexed from);
   event Deposit(address indexed user, address indexed token, uint256 amount, uint256 depositCount);
   event Withdraw(address indexed user, address indexed token, uint256 amount);
   event NewHeaderBlock(
@@ -106,9 +112,13 @@ contract RootChain is Ownable {
 
   // Checks if address is contract or not
   modifier notContract(address user) {
-    // throw if user is contract
-    require(isContract(user) == false);
+    require(Common.isContract(user) == false);
+    _;
+  }
 
+  // Checks is msg.sender is valid validator
+  modifier isValidator(address _address) {
+    require(validatorContracts[_address] == true);
     _;
   }
 
@@ -129,6 +139,20 @@ contract RootChain is Ownable {
   // set WETH
   function setWETHToken(address _token) public onlyOwner {
     wethToken = _token;
+  }
+
+  // add validator
+  function addValidator(address _validator) public onlyOwner {
+    require(_validator != address(0) && validatorContracts[_validator] != true);
+    emit ValidatorAdded(_validator, msg.sender);
+    validatorContracts[_validator] = true;
+  }
+
+  // remove validator
+  function removeValidator(address _validator) public onlyOwner {
+    require(validatorContracts[_validator] == true);
+    emit ValidatorAdded(_validator, msg.sender);
+    delete validatorContracts[_validator];
   }
 
   //
@@ -383,19 +407,11 @@ contract RootChain is Ownable {
     require(
       msg.sender == ecrecover(
         keccak256(RLPEncode.encodeList(rawTx)),
-        _getV(txList[6].toData(), 13),
+        Common.getV(txList[6].toData(), 13),
         txList[7].toBytes32(),
         txList[8].toBytes32()
       )
     );
-  }
-
-  function _getV(bytes v, uint8 chainId) internal pure returns (uint8) {
-    if (chainId > 0) {
-      return uint8(BytesLib.toUint(BytesLib.leftPad(v), 0) - (chainId * 2) - 8);
-    } else {
-      return uint8(BytesLib.toUint(BytesLib.leftPad(v), 0));
-    }
   }
 
   function _processWithdrawReceipt(
@@ -430,13 +446,8 @@ contract RootChain is Ownable {
     require(MerklePatriciaProof.verify(receiptBytes, path, receiptProof, receiptRoot) == true);
   }
 
-  //assemble the given address bytecode. If bytecode exists then the _addr is a contract.
-  function isContract(address _addr) internal view returns (bool) {
-    uint length;
-    assembly { // solhint-disable-line
-      //retrieve the size of the code on target address, this needs assembly
-      length := extcodesize(_addr)
-    }
-    return (length > 0);
+  // slash stakers if fraud is detected
+  function slash() public isValidator(msg.sender) {
+    // TODO
   }
 }

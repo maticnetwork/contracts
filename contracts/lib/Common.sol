@@ -1,0 +1,24 @@
+pragma solidity ^0.4.23;
+
+import "./BytesLib.sol";
+
+
+library Common {
+  function getV(bytes v, uint8 chainId) public pure returns (uint8) {
+    if (chainId > 0) {
+      return uint8(BytesLib.toUint(BytesLib.leftPad(v), 0) - (chainId * 2) - 8);
+    } else {
+      return uint8(BytesLib.toUint(BytesLib.leftPad(v), 0));
+    }
+  }
+
+  //assemble the given address bytecode. If bytecode exists then the _addr is a contract.
+  function isContract(address _addr) public view returns (bool) {
+    uint length;
+    assembly { // solhint-disable-line
+      //retrieve the size of the code on target address, this needs assembly
+      length := extcodesize(_addr)
+    }
+    return (length > 0);
+  }
+}

@@ -268,7 +268,7 @@ contract('RootChain', async function(accounts) {
       const amount = web3.toWei(10)
       // approve transfer
       await rootToken.approve(rootChain.address, amount, {from: user})
-      const receipt = await rootChain.deposit(rootToken.address, amount, {
+      const receipt = await rootChain.deposit(rootToken.address, user, amount, {
         from: user
       })
       assert.equal(receipt.logs.length, 1)
@@ -425,7 +425,7 @@ contract('RootChain', async function(accounts) {
 
         // deposit to root & child token
         await rootToken.approve(rootChain.address, amount, {from: user})
-        let receipt = await rootChain.deposit(rootToken.address, amount, {
+        let receipt = await rootChain.deposit(rootToken.address, user, amount, {
           from: user
         })
         const depositCount = receipt.logs[0].args.depositCount.toString()

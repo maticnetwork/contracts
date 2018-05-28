@@ -29,7 +29,8 @@ export async function linkLibs(web3Child) {
     contracts.Merkle,
     contracts.RLPEncode,
     contracts.BytesLib,
-    contracts.SafeMath
+    contracts.SafeMath,
+    contracts.Common
   ]
   const contractList = [
     contracts.StakeManager,
@@ -38,9 +39,17 @@ export async function linkLibs(web3Child) {
     contracts.MaticWETH
   ]
 
+  const libAddresses = {}
   for (var i = 0; i < libList.length; i++) {
     const M = libList[i]
+
+    for (var j = 0; j < i; j++) {
+      const n = libList[j]._json.contractName
+      M.link(n, libAddresses[n])
+    }
+
     const l = await M.new()
+    libAddresses[M._json.contractName] = l.address
     contractList.forEach(c => {
       c.link(M._json.contractName, l.address)
     })

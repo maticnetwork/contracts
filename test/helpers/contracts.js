@@ -7,6 +7,7 @@ export const MerklePatriciaProof = artifacts.require(
 )
 export const Merkle = artifacts.require('./lib/Merkle.sol')
 export const RLPEncode = artifacts.require('./lib/RLPEncode.sol')
+export const Common = artifacts.require('./lib/Common.sol')
 
 export const RootChain = artifacts.require('./RootChain.sol')
 export const ChildChain = artifacts.require('./child/ChildChain.sol')
