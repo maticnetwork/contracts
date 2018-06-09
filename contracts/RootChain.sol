@@ -31,6 +31,8 @@ contract RootChain is Ownable {
   // chain identifier
   // keccak256('Matic Network v0.0.1-beta.1')
   bytes32 public chain = 0x2984301e9762b14f383141ec6a9a7661409103737c37bba9e0a22be26d63486d;
+  // networkId
+  bytes public networkId = '\x0d'; // 13
 
   // WETH address
   address public wethToken;
@@ -200,6 +202,10 @@ contract RootChain is Ownable {
     stakeManager.finalizeCommit(msg.sender);
   }
 
+  //
+  // Header block
+  //
+
   function currentChildBlock() public view returns(uint256) {
     if (currentHeaderBlock != 0) {
       return headerBlocks[currentHeaderBlock.sub(1)].end;
@@ -208,11 +214,26 @@ contract RootChain is Ownable {
     return 0;
   }
 
+  function getHeaderBlock(uint256 headerNumber) public view returns (
+    bytes32 root,
+    uint256 start,
+    uint256 end,
+    uint256 createdAt
+  ) {
+    root = headerBlocks[headerNumber].root;
+    start = headerBlocks[headerNumber].start;
+    end = headerBlocks[headerNumber].end;
+    createdAt = headerBlocks[headerNumber].createdAt;
+  }
+
   //
   // User functions
   //
   // token fallback for ERC223
-  function tokenFallback(address _sender, uint256 _value, bytes) public validateDeposit(msg.sender, _value) {
+  function tokenFallback(address _sender, uint256 _value, bytes)
+    public
+    validateDeposit(msg.sender, _value)
+  {
     address token = msg.sender;
 
     // generate deposit event and udpate counter
@@ -399,7 +420,7 @@ contract RootChain is Ownable {
       rawTx[i] = txList[i].toData();
     }
     rawTx[4] = hex"";
-    rawTx[6] = '\x0d'; // 13
+    rawTx[6] = networkId;
     rawTx[7] = hex"";
     rawTx[8] = hex"";
 
@@ -445,6 +466,10 @@ contract RootChain is Ownable {
     // Make sure this receipt is the value on the path via a MerklePatricia proof
     require(MerklePatriciaProof.verify(receiptBytes, path, receiptProof, receiptRoot) == true);
   }
+
+  //
+  // Slashing conditions
+  //
 
   // slash stakers if fraud is detected
   function slash() public isValidator(msg.sender) {
