@@ -32,7 +32,7 @@ contract RootChain is Ownable {
   // keccak256('Matic Network v0.0.1-beta.1')
   bytes32 public chain = 0x2984301e9762b14f383141ec6a9a7661409103737c37bba9e0a22be26d63486d;
   // networkId
-  bytes public networkId = '\x0d'; // 13
+  bytes public networkId = '\x0d';
 
   // WETH address
   address public wethToken;
@@ -428,7 +428,7 @@ contract RootChain is Ownable {
     require(
       msg.sender == ecrecover(
         keccak256(RLPEncode.encodeList(rawTx)),
-        Common.getV(txList[6].toData(), 13),
+        Common.getV(txList[6].toData(), Common.toUint8(networkId)),
         txList[7].toBytes32(),
         txList[8].toBytes32()
       )
@@ -473,6 +473,6 @@ contract RootChain is Ownable {
 
   // slash stakers if fraud is detected
   function slash() public isValidator(msg.sender) {
-    // TODO
+    // TODO pass block/proposer
   }
 }
