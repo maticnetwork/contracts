@@ -36,7 +36,7 @@ contract StandardToken is ERC20 {
       ContractReceiver receiver = ContractReceiver(_to);
       receiver.tokenFallback(msg.sender, _value, _data);
     }
-    emit Transfer(msg.sender, _to, _value, _data);
+    emit Transfer(msg.sender, _to, _value);
     return true;
   }
 
@@ -56,8 +56,7 @@ contract StandardToken is ERC20 {
     balances[_to] += _value;
     balances[_from] -= _value;
     allowed[_from][_to] -= _value;
-    bytes memory empty;
-    emit Transfer(_from, _to, _value, empty);
+    emit Transfer(_from, _to, _value);
     return true;
   }
 
