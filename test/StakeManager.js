@@ -2,15 +2,12 @@ import bip39 from 'bip39'
 import utils from 'ethereumjs-util'
 import {Buffer} from 'safe-buffer'
 
-import {generateFirstWallets} from './helpers/wallets'
+import {generateFirstWallets, mnemonics} from './helpers/wallets'
 import {linkLibs, encodeSigs, getSigs} from './helpers/utils'
 import {StakeManager, RootToken, RootChain} from './helpers/contracts'
 
 const BN = utils.BN
 const rlp = utils.rlp
-
-const mnemonics =
-  'clock radar mass judge dismiss just intact mind resemble fringe diary casino'
 
 contract('StakeManager', async function(accounts) {
   describe('initialization', async function() {

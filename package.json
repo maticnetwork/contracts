@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "private": "true",
+  "private": true,
   "scripts": {
     "testrpc": "ganache-cli --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' --gasLimit 13000000",
     "truffle": "truffle",
@@ -23,6 +23,9 @@
     "url": "https://github.com/jdkanani/protocol/issues"
   },
   "homepage": "https://github.com/jdkanani/protocol#readme",
+  "config": {
+    "mnemonics": "clock radar mass judge dismiss just intact mind resemble fringe diary casino"
+  },
   "devDependencies": {
     "babel-cli": "^6.26.0",
     "babel-eslint": "^8.2.1",

@@ -24,7 +24,7 @@ contract RootChain is Ownable {
   using RLP for RLP.Iterator;
 
   // bytes32 constants
-  // keccak256('\x2e\x1a\x7d\x4d')
+  // keccak256(0x2e1a7d4d)
   bytes32 constant public withdrawSignature = 0x00735de60724e5f78e79340a437f3e861f2efdec6047c2cbf497c34707c959bb;
   // keccak256('Withdraw(address,address,uint256)')
   bytes32 constant public withdrawEventSignature = 0x9b1bfa7fa9ee420a16e124f794c35ac9f90472acc99140eb2f6447c714cad8eb;
@@ -43,6 +43,8 @@ contract RootChain is Ownable {
 
   // mapping for (root token => child token)
   mapping(address => address) public tokens;
+  // mapping for (child token => root token)
+  mapping(address => address) public reverseTokens;
 
   // header block
   struct HeaderBlock {
@@ -135,6 +137,7 @@ contract RootChain is Ownable {
   // map child token to root token
   function mapToken(address rootToken, address childToken) public onlyOwner {
     tokens[rootToken] = childToken;
+    reverseTokens[childToken] = rootToken;
     emit TokenMapped(rootToken, childToken);
   }
 

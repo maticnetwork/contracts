@@ -2,7 +2,6 @@ import bip39 from 'bip39'
 import utils from 'ethereumjs-util'
 import {Buffer} from 'safe-buffer'
 
-import assertRevert from './helpers/assertRevert.js'
 import {
   getTxBytes,
   getTxProof,
@@ -12,9 +11,16 @@ import {
   verifyReceiptProof
 } from './helpers/proofs.js'
 import {getHeaders, getBlockHeader} from './helpers/blocks.js'
-import {generateFirstWallets} from './helpers/wallets'
+import {generateFirstWallets, mnemonics} from './helpers/wallets'
 import MerkleTree from './helpers/merkle-tree.js'
 import {linkLibs, encodeSigs, getSigs} from './helpers/utils'
+
+import {
+  StakeManager,
+  RootToken,
+  RootChain,
+  MaticWETH
+} from './helpers/contracts'
 
 let ChildChain = artifacts.require('./child/ChildChain.sol')
 let ChildToken = artifacts.require('./child/ChildERC20.sol')
@@ -29,21 +35,11 @@ ChildToken.web3 = web3Child
 const BN = utils.BN
 const rlp = utils.rlp
 
-import {
-  StakeManager,
-  RootToken,
-  RootChain,
-  MaticWETH
-} from './helpers/contracts'
-
-const printReceiptEvents = receipt => {
-  receipt.logs.forEach(l => {
-    console.log(l.event, JSON.stringify(l.args))
-  })
-}
-
-const mnemonics =
-  'clock radar mass judge dismiss just intact mind resemble fringe diary casino'
+// const printReceiptEvents = receipt => {
+//   receipt.logs.forEach(l => {
+//     console.log(l.event, JSON.stringify(l.args))
+//   })
+// }
 
 contract('RootChain', async function(accounts) {
   describe('initialization', async function() {
