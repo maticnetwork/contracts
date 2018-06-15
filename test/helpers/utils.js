@@ -1,7 +1,7 @@
 /* global web3 */
 
 import utils from 'ethereumjs-util'
-import {Buffer} from 'safe-buffer'
+import { Buffer } from 'safe-buffer'
 
 import * as contracts from './contracts'
 
@@ -36,8 +36,7 @@ export async function linkLibs(web3Child) {
     contracts.StakeManager,
     contracts.RootChain,
     contracts.RootToken,
-    contracts.MaticWETH,
-    contracts.ERC20Validator
+    contracts.MaticWETH
   ]
 
   const libAddresses = {}
