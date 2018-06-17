@@ -46,9 +46,10 @@ contract RootChainValidator is Lockable {
 
     bytes32 txRoot,
     bytes32 receiptRoot,
+    bytes path,
+
     bytes txBytes,
-    bytes txProof,
-    bytes path
+    bytes txProof
   ) public view returns (bool) {
     // get header information
     var (headerRoot, start,,) = rootChain.getHeaderBlock(headerNumber);
@@ -59,7 +60,39 @@ contract RootChainValidator is Lockable {
     && MerklePatriciaProof.verify(txBytes, path, txProof, txRoot);
   }
 
-  // validate transaction
+  // validate transaction & receipt
+  function validateTxReceiptExistence(
+    uint256 headerNumber,
+    bytes headerProof,
+
+    uint256 blockNumber,
+    uint256 blockTime,
+
+    bytes32 txRoot,
+    bytes32 receiptRoot,
+    bytes path,
+
+    bytes txBytes,
+    bytes txProof,
+
+    bytes receiptBytes,
+    bytes receiptProof
+  ) public view returns (bool) {
+    // validate tx existance and receipt
+    return validateTxExistence(
+      headerNumber,
+      headerProof,
+      blockNumber,
+      blockTime,
+      txRoot,
+      receiptRoot,
+      path,
+      txBytes,
+      txProof
+    ) && MerklePatriciaProof.verify(receiptBytes, path, receiptProof, receiptRoot);
+  }
+
+  // validate tx
   function validateTx(
     uint256 headerNumber,
     bytes headerProof,
@@ -69,11 +102,10 @@ contract RootChainValidator is Lockable {
 
     bytes32 txRoot,
     bytes32 receiptRoot,
-    bytes txBytes,
-    bytes txProof,
     bytes path,
 
-    address sender
+    bytes txBytes,
+    bytes txProof
   ) public view returns (bool) {
     if (
       validateTxExistence(
@@ -83,19 +115,27 @@ contract RootChainValidator is Lockable {
         blockTime,
         txRoot,
         receiptRoot,
+        path,
         txBytes,
-        txProof,
-        path
-      )
+        txProof
+      ) == false
     ) {
       return false;
     }
 
     // check tx
     RLP.RLPItem[] memory txList = txBytes.toRLPItem().toList();
-    if (txList.length != 9) {
-      return false;
+    if (txList.length == 9) {
+      return true;
     }
+
+    return false;
+  }
+
+  // get tx sender
+  function getTxSender(bytes txBytes) public view returns (address) {
+    // check tx
+    RLP.RLPItem[] memory txList = txBytes.toRLPItem().toList();
 
     // raw tx
     bytes[] memory rawTx = new bytes[](9);
@@ -107,18 +147,12 @@ contract RootChainValidator is Lockable {
     rawTx[7] = hex"";
     rawTx[8] = hex"";
 
-    // recover sender from v, r and s
-    if (
-      ecrecover(
-        keccak256(RLPEncode.encodeList(rawTx)),
-        Common.getV(txList[6].toData(), Common.toUint8(rootChain.networkId())),
-        txList[7].toBytes32(),
-        txList[8].toBytes32()
-      ) != sender
-    ) {
-      return false;
-    }
-
-    return true;
+    // recover tx sender
+    return ecrecover(
+      keccak256(RLPEncode.encodeList(rawTx)),
+      Common.getV(txList[6].toData(), Common.toUint8(rootChain.networkId())),
+      txList[7].toBytes32(),
+      txList[8].toBytes32()
+    );
   }
 }

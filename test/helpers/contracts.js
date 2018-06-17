@@ -15,3 +15,6 @@ export const ChildToken = artifacts.require('./child/ChildERC20.sol')
 export const RootToken = artifacts.require('./token/TestToken.sol')
 export const MaticWETH = artifacts.require('./token/MaticWETH.sol')
 export const StakeManager = artifacts.require('./StakeManager.sol')
+
+// proofs
+export const ERC20Validator = artifacts.require('./proofs/ERC20Validator.sol')

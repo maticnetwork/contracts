@@ -36,7 +36,8 @@ export async function linkLibs(web3Child) {
     contracts.StakeManager,
     contracts.RootChain,
     contracts.RootToken,
-    contracts.MaticWETH
+    contracts.MaticWETH,
+    contracts.ERC20Validator
   ]
 
   const libAddresses = {}

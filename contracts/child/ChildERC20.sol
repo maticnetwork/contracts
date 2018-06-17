@@ -4,8 +4,6 @@ import "../lib/AttachedSafeMath.sol";
 import "../token/StandardToken.sol";
 import "../mixin/Ownable.sol";
 
-import "./ChildChain.sol";
-
 
 contract ChildERC20 is StandardToken, Ownable {
   using AttachedSafeMath for uint256;
@@ -73,7 +71,7 @@ contract ChildERC20 is StandardToken, Ownable {
    * @param amount tokens
    */
   function withdraw(uint256 amount) public {
-    var user = msg.sender;
+    address user = msg.sender;
 
     // check for amount
     require(amount > 0 && balances[user] >= amount);
