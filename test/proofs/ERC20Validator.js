@@ -109,7 +109,7 @@ contract('ERC20Validator', async function(accounts) {
       let receipt = await rootToken.approve(rootChain.address, amount, {
         from: user
       })
-      receipt = await rootChain.deposit(rootToken.address, amount, {
+      receipt = await rootChain.deposit(rootToken.address, user, amount, {
         from: user
       })
       const depositCount = receipt.logs[0].args.depositCount.toString()
@@ -204,20 +204,24 @@ contract('ERC20Validator', async function(accounts) {
 
       // ERC20 validator
       receipt = await erc20Validator.validateERC20TransferTx(
-        +headerNumber.sub(new BN(1)).toString(), // header block
-        utils.bufferToHex(Buffer.concat(headerProof)), // header proof
+        utils.bufferToHex(
+          rlp.encode([
+            +headerNumber.sub(new BN(1)).toString(), // header block
+            utils.bufferToHex(Buffer.concat(headerProof)), // header proof
 
-        transferBlock.number, // block number
-        transferBlock.timestamp, // block timestamp
-        utils.bufferToHex(transferBlock.transactionsRoot), // tx root
-        utils.bufferToHex(transferBlock.receiptsRoot), // tx root
-        utils.bufferToHex(rlp.encode(receiptProof.path)), // key for trie (both tx and receipt)
+            transferBlock.number, // block number
+            transferBlock.timestamp, // block timestamp
+            utils.bufferToHex(transferBlock.transactionsRoot), // tx root
+            utils.bufferToHex(transferBlock.receiptsRoot), // tx root
+            utils.bufferToHex(rlp.encode(receiptProof.path)), // key for trie (both tx and receipt)
 
-        utils.bufferToHex(getTxBytes(transfer)), // tx bytes
-        utils.bufferToHex(rlp.encode(txProof.parentNodes)), // tx proof nodes
+            utils.bufferToHex(getTxBytes(transfer)), // tx bytes
+            utils.bufferToHex(rlp.encode(txProof.parentNodes)), // tx proof nodes
 
-        utils.bufferToHex(getReceiptBytes(transferReceipt)), // receipt bytes
-        utils.bufferToHex(rlp.encode(receiptProof.parentNodes)) // reciept proof nodes
+            utils.bufferToHex(getReceiptBytes(transferReceipt)), // receipt bytes
+            utils.bufferToHex(rlp.encode(receiptProof.parentNodes)) // reciept proof nodes
+          ])
+        )
       )
       // printReceiptEvents(receipt)
     })

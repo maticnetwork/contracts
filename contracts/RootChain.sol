@@ -45,6 +45,8 @@ contract RootChain is Ownable {
   mapping(address => address) public tokens;
   // mapping for (child token => root token)
   mapping(address => address) public reverseTokens;
+  // child chain contract
+  address public childChainContract;
 
   // header block
   struct HeaderBlock {
@@ -85,6 +87,7 @@ contract RootChain is Ownable {
   //
   // Events
   //
+  event ChildChainChanged(address indexed previousChildChain, address indexed newChildChain);
   event TokenMapped(address indexed rootToken, address indexed childToken);
   event ValidatorAdded(address indexed validator, address indexed from);
   event ValidatorRemoved(address indexed validator, address indexed from);
@@ -134,6 +137,13 @@ contract RootChain is Ownable {
   //
   // Admin functions
   //
+  // change child chain contract
+  function setChildContract(address newChildChain) public onlyOwner {
+    require(newChildChain != address(0));
+    emit ChildChainChanged(childChainContract, newChildChain);
+    childChainContract = newChildChain;
+  }
+
   // map child token to root token
   function mapToken(address rootToken, address childToken) public onlyOwner {
     tokens[rootToken] = childToken;
@@ -230,6 +240,21 @@ contract RootChain is Ownable {
   }
 
   //
+  // Deposit block
+  //
+  function getDepositBlock(uint256 depositCount) public view returns (
+    uint256 header,
+    address owner,
+    address token,
+    uint256 amount
+  ) {
+    header = deposits[depositCount].header;
+    owner = deposits[depositCount].owner;
+    token = deposits[depositCount].token;
+    amount = deposits[depositCount].amount;
+  }
+
+  //
   // User functions
   //
   // token fallback for ERC223
@@ -261,9 +286,9 @@ contract RootChain is Ownable {
   }
 
   // deposit tokens
-  function deposit(address token, uint256 amount) public {
-    deposit(token, msg.sender, amount);
-  }
+  // function deposit(address token, uint256 amount) public {
+  //   deposit(token, msg.sender, amount);
+  // }
 
   // deposit tokens for another user
   function deposit(

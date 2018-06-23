@@ -17,4 +17,5 @@ export const MaticWETH = artifacts.require('./token/MaticWETH.sol')
 export const StakeManager = artifacts.require('./StakeManager.sol')
 
 // proofs
+export const TxValidator = artifacts.require('./proofs/TxValidator.sol')
 export const ERC20Validator = artifacts.require('./proofs/ERC20Validator.sol')

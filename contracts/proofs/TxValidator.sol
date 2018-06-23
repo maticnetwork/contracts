@@ -24,11 +24,14 @@ contract TxValidator is RootChainValidator {
     bytes path,
 
     bytes txBytes,
-    bytes txProof
+    bytes txProof,
+
+    bytes receiptBytes,
+    bytes receiptProof
   ) public {
-    // validate tx existence
-    require(
-      validateTxExistence(
+    // validate tx
+    if (
+      !validateTx(
         headerNumber,
         headerProof,
         blockNumber,
@@ -37,15 +40,16 @@ contract TxValidator is RootChainValidator {
         receiptRoot,
         path,
         txBytes,
-        txProof
+        txProof,
+        receiptBytes,
+        receiptProof
       )
-    );
-
-    // check tx
-    RLP.RLPItem[] memory txList = txBytes.toRLPItem().toList();
-    if (txList.length != 9) {
+    ) {
       // slash if tx is not valid
       rootChain.slash();
+      return;
     }
+
+    revert("Invalid tx challenge");
   }
 }

@@ -105,10 +105,13 @@ contract RootChainValidator is Lockable {
     bytes path,
 
     bytes txBytes,
-    bytes txProof
+    bytes txProof,
+
+    bytes receiptBytes,
+    bytes receiptProof
   ) public view returns (bool) {
     if (
-      validateTxExistence(
+      !validateTxReceiptExistence(
         headerNumber,
         headerProof,
         blockNumber,
@@ -117,19 +120,48 @@ contract RootChainValidator is Lockable {
         receiptRoot,
         path,
         txBytes,
-        txProof
-      ) == false
+        txProof,
+        receiptBytes,
+        receiptProof
+      )
+      || txBytes.length == 0
+      || receiptBytes.length == 0
     ) {
       return false;
     }
 
-    // check tx
-    RLP.RLPItem[] memory txList = txBytes.toRLPItem().toList();
-    if (txList.length == 9) {
-      return true;
+    RLP.RLPItem memory rlpItem = txBytes.toRLPItem();
+    if (!rlpItem.isList() || rlpItem.toList().length != 9) {
+      return false;
     }
 
-    return false;
+    // receipt check
+    rlpItem = receiptBytes.toRLPItem();
+    if (!rlpItem.isList()) {
+      return false;
+    }
+
+    RLP.RLPItem[] memory items = rlpItem.toList();
+    if (items.length != 4 || !items[3].isList()) {
+      return false;
+    }
+
+    // topics
+    items = items[3].toList();
+    if (items.length > 0) {
+      // iterate through topic
+      for (uint8 i = 0; i < items.length; i++) {
+        if (!items[i].isList()
+          || items[i].toList().length < 2
+          || !items[i].toList()[1].isList()
+          || items[i].toList()[1].toList().length == 0
+        ) {
+          return false;
+        }
+      }
+    }
+
+    return true;
   }
 
   // get tx sender

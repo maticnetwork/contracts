@@ -1,11 +1,15 @@
 pragma solidity ^0.4.23;
 
-
 import "../mixin/RootChainValidator.sol";
+import "../lib/RLP.sol";
 import "../lib/BytesLib.sol";
 
 
 contract ERC20Validator is RootChainValidator {
+  using RLP for bytes;
+  using RLP for RLP.RLPItem;
+  using RLP for RLP.Iterator;
+
   // TODO optimize signatures (gas optimization while deploying the contract)
 
   // keccak256(0xa9059cbb) = keccak256('transfer(address,uint256)')
@@ -26,38 +30,39 @@ contract ERC20Validator is RootChainValidator {
 
   // validate ERC20 TX
   function validateERC20TransferTx(
-    uint256 headerNumber,
-    bytes headerProof,
-
-    uint256 blockNumber,
-    uint256 blockTime,
-    bytes32 txRoot,
-    bytes32 receiptRoot,
-    bytes path,
-
-    bytes txBytes,
-    bytes txProof,
-
-    bytes receiptBytes,
-    bytes receiptProof
+    bytes transferTx
   ) public {
+    // validate transfer tx
+    RLP.RLPItem[] memory txData = transferTx.toRLPItem().toList();
+
     // validate tx receipt existence
     require(validateTxReceiptExistence(
-      headerNumber,
-      headerProof,
-      blockNumber,
-      blockTime,
-      txRoot,
-      receiptRoot,
-      path,
-      txBytes,
-      txProof,
-      receiptBytes,
-      receiptProof
+      txData[0].toUint(), // headerNumber
+      txData[1].toData(), // headerProof,
+
+      txData[2].toUint(), // blockNumber,
+      txData[3].toUint(), // blockTime,
+
+      txData[4].toBytes32(), // txRoot,
+      txData[5].toBytes32(), // receiptRoot,
+      txData[6].toData(), // path,
+
+      txData[7].toData(), // txBytes,
+      txData[8].toData(), // txProof
+    
+      txData[9].toData(), // receiptBytes,
+      txData[10].toData() // receiptProof
     ));
 
+    // validate ERC20 transfer tx
+    if (!_validateERC20TransferTx(txData[7].toData(), txData[9].toData())) {
+      rootChain.slash();
+    }
+  }
+
+  function _validateERC20TransferTx(bytes txData, bytes receiptData) internal returns (bool) {
     // check transaction
-    RLP.RLPItem[] memory items = txBytes.toRLPItem().toList();
+    RLP.RLPItem[] memory items = txData.toRLPItem().toList();
     require(items.length == 9);
 
     // check if child token is mapped with root tokens
@@ -68,6 +73,14 @@ contract ERC20Validator is RootChainValidator {
     // <4 bytes transfer event,address (32 bytes),amount (32 bytes)>
     bytes memory dataField = items[5].toData();
     require(keccak256(BytesLib.slice(dataField, 0, 4)) == transferSignature); 
+
+    // if data field is not 68 bytes, return
+    if (dataField.length != 68) {
+      return false;
+    }
+
+    // sender
+    address sender = getTxSender(txData);
 
     /*
       check receipt and data field
@@ -80,20 +93,18 @@ contract ERC20Validator is RootChainValidator {
           [child token address, [logTransferEventSignature], <input1,input2,output1,output2>]
         ]
     */
-    items = receiptBytes.toRLPItem().toList();
-    address sender = getTxSender(txBytes);
+    items = receiptData.toRLPItem().toList();
     if (
-      dataField.length != 68 // check if data field is valid
-      || items.length != 4 // check if receipt is valid
-      || items[3].toList().length != 2  // check if there are 2 events
-      || !_validateTransferEvent(
+      items.length == 4 // check if receipt is valid
+      && items[3].toList().length == 2  // check if there are 2 events
+      && _validateTransferEvent(
         childToken,
         sender,
         BytesLib.toAddress(dataField, 16),
         BytesLib.toUint(dataField, 36),
         items[3].toList()[0].toList()
       )
-      || !_validateLogTransferEvent(
+      && _validateLogTransferEvent(
         childToken,
         sender,
         BytesLib.toAddress(dataField, 16),
@@ -101,9 +112,10 @@ contract ERC20Validator is RootChainValidator {
         items[3].toList()[1].toList()
       )
     ) {
-      rootChain.slash();
-      return;
+      return true;
     }
+
+    return false;
   }
 
   function _validateTransferEvent(
