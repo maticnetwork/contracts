@@ -421,7 +421,7 @@ contract('RootChain', async function(accounts) {
 
         // deposit to root & child token
         await rootToken.approve(rootChain.address, amount, { from: user })
-        let receipt = await rootChain.deposit(rootToken.address, amount, {
+        let receipt = await rootChain.deposit(rootToken.address, user, amount, {
           from: user
         })
         const depositCount = receipt.logs[0].args.depositCount.toString()
