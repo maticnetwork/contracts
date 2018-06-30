@@ -14,7 +14,7 @@ contract NonceValidator is RootChainValidator {
   function validateMisMatchedNonce(
     bytes tx1,
     bytes tx2
-  ) {
+  ) public {
     // check if both transactions are not same
     require(keccak256(tx1) != keccak256(tx2));
 
@@ -62,7 +62,7 @@ contract NonceValidator is RootChainValidator {
 
     // check if sender is the same in both transactions
     require(getTxSender(txData[7].toData()) == sender);
-    // make sure tx2 is after tx1
+    // make sure tx2 is included after tx1
     require (
       txData[2].toUint().mul(10000000).add(getPathInt(txData[6])) > txIndex
     );
