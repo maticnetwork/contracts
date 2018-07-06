@@ -24,8 +24,8 @@ contract RootChain is Ownable {
   using RLP for RLP.Iterator;
 
   // bytes32 constants
-  // keccak256(0x2e1a7d4d)
-  bytes32 constant public withdrawSignature = 0x00735de60724e5f78e79340a437f3e861f2efdec6047c2cbf497c34707c959bb;
+  // 0x2e1a7d4d = sha3('withdraw(uint256)')
+  bytes4 constant public withdrawSignature = 0x2e1a7d4d;
   // keccak256('Withdraw(address,address,uint256)')
   bytes32 constant public withdrawEventSignature = 0x9b1bfa7fa9ee420a16e124f794c35ac9f90472acc99140eb2f6447c714cad8eb;
   // chain identifier
@@ -434,8 +434,8 @@ contract RootChain is Ownable {
 
     // Data check
     require(txList[5].toData().length == 36);
-    // '0x2e1a7d4d' = sha3('withdraw(uint256)')
-    require(keccak256(BytesLib.slice(txList[5].toData(), 0, 4)) == withdrawSignature);
+    // check withdraw data function signature
+    require(BytesLib.toBytes4(BytesLib.slice(txList[5].toData(), 0, 4)) == withdrawSignature);
     // check amount
     require(amount > 0 && amount == BytesLib.toUint(txList[5].toData(), 4));
 

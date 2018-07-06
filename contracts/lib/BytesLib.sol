@@ -150,6 +150,12 @@ library BytesLib {
     return out;
   }
 
+  function toBytes4(bytes b) public pure returns (bytes4 result) {
+    assembly {
+      result := mload(add(b, 32))
+    }
+  }
+
   function fromBytes32(bytes32 x) public pure returns (bytes) {
     bytes memory b = new bytes(32);
     for (uint i = 0; i < 32; i++) {

@@ -12,8 +12,8 @@ contract ERC20Validator is RootChainValidator {
 
   // TODO optimize signatures (gas optimization while deploying the contract)
 
-  // keccak256(0xa9059cbb) = keccak256('transfer(address,uint256)')
-  bytes32 constant public transferSignature = 0xabce0605a16ff5e998983a0af570b8ad942bb11e305eb20ae3ada0a3be24eb97;
+  // 0xa9059cbb = keccak256('transfer(address,uint256)')
+  bytes4 constant public transferSignature = 0xa9059cbb;
 
   // keccak256('Withdraw(address,address,uint256)')
   bytes32 constant public withdrawEventSignature = 0x9b1bfa7fa9ee420a16e124f794c35ac9f90472acc99140eb2f6447c714cad8eb;
@@ -72,7 +72,7 @@ contract ERC20Validator is RootChainValidator {
     // check if transaction is transfer tx
     // <4 bytes transfer event,address (32 bytes),amount (32 bytes)>
     bytes memory dataField = items[5].toData();
-    require(keccak256(BytesLib.slice(dataField, 0, 4)) == transferSignature); 
+    require(BytesLib.toBytes4(BytesLib.slice(dataField, 0, 4)) == transferSignature);
 
     // if data field is not 68 bytes, return
     if (dataField.length != 68) {

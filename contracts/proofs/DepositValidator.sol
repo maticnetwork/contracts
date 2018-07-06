@@ -12,8 +12,8 @@ contract DepositValidator is RootChainValidator {
   using RLP for RLP.RLPItem;
   using RLP for RLP.Iterator;
 
-    // keccak256(0x487cda0d) = keccak256('depositTokens(address,address,uint256,uint256)')
-  bytes32 constant public depositTokensSignature = 0xe75ff5e197fdd375d33998d3528e3dc8bf23c2bac20a24f8e953a751b1af0266;
+    // 0x487cda0d = keccak256('depositTokens(address,address,uint256,uint256)')
+  bytes4 constant public depositTokensSignature = 0x487cda0d;
   // keccak256('TokenDeposited(address,address,address,uint256,uint256)')
   bytes32 constant public tokenDepositedEventSignature = 0xec3afb067bce33c5a294470ec5b29e6759301cd3928550490c6d48816cdc2f5d;
   // keccak256('Deposit(address,address,uint256)')
@@ -83,7 +83,7 @@ contract DepositValidator is RootChainValidator {
     bytes memory dataField = items[5].toData(); // fetch data field
     require(
       rootChain.childChainContract() == items[3].toAddress() // check if `to` field is child root contract
-      && keccak256(BytesLib.slice(dataField, 0, 4)) == depositTokensSignature // see if tx is deposit tx
+      && BytesLib.toBytes4(BytesLib.slice(dataField, 0, 4)) == depositTokensSignature // see if tx is deposit tx
     );
     uint256 depositCount1 = BytesLib.toUint(dataField, 100); // store depositCount from tx1
 
