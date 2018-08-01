@@ -37,7 +37,7 @@ contract ChildChain is Ownable {
     address indexed rootToken,
     address indexed childToken,
     address indexed user,
-    uint256 amount,
+    uint256 amount
   );
 
   constructor () public {
@@ -90,8 +90,7 @@ contract ChildChain is Ownable {
     function withdrawTokens(
     address rootToken,
     address user,
-    uint256 amount,
-    uint256 depositCount
+    uint256 amount
   ) public onlyOwner {
 
     // retrieve child tokens
