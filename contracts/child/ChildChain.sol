@@ -33,6 +33,12 @@ contract ChildChain is Ownable {
     uint256 amount,
     uint256 depositCount
   );
+ event TokenWithdrawn(
+    address indexed rootToken,
+    address indexed childToken,
+    address indexed user,
+    uint256 amount,
+  );
 
   constructor () public {
 
@@ -79,5 +85,26 @@ contract ChildChain is Ownable {
 
     // Emit TokenDeposited event
     emit TokenDeposited(rootToken, childToken, user, amount, depositCount);
+  }
+
+    function withdrawTokens(
+    address rootToken,
+    address user,
+    uint256 amount,
+    uint256 depositCount
+  ) public onlyOwner {
+
+    // retrieve child tokens
+    address childToken = tokens[rootToken];
+
+    // check if child token is mapped
+    require(childToken != address(0x0));
+
+    // deposit tokens
+    ChildERC20 obj = ChildERC20(childToken);
+    obj.withdraw(amount);
+
+    // Emit TokenDeposited event
+    emit TokenWithdrawn(rootToken, childToken, user, amount);
   }
 }
