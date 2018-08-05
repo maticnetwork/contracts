@@ -14,5 +14,5 @@ Run test cases:
 
 ```
 # run test cases
-$ npm run test-ci
+$ npm run test:ci
 ```

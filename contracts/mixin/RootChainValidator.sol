@@ -1,12 +1,13 @@
-pragma solidity ^0.4.23;
+pragma solidity 0.4.24;
+
 
 import "../lib/Merkle.sol";
 import "../lib/MerklePatriciaProof.sol";
 import "../lib/RLP.sol";
 import "../lib/Common.sol";
 import "../lib/RLPEncode.sol";
-import '../RootChainInterface.sol';
-import './Lockable.sol';
+import "../RootChainInterface.sol";
+import "./Lockable.sol";
 
 
 /**
@@ -56,8 +57,8 @@ contract RootChainValidator is Lockable {
 
     // check if tx's block is included in header and tx is in block
     return keccak256(blockNumber, blockTime, txRoot, receiptRoot)
-      .checkMembership(blockNumber - start, headerRoot, headerProof)
-    && MerklePatriciaProof.verify(txBytes, path, txProof, txRoot);
+      .checkMembership(blockNumber - start, headerRoot, headerProof) &&
+    MerklePatriciaProof.verify(txBytes, path, txProof, txRoot);
   }
 
   // validate transaction & receipt
@@ -77,7 +78,11 @@ contract RootChainValidator is Lockable {
 
     bytes receiptBytes,
     bytes receiptProof
-  ) public view returns (bool) {
+  )
+    public
+    view
+    returns (bool)
+  {
     // validate tx existance and receipt
     return validateTxExistence(
       headerNumber,
@@ -109,7 +114,11 @@ contract RootChainValidator is Lockable {
 
     bytes receiptBytes,
     bytes receiptProof
-  ) public view returns (bool) {
+  )
+    public
+    view
+    returns (bool)
+  {
     if (
       !validateTxReceiptExistence(
         headerNumber,
@@ -123,9 +132,9 @@ contract RootChainValidator is Lockable {
         txProof,
         receiptBytes,
         receiptProof
-      )
-      || txBytes.length == 0
-      || receiptBytes.length == 0
+      ) ||
+      txBytes.length == 0 ||
+      receiptBytes.length == 0
     ) {
       return false;
     }
@@ -151,10 +160,10 @@ contract RootChainValidator is Lockable {
     if (items.length > 0) {
       // iterate through topic
       for (uint8 i = 0; i < items.length; i++) {
-        if (!items[i].isList()
-          || items[i].toList().length < 2
-          || !items[i].toList()[1].isList()
-          || items[i].toList()[1].toList().length == 0
+        if (!items[i].isList() ||
+          items[i].toList().length < 2 ||
+          !items[i].toList()[1].isList() ||
+          items[i].toList()[1].toList().length == 0
         ) {
           return false;
         }

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity 0.4.24;
 
 import "../mixin/RootChainValidator.sol";
 import "../lib/RLP.sol";
@@ -36,23 +36,25 @@ contract ERC20Validator is RootChainValidator {
     RLP.RLPItem[] memory txData = transferTx.toRLPItem().toList();
 
     // validate tx receipt existence
-    require(validateTxReceiptExistence(
-      txData[0].toUint(), // headerNumber
-      txData[1].toData(), // headerProof,
+    require(
+      validateTxReceiptExistence(
+        txData[0].toUint(), // headerNumber
+        txData[1].toData(), // headerProof,
 
-      txData[2].toUint(), // blockNumber,
-      txData[3].toUint(), // blockTime,
+        txData[2].toUint(), // blockNumber,
+        txData[3].toUint(), // blockTime,
 
-      txData[4].toBytes32(), // txRoot,
-      txData[5].toBytes32(), // receiptRoot,
-      txData[6].toData(), // path,
+        txData[4].toBytes32(), // txRoot,
+        txData[5].toBytes32(), // receiptRoot,
+        txData[6].toData(), // path,
 
-      txData[7].toData(), // txBytes,
-      txData[8].toData(), // txProof
-    
-      txData[9].toData(), // receiptBytes,
-      txData[10].toData() // receiptProof
-    ));
+        txData[7].toData(), // txBytes,
+        txData[8].toData(), // txProof
+
+        txData[9].toData(), // receiptBytes,
+        txData[10].toData() // receiptProof
+      )
+    );
 
     // validate ERC20 transfer tx
     if (!_validateERC20TransferTx(txData[7].toData(), txData[9].toData())) {

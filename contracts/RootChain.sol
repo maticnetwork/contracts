@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.24;
 
 import "./lib/SafeMath.sol";
 import "./lib/MerklePatriciaProof.sol";
@@ -32,7 +32,7 @@ contract RootChain is Ownable {
   // keccak256('Matic Network v0.0.1-beta.1')
   bytes32 public chain = 0x2984301e9762b14f383141ec6a9a7661409103737c37bba9e0a22be26d63486d;
   // networkId
-  bytes public networkId = '\x0d';
+  bytes public networkId = "\r";
 
   // WETH address
   address public wethToken;

@@ -63,4 +63,4 @@ else
   start_geth
 fi
 
-npm run test "$@"
+npm run truffle:test "$@"

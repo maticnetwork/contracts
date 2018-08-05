@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity 0.4.24;
 
 import "../lib/SafeMath.sol";
 import "../lib/RLP.sol";
@@ -39,7 +39,7 @@ contract NonceValidator is RootChainValidator {
 
     address sender = getTxSender(txData[7].toData());
     uint256 nonce = txData[7].toList()[0].toUint(); // fetch nonce
-    uint256 txIndex = txData[2].toUint().mul(10000000).add(getPathInt(txData[6])); // blockNumber * 10000000 + tx index in block 
+    uint256 txIndex = txData[2].toUint().mul(10000000).add(getPathInt(txData[6])); // blockNumber * 10000000 + tx index in block
 
     // validate second transaction
     txData = tx2.toRLPItem().toList();
@@ -74,7 +74,7 @@ contract NonceValidator is RootChainValidator {
     }
 
     // revert the operation
-    revert('Invalid nonce challenge');
+    revert("Invalid nonce challenge");
   }
 
   function getPathInt(RLP.RLPItem path) internal view returns (uint256) {

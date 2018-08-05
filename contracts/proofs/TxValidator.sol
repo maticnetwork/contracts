@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity 0.4.24;
 
 
 import "../lib/RLP.sol";
@@ -28,7 +28,8 @@ contract TxValidator is RootChainValidator {
 
     bytes receiptBytes,
     bytes receiptProof
-  ) public {
+  ) public
+  {
     // validate tx
     if (
       !validateTx(

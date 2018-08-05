@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity 0.4.24;
 
 import "../mixin/RootChainValidator.sol";
 import "../lib/SafeMath.sol";
@@ -28,23 +28,25 @@ contract DepositValidator is RootChainValidator {
     // validate first transaction
     RLP.RLPItem[] memory txData = depositTx.toRLPItem().toList();
     // validate tx receipt existence
-    require(validateTxReceiptExistence(
-      txData[0].toUint(), // headerNumber
-      txData[1].toData(), // headerProof,
+    require(
+      validateTxReceiptExistence(
+        txData[0].toUint(), // headerNumber
+        txData[1].toData(), // headerProof,
 
-      txData[2].toUint(), // blockNumber,
-      txData[3].toUint(), // blockTime,
+        txData[2].toUint(), // blockNumber,
+        txData[3].toUint(), // blockTime,
 
-      txData[4].toBytes32(), // txRoot,
-      txData[5].toBytes32(), // receiptRoot,
-      txData[6].toData(), // path,
+        txData[4].toBytes32(), // txRoot,
+        txData[5].toBytes32(), // receiptRoot,
+        txData[6].toData(), // path,
 
-      txData[7].toData(), // txBytes,
-      txData[8].toData(), // txProof
-    
-      txData[9].toData(), // receiptBytes,
-      txData[10].toData() // receiptProof
-    ));
+        txData[7].toData(), // txBytes,
+        txData[8].toData(), // txProof
+
+        txData[9].toData(), // receiptBytes,
+        txData[10].toData() // receiptProof
+      )
+    );
 
     // actual validation
     if (!_validateDepositTx(txData[7].toData(), txData[9].toData())) {
@@ -53,7 +55,7 @@ contract DepositValidator is RootChainValidator {
   }
 
   function validateDuplicateDepositTx(
-    bytes tx1, 
+    bytes tx1,
     bytes tx2
   ) public {
     // check if both transactions are not same
@@ -124,7 +126,7 @@ contract DepositValidator is RootChainValidator {
     if (BytesLib.toUint(dataField, 100) == depositCount1) {
       rootChain.slash();
       return;
-    } 
+    }
 
     // revert if challenge is not valid
     revert("Invalid deposit duplicate challenge");
@@ -160,7 +162,7 @@ contract DepositValidator is RootChainValidator {
     uint256 amount = BytesLib.toUint(dataField, 68);
     uint256 depositCount = BytesLib.toUint(dataField, 100);
     address childToken = rootChain.tokens(rootToken);
-  
+
     // get receipt data
     items = receiptData.toRLPItem().toList();
 
