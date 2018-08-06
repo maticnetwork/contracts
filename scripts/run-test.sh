@@ -40,7 +40,7 @@ start_parity() {
   cd $PWD/test-blockchain
   bash $PWD/clean.sh
   bash $PWD/start.sh
-  cd ..
+  cd $PWD/..
 }
 
 echo "Starting our own testrpc instance"
@@ -49,5 +49,4 @@ start_testrpc
 echo "Starting our own geth instance"
 start_parity
 
-tail -f $PWD/test-blockchain/data/node.log
-# npm run truffle:test "$@"
+npm run truffle:test "$@"
