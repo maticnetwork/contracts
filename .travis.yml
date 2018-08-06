@@ -11,7 +11,7 @@ matrix:
   fast_finish: true
 before_install:
   - sudo apt-get -qq update
-  - sudo apt-get install -y build-essential openssl libssl-dev libudev-dev
+  - sudo apt-get install -y build-essential openssl libssl-dev libudev-dev rhash
   - bash <(curl https://get.parity.io -L)
 script:
   - npm run test:ci
