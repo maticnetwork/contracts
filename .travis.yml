@@ -16,5 +16,6 @@ install:
   - snap list
 before_script:
   - export PATH=/snap/bin:${PATH}
+  - npm install
 script:
   - npm run test:ci
