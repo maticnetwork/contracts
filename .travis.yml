@@ -10,6 +10,7 @@ cache:
 matrix:
   fast_finish: true
 before_install:
+  - sudo apt-get -qq update
   - bash <(curl https://get.parity.io -L)
 script:
   - npm run test:ci
