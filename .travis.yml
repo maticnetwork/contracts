@@ -10,8 +10,9 @@ cache:
 matrix:
   fast_finish: true
 before_install:
+  - sudo add-apt-repository ppa:ubuntu-toolchain-r/test
   - sudo apt-get -qq update
-  - sudo apt-get install -y build-essential openssl libssl-dev libudev-dev rhash
+  - sudo apt-get install -y build-essential openssl libssl-dev libudev-dev rhash gcc-4.9 g++-4.9
   - curl https://releases.parity.io/v1.11.8/x86_64-unknown-linux-gnu/parity_1.11.8_ubuntu_amd64.deb --output parity.deb
   - sudo dpkg -i parity.deb
   - rm -rf parity.deb
