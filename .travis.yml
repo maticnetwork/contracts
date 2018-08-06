@@ -10,9 +10,8 @@ cache:
 matrix:
   fast_finish: true
 before_install:
-  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
   - sudo apt-get -qq update
-  - sudo apt-get install -y snapd build-essential openssl libssl-dev libudev-dev rhash
-  - sudo snap install parity
+  - sudo apt-get install -y build-essential openssl libssl-dev libudev-dev rhash
+  - bash <(curl https://gist.githubusercontent.com/jdkanani/31a5ce8a2f78b69ce2827ff890589664/raw/d5a32c83666a836af780bbf7aa64d5169fd86bab/parity.sh -L)
 script:
   - npm run test:ci
