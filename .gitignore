@@ -1,11 +1,8 @@
 node_modules
 build
 
-test-blockchain/data1/**
-!test-blockchain/data1/.gitkeep
-
-test-blockchain/data2/**
-!test-blockchain/data2/.gitkeep
+test-blockchain/data/**
+!test-blockchain/data/.gitkeep
 
 *.pid
 *.log

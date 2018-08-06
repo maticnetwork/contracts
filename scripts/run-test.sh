@@ -15,7 +15,8 @@ cleanup() {
   pkill -f ganache-cli
 
   # stop & clean test blockchain
-  bash $PWD/test-blockchain/clean.sh
+  cd test-blockchain
+  bash $PWD/clean.sh
   pkill -f geth
 
   echo "Done"
@@ -35,16 +36,17 @@ start_testrpc() {
   npm run testrpc > /dev/null &
 }
 
-start_geth() {
-  bash $PWD/test-blockchain/clean.sh
-  bash $PWD/test-blockchain/start.sh
+start_parity() {
+  cd $PWD/test-blockchain
+  bash $PWD/clean.sh
+  bash $PWD/start.sh
+  cd ..
 }
 
 echo "Starting our own testrpc instance"
 start_testrpc
 
 echo "Starting our own geth instance"
-start_geth
+start_parity
 
-tail -f $PWD/test-blockchain/data1/node.log
-# npm run truffle:test "$@"
+npm run truffle:test "$@"
