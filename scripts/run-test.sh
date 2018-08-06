@@ -11,8 +11,10 @@ PWD=$(pwd)
 
 cleanup() {
   echo "Cleaning up"
-  pkill -f geth
   pkill -f ganache-cli
+  cd $PWD/test-blockchain
+  bash clean.sh
+  cd ..
   echo "Done"
 }
 
