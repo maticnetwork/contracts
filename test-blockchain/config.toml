@@ -7,7 +7,7 @@ port = 30300
 
 [rpc]
 port = 8546
-cors = "all"
+cors = []
 apis = ["web3", "eth", "net", "personal", "parity", "parity_set", "traces", "rpc", "parity_accounts"]
 
 [ui]
