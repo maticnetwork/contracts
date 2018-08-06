@@ -10,8 +10,8 @@ cache:
 matrix:
   fast_finish: true
 before_install:
+  - sudo add-apt-repository -y ppa:ethereum/ethereum
   - sudo apt-get -qq update
-  - sudo apt-get install -y build-essential openssl libssl-dev libudev-dev rhash
-  - bash <(curl https://gist.githubusercontent.com/jdkanani/31a5ce8a2f78b69ce2827ff890589664/raw/ba143af7fb3313ad720750b57b620799573c4dcc/parity.sh -L)
+  - sudo apt-get install ethereum-unstable
 script:
-  - npm run test:ci
+  - npm run test-ci

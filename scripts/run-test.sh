@@ -11,14 +11,19 @@ PWD=$(pwd)
 
 cleanup() {
   echo "Cleaning up"
-  # Kill the testrpc instance that we started (if we started one and if it's still running).
-  pkill -f ganache-cli
-
-  # stop & clean test blockchain
-  cd test-blockchain
-  bash $PWD/clean.sh
   pkill -f geth
+  pkill -f ganache-cli
+  # Kill the testrpc instance that we started (if we started one and if it's still running).
+  if [ -n "$testrpc_pid" ] && ps -p $testrpc_pid > /dev/null; then
+    kill -9 $testrpc_pid
+  fi
 
+  # Kill the geth instance that we started (if we started one and if it's still running).
+  if [ -n "$geth_pid" ] && ps -p $geth_pid > /dev/null; then
+    kill -9 $geth_pid
+  fi
+
+  rm -rf $PWD/test-blockchain/geth
   echo "Done"
 }
 
@@ -34,20 +39,30 @@ geth_running() {
 
 start_testrpc() {
   npm run testrpc > /dev/null &
+  testrpc_pid=$!
 }
 
-start_parity() {
-  cd $PWD/test-blockchain
-  bash $PWD/clean.sh
-  bash $PWD/start.sh
-  cd $PWD/..
+start_blockchain() {
+  if [ ! -d "$PWD/test-blockchain/geth" ]; then
+    geth --datadir "$PWD/test-blockchain" init "$PWD/test-blockchain/genesis.json"
+  fi
+  geth --datadir "$PWD/test-blockchain" --targetgaslimit '900000000000000' --rpc --rpcport 8546 --rpccorsdomain "*" --wsorigins "*" --unlock "0x9fb29aac15b9a4b7f17c3385939b007540f4d791,0xacf8eccdca12a0eb6ae4fb1431e26c44e66decdb" --password "$PWD/scripts/password" --networkid 13 --mine > /dev/null &
+  geth_pid=$!
 }
 
-echo "Starting our own testrpc instance"
-start_testrpc
 
-echo "Starting our own geth instance"
-start_parity
+if testrpc_running; then
+  echo "Using existing testrpc instance"
+else
+  echo "Starting our own testrpc instance"
+  start_testrpc
+fi
 
-# tail -f $PWD/test-blockchain/data/node.log
-#npm run truffle:test "$@"
+if geth_running; then
+  echo "Using existing geth instance"
+else
+  echo "Starting our own geth instance"
+  start_blockchain
+fi
+
+npm run truffle:test "$@"
