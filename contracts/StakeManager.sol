@@ -158,7 +158,6 @@ contract StakeManager is StakeManagerInterface, Lockable {
     return false;
   }
 
-
   // optional
   // function lastStakedFor(address addr) public view returns (uint256);
   // function totalStakedForAt(address addr, uint256 blockNumber) public view returns (uint256);

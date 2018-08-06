@@ -65,7 +65,7 @@ contract('ERC20Validator', async function(accounts) {
       // link libs
       await linkLibs(web3Child)
 
-      user = accounts[9]
+      user = accounts[0]
       const amount = web3.toWei(10)
 
       wallets = generateFirstWallets(mnemonics, Object.keys(stakes).length)

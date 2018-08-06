@@ -1,7 +1,13 @@
 node_modules
 build
-MaticChannel0.sol
 
-test-blockchain/geth
-test-blockchain/history
+test-blockchain/data1/**
+!test-blockchain/data1/.gitkeep
+
+test-blockchain/data2/**
+!test-blockchain/data2/.gitkeep
+
+*.pid
+*.log
+
 .DS_Store

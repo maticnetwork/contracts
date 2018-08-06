@@ -16,12 +16,12 @@ cleanup() {
     kill -9 $testrpc_pid
   fi
 
-  # Kill the geth instance that we started (if we started one and if it's still running).
-  if [ -n "$geth_pid" ] && ps -p $geth_pid > /dev/null; then
-    kill -9 $geth_pid
-  fi
+  # kill ganache-cli
+  pkill -F ganache-cli
 
-  rm -rf $PWD/test-blockchain/geth
+  # stop & clean test blockchain
+  bash $PWD/test-blockchain/clean.sh
+
   echo "Done"
 }
 
@@ -41,26 +41,14 @@ start_testrpc() {
 }
 
 start_geth() {
-  if [ ! -d "$PWD/test-blockchain/geth" ]; then
-    geth --datadir "$PWD/test-blockchain" init "$PWD/test-blockchain/genesis.json"
-  fi
-  geth --datadir "$PWD/test-blockchain" --targetgaslimit '900000000000000' --rpc --rpcport 8546 --rpccorsdomain "*" --wsorigins "*" --unlock "0x9fb29aac15b9a4b7f17c3385939b007540f4d791,0xacf8eccdca12a0eb6ae4fb1431e26c44e66decdb" --password "$PWD/scripts/password" --networkid 13 --mine > /dev/null &
-  geth_pid=$!
+  bash $PWD/test-blockchain/clean.sh
+  bash $PWD/test-blockchain/start.sh
 }
 
+echo "Starting our own testrpc instance"
+start_testrpc
 
-if testrpc_running; then
-  echo "Using existing testrpc instance"
-else
-  echo "Starting our own testrpc instance"
-  start_testrpc
-fi
-
-if geth_running; then
-  echo "Using existing geth instance"
-else
-  echo "Starting our own geth instance"
-  start_geth
-fi
+echo "Starting our own geth instance"
+start_geth
 
 npm run truffle:test "$@"

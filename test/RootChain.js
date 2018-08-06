@@ -211,7 +211,7 @@ contract('RootChain', async function(accounts) {
     let sigs
 
     before(async function() {
-      user = accounts[9]
+      user = accounts[0]
       stakeToken = await RootToken.new('Stake Token', 'STAKE')
       rootToken = await RootToken.new('Test Token', 'TEST', { from: user })
       wethToken = await MaticWETH.new({ from: user })
@@ -356,7 +356,7 @@ contract('RootChain', async function(accounts) {
 
     before(async function() {
       wallets = generateFirstWallets(mnemonics, Object.keys(stakes).length)
-      user = accounts[9]
+      user = accounts[0]
       privateKey = utils.toBuffer(
         generateFirstWallets(mnemonics, 1, 9)[0].privateKey
       )
@@ -416,7 +416,7 @@ contract('RootChain', async function(accounts) {
     describe('ERC20', async function() {
       it('should allow to deposit before withdraw', async function() {
         assert.equal(true, true)
-        const user = accounts[9]
+        const user = accounts[0]
         const amount = web3.toWei(10)
 
         // deposit to root & child token
@@ -442,7 +442,7 @@ contract('RootChain', async function(accounts) {
       })
 
       it('should allow anyone to withdraw tokens from side chain', async function() {
-        const user = accounts[9]
+        const user = accounts[0]
         const amount = web3.toWei(10)
 
         // withdraw
@@ -530,7 +530,7 @@ contract('RootChain', async function(accounts) {
       })
 
       it('should allow anyone to withdraw tokens', async function() {
-        const user = accounts[9]
+        const user = accounts[0]
         const amount = web3.toWei(10)
         // validate tx proof
         // transaction proof
