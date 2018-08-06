@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity 0.4.24;
 
 import "./ERC20.sol";
 import "./ContractReceiver.sol";
@@ -91,7 +91,7 @@ contract StandardToken is ERC20 {
   //assemble the given address bytecode. If bytecode exists then the _addr is a contract.
   function isContract(address _addr) internal view returns (bool) {
     uint length;
-    assembly { // solhint-disable-line
+    assembly {
       //retrieve the size of the code on target address, this needs assembly
       length := extcodesize(_addr)
     }

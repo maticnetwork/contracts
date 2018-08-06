@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.24;
 
 import "./lib/SafeMath.sol";
 import "./lib/MerklePatriciaProof.sol";
@@ -25,14 +25,14 @@ contract RootChain is Ownable {
 
   // bytes32 constants
   // 0x2e1a7d4d = sha3('withdraw(uint256)')
-  bytes4 constant public withdrawSignature = 0x2e1a7d4d;
+  bytes4 constant public WITHDRAW_SIGNATURE = 0x2e1a7d4d;
   // keccak256('Withdraw(address,address,uint256)')
-  bytes32 constant public withdrawEventSignature = 0x9b1bfa7fa9ee420a16e124f794c35ac9f90472acc99140eb2f6447c714cad8eb;
+  bytes32 constant public WITHDRAW_EVENT_SIGNATURE = 0x9b1bfa7fa9ee420a16e124f794c35ac9f90472acc99140eb2f6447c714cad8eb;
   // chain identifier
   // keccak256('Matic Network v0.0.1-beta.1')
   bytes32 public chain = 0x2984301e9762b14f383141ec6a9a7661409103737c37bba9e0a22be26d63486d;
   // networkId
-  bytes public networkId = '\x0d';
+  bytes public networkId = "\r";
 
   // WETH address
   address public wethToken;
@@ -304,22 +304,6 @@ contract RootChain is Ownable {
     _depositEvent(token, user, amount);
   }
 
-  function _depositEvent(address token, address user, uint256 amount) internal {
-    // broadcast deposit event
-    emit Deposit(user, token, amount, depositCount);
-
-    // add deposit into deposits
-    deposits[depositCount] = DepositBlock({
-      header: currentHeaderBlock,
-      owner: user,
-      token: token,
-      amount: amount
-    });
-
-    // increase deposit counter
-    depositCount = depositCount.add(1);
-  }
-
   // withdraw tokens
   function withdraw(
     uint256 headerNumber,
@@ -376,8 +360,34 @@ contract RootChain is Ownable {
   }
 
   //
+  // Slashing conditions
+  //
+
+  // slash stakers if fraud is detected
+  function slash() public isValidator(msg.sender) {
+    // TODO pass block/proposer
+  }
+
+  //
   // Internal functions
   //
+
+  function _depositEvent(address token, address user, uint256 amount) internal {
+    // broadcast deposit event
+    emit Deposit(user, token, amount, depositCount);
+
+    // add deposit into deposits
+    deposits[depositCount] = DepositBlock({
+      header: currentHeaderBlock,
+      owner: user,
+      token: token,
+      amount: amount
+    });
+
+    // increase deposit counter
+    depositCount = depositCount.add(1);
+  }
+
   function _withdraw(
     uint256 headerNumber,
     bytes headerProof,
@@ -435,7 +445,7 @@ contract RootChain is Ownable {
     // Data check
     require(txList[5].toData().length == 36);
     // check withdraw data function signature
-    require(BytesLib.toBytes4(BytesLib.slice(txList[5].toData(), 0, 4)) == withdrawSignature);
+    require(BytesLib.toBytes4(BytesLib.slice(txList[5].toData(), 0, 4)) == WITHDRAW_SIGNATURE);
     // check amount
     require(amount > 0 && amount == BytesLib.toUint(txList[5].toData(), 4));
 
@@ -473,16 +483,16 @@ contract RootChain is Ownable {
     RLP.RLPItem[] memory items = receiptBytes.toRLPItem().toList();
     require(items.length == 4);
 
-    // [3][0] -> [child token address, [withdrawEventSignature, root token address, sender], amount]
+    // [3][0] -> [child token address, [WITHDRAW_EVENT_SIGNATURE, root token address, sender], amount]
     items = items[3].toList()[0].toList();
     require(items.length == 3);
     address childToken = items[0].toAddress(); // child token address
     amount = items[2].toUint(); // amount
 
-    // [3][0][1] -> [withdrawEventSignature, root token address, sender]
+    // [3][0][1] -> [WITHDRAW_EVENT_SIGNATURE, root token address, sender]
     items = items[1].toList();
     require(items.length == 3);
-    require(items[0].toBytes32() == withdrawEventSignature); // check for withdraw event signature
+    require(items[0].toBytes32() == WITHDRAW_EVENT_SIGNATURE); // check for withdraw event signature
 
     // check if root token is mapped to child token
     rootToken = BytesLib.toAddress(items[1].toData(), 12); // fetch root token address
@@ -493,14 +503,5 @@ contract RootChain is Ownable {
 
     // Make sure this receipt is the value on the path via a MerklePatricia proof
     require(MerklePatriciaProof.verify(receiptBytes, path, receiptProof, receiptRoot) == true);
-  }
-
-  //
-  // Slashing conditions
-  //
-
-  // slash stakers if fraud is detected
-  function slash() public isValidator(msg.sender) {
-    // TODO pass block/proposer
   }
 }

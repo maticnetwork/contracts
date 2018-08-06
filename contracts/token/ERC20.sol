@@ -1,7 +1,7 @@
 // Abstract contract for the full ERC 20 & ERC 223 Token standards
 // https://github.com/ethereum/EIPs/issues/20
 // https://github.com/ethereum/EIPs/issues/223
-pragma solidity ^0.4.23;
+pragma solidity 0.4.24;
 
 
 contract ERC20 {
@@ -15,7 +15,7 @@ contract ERC20 {
 
   /// @param _owner The address from which the balance will be retrieved.
   /// @return The balance.
-  function balanceOf(address _owner) public constant returns (uint256 balance);
+  function balanceOf(address _owner) public view returns (uint256 balance);
 
   /// @notice send `_value` token to `_to` from `msg.sender`.
   /// @param _to The address of the recipient.
@@ -48,6 +48,6 @@ contract ERC20 {
   /// @return Amount of remaining tokens allowed to spent.
   function allowance(address _owner, address _spender) public view returns (uint256 remaining);
 
-  event Transfer(address indexed _from, address indexed _to, uint256 _value); // solhint-disable-line
+  event Transfer(address indexed _from, address indexed _to, uint256 _value);
   event Approval(address indexed _owner, address indexed _spender, uint256 _value);
 }

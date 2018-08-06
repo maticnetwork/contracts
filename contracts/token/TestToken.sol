@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity 0.4.24;
 
 import "./StandardToken.sol";
 
@@ -21,7 +21,7 @@ contract TestToken is StandardToken {
   }
 
   function mintTokens() public payable {
-    require(msg.value > 0);
+    require(msg.value > 0, "");
     _mintTokens(msg.sender, msg.value * 10000 * (10 ** 18)); // 1 ETH = 10000 TTN
   }
 

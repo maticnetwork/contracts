@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity 0.4.24;
 
 import "./lib/SafeMath.sol";
 import "./lib/ECVerify.sol";
@@ -157,7 +157,6 @@ contract StakeManager is StakeManagerInterface, Lockable {
   function supportsHistory() public pure returns (bool) {
     return false;
   }
-
 
   // optional
   // function lastStakedFor(address addr) public view returns (uint256);

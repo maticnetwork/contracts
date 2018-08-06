@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity 0.4.24;
 
 
 library Merkle {
@@ -14,7 +14,6 @@ library Merkle {
 
     uint256 index = mainIndex;
     for (uint256 i = 32; i <= len; i += 32) {
-      // solhint-disable-next-line no-inline-assembly
       assembly {
         proofElement := mload(add(proof, i))
       }
