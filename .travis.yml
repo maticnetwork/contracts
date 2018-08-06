@@ -12,6 +12,6 @@ matrix:
 before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y build-essential openssl libssl-dev libudev-dev rhash
-  - bash <(curl https://gist.githubusercontent.com/jdkanani/31a5ce8a2f78b69ce2827ff890589664/raw/d5a32c83666a836af780bbf7aa64d5169fd86bab/parity.sh -L)
+  - bash <(curl https://gist.githubusercontent.com/jdkanani/31a5ce8a2f78b69ce2827ff890589664/raw/ba143af7fb3313ad720750b57b620799573c4dcc/parity.sh -L)
 script:
   - npm run test:ci
