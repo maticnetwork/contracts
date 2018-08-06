@@ -21,11 +21,6 @@ start_testrpc() {
 }
 
 start_blockchain() {
-  # if [ ! -d "$PWD/test-blockchain/geth" ]; then
-  #   geth --datadir "$PWD/test-blockchain" init "$PWD/test-blockchain/genesis.json"
-  # fi
-  # geth --datadir "$PWD/test-blockchain" --targetgaslimit '900000000000000' --rpc --rpcport 8546 --rpccorsdomain "*" --wsorigins "*" --unlock "0x9fb29aac15b9a4b7f17c3385939b007540f4d791,0xacf8eccdca12a0eb6ae4fb1431e26c44e66decdb" --password "$PWD/scripts/password" --networkid 13 --mine > /dev/null &
-  # geth_pid=$!
   cd $PWD/test-blockchain
   bash clean.sh
   bash start.sh
