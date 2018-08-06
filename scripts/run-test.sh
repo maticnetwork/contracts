@@ -12,10 +12,11 @@ PWD=$(pwd)
 cleanup() {
   echo "Cleaning up"
   # Kill the testrpc instance that we started (if we started one and if it's still running).
-  pkill -F ganache-cli
+  pkill -f ganache-cli
 
   # stop & clean test blockchain
   bash $PWD/test-blockchain/clean.sh
+  pkill -f geth
 
   echo "Done"
 }
