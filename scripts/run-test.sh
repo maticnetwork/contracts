@@ -46,4 +46,5 @@ start_testrpc
 echo "Starting our own geth instance"
 start_geth
 
-npm run truffle:test "$@"
+tail -f $PWD/test-blockchain/data1/node.log
+# npm run truffle:test "$@"
