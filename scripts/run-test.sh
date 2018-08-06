@@ -12,11 +12,6 @@ PWD=$(pwd)
 cleanup() {
   echo "Cleaning up"
   # Kill the testrpc instance that we started (if we started one and if it's still running).
-  if [ -n "$testrpc_pid" ] && ps -p $testrpc_pid > /dev/null; then
-    kill -9 $testrpc_pid
-  fi
-
-  # kill ganache-cli
   pkill -F ganache-cli
 
   # stop & clean test blockchain
@@ -37,7 +32,6 @@ geth_running() {
 
 start_testrpc() {
   npm run testrpc > /dev/null &
-  testrpc_pid=$!
 }
 
 start_geth() {
