@@ -3,7 +3,7 @@
 # current working directory
 CWD=$PWD/test-blockchain
 
-nohup bootnode -nodekey bootnode.key > bootnode.log 2>&1 &
+nohup bootnode -nodekey bootnode.key > $CWD/bootnode.log 2>&1 &
 echo $! > $CWD/bootnode.pid
 echo "Bootnode stared."
 
