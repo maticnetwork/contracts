@@ -14,7 +14,7 @@ import {
 import { getHeaders, getBlockHeader } from '../helpers/blocks.js'
 import { generateFirstWallets, mnemonics } from '../helpers/wallets'
 import MerkleTree from '../helpers/merkle-tree.js'
-import { linkLibs } from '../helpers/utils'
+import { linkLibs, encodeSigs, getSigs } from '../helpers/utils'
 
 import {
   StakeManager,
@@ -57,6 +57,7 @@ contract('ERC20Validator', async function(accounts) {
       3: web3.toWei(20),
       4: web3.toWei(50)
     }
+    let chain
     let sigs
     let user
 
@@ -102,6 +103,7 @@ contract('ERC20Validator', async function(accounts) {
 
       // increase threshold to 2
       await stakeManager.updateValidatorThreshold(2)
+      chain = await rootChain.chain()
 
       // deposit amount
       let receipt = await rootToken.approve(rootChain.address, amount, {
@@ -110,6 +112,7 @@ contract('ERC20Validator', async function(accounts) {
       receipt = await rootChain.deposit(rootToken.address, user, amount, {
         from: user
       })
+
       const depositCount = receipt.logs[0].args.depositCount.toString()
       await childChain.depositTokens(
         rootToken.address,
@@ -150,6 +153,15 @@ contract('ERC20Validator', async function(accounts) {
           transferBlock.number - start,
           tree.getRoot(),
           tree.getProof(v)
+        )
+      )
+
+      const root = utils.bufferToHex(tree.getRoot())
+      sigs = utils.bufferToHex(
+        encodeSigs(
+          getSigs(wallets.slice(1), chain, root, start, end, [
+            await stakeManager.getProposer()
+          ])
         )
       )
 
