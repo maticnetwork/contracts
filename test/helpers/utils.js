@@ -60,7 +60,8 @@ export async function linkLibs(web3Child) {
   // web3Child
   if (web3Child) {
     const childContractList = [contracts.ChildChain, contracts.ChildToken]
-    for (var i = 0; i < libList.length; i++) {
+    let i
+    for (i = 0; i < libList.length; i++) {
       const M = libList[i]
       const web3 = M.web3 // backup
       M.web3 = web3Child // set for now

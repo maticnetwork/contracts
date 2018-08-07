@@ -1,3 +1,5 @@
+/* global artifacts */
+
 export const ECVerify = artifacts.require('./lib/ECVerify.sol')
 export const BytesLib = artifacts.require('./lib/BytesLib.sol')
 export const RLP = artifacts.require('./lib/RLP.sol')

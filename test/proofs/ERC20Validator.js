@@ -1,7 +1,8 @@
+/* global artifacts, web3, assert, contract */
+
 import utils from 'ethereumjs-util'
 import { Buffer } from 'safe-buffer'
 
-import assertRevert from '../helpers/assertRevert.js'
 import {
   getTxBytes,
   getTxProof,
@@ -14,6 +15,13 @@ import { getHeaders, getBlockHeader } from '../helpers/blocks.js'
 import { generateFirstWallets, mnemonics } from '../helpers/wallets'
 import MerkleTree from '../helpers/merkle-tree.js'
 import { linkLibs, encodeSigs, getSigs } from '../helpers/utils'
+
+import {
+  StakeManager,
+  RootToken,
+  RootChain,
+  ERC20Validator
+} from '../helpers/contracts'
 
 let ChildChain = artifacts.require('../child/ChildChain.sol')
 let ChildToken = artifacts.require('../child/ChildERC20.sol')
@@ -28,19 +36,11 @@ ChildToken.web3 = web3Child
 const BN = utils.BN
 const rlp = utils.rlp
 
-import {
-  StakeManager,
-  RootToken,
-  RootChain,
-  MaticWETH,
-  ERC20Validator
-} from '../helpers/contracts'
-
-const printReceiptEvents = receipt => {
-  receipt.logs.forEach(l => {
-    console.log(l.event, JSON.stringify(l.args))
-  })
-}
+// const printReceiptEvents = receipt => {
+//   receipt.logs.forEach(l => {
+//     console.log(l.event, JSON.stringify(l.args))
+//   })
+// }
 
 contract('ERC20Validator', async function(accounts) {
   describe('initialization', async function() {
@@ -112,6 +112,7 @@ contract('ERC20Validator', async function(accounts) {
       receipt = await rootChain.deposit(rootToken.address, user, amount, {
         from: user
       })
+
       const depositCount = receipt.logs[0].args.depositCount.toString()
       await childChain.depositTokens(
         rootToken.address,
@@ -125,7 +126,6 @@ contract('ERC20Validator', async function(accounts) {
     })
 
     it('transfer tokens', async function() {
-      const bal = await childToken.balanceOf(user)
       const amount = web3.toWei(1)
 
       // transfer receipt
@@ -137,10 +137,6 @@ contract('ERC20Validator', async function(accounts) {
       let receipt = obj.receipt
       let transfer = await web3Child.eth.getTransaction(receipt.transactionHash)
       let transferBlock = await web3Child.eth.getBlock(receipt.blockHash, true)
-      let transferBlockSlim = await web3Child.eth.getBlock(
-        receipt.blockHash,
-        false
-      )
       let transferReceipt = await web3Child.eth.getTransactionReceipt(
         receipt.transactionHash
       )
@@ -150,15 +146,6 @@ contract('ERC20Validator', async function(accounts) {
       const end = transfer.blockNumber
       const headers = await getHeaders(start, end, web3Child)
       const tree = new MerkleTree(headers)
-      const root = utils.bufferToHex(tree.getRoot())
-      const sigs = utils.bufferToHex(
-        encodeSigs(
-          getSigs(wallets.slice(1), chain, root, start, end, [
-            await stakeManager.getProposer()
-          ])
-        )
-      )
-      const signers = await stakeManager.checkSignatures(root, start, end, sigs)
       const v = getBlockHeader(transferBlock)
       assert.isOk(
         tree.verify(
@@ -169,7 +156,15 @@ contract('ERC20Validator', async function(accounts) {
         )
       )
 
-      const proposer = await stakeManager.getProposer()
+      const root = utils.bufferToHex(tree.getRoot())
+      sigs = utils.bufferToHex(
+        encodeSigs(
+          getSigs(wallets.slice(1), chain, root, start, end, [
+            await stakeManager.getProposer()
+          ])
+        )
+      )
+
       // submit header block
       receipt = await rootChain.submitHeaderBlock(
         utils.bufferToHex(tree.getRoot()),
