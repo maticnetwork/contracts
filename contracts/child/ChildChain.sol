@@ -116,6 +116,6 @@ contract ChildChain is Ownable {
     obj.withdraw(amount);
 
     // Emit TokenWithdrawn event
-    emit TokenWithdrawn(rootToken, childToken, user, amount, withrawCount);
+    emit TokenWithdrawn(rootToken, childToken, user, amount, withdrawCount);
   }
 }
