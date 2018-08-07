@@ -6,36 +6,19 @@ import "../lib/MerklePatriciaProof.sol";
 import "../lib/RLP.sol";
 import "../lib/Common.sol";
 import "../lib/RLPEncode.sol";
-import "../RootChainInterface.sol";
+
+import "./RootChainable.sol";
 import "./Lockable.sol";
 
 
 /**
  * @title RootChainValidator
  */
-contract RootChainValidator is Lockable {
+contract RootChainValidator is RootChainable, Lockable {
   using Merkle for bytes32;
   using RLP for bytes;
   using RLP for RLP.RLPItem;
   using RLP for RLP.Iterator;
-
-  RootChainInterface public rootChain;
-
-  // Rootchain changed
-  event RootChainChanged(
-    address indexed previousRootChain,
-    address indexed newRootChain
-  );
-
-  /**
-   * @dev Allows the current owner to change root chain address.
-   * @param newRootChain The address to new rootchain.
-   */
-  function changeRootChain(address newRootChain) external onlyOwner {
-    require(newRootChain != address(0));
-    emit RootChainChanged(rootChain, newRootChain);
-    rootChain = RootChainInterface(newRootChain);
-  }
 
   // validate transaction
   function validateTxExistence(

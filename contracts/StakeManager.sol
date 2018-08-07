@@ -7,7 +7,7 @@ import "./mixin/Lockable.sol";
 import "./token/ERC20.sol";
 
 import "./StakeManagerInterface.sol";
-import "./RootChainInterface.sol";
+import "./RootChain.sol";
 
 
 contract StakeManager is StakeManagerInterface, Lockable {
@@ -18,7 +18,7 @@ contract StakeManager is StakeManagerInterface, Lockable {
   ERC20 public tokenObj;
 
   // root chain object
-  RootChainInterface public rootChain;
+  RootChain public rootChain;
 
   // validator threshold
   uint256 public _validatorThreshold = 0;
@@ -45,7 +45,12 @@ contract StakeManager is StakeManagerInterface, Lockable {
   //
   // Events
   //
+
   event ThresholdChange(uint256 newThreshold, uint256 oldThreshold);
+
+  // ERC900
+  event Staked(address indexed user, uint256 amount, uint256 total, bytes data);
+  event Unstaked(address indexed user, uint256 amount, uint256 total, bytes data);
 
   //
   // Constructor
@@ -78,7 +83,7 @@ contract StakeManager is StakeManagerInterface, Lockable {
 
   function setRootChain(address addr) public onlyOwner {
     require(addr != 0x0);
-    rootChain = RootChainInterface(addr);
+    rootChain = RootChain(addr);
   }
 
   //

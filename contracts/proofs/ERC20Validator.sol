@@ -1,9 +1,10 @@
 pragma solidity 0.4.24;
 
-import "../mixin/RootChainValidator.sol";
+
 import "../lib/RLP.sol";
 import "../lib/BytesLib.sol";
 
+import "../mixin/RootChainValidator.sol";
 
 contract ERC20Validator is RootChainValidator {
   using RLP for bytes;
@@ -18,7 +19,7 @@ contract ERC20Validator is RootChainValidator {
   // keccak256('Withdraw(address,address,uint256)')
   // bytes32 constant public WITHDRAW_EVENT_SIGNATURE = 0x9b1bfa7fa9ee420a16e124f794c35ac9f90472acc99140eb2f6447c714cad8eb;
   // keccak256('Transfer(address,address,uint256)')
-  bytes32 constant public TRASFER_EVENT_SIGNATURE = 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef;
+  bytes32 constant public TRANSFER_EVENT_SIGNATURE = 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef;
   // keccak256('Approval(address,address,uint256)')
   bytes32 constant public APPROVAL_EVENT_SIGNATURE = 0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925;
   // keccak256('LogDeposit(uint256,uint256,uint256)')
@@ -91,7 +92,7 @@ contract ERC20Validator is RootChainValidator {
         [1]
         [2]
         [3]-> [
-          [child token address, [TRASFER_EVENT_SIGNATURE, from, to], <amount>],
+          [child token address, [TRANSFER_EVENT_SIGNATURE, from, to], <amount>],
           [child token address, [LOG_TRANSFER_EVENT_SIGNATURE], <input1,input2,output1,output2>]
         ]
     */
@@ -125,7 +126,7 @@ contract ERC20Validator is RootChainValidator {
     address from,
     address to,
     uint256 amount,
-    RLP.RLPItem[] items // [child token address, [TRASFER_EVENT_SIGNATURE, from, to], <amount>]
+    RLP.RLPItem[] items // [child token address, [TRANSFER_EVENT_SIGNATURE, from, to], <amount>]
   ) internal view returns (bool) {
     if (items.length != 3) {
       return false;
@@ -135,7 +136,7 @@ contract ERC20Validator is RootChainValidator {
     if (
       topics.length == 3 &&
       items[0].toAddress() == childToken &&
-      topics[0].toBytes32() == TRASFER_EVENT_SIGNATURE &&
+      topics[0].toBytes32() == TRANSFER_EVENT_SIGNATURE &&
       BytesLib.toAddress(topics[1].toData(), 12) == from &&
       BytesLib.toAddress(topics[2].toData(), 12) == to &&
       BytesLib.toUint(items[2].toData(), 0) == amount

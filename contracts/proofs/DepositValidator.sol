@@ -1,10 +1,11 @@
 pragma solidity 0.4.24;
 
-import "../mixin/RootChainValidator.sol";
+
 import "../lib/SafeMath.sol";
 import "../lib/RLP.sol";
 import "../lib/BytesLib.sol";
 
+import "../mixin/RootChainValidator.sol";
 
 contract DepositValidator is RootChainValidator {
   using SafeMath for uint256;

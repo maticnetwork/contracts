@@ -2,8 +2,8 @@ pragma solidity 0.4.24;
 
 
 import "../lib/RLP.sol";
-import "../mixin/RootChainValidator.sol";
 
+import "../mixin/RootChainValidator.sol";
 
 contract TxValidator is RootChainValidator {
   using Merkle for bytes32;

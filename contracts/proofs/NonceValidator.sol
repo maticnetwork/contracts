@@ -1,9 +1,10 @@
 pragma solidity 0.4.24;
 
+
 import "../lib/SafeMath.sol";
 import "../lib/RLP.sol";
-import "../mixin/RootChainValidator.sol";
 
+import "../mixin/RootChainValidator.sol";
 
 contract NonceValidator is RootChainValidator {
   using SafeMath for uint256;

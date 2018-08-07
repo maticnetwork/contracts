@@ -12,8 +12,7 @@ import "./mixin/RootChainValidator.sol";
 import "./token/ERC20.sol";
 import "./token/WETH.sol";
 
-import "./StakeManagerInterface.sol";
-import "./RootChainInterface.sol";
+import "./StakeManager.sol";
 
 
 contract RootChain is Ownable {
@@ -32,13 +31,13 @@ contract RootChain is Ownable {
   // keccak256('Matic Network v0.0.1-beta.1')
   bytes32 public chain = 0x2984301e9762b14f383141ec6a9a7661409103737c37bba9e0a22be26d63486d;
   // networkId
-  bytes public networkId = "\r";
+  bytes public networkId = "\x0d";
 
   // WETH address
   address public wethToken;
 
   // stake interface
-  StakeManagerInterface public stakeManager;
+  StakeManager public stakeManager;
   mapping(address => bool) public validatorContracts;
 
   // mapping for (root token => child token)
@@ -175,7 +174,7 @@ contract RootChain is Ownable {
   //
   function setStakeManager(address _stakeManager) public onlyOwner {
     require(_stakeManager != 0x0);
-    stakeManager = StakeManagerInterface(_stakeManager);
+    stakeManager = StakeManager(_stakeManager);
   }
 
   function submitHeaderBlock(bytes32 root, uint256 end, bytes sigs) public {
