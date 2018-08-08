@@ -19,8 +19,8 @@ contract DepositValidator is RootChainValidator {
   bytes32 constant public TOKEN_DEPOSITED_EVENT_SIGNATURE = 0xec3afb067bce33c5a294470ec5b29e6759301cd3928550490c6d48816cdc2f5d;
   // keccak256('Deposit(address,address,uint256)')
   bytes32 constant public DEPOSIT_EVENT_SIGNATURE = 0x5548c837ab068cf56a2c2479df0882a4922fd203edb7517321831d95078c5f62;
-  // keccak256('LogDeposit(uint256,uint256,uint256)')
-  bytes32 constant public LOG_DEPOSIT_EVENT_SIGNATURE = 0xd5f41a4c53ae8d3f972ea59f65a253e16b5fca34ab8e51869011143e11f2ef20;
+  // keccak256('LogDeposit(address,address,uint256,uint256,uint256)')
+  bytes32 constant public LOG_DEPOSIT_EVENT_SIGNATURE = 0xab14747d46633612ff5c029a3117f98ffb6506ebf31bab40972f911b7dd18891;
 
   // validate deposit
   function validateDepositTx(
@@ -173,8 +173,8 @@ contract DepositValidator is RootChainValidator {
         [1]
         [2]
         [3]-> [
-          [child token address, [depositEventSignatur, rootToken, depositor], <amount>],
-          [child token address, [LOG_DEPOSIT_EVENT_SIGNATURE], <input1,amount,output1>]
+          [child token address, [DEPOSIT_EVENT_SIGNATURE, rootToken, depositor], <amount>],
+          [child token address, [LOG_DEPOSIT_EVENT_SIGNATURE], <amount,input1,output1>]
           [child root contract address, [TOKEN_DEPOSITED_EVENT_SIGNATURE, rootToken, childToken, depositor], <amount,depositCount>]
         ]
     */
@@ -260,8 +260,8 @@ contract DepositValidator is RootChainValidator {
       topics.length == 1 &&
       items[0].toAddress() == childToken &&
       topics[0].toBytes32() == LOG_DEPOSIT_EVENT_SIGNATURE &&
-      BytesLib.toUint(items[2].toData(), 32) == amount &&
-      BytesLib.toUint(items[2].toData(), 0).add(amount) == BytesLib.toUint(items[2].toData(), 64)
+      BytesLib.toUint(items[2].toData(), 0) == amount &&
+      BytesLib.toUint(items[2].toData(), 32).add(amount) == BytesLib.toUint(items[2].toData(), 64)
     ) {
       return true;
     }

@@ -157,10 +157,16 @@ contract RootChainValidator is RootChainable, Lockable {
   }
 
   // get tx sender
-  function getTxSender(bytes txBytes) public view returns (address) {
+  function getTxSender(bytes txBytes) internal view returns (address) {
     // check tx
     RLP.RLPItem[] memory txList = txBytes.toRLPItem().toList();
 
+    // get tx sender
+    return getTxSender(txList);
+  }
+
+  // get tx sender
+  function getTxSender(RLP.RLPItem[] txList) internal view returns (address) {
     // raw tx
     bytes[] memory rawTx = new bytes[](9);
     for (uint8 i = 0; i <= 5; i++) {

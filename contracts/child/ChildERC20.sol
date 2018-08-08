@@ -18,12 +18,18 @@ contract ChildERC20 is StandardToken, Ownable {
   event Withdraw(address indexed token, address indexed user, uint256 amount);
 
   event LogDeposit(
-    uint256 input1,
+    address indexed token,
+    address indexed from,
     uint256 amount,
+    uint256 input1,
     uint256 output1
   );
 
   event LogTransfer(
+    address indexed token,
+    address indexed from,
+    address indexed to,
+    uint256 amount,
     uint256 input1,
     uint256 input2,
     uint256 output1,
@@ -31,8 +37,10 @@ contract ChildERC20 is StandardToken, Ownable {
   );
 
   event LogWithdraw(
-    uint256 input1,
+    address indexed token,
+    address indexed from,
     uint256 amount,
+    uint256 input1,
     uint256 output1
   );
 
@@ -62,7 +70,7 @@ contract ChildERC20 is StandardToken, Ownable {
 
     // deposit events
     emit Deposit(token, user, amount);
-    emit LogDeposit(input1, amount, balances[user]);
+    emit LogDeposit(token, user, amount, input1, balanceOf(user));
   }
 
   /**
@@ -84,7 +92,7 @@ contract ChildERC20 is StandardToken, Ownable {
 
     // withdraw event
     emit Withdraw(token, user, amount);
-    emit LogWithdraw(input1, amount, balances[user]);
+    emit LogWithdraw(token, user, amount, input1, balanceOf(user));
   }
 
   /// @dev Function that is called when a user or another contract wants to transfer funds.
@@ -100,7 +108,16 @@ contract ChildERC20 is StandardToken, Ownable {
     bool result = super.transfer(_to, _value, _data);
 
     // log balance
-    emit LogTransfer(_input1, _input2, balanceOf(msg.sender), balanceOf(_to));
+    emit LogTransfer(
+      token,
+      msg.sender,
+      _to,
+      _value,
+      _input1,
+      _input2,
+      balanceOf(msg.sender),
+      balanceOf(_to)
+    );
 
     return result;
   }
@@ -118,7 +135,16 @@ contract ChildERC20 is StandardToken, Ownable {
     bool result = super.transferFrom(_from, _to, _value);
 
     // log balance
-    emit LogTransfer(_input1, _input2, balanceOf(_from), balanceOf(_to));
+    emit LogTransfer(
+      token,
+      _from,
+      _to,
+      _value,
+      _input1,
+      _input2,
+      balanceOf(_from),
+      balanceOf(_to)
+    );
 
     return result;
   }
