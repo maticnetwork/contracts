@@ -1,5 +1,6 @@
 pragma solidity 0.4.24;
 
+import "./mixin/Ownable.sol";
 import "./lib/SafeMath.sol";
 
 
@@ -7,29 +8,19 @@ import "./lib/SafeMath.sol";
  * @title PriorityQueue
  * @dev A priority queue implementation.
  */
-contract PriorityQueue {
+contract PriorityQueue is Ownable {
   using SafeMath for uint256;
 
   /**
    * Storage
    */
-  address owner;
   uint256[] heapList;
   uint256 public currentSize;
-
-  /**
-   * Modifiers
-   */
-  modifier onlyOwner() {
-    require(msg.sender == owner);
-    _;
-  }
 
   /**
    * Constructor
    */
   constructor() public {
-    owner = msg.sender;
     heapList = [0];
     currentSize = 0;
   }

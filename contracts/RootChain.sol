@@ -12,6 +12,7 @@ import "./mixin/RootChainValidator.sol";
 import "./token/ERC20.sol";
 import "./token/WETH.sol";
 
+import "./PriorityQueue.sol";
 import "./StakeManager.sol";
 
 
@@ -25,8 +26,6 @@ contract RootChain is Ownable {
   // bytes32 constants
   // 0x2e1a7d4d = sha3('withdraw(uint256)')
   bytes4 constant public WITHDRAW_SIGNATURE = 0x2e1a7d4d;
-  // keccak256('Withdraw(address,address,uint256)')
-  bytes32 constant public WITHDRAW_EVENT_SIGNATURE = 0x9b1bfa7fa9ee420a16e124f794c35ac9f90472acc99140eb2f6447c714cad8eb;
   // chain identifier
   // keccak256('Matic Network v0.0.1-beta.1')
   bytes32 public chain = 0x2984301e9762b14f383141ec6a9a7661409103737c37bba9e0a22be26d63486d;
@@ -75,13 +74,29 @@ contract RootChain is Ownable {
   // current deposit count
   uint256 public depositCount;
 
+  //
+  // exits
+  //
+
+  struct PlasmaExit {
+    address owner;
+    address token;
+    uint256 amount;
+  }
+
+  mapping (uint256 => PlasmaExit) public exits;
+  mapping (address => address) public exitsQueues;
+
+  // current withdraw count
+  uint256 public withdrawCount;
+
+  //
   // Constructor
+  //
+
   constructor (address _stakeManager) public {
     setStakeManager(_stakeManager);
   }
-
-  // withdraws
-  mapping(bytes32 => bool) public withdraws;
 
   //
   // Events
@@ -94,10 +109,16 @@ contract RootChain is Ownable {
   event Withdraw(address indexed user, address indexed token, uint256 amount);
   event NewHeaderBlock(
     address indexed proposer,
-    uint256 number,
+    uint256 indexed number,
     uint256 start,
     uint256 end,
     bytes32 root
+  );
+  event ExitStarted(
+    address indexed exitor,
+    uint256 indexed utxoPos,
+    address token,
+    uint256 amount
   );
 
   //
@@ -145,14 +166,23 @@ contract RootChain is Ownable {
 
   // map child token to root token
   function mapToken(address rootToken, address childToken) public onlyOwner {
+    // check if token is not already mapped
+    require(tokens[rootToken] == address(0));
+
     tokens[rootToken] = childToken;
     reverseTokens[childToken] = rootToken;
     emit TokenMapped(rootToken, childToken);
+
+    // create exit queue
+    exitsQueues[rootToken] = address(new PriorityQueue());
   }
 
   // set WETH
   function setWETHToken(address _token) public onlyOwner {
     wethToken = _token;
+
+    // weth token queue
+    exitsQueues[wethToken] = address(new PriorityQueue());
   }
 
   // add validator
@@ -320,42 +350,7 @@ contract RootChain is Ownable {
     bytes receiptBytes,
     bytes receiptProof
   ) public {
-    // check if not already withdrawn
-    require(withdraws[txRoot] == false);
 
-    // set flag for withdraw competed
-    withdraws[txRoot] = true;
-
-    // process receipt
-    var (rootToken, receiptAmount) = _processWithdrawReceipt(
-      receiptBytes,
-      path,
-      receiptProof,
-      receiptRoot
-    );
-
-    // process withdraw tx
-    _processWithdrawTx(
-      txBytes,
-      path,
-      txProof,
-      txRoot,
-
-      rootToken,
-      receiptAmount
-    );
-
-    _withdraw(
-      headerNumber,
-      headerProof,
-      blockNumber,
-      blockTime,
-
-      txRoot,
-      receiptRoot,
-      rootToken,
-      receiptAmount
-    );
   }
 
   //
@@ -365,6 +360,81 @@ contract RootChain is Ownable {
   // slash stakers if fraud is detected
   function slash() public isValidator(msg.sender) {
     // TODO pass block/proposer
+  }
+
+  //
+  // Exit functions
+  //
+
+  /**
+  * @dev Returns information about an exit.
+  * @param _utxoPos Position of the UTXO in the chain.
+  * @return A tuple representing the active exit for the given UTXO.
+  */
+  function getExit(uint256 _utxoPos)
+    public
+    view
+    returns (address, address, uint256)
+  {
+    return (exits[_utxoPos].owner, exits[_utxoPos].token, exits[_utxoPos].amount);
+  }
+
+
+  /**
+  * @dev Determines the next exit to be processed.
+  * @param _token Asset type to be exited.
+  * @return A tuple of the position and time when this exit can be processed.
+  */
+  function getNextExit(address _token)
+    public
+    view
+    returns (uint256, uint256)
+  {
+    return PriorityQueue(exitsQueues[_token]).getMin();
+  }
+
+  /**
+  * @dev Processes any exits that have completed the exit period.
+  */
+  function processExits(address _token) public {
+    uint256 exitableAt;
+    uint256 utxoPos;
+
+    PriorityQueue exitQueue = PriorityQueue(exitsQueues[_token]);
+
+    // Iterate while the queue is not empty.
+    while (exitQueue.currentSize() > 0) {
+      (exitableAt, utxoPos) = getNextExit(_token);
+
+      // Check if this exit has finished its challenge period.
+      if (exitableAt > block.timestamp){
+        return;
+      }
+
+      // get withdraw block
+      PlasmaExit memory currentExit = exits[utxoPos];
+
+      // If an exit was successfully challenged, owner would be address(0).
+      if (currentExit.owner != address(0)) {
+        currentExit.owner.transfer(currentExit.amount);
+        if (_token == wethToken) {
+          // transfer ETH to msg.sender if `rootToken` is `wethToken`
+          WETH(wethToken).withdraw(currentExit.amount, currentExit.owner);
+        } else {
+          // transfer tokens to current contract
+          ERC20(_token).transfer(currentExit.owner, currentExit.amount);
+        }
+
+        // broadcast withdraw events
+        emit Withdraw(currentExit.owner, _token, currentExit.amount);
+
+        // Delete owner but keep amount to prevent another exit from the same UTXO.
+        delete exits[utxoPos].owner;
+      }
+
+      // exit queue
+      exitQueue.delMin();
+    }
   }
 
   //
@@ -387,120 +457,41 @@ contract RootChain is Ownable {
     depositCount = depositCount.add(1);
   }
 
-  function _withdraw(
-    uint256 headerNumber,
-    bytes headerProof,
-    uint256 blockNumber,
-    uint256 blockTime,
-
-    bytes32 txRoot,
-    bytes32 receiptRoot,
-
-    address rootToken,
-    uint256 amount
+  /**
+  * @dev Adds an exit to the exit queue.
+  * @param _utxoPos Position of the UTXO in the child chain (blockNumber, txIndex, oIndex)
+  * @param _exitor Owner of the UTXO.
+  * @param _token Token to be exited.
+  * @param _amount Amount to be exited.
+  * @param _createdAt Time when the UTXO was created.
+  */
+  function addExitToQueue(
+    uint256 _utxoPos,
+    address _exitor,
+    address _token,
+    uint256 _amount,
+    uint256 _createdAt
   ) internal {
-    // check block header
-    require(
-      keccak256(
-        blockNumber,
-        blockTime,
-        txRoot,
-        receiptRoot
-      ).checkMembership(
-        blockNumber - headerBlocks[headerNumber].start,
-        headerBlocks[headerNumber].root,
-        headerProof
-      )
-    );
+    // Check that we're exiting a known token.
+    require(exitsQueues[_token] != address(0));
 
-    if (rootToken == wethToken) {
-      // transfer ETH to msg.sender if `rootToken` is `wethToken`
-      WETH(wethToken).withdraw(amount, msg.sender);
-    } else {
-      // transfer tokens to current contract
-      ERC20(rootToken).transfer(msg.sender, amount);
-    }
+    // Calculate priority.
+    uint256 exitableAt = Common.max(_createdAt + 2 weeks, block.timestamp + 1 weeks);
 
-    // broadcast deposit events
-    emit Withdraw(msg.sender, rootToken, amount);
-  }
+    // Check exit is valid and doesn't already exist.
+    require(_amount > 0);
+    require(exits[_utxoPos].amount == 0);
 
-  function _processWithdrawTx(
-    bytes txBytes,
-    bytes path,
-    bytes txProof,
-    bytes32 txRoot,
+    PriorityQueue queue = PriorityQueue(exitsQueues[_token]);
+    queue.insert(exitableAt, _utxoPos);
 
-    address rootToken,
-    uint256 amount
-  ) internal view {
-    // check tx
-    RLP.RLPItem[] memory txList = txBytes.toRLPItem().toList();
-    require(txList.length == 9);
+    // withdraw block
+    exits[_utxoPos] = PlasmaExit({
+      owner: _exitor,
+      token: _token,
+      amount: _amount
+    });
 
-    // check mapped root<->child token
-    require(tokens[rootToken] == txList[3].toAddress());
-
-    // Data check
-    require(txList[5].toData().length == 36);
-    // check withdraw data function signature
-    require(BytesLib.toBytes4(BytesLib.slice(txList[5].toData(), 0, 4)) == WITHDRAW_SIGNATURE);
-    // check amount
-    require(amount > 0 && amount == BytesLib.toUint(txList[5].toData(), 4));
-
-    // Make sure this tx is the value on the path via a MerklePatricia proof
-    require(MerklePatriciaProof.verify(txBytes, path, txProof, txRoot) == true);
-
-    // raw tx
-    bytes[] memory rawTx = new bytes[](9);
-    for (uint8 i = 0; i <= 5; i++) {
-      rawTx[i] = txList[i].toData();
-    }
-    rawTx[4] = hex"";
-    rawTx[6] = networkId;
-    rawTx[7] = hex"";
-    rawTx[8] = hex"";
-
-    // recover sender from v, r and s
-    require(
-      msg.sender == ecrecover(
-        keccak256(RLPEncode.encodeList(rawTx)),
-        Common.getV(txList[6].toData(), Common.toUint8(networkId)),
-        txList[7].toBytes32(),
-        txList[8].toBytes32()
-      )
-    );
-  }
-
-  function _processWithdrawReceipt(
-    bytes receiptBytes,
-    bytes path,
-    bytes receiptProof,
-    bytes32 receiptRoot
-  ) internal view returns (address rootToken, uint256 amount) {
-    // check receipt
-    RLP.RLPItem[] memory items = receiptBytes.toRLPItem().toList();
-    require(items.length == 4);
-
-    // [3][0] -> [child token address, [WITHDRAW_EVENT_SIGNATURE, root token address, sender], amount]
-    items = items[3].toList()[0].toList();
-    require(items.length == 3);
-    address childToken = items[0].toAddress(); // child token address
-    amount = items[2].toUint(); // amount
-
-    // [3][0][1] -> [WITHDRAW_EVENT_SIGNATURE, root token address, sender]
-    items = items[1].toList();
-    require(items.length == 3);
-    require(items[0].toBytes32() == WITHDRAW_EVENT_SIGNATURE); // check for withdraw event signature
-
-    // check if root token is mapped to child token
-    rootToken = BytesLib.toAddress(items[1].toData(), 12); // fetch root token address
-    require(tokens[rootToken] == childToken);
-
-    // check if sender is valid
-    require(msg.sender == BytesLib.toAddress(items[2].toData(), 12));
-
-    // Make sure this receipt is the value on the path via a MerklePatricia proof
-    require(MerklePatriciaProof.verify(receiptBytes, path, receiptProof, receiptRoot) == true);
+    emit ExitStarted(msg.sender, _utxoPos, _token, _amount);
   }
 }

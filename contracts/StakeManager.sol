@@ -40,7 +40,7 @@ contract StakeManager is StakeManagerInterface, Lockable {
 
   // The randomness seed of the epoch.
   // This is used to determine the proposer and the validator pool
-  bytes32 public epochSeed = keccak256(block.difficulty + block.number + now);
+  bytes32 public epochSeed = keccak256(abi.encodePacked(block.difficulty + block.number + now));
 
   //
   // Events
@@ -205,7 +205,7 @@ contract StakeManager is StakeManagerInterface, Lockable {
     bytes sigs
   ) public view returns (uint256) {
     // create hash
-    bytes32 h = keccak256(rootChain.chain(), root, start, end);
+    bytes32 h = keccak256(abi.encodePacked(rootChain.chain(), root, start, end));
 
     // total signers
     uint256 totalSigners = 0;
@@ -233,6 +233,6 @@ contract StakeManager is StakeManagerInterface, Lockable {
 
   function finalizeCommit(address proposer) public onlyRootChain {
     // set epoch seed
-    epochSeed = keccak256(block.difficulty + block.number + now);
+    epochSeed = keccak256(abi.encodePacked(block.difficulty + block.number + now));
   }
 }

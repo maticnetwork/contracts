@@ -35,4 +35,13 @@ library Common {
   function toUint8(bytes _arg) public view returns (uint8) {
     return uint8(_arg[0]);
   }
+
+  /**
+  * @dev Returns the maximum of two numbers
+  * @param a uint256 number
+  * @param b uint256 number
+  */
+  function max(uint256 a, uint256 b) public pure returns (uint256) {
+    return a >= b ? a : b;
+  }
 }
