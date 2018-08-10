@@ -82,6 +82,8 @@ contract RootChain is Ownable {
     address owner;
     address token;
     uint256 amount;
+    bool buyable;
+    uint256 price;
   }
 
   mapping (uint256 => PlasmaExit) public exits;
@@ -118,6 +120,14 @@ contract RootChain is Ownable {
     address indexed exitor,
     uint256 indexed utxoPos,
     address token,
+    uint256 amount
+  );
+  // emit exit purchased event
+  event ExitPurchased(
+    address indexed buyer,
+    address indexed token,
+    address indexed seller,
+    uint256 outputId,
     uint256 amount
   );
 
@@ -416,7 +426,6 @@ contract RootChain is Ownable {
 
       // If an exit was successfully challenged, owner would be address(0).
       if (currentExit.owner != address(0)) {
-        currentExit.owner.transfer(currentExit.amount);
         if (_token == wethToken) {
           // transfer ETH to msg.sender if `rootToken` is `wethToken`
           WETH(wethToken).withdraw(currentExit.amount, currentExit.owner);
@@ -436,6 +445,42 @@ contract RootChain is Ownable {
       exitQueue.delMin();
     }
   }
+
+  /**
+  * @dev Allows a user to buy an exit.
+  * @param _token Address of the token contract.
+  * @param _outputId Identifier of the output being purchased.
+  */
+  function buyExit(
+    address _token,
+    uint256 _outputId
+  )
+    public
+    payable
+  {
+    // exit token
+    PlasmaExit storage exitToken = exits[_outputId];
+
+    // Validate the purchase.
+    require(exitToken.buyable);
+
+    // transfer tokens to owner on given price
+    require(ERC20(_token).transferFrom(msg.sender, exitToken.owner, exitToken.price));
+
+    // Update the token info.
+    exitToken.owner = msg.sender;
+    exitToken.buyable = false;
+
+    // emit exit purchased event
+    emit ExitPurchased(
+      msg.sender,
+      _token,
+      exitToken.owner,
+      _outputId,
+      exitToken.price
+    );
+  }
+
 
   //
   // Internal functions
@@ -464,13 +509,15 @@ contract RootChain is Ownable {
   * @param _token Token to be exited.
   * @param _amount Amount to be exited.
   * @param _createdAt Time when the UTXO was created.
+  * @param _price Price to buy
   */
   function addExitToQueue(
     uint256 _utxoPos,
     address _exitor,
     address _token,
     uint256 _amount,
-    uint256 _createdAt
+    uint256 _createdAt,
+    uint256 _price
   ) internal {
     // Check that we're exiting a known token.
     require(exitsQueues[_token] != address(0));
@@ -489,7 +536,9 @@ contract RootChain is Ownable {
     exits[_utxoPos] = PlasmaExit({
       owner: _exitor,
       token: _token,
-      amount: _amount
+      amount: _amount,
+      price: _price,
+      buyable: true
     });
 
     emit ExitStarted(msg.sender, _utxoPos, _token, _amount);
