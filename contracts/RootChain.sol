@@ -26,6 +26,8 @@ contract RootChain is Ownable {
   // bytes32 constants
   // 0x2e1a7d4d = sha3('withdraw(uint256)')
   bytes4 constant public WITHDRAW_SIGNATURE = 0x2e1a7d4d;
+  // 0xa9059cbb = keccak256('transfer(address,uint256)')
+  bytes4 constant public TRANSFER_SIGNATURE = 0xa9059cbb;
 
   // keccak256('Withdraw(address,address,uint256)')
   bytes32 constant public WITHDRAW_EVENT_SIGNATURE = 0x9b1bfa7fa9ee420a16e124f794c35ac9f90472acc99140eb2f6447c714cad8eb;
@@ -466,7 +468,7 @@ contract RootChain is Ownable {
     );
   }
 
-    // withdraw tokens
+  // withdraw tokens
   function withdraw(
     uint256 headerNumber,
     bytes headerProof,
@@ -518,6 +520,47 @@ contract RootChain is Ownable {
 
       rootToken,
       receiptAmount,
+
+      path
+    );
+  }
+
+  // withdraw tokens
+  function withdrawTokens(
+    uint256 headerNumber,
+    bytes headerProof,
+
+    uint256 blockNumber,
+    uint256 blockTime,
+    bytes32 txRoot,
+    bytes32 receiptRoot,
+    bytes path,
+
+    bytes txBytes,
+    bytes txProof,
+
+    bytes receiptBytes,
+    bytes receiptProof
+  ) public {
+    // Make sure this tx is the value on the path via a MerklePatricia proof
+    require(MerklePatriciaProof.verify(txBytes, path, txProof, txRoot) == true);
+
+    // Make sure this receipt is the value on the path via a MerklePatricia proof
+    require(MerklePatriciaProof.verify(receiptBytes, path, receiptProof, receiptRoot) == true);
+
+    // withdraw
+    _withdraw(
+      headerNumber,
+      headerProof,
+
+      blockNumber,
+      blockTime,
+
+      txRoot,
+      receiptRoot,
+
+      _processWithdrawTransferTx(txBytes),
+      _processWithdrawTransferReceipt(receiptBytes),
 
       path
     );
@@ -636,6 +679,9 @@ contract RootChain is Ownable {
 
     bytes path
   ) internal {
+    // validate amount
+    require(amount > 0);
+
     // check block header
     require(
       keccak256(
@@ -659,6 +705,49 @@ contract RootChain is Ownable {
       blockTime,
       0
     );
+  }
+
+  function _processWithdrawTransferTx(bytes txBytes) internal view returns (address) {
+    // check transaction
+    RLP.RLPItem[] memory items = txBytes.toRLPItem().toList();
+    require(items.length == 9);
+
+    // check if child token is mapped with root tokens
+    address rootToken = reverseTokens[items[3].toAddress()];
+    require(rootToken != address(0));
+
+    // check if transaction is transfer tx
+    // <4 bytes transfer event,address (32 bytes),amount (32 bytes)>
+    require(BytesLib.toBytes4(BytesLib.slice(items[5].toData(), 0, 4)) == TRANSFER_SIGNATURE);
+
+    // get root token address
+    return rootToken;
+  }
+
+  function _processWithdrawTransferReceipt(bytes receiptBytes) internal view returns (uint256) {
+    // receipt
+    RLP.RLPItem[] memory items = receiptBytes.toRLPItem().toList();
+    require(items.length == 4);
+
+    // retrieve LogTransfer event (UTXO <amount, input1, input2, output1, output2>)
+    items = items[3].toList()[1].toList();
+
+    // get topics
+    RLP.RLPItem[] memory topics = items[1].toList();
+
+    // get from/to addresses from topics
+    address from = BytesLib.toAddress(topics[2].toData(), 12);
+    address to = BytesLib.toAddress(topics[3].toData(), 12);
+
+    // get total balance
+    uint256 totalBalance = 0;
+    if (to == msg.sender) {
+      totalBalance =  BytesLib.toUint(items[2].toData(), 128);
+    } else if (from == msg.sender) {
+      totalBalance =  BytesLib.toUint(items[2].toData(), 96);
+    }
+
+    return totalBalance;
   }
 
   /**
