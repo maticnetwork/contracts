@@ -1,5 +1,8 @@
 pragma solidity ^0.4.24;
 
+import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
+import 'openzeppelin-solidity/contracts/token/ERC20/ERC20.sol';
+
 import "./lib/SafeMath.sol";
 import "./lib/MerklePatriciaProof.sol";
 import "./lib/Merkle.sol";
@@ -7,9 +10,7 @@ import "./lib/RLP.sol";
 import "./lib/BytesLib.sol";
 import "./lib/Common.sol";
 import "./lib/RLPEncode.sol";
-import "./mixin/Ownable.sol";
 import "./mixin/RootChainValidator.sol";
-import "./token/ERC20.sol";
 import "./token/WETH.sol";
 
 import "./PriorityQueue.sol";

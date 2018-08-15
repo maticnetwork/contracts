@@ -1,14 +1,25 @@
 pragma solidity 0.4.24;
 
-import "./ERC20.sol";
+import 'openzeppelin-solidity/contracts/token/ERC20/ERC20.sol';
+import 'openzeppelin-solidity/contracts/math/SafeMath.sol';
 import "./ContractReceiver.sol";
 
 
 /// @title Standard token contract - Standard token implementation.
 contract StandardToken is ERC20 {
+  using SafeMath for uint256;
 
   mapping (address => uint256) public balances;
   mapping (address => mapping (address => uint256)) public allowed;
+
+  uint256 totalSupply_;
+
+  /**
+  * @dev Total number of tokens in existence
+  */
+  function totalSupply() public view returns (uint256) {
+    return totalSupply_;
+  }
 
   /// @dev Transfers sender's tokens to a given address, added due to backwards compatibility reasons with ERC20
   /// @param _to Address of token receiver.
@@ -26,16 +37,16 @@ contract StandardToken is ERC20 {
   /// @return Returns success of function call.
   function transfer(address _to, uint256 _value, bytes _data) public returns (bool) {
     require(_to != 0x0);
-    require(_value > 0);
-    require(balances[msg.sender] >= _value);
 
-    balances[msg.sender] -= _value;
-    balances[_to] += _value;
+    // SafeMath.sub will throw if there is not enough balance.
+    balances[msg.sender] = balances[msg.sender].sub(_value);
+    balances[_to] = balances[_to].add(_value);
 
     if (isContract(_to)) {
       ContractReceiver receiver = ContractReceiver(_to);
       receiver.tokenFallback(msg.sender, _value, _data);
     }
+
     emit Transfer(msg.sender, _to, _value);
     return true;
   }

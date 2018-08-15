@@ -1,12 +1,17 @@
 pragma solidity 0.4.24;
 
-import "../lib/AttachedSafeMath.sol";
+import 'openzeppelin-solidity/contracts/math/SafeMath.sol';
+import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 import "../token/StandardToken.sol";
-import "../mixin/Ownable.sol";
 
 
 contract ChildERC20 is StandardToken, Ownable {
-  using AttachedSafeMath for uint256;
+  using SafeMath for uint256;
+
+  // detailed ERC20
+  string public name;
+  string public symbol;
+  uint8  public decimals;
 
   // token address on root chain
   address public token;

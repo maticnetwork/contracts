@@ -1,6 +1,7 @@
 pragma solidity 0.4.24;
 
-import "./StandardToken.sol";
+
+import './StandardToken.sol';
 
 
 contract MaticWETH is StandardToken {

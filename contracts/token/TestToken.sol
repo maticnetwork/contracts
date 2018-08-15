@@ -1,33 +1,24 @@
 pragma solidity 0.4.24;
 
-import "./StandardToken.sol";
+
+import 'openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol';
 
 
 contract TestToken is StandardToken {
+  // detailed ERC20
+  string public name;
+  string public symbol;
   uint8 public decimals = 18;
-
-  event MintTokens(address indexed user, uint256 value);
 
   constructor (string _name, string _symbol) public {
     name = _name;
     symbol = _symbol;
 
     uint256 value = 10000 * (10 ** 18);
-    _mintTokens(msg.sender, value);
+    // mint(msg.sender, value);
   }
 
   function () public payable {
-    mintTokens();
-  }
-
-  function mintTokens() public payable {
-    require(msg.value > 0, "");
-    _mintTokens(msg.sender, msg.value * 10000 * (10 ** 18)); // 1 ETH = 10000 TTN
-  }
-
-  function _mintTokens(address user, uint256 value) internal {
-    balances[user] += value;
-    totalSupply += value;
-    emit MintTokens(user, value);
+    // mint(msg.sender, msg.value);
   }
 }

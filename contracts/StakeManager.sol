@@ -1,10 +1,11 @@
 pragma solidity 0.4.24;
 
+import 'openzeppelin-solidity/contracts/token/ERC20/ERC20.sol';
+
 import "./lib/SafeMath.sol";
 import "./lib/ECVerify.sol";
 import "./lib/BytesLib.sol";
 import "./mixin/Lockable.sol";
-import "./token/ERC20.sol";
 
 import "./StakeManagerInterface.sol";
 import "./RootChain.sol";
