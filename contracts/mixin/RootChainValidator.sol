@@ -1,14 +1,14 @@
 pragma solidity 0.4.24;
 
 
-import "../lib/Merkle.sol";
-import "../lib/MerklePatriciaProof.sol";
-import "../lib/RLP.sol";
-import "../lib/Common.sol";
-import "../lib/RLPEncode.sol";
+import { Merkle } from "../lib/Merkle.sol";
+import { MerklePatriciaProof } from "../lib/MerklePatriciaProof.sol";
+import { RLP } from "../lib/RLP.sol";
+import { Common } from "../lib/Common.sol";
+import { RLPEncode } from "../lib/RLPEncode.sol";
 
-import "./RootChainable.sol";
-import "./Lockable.sol";
+import { Lockable } from "./Lockable.sol";
+import { RootChainable } from "./RootChainable.sol";
 
 
 /**
@@ -36,7 +36,9 @@ contract RootChainValidator is RootChainable, Lockable {
     bytes txProof
   ) public view returns (bool) {
     // get header information
-    var (headerRoot, start,,) = rootChain.getHeaderBlock(headerNumber);
+    bytes32 headerRoot;
+    uint256 start;
+    (headerRoot, start,,) = rootChain.getHeaderBlock(headerNumber);
 
     // check if tx's block is included in header and tx is in block
     return keccak256(blockNumber, blockTime, txRoot, receiptRoot)

@@ -1,25 +1,23 @@
 pragma solidity 0.4.24;
 
-import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 
-import "./lib/SafeMath.sol";
-import "./lib/ECVerify.sol";
-import "./lib/BytesLib.sol";
-import "./mixin/Lockable.sol";
+import { SafeMath } from "./lib/SafeMath.sol";
+import { ECVerify } from "./lib/ECVerify.sol";
+import { BytesLib } from "./lib/BytesLib.sol";
+import { Lockable } from "./mixin/Lockable.sol";
+import { RootChainable } from "./mixin/RootChainable.sol";
 
-import "./StakeManagerInterface.sol";
-import "./RootChain.sol";
+import { StakeManagerInterface } from "./StakeManagerInterface.sol";
+import { RootChain } from "./RootChain.sol";
 
 
-contract StakeManager is StakeManagerInterface, Lockable {
+contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   using SafeMath for uint256;
   using ECVerify for bytes32;
 
   // token object
   ERC20 public tokenObj;
-
-  // root chain object
-  RootChain public rootChain;
 
   // validator threshold
   uint256 public _validatorThreshold = 0;
@@ -70,21 +68,6 @@ contract StakeManager is StakeManagerInterface, Lockable {
   modifier onlyStaker() {
     require(totalStakedFor(msg.sender) > 0);
     _;
-  }
-
-  // only root chain
-  modifier onlyRootChain() {
-    require(msg.sender == address(rootChain));
-    _;
-  }
-
-  //
-  // Rootchain management
-  //
-
-  function setRootChain(address addr) public onlyOwner {
-    require(addr != 0x0);
-    rootChain = RootChain(addr);
   }
 
   //

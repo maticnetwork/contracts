@@ -1,20 +1,22 @@
 pragma solidity ^0.4.24;
 
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 
-import "./lib/SafeMath.sol";
-import "./lib/MerklePatriciaProof.sol";
-import "./lib/Merkle.sol";
-import "./lib/RLP.sol";
-import "./lib/BytesLib.sol";
-import "./lib/Common.sol";
-import "./lib/RLPEncode.sol";
-import "./mixin/RootChainValidator.sol";
-import "./token/WETH.sol";
+import { SafeMath } from "./lib/SafeMath.sol";
+import { MerklePatriciaProof } from "./lib/MerklePatriciaProof.sol";
+import { Merkle } from "./lib/Merkle.sol";
+import { RLP } from "./lib/RLP.sol";
+import { BytesLib } from "./lib/BytesLib.sol";
+import { Common } from "./lib/Common.sol";
+import { RLPEncode } from "./lib/RLPEncode.sol";
 
-import "./PriorityQueue.sol";
-import "./StakeManager.sol";
+import { RootChainValidator } from "./mixin/RootChainValidator.sol";
+import { WETH } from "./token/WETH.sol";
+import { ExitNFT } from "./token/ExitNFT.sol";
+
+import { PriorityQueue } from "./PriorityQueue.sol";
+import { StakeManager } from "./StakeManager.sol";
 
 
 contract RootChain is Ownable {
@@ -90,12 +92,11 @@ contract RootChain is Ownable {
     address owner;
     address token;
     uint256 amount;
-    bool buyable;
-    uint256 price;
   }
 
   mapping (uint256 => PlasmaExit) public exits;
   mapping (address => address) public exitsQueues;
+  ExitNFT public exitNFTContract;
 
   // current withdraw count
   uint256 public withdrawCount;
@@ -142,6 +143,7 @@ contract RootChain is Ownable {
   //
   // Modifiers
   //
+
   /**
    * @dev Throws if deposit is not valid
    */
@@ -175,6 +177,7 @@ contract RootChain is Ownable {
   //
   // Admin functions
   //
+
   // change child chain contract
   function setChildContract(address newChildChain) public onlyOwner {
     require(newChildChain != address(0));
@@ -263,6 +266,15 @@ contract RootChain is Ownable {
   }
 
   //
+  // Exit NFT
+  //
+
+  function setExitNFTContract(address _nftContract) public onlyOwner {
+    require(_nftContract != 0x0);
+    exitNFTContract = ExitNFT(_nftContract);
+  }
+
+  //
   // Header block
   //
 
@@ -289,16 +301,16 @@ contract RootChain is Ownable {
   //
   // Deposit block
   //
-  function getDepositBlock(uint256 depositCount) public view returns (
+  function getDepositBlock(uint256 _depositCount) public view returns (
     uint256 header,
     address owner,
     address token,
     uint256 amount
   ) {
-    header = deposits[depositCount].header;
-    owner = deposits[depositCount].owner;
-    token = deposits[depositCount].token;
-    amount = deposits[depositCount].amount;
+    header = deposits[_depositCount].header;
+    owner = deposits[_depositCount].owner;
+    token = deposits[_depositCount].token;
+    amount = deposits[_depositCount].amount;
   }
 
   //
@@ -372,9 +384,9 @@ contract RootChain is Ownable {
   function getExit(uint256 _utxoPos)
     public
     view
-    returns (address, address, uint256)
+    returns (address, uint256)
   {
-    return (exits[_utxoPos].owner, exits[_utxoPos].token, exits[_utxoPos].amount);
+    return (exits[_utxoPos].token, exits[_utxoPos].amount);
   }
 
   /**
@@ -404,28 +416,33 @@ contract RootChain is Ownable {
       (exitableAt, utxoPos) = getNextExit(_token);
 
       // Check if this exit has finished its challenge period.
-      if (exitableAt > block.timestamp){
+      if (exitableAt > block.timestamp) {
         return;
       }
 
       // get withdraw block
       PlasmaExit memory currentExit = exits[utxoPos];
 
+      // process if NFT exists
       // If an exit was successfully challenged, owner would be address(0).
-      if (currentExit.owner != address(0)) {
+      address exitOwner = exitNFTContract.ownerOf(utxoPos);
+      if (exitOwner != address(0)) {
         if (_token == wethToken) {
           // transfer ETH to msg.sender if `rootToken` is `wethToken`
-          WETH(wethToken).withdraw(currentExit.amount, currentExit.owner);
+          WETH(wethToken).withdraw(currentExit.amount, exitOwner);
         } else {
           // transfer tokens to current contract
-          ERC20(_token).transfer(currentExit.owner, currentExit.amount);
+          ERC20(_token).transfer(exitOwner, currentExit.amount);
         }
 
         // broadcast withdraw events
-        emit Withdraw(currentExit.owner, _token, currentExit.amount);
+        emit Withdraw(exitOwner, _token, currentExit.amount);
 
         // Delete owner but keep amount to prevent another exit from the same UTXO.
-        delete exits[utxoPos].owner;
+        // delete exits[utxoPos].owner;
+
+        // burn NFT
+        exitNFTContract.burn(owner, utxoPos);
       }
 
       // exit queue
@@ -433,40 +450,40 @@ contract RootChain is Ownable {
     }
   }
 
-  /**
-  * @dev Allows a user to buy an exit.
-  * @param _token Address of the token contract.
-  * @param _outputId Identifier of the output being purchased.
-  */
-  function buyExit(
-    address _token,
-    uint256 _outputId
-  )
-    public
-    payable
-  {
-    // exit token
-    PlasmaExit storage exitToken = exits[_outputId];
+  // /**
+  // * @dev Allows a user to buy an exit.
+  // * @param _token Address of the token contract.
+  // * @param _outputId Identifier of the output being purchased.
+  // */
+  // function buyExit(
+  //   address _token,
+  //   uint256 _outputId
+  // )
+  //   public
+  //   payable
+  // {
+  //   // exit token
+  //   PlasmaExit storage exitToken = exits[_outputId];
 
-    // Validate the purchase.
-    require(exitToken.buyable);
+  //   // Validate the purchase.
+  //   require(exitToken.buyable);
 
-    // transfer tokens to owner on given price
-    require(ERC20(_token).transferFrom(msg.sender, exitToken.owner, exitToken.price));
+  //   // transfer tokens to owner on given price
+  //   require(ERC20(_token).transferFrom(msg.sender, exitToken.owner, exitToken.price));
 
-    // Update the token info.
-    exitToken.owner = msg.sender;
-    exitToken.buyable = false;
+  //   // Update the token info.
+  //   exitToken.owner = msg.sender;
+  //   exitToken.buyable = false;
 
-    // emit exit purchased event
-    emit ExitPurchased(
-      msg.sender,
-      _token,
-      exitToken.owner,
-      _outputId,
-      exitToken.price
-    );
-  }
+  //   // emit exit purchased event
+  //   emit ExitPurchased(
+  //     msg.sender,
+  //     _token,
+  //     exitToken.owner,
+  //     _outputId,
+  //     exitToken.price
+  //   );
+  // }
 
   // withdraw tokens
   function withdraw(
@@ -521,7 +538,8 @@ contract RootChain is Ownable {
       rootToken,
       receiptAmount,
 
-      path
+      path,
+      0
     );
   }
 
@@ -548,6 +566,11 @@ contract RootChain is Ownable {
     // Make sure this receipt is the value on the path via a MerklePatricia proof
     require(MerklePatriciaProof.verify(receiptBytes, path, receiptProof, receiptRoot) == true);
 
+    // process transfer tx/receipt
+    uint256 amount;
+    uint8 oIndex;
+    (amount, oIndex) = _processWithdrawTransferReceipt(receiptBytes);
+
     // withdraw
     _withdraw(
       headerNumber,
@@ -560,9 +583,10 @@ contract RootChain is Ownable {
       receiptRoot,
 
       _processWithdrawTransferTx(txBytes),
-      _processWithdrawTransferReceipt(receiptBytes),
+      amount,
 
-      path
+      path,
+      oIndex
     );
   }
 
@@ -677,7 +701,8 @@ contract RootChain is Ownable {
     address rootToken,
     uint256 amount,
 
-    bytes path
+    bytes path,
+    uint8 oIndex
   ) internal {
     // validate amount
     require(amount > 0);
@@ -698,12 +723,11 @@ contract RootChain is Ownable {
 
     // add exit to queue
     addExitToQueue(
-      blockNumber * 1000000000000 + path.toRLPItem().toData().toRLPItem().toUint() * 100000,
+      blockNumber * 1000000000000 + path.toRLPItem().toData().toRLPItem().toUint() * 100000 + oIndex,
       msg.sender,
       rootToken,
       amount,
-      blockTime,
-      0
+      blockTime
     );
   }
 
@@ -724,7 +748,13 @@ contract RootChain is Ownable {
     return rootToken;
   }
 
-  function _processWithdrawTransferReceipt(bytes receiptBytes) internal view returns (uint256) {
+  function _processWithdrawTransferReceipt(
+    bytes receiptBytes
+  )
+    internal
+    view
+    returns (uint256 totalBalance, uint8 oIndex)
+  {
     // receipt
     RLP.RLPItem[] memory items = receiptBytes.toRLPItem().toList();
     require(items.length == 4);
@@ -739,15 +769,14 @@ contract RootChain is Ownable {
     address from = BytesLib.toAddress(topics[2].toData(), 12);
     address to = BytesLib.toAddress(topics[3].toData(), 12);
 
-    // get total balance
-    uint256 totalBalance = 0;
+    // set totalBalance and oIndex
     if (to == msg.sender) {
       totalBalance =  BytesLib.toUint(items[2].toData(), 128);
+      oIndex = 1;
     } else if (from == msg.sender) {
       totalBalance =  BytesLib.toUint(items[2].toData(), 96);
+      oIndex = 0;
     }
-
-    return totalBalance;
   }
 
   /**
@@ -757,15 +786,13 @@ contract RootChain is Ownable {
   * @param _token Token to be exited.
   * @param _amount Amount to be exited.
   * @param _createdAt Time when the UTXO was created.
-  * @param _price Price to buy
   */
   function addExitToQueue(
     uint256 _utxoPos,
     address _exitor,
     address _token,
     uint256 _amount,
-    uint256 _createdAt,
-    uint256 _price
+    uint256 _createdAt
   ) internal {
     // Check that we're exiting a known token.
     require(exitsQueues[_token] != address(0));
@@ -780,13 +807,12 @@ contract RootChain is Ownable {
     PriorityQueue queue = PriorityQueue(exitsQueues[_token]);
     queue.insert(exitableAt, _utxoPos);
 
-    // withdraw block
+    // create NFT for exit UTXO
+    exitNFTContract.mint(_exitor, _utxoPos);
     exits[_utxoPos] = PlasmaExit({
       owner: _exitor,
       token: _token,
-      amount: _amount,
-      price: _price,
-      buyable: true
+      amount: _amount
     });
 
     emit ExitStarted(msg.sender, _utxoPos, _token, _amount);
