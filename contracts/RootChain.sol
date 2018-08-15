@@ -1,7 +1,7 @@
 pragma solidity ^0.4.24;
 
-import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
-import 'openzeppelin-solidity/contracts/token/ERC20/ERC20.sol';
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 
 import "./lib/SafeMath.sol";
 import "./lib/MerklePatriciaProof.sol";
@@ -376,7 +376,6 @@ contract RootChain is Ownable {
   {
     return (exits[_utxoPos].owner, exits[_utxoPos].token, exits[_utxoPos].amount);
   }
-
 
   /**
   * @dev Determines the next exit to be processed.

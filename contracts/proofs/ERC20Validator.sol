@@ -6,6 +6,7 @@ import "../lib/BytesLib.sol";
 
 import "../mixin/RootChainValidator.sol";
 
+
 contract ERC20Validator is RootChainValidator {
   using RLP for bytes;
   using RLP for RLP.RLPItem;

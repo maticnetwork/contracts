@@ -1,10 +1,10 @@
 pragma solidity 0.4.24;
 
 
-import 'openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol';
+import "openzeppelin-solidity/contracts/token/ERC20/MintableToken.sol";
 
 
-contract TestToken is StandardToken {
+contract TestToken is MintableToken {
   // detailed ERC20
   string public name;
   string public symbol;
@@ -15,10 +15,10 @@ contract TestToken is StandardToken {
     symbol = _symbol;
 
     uint256 value = 10000 * (10 ** 18);
-    // mint(msg.sender, value);
+    mint(msg.sender, value);
   }
 
   function () public payable {
-    // mint(msg.sender, msg.value);
+    mint(msg.sender, msg.value);
   }
 }

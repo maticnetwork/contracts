@@ -6,6 +6,7 @@ import "../lib/RLP.sol";
 
 import "../mixin/RootChainValidator.sol";
 
+
 contract NonceValidator is RootChainValidator {
   using SafeMath for uint256;
   using RLP for bytes;
