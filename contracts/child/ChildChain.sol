@@ -99,10 +99,10 @@ contract ChildChain is Ownable {
     uint256 amount,
     uint256 withdrawCount
   ) public onlyOwner {
-    // check if deposit happens only once
+    // check if withdrawal happens only once
     require(withdraws[withdrawCount] == false);
 
-    // set deposit flag
+    // set withdrawal flag
     withdraws[withdrawCount] = true;
 
     // retrieve child tokens
@@ -111,7 +111,7 @@ contract ChildChain is Ownable {
     // check if child token is mapped
     require(childToken != address(0x0));
 
-    // deposit tokens
+    // withdraw tokens
     ChildERC20 obj = ChildERC20(childToken);
     obj.withdraw(amount);
 
