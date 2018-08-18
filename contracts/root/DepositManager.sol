@@ -1,4 +1,5 @@
 pragma solidity ^0.4.24;
+pragma experimental ABIEncoderV2;
 
 import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 
@@ -7,18 +8,11 @@ import { Common } from "../lib/Common.sol";
 
 import { WETH } from "../token/WETH.sol";
 import { TokenManager } from "./TokenManager.sol";
+import { IRootChain } from "./IRootChain.sol";
 
 
-contract Custodian is TokenManager {
+contract DepositManager is IRootChain, TokenManager {
   using SafeMath for uint256;
-
-  // deposit block
-  struct DepositBlock {
-    address owner;
-    address token;
-    uint256 amount;
-    uint256 createdAt; // TODO change to header block
-  }
 
   // list of deposits
   mapping(uint256 => DepositBlock) public deposits;
@@ -37,15 +31,21 @@ contract Custodian is TokenManager {
   //
 
   // Deposit block getter
-  function getDepositBlock(uint256 _depositCount) public view returns (
-    // uint256 _header, // TODO fix this
+  function getDepositBlock(uint256 _depositCount) internal view returns (
+    DepositBlock _depositBlock
+  ) {
+    _depositBlock = deposits[_depositCount];
+  }
+
+  function depositBlock(uint256 _depositCount) public view returns (
+    uint256 _header,
     address _owner,
     address _token,
     uint256 _amount
   ) {
-    DepositBlock _depositBlock = deposits[_depositCount];
+    DepositBlock memory _depositBlock = deposits[_depositCount];
 
-    // _header = _depositBlock.header; // TODO fix this
+    _header = _depositBlock.header;
     _owner = _depositBlock.owner;
     _token = _depositBlock.token;
     _amount = _depositBlock.amount;
@@ -104,10 +104,10 @@ contract Custodian is TokenManager {
 
     // add deposit into deposits
     deposits[depositCount] = DepositBlock({
+      header: currentHeaderBlock(),
       owner: _user,
       token: _token,
-      amount: _amount,
-      createdAt: block.timestamp // TODO change to header block
+      amount: _amount
     });
 
     // increase deposit counter

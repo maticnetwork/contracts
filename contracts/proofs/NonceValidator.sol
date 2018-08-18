@@ -1,10 +1,11 @@
-pragma solidity 0.4.24;
+pragma solidity ^0.4.24;
+pragma experimental ABIEncoderV2;
 
+import { SafeMath } from "../lib/SafeMath.sol";
+import { RLP } from "../lib/RLP.sol";
 
-import "../lib/SafeMath.sol";
-import "../lib/RLP.sol";
-
-import "../mixin/RootChainValidator.sol";
+import { RootChainValidator } from "../mixin/RootChainValidator.sol";
+import { RootChain } from "../root/RootChain.sol";
 
 
 contract NonceValidator is RootChainValidator {
@@ -71,7 +72,7 @@ contract NonceValidator is RootChainValidator {
 
     // check if both nonce values are same or nonce2 < nonce1, just call slasher
     if (txData[7].toList()[0].toUint() <= nonce) {
-      rootChain.slash();
+      RootChain(rootChain).slash();
       return;
     }
 

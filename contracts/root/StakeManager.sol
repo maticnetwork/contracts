@@ -1,12 +1,13 @@
-pragma solidity 0.4.24;
+pragma solidity ^0.4.24;
+pragma experimental ABIEncoderV2;
 
 import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 
-import { SafeMath } from "./lib/SafeMath.sol";
-import { ECVerify } from "./lib/ECVerify.sol";
-import { BytesLib } from "./lib/BytesLib.sol";
-import { Lockable } from "./mixin/Lockable.sol";
-import { RootChainable } from "./mixin/RootChainable.sol";
+import { SafeMath } from "../lib/SafeMath.sol";
+import { ECVerify } from "../lib/ECVerify.sol";
+import { BytesLib } from "../lib/BytesLib.sol";
+import { Lockable } from "../mixin/Lockable.sol";
+import { RootChainable } from "../mixin/RootChainable.sol";
 
 import { StakeManagerInterface } from "./StakeManagerInterface.sol";
 import { RootChain } from "./RootChain.sol";
@@ -189,7 +190,11 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     bytes sigs
   ) public view returns (uint256) {
     // create hash
-    bytes32 h = keccak256(abi.encodePacked(rootChain.chain(), root, start, end));
+    bytes32 h = keccak256(
+      abi.encodePacked(
+        RootChain(rootChain).chain(), root, start, end
+      )
+    );
 
     // total signers
     uint256 totalSigners = 0;

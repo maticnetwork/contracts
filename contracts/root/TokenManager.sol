@@ -1,4 +1,5 @@
 pragma solidity ^0.4.24;
+pragma experimental ABIEncoderV2;
 
 
 contract TokenManager {
@@ -24,16 +25,16 @@ contract TokenManager {
   /**
    * @dev Checks if token is mapped
    */
-  function _isTokenMapped(address _token) internal returns (bool) {
-    return tokens[_token] != address(0x0);
+  function _isTokenMapped(address _token) internal view returns (bool) {
+    return tokens[_token] != address(0);
   }
 
   /**
    * @dev Map root token to child token
    */
   function _mapToken(address _rootToken, address _childToken) internal {
-    // check if token is not already mapped
-    require(tokens[_rootToken] == address(0));
+    // throw if token is already mapped
+    require(!_isTokenMapped(_rootToken));
 
     // map token
     tokens[_rootToken] = _childToken;

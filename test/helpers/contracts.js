@@ -16,7 +16,9 @@ export const ChildChain = artifacts.require('./child/ChildChain.sol')
 export const ChildToken = artifacts.require('./child/ChildERC20.sol')
 export const RootToken = artifacts.require('./token/TestToken.sol')
 export const MaticWETH = artifacts.require('./token/MaticWETH.sol')
-export const StakeManager = artifacts.require('./StakeManager.sol')
+export const StakeManager = artifacts.require('./root/StakeManager.sol')
+
+export const TokenManagerMock = artifacts.require('./root/TokenManagerMock.sol')
 
 // proofs
 export const TxValidator = artifacts.require('./proofs/TxValidator.sol')

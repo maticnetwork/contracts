@@ -39,6 +39,7 @@
     "bip39": "^2.5.0",
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
+    "chai-bignumber": "^2.0.2",
     "eslint": "^4.17.0",
     "eslint-config-standard": "^11.0.0-beta.0",
     "eslint-plugin-import": "^2.8.0",
@@ -49,7 +50,7 @@
     "ethereumjs-wallet": "^0.6.0",
     "safe-buffer": "^5.1.1",
     "solium": "^1.1.8",
-    "truffle": "^4.1.13",
+    "truffle": "^4.1.14",
     "web3": "^1.0.0-beta.30"
   },
   "dependencies": {

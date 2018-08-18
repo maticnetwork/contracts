@@ -1,15 +1,14 @@
-pragma solidity 0.4.24;
-
+pragma solidity ^0.4.24;
+pragma experimental ABIEncoderV2;
 
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import { RootChain } from "../RootChain.sol";
 
 
 /**
  * @title RootChainable
  */
 contract RootChainable is Ownable {
-  RootChain public rootChain;
+  address public rootChain;
 
   // Rootchain changed
   event RootChainChanged(
@@ -23,7 +22,7 @@ contract RootChainable is Ownable {
 
   // only root chain
   modifier onlyRootChain() {
-    require(msg.sender == address(rootChain));
+    require(msg.sender == rootChain);
     _;
   }
 
@@ -34,6 +33,6 @@ contract RootChainable is Ownable {
   function changeRootChain(address newRootChain) external onlyOwner {
     require(newRootChain != address(0));
     emit RootChainChanged(rootChain, newRootChain);
-    rootChain = RootChain(newRootChain);
+    rootChain = newRootChain;
   }
 }
