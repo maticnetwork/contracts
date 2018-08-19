@@ -18,7 +18,16 @@ export const RootToken = artifacts.require('./token/TestToken.sol')
 export const MaticWETH = artifacts.require('./token/MaticWETH.sol')
 export const StakeManager = artifacts.require('./root/StakeManager.sol')
 
-export const TokenManagerMock = artifacts.require('./root/TokenManagerMock.sol')
+export const TokenManagerMock = artifacts.require(
+  './mocks/TokenManagerMock.sol'
+)
+export const IRootChainMock = artifacts.require('./mocks/IRootChainMock.sol')
+export const DepositManagerMock = artifacts.require(
+  './mocks/DepositManagerMock.sol'
+)
+// export const WithdrawManagerMock = artifacts.require(
+//   './root/WithdrawManagerMock.sol'
+// )
 
 // proofs
 export const TxValidator = artifacts.require('./proofs/TxValidator.sol')

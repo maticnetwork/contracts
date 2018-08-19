@@ -8,17 +8,17 @@ import EVMRevert from '../helpers/EVMRevert'
 chai.use(chaiAsPromised).should()
 
 contract('TokenManager', async function(accounts) {
-  let contract
+  let tokenManager
   let owner
 
   beforeEach(async function() {
     owner = accounts[0]
-    contract = await TokenManagerMock.new({ from: owner })
+    tokenManager = await TokenManagerMock.new({ from: owner })
   })
 
   it('should allow owner to map token', async function() {
     const [rootToken, childToken] = accounts.slice(1)
-    const receipt = await contract.mapToken(rootToken, childToken, {
+    const receipt = await tokenManager.mapToken(rootToken, childToken, {
       from: owner
     })
 
@@ -27,13 +27,13 @@ contract('TokenManager', async function(accounts) {
     receipt.logs[0].args._rootToken.should.equal(rootToken)
     receipt.logs[0].args._childToken.should.equal(childToken)
 
-    contract.tokens(rootToken).should.eventually.equal(childToken)
-    contract.reverseTokens(childToken).should.eventually.equal(rootToken)
+    tokenManager.tokens(rootToken).should.eventually.equal(childToken)
+    tokenManager.reverseTokens(childToken).should.eventually.equal(rootToken)
   })
 
   it('should now allow any other than owner to map token', async function() {
     const [mapper, rootToken, childToken] = accounts.slice(2)
-    await contract
+    await tokenManager
       .mapToken(rootToken, childToken, {
         from: mapper
       })
@@ -42,10 +42,10 @@ contract('TokenManager', async function(accounts) {
 
   it('should allow owner to set weth token', async function() {
     const [wethToken] = accounts.slice(2)
-    await contract.setWETHToken(wethToken, {
+    await tokenManager.setWETHToken(wethToken, {
       from: owner
     })
 
-    contract.wethToken().should.eventually.equal(wethToken)
+    tokenManager.wethToken().should.eventually.equal(wethToken)
   })
 })

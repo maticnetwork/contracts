@@ -1,5 +1,4 @@
 pragma solidity ^0.4.24;
-pragma experimental ABIEncoderV2;
 
 import { ERC721Token } from "openzeppelin-solidity/contracts/token/ERC721/ERC721Token.sol";
 import { RootChainable } from "../mixin/RootChainable.sol";

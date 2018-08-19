@@ -1,5 +1,4 @@
 pragma solidity ^0.4.24;
-pragma experimental ABIEncoderV2;
 
 import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 
@@ -29,13 +28,6 @@ contract DepositManager is IRootChain, TokenManager {
   //
   // Public functions
   //
-
-  // Deposit block getter
-  function getDepositBlock(uint256 _depositCount) internal view returns (
-    DepositBlock _depositBlock
-  ) {
-    _depositBlock = deposits[_depositCount];
-  }
 
   function depositBlock(uint256 _depositCount) public view returns (
     uint256 _header,
@@ -77,8 +69,7 @@ contract DepositManager is IRootChain, TokenManager {
     uint256 _amount
   ) public {
     // transfer tokens to current contract
-    ERC20 t = ERC20(_token);
-    require(t.transferFrom(_user, address(this), _amount));
+    require(ERC20(_token).transferFrom(_user, address(this), _amount));
 
     // generate deposit block and udpate counter
     _createDepositBlock(_token, _user, _amount);
@@ -87,6 +78,13 @@ contract DepositManager is IRootChain, TokenManager {
   //
   // Internal functions
   //
+
+  // Deposit block getter
+  function getDepositBlock(uint256 _depositCount) internal view returns (
+    DepositBlock _depositBlock
+  ) {
+    _depositBlock = deposits[_depositCount];
+  }
 
   // create deposit block and
   function _createDepositBlock(address _token, address _user, uint256 _amount) internal {
@@ -103,12 +101,14 @@ contract DepositManager is IRootChain, TokenManager {
     emit Deposit(_user, _token, _amount, depositCount);
 
     // add deposit into deposits
-    deposits[depositCount] = DepositBlock({
-      header: currentHeaderBlock(),
+    DepositBlock memory _depositBlock = DepositBlock({
+      header: 1,
       owner: _user,
       token: _token,
       amount: _amount
     });
+
+    deposits[depositCount] = _depositBlock;
 
     // increase deposit counter
     depositCount = depositCount.add(1);

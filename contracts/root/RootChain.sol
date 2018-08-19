@@ -1,5 +1,5 @@
 pragma solidity ^0.4.24;
-pragma experimental ABIEncoderV2;
+
 
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
@@ -45,6 +45,7 @@ contract RootChain is Ownable, DepositManager, WithdrawManager {
   //
   // Events
   //
+
   event ChildChainChanged(address indexed previousChildChain, address indexed newChildChain);
   event ValidatorAdded(address indexed validator, address indexed from);
   event ValidatorRemoved(address indexed validator, address indexed from);
@@ -78,6 +79,10 @@ contract RootChain is Ownable, DepositManager, WithdrawManager {
     require(validatorContracts[_address] == true);
     _;
   }
+
+  //
+  // Public functions
+  //
 
   // deposit ETH by sending to this contract
   function () public payable {
@@ -200,12 +205,6 @@ contract RootChain is Ownable, DepositManager, WithdrawManager {
     return _currentHeaderBlock;
   }
 
-  function getHeaderBlock(
-    uint256 headerNumber
-  ) internal view returns (HeaderBlock _headerBlock) {
-    _headerBlock = headerBlocks[headerNumber];
-  }
-
   function headerBlock(uint256 _headerNumber) public view returns (
     bytes32 _root,
     uint256 _start,
@@ -228,5 +227,15 @@ contract RootChain is Ownable, DepositManager, WithdrawManager {
   // slash stakers if fraud is detected
   function slash() public isValidator(msg.sender) {
     // TODO pass block/proposer
+  }
+
+  //
+  // Internal methods
+  //
+
+  function getHeaderBlock(
+    uint256 headerNumber
+  ) internal view returns (HeaderBlock _headerBlock) {
+    _headerBlock = headerBlocks[headerNumber];
   }
 }

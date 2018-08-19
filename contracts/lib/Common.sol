@@ -4,7 +4,7 @@ import "./BytesLib.sol";
 
 
 library Common {
-  function getV(bytes v, uint8 chainId) public pure returns (uint8) {
+  function getV(bytes v, uint8 chainId) internal pure returns (uint8) {
     if (chainId > 0) {
       return uint8(BytesLib.toUint(BytesLib.leftPad(v), 0) - (chainId * 2) - 8);
     } else {
@@ -13,7 +13,7 @@ library Common {
   }
 
   //assemble the given address bytecode. If bytecode exists then the _addr is a contract.
-  function isContract(address _addr) public view returns (bool) {
+  function isContract(address _addr) internal view returns (bool) {
     uint length;
     assembly {
       //retrieve the size of the code on target address, this needs assembly
@@ -23,7 +23,7 @@ library Common {
   }
 
   // convert uint256 to bytes
-  function toBytes(uint256 _num) public view returns (bytes _ret) {
+  function toBytes(uint256 _num) internal view returns (bytes _ret) {
     assembly {
       _ret := mload(0x10)
       mstore(_ret, 0x20)
@@ -32,7 +32,7 @@ library Common {
   }
 
   // convert bytes to uint8
-  function toUint8(bytes _arg) public view returns (uint8) {
+  function toUint8(bytes _arg) internal view returns (uint8) {
     return uint8(_arg[0]);
   }
 
@@ -41,7 +41,7 @@ library Common {
   * @param a uint256 number
   * @param b uint256 number
   */
-  function max(uint256 a, uint256 b) public pure returns (uint256) {
+  function max(uint256 a, uint256 b) internal pure returns (uint256) {
     return a >= b ? a : b;
   }
 }
