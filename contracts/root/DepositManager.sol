@@ -69,7 +69,7 @@ contract DepositManager is IRootChain, TokenManager {
     uint256 _amount
   ) public {
     // transfer tokens to current contract
-    require(ERC20(_token).transferFrom(_user, address(this), _amount));
+    require(ERC20(_token).transferFrom(msg.sender, address(this), _amount));
 
     // generate deposit block and udpate counter
     _createDepositBlock(_token, _user, _amount);
