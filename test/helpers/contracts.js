@@ -3,7 +3,6 @@
 export const ECVerify = artifacts.require('./lib/ECVerify.sol')
 export const BytesLib = artifacts.require('./lib/BytesLib.sol')
 export const RLP = artifacts.require('./lib/RLP.sol')
-export const SafeMath = artifacts.require('./lib/SafeMath.sol')
 export const MerklePatriciaProof = artifacts.require(
   './lib/MerklePatriciaProof.sol'
 )

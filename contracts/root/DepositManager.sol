@@ -1,8 +1,8 @@
 pragma solidity ^0.4.24;
 
 import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
-import { SafeMath } from "../lib/SafeMath.sol";
 import { Common } from "../lib/Common.sol";
 
 import { WETH } from "../token/WETH.sol";

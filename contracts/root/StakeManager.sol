@@ -2,8 +2,8 @@ pragma solidity ^0.4.24;
 
 
 import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
-import { SafeMath } from "../lib/SafeMath.sol";
 import { ECVerify } from "../lib/ECVerify.sol";
 import { BytesLib } from "../lib/BytesLib.sol";
 import { Lockable } from "../mixin/Lockable.sol";

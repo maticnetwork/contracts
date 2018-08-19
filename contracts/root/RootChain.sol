@@ -2,8 +2,8 @@ pragma solidity ^0.4.24;
 
 
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
-import { SafeMath } from "../lib/SafeMath.sol";
 import { PriorityQueue } from "../lib/PriorityQueue.sol";
 import { Merkle } from "../lib/Merkle.sol";
 import { MerklePatriciaProof } from "../lib/MerklePatriciaProof.sol";

@@ -29,7 +29,6 @@ export async function linkLibs(web3Child) {
     contracts.Merkle,
     contracts.RLPEncode,
     contracts.BytesLib,
-    contracts.SafeMath,
     contracts.Common
   ]
   const contractList = [

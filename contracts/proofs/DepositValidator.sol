@@ -1,6 +1,7 @@
 pragma solidity ^0.4.24;
 
-import { SafeMath } from "../lib/SafeMath.sol";
+import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+
 import { RLP } from "../lib/RLP.sol";
 import { BytesLib } from "../lib/BytesLib.sol";
 
