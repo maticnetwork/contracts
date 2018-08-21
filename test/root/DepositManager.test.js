@@ -84,6 +84,22 @@ contract('DepositManager', async function(accounts) {
       contractBalance.should.be.bignumber.equal(amount)
     })
 
+    it('should allow anyone to deposit ERC223 token directly without approve', async function() {
+      const user = accounts[1]
+
+      // mint root token
+      await rootToken.mint(user, amount)
+
+      // transfer token to deposit manager
+      await rootToken.transfer(depositManager.address, amount, {
+        from: user
+      })
+
+      // check deposit manager balance
+      const contractBalance = await rootToken.balanceOf(depositManager.address)
+      contractBalance.should.be.bignumber.equal(amount)
+    })
+
     it('should not allow to deposit if token is not mapped', async function() {
       const newToken = await RootToken.new('New root Token', 'ROOT2')
 

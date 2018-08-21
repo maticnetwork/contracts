@@ -1,9 +1,19 @@
-import assertRevert from './helpers/assertRevert.js'
-import {linkLibs} from './helpers/utils'
+import chai from 'chai'
+import chaiAsPromised from 'chai-as-promised'
+import chaiBigNumber from 'chai-bignumber'
 
-import {ChildChain, ChildToken, RootToken} from './helpers/contracts'
+import assertRevert from '../helpers/assertRevert.js'
+import { linkLibs } from '../helpers/utils.js'
+
+import { ChildChain, ChildToken, RootToken } from '../helpers/contracts.js'
 
 const zeroAddress = '0x0000000000000000000000000000000000000000'
+
+// add chai pluggin
+chai
+  .use(chaiAsPromised)
+  .use(chaiBigNumber(web3.BigNumber))
+  .should()
 
 contract('ChildChain', async function(accounts) {
   describe('Initialization', async function() {

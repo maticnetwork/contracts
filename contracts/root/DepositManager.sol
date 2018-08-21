@@ -26,6 +26,23 @@ contract DepositManager is IRootChain, TokenManager {
   event Deposit(address indexed _user, address indexed _token, uint256 _amount, uint256 _depositCount);
 
   //
+  // External functions
+  //
+
+  /**
+   * @dev Accept ERC223 compatible tokens
+   * @param _user address The address that is transferring the tokens
+   * @param _amount uint256 the amount of the specified token
+   * @param _data Bytes The data passed from the caller.
+   */
+  function tokenFallback(address _user, uint256 _amount, bytes _data) external {
+    address _token = msg.sender;
+
+    // create deposit block with token fallback
+    _createDepositBlock(_token, _user, _amount);
+  }
+
+  //
   // Public functions
   //
 
@@ -42,10 +59,6 @@ contract DepositManager is IRootChain, TokenManager {
     _token = _depositBlock.token;
     _amount = _depositBlock.amount;
   }
-
-  //
-  // Public functions
-  //
 
   // deposit ethers
   function depositEthers(
@@ -95,7 +108,7 @@ contract DepositManager is IRootChain, TokenManager {
     require(_amount > 0);
 
     // throws if token is not mapped
-    require(_token != address(0) && tokens[_token] != address(0));
+    require(_isTokenMapped(_token));
 
     // broadcast deposit event
     emit Deposit(_user, _token, _amount, depositCount);

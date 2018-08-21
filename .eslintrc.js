@@ -10,6 +10,7 @@ module.exports = {
     'space-before-function-paren': ['error', 'never']
   },
   globals: {
-    contract: true
+    contract: true,
+    web3: true
   }
 }

@@ -1,11 +1,20 @@
-import assertRevert from './helpers/assertRevert.js'
+import chai from 'chai'
+import chaiAsPromised from 'chai-as-promised'
+import chaiBigNumber from 'chai-bignumber'
+
 import utils from 'ethereumjs-util'
 
-import {linkLibs} from './helpers/utils'
-import {ChildChain, ChildToken, RootToken} from './helpers/contracts'
+import EVMRevert from '../helpers/EVMRevert'
+import { linkLibs } from '../helpers/utils'
+import { ChildChain, ChildToken, RootToken } from '../helpers/contracts.js'
 
 const BN = utils.BN
-const zeroAddress = '0x0000000000000000000000000000000000000000'
+
+// add chai pluggin
+chai
+  .use(chaiAsPromised)
+  .use(chaiBigNumber(web3.BigNumber))
+  .should()
 
 contract('ChildERC20', async function(accounts) {
   describe('Initialization', async function() {
@@ -49,9 +58,9 @@ contract('ChildERC20', async function(accounts) {
     })
 
     it('should not allow to withdraw more than amount', async function() {
-      assertRevert(
-        childToken.withdraw(new BN(amount).add(new BN(1)).toString())
-      )
+      await childToken
+        .withdraw(new BN(amount).add(new BN(1)).toString())
+        .should.be.rejectedWith(EVMRevert)
     })
 
     it('should allow to withdraw mentioned amount', async function() {

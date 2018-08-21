@@ -2,6 +2,7 @@ pragma solidity ^0.4.24;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+
 import "../token/StandardToken.sol";
 
 
@@ -103,14 +104,13 @@ contract ChildERC20 is StandardToken, Ownable {
   /// @dev Function that is called when a user or another contract wants to transfer funds.
   /// @param _to Address of token receiver.
   /// @param _value Number of tokens to transfer.
-  /// @param _data Data to be sent to tokenFallback
   /// @return Returns success of function call.
-  function transfer( address _to, uint256 _value, bytes _data) public returns (bool) {
+  function transfer( address _to, uint256 _value) public returns (bool) {
     uint256 _input1 = balanceOf(msg.sender);
     uint256 _input2 = balanceOf(_to);
 
     // actual transfer
-    bool result = super.transfer(_to, _value, _data);
+    bool result = super.transfer(_to, _value);
 
     // log balance
     emit LogTransfer(
