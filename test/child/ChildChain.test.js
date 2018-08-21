@@ -2,12 +2,10 @@ import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import chaiBigNumber from 'chai-bignumber'
 
-import assertRevert from '../helpers/assertRevert.js'
-import { linkLibs } from '../helpers/utils.js'
+import { linkLibs, ZeroAddress } from '../helpers/utils.js'
+import EVMRevert from '../helpers/EVMRevert.js'
 
 import { ChildChain, ChildToken, RootToken } from '../helpers/contracts.js'
-
-const zeroAddress = '0x0000000000000000000000000000000000000000'
 
 // add chai pluggin
 chai
@@ -16,76 +14,69 @@ chai
   .should()
 
 contract('ChildChain', async function(accounts) {
-  describe('Initialization', async function() {
-    before(async function() {
-      // link libs
-      await linkLibs()
-    })
+  let childChainContract
+  let rootToken
+  let childToken
 
-    it('should initialize properly ', async function() {
-      const childChainContract = await ChildChain.new()
-      assert.equal(await childChainContract.owner(), accounts[0])
-    })
+  before(async function() {
+    // link libs
+    await linkLibs()
+
+    // create child chain contract
+    childChainContract = await ChildChain.new()
+    // create new root token
+    rootToken = await RootToken.new('Test Token', 'TEST')
   })
 
-  describe('New token', async function() {
-    let childChainContract
-    let rootToken
-    let childToken
+  it('should initialize properly ', async function() {
+    await childChainContract.owner().should.eventually.equal(accounts[0])
+  })
 
-    before(async function() {
-      // link libs
-      await linkLibs()
+  it('should allow only owner to add new token ', async function() {
+    await childChainContract
+      .addToken(rootToken.address, 18, {
+        from: accounts[1]
+      })
+      .should.be.rejectedWith(EVMRevert)
 
-      childChainContract = await ChildChain.new()
-      rootToken = await RootToken.new('Test Token', 'TEST')
+    await childChainContract
+      .tokens(rootToken.address)
+      .should.eventually.equal(ZeroAddress)
+  })
+
+  it('should allow owner to add new token ', async function() {
+    const receipt = await childChainContract.addToken(rootToken.address, 18, {
+      from: accounts[0]
     })
 
-    it('should allow only owner to add new token ', async function() {
-      await assertRevert(
-        childChainContract.addToken(rootToken.address, 18, {
-          from: accounts[1]
-        })
-      )
-      assert.equal(
-        await childChainContract.tokens(rootToken.address),
-        zeroAddress
-      )
-    })
+    receipt.logs.should.have.lengthOf(1)
+    receipt.logs[0].event.should.equal('NewToken')
+    receipt.logs[0].args.rootToken.should.equal(rootToken.address)
 
-    it('should allow owner to add new token ', async function() {
-      const receipt = await childChainContract.addToken(rootToken.address, 18, {
+    // child chain contract
+    await childChainContract
+      .tokens(rootToken.address)
+      .should.eventually.equal(receipt.logs[0].args.token)
+
+    // get child chain token
+    childToken = ChildToken.at(receipt.logs[0].args.token)
+  })
+
+  it('should have proper owner', async function() {
+    await childToken.owner().should.eventually.equal(childChainContract.address)
+  })
+
+  it('should not allow to add new token again', async function() {
+    await childChainContract
+      .addToken(rootToken.address, 18, {
         from: accounts[0]
       })
-      assert.equal(receipt.logs.length, 1)
-      assert.equal(receipt.logs[0].event, 'NewToken')
-      assert.equal(receipt.logs[0].args.rootToken, rootToken.address)
-      assert.equal(
-        receipt.logs[0].args.token,
-        await childChainContract.tokens(rootToken.address)
-      )
+      .should.be.rejectedWith(EVMRevert)
+  })
 
-      // get child chain token
-      childToken = ChildToken.at(receipt.logs[0].args.token)
-    })
-
-    it('should have proper owner', async function() {
-      assert.equal(await childToken.owner(), childChainContract.address)
-    })
-
-    it('should not allow to add new token again', async function() {
-      await assertRevert(
-        childChainContract.addToken(rootToken.address, 18, {
-          from: accounts[0]
-        })
-      )
-    })
-
-    it('should match mapping', async function() {
-      assert.equal(
-        await childChainContract.tokens(rootToken.address),
-        childToken.address
-      )
-    })
+  it('should match mapping', async function() {
+    await childChainContract
+      .tokens(rootToken.address)
+      .should.eventually.equal(childToken.address)
   })
 })

@@ -27,8 +27,10 @@ contract('TokenManager', async function(accounts) {
     receipt.logs[0].args._rootToken.should.equal(rootToken)
     receipt.logs[0].args._childToken.should.equal(childToken)
 
-    tokenManager.tokens(rootToken).should.eventually.equal(childToken)
-    tokenManager.reverseTokens(childToken).should.eventually.equal(rootToken)
+    await tokenManager.tokens(rootToken).should.eventually.equal(childToken)
+    await tokenManager
+      .reverseTokens(childToken)
+      .should.eventually.equal(rootToken)
   })
 
   it('should now allow any other than owner to map token', async function() {
@@ -46,6 +48,6 @@ contract('TokenManager', async function(accounts) {
       from: owner
     })
 
-    tokenManager.wethToken().should.eventually.equal(wethToken)
+    await tokenManager.wethToken().should.eventually.equal(wethToken)
   })
 })

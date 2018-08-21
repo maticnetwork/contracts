@@ -17,73 +17,74 @@ chai
   .should()
 
 contract('ChildERC20', async function(accounts) {
-  describe('Initialization', async function() {
-    before(async function() {
-      // link libs
-      await linkLibs()
-    })
+  let rootToken
+  let childToken
+  let childChain
+  let amount
+  let owner
 
-    it('should initialize properly ', async function() {
-      const rootToken = await RootToken.new('Test Token', 'TEST')
-      const childToken = await ChildToken.new(rootToken.address, 18)
-      assert.equal(await childToken.owner(), accounts[0])
-      assert.equal(await childToken.token(), rootToken.address)
-    })
+  before(async function() {
+    // link libs
+    await linkLibs()
+
+    owner = accounts[0]
+
+    // root token / child chain
+    rootToken = await RootToken.new('Test Token', 'TEST')
+    childChain = await ChildChain.new()
+
+    // receipt
+    const receipt = await childChain.addToken(rootToken.address, 18)
+    childToken = ChildToken.at(receipt.logs[0].args.token)
+
+    // amount
+    amount = web3.toWei(10)
   })
 
-  describe('Transaction', async function() {
-    let rootToken
-    let childToken
-    let amount
-    let childChain
+  it('should initialize properly', async function() {
+    await childToken.owner().should.eventually.equal(childChain.address)
+    await childToken.token().should.eventually.equal(rootToken.address)
+  })
 
-    before(async function() {
-      childChain = await ChildChain.new()
-      rootToken = await RootToken.new('Test Token', 'TEST')
-      const receipt = await childChain.addToken(rootToken.address, 18)
-      childToken = ChildToken.at(receipt.logs[0].args.token)
-      amount = web3.toWei(10)
-    })
+  it('should allow to deposit', async function() {
+    let receipt = await childChain.depositTokens(
+      rootToken.address,
+      owner,
+      amount,
+      0
+    )
 
-    it('should allow to deposit', async function() {
-      let receipt = await childChain.depositTokens(
-        rootToken.address,
-        accounts[0],
-        amount,
-        0
-      )
+    receipt.receipt.logs.should.have.lengthOf(3)
+  })
 
-      receipt = receipt.receipt
-      assert.equal(receipt.logs.length, 3)
-    })
+  it('should not allow to withdraw more than amount', async function() {
+    await childToken
+      .withdraw(new BN(amount).add(new BN(1)).toString())
+      .should.be.rejectedWith(EVMRevert)
+  })
 
-    it('should not allow to withdraw more than amount', async function() {
-      await childToken
-        .withdraw(new BN(amount).add(new BN(1)).toString())
-        .should.be.rejectedWith(EVMRevert)
-    })
+  it('should allow to withdraw mentioned amount', async function() {
+    const beforeBalance = await childToken.balanceOf(accounts[0])
+    const receipt = await childToken.withdraw(amount)
 
-    it('should allow to withdraw mentioned amount', async function() {
-      const beforeBalance = await childToken.balanceOf(accounts[0])
-      const receipt = await childToken.withdraw(amount)
-      assert.equal(receipt.logs.length, 2)
+    receipt.logs.should.have.lengthOf(2)
 
-      assert.equal(receipt.logs[0].event, 'Withdraw')
-      assert.equal(receipt.logs[0].args.token, rootToken.address)
-      assert.equal(receipt.logs[0].args.user, accounts[0])
-      assert.equal(receipt.logs[0].args.amount.toString(), amount)
+    receipt.logs[0].event.should.equal('Withdraw')
+    receipt.logs[0].args.token.should.equal(rootToken.address)
+    receipt.logs[0].args.user.should.equal(owner)
+    receipt.logs[0].args.amount.toString().should.equal(amount)
 
-      assert.equal(receipt.logs[1].event, 'LogWithdraw')
-      assert.equal(receipt.logs[1].args.input1, beforeBalance.toString())
-      assert.equal(receipt.logs[1].args.amount, amount)
-      assert.isOk(
-        new BN(beforeBalance.toString())
-          .sub(new BN(amount.toString()))
-          .eq(new BN(receipt.logs[1].args.output1.toString()))
-      )
+    receipt.logs[1].event.should.equal('LogWithdraw')
+    receipt.logs[1].args.input1
+      .toString()
+      .should.equal(beforeBalance.toString())
+    receipt.logs[1].args.amount.toString().should.equal(amount.toString())
+    assert.isOk(
+      new BN(beforeBalance.toString())
+        .sub(new BN(amount.toString()))
+        .eq(new BN(receipt.logs[1].args.output1.toString()))
+    )
 
-      // check balance
-      assert.equal((await childToken.balanceOf(accounts[0])).toString(), '0')
-    })
+    await childToken.balanceOf(owner).should.eventually.equal('0')
   })
 })

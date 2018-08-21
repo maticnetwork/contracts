@@ -7,6 +7,8 @@ import * as contracts from './contracts'
 
 const BN = utils.BN
 
+export const ZeroAddress = '0x0000000000000000000000000000000000000000'
+
 export async function mineOneBlock() {
   await web3.currentProvider.send({
     jsonrpc: '2.0',
