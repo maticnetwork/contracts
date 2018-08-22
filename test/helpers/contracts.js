@@ -16,6 +16,7 @@ export const ChildToken = artifacts.require('./child/ChildERC20.sol')
 export const RootToken = artifacts.require('./token/TestToken.sol')
 export const MaticWETH = artifacts.require('./token/MaticWETH.sol')
 export const StakeManager = artifacts.require('./root/StakeManager.sol')
+export const ExitNFT = artifacts.require('./token/ExitNFT.sol')
 
 export const TokenManagerMock = artifacts.require(
   './mocks/TokenManagerMock.sol'
@@ -24,9 +25,9 @@ export const IRootChainMock = artifacts.require('./mocks/IRootChainMock.sol')
 export const DepositManagerMock = artifacts.require(
   './mocks/DepositManagerMock.sol'
 )
-// export const WithdrawManagerMock = artifacts.require(
-//   './root/WithdrawManagerMock.sol'
-// )
+export const WithdrawManagerMock = artifacts.require(
+  './mocks/WithdrawManagerMock.sol'
+)
 
 // proofs
 export const TxValidator = artifacts.require('./proofs/TxValidator.sol')

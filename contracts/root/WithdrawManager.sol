@@ -165,7 +165,6 @@ contract WithdrawManager is DepositManager {
     address rootToken;
     uint256 receiptAmount;
 
-    // process receipt
     (rootToken, receiptAmount) = _processWithdrawReceipt(
       receiptBytes,
       path,

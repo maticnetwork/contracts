@@ -1,52 +1,40 @@
-import bip39 from 'bip39'
+import chai from 'chai'
+import chaiAsPromised from 'chai-as-promised'
+import chaiBigNumber from 'chai-bignumber'
 import utils from 'ethereumjs-util'
-import {Buffer} from 'safe-buffer'
 
-import {generateFirstWallets, mnemonics} from './helpers/wallets'
-import {linkLibs, encodeSigs, getSigs} from './helpers/utils'
-import {StakeManager, RootToken, RootChain} from './helpers/contracts'
+import { generateFirstWallets, mnemonics } from '../helpers/wallets'
+import { linkLibs, encodeSigs, getSigs } from '../helpers/utils'
+import { StakeManager, RootToken, RootChain } from '../helpers/contracts'
 
-const BN = utils.BN
-const rlp = utils.rlp
+// add chai pluggin
+chai
+  .use(chaiAsPromised)
+  .use(chaiBigNumber(web3.BigNumber))
+  .should()
 
 contract('StakeManager', async function(accounts) {
-  describe('initialization', async function() {
-    let stakeToken
-    let stakeManager
+  let stakeToken
+  let stakeManager
+  let wallets
 
-    before(async function() {
-      // link libs
-      await linkLibs()
+  beforeEach(async function() {
+    // link libs
+    await linkLibs()
 
-      stakeToken = await RootToken.new('Stake Token', 'STAKE')
-      stakeManager = await StakeManager.new(stakeToken.address, {
-        from: accounts[0]
-      })
-    })
+    stakeToken = await RootToken.new('Stake Token', 'STAKE')
+    stakeManager = await StakeManager.new(stakeToken.address)
+    wallets = generateFirstWallets(mnemonics, 5)
+  })
 
-    it('should set token address and owner properly', async function() {
-      assert.equal(await stakeManager.token(), stakeToken.address)
-    })
-
-    it('should set owner properly', async function() {
-      assert.equal(await stakeManager.owner(), accounts[0])
-    })
+  it('should set token address and owner properly', async function() {
+    await stakeManager.token().should.eventually.equal(stakeToken.address)
+    await stakeManager.owner().should.eventually.equal(accounts[0])
   })
 
   // staking
   describe('Stake', async function() {
-    let stakeToken
-    let stakeManager
-    let wallets
-
     before(async function() {
-      wallets = generateFirstWallets(mnemonics, 5)
-
-      stakeToken = await RootToken.new('Stake Token', 'STAKE')
-      stakeManager = await StakeManager.new(stakeToken.address, {
-        from: accounts[0]
-      })
-
       // transfer tokens to other accounts
       await stakeToken.transfer(wallets[1].getAddressString(), web3.toWei(100))
       await stakeToken.transfer(wallets[2].getAddressString(), web3.toWei(100))
@@ -72,7 +60,7 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      const receipt = await stakeManager.stake(amount, '0x0', {from: user})
+      const receipt = await stakeManager.stake(amount, '0x0', { from: user })
       assert.equal(receipt.logs[0].event, 'Staked')
       assert.equal(receipt.logs[0].args.user, user)
       assert.equal(receipt.logs[0].args.amount.toString(), amount)
@@ -93,7 +81,7 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      await stakeManager.stake(amount, '0x0', {from: user})
+      await stakeManager.stake(amount, '0x0', { from: user })
 
       // check amount and stake sum
       assert.equal(await stakeManager.totalStaked(), web3.toWei(6))
@@ -110,7 +98,7 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      await stakeManager.stake(amount, '0x0', {from: user})
+      await stakeManager.stake(amount, '0x0', { from: user })
 
       // check amount and stake sum
       assert.equal(await stakeManager.totalStaked(), web3.toWei(26))
@@ -127,7 +115,7 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      await stakeManager.stake(amount, '0x0', {from: user})
+      await stakeManager.stake(amount, '0x0', { from: user })
 
       // check amount and stake sum
       assert.equal(await stakeManager.totalStaked(), web3.toWei(126))
@@ -200,7 +188,7 @@ contract('StakeManager', async function(accounts) {
         })
 
         // stake
-        await stakeManager.stake(amount, '0x0', {from: user})
+        await stakeManager.stake(amount, '0x0', { from: user })
       }
 
       // increase threshold to 2

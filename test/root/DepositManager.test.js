@@ -4,7 +4,7 @@ import chaiBigNumber from 'chai-bignumber'
 
 import { DepositManagerMock, RootToken, MaticWETH } from '../helpers/contracts'
 import { linkLibs } from '../helpers/utils'
-import EVMRevert from '../helpers/EVMRevert'
+import EVMRevert from '../helpers/evm-revert'
 
 // add chai pluggin
 chai

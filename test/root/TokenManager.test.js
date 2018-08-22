@@ -1,11 +1,15 @@
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
+import chaiBigNumber from 'chai-bignumber'
 
 import { TokenManagerMock } from '../helpers/contracts'
-import EVMRevert from '../helpers/EVMRevert'
+import EVMRevert from '../helpers/evm-revert'
 
 // add chai pluggin
-chai.use(chaiAsPromised).should()
+chai
+  .use(chaiAsPromised)
+  .use(chaiBigNumber(web3.BigNumber))
+  .should()
 
 contract('TokenManager', async function(accounts) {
   let tokenManager

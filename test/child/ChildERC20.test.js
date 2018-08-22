@@ -4,9 +4,9 @@ import chaiBigNumber from 'chai-bignumber'
 
 import utils from 'ethereumjs-util'
 
-import EVMRevert from '../helpers/EVMRevert'
+import EVMRevert from '../helpers/evm-revert'
 import { linkLibs } from '../helpers/utils'
-import { ChildChain, ChildToken, RootToken } from '../helpers/contracts.js'
+import { ChildChain, ChildToken, RootToken } from '../helpers/contracts'
 
 const BN = utils.BN
 
@@ -23,7 +23,7 @@ contract('ChildERC20', async function(accounts) {
   let amount
   let owner
 
-  before(async function() {
+  beforeEach(async function() {
     // link libs
     await linkLibs()
 
@@ -64,7 +64,10 @@ contract('ChildERC20', async function(accounts) {
   })
 
   it('should allow to withdraw mentioned amount', async function() {
-    const beforeBalance = await childToken.balanceOf(accounts[0])
+    // deposit tokens
+    await childChain.depositTokens(rootToken.address, owner, amount, 0)
+
+    // withdraw those tokens
     const receipt = await childToken.withdraw(amount)
 
     receipt.logs.should.have.lengthOf(2)
@@ -75,16 +78,11 @@ contract('ChildERC20', async function(accounts) {
     receipt.logs[0].args.amount.toString().should.equal(amount)
 
     receipt.logs[1].event.should.equal('LogWithdraw')
-    receipt.logs[1].args.input1
-      .toString()
-      .should.equal(beforeBalance.toString())
-    receipt.logs[1].args.amount.toString().should.equal(amount.toString())
-    assert.isOk(
-      new BN(beforeBalance.toString())
-        .sub(new BN(amount.toString()))
-        .eq(new BN(receipt.logs[1].args.output1.toString()))
-    )
+    receipt.logs[1].args.input1.should.be.bignumber.equal(amount)
+    receipt.logs[1].args.amount.should.be.bignumber.equal(amount)
+    receipt.logs[1].args.output1.should.be.bignumber.equal(0)
 
-    await childToken.balanceOf(owner).should.eventually.equal('0')
+    const afterBalance = await childToken.balanceOf(owner)
+    afterBalance.should.be.bignumber.equal(0)
   })
 })

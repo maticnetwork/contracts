@@ -8,6 +8,9 @@ contract IRootChainMock is IRootChain {
   uint256 private _currentHeaderBlock;
   uint256 private _currentChildBlock;
 
+  // list of header blocks (address => header block object)
+  mapping(uint256 => HeaderBlock) private _headerBlocks;
+
   // retrieve network id
   function networkId() public pure returns (bytes) {
     return "\x0d";
@@ -35,14 +38,25 @@ contract IRootChainMock is IRootChain {
   // Internal methods
   //
 
+  // set header block
+  function setHeaderBlock(
+    uint256 _headerNumber,
+    bytes32 root,
+    uint256 start,
+    uint256 end,
+    uint256 createdAt
+  ) public {
+    _headerBlocks[_headerNumber] = HeaderBlock({
+      root: root,
+      start: start,
+      end: end,
+      createdAt: createdAt
+    });
+  }
+
   // get header block by header number
   function getHeaderBlock(uint256 _headerNumber) internal view returns (HeaderBlock) {
-    return HeaderBlock({
-      root: "0x0",
-      start: _headerNumber,
-      end: _headerNumber,
-      createdAt: _headerNumber
-    });
+    return _headerBlocks[_headerNumber];
   }
 
   // get deposit block by deposit count

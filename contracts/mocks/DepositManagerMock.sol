@@ -8,8 +8,6 @@ import { DepositManager } from "../root/DepositManager.sol";
 
 
 contract DepositManagerMock is DepositManager, TokenManagerMock, IRootChainMock {
-  constructor() {}
-
   // deposit ETH by sending to this contract
   function () public payable {
     depositEthers(msg.sender);

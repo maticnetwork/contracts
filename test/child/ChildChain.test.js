@@ -2,10 +2,10 @@ import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import chaiBigNumber from 'chai-bignumber'
 
-import { linkLibs, ZeroAddress } from '../helpers/utils.js'
-import EVMRevert from '../helpers/EVMRevert.js'
+import { linkLibs, ZeroAddress } from '../helpers/utils'
+import EVMRevert from '../helpers/evm-revert'
 
-import { ChildChain, ChildToken, RootToken } from '../helpers/contracts.js'
+import { ChildChain, ChildToken, RootToken } from '../helpers/contracts'
 
 // add chai pluggin
 chai
@@ -16,9 +16,8 @@ chai
 contract('ChildChain', async function(accounts) {
   let childChainContract
   let rootToken
-  let childToken
 
-  before(async function() {
+  beforeEach(async function() {
     // link libs
     await linkLibs()
 
@@ -45,9 +44,7 @@ contract('ChildChain', async function(accounts) {
   })
 
   it('should allow owner to add new token ', async function() {
-    const receipt = await childChainContract.addToken(rootToken.address, 18, {
-      from: accounts[0]
-    })
+    const receipt = await childChainContract.addToken(rootToken.address, 18)
 
     receipt.logs.should.have.lengthOf(1)
     receipt.logs[0].event.should.equal('NewToken')
@@ -59,24 +56,26 @@ contract('ChildChain', async function(accounts) {
       .should.eventually.equal(receipt.logs[0].args.token)
 
     // get child chain token
-    childToken = ChildToken.at(receipt.logs[0].args.token)
-  })
+    const childToken = ChildToken.at(receipt.logs[0].args.token)
 
-  it('should have proper owner', async function() {
+    // should have proper owner
     await childToken.owner().should.eventually.equal(childChainContract.address)
+
+    // should match mapping
+    await childChainContract
+      .tokens(rootToken.address)
+      .should.eventually.equal(childToken.address)
   })
 
   it('should not allow to add new token again', async function() {
+    // add token
+    await childChainContract.addToken(rootToken.address, 18)
+
+    // add again
     await childChainContract
       .addToken(rootToken.address, 18, {
         from: accounts[0]
       })
       .should.be.rejectedWith(EVMRevert)
-  })
-
-  it('should match mapping', async function() {
-    await childChainContract
-      .tokens(rootToken.address)
-      .should.eventually.equal(childToken.address)
   })
 })
