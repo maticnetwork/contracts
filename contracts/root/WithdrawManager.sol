@@ -123,6 +123,9 @@ contract WithdrawManager is DepositManager {
       // If an exit was successfully challenged, owner would be address(0).
       address exitOwner = ExitNFT(exitNFTContract).ownerOf(utxoPos);
       if (exitOwner != address(0)) {
+        // burn NFT
+        ExitNFT(exitNFTContract).burn(exitOwner, utxoPos);
+
         if (_token == wethToken) {
           // transfer ETH to token owner if `rootToken` is `wethToken`
           WETH(wethToken).withdraw(currentExit.amount, exitOwner);
@@ -136,9 +139,6 @@ contract WithdrawManager is DepositManager {
 
         // Delete owner but keep amount to prevent another exit from the same UTXO.
         // delete exits[utxoPos].owner;
-
-        // burn NFT
-        ExitNFT(exitNFTContract).burn(exitOwner, utxoPos);
       }
 
       // exit queue

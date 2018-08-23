@@ -10,9 +10,18 @@ const BN = utils.BN
 export const ZeroAddress = '0x0000000000000000000000000000000000000000'
 
 export async function mineOneBlock() {
-  await web3.currentProvider.send({
+  return web3.currentProvider.send({
     jsonrpc: '2.0',
     method: 'evm_mine',
+    id: new Date().getTime()
+  })
+}
+
+export async function increaseBlockTime(seconds) {
+  return web3.currentProvider.send({
+    jsonrpc: '2.0',
+    method: 'evm_increaseTime',
+    params: [seconds],
     id: new Date().getTime()
   })
 }

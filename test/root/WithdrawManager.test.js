@@ -12,7 +12,7 @@ import {
 } from '../helpers/contracts'
 import { getHeaders, getBlockHeader } from '../helpers/blocks'
 import MerkleTree from '../helpers/merkle-tree'
-import { linkLibs } from '../helpers/utils'
+import { linkLibs, increaseBlockTime, ZeroAddress } from '../helpers/utils'
 import LogDecoder from '../helpers/log-decoder'
 import EVMRevert from '../helpers/evm-revert'
 import {
@@ -58,7 +58,8 @@ contract('WithdrawManager', async function(accounts) {
       // log decoder
       withdrawManagerLogDecoder = new LogDecoder([
         ExitNFT._json.abi,
-        WithdrawManagerMock._json.abi
+        WithdrawManagerMock._json.abi,
+        RootToken._json.abi
       ])
     })
 
@@ -92,7 +93,13 @@ contract('WithdrawManager', async function(accounts) {
         await exitNFTContract.changeRootChain(withdrawManager.address)
       })
 
-      it('should allow operator to deposit tokens', async function() {
+      it('should allow user to deposit tokens', async function() {
+        // transfer tokens
+        await rootToken.mint(accounts[9], amount)
+        await rootToken.transfer(withdrawManager.address, amount, {
+          from: accounts[9]
+        })
+
         // deposit tokens
         await childChain.depositTokens(
           rootToken.address,
@@ -227,6 +234,48 @@ contract('WithdrawManager', async function(accounts) {
         const [exitToken, exitAmount] = await withdrawManager.getExit(exitId)
         exitToken.should.equal(rootToken.address)
         exitAmount.should.be.bignumber.equal(amount)
+      })
+
+      it('should not burn exit NFT with processExit', async function() {
+        const receipt = await withdrawManager.processExits(rootToken.address)
+        receipt.logs.should.have.lengthOf(0)
+
+        const [exitToken, exitAmount] = await withdrawManager.getExit(exitId)
+        exitToken.should.equal(rootToken.address)
+        exitAmount.should.be.bignumber.equal(amount)
+      })
+
+      it('should burn exit NFT after challenge period', async function() {
+        // wait 1 week
+        await increaseBlockTime(7 * 86400)
+
+        const receipt = await withdrawManager.processExits(rootToken.address)
+        const logs = withdrawManagerLogDecoder.decodeLogs(receipt.receipt.logs)
+        logs.should.have.lengthOf(3)
+
+        logs[0].event.should.equal('Transfer')
+        logs[0].args._from.toLowerCase().should.equal(accounts[9])
+        logs[0].args._to.toLowerCase().should.equal(ZeroAddress)
+        logs[0].args._tokenId.should.be.bignumber.equal(exitId)
+
+        logs[1].event.should.equal('Transfer')
+        logs[1].args.from.toLowerCase().should.equal(withdrawManager.address)
+        logs[1].args.to.toLowerCase().should.equal(accounts[9])
+        logs[1].args.value.should.be.bignumber.equal(amount)
+
+        logs[2].event.should.equal('Withdraw')
+        logs[2].args.user.toLowerCase().should.equal(accounts[9])
+        logs[2].args.token.toLowerCase().should.equal(rootToken.address)
+        logs[2].args.amount.should.be.bignumber.equal(amount)
+
+        // transfer
+        const totalSupply = await exitNFTContract.totalSupply()
+        totalSupply.should.be.bignumber.equal(0)
+
+        // check owner
+        await exitNFTContract
+          .ownerOf(exitId)
+          .should.eventually.equal(ZeroAddress)
       })
     })
   })
