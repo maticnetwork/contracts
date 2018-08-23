@@ -17,8 +17,8 @@ port = 8180
 port = 8541
 
 [account]
-unlock = ["0x9fb29aac15b9a4b7f17c3385939b007540f4d791","0xacf8eccdca12a0eb6ae4fb1431e26c44e66decdb"]
-password = ["node.password", "node.password"]
+unlock = ["0x9fb29aac15b9a4b7f17c3385939b007540f4d791","0x96c42c56fdb78294f96b0cfa33c92bed7d75f96a","0xacf8eccdca12a0eb6ae4fb1431e26c44e66decdb"]
+password = ["node.password", "node.password", "node.password"]
 
 [mining]
 engine_signer = "0x9fb29aac15b9a4b7f17c3385939b007540f4d791"
