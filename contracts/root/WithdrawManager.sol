@@ -147,7 +147,7 @@ contract WithdrawManager is DepositManager {
   }
 
   // withdraw tokens
-  function withdraw(
+  function withdrawBurntTokens(
     uint256 headerNumber,
     bytes headerProof,
 
@@ -166,7 +166,7 @@ contract WithdrawManager is DepositManager {
     address rootToken;
     uint256 receiptAmount;
 
-    (rootToken, receiptAmount) = _processWithdrawReceipt(
+    (rootToken, receiptAmount) = _processBurntReceipt(
       receiptBytes,
       path,
       receiptProof,
@@ -175,7 +175,7 @@ contract WithdrawManager is DepositManager {
     );
 
     // process withdraw tx
-    _processWithdrawTx(
+    _processBurntTx(
       txBytes,
       path,
       txProof,
@@ -400,7 +400,7 @@ contract WithdrawManager is DepositManager {
   }
 
   // process withdraw tx
-  function _processWithdrawTx(
+  function _processBurntTx(
     bytes txBytes,
     bytes path,
     bytes txProof,
@@ -449,7 +449,7 @@ contract WithdrawManager is DepositManager {
     );
   }
 
-  function _processWithdrawReceipt(
+  function _processBurntReceipt(
     bytes receiptBytes,
     bytes path,
     bytes receiptProof,

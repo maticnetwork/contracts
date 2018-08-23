@@ -49,7 +49,7 @@ contract('WithdrawManager', async function(accounts) {
   let exitNFTContract
   let withdrawManagerLogDecoder
 
-  beforeEach(async function() {
+  before(async function() {
     // link libs
     await linkLibs()
 
@@ -141,7 +141,7 @@ contract('WithdrawManager', async function(accounts) {
     assert.isOk(verifyReceiptProof(receiptProof), 'Receipt proof must be valid')
 
     // withdraw
-    const burnWithdrawReceipt = await withdrawManager.withdraw(
+    const burnWithdrawReceipt = await withdrawManager.withdrawBurntTokens(
       headerNumber, // header block
       utils.bufferToHex(Buffer.concat(headerProof)), // header proof
 
