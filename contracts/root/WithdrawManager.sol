@@ -1,6 +1,7 @@
 pragma solidity ^0.4.24;
 
 import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 
 import { RLP } from "../lib/RLP.sol";
 import { BytesLib } from "../lib/BytesLib.sol";
@@ -279,7 +280,7 @@ contract WithdrawManager is DepositManager {
     require(exitsQueues[_token] != address(0));
 
     // Calculate priority.
-    uint256 exitableAt = Common.max(_createdAt + 2 weeks, block.timestamp + 1 weeks);
+    uint256 exitableAt = Math.max256(_createdAt + 2 weeks, block.timestamp + 1 weeks);
 
     // Check exit is valid and doesn't already exist.
     require(_amount > 0);
