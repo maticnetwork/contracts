@@ -47,6 +47,7 @@ export async function linkLibs(web3Child) {
     contracts.RootChain,
     contracts.RootToken,
     contracts.MaticWETH,
+    contracts.StakeManagerMock,
     contracts.TokenManagerMock,
     contracts.IRootChainMock,
     contracts.DepositManagerMock,

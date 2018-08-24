@@ -14,7 +14,6 @@ import { getHeaders, getBlockHeader } from '../helpers/blocks'
 import MerkleTree from '../helpers/merkle-tree'
 import { linkLibs, increaseBlockTime, ZeroAddress } from '../helpers/utils'
 import LogDecoder from '../helpers/log-decoder'
-import EVMRevert from '../helpers/evm-revert'
 import {
   getTxBytes,
   getTxProof,
@@ -41,16 +40,12 @@ ChildToken.web3 = web3Child
 
 contract('WithdrawManager', async function(accounts) {
   describe('withdraw', async function() {
-    let owner
     let amount
     let withdrawManagerLogDecoder
 
     before(async function() {
       // link libs
       await linkLibs()
-
-      // get owner out of accounts
-      owner = accounts[0]
 
       // set amount
       amount = web3.toWei(1)

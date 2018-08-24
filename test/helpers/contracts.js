@@ -18,6 +18,9 @@ export const MaticWETH = artifacts.require('./token/MaticWETH.sol')
 export const StakeManager = artifacts.require('./root/StakeManager.sol')
 export const ExitNFT = artifacts.require('./token/ExitNFT.sol')
 
+export const StakeManagerMock = artifacts.require(
+  './mocks/StakeManagerMock.sol'
+)
 export const TokenManagerMock = artifacts.require(
   './mocks/TokenManagerMock.sol'
 )

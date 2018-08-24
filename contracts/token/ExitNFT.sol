@@ -5,7 +5,7 @@ import { RootChainable } from "../mixin/RootChainable.sol";
 
 
 contract ExitNFT is RootChainable, ERC721Token {
-  constructor(string _name, string _symbol) ERC721Token(_name, _symbol) {
+  constructor(string _name, string _symbol) public ERC721Token(_name, _symbol) {
 
   }
 
