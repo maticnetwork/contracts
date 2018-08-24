@@ -6,6 +6,7 @@ import { linkLibs, ZeroAddress } from '../helpers/utils'
 import EVMRevert from '../helpers/evm-revert'
 
 import { ChildChain, ChildToken, RootToken } from '../helpers/contracts'
+import LogDecoder from '../helpers/log-decoder'
 
 // add chai pluggin
 chai
@@ -16,6 +17,7 @@ chai
 contract('ChildChain', async function(accounts) {
   let childChainContract
   let rootToken
+  let logDecoder = new LogDecoder([ChildChain._json.abi, ChildToken._json.abi])
 
   beforeEach(async function() {
     // link libs
@@ -45,10 +47,10 @@ contract('ChildChain', async function(accounts) {
 
   it('should allow owner to add new token ', async function() {
     const receipt = await childChainContract.addToken(rootToken.address, 18)
-
-    receipt.logs.should.have.lengthOf(1)
-    receipt.logs[0].event.should.equal('NewToken')
-    receipt.logs[0].args.rootToken.should.equal(rootToken.address)
+    const logs = logDecoder.decodeLogs(receipt.receipt.logs)
+    logs.should.have.lengthOf(1)
+    logs[0].event.should.equal('NewToken')
+    logs[0].args.rootToken.toLowerCase().should.equal(rootToken.address)
 
     // child chain contract
     await childChainContract
@@ -73,9 +75,11 @@ contract('ChildChain', async function(accounts) {
 
     // add again
     await childChainContract
-      .addToken(rootToken.address, 18, {
-        from: accounts[0]
-      })
+      .addToken(rootToken.address, 18)
       .should.be.rejectedWith(EVMRevert)
+  })
+
+  it('should check true (safety check)', async function() {
+    assert.isOk(true)
   })
 })

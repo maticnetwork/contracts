@@ -37,6 +37,15 @@ contract ERC20Validator is RootChainValidator {
     // validate transfer tx
     RLP.RLPItem[] memory txData = transferTx.toRLPItem().toList();
 
+    // validate ERC20 transfer tx
+    if (!_validateERC20TransferTx(txData)) {
+      RootChain(rootChain).slash();
+    }
+  }
+
+  function _validateERC20TransferTx(
+    RLP.RLPItem[] memory txData
+  ) internal returns (bool) {
     // validate tx receipt existence
     require(
       validateTxReceiptExistence(
@@ -58,13 +67,13 @@ contract ERC20Validator is RootChainValidator {
       )
     );
 
-    // validate ERC20 transfer tx
-    if (!_validateERC20TransferTx(txData[7].toData(), txData[9].toData())) {
-      RootChain(rootChain).slash();
-    }
+    return _validateTransferTx(txData[7].toData(), txData[9].toData());
   }
 
-  function _validateERC20TransferTx(bytes txData, bytes receiptData) internal returns (bool) {
+  function _validateTransferTx(
+    bytes txData,
+    bytes receiptData
+  ) internal returns (bool) {
     // check transaction
     RLP.RLPItem[] memory items = txData.toRLPItem().toList();
     require(items.length == 9);

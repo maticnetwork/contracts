@@ -8,8 +8,6 @@ import EVMRevert from '../helpers/evm-revert'
 import { linkLibs } from '../helpers/utils'
 import { ChildChain, ChildToken, RootToken } from '../helpers/contracts'
 
-const BN = utils.BN
-
 // add chai pluggin
 chai
   .use(chaiAsPromised)
@@ -58,9 +56,7 @@ contract('ChildERC20', async function(accounts) {
   })
 
   it('should not allow to withdraw more than amount', async function() {
-    await childToken
-      .withdraw(new BN(amount).add(new BN(1)).toString())
-      .should.be.rejectedWith(EVMRevert)
+    await childToken.withdraw(web3.toWei(11)).should.be.rejectedWith(EVMRevert)
   })
 
   it('should allow to withdraw mentioned amount', async function() {
@@ -84,5 +80,9 @@ contract('ChildERC20', async function(accounts) {
 
     const afterBalance = await childToken.balanceOf(owner)
     afterBalance.should.be.bignumber.equal(0)
+  })
+
+  it('should check true (safety check)', async function() {
+    assert.isOk(true)
   })
 })

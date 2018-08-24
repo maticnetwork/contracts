@@ -8,12 +8,11 @@ import { PriorityQueue } from "../lib/PriorityQueue.sol";
 import { Merkle } from "../lib/Merkle.sol";
 import { MerklePatriciaProof } from "../lib/MerklePatriciaProof.sol";
 
-import { DepositManager } from "./DepositManager.sol";
 import { WithdrawManager } from "./WithdrawManager.sol";
 import { StakeManager } from "./StakeManager.sol";
 
 
-contract RootChain is Ownable, DepositManager, WithdrawManager {
+contract RootChain is Ownable, WithdrawManager {
   using SafeMath for uint256;
   using Merkle for bytes32;
 
@@ -139,7 +138,7 @@ contract RootChain is Ownable, DepositManager, WithdrawManager {
   // PoS functions
   //
   function setStakeManager(address _stakeManager) public onlyOwner {
-    require(_stakeManager != 0x0);
+    require(_stakeManager != address(0));
     stakeManager = StakeManager(_stakeManager);
   }
 
