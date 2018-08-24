@@ -34,6 +34,21 @@ contract IRootChainMock is IRootChain {
     _currentChildBlock = _c;
   }
 
+  // get flat header block
+  function headerBlock(uint256 _headerNumber) public view returns (
+    bytes32 _root,
+    uint256 _start,
+    uint256 _end,
+    uint256 _createdAt
+  ) {
+    HeaderBlock memory _headerBlock = _headerBlocks[_headerNumber];
+
+    _root = _headerBlock.root;
+    _start = _headerBlock.start;
+    _end = _headerBlock.end;
+    _createdAt = _headerBlock.createdAt;
+  }
+
   //
   // Internal methods
   //
