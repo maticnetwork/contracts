@@ -3,7 +3,6 @@ import chaiAsPromised from 'chai-as-promised'
 import chaiBigNumber from 'chai-bignumber'
 
 import { linkLibs, ZeroAddress } from '../helpers/utils'
-import EVMRevert from '../helpers/evm-revert'
 
 import { ChildChain, ChildToken, RootToken } from '../helpers/contracts'
 import LogDecoder from '../helpers/log-decoder'
@@ -34,11 +33,9 @@ contract('ChildChain', async function(accounts) {
   })
 
   it('should allow only owner to add new token ', async function() {
-    await childChainContract
-      .addToken(rootToken.address, 18, {
-        from: accounts[1]
-      })
-      .should.be.rejectedWith(EVMRevert)
+    await childChainContract.addToken(rootToken.address, 18, {
+      from: accounts[1]
+    }).should.be.rejected
 
     await childChainContract
       .tokens(rootToken.address)
@@ -74,9 +71,7 @@ contract('ChildChain', async function(accounts) {
     await childChainContract.addToken(rootToken.address, 18)
 
     // add again
-    await childChainContract
-      .addToken(rootToken.address, 18)
-      .should.be.rejectedWith(EVMRevert)
+    await childChainContract.addToken(rootToken.address, 18).should.be.rejected
   })
 
   it('should check true (safety check)', async function() {

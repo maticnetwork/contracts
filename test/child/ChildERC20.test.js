@@ -2,9 +2,6 @@ import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import chaiBigNumber from 'chai-bignumber'
 
-import utils from 'ethereumjs-util'
-
-import EVMRevert from '../helpers/evm-revert'
 import { linkLibs } from '../helpers/utils'
 import { ChildChain, ChildToken, RootToken } from '../helpers/contracts'
 
@@ -56,7 +53,7 @@ contract('ChildERC20', async function(accounts) {
   })
 
   it('should not allow to withdraw more than amount', async function() {
-    await childToken.withdraw(web3.toWei(11)).should.be.rejectedWith(EVMRevert)
+    await childToken.withdraw(web3.toWei(11)).should.be.rejected
   })
 
   it('should allow to withdraw mentioned amount', async function() {
