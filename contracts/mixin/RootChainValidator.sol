@@ -5,7 +5,7 @@ import { MerklePatriciaProof } from "../lib/MerklePatriciaProof.sol";
 import { RLP } from "../lib/RLP.sol";
 import { Common } from "../lib/Common.sol";
 import { RLPEncode } from "../lib/RLPEncode.sol";
-import { RootChain } from "../root/Rootchain.sol";
+import { RootChain } from "../root/RootChain.sol";
 
 import { Lockable } from "./Lockable.sol";
 import { RootChainable } from "./RootChainable.sol";
