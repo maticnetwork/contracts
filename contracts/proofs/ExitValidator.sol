@@ -52,7 +52,8 @@ contract ExitValidator is RootChainValidator {
     require((blockNumber * 1000000000000 + path.toRLPItem().toData().toRLPItem().toUint() * 100000) > exitId);
 
     // burn nft without transferring money
-    exitNFTContract.burn(owner, exitId);
+    // exitNFTContract.burn(owner, exitId);
+    // RootChain(rootChain).deleteExit(owner, exitId);
   }
 
   //

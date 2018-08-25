@@ -38,6 +38,7 @@ export const WithdrawManagerMock = artifacts.require(
 
 export const TxValidator = artifacts.require('./proofs/TxValidator.sol')
 export const ERC20Validator = artifacts.require('./proofs/ERC20Validator.sol')
+export const ExitValidator = artifacts.require('./proofs/ExitValidator.sol')
 
 export const ERC20ValidatorMock = artifacts.require(
   './mocks/proofs/ERC20ValidatorMock.sol'

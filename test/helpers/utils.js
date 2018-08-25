@@ -53,6 +53,7 @@ export async function linkLibs(web3Child) {
     contracts.DepositManagerMock,
     contracts.WithdrawManagerMock,
     contracts.TxValidator,
+    contracts.ExitValidator,
     contracts.ERC20Validator,
     contracts.ERC20ValidatorMock
   ]
