@@ -1,3 +1,5 @@
+/* global artifacts */
+
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import chaiBigNumber from 'chai-bignumber'

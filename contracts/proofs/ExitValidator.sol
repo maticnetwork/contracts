@@ -7,7 +7,7 @@ import { ExitNFT } from "../token/ExitNFT.sol";
 
 contract ExitValidator is RootChainValidator {
   // challenge exit
-  function challengeExit (
+  function challengeExit(
     uint256 exitId,
 
     uint256 headerNumber,
@@ -49,9 +49,7 @@ contract ExitValidator is RootChainValidator {
     require(getTxSender(txBytes) == owner);
 
     // check if tx happened after exit
-    require(
-      (blockNumber * 1000000000000 + path.toRLPItem().toData().toRLPItem().toUint() * 100000) > exitId
-    );
+    require((blockNumber * 1000000000000 + path.toRLPItem().toData().toRLPItem().toUint() * 100000) > exitId);
 
     // burn nft without transferring money
     exitNFTContract.burn(owner, exitId);
