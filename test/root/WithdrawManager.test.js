@@ -242,7 +242,7 @@ contract('WithdrawManager', async function(accounts) {
 
       it('should burn exit NFT after challenge period', async function() {
         // wait 2 weeks
-        await increaseBlockTime(7 * 86400 + 1)
+        await increaseBlockTime(14 * 86400)
 
         const receipt = await withdrawManager.processExits(rootToken.address)
         const logs = withdrawManagerLogDecoder.decodeLogs(receipt.receipt.logs)
@@ -470,7 +470,7 @@ contract('WithdrawManager', async function(accounts) {
 
       it('should burn exit NFT after challenge period', async function() {
         // wait 2 weeks
-        await increaseBlockTime(7 * 86400 + 1)
+        await increaseBlockTime(14 * 86400)
 
         const receipt = await withdrawManager.processExits(rootToken.address)
         const logs = withdrawManagerLogDecoder.decodeLogs(receipt.receipt.logs)

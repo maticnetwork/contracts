@@ -39,6 +39,7 @@ contract WithdrawManager is DepositManager {
     address owner;
     address token;
     uint256 amount;
+    bool burnt;
   }
 
   // all plasma exits
@@ -63,7 +64,7 @@ contract WithdrawManager is DepositManager {
   event ExitStarted(
     address indexed exitor,
     uint256 indexed utxoPos,
-    address token,
+    address indexed token,
     uint256 amount
   );
 
@@ -187,8 +188,18 @@ contract WithdrawManager is DepositManager {
       msg.sender
     );
 
+    // exit object
+    PlasmaExit memory _exitObject = PlasmaExit({
+      owner: msg.sender,
+      token: rootToken,
+      amount: receiptAmount,
+      burnt: true
+    });
+
     // withdraw
     _withdraw(
+      _exitObject,
+
       headerNumber,
       headerProof,
 
@@ -198,13 +209,8 @@ contract WithdrawManager is DepositManager {
       txRoot,
       receiptRoot,
 
-      rootToken,
-      receiptAmount,
-
       path,
-      0,
-
-      msg.sender
+      0
     );
   }
 
@@ -236,8 +242,18 @@ contract WithdrawManager is DepositManager {
     uint8 oIndex;
     (amount, oIndex) = _processWithdrawTransferReceipt(receiptBytes, msg.sender);
 
+    // exit object
+    PlasmaExit memory _exitObject = PlasmaExit({
+      owner: msg.sender,
+      token: _processWithdrawTransferTx(txBytes),
+      amount: amount,
+      burnt: false
+    });
+
     // withdraw
     _withdraw(
+      _exitObject,
+
       headerNumber,
       headerProof,
 
@@ -247,13 +263,8 @@ contract WithdrawManager is DepositManager {
       txRoot,
       receiptRoot,
 
-      _processWithdrawTransferTx(txBytes),
-      amount,
-
       path,
-      oIndex,
-
-      msg.sender
+      oIndex
     );
   }
 
@@ -263,46 +274,40 @@ contract WithdrawManager is DepositManager {
 
   /**
   * @dev Adds an exit to the exit queue.
+  * @param _exitObject Exit plasma object
   * @param _utxoPos Position of the UTXO in the child chain (blockNumber, txIndex, oIndex)
-  * @param _exitor Owner of the UTXO.
-  * @param _token Token to be exited.
-  * @param _amount Amount to be exited.
   * @param _createdAt Time when the UTXO was created.
   */
   function addExitToQueue(
+    PlasmaExit _exitObject,
     uint256 _utxoPos,
-    address _exitor,
-    address _token,
-    uint256 _amount,
     uint256 _createdAt
   ) internal {
     // Check that we're exiting a known token.
-    require(exitsQueues[_token] != address(0));
+    require(exitsQueues[_exitObject.token] != address(0));
 
     // Calculate priority.
     uint256 exitableAt = Math.max256(_createdAt + 2 weeks, block.timestamp + 1 weeks);
 
     // Check exit is valid and doesn't already exist.
-    require(_amount > 0);
+    require(_exitObject.amount > 0);
     require(exits[_utxoPos].amount == 0);
 
-    PriorityQueue queue = PriorityQueue(exitsQueues[_token]);
+    PriorityQueue queue = PriorityQueue(exitsQueues[_exitObject.token]);
     queue.insert(exitableAt, _utxoPos);
 
     // create NFT for exit UTXO
-    ExitNFT(exitNFTContract).mint(_exitor, _utxoPos);
-    exits[_utxoPos] = PlasmaExit({
-      owner: _exitor,
-      token: _token,
-      amount: _amount
-    });
+    ExitNFT(exitNFTContract).mint(_exitObject.owner, _utxoPos);
+    exits[_utxoPos] = _exitObject;
 
     // emit exit started event
-    emit ExitStarted(_exitor, _utxoPos, _token, _amount);
+    emit ExitStarted(_exitObject.owner, _utxoPos, _exitObject.token, _exitObject.amount);
   }
 
   // withdraw
   function _withdraw(
+    PlasmaExit _exitObject,
+
     uint256 headerNumber,
     bytes headerProof,
     uint256 blockNumber,
@@ -311,16 +316,11 @@ contract WithdrawManager is DepositManager {
     bytes32 txRoot,
     bytes32 receiptRoot,
 
-    address rootToken,
-    uint256 amount,
-
     bytes path,
-    uint8 oIndex,
-
-    address sender
+    uint8 oIndex
   ) internal {
     // validate amount
-    require(amount > 0);
+    require(_exitObject.amount > 0);
 
     // get header block object
     HeaderBlock memory headerBlock = getHeaderBlock(headerNumber);
@@ -341,10 +341,8 @@ contract WithdrawManager is DepositManager {
 
     // add exit to queue
     addExitToQueue(
+      _exitObject,
       blockNumber * 1000000000000 + path.toRLPItem().toData().toRLPItem().toUint() * 100000 + oIndex,
-      sender,
-      rootToken,
-      amount,
       blockTime
     );
   }
