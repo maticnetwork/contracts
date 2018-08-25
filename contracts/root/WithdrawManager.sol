@@ -80,9 +80,9 @@ contract WithdrawManager is DepositManager {
   function getExit(uint256 _utxoPos)
     public
     view
-    returns (address, uint256)
+    returns (address, uint256, bool)
   {
-    return (exits[_utxoPos].token, exits[_utxoPos].amount);
+    return (exits[_utxoPos].token, exits[_utxoPos].amount, exits[_utxoPos].burnt);
   }
 
   /**
@@ -124,7 +124,7 @@ contract WithdrawManager is DepositManager {
       // If an exit was successfully challenged, owner would be address(0).
       address exitOwner = ExitNFT(exitNFTContract).ownerOf(utxoPos);
       if (exitOwner != address(0)) {
-        // burn NFT
+        // burn NFT first
         ExitNFT(exitNFTContract).burn(exitOwner, utxoPos);
 
         if (_token == wethToken) {

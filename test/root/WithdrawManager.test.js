@@ -226,18 +226,24 @@ contract('WithdrawManager', async function(accounts) {
           .ownerOf(tokenId)
           .should.eventually.equal(accounts[9])
 
-        const [exitToken, exitAmount] = await withdrawManager.getExit(exitId)
+        const [exitToken, exitAmount, burnt] = await withdrawManager.getExit(
+          exitId
+        )
         exitToken.should.equal(rootToken.address)
         exitAmount.should.be.bignumber.equal(amount)
+        burnt.should.equal(true)
       })
 
       it('should not burn exit NFT with processExit', async function() {
         const receipt = await withdrawManager.processExits(rootToken.address)
         receipt.logs.should.have.lengthOf(0)
 
-        const [exitToken, exitAmount] = await withdrawManager.getExit(exitId)
+        const [exitToken, exitAmount, burnt] = await withdrawManager.getExit(
+          exitId
+        )
         exitToken.should.equal(rootToken.address)
         exitAmount.should.be.bignumber.equal(amount)
+        burnt.should.equal(true)
       })
 
       it('should burn exit NFT after challenge period', async function() {
@@ -446,9 +452,12 @@ contract('WithdrawManager', async function(accounts) {
           .ownerOf(exitId)
           .should.eventually.equal(accounts[9])
 
-        const [exitToken, exitAmount] = await withdrawManager.getExit(exitId)
+        const [exitToken, exitAmount, burnt] = await withdrawManager.getExit(
+          exitId
+        )
         exitToken.should.equal(rootToken.address)
         exitAmount.should.be.bignumber.equal(amount)
+        burnt.should.equal(false)
       })
 
       it('should allow transfer exitNFT to another user', async function() {
