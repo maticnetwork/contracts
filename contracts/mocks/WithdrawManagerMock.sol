@@ -25,7 +25,9 @@ contract WithdrawManagerMock is Ownable, WithdrawManager, IRootChainMock {
   }
 
   // delete exit
-  function deleteExit(address owner, uint256 exitId) external {
-    ExitNFT(exitNFTContract).burn(owner, exitId);
+  function deleteExit(uint256 exitId) external {
+    ExitNFT exitNFT = ExitNFT(exitNFTContract);
+    address owner = exitNFT.ownerOf(exitId);
+    exitNFT.burn(owner, exitId);
   }
 }

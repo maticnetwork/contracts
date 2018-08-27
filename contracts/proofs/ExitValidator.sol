@@ -1,7 +1,6 @@
 pragma solidity ^0.4.24;
 
 import { RootChainValidator } from "../mixin/RootChainValidator.sol";
-import { ExitNFT } from "../token/ExitNFT.sol";
 import { RootChain } from "../root/RootChain.sol";
 
 
@@ -22,11 +21,8 @@ contract ExitValidator is RootChainValidator {
     bytes txBytes,
     bytes txProof
   ) public {
-    // get exit NFT object
-    ExitNFT exitNFTContract = ExitNFT(RootChain(rootChain).exitNFTContract());
-
     // validate exit id and get owner
-    address owner = validateExitId(exitId, exitNFTContract);
+    address owner = validateExitId(exitId);
 
     // validate tx
     require(
@@ -52,25 +48,21 @@ contract ExitValidator is RootChainValidator {
     require((blockNumber * 1000000000000 + path.toRLPItem().toData().toRLPItem().toUint() * 100000) > exitId);
 
     // burn nft without transferring money
-    RootChain(rootChain).deleteExit(owner, exitId);
+    RootChain(rootChain).deleteExit(exitId);
   }
 
   //
   // Internal methods
   //
 
-  function validateExitId(uint256 exitId, ExitNFT exitNFTContract) internal view returns (address) {
-    address token;
+  function validateExitId(uint256 exitId) internal view returns (address) {
+    address owner;
     uint256 amount;
     bool burnt;
-    (token, amount, burnt) = RootChain(rootChain).getExit(exitId);
+    (owner,,amount, burnt) = RootChain(rootChain).getExit(exitId);
 
     // check if already burnt
-    require(burnt == false && amount > 0);
-
-    // get nft's contract and check owner
-    address owner = exitNFTContract.ownerOf(exitId);
-    require(owner != address(0));
+    require(burnt == false && amount > 0 && owner != address(0));
 
     // return owner
     return owner;

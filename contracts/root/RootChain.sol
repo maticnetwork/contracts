@@ -212,12 +212,14 @@ contract RootChain is Ownable, WithdrawManager {
   }
 
   //
-  // Methods called by validators
+  // Methods which will be called by validators
   //
 
   // delete exit
-  function deleteExit(address owner, uint256 exitId) external isValidator(msg.sender) {
-    ExitNFT(exitNFTContract).burn(owner, exitId);
+  function deleteExit(uint256 exitId) external isValidator(msg.sender) {
+    ExitNFT exitNFT = ExitNFT(exitNFTContract);
+    address owner = exitNFT.ownerOf(exitId);
+    exitNFT.burn(owner, exitId);
   }
 
   // slash stakers if fraud is detected

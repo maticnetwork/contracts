@@ -80,9 +80,14 @@ contract WithdrawManager is DepositManager {
   function getExit(uint256 _utxoPos)
     public
     view
-    returns (address, uint256, bool)
+    returns (address, address, uint256, bool)
   {
-    return (exits[_utxoPos].token, exits[_utxoPos].amount, exits[_utxoPos].burnt);
+    return (
+      exits[_utxoPos].owner,
+      exits[_utxoPos].token,
+      exits[_utxoPos].amount,
+      exits[_utxoPos].burnt
+    );
   }
 
   /**

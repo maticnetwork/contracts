@@ -226,9 +226,13 @@ contract('WithdrawManager', async function(accounts) {
           .ownerOf(tokenId)
           .should.eventually.equal(accounts[9])
 
-        const [exitToken, exitAmount, burnt] = await withdrawManager.getExit(
-          exitId
-        )
+        const [
+          exitOwner,
+          exitToken,
+          exitAmount,
+          burnt
+        ] = await withdrawManager.getExit(exitId)
+        exitOwner.should.equal(accounts[9])
         exitToken.should.equal(rootToken.address)
         exitAmount.should.be.bignumber.equal(amount)
         burnt.should.equal(true)
@@ -238,9 +242,13 @@ contract('WithdrawManager', async function(accounts) {
         const receipt = await withdrawManager.processExits(rootToken.address)
         receipt.logs.should.have.lengthOf(0)
 
-        const [exitToken, exitAmount, burnt] = await withdrawManager.getExit(
-          exitId
-        )
+        const [
+          exitOwner,
+          exitToken,
+          exitAmount,
+          burnt
+        ] = await withdrawManager.getExit(exitId)
+        exitOwner.should.equal(accounts[9])
         exitToken.should.equal(rootToken.address)
         exitAmount.should.be.bignumber.equal(amount)
         burnt.should.equal(true)
@@ -452,9 +460,13 @@ contract('WithdrawManager', async function(accounts) {
           .ownerOf(exitId)
           .should.eventually.equal(accounts[9])
 
-        const [exitToken, exitAmount, burnt] = await withdrawManager.getExit(
-          exitId
-        )
+        const [
+          exitOwner,
+          exitToken,
+          exitAmount,
+          burnt
+        ] = await withdrawManager.getExit(exitId)
+        exitOwner.should.equal(accounts[9])
         exitToken.should.equal(rootToken.address)
         exitAmount.should.be.bignumber.equal(amount)
         burnt.should.equal(false)
