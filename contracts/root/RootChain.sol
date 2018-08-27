@@ -7,6 +7,7 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { PriorityQueue } from "../lib/PriorityQueue.sol";
 import { Merkle } from "../lib/Merkle.sol";
 import { MerklePatriciaProof } from "../lib/MerklePatriciaProof.sol";
+import { ExitNFT } from "../token/ExitNFT.sol";
 
 import { WithdrawManager } from "./WithdrawManager.sol";
 import { StakeManager } from "./StakeManager.sol";
@@ -59,19 +60,6 @@ contract RootChain is Ownable, WithdrawManager {
   //
   // Modifiers
   //
-
-  /**
-   * @dev Throws if deposit is not valid
-   */
-  modifier validateDeposit(address token, uint256 value) {
-    // token must be supported
-    require(tokens[token] != address(0x0));
-
-    // token amount must be greater than 0
-    require(value > 0);
-
-    _;
-  }
 
   // Checks is msg.sender is valid validator
   modifier isValidator(address _address) {
@@ -223,8 +211,17 @@ contract RootChain is Ownable, WithdrawManager {
     depositEthers(msg.sender);
   }
 
+  //
+  // Methods called by validators
+  //
+
+  // delete exit
+  function deleteExit(address owner, uint256 exitId) external isValidator(msg.sender) {
+    ExitNFT(exitNFTContract).burn(owner, exitId);
+  }
+
   // slash stakers if fraud is detected
-  function slash() public isValidator(msg.sender) {
+  function slash() external isValidator(msg.sender) {
     // TODO pass block/proposer
   }
 

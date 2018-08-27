@@ -13,7 +13,7 @@ import {
 } from '../helpers/contracts'
 import { getHeaders, getBlockHeader } from '../helpers/blocks'
 import MerkleTree from '../helpers/merkle-tree'
-import { linkLibs } from '../helpers/utils'
+import { linkLibs, ZeroAddress } from '../helpers/utils'
 import LogDecoder from '../helpers/log-decoder'
 import {
   getTxBytes,
@@ -293,7 +293,10 @@ contract('ExitValidator', async function(accounts) {
         )
 
         const logs = logDecoder.decodeLogs(challengeReceipt.receipt.logs)
-        console.log(logs)
+        logs.should.have.lengthOf(1)
+        logs[0].args._from.toLowerCase().should.equal(accounts[9])
+        logs[0].args._to.should.equal(ZeroAddress)
+        logs[0].args._tokenId.should.be.bignumber.equal(exitId)
       })
 
       it('should pass (added for sanity)', async function() {

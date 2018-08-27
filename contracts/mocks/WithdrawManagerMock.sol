@@ -3,6 +3,7 @@ pragma solidity ^0.4.24;
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { IRootChainMock } from "./IRootChainMock.sol";
 
+import { ExitNFT } from "../token/ExitNFT.sol";
 import { WithdrawManager } from "../root/WithdrawManager.sol";
 import { PriorityQueue } from "../lib/PriorityQueue.sol";
 
@@ -21,5 +22,10 @@ contract WithdrawManagerMock is Ownable, WithdrawManager, IRootChainMock {
 
     // create exit queue
     exitsQueues[_rootToken] = address(new PriorityQueue());
+  }
+
+  // delete exit
+  function deleteExit(address owner, uint256 exitId) external {
+    ExitNFT(exitNFTContract).burn(owner, exitId);
   }
 }

@@ -1,8 +1,8 @@
 pragma solidity ^0.4.24;
 
 import { RootChainValidator } from "../mixin/RootChainValidator.sol";
-import { RootChain } from "../root/RootChain.sol";
 import { ExitNFT } from "../token/ExitNFT.sol";
+import { RootChain } from "../root/RootChain.sol";
 
 
 contract ExitValidator is RootChainValidator {
@@ -52,8 +52,7 @@ contract ExitValidator is RootChainValidator {
     require((blockNumber * 1000000000000 + path.toRLPItem().toData().toRLPItem().toUint() * 100000) > exitId);
 
     // burn nft without transferring money
-    // exitNFTContract.burn(owner, exitId);
-    // RootChain(rootChain).deleteExit(owner, exitId);
+    RootChain(rootChain).deleteExit(owner, exitId);
   }
 
   //
