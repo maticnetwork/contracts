@@ -45,6 +45,9 @@ contract WithdrawManager is DepositManager {
   // all plasma exits
   mapping (uint256 => PlasmaExit) public exits;
 
+  // mapping with token => (owner => exitId)
+  mapping (address => mapping(address => uint256)) public ownerExits;
+
   // exit queue for each token
   mapping (address => address) public exitsQueues;
 
@@ -104,6 +107,17 @@ contract WithdrawManager is DepositManager {
   }
 
   /**
+   * @dev Fetches current exitId for given token and address
+   */
+  function exitIdByOwner(address _token, address _owner)
+    public
+    view
+    returns (uint256)
+  {
+    return ownerExits[_token][_owner];
+  }
+
+  /**
   * @dev Processes any exits that have completed the exit period.
   */
   function processExits(address _token) public {
@@ -131,6 +145,11 @@ contract WithdrawManager is DepositManager {
       if (exitOwner != address(0)) {
         // burn NFT first
         ExitNFT(exitNFTContract).burn(exitOwner, utxoPos);
+
+        // delete current exit if exit was "burnt"
+        if (currentExit.burnt) {
+          delete ownerExits[_token][currentExit.owner];
+        }
 
         if (_token == wethToken) {
           // transfer ETH to token owner if `rootToken` is `wethToken`
@@ -305,6 +324,9 @@ contract WithdrawManager is DepositManager {
     ExitNFT(exitNFTContract).mint(_exitObject.owner, _utxoPos);
     exits[_utxoPos] = _exitObject;
 
+    // set current exit
+    ownerExits[_exitObject.token][_exitObject.owner] = _utxoPos;
+
     // emit exit started event
     emit ExitStarted(_exitObject.owner, _utxoPos, _exitObject.token, _exitObject.amount);
   }
@@ -324,6 +346,9 @@ contract WithdrawManager is DepositManager {
     bytes path,
     uint8 oIndex
   ) internal {
+    // validate token exit
+    require(ownerExits[_exitObject.token][_exitObject.owner] == 0);
+
     // validate amount
     require(_exitObject.amount > 0);
 

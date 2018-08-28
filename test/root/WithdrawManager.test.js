@@ -212,6 +212,14 @@ contract('WithdrawManager', async function(accounts) {
         burnLogs[1].args.amount.should.be.bignumber.equal(amount)
       })
 
+      it('should have proper exitId for given user', async function() {
+        const eId = await withdrawManager.exitIdByOwner(
+          rootToken.address,
+          accounts[9]
+        )
+        eId.should.be.bignumber.equal(exitId)
+      })
+
       it('should mint ExitNFT properly', async function() {
         const totalSupply = await exitNFTContract.totalSupply()
         totalSupply.should.be.bignumber.equal(1)
@@ -286,6 +294,14 @@ contract('WithdrawManager', async function(accounts) {
           .ownerOf(exitId)
           .should.eventually.equal(ZeroAddress)
       })
+
+      it('should have proper 0 exitId for given user', async function() {
+        const eId = await withdrawManager.exitIdByOwner(
+          rootToken.address,
+          accounts[9]
+        )
+        eId.should.be.bignumber.equal(0)
+      })
     })
 
     describe('direct withdraw', async function() {
@@ -340,6 +356,14 @@ contract('WithdrawManager', async function(accounts) {
         receivedTx = await childToken.transfer(accounts[9], amount, {
           from: accounts[1]
         })
+      })
+
+      it('should have 0 exitId for given user', async function() {
+        const eId = await withdrawManager.exitIdByOwner(
+          rootToken.address,
+          accounts[9]
+        )
+        eId.should.be.bignumber.equal(0)
       })
 
       it('should allow user to start exit without burning tokens', async function() {
@@ -446,6 +470,14 @@ contract('WithdrawManager', async function(accounts) {
         exitLogs[1].args.amount.should.be.bignumber.equal(amount)
       })
 
+      it('should have proper exitId for given user', async function() {
+        const eId = await withdrawManager.exitIdByOwner(
+          rootToken.address,
+          accounts[9]
+        )
+        eId.should.be.bignumber.equal(exitId)
+      })
+
       it('should mint ExitNFT properly', async function() {
         const totalSupply = await exitNFTContract.totalSupply()
         totalSupply.should.be.bignumber.equal(1)
@@ -525,6 +557,14 @@ contract('WithdrawManager', async function(accounts) {
       it('should transfer amount to NFT owner', async function() {
         const userBalance = await rootToken.balanceOf(accounts[1])
         userBalance.should.be.bignumber.equal(amount)
+      })
+
+      it('should have proper exitId for given user in case of exit without burn', async function() {
+        const eId = await withdrawManager.exitIdByOwner(
+          rootToken.address,
+          accounts[9]
+        )
+        eId.should.be.bignumber.equal(exitId)
       })
 
       it('should pass (added for sanity)', async function() {
