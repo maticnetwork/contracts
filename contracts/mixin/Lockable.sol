@@ -1,6 +1,6 @@
-pragma solidity 0.4.24;
+pragma solidity ^0.4.24;
 
-import "./Ownable.sol";
+import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 
 contract Lockable is Ownable {

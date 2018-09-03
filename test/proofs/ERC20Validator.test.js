@@ -12,16 +12,15 @@ import {
   verifyReceiptProof
 } from '../helpers/proofs.js'
 import { getHeaders, getBlockHeader } from '../helpers/blocks.js'
-import { generateFirstWallets, mnemonics } from '../helpers/wallets'
 import MerkleTree from '../helpers/merkle-tree.js'
-import { linkLibs, encodeSigs, getSigs } from '../helpers/utils'
+import { linkLibs } from '../helpers/utils.js'
+import LogDecoder from '../helpers/log-decoder.js'
 
 import {
-  StakeManager,
   RootToken,
-  RootChain,
-  ERC20Validator
-} from '../helpers/contracts'
+  WithdrawManagerMock,
+  ERC20ValidatorMock
+} from '../helpers/contracts.js'
 
 let ChildChain = artifacts.require('../child/ChildChain.sol')
 let ChildToken = artifacts.require('../child/ChildERC20.sol')
@@ -33,47 +32,36 @@ const web3Child = new web3.constructor(
 ChildChain.web3 = web3Child
 ChildToken.web3 = web3Child
 
-const BN = utils.BN
 const rlp = utils.rlp
-
-// const printReceiptEvents = receipt => {
-//   receipt.logs.forEach(l => {
-//     console.log(l.event, JSON.stringify(l.args))
-//   })
-// }
 
 contract('ERC20Validator', async function(accounts) {
   describe('initialization', async function() {
-    let stakeToken
+    let logDecoder
     let rootToken
     let childToken
     let rootChain
-    let stakeManager
-    let wallets
     let childChain
-    let stakes = {
-      1: web3.toWei(1),
-      2: web3.toWei(10),
-      3: web3.toWei(20),
-      4: web3.toWei(50)
-    }
-    let chain
-    let sigs
     let user
+    let childBlockInterval
 
     before(async function() {
       // link libs
       await linkLibs(web3Child)
 
-      user = accounts[0]
-      const amount = web3.toWei(10)
+      logDecoder = new LogDecoder([
+        RootToken._json.abi,
+        ERC20ValidatorMock._json.abi,
+        WithdrawManagerMock._json.abi
+      ])
 
-      wallets = generateFirstWallets(mnemonics, Object.keys(stakes).length)
-      stakeToken = await RootToken.new('Stake Token', 'STAKE')
+      user = accounts[0]
+
       rootToken = await RootToken.new('Test Token', 'TEST', { from: user })
-      stakeManager = await StakeManager.new(stakeToken.address)
-      rootChain = await RootChain.new(stakeManager.address)
-      await stakeManager.setRootChain(rootChain.address)
+      rootChain = await WithdrawManagerMock.new()
+
+      // set current header block
+      childBlockInterval = await rootChain.CHILD_BLOCK_INTERVAL()
+      rootChain.setCurrentHeaderBlock(+childBlockInterval)
 
       // child chain
       childChain = await ChildChain.new({ from: user, gas: 6000000 })
@@ -86,34 +74,27 @@ contract('ERC20Validator', async function(accounts) {
 
       // map root token
       await rootChain.mapToken(rootToken.address, childToken.address)
+    })
 
-      for (var i = 1; i < wallets.length; i++) {
-        const amount = stakes[i]
-        const user = wallets[i].getAddressString()
-
-        // get tokens
-        await stakeToken.transfer(user, amount)
-
-        // approve transfer
-        await stakeToken.approve(stakeManager.address, amount, { from: user })
-
-        // stake
-        await stakeManager.stake(amount, '0x0', { from: user })
-      }
-
-      // increase threshold to 2
-      await stakeManager.updateValidatorThreshold(2)
-      chain = await rootChain.chain()
+    it('should deposit token', async function() {
+      const amount = web3.toWei(10)
 
       // deposit amount
-      let receipt = await rootToken.approve(rootChain.address, amount, {
-        from: user
-      })
-      receipt = await rootChain.deposit(rootToken.address, user, amount, {
+      await rootToken.approve(rootChain.address, amount, {
         from: user
       })
 
-      const depositCount = receipt.logs[0].args.depositCount.toString()
+      let depositReceipt = await rootChain.deposit(
+        rootToken.address,
+        user,
+        amount,
+        {
+          from: user
+        }
+      )
+
+      const depositLogs = logDecoder.decodeLogs(depositReceipt.receipt.logs)
+      const depositCount = depositLogs[1].args._depositCount.toString()
       await childChain.depositTokens(
         rootToken.address,
         user,
@@ -125,7 +106,7 @@ contract('ERC20Validator', async function(accounts) {
       )
     })
 
-    it('transfer tokens', async function() {
+    it('should transfer tokens', async function() {
       const amount = web3.toWei(1)
 
       // transfer receipt
@@ -141,12 +122,13 @@ contract('ERC20Validator', async function(accounts) {
         receipt.transactionHash
       )
 
-      const _start = await rootChain.currentChildBlock()
-      const start = parseInt(_start, 10) > 0 ? parseInt(_start, 10) + 1 : 0
+      const start = transfer.blockNumber - 1
       const end = transfer.blockNumber
       const headers = await getHeaders(start, end, web3Child)
       const tree = new MerkleTree(headers)
       const v = getBlockHeader(transferBlock)
+
+      // check if verify works or not
       assert.isOk(
         tree.verify(
           v,
@@ -156,20 +138,15 @@ contract('ERC20Validator', async function(accounts) {
         )
       )
 
+      const headerNumber = 0
       const root = utils.bufferToHex(tree.getRoot())
-      sigs = utils.bufferToHex(
-        encodeSigs(
-          getSigs(wallets.slice(1), chain, root, start, end, [
-            await stakeManager.getProposer()
-          ])
-        )
-      )
-
-      // submit header block
-      receipt = await rootChain.submitHeaderBlock(
-        utils.bufferToHex(tree.getRoot()),
+      // set header block
+      await rootChain.setHeaderBlock(
+        headerNumber,
+        root,
+        start,
         end,
-        sigs
+        transferBlock.timestamp
       )
 
       // validate tx proof
@@ -191,17 +168,16 @@ contract('ERC20Validator', async function(accounts) {
 
       // validate header proof
       const headerProof = await tree.getProof(getBlockHeader(transferBlock))
-      const headerNumber = await rootChain.currentHeaderBlock()
 
       // create  erc20 validator
-      const erc20Validator = await ERC20Validator.new()
+      const erc20Validator = await ERC20ValidatorMock.new()
       await erc20Validator.changeRootChain(rootChain.address)
 
       // ERC20 validator
-      receipt = await erc20Validator.validateERC20TransferTx(
+      receipt = await erc20Validator.validateERC20Tx(
         utils.bufferToHex(
           rlp.encode([
-            +headerNumber.sub(new BN(1)).toString(), // header block
+            headerNumber, // header block
             utils.bufferToHex(Buffer.concat(headerProof)), // header proof
 
             transferBlock.number, // block number
@@ -218,7 +194,6 @@ contract('ERC20Validator', async function(accounts) {
           ])
         )
       )
-      // printReceiptEvents(receipt)
     })
   })
 })

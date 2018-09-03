@@ -38,8 +38,7 @@
     "seal": {
       "authorityRound": {
         "step": "0x0",
-        "signature":
-          "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+        "signature": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
       }
     },
     "difficulty": "0x00001",
@@ -50,31 +49,34 @@
       "balance": "1",
       "builtin": {
         "name": "ecrecover",
-        "pricing": {"linear": {"base": 3000, "word": 0}}
+        "pricing": { "linear": { "base": 3000, "word": 0 } }
       }
     },
     "0x0000000000000000000000000000000000000002": {
       "balance": "1",
       "builtin": {
         "name": "sha256",
-        "pricing": {"linear": {"base": 60, "word": 12}}
+        "pricing": { "linear": { "base": 60, "word": 12 } }
       }
     },
     "0x0000000000000000000000000000000000000003": {
       "balance": "1",
       "builtin": {
         "name": "ripemd160",
-        "pricing": {"linear": {"base": 600, "word": 120}}
+        "pricing": { "linear": { "base": 600, "word": 120 } }
       }
     },
     "0x0000000000000000000000000000000000000004": {
       "balance": "1",
       "builtin": {
         "name": "identity",
-        "pricing": {"linear": {"base": 15, "word": 3}}
+        "pricing": { "linear": { "base": 15, "word": 3 } }
       }
     },
     "0x9fb29aac15b9a4b7f17c3385939b007540f4d791": {
+      "balance": "10000000000000000000000000000"
+    },
+    "0x96c42c56fdb78294f96b0cfa33c92bed7d75f96a": {
       "balance": "10000000000000000000000000000"
     },
     "0xacf8eccdca12a0eb6ae4fb1431e26c44e66decdb": {

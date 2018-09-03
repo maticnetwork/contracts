@@ -1,8 +1,10 @@
-pragma solidity 0.4.24;
+pragma solidity ^0.4.24;
 
-import "../mixin/RootChainValidator.sol";
-import "../lib/RLP.sol";
-import "../lib/BytesLib.sol";
+import { RLP } from "../lib/RLP.sol";
+import { BytesLib } from "../lib/BytesLib.sol";
+
+import { RootChainValidator } from "../mixin/RootChainValidator.sol";
+import { RootChain } from "../root/RootChain.sol";
 
 
 contract ERC20Validator is RootChainValidator {
@@ -18,15 +20,15 @@ contract ERC20Validator is RootChainValidator {
   // keccak256('Withdraw(address,address,uint256)')
   // bytes32 constant public WITHDRAW_EVENT_SIGNATURE = 0x9b1bfa7fa9ee420a16e124f794c35ac9f90472acc99140eb2f6447c714cad8eb;
   // keccak256('Transfer(address,address,uint256)')
-  bytes32 constant public TRASFER_EVENT_SIGNATURE = 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef;
+  bytes32 constant public TRANSFER_EVENT_SIGNATURE = 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef;
   // keccak256('Approval(address,address,uint256)')
   bytes32 constant public APPROVAL_EVENT_SIGNATURE = 0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925;
   // keccak256('LogDeposit(uint256,uint256,uint256)')
   bytes32 constant public LOG_DEPOSIT_EVENT_SIGNATURE = 0xd5f41a4c53ae8d3f972ea59f65a253e16b5fca34ab8e51869011143e11f2ef20;
   // keccak256('LogWithdraw(uint256,uint256,uint256)')
   // bytes32 constant public LOG_WITHDRAW_EVENT_SIGNATURE = 0x3228bf4a0d547ed34051296b931fce02a1927888b6bc3dfbb85395d0cca1e9e0;
-  // keccak256('LogTransfer(uint256,uint256,uint256,uint256)')
-  bytes32 constant public LOG_TRANSFER_EVENT_SIGNATURE = 0xc079d0fae1a127a6cbdf9a66b53306735d9810d328fbb557cb130e62b80433ca;
+  // keccak256('LogTransfer(address,address,address,uint256,uint256,uint256,uint256,uint256)')
+  bytes32 constant public LOG_TRANSFER_EVENT_SIGNATURE = 0xe6497e3ee548a3372136af2fcb0696db31fc6cf20260707645068bd3fe97f3c4;
 
   // validate ERC20 TX
   function validateERC20TransferTx(
@@ -35,6 +37,15 @@ contract ERC20Validator is RootChainValidator {
     // validate transfer tx
     RLP.RLPItem[] memory txData = transferTx.toRLPItem().toList();
 
+    // validate ERC20 transfer tx
+    if (!_validateERC20TransferTx(txData)) {
+      RootChain(rootChain).slash();
+    }
+  }
+
+  function _validateERC20TransferTx(
+    RLP.RLPItem[] memory txData
+  ) internal returns (bool) {
     // validate tx receipt existence
     require(
       validateTxReceiptExistence(
@@ -56,20 +67,20 @@ contract ERC20Validator is RootChainValidator {
       )
     );
 
-    // validate ERC20 transfer tx
-    if (!_validateERC20TransferTx(txData[7].toData(), txData[9].toData())) {
-      rootChain.slash();
-    }
+    return _validateTransferTx(txData[7].toData(), txData[9].toData());
   }
 
-  function _validateERC20TransferTx(bytes txData, bytes receiptData) internal returns (bool) {
+  function _validateTransferTx(
+    bytes txData,
+    bytes receiptData
+  ) internal returns (bool) {
     // check transaction
     RLP.RLPItem[] memory items = txData.toRLPItem().toList();
     require(items.length == 9);
 
     // check if child token is mapped with root tokens
     address childToken = items[3].toAddress();
-    require(rootChain.reverseTokens(childToken) != address(0));
+    require(RootChain(rootChain).reverseTokens(childToken) != address(0));
 
     // check if transaction is transfer tx
     // <4 bytes transfer event,address (32 bytes),amount (32 bytes)>
@@ -82,7 +93,7 @@ contract ERC20Validator is RootChainValidator {
     }
 
     // sender
-    address sender = getTxSender(txData);
+    address sender = getTxSender(items);
 
     /*
       check receipt and data field
@@ -91,8 +102,8 @@ contract ERC20Validator is RootChainValidator {
         [1]
         [2]
         [3]-> [
-          [child token address, [TRASFER_EVENT_SIGNATURE, from, to], <amount>],
-          [child token address, [LOG_TRANSFER_EVENT_SIGNATURE], <input1,input2,output1,output2>]
+          [child token address, [TRANSFER_EVENT_SIGNATURE, from, to], <amount>],
+          [child token address, [LOG_TRANSFER_EVENT_SIGNATURE,token,from,to], <amount,input1,input2,output1,output2>]
         ]
     */
     items = receiptData.toRLPItem().toList();
@@ -125,7 +136,7 @@ contract ERC20Validator is RootChainValidator {
     address from,
     address to,
     uint256 amount,
-    RLP.RLPItem[] items // [child token address, [TRASFER_EVENT_SIGNATURE, from, to], <amount>]
+    RLP.RLPItem[] items // [child token address, [TRANSFER_EVENT_SIGNATURE, from, to], <amount>]
   ) internal view returns (bool) {
     if (items.length != 3) {
       return false;
@@ -135,7 +146,7 @@ contract ERC20Validator is RootChainValidator {
     if (
       topics.length == 3 &&
       items[0].toAddress() == childToken &&
-      topics[0].toBytes32() == TRASFER_EVENT_SIGNATURE &&
+      topics[0].toBytes32() == TRANSFER_EVENT_SIGNATURE &&
       BytesLib.toAddress(topics[1].toData(), 12) == from &&
       BytesLib.toAddress(topics[2].toData(), 12) == to &&
       BytesLib.toUint(items[2].toData(), 0) == amount
@@ -151,7 +162,7 @@ contract ERC20Validator is RootChainValidator {
     address from,
     address to,
     uint256 amount,
-    RLP.RLPItem[] items // [child token address, [LOG_TRANSFER_EVENT_SIGNATURE], <input1,input2,output1,output2>]
+    RLP.RLPItem[] items // [child token address, [LOG_TRANSFER_EVENT_SIGNATURE,token,from,to], <amount,input1,input2,output1,output2>]
   ) internal view returns (bool) {
     if (items.length != 3) {
       return false;
@@ -160,11 +171,14 @@ contract ERC20Validator is RootChainValidator {
     uint256 diff = from == to ? 0 : amount;
     RLP.RLPItem[] memory topics = items[1].toList();
     if (
-      topics.length == 1 &&
+      topics.length == 4 &&
       items[0].toAddress() == childToken &&
       topics[0].toBytes32() == LOG_TRANSFER_EVENT_SIGNATURE &&
-      (BytesLib.toUint(items[2].toData(), 0) - BytesLib.toUint(items[2].toData(), 64)) == diff &&
-      (BytesLib.toUint(items[2].toData(), 96) - BytesLib.toUint(items[2].toData(), 32)) == diff
+      BytesLib.toAddress(topics[2].toData(), 12) == from &&
+      BytesLib.toAddress(topics[3].toData(), 12) == to &&
+      BytesLib.toUint(items[2].toData(), 0) == amount &&
+      (BytesLib.toUint(items[2].toData(), 32) - BytesLib.toUint(items[2].toData(), 96)) == diff &&
+      (BytesLib.toUint(items[2].toData(), 128) - BytesLib.toUint(items[2].toData(), 64)) == diff
     ) {
       return true;
     }

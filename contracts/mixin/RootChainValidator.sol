@@ -1,41 +1,24 @@
-pragma solidity 0.4.24;
+pragma solidity ^0.4.24;
 
+import { Merkle } from "../lib/Merkle.sol";
+import { MerklePatriciaProof } from "../lib/MerklePatriciaProof.sol";
+import { RLP } from "../lib/RLP.sol";
+import { Common } from "../lib/Common.sol";
+import { RLPEncode } from "../lib/RLPEncode.sol";
+import { RootChain } from "../root/RootChain.sol";
 
-import "../lib/Merkle.sol";
-import "../lib/MerklePatriciaProof.sol";
-import "../lib/RLP.sol";
-import "../lib/Common.sol";
-import "../lib/RLPEncode.sol";
-import "../RootChainInterface.sol";
-import "./Lockable.sol";
+import { Lockable } from "./Lockable.sol";
+import { RootChainable } from "./RootChainable.sol";
 
 
 /**
  * @title RootChainValidator
  */
-contract RootChainValidator is Lockable {
+contract RootChainValidator is RootChainable, Lockable {
   using Merkle for bytes32;
   using RLP for bytes;
   using RLP for RLP.RLPItem;
   using RLP for RLP.Iterator;
-
-  RootChainInterface public rootChain;
-
-  // Rootchain changed
-  event RootChainChanged(
-    address indexed previousRootChain,
-    address indexed newRootChain
-  );
-
-  /**
-   * @dev Allows the current owner to change root chain address.
-   * @param newRootChain The address to new rootchain.
-   */
-  function changeRootChain(address newRootChain) external onlyOwner {
-    require(newRootChain != address(0));
-    emit RootChainChanged(rootChain, newRootChain);
-    rootChain = RootChainInterface(newRootChain);
-  }
 
   // validate transaction
   function validateTxExistence(
@@ -52,8 +35,10 @@ contract RootChainValidator is Lockable {
     bytes txBytes,
     bytes txProof
   ) public view returns (bool) {
-    // get header information
-    var (headerRoot, start,,) = rootChain.getHeaderBlock(headerNumber);
+    // fetch header block
+    bytes32 headerRoot;
+    uint256 start;
+    (headerRoot, start,,) = RootChain(rootChain).headerBlock(headerNumber);
 
     // check if tx's block is included in header and tx is in block
     return keccak256(blockNumber, blockTime, txRoot, receiptRoot)
@@ -174,24 +159,30 @@ contract RootChainValidator is Lockable {
   }
 
   // get tx sender
-  function getTxSender(bytes txBytes) public view returns (address) {
+  function getTxSender(bytes txBytes) internal view returns (address) {
     // check tx
     RLP.RLPItem[] memory txList = txBytes.toRLPItem().toList();
 
+    // get tx sender
+    return getTxSender(txList);
+  }
+
+  // get tx sender
+  function getTxSender(RLP.RLPItem[] txList) internal view returns (address) {
     // raw tx
     bytes[] memory rawTx = new bytes[](9);
     for (uint8 i = 0; i <= 5; i++) {
       rawTx[i] = txList[i].toData();
     }
     rawTx[4] = hex"";
-    rawTx[6] = rootChain.networkId();
+    rawTx[6] = RootChain(rootChain).networkId();
     rawTx[7] = hex"";
     rawTx[8] = hex"";
 
     // recover tx sender
     return ecrecover(
       keccak256(RLPEncode.encodeList(rawTx)),
-      Common.getV(txList[6].toData(), Common.toUint8(rootChain.networkId())),
+      Common.getV(txList[6].toData(), Common.toUint8(RootChain(rootChain).networkId())),
       txList[7].toBytes32(),
       txList[8].toBytes32()
     );

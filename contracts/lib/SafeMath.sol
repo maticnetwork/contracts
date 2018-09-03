@@ -1,4 +1,4 @@
-pragma solidity 0.4.24;
+pragma solidity ^0.4.24;
 
 
 /**
@@ -7,7 +7,7 @@ pragma solidity 0.4.24;
  */
 library SafeMath {
   function mul(uint256 a, uint256 b)
-    public
+    internal
     pure
     returns (uint256)
   {
@@ -20,7 +20,7 @@ library SafeMath {
   }
 
   function div(uint256 a, uint256 b)
-    public
+    internal
     pure
     returns (uint256)
   {
@@ -31,7 +31,7 @@ library SafeMath {
   }
 
   function sub(uint256 a, uint256 b)
-    public
+    internal
     pure
     returns (uint256)
   {
@@ -40,7 +40,7 @@ library SafeMath {
   }
 
   function add(uint256 a, uint256 b)
-    public
+    internal
     pure
     returns (uint256)
   {

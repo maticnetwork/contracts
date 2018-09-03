@@ -1,6 +1,6 @@
-pragma solidity 0.4.24;
+pragma solidity ^0.4.24;
 
-import "./StandardToken.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 
 
 contract WETH is ERC20 {

@@ -1,24 +1,24 @@
-pragma solidity 0.4.24;
-
-import "./lib/SafeMath.sol";
-import "./lib/ECVerify.sol";
-import "./lib/BytesLib.sol";
-import "./mixin/Lockable.sol";
-import "./token/ERC20.sol";
-
-import "./StakeManagerInterface.sol";
-import "./RootChainInterface.sol";
+pragma solidity ^0.4.24;
 
 
-contract StakeManager is StakeManagerInterface, Lockable {
+import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+
+import { ECVerify } from "../lib/ECVerify.sol";
+import { BytesLib } from "../lib/BytesLib.sol";
+import { Lockable } from "../mixin/Lockable.sol";
+import { RootChainable } from "../mixin/RootChainable.sol";
+
+import { StakeManagerInterface } from "./StakeManagerInterface.sol";
+import { RootChain } from "./RootChain.sol";
+
+
+contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   using SafeMath for uint256;
   using ECVerify for bytes32;
 
   // token object
   ERC20 public tokenObj;
-
-  // root chain object
-  RootChainInterface public rootChain;
 
   // validator threshold
   uint256 public _validatorThreshold = 0;
@@ -40,12 +40,17 @@ contract StakeManager is StakeManagerInterface, Lockable {
 
   // The randomness seed of the epoch.
   // This is used to determine the proposer and the validator pool
-  bytes32 public epochSeed = keccak256(block.difficulty + block.number + now);
+  bytes32 public epochSeed = keccak256(abi.encodePacked(block.difficulty + block.number + now));
 
   //
   // Events
   //
+
   event ThresholdChange(uint256 newThreshold, uint256 oldThreshold);
+
+  // ERC900
+  event Staked(address indexed user, uint256 amount, uint256 total, bytes data);
+  event Unstaked(address indexed user, uint256 amount, uint256 total, bytes data);
 
   //
   // Constructor
@@ -64,21 +69,6 @@ contract StakeManager is StakeManagerInterface, Lockable {
   modifier onlyStaker() {
     require(totalStakedFor(msg.sender) > 0);
     _;
-  }
-
-  // only root chain
-  modifier onlyRootChain() {
-    require(msg.sender == address(rootChain));
-    _;
-  }
-
-  //
-  // Rootchain management
-  //
-
-  function setRootChain(address addr) public onlyOwner {
-    require(addr != 0x0);
-    rootChain = RootChainInterface(addr);
   }
 
   //
@@ -200,7 +190,11 @@ contract StakeManager is StakeManagerInterface, Lockable {
     bytes sigs
   ) public view returns (uint256) {
     // create hash
-    bytes32 h = keccak256(rootChain.chain(), root, start, end);
+    bytes32 h = keccak256(
+      abi.encodePacked(
+        RootChain(rootChain).chain(), root, start, end
+      )
+    );
 
     // total signers
     uint256 totalSigners = 0;
@@ -228,6 +222,6 @@ contract StakeManager is StakeManagerInterface, Lockable {
 
   function finalizeCommit(address proposer) public onlyRootChain {
     // set epoch seed
-    epochSeed = keccak256(block.difficulty + block.number + now);
+    epochSeed = keccak256(abi.encodePacked(block.difficulty + block.number + now));
   }
 }

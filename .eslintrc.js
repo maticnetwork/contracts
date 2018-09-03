@@ -8,5 +8,10 @@ module.exports = {
   },
   rules: {
     'space-before-function-paren': ['error', 'never']
+  },
+  globals: {
+    contract: true,
+    web3: true,
+    assert: true
   }
 }
