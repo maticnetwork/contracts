@@ -46,11 +46,17 @@ contract DepositManager is IRootChain, TokenManager {
   // Public functions
   //
 
+  // Get next deposit block
+  function nextDepositBlock() public view returns (uint256) {
+    return currentHeaderBlock().sub(CHILD_BLOCK_INTERVAL).add(depositCount);
+  }
+
   function depositBlock(uint256 _depositCount) public view returns (
     uint256 _header,
     address _owner,
     address _token,
-    uint256 _amount
+    uint256 _amount,
+    uint256 _createdAt
   ) {
     DepositBlock memory _depositBlock = deposits[_depositCount];
 
@@ -58,6 +64,7 @@ contract DepositManager is IRootChain, TokenManager {
     _owner = _depositBlock.owner;
     _token = _depositBlock.token;
     _amount = _depositBlock.amount;
+    _createdAt = _depositBlock.createdAt;
   }
 
   // deposit ethers
@@ -110,18 +117,25 @@ contract DepositManager is IRootChain, TokenManager {
     // throws if token is not mapped
     require(_isTokenMapped(_token));
 
+    // Only allow up to CHILD_BLOCK_INTERVAL deposits per header block.
+    require(depositCount < CHILD_BLOCK_INTERVAL);
+
+    // get deposit id
+    uint256 _depositId = nextDepositBlock();
+
     // broadcast deposit event
-    emit Deposit(_user, _token, _amount, depositCount);
+    emit Deposit(_user, _token, _amount, _depositId);
 
     // add deposit into deposits
     DepositBlock memory _depositBlock = DepositBlock({
-      header: 1,
+      header: currentHeaderBlock(),
       owner: _user,
       token: _token,
-      amount: _amount
+      amount: _amount,
+      createdAt: block.timestamp
     });
 
-    deposits[depositCount] = _depositBlock;
+    deposits[_depositId] = _depositBlock;
 
     // increase deposit counter
     depositCount = depositCount.add(1);

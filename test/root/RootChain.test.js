@@ -72,6 +72,7 @@ contract('RootChain', async function(accounts) {
     let dummyRoot
     let sigs
     let logDecoder
+    let childBlockInterval
 
     before(async function() {
       // log decoder
@@ -85,6 +86,7 @@ contract('RootChain', async function(accounts) {
       stakeToken = await RootToken.new('Stake Token', 'STAKE')
       stakeManager = await StakeManager.new(stakeToken.address)
       rootChain = await RootChain.new(stakeManager.address)
+      childBlockInterval = await rootChain.CHILD_BLOCK_INTERVAL()
       await stakeManager.changeRootChain(rootChain.address)
 
       for (var i = 1; i < wallets.length; i++) {
@@ -123,7 +125,7 @@ contract('RootChain', async function(accounts) {
 
       // current header block
       const currentHeaderBlock = await rootChain.currentHeaderBlock()
-      currentHeaderBlock.should.be.bignumber.equal(0)
+      currentHeaderBlock.should.be.bignumber.equal(childBlockInterval)
 
       // check current child block
       const currentChildBlock = await rootChain.currentChildBlock()
@@ -148,7 +150,8 @@ contract('RootChain', async function(accounts) {
 
       // current header block
       const currentHeaderBlock = await rootChain.currentHeaderBlock()
-      assert.equal(+currentHeaderBlock, 1)
+      currentHeaderBlock.should.be.bignumber.equal(childBlockInterval.mul(2))
+      // assert.equal(+currentHeaderBlock, 1)
 
       // current child block
       const currentChildBlock = await rootChain.currentChildBlock()

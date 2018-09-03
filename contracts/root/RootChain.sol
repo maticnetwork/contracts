@@ -40,6 +40,12 @@ contract RootChain is Ownable, WithdrawManager {
 
   constructor (address _stakeManager) public {
     setStakeManager(_stakeManager);
+
+    // set current header block
+    _currentHeaderBlock = CHILD_BLOCK_INTERVAL;
+
+    // reset deposit count
+    depositCount = 1;
   }
 
   //
@@ -68,13 +74,38 @@ contract RootChain is Ownable, WithdrawManager {
   }
 
   //
-  // Public functions
+  // Fallback
   //
 
   // deposit ETH by sending to this contract
   function () public payable {
     depositEthers(msg.sender);
   }
+
+  //
+  // External functions
+  //
+
+
+  //
+  // Methods which will be called by validators
+  //
+
+  // delete exit
+  function deleteExit(uint256 exitId) external isValidator(msg.sender) {
+    ExitNFT exitNFT = ExitNFT(exitNFTContract);
+    address owner = exitNFT.ownerOf(exitId);
+    exitNFT.burn(owner, exitId);
+  }
+
+  // slash stakers if fraud is detected
+  function slash() external isValidator(msg.sender) {
+    // TODO pass block/proposer
+  }
+
+  //
+  // Public functions
+  //
 
   //
   // Admin functions
@@ -152,6 +183,8 @@ contract RootChain is Ownable, WithdrawManager {
       createdAt: block.timestamp
     });
     headerBlocks[_currentHeaderBlock] = headerBlock;
+
+    // emit new header block
     emit NewHeaderBlock(
       msg.sender,
       _currentHeaderBlock,
@@ -159,7 +192,12 @@ contract RootChain is Ownable, WithdrawManager {
       headerBlock.end,
       root
     );
-    _currentHeaderBlock = _currentHeaderBlock.add(1);
+
+    // update current header block
+    _currentHeaderBlock = _currentHeaderBlock.add(CHILD_BLOCK_INTERVAL);
+
+    // reset deposit count
+    depositCount = 1;
 
     // TODO add rewards
 
@@ -181,8 +219,8 @@ contract RootChain is Ownable, WithdrawManager {
   //
 
   function currentChildBlock() public view returns(uint256) {
-    if (_currentHeaderBlock != 0) {
-      return headerBlocks[_currentHeaderBlock.sub(1)].end;
+    if (_currentHeaderBlock != CHILD_BLOCK_INTERVAL) {
+      return headerBlocks[_currentHeaderBlock.sub(CHILD_BLOCK_INTERVAL)].end;
     }
 
     return 0;
@@ -209,22 +247,6 @@ contract RootChain is Ownable, WithdrawManager {
   // deposit ethers
   function depositEthers() public payable {
     depositEthers(msg.sender);
-  }
-
-  //
-  // Methods which will be called by validators
-  //
-
-  // delete exit
-  function deleteExit(uint256 exitId) external isValidator(msg.sender) {
-    ExitNFT exitNFT = ExitNFT(exitNFTContract);
-    address owner = exitNFT.ownerOf(exitId);
-    exitNFT.burn(owner, exitId);
-  }
-
-  // slash stakers if fraud is detected
-  function slash() external isValidator(msg.sender) {
-    // TODO pass block/proposer
   }
 
   //

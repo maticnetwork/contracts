@@ -80,7 +80,8 @@ contract IRootChainMock is IRootChain {
       header: _currentHeaderBlock,
       owner: address(0),
       token: address(0),
-      amount: _depositCount
+      amount: _depositCount,
+      createdAt: block.timestamp
     });
   }
 }

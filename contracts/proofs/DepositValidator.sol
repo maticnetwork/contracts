@@ -206,7 +206,7 @@ contract DepositValidator is RootChainValidator {
     uint256 _amount;
 
     // fetch deposit block
-    (,_rootToken, _depositor, _amount) = RootChain(rootChain).depositBlock(depositCount);
+    (,_rootToken, _depositor, _amount,) = RootChain(rootChain).depositBlock(depositCount);
 
     if (
       _rootToken == rootToken &&

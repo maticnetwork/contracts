@@ -42,6 +42,7 @@ contract('ERC20Validator', async function(accounts) {
     let rootChain
     let childChain
     let user
+    let childBlockInterval
 
     before(async function() {
       // link libs
@@ -54,10 +55,13 @@ contract('ERC20Validator', async function(accounts) {
       ])
 
       user = accounts[0]
-      const amount = web3.toWei(10)
 
       rootToken = await RootToken.new('Test Token', 'TEST', { from: user })
       rootChain = await WithdrawManagerMock.new()
+
+      // set current header block
+      childBlockInterval = await rootChain.CHILD_BLOCK_INTERVAL()
+      rootChain.setCurrentHeaderBlock(+childBlockInterval)
 
       // child chain
       childChain = await ChildChain.new({ from: user, gas: 6000000 })
@@ -70,6 +74,10 @@ contract('ERC20Validator', async function(accounts) {
 
       // map root token
       await rootChain.mapToken(rootToken.address, childToken.address)
+    })
+
+    it('should deposit token', async function() {
+      const amount = web3.toWei(10)
 
       // deposit amount
       await rootToken.approve(rootChain.address, amount, {
@@ -98,7 +106,7 @@ contract('ERC20Validator', async function(accounts) {
       )
     })
 
-    it('transfer tokens', async function() {
+    it('should transfer tokens', async function() {
       const amount = web3.toWei(1)
 
       // transfer receipt

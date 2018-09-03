@@ -292,6 +292,35 @@ contract WithdrawManager is DepositManager {
     );
   }
 
+  function withdrawDepositTokens(uint256 _depositCount) public {
+    // get and validate deposit block
+    DepositBlock _depositObject = deposits[_depositCount];
+    require(_depositObject.token != address(0) && _depositObject.owner == msg.sender);
+
+    // get header block
+    uint256 lastChildBlock;
+    (,,lastChildBlock,) = headerBlock(_depositObject.header);
+    require(lastChildBlock > 0);
+
+    // exit object
+    PlasmaExit memory _exitObject = PlasmaExit({
+      owner: msg.sender,
+      token: _depositObject.token,
+      amount: _depositObject.amount,
+      burnt: false
+    });
+
+    // draft exit id from deposit count
+    uint256 exitId = _depositCount * 1000000000000000000000000000000;
+
+    // add exit to queue
+    addExitToQueue(
+      _exitObject,
+      exitId,
+      _depositObject.createdAt
+    );
+  }
+
   //
   // Internal functions
   //
@@ -309,6 +338,12 @@ contract WithdrawManager is DepositManager {
   ) internal {
     // Check that we're exiting a known token.
     require(exitsQueues[_exitObject.token] != address(0));
+
+    // validate token exit
+    require(ownerExits[_exitObject.token][_exitObject.owner] == 0);
+
+    // validate amount
+    require(_exitObject.amount > 0);
 
     // Calculate priority.
     uint256 exitableAt = Math.max256(_createdAt + 2 weeks, block.timestamp + 1 weeks);
@@ -346,14 +381,11 @@ contract WithdrawManager is DepositManager {
     bytes path,
     uint8 oIndex
   ) internal {
-    // validate token exit
-    require(ownerExits[_exitObject.token][_exitObject.owner] == 0);
+    uint256 startBlock;
+    bytes32 headerRoot;
 
-    // validate amount
-    require(_exitObject.amount > 0);
-
-    // get header block object
-    HeaderBlock memory headerBlock = getHeaderBlock(headerNumber);
+    // get header block data
+    (headerRoot, startBlock,,) = headerBlock(headerNumber);
 
     // check block header
     require(
@@ -363,16 +395,23 @@ contract WithdrawManager is DepositManager {
         txRoot,
         receiptRoot
       ).checkMembership(
-        blockNumber - headerBlock.start,
-        headerBlock.root,
+        blockNumber - startBlock,
+        headerRoot,
         headerProof
       )
+    );
+
+    uint256 exitId = (
+      headerNumber * 1000000000000000000000000000000 +
+      blockNumber * 1000000000000 +
+      path.toRLPItem().toData().toRLPItem().toUint() * 100000 +
+      oIndex
     );
 
     // add exit to queue
     addExitToQueue(
       _exitObject,
-      blockNumber * 1000000000000 + path.toRLPItem().toData().toRLPItem().toUint() * 100000 + oIndex,
+      exitId,
       blockTime
     );
   }

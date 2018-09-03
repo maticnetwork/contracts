@@ -25,6 +25,10 @@ contract('DepositManager', async function(accounts) {
     owner = accounts[0]
     amount = web3.toWei(10) // 10 tokens
     depositManager = await DepositManagerMock.new({ from: owner })
+
+    const childBlockInterval = await depositManager.CHILD_BLOCK_INTERVAL()
+    await depositManager.setCurrentHeaderBlock(+childBlockInterval)
+
     rootToken = await RootToken.new('Root Token', 'ROOT')
     childToken = await RootToken.new('Child Token', 'CHILD')
 

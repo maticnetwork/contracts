@@ -66,10 +66,12 @@ contract('WithdrawManager', async function(accounts) {
       let exitNFTContract
 
       let exitId
+      let childBlockInterval
 
       before(async function() {
         // withdraw manager
         withdrawManager = await WithdrawManagerMock.new()
+        childBlockInterval = await withdrawManager.CHILD_BLOCK_INTERVAL()
 
         // root token / child chain / child token
         rootToken = await RootToken.new('Root Token', 'ROOT')
@@ -131,7 +133,7 @@ contract('WithdrawManager', async function(accounts) {
         const headers = await getHeaders(start, end, web3Child)
         const tree = new MerkleTree(headers)
         const headerRoot = utils.bufferToHex(tree.getRoot())
-        const headerNumber = 0
+        const headerNumber = +childBlockInterval
 
         // set header block (mocking header block)
         await withdrawManager.setHeaderBlock(
@@ -195,15 +197,11 @@ contract('WithdrawManager', async function(accounts) {
         )
         burnLogs.should.have.lengthOf(2)
 
-        // set tokenId
-        exitId =
-          1000000000000 * withdrawBlock.number +
-          100000 * withdrawReceipt.transactionIndex
-
         burnLogs[0].event.should.equal('Transfer')
         burnLogs[0].address.should.equal(exitNFTContract.address)
         burnLogs[0].args._to.toLowerCase().should.equal(user)
-        burnLogs[0].args._tokenId.should.be.bignumber.equal(exitId)
+
+        exitId = burnLogs[0].args._tokenId.toString()
 
         burnLogs[1].event.should.equal('ExitStarted')
         burnLogs[1].address.should.equal(withdrawManager.address)
@@ -452,16 +450,12 @@ contract('WithdrawManager', async function(accounts) {
         )
         exitLogs.should.have.lengthOf(2)
 
-        // set tokenId
-        exitId =
-          1000000000000 * withdrawBlock.number +
-          100000 * withdrawReceipt.transactionIndex +
-          1
-
         exitLogs[0].event.should.equal('Transfer')
         exitLogs[0].address.should.equal(exitNFTContract.address)
         exitLogs[0].args._to.toLowerCase().should.equal(user)
-        exitLogs[0].args._tokenId.should.be.bignumber.equal(exitId)
+
+        // exit id
+        exitId = exitLogs[0].args._tokenId.toString()
 
         exitLogs[1].event.should.equal('ExitStarted')
         exitLogs[1].address.should.equal(withdrawManager.address)

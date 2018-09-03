@@ -45,7 +45,14 @@ contract ExitValidator is RootChainValidator {
     require(getTxSender(txBytes) == owner);
 
     // check if tx happened after exit
-    require((blockNumber * 1000000000000 + path.toRLPItem().toData().toRLPItem().toUint() * 100000) > exitId);
+    uint256 exitId2 = (
+      headerNumber * 1000000000000000000000000000000 +
+      blockNumber * 1000000000000 +
+      path.toRLPItem().toData().toRLPItem().toUint() * 100000
+    );
+
+    // check if second transaction is after exiting tx
+    require(exitId2 > exitId);
 
     // burn nft without transferring money
     RootChain(rootChain).deleteExit(exitId);
