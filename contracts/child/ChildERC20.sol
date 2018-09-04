@@ -1,12 +1,18 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.24;
 
-import "../lib/AttachedSafeMath.sol";
+import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+
 import "../token/StandardToken.sol";
-import "../mixin/Ownable.sol";
 
 
 contract ChildERC20 is StandardToken, Ownable {
-  using AttachedSafeMath for uint256;
+  using SafeMath for uint256;
+
+  // detailed ERC20
+  string public name;
+  string public symbol;
+  uint8  public decimals;
 
   // token address on root chain
   address public token;
@@ -18,12 +24,18 @@ contract ChildERC20 is StandardToken, Ownable {
   event Withdraw(address indexed token, address indexed user, uint256 amount);
 
   event LogDeposit(
-    uint256 input1,
+    address indexed token,
+    address indexed from,
     uint256 amount,
+    uint256 input1,
     uint256 output1
   );
 
   event LogTransfer(
+    address indexed token,
+    address indexed from,
+    address indexed to,
+    uint256 amount,
     uint256 input1,
     uint256 input2,
     uint256 output1,
@@ -31,8 +43,10 @@ contract ChildERC20 is StandardToken, Ownable {
   );
 
   event LogWithdraw(
-    uint256 input1,
+    address indexed token,
+    address indexed from,
     uint256 amount,
+    uint256 input1,
     uint256 output1
   );
 
@@ -62,7 +76,7 @@ contract ChildERC20 is StandardToken, Ownable {
 
     // deposit events
     emit Deposit(token, user, amount);
-    emit LogDeposit(input1, amount, balances[user]);
+    emit LogDeposit(token, user, amount, input1, balanceOf(user));
   }
 
   /**
@@ -84,23 +98,31 @@ contract ChildERC20 is StandardToken, Ownable {
 
     // withdraw event
     emit Withdraw(token, user, amount);
-    emit LogWithdraw(input1, amount, balances[user]);
+    emit LogWithdraw(token, user, amount, input1, balanceOf(user));
   }
 
   /// @dev Function that is called when a user or another contract wants to transfer funds.
   /// @param _to Address of token receiver.
   /// @param _value Number of tokens to transfer.
-  /// @param _data Data to be sent to tokenFallback
   /// @return Returns success of function call.
-  function transfer( address _to, uint256 _value, bytes _data) public returns (bool) {
+  function transfer( address _to, uint256 _value) public returns (bool) {
     uint256 _input1 = balanceOf(msg.sender);
     uint256 _input2 = balanceOf(_to);
 
     // actual transfer
-    bool result = super.transfer(_to, _value, _data);
+    bool result = super.transfer(_to, _value);
 
     // log balance
-    emit LogTransfer(_input1, _input2, balanceOf(msg.sender), balanceOf(_to));
+    emit LogTransfer(
+      token,
+      msg.sender,
+      _to,
+      _value,
+      _input1,
+      _input2,
+      balanceOf(msg.sender),
+      balanceOf(_to)
+    );
 
     return result;
   }
@@ -118,7 +140,16 @@ contract ChildERC20 is StandardToken, Ownable {
     bool result = super.transferFrom(_from, _to, _value);
 
     // log balance
-    emit LogTransfer(_input1, _input2, balanceOf(_from), balanceOf(_to));
+    emit LogTransfer(
+      token,
+      _from,
+      _to,
+      _value,
+      _input1,
+      _input2,
+      balanceOf(_from),
+      balanceOf(_to)
+    );
 
     return result;
   }

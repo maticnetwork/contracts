@@ -1,14 +1,12 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.24;
 
 
 library BytesLib {
-  /* solhint-disable function-max-lines */
   function concat(
     bytes memory _preBytes,
     bytes memory _postBytes
   ) public pure returns (bytes) {
     bytes memory tempBytes;
-    // solhint-disable-next-line no-inline-assembly
     assembly {
       // Get a location of some free memory and store it in tempBytes as
       // Solidity does for memory variables.
@@ -83,7 +81,6 @@ library BytesLib {
   ) public pure returns (bytes) {
     require(_bytes.length >= (_start + _length));
     bytes memory tempBytes;
-    // solhint-disable-next-line no-inline-assembly
     assembly {
       switch iszero(_length)
       case 0 {
@@ -134,7 +131,6 @@ library BytesLib {
 
     return tempBytes;
   }
-  /* solhint-enable function-max-lines */
 
   // Pad a bytes array to 32 bytes
   function leftPad(bytes _bytes) public pure returns (bytes) {
@@ -165,7 +161,6 @@ library BytesLib {
   }
 
   function fromUint(uint256 _num) public pure returns (bytes _ret) {
-    // solhint-disable-next-line no-inline-assembly
     assembly {
       _ret := mload(0x10)
       mstore(_ret, 0x20)
@@ -176,7 +171,6 @@ library BytesLib {
   function toUint(bytes _bytes, uint _start) public pure returns (uint256) {
     require(_bytes.length >= (_start + 32));
     uint256 tempUint;
-    // solhint-disable-next-line no-inline-assembly
     assembly {
       tempUint := mload(add(add(_bytes, 0x20), _start))
     }
@@ -186,7 +180,6 @@ library BytesLib {
   function toAddress(bytes _bytes, uint _start) public  pure returns (address) {
     require(_bytes.length >= (_start + 20));
     address tempAddress;
-    // solhint-disable-next-line no-inline-assembly
     assembly {
       tempAddress := div(mload(add(add(_bytes, 0x20), _start)), 0x1000000000000000000000000)
     }

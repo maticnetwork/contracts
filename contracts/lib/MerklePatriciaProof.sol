@@ -4,7 +4,7 @@
  *
  * @dev Library for verifing merkle patricia proofs.
  */
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.24;
 
 import "./RLP.sol";
 
@@ -18,13 +18,12 @@ library MerklePatriciaProof {
    * @param root The root hash of the trie.
    * @return The boolean validity of the proof.
    */
-  /* solhint-disable code-complexity, function-max-lines */
   function verify(
     bytes value,
     bytes encodedPath,
     bytes rlpParentNodes,
     bytes32 root
-  ) public constant returns (bool) {
+  ) public view returns (bool) {
     RLP.RLPItem memory item = RLP.toRLPItem(rlpParentNodes);
     RLP.RLPItem[] memory parentNodes = RLP.toList(item);
 
@@ -91,7 +90,7 @@ library MerklePatriciaProof {
     bytes encodedPartialPath,
     bytes path,
     uint pathPtr
-  ) private constant returns (uint) {
+  ) private view returns (uint) {
     uint len;
     // encodedPartialPath has elements that are each two hex characters (1 byte), but partialPath
     // and slicedPath have elements that are each one hex character (1 nibble)
@@ -129,7 +128,7 @@ library MerklePatriciaProof {
         offset = 0;
       }
 
-      for (uint i=offset; i < nibbles.length; i++) {
+      for (uint i = offset; i < nibbles.length; i++) {
         nibbles[i] = _getNthNibbleOfBytes(i-offset + 2, b);
       }
     }

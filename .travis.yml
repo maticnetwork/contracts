@@ -9,9 +9,13 @@ cache:
     - node_modules
 matrix:
   fast_finish: true
-before_install:
-  - sudo add-apt-repository -y ppa:ethereum/ethereum
+install:
   - sudo apt-get -qq update
-  - sudo apt-get install ethereum-unstable
+  - sudo apt-get --yes install snapd
+  - sudo snap install parity --stable
+  - snap list
+before_script:
+  - export PATH=/snap/bin:${PATH}
+  - npm install
 script:
-  - npm run test-ci
+  - npm run test:ci

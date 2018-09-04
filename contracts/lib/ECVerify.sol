@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.24;
 
 
 library ECVerify {
@@ -14,7 +14,7 @@ library ECVerify {
       return 0;
     }
 
-    assembly { // solhint-disable-line
+    assembly {
       r := mload(add(sig, 32))
       s := mload(add(sig, 64))
       v := and(mload(add(sig, 65)), 255)
@@ -45,7 +45,7 @@ library ECVerify {
     bytes32 s
   ) public pure returns (address) {
     // get address out of hash and signature
-    address result =  ecrecover(hash, v, r, s);
+    address result = ecrecover(hash, v, r, s);
 
     // ecrecover returns zero on error
     require(result != 0x0);

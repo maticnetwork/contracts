@@ -7,11 +7,13 @@
   "scripts": {
     "testrpc": "ganache-cli --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' --gasLimit 13000000",
     "truffle": "truffle",
-    "test": "truffle test",
-    "test-ci": "scripts/run-test.sh",
-    "lint-contracts": "solhint -d contracts/**/*.sol",
-    "lint-js": "eslint src/**/*.js test/**/*.js",
-    "lint": "npm run lint-contracts && npm run lint-js"
+    "truffle:test": "truffle test",
+    "truffle:compile": "truffle compile",
+    "test:ci": "scripts/run-test.sh",
+    "lint": "npm run lint:sol && npm run lint:js",
+    "lint:js": "eslint src/**/*.js test/**/*.js",
+    "lint:sol:fix": "solium -d contracts/ --fix",
+    "lint:sol": "solium -d contracts/"
   },
   "repository": {
     "type": "git",
@@ -35,16 +37,21 @@
     "babel-preset-stage-2": "^6.24.1",
     "babel-preset-stage-3": "^6.24.1",
     "bip39": "^2.5.0",
+    "chai": "^4.1.2",
+    "chai-as-promised": "^7.1.1",
+    "chai-bignumber": "^2.0.2",
     "eslint": "^4.17.0",
     "eslint-config-standard": "^11.0.0-beta.0",
     "eslint-plugin-import": "^2.8.0",
     "eslint-plugin-node": "^6.0.0",
     "eslint-plugin-promise": "^3.6.0",
     "eslint-plugin-standard": "^3.0.1",
+    "eth-gas-reporter": "^0.1.10",
     "ethereumjs-wallet": "^0.6.0",
+    "ethers": "^3.0.26",
     "safe-buffer": "^5.1.1",
-    "solhint": "^1.1.10",
-    "truffle": "^4.1.8",
+    "solium": "^1.1.8",
+    "truffle": "^4.1.14",
     "web3": "^1.0.0-beta.30"
   },
   "dependencies": {
@@ -54,6 +61,7 @@
     "ethereumjs-tx": "^1.3.3",
     "ethereumjs-util": "^5.1.2",
     "ganache-cli": "^6.0.3",
-    "merkle-patricia-tree": "^2.3.0"
+    "merkle-patricia-tree": "^2.3.0",
+    "openzeppelin-solidity": "1.12.0"
   }
 }

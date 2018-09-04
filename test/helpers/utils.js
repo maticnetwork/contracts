@@ -7,10 +7,21 @@ import * as contracts from './contracts'
 
 const BN = utils.BN
 
+export const ZeroAddress = '0x0000000000000000000000000000000000000000'
+
 export async function mineOneBlock() {
-  await web3.currentProvider.send({
+  return web3.currentProvider.send({
     jsonrpc: '2.0',
     method: 'evm_mine',
+    id: new Date().getTime()
+  })
+}
+
+export async function increaseBlockTime(seconds) {
+  return web3.currentProvider.send({
+    jsonrpc: '2.0',
+    method: 'evm_increaseTime',
+    params: [seconds],
     id: new Date().getTime()
   })
 }
@@ -29,7 +40,6 @@ export async function linkLibs(web3Child) {
     contracts.Merkle,
     contracts.RLPEncode,
     contracts.BytesLib,
-    contracts.SafeMath,
     contracts.Common
   ]
   const contractList = [
@@ -37,8 +47,15 @@ export async function linkLibs(web3Child) {
     contracts.RootChain,
     contracts.RootToken,
     contracts.MaticWETH,
+    contracts.StakeManagerMock,
+    contracts.TokenManagerMock,
+    contracts.IRootChainMock,
+    contracts.DepositManagerMock,
+    contracts.WithdrawManagerMock,
     contracts.TxValidator,
-    contracts.ERC20Validator
+    contracts.ExitValidator,
+    contracts.ERC20Validator,
+    contracts.ERC20ValidatorMock
   ]
 
   const libAddresses = {}
@@ -60,7 +77,8 @@ export async function linkLibs(web3Child) {
   // web3Child
   if (web3Child) {
     const childContractList = [contracts.ChildChain, contracts.ChildToken]
-    for (var i = 0; i < libList.length; i++) {
+    let i
+    for (i = 0; i < libList.length; i++) {
       const M = libList[i]
       const web3 = M.web3 // backup
       M.web3 = web3Child // set for now

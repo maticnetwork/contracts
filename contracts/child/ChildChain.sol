@@ -1,12 +1,12 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.24;
 
-import "../lib/AttachedSafeMath.sol";
-import "../mixin/Ownable.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "./ChildERC20.sol";
 
 
 contract ChildChain is Ownable {
-  using AttachedSafeMath for uint256;
+  using SafeMath for uint256;
 
   //
   // Storage
@@ -18,6 +18,9 @@ contract ChildChain is Ownable {
   // deposit mapping
   mapping(uint256 => bool) public deposits;
 
+  // withdraw mapping
+  mapping(uint256 => bool) public withdraws;
+
   //
   // Events
   //
@@ -26,12 +29,21 @@ contract ChildChain is Ownable {
     address indexed token,
     uint8 _decimals
   );
+
   event TokenDeposited(
     address indexed rootToken,
     address indexed childToken,
     address indexed user,
     uint256 amount,
     uint256 depositCount
+  );
+
+  event TokenWithdrawn(
+    address indexed rootToken,
+    address indexed childToken,
+    address indexed user,
+    uint256 amount,
+    uint256 withrawCount
   );
 
   constructor () public {
@@ -79,5 +91,31 @@ contract ChildChain is Ownable {
 
     // Emit TokenDeposited event
     emit TokenDeposited(rootToken, childToken, user, amount, depositCount);
+  }
+
+  function withdrawTokens(
+    address rootToken,
+    address user,
+    uint256 amount,
+    uint256 withdrawCount
+  ) public onlyOwner {
+    // check if withdrawal happens only once
+    require(withdraws[withdrawCount] == false);
+
+    // set withdrawal flag
+    withdraws[withdrawCount] = true;
+
+    // retrieve child tokens
+    address childToken = tokens[rootToken];
+
+    // check if child token is mapped
+    require(childToken != address(0x0));
+
+    // withdraw tokens
+    ChildERC20 obj = ChildERC20(childToken);
+    obj.withdraw(amount);
+
+    // Emit TokenWithdrawn event
+    emit TokenWithdrawn(rootToken, childToken, user, amount, withdrawCount);
   }
 }

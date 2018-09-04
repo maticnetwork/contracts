@@ -1,8 +1,10 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.24;
 
+import { RLP } from "../lib/RLP.sol";
+import { Merkle } from "../lib/Merkle.sol";
+import { RootChainValidator } from "../mixin/RootChainValidator.sol";
 
-import "../lib/RLP.sol";
-import "../mixin/RootChainValidator.sol";
+import { RootChain } from "../root/RootChain.sol";
 
 
 contract TxValidator is RootChainValidator {
@@ -28,7 +30,8 @@ contract TxValidator is RootChainValidator {
 
     bytes receiptBytes,
     bytes receiptProof
-  ) public {
+  ) public
+  {
     // validate tx
     if (
       !validateTx(
@@ -46,7 +49,7 @@ contract TxValidator is RootChainValidator {
       )
     ) {
       // slash if tx is not valid
-      rootChain.slash();
+      RootChain(rootChain).slash();
       return;
     }
 

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.24;
 
 import "./BytesLib.sol";
 
@@ -15,7 +15,7 @@ library Common {
   //assemble the given address bytecode. If bytecode exists then the _addr is a contract.
   function isContract(address _addr) public view returns (bool) {
     uint length;
-    assembly { // solhint-disable-line
+    assembly {
       //retrieve the size of the code on target address, this needs assembly
       length := extcodesize(_addr)
     }

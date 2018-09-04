@@ -1,0 +1,27 @@
+[parity]
+chain = "poa-spec.json"
+base_path = "data"
+
+[network]
+port = 30300
+
+[rpc]
+port = 8546
+cors = []
+apis = ["web3", "eth", "net", "personal", "parity", "parity_set", "traces", "rpc", "parity_accounts"]
+
+[ui]
+port = 8180
+
+[websockets]
+port = 8541
+
+[account]
+unlock = ["0x9fb29aac15b9a4b7f17c3385939b007540f4d791","0x96c42c56fdb78294f96b0cfa33c92bed7d75f96a","0xacf8eccdca12a0eb6ae4fb1431e26c44e66decdb"]
+password = ["node.password", "node.password", "node.password"]
+
+[mining]
+engine_signer = "0x9fb29aac15b9a4b7f17c3385939b007540f4d791"
+reseal_on_txs = "none"
+reseal_min_period = 1000
+reseal_max_period = 60000

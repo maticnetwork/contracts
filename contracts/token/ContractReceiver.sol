@@ -1,8 +1,9 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.24;
 
  /*
  * Contract that is working with ERC223 tokens
  */
+
 
 /// @title ContractReceiver - Standard contract implementation for compatibility with ERC 223 tokens.
 contract ContractReceiver {
