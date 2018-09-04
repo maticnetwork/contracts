@@ -6,6 +6,8 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { ECVerify } from "../lib/ECVerify.sol";
 import { BytesLib } from "../lib/BytesLib.sol";
+import { PriorityQueue } from "../lib/PriorityQueue.sol";
+
 import { Lockable } from "../mixin/Lockable.sol";
 import { RootChainable } from "../mixin/RootChainable.sol";
 
@@ -14,214 +16,211 @@ import { RootChain } from "./RootChain.sol";
 
 
 contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
-  using SafeMath for uint256;
-  using ECVerify for bytes32;
+    using SafeMath for uint256;
+    using SafeMath for uint8;
+    using ECVerify for bytes32;
+    
+    PriorityQueue stakeQueue;
+    // token object
+    ERC20 public tokenObj;
 
-  // token object
-  ERC20 public tokenObj;
+    // The randomness seed of the epoch.
+    // This is used to determine the proposer and the validator pool
+    bytes32 public epochSeed = keccak256(abi.encodePacked(block.difficulty + block.number + now));
+    
+    // validator threshold
+    uint256 public _validatorThreshold = 0;
+    // total stake
+    uint256 public totalStake;
 
-  // validator threshold
-  uint256 public _validatorThreshold = 0;
-
-  // pool of stakers and validators
-  struct Stake {
-    uint256 amount;
-    address staker;
-  }
-
-  // map of stakers (address => staked index)
-  mapping(address => uint256) public stakers;
-
-  // stake list
-  Stake[] public stakeList;
-
-  // total stake
-  uint256 public totalStake;
-
-  // The randomness seed of the epoch.
-  // This is used to determine the proposer and the validator pool
-  bytes32 public epochSeed = keccak256(abi.encodePacked(block.difficulty + block.number + now));
-
-  //
-  // Events
-  //
-
-  event ThresholdChange(uint256 newThreshold, uint256 oldThreshold);
-
-  // ERC900
-  event Staked(address indexed user, uint256 amount, uint256 total, bytes data);
-  event Unstaked(address indexed user, uint256 amount, uint256 total, bytes data);
-
-  //
-  // Constructor
-  //
-
-  constructor (address _token) public {
-    require(_token != 0x0);
-    tokenObj = ERC20(_token);
-  }
-
-  //
-  // Modifiers
-  //
-
-  // only staker
-  modifier onlyStaker() {
-    require(totalStakedFor(msg.sender) > 0);
-    _;
-  }
-
-  //
-  // ERC900 implementation
-  //
-
-  function stake(uint256 amount, bytes data) public {
-    stakeFor(msg.sender, amount, data);
-  }
-
-  function stakeFor(address user, uint256 amount, bytes data) public onlyWhenUnlocked {
-    require(amount > 0);
-
-    // transfer tokens to stake manager
-    require(tokenObj.transferFrom(msg.sender, address(this), amount));
-
-    // check staker is present or not
-    if (stakers[user] == 0) {
-      // actual staker cannot be on index 0
-      if (stakeList.length == 0) {
-        stakeList.push(Stake({
-          amount: 0,
-          staker: address(0x0)
-        }));
-      }
-
-      // add new stake
-      stakeList.push(Stake({
-        amount: 0,
-        staker: user
-      }));
-      stakers[user] = stakeList.length - 1;
+    // current epoch
+    uint256 public currentEpoch;
+    
+    //Todo getter, setter, dynamically update
+    uint256 minStakeAmount;
+    uint256 minLockInPeriod; //(unit epochs)
+    
+    struct staker {
+        uint256 epoch;  // init 0
+        uint256 amount;
+        bytes data;
+        bool exit;
+    }
+    
+    struct stakeExit {
+      uint256 amount;
+      address stakerAddress;
     }
 
-    // add amount
-    uint256 stakedAmount = totalStakedFor(user).add(amount);
-    stakeList[stakers[user]].amount = stakedAmount;
+    stakeExit[] exiterList;
+    address[] stakersList;
+    address[] currentValidators;
 
-    // update total stake
-    totalStake = totalStake.add(amount);
+    mapping (address=>staker) stakers; 
 
-    // broadcast event
-    emit Staked(user, amount, stakedAmount, data);
-  }
+    constructor(address _token) public {
+      require(_token != 0x0);
+      tokenObj = ERC20(_token);
+      currentEpoch = 0;
+      stakeQueue = new PriorityQueue();
+    }
 
-  function unstake(uint256 amount, bytes data) public onlyStaker {
-    uint256 currentStake = totalStakedFor(msg.sender);
-    require(amount <= currentStake);
+     // only staker
+    modifier onlyStaker() {
+      require(totalStakedFor(msg.sender) > 0);
+      _;
+    }
 
-    // reduce stake
-    uint256 stakedAmount = currentStake.sub(amount);
-    stakeList[stakers[msg.sender]].amount = stakedAmount;
+    // use data and amount to calculate priority
+    function _priority(uint256 amount, bytes data)internal pure returns(uint256){
+      return amount; 
+      // maybe use % stake vs balance of staker
+      // and also add % of total stake for voting power
+    }
 
-    // reduce total stake
-    totalStake = totalStake.sub(amount);
+    function stake(uint256 amount, bytes data) public {
+      // add condition to update already existing users stake !? 
+      if(stakers[msg.sender].epoch==0){
+        stakeFor(msg.sender, amount, data);
+      }else{
+        revert();
+      }
+    }
+  
+    function stakeFor(address user, uint256 amount, bytes data) public onlyWhenUnlocked {
+      require(amount > 0);
+      uint256 priority = _priority(amount, data);
+      // use this 
+      //       if (stakeList.length == 0) {
+      //   stakeList.push(Stake({
+      //     amount: 0,
+      //     staker: address(0x0)
+      //   }));
+      // }
+      // transfer tokens to stake manager
+      require(tokenObj.transferFrom(msg.sender, address(this), amount));
+      stakeQueue.insert(priority, amount);
+      stakers[user] = staker(currentEpoch, amount, data);
+      // update total stake
+      totalStake = totalStake.add(amount);
+      //event staked
+      emit Staked(user, amount, stakedAmount, data);
+    }
 
+    // returns validators
+    function selectRound() public  returns (address[]){
+        // add condition for currentSize of PQ
+        currentEpoch = currentEpoch.add(1);
+        _unstake();
+
+        currentValidators = new address[](_validatorThreshold);
+        for(uint8 i=0; i<_validatorThreshold; i++){
+          address memory validator = stakeQueue.delMin();
+          validators.push(validator);
+        }
+
+        for(uint8 i=0; i<_validatorThreshold; i++){
+          address validator = validators[i];
+          if(stakers[validator].amount>0){
+            uint priority = _priority(stakers[validator].amount, stakers[validator].data);
+            stakeQueue.insert(priority, amount);
+          }
+        }
+        return validators;
+    }
+
+    // unstake and transfer amount for all valid exiters
+    function _unstake() private {
+       for(uint8 i=0;i<exiterList.length;i++){
+          // it's time . 
+          if(stakers[exiterList[i].stakerAddress].exit && (currentEpoch - stakers[exiterList[i].stakerAddress].epoch) <= minLockInPeriod 
+          && exiterList[i].epoch == stakers[exiterList[i].stakerAddress].epoch ){
+            unstaked(exiterList[i].amount,exiterList[i].stakerAddress);
+            //transfer
+            exiterList[i].exit = false;
+            //delete exiterList[i]; 
+            // delete from staker list if there is no stake left
+          }
+        }
+    }
+
+    function unstake(uint256 amount, bytes data) public {
+      require(stakers[msg.sender]); //staker exists
+      // require(stakers[msg.sender].epoch!=0); 
+      require(stakers[msg.sender].amount >= amount);
+      stakers[msg.sender].amount = stakers[msg.sender].amount.sub(amount);
+      exiterList.push(stakeExit(msg.sender,amount));
+      totalStake = totalStake.sub(amount);
+      // should do it in get validators list
     // transfer stake amount
-    tokenObj.transfer(msg.sender, amount);
-
-    // broadcast event
-    emit Unstaked(msg.sender, amount, stakedAmount, data);
-  }
-
-  function totalStakedFor(address addr) public view returns (uint256) {
-    return stakeList[stakers[addr]].amount;
-  }
-
-  function totalStaked() public view returns (uint256) {
-    return totalStake;
-  }
-
-  function token() public view returns (address) {
-    return address(tokenObj);
-  }
-
-  function supportsHistory() public pure returns (bool) {
-    return false;
-  }
-
-  // optional
-  // function lastStakedFor(address addr) public view returns (uint256);
-  // function totalStakedForAt(address addr, uint256 blockNumber) public view returns (uint256);
-  // function totalStakedAt(uint256 blockNumber) public view returns (uint256);
-
-  //
-  // PoS functions
-  //
-
-  // Change the number of validators required to allow a passed header root
-  function updateValidatorThreshold(uint256 newThreshold) public onlyOwner {
-    emit ThresholdChange(newThreshold, _validatorThreshold);
-    _validatorThreshold = newThreshold;
-  }
-
-  // Sample a proposer. Likelihood of being chosen is proportional to stake size.
-  function getProposer() public view returns (address) {
-    // Convert the seed to an index
-    uint256 target = uint256(epochSeed) % totalStake;
-    // Index of stake list
-    uint64 i = 1;
-    // Total stake
-    uint256 sum = 0;
-    while (sum < target) {
-      sum += stakeList[i].amount;
-      i += 1;
+    // tokenObj.transfer(msg.sender, amount);
+     // broadcast event
+    // emit Unstaked(msg.sender, amount, stakedAmount, data);
     }
 
-    return stakeList[i - 1].staker;
-  }
-
-  //
-  // Validator functions
-  //
-
-  function checkSignatures(
-    bytes32 root,
-    uint256 start,
-    uint256 end,
-    bytes sigs
-  ) public view returns (uint256) {
-    // create hash
-    bytes32 h = keccak256(
-      abi.encodePacked(
-        RootChain(rootChain).chain(), root, start, end
-      )
-    );
-
-    // total signers
-    uint256 totalSigners = 0;
-
-    address lastAdd = address(0); // cannot have address(0) as an owner
-    for (uint64 i = 0; i < sigs.length; i += 65) {
-      bytes memory sigElement = BytesLib.slice(sigs, i, 65);
-      address signer = h.ecrecovery(sigElement);
-
-      // check if signer is stacker and not proposer
-      if (totalStakedFor(signer) > 0 && signer != getProposer() && signer > lastAdd) {
-        lastAdd = signer;
-        totalSigners++;
-      } else {
-        break;
-      }
+    function totalStakedFor(address addr) public view onlyStaker returns (uint256){
+      require(stakers[addr]!=0);
+      return stakers[addr].amount;
     }
 
-    return totalSigners;
-  }
+    function totalStaked() public view returns (uint256){
+      return totalStake;
+    }
 
-  function validatorThreshold() public view returns (uint256) {
-    return _validatorThreshold;
-  }
+    function token() public view returns (address){
+      return address(tokenObj);
+    }
 
-  function finalizeCommit(address proposer) public onlyRootChain {
-    // set epoch seed
-    epochSeed = keccak256(abi.encodePacked(block.difficulty + block.number + now));
-  }
+    function supportsHistory() public pure returns (bool){
+      return false;
+    }
+
+    function validatorThreshold() public view returns (uint256) {
+      return _validatorThreshold;
+    }
+
+    // Change the number of validators required to allow a passed header root
+    function updateValidatorThreshold(uint256 newThreshold) public onlyOwner {
+      emit ThresholdChange(newThreshold, _validatorThreshold);
+      _validatorThreshold = newThreshold;
+    }
+
+    function finalizeCommit(address proposer) public onlyRootChain {
+      // set epoch seed
+      epochSeed = keccak256(abi.encodePacked(block.difficulty + block.number + now));
+    }
 }
+
+
+  // function checkSignatures(
+  //   bytes32 root,
+  //   uint256 start,
+  //   uint256 end,
+  //   bytes sigs
+  // ) public view returns (uint256) {
+  //   // create hash
+  //   bytes32 h = keccak256(
+  //     abi.encodePacked(
+  //       RootChain(rootChain).chain(), root, start, end
+  //     )
+  //   );
+
+  //   // total signers
+  //   uint256 totalSigners = 0;
+
+  //   address lastAdd = address(0); // cannot have address(0) as an owner
+  //   for (uint64 i = 0; i < sigs.length; i += 65) {
+  //     bytes memory sigElement = BytesLib.slice(sigs, i, 65);
+  //     address signer = h.ecrecovery(sigElement);
+
+  //     // check if signer is stacker and not proposer
+  //     if (totalStakedFor(signer) > 0 && signer != getProposer() && signer > lastAdd) {
+  //       lastAdd = signer;
+  //       totalSigners++;
+  //     } else {
+  //       break;
+  //     }
+  //   }
+
+  //   return totalSigners;
+  // }
