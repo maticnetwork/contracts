@@ -80,7 +80,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
 
     function stake(uint256 amount, bytes data) public {
       // add condition to update already existing users stake !? 
-      if(stakers[msg.sender].epoch==0){
+      if(stakers[msg.sender].epoch==0){ 
         stakeFor(msg.sender, amount, data);
       }else{
         revert();
@@ -90,17 +90,16 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     function stakeFor(address user, uint256 amount, bytes data) public onlyWhenUnlocked {
       require(amount > 0);
       uint256 priority = _priority(amount, data);
-      // use this 
-      //       if (stakeList.length == 0) {
-      //   stakeList.push(Stake({
-      //     amount: 0,
-      //     staker: address(0x0)
-      //   }));
-      // }
+      // // actual staker cannot be on index 0
+      if (stakeList.length == 0) {
+          stakeList.push(address(0x0));
+          stakers[address(0x0)] = staker(0, 0, bytes(0));
+      }
       // transfer tokens to stake manager
       require(tokenObj.transferFrom(msg.sender, address(this), amount));
       stakeQueue.insert(priority, amount);
       stakers[user] = staker(currentEpoch, amount, data);
+      stakeList.push(user);
       // update total stake
       totalStake = totalStake.add(amount);
       //event staked
@@ -132,14 +131,13 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     // unstake and transfer amount for all valid exiters
     function _unstake() private {
        for(uint8 i=0;i<exiterList.length;i++){
-          // it's time . 
-          if(stakers[exiterList[i].stakerAddress].exit && (currentEpoch - stakers[exiterList[i].stakerAddress].epoch) <= minLockInPeriod 
-          && exiterList[i].epoch == stakers[exiterList[i].stakerAddress].epoch ){
-            unstaked(exiterList[i].amount,exiterList[i].stakerAddress);
-            //transfer
+          if(exiterList[i]!=0 && stakers[exiterList[i].stakerAddress].exit 
+          && (currentEpoch - stakers[exiterList[i].stakerAddress].epoch) <= minLockInPeriod ){
+            require(tokenObj.transfer(msg.sender, exiterList[i].amount));
             exiterList[i].exit = false;
-            //delete exiterList[i]; 
+            delete exiterList[i]; 
             // delete from staker list if there is no stake left
+            emit unstaked(exiterList[i].amount,exiterList[i].stakerAddress);
           }
         }
     }
@@ -151,11 +149,6 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
       stakers[msg.sender].amount = stakers[msg.sender].amount.sub(amount);
       exiterList.push(stakeExit(msg.sender,amount));
       totalStake = totalStake.sub(amount);
-      // should do it in get validators list
-    // transfer stake amount
-    // tokenObj.transfer(msg.sender, amount);
-     // broadcast event
-    // emit Unstaked(msg.sender, amount, stakedAmount, data);
     }
 
     function totalStakedFor(address addr) public view onlyStaker returns (uint256){
