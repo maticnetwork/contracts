@@ -36,9 +36,9 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     // current epoch
     uint256 public currentEpoch;
     
-    //Todo getter, setter, dynamically update
-    uint256 minStakeAmount;
-    uint256 minLockInPeriod; //(unit epochs)
+    //Todo: dynamically update
+    uint256 public minStakeAmount;
+    uint256 public minLockInPeriod; //(unit epochs)
     
     struct staker {
         uint256 epoch;  // init 0
@@ -62,6 +62,8 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
       require(_token != 0x0);
       tokenObj = ERC20(_token);
       currentEpoch = 0;
+      minStakeAmount = 0;
+      minLockInPeriod = 1;
       stakeQueue = new PriorityQueue();
     }
 
@@ -90,7 +92,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     function stakeFor(address user, uint256 amount, bytes data) public onlyWhenUnlocked {
       require(amount > 0);
       uint256 priority = _priority(amount, data);
-      // // actual staker cannot be on index 0
+      // actual staker cannot be on index 0
       if (stakeList.length == 0) {
           stakeList.push(address(0x0));
           stakers[address(0x0)] = staker(0, 0, bytes(0));
@@ -136,7 +138,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
             require(tokenObj.transfer(msg.sender, exiterList[i].amount));
             exiterList[i].exit = false;
             delete exiterList[i]; 
-            // delete from staker list if there is no stake left
+            // Todo: delete from staker list if there is no stake left
             emit unstaked(exiterList[i].amount,exiterList[i].stakerAddress);
           }
         }
@@ -182,6 +184,15 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
       // set epoch seed
       epochSeed = keccak256(abi.encodePacked(block.difficulty + block.number + now));
     }
+
+    function updateMinStakeAmount(uint256 amount) public onlyRootChain {
+      minStakeAmount = amount;
+    }
+
+    function updateMinLockInPeriod(uint256 epochs) public onlyRootChain {
+      minLockInPeriod = epochs;
+    }
+
 }
 
 
