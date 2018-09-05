@@ -31,14 +31,16 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   // validator threshold
   uint256 public _validatorThreshold = 0;
   // total stake
-  uint256 public totalStake;
+  uint256 public totalStake = 0;
 
   // current epoch
-  uint256 public currentEpoch;
-
+  uint256 public currentEpoch = 0;
+  
+  event ThresholdChange(uint256 newThreshold, uint256 oldThreshold);
+  
   //Todo: dynamically update
-  uint256 public minStakeAmount;
-  uint256 public minLockInPeriod; //(unit epochs)
+  uint256 public minStakeAmount = 0;
+  uint256 public minLockInPeriod = 1; //(unit epochs)
 
   struct staker {
     uint256 epoch;  // init 0
@@ -61,9 +63,6 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   constructor(address _token) public {
     require(_token != 0x0);
     tokenObj = ERC20(_token);
-    currentEpoch = 0;
-    minStakeAmount = 0;
-    minLockInPeriod = 1;
     stakeQueue = new PriorityQueue();
   }
 
@@ -74,8 +73,8 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   }
 
   // use data and amount to calculate priority
-  function _priority(address user, uint256 amount, bytes data)internal pure returns(uint128){
-    uint128 priority = amount.mul(100).div(user.balance);
+  function _priority(address user, uint256 amount, bytes data)internal pure returns(uint256){
+    uint256 priority = amount.mul(100).div(user.balance);
     // priority = priority << 64 | amount.div(totalStake) ;
     return priority; 
     // maybe use % stake vs balance of staker
@@ -95,19 +94,18 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     require(amount > 0);
     uint256 priority = _priority(user, amount, data);
     // actual staker cannot be on index 0
-    if (stakeList.length == 0) {
-        stakeList.push(address(0x0));
-        stakers[address(0x0)] = staker(0, 0, bytes(0));
+    if (stakersList.length == 0) {
+        stakersList.push(address(0x0));
+        stakers[address(0x0)] = staker(0, 0, new bytes(0), false);
     }
     // transfer tokens to stake manager
     require(tokenObj.transferFrom(msg.sender, address(this), amount));
     stakeQueue.insert(priority, amount);
-    stakers[user] = staker(currentEpoch, amount, data);
-    stakeList.push(user);
+    stakers[user] = staker(currentEpoch, amount, data, false);
+    stakersList.push(user);
     // update total stake
     totalStake = totalStake.add(amount);
-    //event staked
-    emit Staked(user, amount, stakedAmount, data);
+    emit Staked(user, amount, totalStake, data);
   }
 
   // returns validators
@@ -115,11 +113,11 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
       // add condition for currentSize of PQ
       currentEpoch = currentEpoch.add(1);
       _unstake();
-      if (stakeQueue.currentSize>=_validatorThreshold){
+      if (stakeQueue.currentSize >= _validatorThreshold){
         address[] memory validators = new address[](_validatorThreshold);
-
+        address validator;
         for(uint8 i=0; i<_validatorThreshold;){
-          address memory validator = stakeQueue.delMin();
+          validator = stakeQueue.delMin();
           if(stakers[validator].amount > minStakeAmount && !stakers[validator].exit){
             validators.push(validator);
             i=i.add(1);
@@ -131,11 +129,11 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
         }
 
         // add previous validators to priority queue
-        for(uint8 i=0; i<currentValidators.length; i++){
-          address memory validator = currentValidators[i];
+        for(i=0; i<currentValidators.length; i++){
+          validator = currentValidators[i];
           if(stakers[validator].amount>0){
-            uint priority = _priority(validator, stakers[validator].amount, stakers[validator].data);
-            stakeQueue.insert(priority, amount);
+            uint256 priority = _priority(validator, stakers[validator].amount, stakers[validator].data);
+            stakeQueue.insert(priority, validator.amount);
           }
         }
         // ?
@@ -154,7 +152,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
           exiterList[i].exit = false;
           delete exiterList[i]; 
           // Todo: delete from staker list if there is no stake left
-          emit unstaked(exiterList[i].amount,exiterList[i].stakerAddress);
+          emit Unstaked(exiterList[i].amount,exiterList[i].stakerAddress);
         }
       }
   }
