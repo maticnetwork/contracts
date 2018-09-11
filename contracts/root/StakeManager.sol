@@ -104,8 +104,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     }
     // transfer tokens to stake manager
     require(tokenObj.transferFrom(user, address(this), amount));
-    stakers[user] = staker(currentEpoch, amount, data, false, stakersList.length);
-    stakers[user].stakingId = stakingIdCount;
+    stakers[user] = staker(currentEpoch, amount, data, false, stakersList.length, stakingIdCount);
     stakingIdToAddress[stakingIdCount] = user;
     stakeQueue.insert(priority, stakingIdCount);
     stakersList.push(user);
