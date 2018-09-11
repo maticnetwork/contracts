@@ -179,7 +179,7 @@ contract('StakeManager', async function(accounts) {
 
     it('should get the validators and make sure it is a staker', async() => {
       const validatorsLogs = await stakeManager.getValidators()
-      const validators = stakeManager.currentValidators()
+      // const validators = stakeManager.currentValidators()
       const user = wallets[4].getAddressString()
       const logs = logDecoder.decodeLogs(validatorsLogs.receipt.logs)
       logs.should.have.lengthOf(2)

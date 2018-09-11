@@ -49,7 +49,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     bytes data;
     bool exit;
     uint256 stakingId; // rename 
-    }
+  }
 
   struct stakeExit {
     uint256 amount;
@@ -84,7 +84,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
 
   function stake(uint256 amount, bytes data) public {
     // add condition to update already existing users stake !? 
-    if(stakers[msg.sender].epoch==0){ 
+    if (stakers[msg.sender].epoch==0) { 
       stakeFor(msg.sender, amount, data);
     }else{
       revert();
@@ -97,10 +97,10 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     uint256 priority = _priority(user, amount, data);
     // actual staker cannot be on index 0
     if (stakersList.length == 0) {
-        stakersList.push(address(0x0));
-        stakers[address(0x0)] = staker(0, 0, new bytes(0), false, stakingIdCount);
-        stakingIdToAddress[stakingIdCount] = address(0x0);
-        stakingIdCount.add(1);
+      stakersList.push(address(0x0));
+      stakers[address(0x0)] = staker(0, 0, new bytes(0), false, stakingIdCount);
+      stakingIdToAddress[stakingIdCount] = address(0x0);
+      stakingIdCount.add(1);
     }
     // transfer tokens to stake manager
     require(tokenObj.transferFrom(user, address(this), amount));
@@ -119,63 +119,62 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   // returns validators
   function getValidators() public returns (address[]){
       // add condition for currentSize of PQ
-      currentEpoch = currentEpoch.add(1);
+    currentEpoch = currentEpoch.add(1);
 
-      //trigger: lazy unstake with epoch validation
-      _unstake();
+  //trigger: lazy unstake with epoch validation
+    _unstake();
 
-      //choose new validators if available 
-      if (stakeQueue.currentSize() >=  _validatorThreshold ){
-        address[] validators; // TODO: use currentValidators as swap
-        address validator;
-        uint256 stakerId;
-        
-        for(uint256 i=0; i<_validatorThreshold;i++){
-          ( , stakerId) = stakeQueue.delMin();
-            validators.push(stakingIdToAddress[stakerId]);
-            delete stakingIdToAddress[stakerId];
+    //choose new validators if available 
+    if (stakeQueue.currentSize() >=  _validatorThreshold ){
+      address[] validators; // TODO: use currentValidators as swap
+      address validator;
+      uint256 stakerId;
+      
+      for (uint256 i=0; i<_validatorThreshold;i++) {
+        ( , stakerId) = stakeQueue.delMin();
+        validators.push(stakingIdToAddress[stakerId]);
+        delete stakingIdToAddress[stakerId];
+      }
+
+      // add previous validators to priority queue
+      for (i=0; i<currentValidators.length; i++) {
+        validator = currentValidators[i];
+        if (!stakers[validator].exit) {
+          uint256 priority = _priority(validator, stakers[validator].amount, stakers[validator].data);
+          stakeQueue.insert(priority, stakingIdCount);
+          stakingIdToAddress[stakingIdCount] = validator;
+          stakingIdCount.add(1);
         }
-
-        // add previous validators to priority queue
-        for(i=0; i<currentValidators.length; i--){
-          validator = currentValidators[i];
-          if(!stakers[validator].exit){
-            uint256 priority = _priority(validator, stakers[validator].amount, stakers[validator].data);
-            stakeQueue.insert(priority, stakingIdCount);
-            stakingIdToAddress[stakingIdCount] = validator;
-            stakingIdCount.add(1);
-          }
-          // copy into current validators
-          if(i<validators.length){
-            currentValidators[i] = validators[i];
-          }else{
-            delete currentValidators[i];
-          }
+        // copy into current validators
+        if (i<validators.length) {
+          currentValidators[i] = validators[i];
+        }else{
+          delete currentValidators[i];
         }
       }
-      return currentValidators;
+    }
+    return currentValidators;
   }
 
   // unstake and transfer amount for all valid exiters
   function _unstake() private {
-      for(uint8 i=0;i<exiterList.length;i++){
-        if(stakers[exiterList[i].stakerAddress].exit 
-        && (currentEpoch - stakers[exiterList[i].stakerAddress].epoch) <= minLockInPeriod ){
-          if(stakers[exiterList[i].stakerAddress].amount == 0) { //  or take it all back if less then min
-            // stakerList[] = stakerList[] delete index
-            delete stakers[exiterList[i].stakerAddress];
-          }else{
-            stakers[exiterList[i].stakerAddress].exit = false;
-          }
-          require(tokenObj.transfer(exiterList[i].stakerAddress, exiterList[i].amount));
-          //delete from exiter list
-          emit Unstaked(exiterList[i].stakerAddress, exiterList[i].amount, totalStake, '0');
-          exiterList[i] = exiterList[exiterList.length -1]; 
-          delete exiterList[exiterList.length -1]; 
-
-          // Todo: delete from staker list if there is no stake left
+    for (uint8 i=0;i<exiterList.length;i++) {
+      if (stakers[exiterList[i].stakerAddress].exit && (currentEpoch - stakers[exiterList[i].stakerAddress].epoch) <= minLockInPeriod ) {
+        if (stakers[exiterList[i].stakerAddress].amount == 0) { //  or take it all back if less then min
+          // stakerList[] = stakerList[] delete index
+          delete stakers[exiterList[i].stakerAddress];
+        }else{
+          stakers[exiterList[i].stakerAddress].exit = false;
         }
+        require(tokenObj.transfer(exiterList[i].stakerAddress, exiterList[i].amount));
+        //delete from exiter list
+        emit Unstaked(exiterList[i].stakerAddress, exiterList[i].amount, totalStake, '0');
+        exiterList[i] = exiterList[exiterList.length -1]; 
+        delete exiterList[exiterList.length -1]; 
+
+        // Todo: delete from staker list if there is no stake left
       }
+    }
   }
 
   function unstake(uint256 amount, bytes data) public {
