@@ -63,7 +63,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   mapping (address=>staker) stakers; 
   mapping (uint256=>address) stakingIdToAddress;
 
-  constructor(address _token) public {
+  constructor(address _token) public payable {
     require(_token != 0x0);
     tokenObj = ERC20(_token);
     stakeQueue = new PriorityQueue();
@@ -172,11 +172,11 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
           }
           require(tokenObj.transfer(exiterList[i].stakerAddress, exiterList[i].amount));
           //delete from exiter list
+          emit Unstaked(exiterList[i].stakerAddress, exiterList[i].amount, totalStake, '0');
           exiterList[i] = exiterList[exiterList.length -1]; 
           delete exiterList[exiterList.length -1]; 
 
           // Todo: delete from staker list if there is no stake left
-          emit Unstaked(exiterList[i].stakerAddress, exiterList[i].amount, totalStake, '0');
         }
       }
   }

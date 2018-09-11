@@ -167,18 +167,6 @@ contract('StakeManager', async function(accounts) {
       await stakeManager.unstake(web3.toWei(26), '0x0', {
         from: user
       })
-      // const logs = logDecoder.decodeLogs(unstakeReceipt.receipt.logs)
-      // logs.should.have.lengthOf(2)
-
-      // logs[0].event.should.equal('Transfer')
-      // logs[0].args.from.toLowerCase().should.equal(stakeManager.address)
-      // logs[0].args.to.toLowerCase().should.equal(user)
-      // logs[0].args.value.should.be.bignumber.equal(web3.toWei(26))
-
-      // logs[1].event.should.equal('Unstaked')
-      // logs[1].args.user.toLowerCase().should.equal(user)
-      // logs[1].args.amount.should.be.bignumber.equal(web3.toWei(26))
-      // logs[1].args.total.should.be.bignumber.equal(web3.toWei(100 - 26))
 
       // check amount
       const totalStake = await stakeManager.totalStaked()
@@ -190,8 +178,20 @@ contract('StakeManager', async function(accounts) {
     })
 
     it('should get the validators and make sure it is a staker', async() => {
-      const validators = await stakeManager.getValidators()
-      console.log(validators)
+      const validatorsLogs = await stakeManager.getValidators()
+      const validators = stakeManager.currentValidators()
+      const user = wallets[4].getAddressString()
+      const logs = logDecoder.decodeLogs(validatorsLogs.receipt.logs)
+      logs.should.have.lengthOf(2)
+
+      logs[0].event.should.equal('Transfer')
+      logs[0].args.from.toLowerCase().should.equal(stakeManager.address)
+      logs[0].args.to.toLowerCase().should.equal(user)
+      logs[0].args.value.should.be.bignumber.equal(web3.toWei(26))
+
+      logs[1].event.should.equal('Unstaked')
+      logs[1].args.user.toLowerCase().should.equal(user)
+      logs[1].args.amount.should.be.bignumber.equal(web3.toWei(26))
       // assert.isOk(
       //   proposer === wallets[1].getAddressString() ||
       //     proposer === wallets[2].getAddressString() ||
@@ -200,62 +200,4 @@ contract('StakeManager', async function(accounts) {
       // )
     })
   })
-
-  // describe('Proposer', async function() {
-  //   let stakeToken
-  //   let stakeManager
-  //   let wallets
-  //   let stakes = {
-  //     1: web3.toWei(1),
-  //     2: web3.toWei(10),
-  //     3: web3.toWei(20),
-  //     4: web3.toWei(50)
-  //   }
-
-  //   before(async function() {
-  //     wallets = generateFirstWallets(mnemonics, Object.keys(stakes).length)
-  //     stakeToken = await RootToken.new('Stake Token', 'STAKE')
-  //     stakeManager = await StakeManagerMock.new(stakeToken.address)
-
-  //     for (var i = 1; i < wallets.length; i++) {
-  //       const amount = stakes[i]
-  //       const user = wallets[i].getAddressString()
-
-  //       // get tokens
-  //       await stakeToken.mint(user, amount)
-
-  //       // approve transfer
-  //       await stakeToken.approve(stakeManager.address, amount, {
-  //         from: user
-  //       })
-
-  //       // stake
-  //       await stakeManager.stake(amount, '0x0', { from: user })
-  //     }
-
-  //     // increase threshold to 2
-  //     await stakeManager.updateValidatorThreshold(2)
-  //   })
-
-  //   it('should change proposer properly', async function() {
-  //     let proposer = await stakeManager.getProposer()
-  //     assert.isOk(
-  //       proposer === wallets[1].getAddressString() ||
-  //         proposer === wallets[2].getAddressString() ||
-  //         proposer === wallets[3].getAddressString() ||
-  //         proposer === wallets[4].getAddressString()
-  //     )
-
-  //     // finalize commit (changing proproser)
-  //     await stakeManager.finalizeCommit(proposer)
-
-  //     proposer = await stakeManager.getProposer()
-  //     assert.isOk(
-  //       proposer === wallets[1].getAddressString() ||
-  //         proposer === wallets[2].getAddressString() ||
-  //         proposer === wallets[3].getAddressString() ||
-  //         proposer === wallets[4].getAddressString()
-  //     )
-  //   })
 })
-// })
