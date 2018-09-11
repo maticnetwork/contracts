@@ -75,14 +75,11 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     _;
   }
 
-  // use data and amount to calculate priority
+  
   function _priority(address user, uint256 amount, bytes data)internal view returns(uint256){
-    uint256 priority = amount.mul(100).div(user.balance); // rename it 
     // priority = priority << 64 | amount.div(totalStake) ;
-    return amount.add(priority); 
-    // maybe use % stake vs balance of staker
-    // and also add % of total stake for voting power
-    //use epoch age as well
+    // return amount.mul(10000000).add(currentEpoch.mul(1000).add(amount.mul(100).div(user.balance)));
+    return amount;
   }
 
   function stake(uint256 amount, bytes data) public {
