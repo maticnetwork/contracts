@@ -58,7 +58,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
 
   stakeExit[] exiterList;
   address[] stakersList;
-  address[] currentValidators;
+  address[] public currentValidators;
 
   mapping (address=>staker) stakers; 
   mapping (uint256=>address) stakingIdToAddress;
@@ -228,7 +228,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
 
   // need changes 
   function getProposer()  public view returns (address){
-    currentValidators[0];
+    return currentValidators[1];
   }
 
   function checkSignatures(
