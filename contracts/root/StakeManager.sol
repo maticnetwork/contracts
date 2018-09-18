@@ -30,29 +30,30 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   // This is used to determine the proposer and the validator pool
   bytes32 public epochSeed = keccak256(abi.encodePacked(block.difficulty + block.number + now));
 
+  event ThresholdChange(uint256 newThreshold, uint256 oldThreshold);
+  //optional event to ack unstaking
+  event UnstakeInit(address indexed user, uint256 amount, uint256 total, bytes data); 
+
   // validator threshold
   uint256 public _validatorThreshold = 0;
   // total stake
   uint256 public totalStake = 0;
-
   // current epoch
   uint256 public currentEpoch = 0;
-  
-  event ThresholdChange(uint256 newThreshold, uint256 oldThreshold);
-  //option event to ack unstaking
-  event UnstakeInit(address indexed user, uint256 amount, uint256 total, bytes data); 
-  
+
   //Todo: dynamically update
   uint256 public minStakeAmount = 0;
   uint256 public minLockInPeriod = 1; //(unit epochs)
   uint256 public stakingIdCount = 0;  // just a counter/index to map it with PQ w/address
 
+  enum State { isStaker, isValidator, isProposer, isBaned, isUnstaking }
+
   struct Staker {
     uint256 epoch;  // init 0 
     uint256 amount;
     bytes data;
-    bool exit;
-    uint256 stakingId; // rename 
+    State state;
+    uint256 stakingId; 
   }
 
   struct StakeExit {
@@ -102,13 +103,14 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     // actual staker cannot be on index 0
     if (stakersList.length == 0) {
       stakersList.push(address(0x0));
-      stakers[address(0x0)] = Staker(0, 0, new bytes(0), false, stakingIdCount);
+      stakers[address(0x0)] = Staker(0, 0, new bytes(0), State.isStaker, stakingIdCount);
       stakingIdToAddress[stakingIdCount] = address(0x0);
       stakingIdCount.add(1);
     }
+
     // transfer tokens to stake manager
     require(tokenObj.transferFrom(user, address(this), amount));
-    stakers[user] = Staker(currentEpoch, amount, data, false, stakingIdCount);
+    stakers[user] = Staker(currentEpoch, amount, data, State.isStaker, stakingIdCount);
     stakingIdToAddress[stakingIdCount] = user;
     stakeQueue.insert(priority, stakingIdCount);
     stakersList.push(user);
@@ -137,6 +139,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
         ( , stakerId) = stakeQueue.delMin();
         validator = stakingIdToAddress[stakerId];
         validators.push(validator);
+        stakers[validator].state = State.isValidator;
         validatorSet.addValidator(validator, stakers[validator].amount);
         delete stakingIdToAddress[stakerId];
       }
@@ -144,7 +147,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
       // add previous validators to priority queue
       for (i = 0; i < currentValidators.length; i++) {
         validator = currentValidators[i];
-        if (!stakers[validator].exit) {
+        if (stakers[validator].state != State.isValidator) {
           uint256 priority = _priority(validator, stakers[validator].amount, stakers[validator].data);
           stakeQueue.insert(priority, stakingIdCount);
           stakingIdToAddress[stakingIdCount] = validator;
@@ -164,20 +167,22 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   // unstake and transfer amount for all valid exiters
   function _unstake() private {
     for (uint8 i = 0;i < exiterList.length; i++) {
-      if (stakers[exiterList[i].stakerAddress].exit && (currentEpoch - stakers[exiterList[i].stakerAddress].epoch) <= minLockInPeriod ) {
-        if (stakers[exiterList[i].stakerAddress].amount == 0) { //  or take it all back if less then min
+      if (stakers[exiterList[i].stakerAddress].state == State.isUnstaking && (
+        currentEpoch - stakers[exiterList[i].stakerAddress].epoch) <= minLockInPeriod ) {
+
+        // remove form stakerlist
+        if (stakers[exiterList[i].stakerAddress].amount == 0) { 
           // stakerList[] = stakerList[] delete index
           delete stakers[exiterList[i].stakerAddress];
-        }else{
-          stakers[exiterList[i].stakerAddress].exit = false;
+        } else {
+          stakers[exiterList[i].stakerAddress].state = State.isUnstaking;
         }
+        
         require(tokenObj.transfer(exiterList[i].stakerAddress, exiterList[i].amount));
         //delete from exiter list
         emit Unstaked(exiterList[i].stakerAddress, exiterList[i].amount, totalStake, "0");
         exiterList[i] = exiterList[exiterList.length - 1]; 
-   
         delete exiterList[exiterList.length - 1]; 
-
         // Todo: delete from staker list if there is no stake left
       }
     }
@@ -186,12 +191,13 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   function unstake(uint256 amount, bytes data) public { // onlyownder
     // require(stakers[msg.sender]); //staker exists
     // require(stakers[msg.sender].epoch!=0); 
+    require(stakers[msg.sender].state != State.isBaned);
     require(stakers[msg.sender].amount >= amount);
     stakers[msg.sender].amount = stakers[msg.sender].amount.sub(amount);
-    stakers[msg.sender].exit = true;
+    stakers[msg.sender].state = State.isUnstaking;
     exiterList.push(StakeExit(amount, msg.sender));
     totalStake = totalStake.sub(amount);
-    emit UnstakeInit(msg.sender, amount, uint256 totalStake, bytes stakers[msg.sender].data);
+    emit UnstakeInit(msg.sender, amount, totalStake, stakers[msg.sender].data);
   }
 
   function totalStakedFor(address addr) public view returns (uint256){ // onlyowner ?
