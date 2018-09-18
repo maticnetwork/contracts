@@ -1,56 +1,50 @@
 pragma solidity ^0.4.24;
 
-import { RootChain } from "./RootChain.sol";
+import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+
 import { RootChainable } from "../mixin/RootChainable.sol";
-import { StakeManager } from "./StakeManager.sol";
+import { Lockable } from "../mixin/Lockable.sol";
 
-
-contract ValidatorSet is RootChainable {
+contract ValidatorSet is RootChainable, Lockable {
+  using SafeMath for uint256;
+  using SafeMath for uint8;
 
   struct Validator {
-    uint256 stake;
+    uint256 votingPower;
     int256 accumulator;
     address validator;
   }
 
-  uint256 private sum;
+  uint256 private totalVotingPower;
   Validator[] public validators;
-  address public currentProposer;
-
-  StakeManager public stakeManager;
+  address public proposer;
 
   constructor() public {
-    stakeManager = RootChain(rootChain).stakeManager;
-  }
-
-  function addValidators(address[] validators) public onlyRootChain {
-    sum = 0;
-    currentProposer = address(0);
-    for(uint8 i= 0; i < validators.length; i++) {
-      uint256 stake = stakeManager.totalStakedFor(validators[i]);
-      validators.push(Validator(stake, int256(stake), validators[i]));
-      sum += stake;
-    }
-    
+    proposer = address(0);
   }
   
-  function getProposer() public onlyRootChain returns(address) {
+  function addValidator(address validator, uint256 votingPower) public {
+    require(votingPower > 0);
+    validators.push(Validator(votingPower, int256(votingPower), validator));
+    totalVotingPower += votingPower;
+  }
+
+  function _getProposer() public returns(address) {
     require(validators.length > 0);
-    if (currentProposer == address(0)) {
+    if (proposer == address(0)) {
       return selectProposer();
     }
     incrAccumulator();
-
     return selectProposer();
   }
 
-  function incrAccumulator(uint8 times) private  {
+  function incrAccumulator() private  {
     for (uint8 i = 0; i < validators.length; i++) {
-      validators[i].accumulator += int(validators[i].stake); 
+      validators[i].accumulator += int(validators[i].votingPower); 
     }
   }
 
-  function selectProposer() private returns (address currentProposer) {
+  function selectProposer() private returns (address) {
     int256 max = -99999999999999;//  use -ve max
     uint8 index = 0;
     for (uint8 i = 0; i < validators.length; i++) {
@@ -60,9 +54,9 @@ contract ValidatorSet is RootChainable {
       }
     }
 
-    validators[index].accumulator -= int(sum);
-    currentProposer = validators[index].validator;
-
+    validators[index].accumulator -= int(totalVotingPower);
+    proposer = validators[index].validator;
+    return proposer;
   }
 
 }
