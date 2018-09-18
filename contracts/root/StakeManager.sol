@@ -15,6 +15,7 @@ import { StakeManagerInterface } from "./StakeManagerInterface.sol";
 import { RootChain } from "./RootChain.sol";
 import { ValidatorSet } from "./ValidatorSet.sol"; 
 
+
 contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   using SafeMath for uint256;
   using SafeMath for uint8;
@@ -44,7 +45,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   uint256 public minLockInPeriod = 1; //(unit epochs)
   uint256 public stakingIdCount = 0;  // just a counter/index to map it with PQ w/address
 
-  struct staker {
+  struct Staker {
     uint256 epoch;  // init 0 
     uint256 amount;
     bytes data;
@@ -52,16 +53,16 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     uint256 stakingId; // rename 
   }
 
-  struct stakeExit {
+  struct StakeExit {
     uint256 amount;
     address stakerAddress;
   }
 
-  stakeExit[] exiterList;
+  StakeExit[] exiterList;
   address[] stakersList;
   address[] public currentValidators;
 
-  mapping (address=>staker) stakers; 
+  mapping (address=>Staker) stakers; 
   mapping (uint256=>address) stakingIdToAddress;
 
   constructor(address _token) public payable {
@@ -99,13 +100,13 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     // actual staker cannot be on index 0
     if (stakersList.length == 0) {
       stakersList.push(address(0x0));
-      stakers[address(0x0)] = staker(0, 0, new bytes(0), false, stakingIdCount);
+      stakers[address(0x0)] = Staker(0, 0, new bytes(0), false, stakingIdCount);
       stakingIdToAddress[stakingIdCount] = address(0x0);
       stakingIdCount.add(1);
     }
     // transfer tokens to stake manager
     require(tokenObj.transferFrom(user, address(this), amount));
-    stakers[user] = staker(currentEpoch, amount, data, false, stakingIdCount);
+    stakers[user] = Staker(currentEpoch, amount, data, false, stakingIdCount);
     stakingIdToAddress[stakingIdCount] = user;
     stakeQueue.insert(priority, stakingIdCount);
     stakersList.push(user);
@@ -117,20 +118,20 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   }
   
   // returns validators
-  function getValidators() public returns (address[]){
+  function getValidators() public returns (address[]) {
       // add condition for currentSize of PQ
     currentEpoch = currentEpoch.add(1);
   //trigger: lazy unstake with epoch validation
     _unstake();
 
     //choose new validators if available 
-    if (stakeQueue.currentSize() >=  _validatorThreshold ){
+    if ( stakeQueue.currentSize() >= _validatorThreshold ) {
       validatorSet = new ValidatorSet();
       address[] validators; // TODO: use currentValidators as swap
       address validator;
       uint256 stakerId;
       
-      for (uint256 i=0; i<_validatorThreshold;i++) {
+      for (uint256 i = 0; i < _validatorThreshold; i++) {
         ( , stakerId) = stakeQueue.delMin();
         validator = stakingIdToAddress[stakerId];
         validators.push(validator);
@@ -139,7 +140,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
       }
 
       // add previous validators to priority queue
-      for (i=0; i < currentValidators.length; i++) {
+      for (i = 0; i < currentValidators.length; i++) {
         validator = currentValidators[i];
         if (!stakers[validator].exit) {
           uint256 priority = _priority(validator, stakers[validator].amount, stakers[validator].data);
@@ -160,7 +161,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
 
   // unstake and transfer amount for all valid exiters
   function _unstake() private {
-    for (uint8 i=0;i<exiterList.length;i++) {
+    for (uint8 i = 0;i<exiterList.length;i++) {
       if (stakers[exiterList[i].stakerAddress].exit && (currentEpoch - stakers[exiterList[i].stakerAddress].epoch) <= minLockInPeriod ) {
         if (stakers[exiterList[i].stakerAddress].amount == 0) { //  or take it all back if less then min
           // stakerList[] = stakerList[] delete index
@@ -170,9 +171,10 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
         }
         require(tokenObj.transfer(exiterList[i].stakerAddress, exiterList[i].amount));
         //delete from exiter list
-        emit Unstaked(exiterList[i].stakerAddress, exiterList[i].amount, totalStake, '0');
-        exiterList[i] = exiterList[exiterList.length -1]; 
-        delete exiterList[exiterList.length -1]; 
+        emit Unstaked(exiterList[i].stakerAddress, exiterList[i].amount, totalStake, "0");
+        exiterList[i] = exiterList[exiterList.length - 1]; 
+   
+        delete exiterList[exiterList.length - 1]; 
 
         // Todo: delete from staker list if there is no stake left
       }
@@ -185,7 +187,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     require(stakers[msg.sender].amount >= amount);
     stakers[msg.sender].amount = stakers[msg.sender].amount.sub(amount);
     stakers[msg.sender].exit = true;
-    exiterList.push(stakeExit(amount, msg.sender));
+    exiterList.push(StakeExit(amount, msg.sender));
     totalStake = totalStake.sub(amount);
   }
 

@@ -5,6 +5,7 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { RootChainable } from "../mixin/RootChainable.sol";
 import { Lockable } from "../mixin/Lockable.sol";
 
+
 contract ValidatorSet is RootChainable, Lockable {
   using SafeMath for uint256;
   using SafeMath for uint8;
