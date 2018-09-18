@@ -13,7 +13,7 @@ import { RootChainable } from "../mixin/RootChainable.sol";
 
 import { StakeManagerInterface } from "./StakeManagerInterface.sol";
 import { RootChain } from "./RootChain.sol";
-
+import { ValidatorSet } from "./ValidatorSet.sol"; 
 
 contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   using SafeMath for uint256;
@@ -21,6 +21,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   using ECVerify for bytes32;
 
   PriorityQueue stakeQueue;
+  ValidatorSet validatorSet;
   // token object
   ERC20 public tokenObj;
 
@@ -119,24 +120,26 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   function getValidators() public returns (address[]){
       // add condition for currentSize of PQ
     currentEpoch = currentEpoch.add(1);
-
   //trigger: lazy unstake with epoch validation
     _unstake();
 
     //choose new validators if available 
     if (stakeQueue.currentSize() >=  _validatorThreshold ){
+      validatorSet = new ValidatorSet();
       address[] validators; // TODO: use currentValidators as swap
       address validator;
       uint256 stakerId;
       
       for (uint256 i=0; i<_validatorThreshold;i++) {
         ( , stakerId) = stakeQueue.delMin();
-        validators.push(stakingIdToAddress[stakerId]);
+        validator = stakingIdToAddress[stakerId];
+        validators.push(validator);
+        validatorSet.addValidator(validator, stakers[validator].amount);
         delete stakingIdToAddress[stakerId];
       }
 
       // add previous validators to priority queue
-      for (i=0; i<currentValidators.length; i++) {
+      for (i=0; i < currentValidators.length; i++) {
         validator = currentValidators[i];
         if (!stakers[validator].exit) {
           uint256 priority = _priority(validator, stakers[validator].amount, stakers[validator].data);
@@ -145,7 +148,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
           stakingIdCount.add(1);
         }
         // copy into current validators
-        if (i<validators.length) {
+        if (i < validators.length) {
           currentValidators[i] = validators[i];
         }else{
           delete currentValidators[i];
