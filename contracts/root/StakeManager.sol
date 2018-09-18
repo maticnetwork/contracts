@@ -39,6 +39,8 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   uint256 public currentEpoch = 0;
   
   event ThresholdChange(uint256 newThreshold, uint256 oldThreshold);
+  //option event to ack unstaking
+  event UnstakeInit(address indexed user, uint256 amount, uint256 total, bytes data); 
   
   //Todo: dynamically update
   uint256 public minStakeAmount = 0;
@@ -71,7 +73,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     stakeQueue = new PriorityQueue();
   }
 
-    // only staker
+  // only staker
   modifier onlyStaker() {
     require(totalStakedFor(msg.sender) > 0);
     _;
@@ -119,9 +121,9 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   
   // returns validators
   function getValidators() public returns (address[]) {
-      // add condition for currentSize of PQ
+    // add condition for currentSize of PQ
     currentEpoch = currentEpoch.add(1);
-  //trigger: lazy unstake with epoch validation
+    //trigger: lazy unstake with epoch validation
     _unstake();
 
     //choose new validators if available 
@@ -161,7 +163,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
 
   // unstake and transfer amount for all valid exiters
   function _unstake() private {
-    for (uint8 i = 0;i<exiterList.length;i++) {
+    for (uint8 i = 0;i < exiterList.length; i++) {
       if (stakers[exiterList[i].stakerAddress].exit && (currentEpoch - stakers[exiterList[i].stakerAddress].epoch) <= minLockInPeriod ) {
         if (stakers[exiterList[i].stakerAddress].amount == 0) { //  or take it all back if less then min
           // stakerList[] = stakerList[] delete index
@@ -181,7 +183,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     }
   }
 
-  function unstake(uint256 amount, bytes data) public {
+  function unstake(uint256 amount, bytes data) public { // onlyownder
     // require(stakers[msg.sender]); //staker exists
     // require(stakers[msg.sender].epoch!=0); 
     require(stakers[msg.sender].amount >= amount);
@@ -189,9 +191,10 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     stakers[msg.sender].exit = true;
     exiterList.push(StakeExit(amount, msg.sender));
     totalStake = totalStake.sub(amount);
+    emit UnstakeInit(msg.sender, amount, uint256 totalStake, bytes stakers[msg.sender].data);
   }
 
-  function totalStakedFor(address addr) public view returns (uint256){
+  function totalStakedFor(address addr) public view returns (uint256){ // onlyowner ?
     // require(stakers[addr]!=address(0));
     return stakers[addr].amount;
   }
@@ -233,7 +236,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
 
   // need changes 
   function getProposer()  public view returns (address){
-    return currentValidators[1];
+    return validatorSet.proposer();
   }
 
   function checkSignatures(
