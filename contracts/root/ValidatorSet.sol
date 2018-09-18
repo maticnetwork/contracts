@@ -16,17 +16,19 @@ contract ValidatorSet is RootChainable, Lockable {
     address validator;
   }
 
-  uint256 private totalVotingPower;
-  Validator[] public validators;
   address public proposer;
+  uint256 public totalVotingPower;
+  Validator[] public validators;
+  
 
   constructor() public {
     proposer = address(0);
+    totalVotingPower = 0; 
   }
   
   function addValidator(address validator, uint256 votingPower) public {
     require(votingPower > 0);
-    validators.push(Validator(votingPower, int256(votingPower), validator));
+    validators.push(Validator(votingPower, int256(votingPower), validator)); //use index instead
     totalVotingPower += votingPower;
   }
 
