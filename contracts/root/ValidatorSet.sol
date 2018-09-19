@@ -9,6 +9,7 @@ import { Lockable } from "../mixin/Lockable.sol";
 contract ValidatorSet is RootChainable, Lockable {
   using SafeMath for uint256;
   using SafeMath for uint8;
+  int256 constant INT256_MIN = -int256((2**255)-1);
 
   struct Validator {
     uint256 votingPower;
@@ -48,7 +49,7 @@ contract ValidatorSet is RootChainable, Lockable {
   }
 
   function selectProposer() private returns (address) {
-    int256 max = -99999999999999;//  use -ve max
+    int256 max = INT256_MIN;
     uint8 index = 0;
     for (uint8 i = 0; i < validators.length; i++) {
       if (max < validators[i].accumulator){
