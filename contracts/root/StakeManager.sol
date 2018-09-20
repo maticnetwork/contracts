@@ -40,7 +40,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   uint256 public minLockInPeriod = 1; //(unit epochs)
   uint256 public stakingIdCount = 0;  // just a counter/index to map it with PQ w/address
 
-  enum ValidatorStatus { WAITING, VALIDATOR, UNSTAKING, LOGOUT }
+  enum ValidatorStatus { WAITING, VALIDATOR, UNSTAKING }
 
   struct Staker {
     uint256 epoch;  // init 0 

@@ -15,7 +15,7 @@ contract ValidatorSet is RootChainable, Lockable {
     uint256 votingPower;
     int256 accumulator;
     address validator;
-  }
+  } // TODO: can use validator data from stakemanager.
 
   address public proposer;
   uint256 public totalVotingPower;
@@ -29,23 +29,17 @@ contract ValidatorSet is RootChainable, Lockable {
   
   function addValidator(address validator, uint256 votingPower) public {
     require(votingPower > 0);
-    validators.push(Validator(votingPower, int256(votingPower), validator)); //use index instead
+    validators.push(Validator(votingPower, 0, validator)); //use index instead
     totalVotingPower += votingPower;
   }
 
   function _getProposer() public returns(address) {
     require(validators.length > 0);
-    if (proposer == address(0)) {
-      return selectProposer();
-    }
-    incrAccumulator();
-    return selectProposer();
-  }
-
-  function incrAccumulator() private  {
     for (uint8 i = 0; i < validators.length; i++) {
       validators[i].accumulator += int(validators[i].votingPower); 
     }
+
+    return selectProposer();
   }
 
   function selectProposer() private returns (address) {
