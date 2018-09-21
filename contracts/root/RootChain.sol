@@ -167,14 +167,12 @@ contract RootChain is Ownable, WithdrawManager {
     if (start > 0) {
       start = start.add(1);
     }
-    
+
     // Make sure we are adding blocks
     require(end > start);
 
     // Make sure enough validators sign off on the proposed header root
-    require(
-      stakeManager.checkSignatures(root, start, end, sigs) >= stakeManager.validatorThreshold()
-    );
+    require(stakeManager.checkSignatures(root, start, end, sigs));
 
     // Add the header root
     HeaderBlock memory headerBlock = HeaderBlock({
@@ -228,7 +226,7 @@ contract RootChain is Ownable, WithdrawManager {
     return 0;
   }
 
-  function currentHeaderBlock() public view returns(uint256) {
+  function currentHeaderBlock() public view returns (uint256) {
     return _currentHeaderBlock;
   }
 

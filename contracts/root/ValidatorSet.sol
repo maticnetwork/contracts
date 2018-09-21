@@ -10,7 +10,10 @@ contract ValidatorSet is RootChainable, Lockable {
   using SafeMath for uint256;
   using SafeMath for uint8;
   int256 constant INT256_MIN = -int256((2**255)-1);
-
+  uint256 constant UINT256_MAX = (2**256)-1; 
+  
+  event NewProposer(address indexed user, bytes data); 
+ 
   struct Validator {
     uint256 votingPower;
     int256 accumulator;
@@ -19,17 +22,23 @@ contract ValidatorSet is RootChainable, Lockable {
 
   address public proposer;
   uint256 public totalVotingPower;
+  uint256 public lowestPower; 
+  // uint256 public totalEpochs;
   Validator[] public validators;
   
 
   constructor() public {
     proposer = address(0);
     totalVotingPower = 0; 
+    lowestPower =  UINT256_MAX;
   }
   
   function addValidator(address validator, uint256 votingPower) public {
     require(votingPower > 0);
     validators.push(Validator(votingPower, 0, validator)); //use index instead
+    if(lowestPower > votingPower ) { 
+      lowestPower = votingPower;
+    }
     totalVotingPower += votingPower;
   }
 
@@ -54,6 +63,9 @@ contract ValidatorSet is RootChainable, Lockable {
 
     validators[index].accumulator -= int(totalVotingPower);
     proposer = validators[index].validator;
+
+    emit NewProposer(proposer, "0");
+    
     return proposer;
   }
 
