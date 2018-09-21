@@ -23,7 +23,7 @@ contract RootChain is Ownable, WithdrawManager {
 
   // stake interface
   StakeManager public stakeManager;
-  mapping(address => bool) public validatorContracts;
+  mapping(address => bool) public proofValidatorContracts;
 
   // child chain contract
   address public childChainContract;
@@ -53,8 +53,8 @@ contract RootChain is Ownable, WithdrawManager {
   //
 
   event ChildChainChanged(address indexed previousChildChain, address indexed newChildChain);
-  event ValidatorAdded(address indexed validator, address indexed from);
-  event ValidatorRemoved(address indexed validator, address indexed from);
+  event ProofValidatorAdded(address indexed validator, address indexed from);
+  event ProofValidatorRemoved(address indexed validator, address indexed from);
   event NewHeaderBlock(
     address indexed proposer,
     uint256 indexed number,
@@ -68,8 +68,8 @@ contract RootChain is Ownable, WithdrawManager {
   //
 
   // Checks is msg.sender is valid validator
-  modifier isValidator(address _address) {
-    require(validatorContracts[_address] == true);
+  modifier isProofValidator(address _address) {
+    require(proofValidatorContracts[_address] == true);
     _;
   }
 
@@ -92,14 +92,14 @@ contract RootChain is Ownable, WithdrawManager {
   //
 
   // delete exit
-  function deleteExit(uint256 exitId) external isValidator(msg.sender) {
+  function deleteExit(uint256 exitId) external isProofValidator (msg.sender) {
     ExitNFT exitNFT = ExitNFT(exitNFTContract);
     address owner = exitNFT.ownerOf(exitId);
     exitNFT.burn(owner, exitId);
   }
 
   // slash stakers if fraud is detected
-  function slash() external isValidator(msg.sender) {
+  function slash() external isProofValidator(msg.sender) {
     // TODO pass block/proposer
   }
 
@@ -140,17 +140,17 @@ contract RootChain is Ownable, WithdrawManager {
   }
 
   // add validator
-  function addValidator(address _validator) public onlyOwner {
-    require(_validator != address(0) && validatorContracts[_validator] != true);
-    emit ValidatorAdded(_validator, msg.sender);
-    validatorContracts[_validator] = true;
+  function addProofValidator(address _validator) public onlyOwner {
+    require(_validator != address(0) && proofValidatorContracts[_validator] != true);
+    emit ProofValidatorAdded(_validator, msg.sender);
+    proofValidatorContracts[_validator] = true;
   }
 
   // remove validator
-  function removeValidator(address _validator) public onlyOwner {
-    require(validatorContracts[_validator] == true);
-    emit ValidatorAdded(_validator, msg.sender);
-    delete validatorContracts[_validator];
+  function removeProofValidator(address _validator) public onlyOwner {
+    require(proofValidatorContracts[_validator] == true);
+    emit ProofValidatorRemoved(_validator, msg.sender);
+    delete proofValidatorContracts[_validator];
   }
 
   //
@@ -162,11 +162,12 @@ contract RootChain is Ownable, WithdrawManager {
   }
 
   function submitHeaderBlock(bytes32 root, uint256 end, bytes sigs) public {
+    require(msg.sender == stakeManager.getProposer());
     uint256 start = currentChildBlock();
     if (start > 0) {
       start = start.add(1);
     }
-
+    
     // Make sure we are adding blocks
     require(end > start);
 
@@ -202,7 +203,8 @@ contract RootChain is Ownable, WithdrawManager {
     // TODO add rewards
 
     // finalize commit
-    stakeManager.finalizeCommit(msg.sender);
+    stakeManager.finalizeCommit();
+
   }
 
   //
