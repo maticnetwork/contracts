@@ -27,10 +27,8 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   ERC20 public tokenObj;
 
   event ThresholdChange(uint256 newThreshold, uint256 oldThreshold);
-
   //optional event to ack unstaking
   event UnstakeInit(address indexed user, uint256 amount, uint256 total, bytes data); 
-  //validator set change event
   event NewValidatorSet(uint256 validatorThreshold, uint256 totalPower, bytes data);
 
   uint256 public _validatorThreshold = 0;
@@ -72,14 +70,14 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   }
 
   
-  function _priority(address user, uint256 amount, bytes data) private view returns(uint256) {
-    // priority = priority << 64 | amount.div(totalStake) ;
-    // return amount.mul(10000000).add(currentEpoch.mul(1000).add(amount.mul(100).div(user.balance)));
+  function _priority(address user, uint256 amount, bytes data) private view returns (uint256) {
+    // return amount.mul(10).add(currentEpoch.mul(1000).add(amount.mul(100).div(user.balance)));
     return amount;
   }
 
   function stake(uint256 amount, bytes data) public {
-    // no second time staking
+    // no second time staking 
+    // maybe restrict entry after n staker
     require(stakers[msg.sender].epoch == 0);
     stakeFor(msg.sender, amount, data);
   }
@@ -154,8 +152,8 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
       address exiter = exiterList[i];
       
       if (stakers[exiter].status == ValidatorStatus.UNSTAKING && (
-        currentEpoch - stakers[exiter].epoch) <= minLockInPeriod ) {
-        // stakersList[] = stakersList[] delete index 
+        currentEpoch.sub(stakers[exiter].epoch)) <= minLockInPeriod ) {
+          
         require(tokenObj.transfer(exiter, stakers[exiter].amount));
         totalStake = totalStake.sub(stakers[exiter].amount);
         emit Unstaked(exiter, stakers[exiter].amount, totalStake, "0");
@@ -164,17 +162,20 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
         //delete from exiter list
         exiterList[i] = exiterList[exiterList.length - 1]; 
         delete exiterList[exiterList.length - 1]; 
-        // Todo: delete from staker list if there is no stake left
+        // Todo: delete from staker list
+        // stakersList[] = stakersList[] delete index 
       }
     }
   }
 
-  function unstake(uint256 amount, bytes data) public { // onlyownder
+  function unstake(uint256 amount, bytes data) public onlyStaker { // onlyownder
     // require(stakers[msg.sender]); //staker exists
-    // require(stakers[msg.sender].epoch!=0); 
+    require(stakers[msg.sender].epoch != 0); 
     require(stakers[msg.sender].amount == amount);
+    
     stakers[msg.sender].status = ValidatorStatus.UNSTAKING;
     exiterList.push(msg.sender); 
+    
     emit UnstakeInit(msg.sender, amount, totalStake.sub(amount), "0");
   }
   
@@ -191,19 +192,19 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   }
 
   function totalStakedFor(address addr) public view returns (uint256) { // onlyowner ?
-    // require(stakers[addr]!=address(0));
+    require(stakers[addr]!=address(0));
     return stakers[addr].amount;
   }
 
-  function totalStaked() public view returns (uint256){
+  function totalStaked() public view returns (uint256) {
     return totalStake;
   }
 
-  function token() public view returns (address){
+  function token() public view returns (address) {
     return address(tokenObj);
   }
 
-  function supportsHistory() public pure returns (bool){
+  function supportsHistory() public pure returns (bool) {
     return false;
   }
   
