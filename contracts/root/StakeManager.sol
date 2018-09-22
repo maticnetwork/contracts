@@ -97,7 +97,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
       data,
       ValidatorStatus.WAITING,
       stakingIdCount );
-      
+
     stakingIdToAddress[stakingIdCount] = user;
     
     uint256 priority = _priority(user, amount, data);
@@ -163,13 +163,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     emit NewValidatorSet(_validatorThreshold, validatorSet.totalVotingPower, "0");
   }
 
-  // unstake and transfer amount for all valid exiters
-  function _unstake() private {
-    
-  }
-
   function unstake(uint256 amount, bytes data) public onlyStaker { // onlyownder
-    // require(stakers[msg.sender]); //staker exists
     require(stakers[msg.sender].epoch != 0); 
     require(stakers[msg.sender].amount == amount);
     
