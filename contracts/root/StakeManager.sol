@@ -85,21 +85,19 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   function stakeFor(address user, uint256 amount, bytes data) public onlyWhenUnlocked {
     require(amount >= minStakeAmount); 
 
-    // actual staker cannot be on index 0
-    if (stakersList.length == 0) {
-      stakersList.push(address(0x0));
-      stakers[address(0x0)] = Staker(0, 0, new bytes(0), ValidatorStatus.WAITING, stakingIdCount);
-      stakingIdToAddress[stakingIdCount] = address(0x0);
-      stakingIdCount.add(1);
-    }
-
     // transfer tokens to stake manager
     require(tokenObj.transferFrom(user, address(this), amount));
     
     // update total stake
     totalStake = totalStake.add(amount);
 
-    stakers[user] = Staker(currentEpoch, amount, data, ValidatorStatus.WAITING, stakingIdCount);
+    stakers[user] = Staker(
+      currentEpoch,
+      amount,
+      data,
+      ValidatorStatus.WAITING,
+      stakingIdCount );
+      
     stakingIdToAddress[stakingIdCount] = user;
     
     uint256 priority = _priority(user, amount, data);
@@ -115,8 +113,27 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   function updateValidatorSet() public onlyRootChain {
     // add condition for currentSize of PQ
     currentEpoch = currentEpoch.add(1);
-    //trigger: lazy unstake with epoch validation
-    _unstake();
+   
+    // lazy unstake with epoch validation
+    for (uint256 i = 0; i < exiterList.length; i++) {
+      address exiter = exiterList[i];
+      
+      if (stakers[exiter].status == ValidatorStatus.UNSTAKING && (
+        currentEpoch.sub(stakers[exiter].epoch)) <= minLockInPeriod ) {
+          
+        require(tokenObj.transfer(exiter, stakers[exiter].amount));
+        totalStake = totalStake.sub(stakers[exiter].amount);
+        emit Unstaked(exiter, stakers[exiter].amount, totalStake, "0");
+        delete stakers[exiter];
+
+        //delete from exiter list
+        exiterList[i] = exiterList[exiterList.length - 1]; 
+        delete exiterList[exiterList.length - 1]; 
+        // Todo: delete from staker list
+        // stakersList[] = stakersList[] delete index 
+      }
+    }
+    
     address validator;
     // add previous validators to priority queue
     for (i = 0; i < validatorSet.validators.length; i++) {
@@ -148,24 +165,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
 
   // unstake and transfer amount for all valid exiters
   function _unstake() private {
-    for (uint256 i = 0; i < exiterList.length; i++) {
-      address exiter = exiterList[i];
-      
-      if (stakers[exiter].status == ValidatorStatus.UNSTAKING && (
-        currentEpoch.sub(stakers[exiter].epoch)) <= minLockInPeriod ) {
-          
-        require(tokenObj.transfer(exiter, stakers[exiter].amount));
-        totalStake = totalStake.sub(stakers[exiter].amount);
-        emit Unstaked(exiter, stakers[exiter].amount, totalStake, "0");
-        delete stakers[exiter];
-
-        //delete from exiter list
-        exiterList[i] = exiterList[exiterList.length - 1]; 
-        delete exiterList[exiterList.length - 1]; 
-        // Todo: delete from staker list
-        // stakersList[] = stakersList[] delete index 
-      }
-    }
+    
   }
 
   function unstake(uint256 amount, bytes data) public onlyStaker { // onlyownder
@@ -180,7 +180,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   }
   
   function selectProposer() public onlyRootChain returns(address) {
-    return validatorSet._getProposer();
+    return validatorSet.selectProposer();
   }
 
   function getCurrentValidatorSet() public view returns (address[]) {
@@ -192,7 +192,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   }
 
   function totalStakedFor(address addr) public view returns (uint256) { // onlyowner ?
-    require(stakers[addr]!=address(0));
+    require(stakers[addr]!=address(0x0));
     return stakers[addr].amount;
   }
 
@@ -256,7 +256,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     // total signers
     uint256 totalSigners = 0;
 
-    address lastAdd = address(0); // cannot have address(0) as an owner
+    address lastAdd = address(0x0); // cannot have address(0) as an owner
     for (uint64 i = 0; i < sigs.length; i += 65) {
       bytes memory sigElement = BytesLib.slice(sigs, i, 65);
       address signer = h.ecrecovery(sigElement);

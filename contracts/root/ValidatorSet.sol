@@ -18,17 +18,15 @@ contract ValidatorSet is RootChainable, Lockable {
     uint256 votingPower;
     int256 accumulator;
     address validator;
-  } // TODO: can use validator data from stakemanager.
+  } 
 
   address public proposer;
   uint256 public totalVotingPower;
   uint256 public lowestPower; 
-  // uint256 public totalEpochs;
   Validator[] public validators;
   
 
   constructor() public {
-    proposer = address(0);
     totalVotingPower = 0; 
     lowestPower =  UINT256_MAX;
   }
@@ -36,24 +34,24 @@ contract ValidatorSet is RootChainable, Lockable {
   function addValidator(address validator, uint256 votingPower) public {
     require(votingPower > 0);
     validators.push(Validator(votingPower, 0, validator)); //use index instead
+    
     if(lowestPower > votingPower ) { 
       lowestPower = votingPower;
     }
-    totalVotingPower += votingPower;
+
+    totalVotingPower = totalVotingPower.add(votingPower);
   }
 
-  function _getProposer() public returns(address) {
+  function selectProposer() public returns(address) {
     require(validators.length > 0);
+
     for (uint8 i = 0; i < validators.length; i++) {
       validators[i].accumulator += int(validators[i].votingPower); 
     }
-
-    return selectProposer();
-  }
-
-  function selectProposer() private returns (address) {
+    
     int256 max = INT256_MIN;
     uint8 index = 0;
+    
     for (uint8 i = 0; i < validators.length; i++) {
       if (max < validators[i].accumulator){
         max = validators[i].accumulator;
@@ -68,5 +66,4 @@ contract ValidatorSet is RootChainable, Lockable {
     
     return proposer;
   }
-
 }
