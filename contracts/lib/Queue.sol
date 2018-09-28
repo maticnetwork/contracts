@@ -27,5 +27,5 @@ library Queue Ownable {
     delete items[lastIndex];
     lastIndex = lastIndex.sub(1);
   }
-
+  
 }

@@ -6,7 +6,7 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { ECVerify } from "../lib/ECVerify.sol";
 import { BytesLib } from "../lib/BytesLib.sol";
-import { PriorityQueue } from "../lib/PriorityQueue.sol";
+import { Queue } from "../lib/Queue.sol";
 
 import { Lockable } from "../mixin/Lockable.sol";
 import { RootChainable } from "../mixin/RootChainable.sol";
@@ -21,7 +21,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   using SafeMath for uint8;
   using ECVerify for bytes32;
 
-  PriorityQueue stakeQueue;
+  Queue queue;
   ValidatorSet validatorSet;
 
   ERC20 public tokenObj;
@@ -51,8 +51,10 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     uint256 stakingId; 
   }
 
+  address proposer;
   address[] exiterList;
-  address[] stakersList;
+  address[] currentValidatorSet;
+  address[] nextValidatorSet;
 
   mapping (address => Staker) stakers; 
   mapping (uint256 => address) stakingIdToAddress;
@@ -60,7 +62,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   constructor(address _token) public {
     require(_token != 0x0);
     tokenObj = ERC20(_token);
-    stakeQueue = new PriorityQueue();
+    queue = new Queue();
   }
 
   // only staker
@@ -69,10 +71,26 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     _;
   }
 
-  
-  function _priority(address user, uint256 amount, bytes data) private view returns (uint256) {
-    // return amount.mul(10).add(currentEpoch.mul(1000).add(amount.mul(100).div(user.balance)));
-    return amount;
+  // TODO: need better random function 
+  function getNRandomValidator(uint256 _n, uint256 n) public view returns (address[]) {
+    address[] memory RandValidators = new address[](_n);
+    bool[] memory set = new bool[](n);
+    uint256 seed1 = uint256(keccak256(abi.encodePacked(block.difficulty + block.number)));
+    uint256 blockN = uint256(blockhash(seed1 % block.number));
+    uint256 seed2 = uint256(keccak256(abi.encodePacked(blockN)));
+    
+    uint256 currentRand = 1;
+    for(uint256 i=0;i<_n;) {
+        currentRand = (seed1*currentRand + seed2)%n;
+        if (set[currentRand] == false) {
+            RandValidators[i] = currentRand;`
+            set[currentRand] = true; 
+            i++;
+        } else {
+            seed2 = seed2 + currentRand;
+        }
+    }
+    return RandValidators;
   }
 
   function stake(uint256 amount, bytes data) public {
@@ -84,10 +102,9 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
 
   function stakeFor(address user, uint256 amount, bytes data) public onlyWhenUnlocked {
     require(amount >= minStakeAmount); 
-
+    // TODO: add condition for fixed stake of current round  
     // transfer tokens to stake manager
     require(tokenObj.transferFrom(user, address(this), amount));
-    
     // update total stake
     totalStake = totalStake.add(amount);
 
@@ -96,16 +113,9 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
       amount,
       data,
       ValidatorStatus.WAITING,
-      stakingIdCount );
-
-    stakingIdToAddress[stakingIdCount] = user;
+      stakingIdCount);
     
-    uint256 priority = _priority(user, amount, data);
-    stakeQueue.insert(priority, stakingIdCount);
-    stakersList.push(user);
-    
-    stakingIdCount.add(1);
-    
+    queue.push(user);
     emit Staked(user, amount, totalStake, data);
   }
   
@@ -130,37 +140,21 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
         exiterList[i] = exiterList[exiterList.length - 1]; 
         delete exiterList[exiterList.length - 1]; 
         // Todo: delete from staker list
-        // stakersList[] = stakersList[] delete index 
       }
     }
     
     address validator;
-    // add previous validators to priority queue
-    for (i = 0; i < validatorSet.validators.length; i++) {
-      validator = validatorSet.validators[i];
+    // add previous validators to queue
+    for (i = 0; i < currentValidatorSet.length; i++) {
+      validator = currentValidatorSet[i];
       if (stakers[validator].status != ValidatorStatus.UNSTAKING) {
-        uint256 priority = _priority(validator, stakers[validator].amount, stakers[validator].data);
-        stakeQueue.insert(priority, stakingIdCount);
-        stakingIdToAddress[stakingIdCount] = validator;
-        stakingIdCount.add(1);
+        queue.push(validator); // add them to next validator set
       }
     }
-
-    require(stakeQueue.currentSize() >= _validatorThreshold); 
-    validatorSet = new ValidatorSet();
-    uint256 stakerId;
-      
-    for (uint256 i = 0; i < _validatorThreshold; i++) {
-      ( , stakerId) = stakeQueue.delMin();
-      validator = stakingIdToAddress[stakerId];
-      stakers[validator].status = ValidatorStatus.VALIDATOR;
-      validatorSet.addValidator(validator, stakers[validator].amount);
-      delete stakingIdToAddress[stakerId];
-    }
-    totalEpoch = currentEpoch.add(ValidatorSet.totalPower.div(
-      ValidatorSet.lowestPower).mul(_validatorThreshold));
-    
-    emit NewValidatorSet(_validatorThreshold, validatorSet.totalVotingPower, "0");
+    delete currentValidatorSet;
+    currentValidatorSet = nextValidatorSet;
+    nextValidatorSet = getNRandomValidator();
+    // emit NewValidatorSet(_validatorThreshold, "0");  update event
   }
 
   function unstake(uint256 amount, bytes data) public onlyStaker { // onlyownder
@@ -171,22 +165,18 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     exiterList.push(msg.sender); 
     
     emit UnstakeInit(msg.sender, amount, totalStake.sub(amount), "0");
-  }
-  
+  } 
+
   function selectProposer() public onlyRootChain returns(address) {
     return validatorSet.selectProposer();
   }
 
   function getCurrentValidatorSet() public view returns (address[]) {
-    address[] memory validators = new address[](validatorSet.validators.length); 
-    for (uint256 i = 0; i<validatorSet.validators.length; i++) {
-      validators[i] = validatorSet.validators[i].validator;
-    }
-    return validators;
+    return currentValidatorSet;
   }
 
   function totalStakedFor(address addr) public view returns (uint256) { // onlyowner ?
-    require(stakers[addr]!=address(0x0));
+    require(stakers[addr] != address(0x0));
     return stakers[addr].amount;
   }
 
@@ -231,7 +221,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
 
   // need changes 
   function getProposer()  public view returns (address) {
-    return validatorSet.proposer();
+    return proposer;
   }
 
   function checkSignatures(
