@@ -19,6 +19,7 @@ import { ValidatorSet } from "./ValidatorSet.sol";
 contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   using SafeMath for uint256;
   using SafeMath for uint8;
+  using SafeMath for uint128;
   using ECVerify for bytes32;
 
   uint128 MAX_UINT128 = (2**128)-1;
@@ -48,7 +49,6 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   enum ValidatorStatus { WAITING, VALIDATOR, UNSTAKING } // need update 
 
   struct Staker {
-    address user;
     uint256 epoch;  // init 0 
     uint256 amount;
     bytes data;
@@ -60,11 +60,13 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   PriorityQueue nextValidatorList;
 
   mapping (address => Staker) stakers; 
-  mapping (address => uint256) addressToID;
+  mapping (uint256 => address) idToAddress;
 
   constructor(address _token) public {
     require(_token != address(0x0));
     tokenObj = ERC20(_token);
+    validatorList = new PriorityQueue();
+    nextValidatorList = new PriorityQueue();
   }
 
   // only staker
@@ -87,46 +89,58 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     // transfer tokens to stake manager
     require(tokenObj.transferFrom(user, address(this), amount));
     
-    stakers[uniqueIdCount] = Staker(
-      user,
+    stakers[user] = Staker(
       currentEpoch,
       amount,
       data,
       ValidatorStatus.WAITING);
-    addressToId[user] = uniqueIdCount;
+    idToAddress[uniqueIdCount] = user;
 
-    nextValidatorList.insert(amount, uniqueIdCount);
+    nextValidatorList.insert(MAX_UINT128.sub(amount), uniqueIdCount);
     uniqueIdCount++;
     emit Staked(user, amount, totalStake, data);
   }
   
+  // whoa too expencive
   function flushStakers() public {
-    for (uint256 i = 0; i < nextValidatorList.length; i++) {
-      address staker = nextValidatorList[i];
+    uint256 id;
+    address staker;
+    uint256[] memory ids;
+    while (nextValidatorList.currentSize() != 0) {
+      (, id) = nextValidatorList.delMin();
+      staker = idToAddress[id];
       if ((stakers[staker].epoch - currentEpoch) > dynasty*flushDynasty ) {
-        // require(tokenObj.transfer(staker, stakers[staker].amount));
-        // totalStake = totalStake.sub(stakers[staker].amount);
-        // emit Unstaked(exiter, stakers[exiter].amount, "0");
+        require(tokenObj.transfer(staker, stakers[staker].amount));
+        // emit Flushed(exiter, stakers[exiter].amount, "0");
         delete stakers[staker];
-        nextValidatorList[i] = nextValidatorList[nextValidatorList.length - 1];
-        delete nextValidatorList[nextValidatorList.length - 1];
+      } else {
+        ids.push(id);
       }
+    }
+    nextValidatorList = new PriorityQueue();
+    for (uint256 i = 0;i < ids.length;i++) {
+      staker = idToAddress[ids[i]];
+      nextValidatorList.insert(MAX_UINT128.sub(stakers[staker].amount), ids[i]);
     }
   }
 
   function selectVaidator(uint256 count) public {
     // require(count<=_validatorThreasold);
     // assuming list is in descending order
-    uint256 staker;
+    address staker;
+    uint256 stakerId;
     for (uint256 i = 0; i < count; i++) {
-      (, staker) = nextValidatorList.delMin();
-      if ((stakers[staker].epoch - currentEpoch) > dynasty) {
+      (, stakerId) = nextValidatorList.delMin();
+      staker = idToAddress[stakerId];
+      // if ((stakers[staker].epoch - currentEpoch) > dynasty) {
         // stakersList.push(staker);
+      validatorList.insert(stakers[staker].amount, stakerId);
         // nextValidatorList.pop(staker);
-      }
+      // }
     }
   }
 
+  // TODO: need avl-tree for all ops to be cost effective
   function forceReplace(address validator) public {
     require(stakers[msg.sender].epoch != 0 && stakres[validator].epoch != 0);
     require(stakers[validator].status == ValidatorStatus.VALIDATOR);
@@ -140,10 +154,10 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
 
   function unstake(uint256 amount, bytes data) public  { // onlyownder onlyStaker
     require(stakers[msg.sender].epoch != 0);  // check staker exists 
-    // require(stakers[msg.sender].amount == amount);
-    // !ValidatorStatus.UNSTAKING;
+    require(stakers[msg.sender].status != ValidatorStatus.UNSTAKING);
+    require(stakers[msg.sender].amount == amount);
     require((stakers[msg.sender].epoch - currentEpoch) > minLockInPeriod);
-    
+    //validatorList.pop(msg.sender)
     stakers[msg.sender].status = ValidatorStatus.UNSTAKING;
     exiterList.push(msg.sender); 
     
