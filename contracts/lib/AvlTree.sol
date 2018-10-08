@@ -18,6 +18,7 @@ contract AvlTree {
   
   Node[] private tree; 
   uint256 private root = 0;
+  uint256 public currentSize = 0;
   
   constructor() public {
 		
@@ -37,14 +38,34 @@ contract AvlTree {
 
   function insert(uint256 value) public returns (uint256) {
     require(value > 0);
-    root = insert(root, value);
+    root = _insert(root, value);
+    currentSize++;
     return root;
   }
   
-  function deleteNode(uint256 value) public returns (uint256) {
+  //should return bool ?
+  function deleteNode(uint256 value) public {
     require(value > 0);
     root = _deleteNode(root, value);
-    return root;
+    currentSize--;
+  }
+
+  function getMax() public view returns (uint256) {
+    require(root != 0, "Empty tree");
+    uint256 _root = root;
+    while (tree[_root].right != 0) {
+      _root = tree[_root].right;
+    }
+    return tree[_root].value;
+  }
+  
+  function getMin() public view returns (uint256) {
+    require(root != 0, "Empty tree");
+    uint256 _root = root;
+    while (tree[_root].left != 0) {
+      _root = tree[_root].left;
+    }
+    return tree[_root].value;
   }
 
   function delMax() public returns (uint256) {
@@ -54,6 +75,7 @@ contract AvlTree {
       _root = tree[_root].right;
     }
     root = _deleteNode(root, tree[_root].value);
+    currentSize--;
     return tree[_root].value;
   }
   
@@ -64,6 +86,7 @@ contract AvlTree {
       _root = tree[_root].left;
     }
     root = _deleteNode(root, tree[_root].value);
+    currentSize--;
     return tree[_root].value;
   }
 
@@ -135,6 +158,7 @@ contract AvlTree {
         } else {
           temp = tree[_root].left;
         }
+        tree[_root] = tree[0];
         return temp;
       } else {
         for (temp = tree[_root].right; tree[temp].left != 0; temp = tree[temp].left){}
