@@ -52,7 +52,7 @@ contract ValidatorSet is RootChainable, Lockable {
     int256 max = INT256_MIN;
     uint8 index = 0;
     
-    for (uint8 i = 0; i < validators.length; i++) {
+    for (i = 0; i < validators.length; i++) {
       if (max < validators[i].accumulator){
         max = validators[i].accumulator;
         index = i;
