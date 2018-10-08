@@ -47,6 +47,26 @@ contract AvlTree {
     return root;
   }
 
+  function delMax() public returns (uint256) {
+    require(root != 0, "Empty tree");
+    uint256 _root = root;
+    while (tree[_root].right != 0) {
+      _root = tree[_root].right;
+    }
+    root = _deleteNode(root, tree[_root].value);
+    return tree[_root].value;
+  }
+  
+  function delMin() public returns (uint256) {
+    require(root != 0, "Empty tree");
+    uint256 _root = root;
+    while (tree[_root].left != 0) {
+      _root = tree[_root].left;
+    }
+    root = _deleteNode(root, tree[_root].value);
+    return tree[_root].value;
+  }
+
   // temp helper function 
   function getChilds(uint256 index) public view  returns (uint256 left, uint256 right) {
     left = tree[index].left;
