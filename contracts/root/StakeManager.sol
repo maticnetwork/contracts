@@ -32,7 +32,11 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   event ThresholdChange(uint256 newThreshold, uint256 oldThreshold);
   //optional event to ack unstaking
   event UnstakeInit(address indexed user, uint256 amount, uint256 total, bytes data); 
-  event NewValidatorSet(uint256 validatorThreshold, uint256 totalPower, bytes data);
+  // event NewValidatorSet(uint256 validatorThreshold, uint256 totalPower, bytes data);
+  event ValidatorJoin();
+  event ValidatorLogin();
+  event ValidatorLogOut();
+  event ValidatorExit();
   event Flushed(address user, uint256 amount, bytes data);
 
   uint256 public _validatorThreshold = 1;
@@ -55,6 +59,8 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     uint256 amount;
     bytes data;
     ValidatorStatus status;
+    uint256 activationEpoch;
+    uint256 deActivationEpoch;
   }
 
   address[] exiterList;
@@ -66,7 +72,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   constructor(address _token) public {
     require(_token != address(0));
     tokenObj = ERC20(_token);
-    validatorList = new AvlTree();
+    validatorList = new AvlTree(); 
     nextValidatorList = new AvlTree();
   }
 
@@ -88,6 +94,8 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
 
   function stakeFor(address user, uint256 amount, bytes data) public onlyWhenUnlocked {
     require(nextStakersList.currentSize() <= _validatorThreshold);
+    minStakeAmount = validatorList.getMin();
+    // replace with variable
     require(amount >= minStakeAmount.mul(95).div(100), "stake should be gt then 95% of current lowest"); 
     
     // transfer tokens to stake manager
@@ -125,43 +133,25 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     }
   }
 
-  function selectVaidator() public {
-    // require(count<=_validatorThreasold);
-    // assuming list is in descending order
-    // TODO: need a count of exitable staker at the moment
-    address staker;
-    uint256 value;
-
-    // while () {
-    value = nextValidatorList.delMax();
-    validatorList.insert(value);     
-    value >> 160;
-    staker = address(uint160(value));
-    stakers[staker].status = ValidatorStatus.VALIDATOR;
-    if (validatorList.currentSize() > _validatorThreshold) {
-      value = validatorList.delMin();
-    } 
-      // break;
-      // if ((stakers[staker].epoch - currentEpoch) > dynasty) {
-        // stakersList.push(staker);
-        // nextValidatorList.pop(staker);
-      // }
-    // }
-  }
-
-  function forceReplace(address validator) public {
-    require(stakers[msg.sender].epoch != 0 && stakers[validator].epoch != 0);
+  function dethrone(address validator) public { // onlystaker
+    require(stakers[msg.sender].epoch != 0);
     require(stakers[validator].status == ValidatorStatus.VALIDATOR);
-    // require((stakers[validator].epoch-currentEpoch) > dynasty*2);
-    require(stakers[msg.sender].amount > stakers[validator].amount);
-    // ValidatorStatus.UNSTAKING;
-    uint256 value = stakers[msg.sender].amount << 160 | uint160(msg.sender);
-    nextValidatorList.deleteNode(value);
-    validatorList.insert(value);
-    stakers[validator].status = ValidatorStatus.UNSTAKING;
-    exiterList.push(validator); 
+    
+    if (validator == address(0)) {
+        //special case for empty slot
+    } else {
+      require(stakers[validator].epoch != 0);
+      require((stakers[validator].epoch-currentEpoch) > dynasty*2);
+      require(stakers[msg.sender].amount > stakers[validator].amount);
+      // ValidatorStatus.UNSTAKING;
+      uint256 value = stakers[msg.sender].amount << 160 | uint160(msg.sender);
+      nextValidatorList.deleteNode(value);
+      validatorList.insert(value);
+      stakers[validator].status = ValidatorStatus.UNSTAKING;
+      exiterList.push(validator); 
+    }
     //update event params
-    // emit UnstakeInit(validator, amount, totalStake.sub(amount), "0");    
+    emit UnstakeInit(validator, amount, totalStake.sub(amount), "0");    
   }
 
   function unstake(uint256 amount, bytes data) public  { // onlyownder onlyStaker
@@ -172,8 +162,18 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     uint256 value = stakers[msg.sender].amount << 160 | uint160(msg.sender);
     validatorList.deleteNode(value);
     stakers[msg.sender].status = ValidatorStatus.UNSTAKING;
-    exiterList.push(msg.sender); 
-    
+    exiterList.push(msg.sender);
+    stakers[msg.sender].deActivationEpoch = currentEpoch + dynasty*2;
+
+    // new descendant selection 
+    // delmax or just find somewhat greater then self
+    uint256 replacement = nextValidatorList.delMax(); 
+    if (replacement != 0) {
+      replacement << 160;
+      address newStaker = address(uint160(replacement));
+      stakers[newStaker].activationEpoch = stakers[msg.sender].deActivationEpoch;
+
+    }
     emit UnstakeInit(msg.sender, amount, totalStake.sub(amount), "0");
   }
   

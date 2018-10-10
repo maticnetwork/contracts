@@ -35,7 +35,7 @@ contract ValidatorSet is RootChainable, Lockable {
     require(votingPower > 0);
     validators.push(Validator(votingPower, 0, validator)); //use index instead
     
-    if(lowestPower > votingPower ) { 
+    if (lowestPower > votingPower ) { 
       lowestPower = votingPower;
     }
 
