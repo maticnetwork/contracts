@@ -2,10 +2,11 @@ pragma solidity ^0.4.24;
 
 import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 
-// TODO:
+// TODO: move recursive to iterative 
 // load in memory and do balancing and rewrite tree 
 // with just minimum writes can be better 
 // deleteNode leaves hole in array :D 
+// 
 
 
 contract AvlTree {
@@ -32,7 +33,7 @@ contract AvlTree {
     root = 0;
   }
     
-  function search(uint256 value) public returns (bool) {
+  function search(uint256 value) public view returns (bool) {
     return _search(root, value);
   }
 
@@ -51,7 +52,7 @@ contract AvlTree {
   }
 
   function getMax() public view returns (uint256) {
-    require(root != 0, "Empty tree");
+    if (root == 0) return 0;
     uint256 _root = root;
     while (tree[_root].right != 0) {
       _root = tree[_root].right;
@@ -60,7 +61,7 @@ contract AvlTree {
   }
   
   function getMin() public view returns (uint256) {
-    require(root != 0, "Empty tree");
+    if (root == 0) return 0;
     uint256 _root = root;
     while (tree[_root].left != 0) {
       _root = tree[_root].left;
@@ -69,7 +70,7 @@ contract AvlTree {
   }
 
   function delMax() public returns (uint256) {
-    require(root != 0, "Empty tree");
+    if (root == 0) return 0;
     uint256 _root = root;
     while (tree[_root].right != 0) {
       _root = tree[_root].right;
@@ -80,7 +81,7 @@ contract AvlTree {
   }
   
   function delMin() public returns (uint256) {
-    require(root != 0, "Empty tree");
+    if (root == 0) return 0;
     uint256 _root = root;
     while (tree[_root].left != 0) {
       _root = tree[_root].left;
@@ -109,12 +110,6 @@ contract AvlTree {
     return tree[root].value;
   }
   
-  function getHeight(uint256 _root) private {
-    if (_root > 0) { 
-      tree[_root].height = 1 + Math.max256(tree[tree[_root].left].height, tree[tree[_root].right].height);
-    }
-  }
-
   function _search(uint256 _root, uint256 value) private returns (bool) {
     if (_root == 0 || value == 0) {  // add correct condition solidity
       return false;// return true/false !? ;-)
@@ -182,8 +177,12 @@ contract AvlTree {
     uint256 temp = tree[_root].left;
     tree[_root].left = tree[temp].right;
     tree[temp].right = _root;
-    getHeight(_root);
-    getHeight(temp);
+    if (_root > 0) { 
+      tree[_root].height = 1 + Math.max256(tree[tree[_root].left].height, tree[tree[_root].right].height);
+    }
+    if (temp > 0) { 
+      tree[temp].height = 1 + Math.max256(tree[tree[temp].left].height, tree[tree[temp].right].height);
+    }
     return temp;
   }
 
@@ -191,13 +190,19 @@ contract AvlTree {
     uint256 temp = tree[_root].right;
     tree[_root].right = tree[temp].left;
     tree[temp].left = _root;
-    getHeight(_root);
-    getHeight(temp);
+    if (_root > 0) { 
+      tree[_root].height = 1 + Math.max256(tree[tree[_root].left].height, tree[tree[_root].right].height);
+    }
+    if (temp > 0) { 
+      tree[temp].height = 1 + Math.max256(tree[tree[temp].left].height, tree[tree[temp].right].height);
+    }
     return temp;
   }
 
   function balance(uint256 _root) private returns (uint256) { 
-    getHeight(_root);
+    if (_root > 0) { 
+      tree[_root].height = 1 + Math.max256(tree[tree[_root].left].height, tree[tree[_root].right].height);
+    }
     if (tree[tree[_root].left].height > tree[tree[_root].right].height + 1) {		
       if (tree[tree[tree[_root].left].right].height > tree[tree[tree[_root].left].left].height) {
         tree[_root].left = rotateRight(tree[_root].left);
