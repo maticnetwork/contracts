@@ -34,6 +34,7 @@ contract AvlTree {
   }
     
   function search(uint256 value) public view returns (bool) {
+    require(value > 0);
     return _search(root, value);
   }
 
