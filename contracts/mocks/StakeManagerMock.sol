@@ -8,8 +8,8 @@ contract StakeManagerMock is StakeManager {
 
   }
 
-  function finalizeCommit(address) public {
-    // set epoch seed
-    epochSeed = keccak256(abi.encodePacked(block.difficulty + block.number + now));
-  }
+  // function finalizeCommit(address) public {
+  //   // set epoch seed
+  //   epochSeed = keccak256(abi.encodePacked(block.difficulty + block.number + now));
+  // }
 }
