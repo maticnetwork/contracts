@@ -98,12 +98,13 @@ contract AvlTree {
     right = tree[index].right;
   }
 
-  function getTree() public view returns (uint256[]) {
+  function getTree() public view returns (address[]) {
     require(root != 0);
-    uint256[] memory _tree = new uint256[](currentSize);
+    address[] memory _tree = new address[](currentSize);
     uint256 j = 0;
+    uint256 value;
     for (uint256 i = 0;i < currentSize;) {
-      value = tree[j++];
+      value = tree[j++].value;
       if (value > 0) {
         value << 160;
         _tree[i++] = address(uint160(value));

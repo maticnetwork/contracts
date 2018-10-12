@@ -30,7 +30,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   event ThresholdChange(uint256 newThreshold, uint256 oldThreshold);
   //optional event to ack staking/unstaking
   event UnstakeInit(address indexed user, bytes data); 
-  event StakeInit(address indexed user, bytes data); 
+  event StakeInit(address indexed user, uint256 indexed amount, bytes data); 
   // event NewValidatorSet(uint256 validatorThreshold, uint256 totalPower, bytes data);
   // event ValidatorJoin(); staked 
   // event ValidatorLogin(address indexed user, bytes data);
@@ -102,7 +102,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
 
     // 96bits amount(10^29) 160 bits user address
     nextValidatorList.insert((amount<<160 | uint160(user)));
-    emit StakeInit(user, amount, totalStake, data);
+    emit StakeInit(user, amount, data);
   }
   
   // function flushStakers() public {
@@ -156,7 +156,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
 
     // for empty slot address(0x0) is validator
     if (validator == address(0x0)) {
-      require(validatroList.currentSize() < _validatorThreasold);
+      require(validatorList.currentSize() < _validatorThreshold);
       value = stakers[msg.sender].amount << 160 | uint160(msg.sender);
       nextValidatorList.deleteNode(value);
       validatorList.insert(value);
