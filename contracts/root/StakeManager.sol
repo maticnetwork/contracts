@@ -126,7 +126,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   // }
 
   //change name validator postion claim 
-  function stakeClaim() public onlyStaker onlyStaker {
+  function stakeClaim() public onlyStaker {
     require(stakers[msg.sender].epoch != 0);
     require(stakers[msg.sender].activationEpoch != 0);
     require(stakers[msg.sender].activationEpoch <= currentEpoch);
@@ -151,7 +151,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   // start force replacement of valid staker by higher stake
   function dethrone(address validator) public onlyStaker { 
     require(stakers[msg.sender].epoch != 0);
-    require(stakers[validator].status == ValidatorStatus.VALIDATOR);
+    require(stakers[msg.sender].status != ValidatorStatus.VALIDATOR);
     uint256 value;
 
     // for empty slot address(0x0) is validator
@@ -160,6 +160,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
       value = stakers[msg.sender].amount << 160 | uint160(msg.sender);
       nextValidatorList.deleteNode(value);
       validatorList.insert(value);
+      stakers[msg.sender].activationEpoch = currentEpoch;
     } else {
       require(stakers[validator].epoch != 0);      
       require(stakers[validator].status == ValidatorStatus.VALIDATOR);
