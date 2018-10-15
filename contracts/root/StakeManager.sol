@@ -79,10 +79,22 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   }
   
   function stake(uint256 amount, bytes data) public {
-    require(_validatorThreshold > validatorList.currentSize(), "Next validator set full");
+    require(_validatorThreshold > nextValidatorList.currentSize(), "Next validator set full");
     require(amount < MAX_UINT96, "Stay realistic!!");
     require(stakers[msg.sender].epoch == 0, "No second time staking");
     stakeFor(msg.sender, amount, data);
+  }
+
+  function validatorSetSize() public view returns(uint256) {
+    return validatorList.currentSize();
+  }
+
+  function nextValidatorSetSize() public view  returns(uint256) {
+    return nextValidatorList.currentSize();
+  }
+
+  function getDetails(address user) public view returns(uint256 , uint256) {
+    return (stakers[user].activationEpoch, stakers[user].deActivationEpoch);
   }
 
   function stakeFor(address user, uint256 amount, bytes data) public onlyWhenUnlocked {
@@ -143,7 +155,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     validatorList.deleteNode(value);
     totalStake = totalStake.sub(amount);
     // TODO :add slashing here use soft slashing in slash amt variable
-    /// require(tokenObj.transfer(msg.sender, amount));
+    require(tokenObj.transfer(msg.sender, amount));
     delete stakers[msg.sender];    
     emit Unstaked(msg.sender, amount, totalStake, "0x0");
   }
@@ -151,11 +163,11 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   // start force replacement of valid staker by higher stake
   function dethrone(address validator) public onlyStaker { 
     require(stakers[msg.sender].epoch != 0);
-    require(stakers[msg.sender].status != ValidatorStatus.VALIDATOR);
+    require(stakers[msg.sender].status == ValidatorStatus.WAITING);
     uint256 value;
 
     // for empty slot address(0x0) is validator
-    if (validator == address(0x0)) {
+    if (validator == address(0x0) || validatorList.currentSize() < _validatorThreshold ) {
       require(validatorList.currentSize() < _validatorThreshold);
       value = stakers[msg.sender].amount << 160 | uint160(msg.sender);
       nextValidatorList.deleteNode(value);
@@ -164,7 +176,6 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     } else {
       require(stakers[validator].epoch != 0);      
       require(stakers[validator].status == ValidatorStatus.VALIDATOR);
-      require(stakers[msg.sender].status == ValidatorStatus.WAITING);
       require((currentEpoch - stakers[validator].epoch) > dynasty*2);
       require(stakers[msg.sender].amount > stakers[validator].amount);
 
