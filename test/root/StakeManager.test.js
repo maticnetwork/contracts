@@ -8,6 +8,7 @@ import { assertRevert } from '../helpers/assert-revert'
 import { StakeManagerMock, RootToken } from '../helpers/contracts'
 import LogDecoder from '../helpers/log-decoder'
 
+//TODO: make faster (promisify/parallel)
 // add chai pluggin
 chai
   .use(chaiAsPromised)

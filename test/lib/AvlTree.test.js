@@ -22,7 +22,8 @@ contract('AvlTree', async function() {
   it('should initialize properly', async function() {
     // root should be NULL/0
     // assert.equal(new web3.BigNumber(0), out)
-    await avlTree.getRoot().should.eventually.equal(new web3.BigNumber(0))
+    let root = await avlTree.getRoot()
+    root.should.be.bignumber.equal(0)
 
     // await avlTree.insertValue(50)
     // await avlTree.getRoot().should.eventually.equal(50)
@@ -35,21 +36,20 @@ contract('AvlTree', async function() {
     // for(let i = 0;i < array.length; i++) {
     //   await avlTree.insertValue(array[i])
     // }
-    await avlTree.insertValue(14)
-    await avlTree.insertValue(17)
-    await avlTree.insertValue(11)
-    await avlTree.insertValue(7)
-    await avlTree.insertValue(53)
-    await avlTree.insertValue(4)
+    await avlTree.insert(14)
+    await avlTree.insert(17)
+    await avlTree.insert(11)
+    await avlTree.insert(7)
+    await avlTree.insert(53)
+    await avlTree.insert(4)
 
     // await promise.all(p)
-    let x = await avlTree.getRoot()
-    console.log(x)
-    await avlTree.getRoot().should.eventually.equal(new web3.BigNumber(14))
-    await avlTree.insertValue(13)
+    let root = await avlTree.getRoot()
+    root.should.be.bignumber.equal(14)
+    // await avlTree.insert(13)
 
-    await avlTree.getRoot()
-    console.log(x)
+    // let x = await avlTree.getRoot()
+    // console.log(x)
     // await avlTree.getRoot().should.equal()
     // console.log(await avlTree.getRoot())
   })
