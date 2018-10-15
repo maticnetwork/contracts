@@ -76,9 +76,10 @@ contract AvlTree {
     while (tree[_root].right != 0) {
       _root = tree[_root].right;
     }
-    root = _deleteNode(root, tree[_root].value);
+    uint256 value = tree[_root].value;
+    root = _deleteNode(root, value);
     currentSize--;
-    return tree[_root].value;
+    return value;
   }
   
   function delMin() public returns (uint256) {
@@ -87,9 +88,10 @@ contract AvlTree {
     while (tree[_root].left != 0) {
       _root = tree[_root].left;
     }
-    root = _deleteNode(root, tree[_root].value);
+    uint256 value = tree[_root].value;
+    root = _deleteNode(root, value);
     currentSize--;
-    return tree[_root].value;
+    return value;
   }
 
   // temp helper function 
