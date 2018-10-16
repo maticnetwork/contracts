@@ -42,7 +42,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   // genesis/governance variables
   uint256 public _validatorThreshold = 10;
   uint256 public dynasty = 256;  // in epoch unit
-  uint256 public minStakeThreshold = 100;  // ETH/MTX
+  uint256 public minStakeThreshold = (10**18);  // ETH/MTX
   uint256 public minLockInPeriod = 2; //(unit dynasty)
   uint256 public maxStakeDrop = 95; // in percent 100-x, current is 5%
   
@@ -99,9 +99,9 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   }
 
   function stakeFor(address user, uint256 amount, bytes data) public onlyWhenUnlocked {
-    // require(nextValidatorList.currentSize() < _validatorThreshold);
-    uint256 minAmt = Math.max256(validatorList.getMin(), minStakeThreshold);
-    // require(amount >= minAmt.mul(maxStakeDrop).div(100), "Stake should be gt then X% of current lowest"); 
+    uint256 minValue = validatorList.getMin();
+    minValue = Math.max256(minValue >> 160, minStakeThreshold);
+    require(amount >= minValue.mul(maxStakeDrop).div(100), "Stake should be gt then X% of current lowest"); 
     require(tokenObj.transferFrom(user, address(this), amount), "Transfer failed");
     
     stakers[user] = Staker({
@@ -177,7 +177,6 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     } else {
       require(stakers[validator].epoch != 0);      
       require(stakers[validator].status == ValidatorStatus.VALIDATOR);
-      // require((currentEpoch - stakers[validator].epoch) > dynasty*2);
       require(stakers[msg.sender].amount > stakers[validator].amount);
 
       value = stakers[msg.sender].amount << 160 | uint160(msg.sender);
@@ -204,7 +203,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     uint256 value = nextValidatorList.delMax(); 
     if (value != 0) {
       validatorList.insert(value);
-      value << 160;
+      value >> 160;
       address newStaker = address(uint160(value));
       stakers[newStaker].activationEpoch = stakers[msg.sender].deActivationEpoch;
       emit StakeInit(newStaker, stakers[newStaker].amount, "0x0");
