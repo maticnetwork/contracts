@@ -19,23 +19,18 @@ contract('AvlTree', async function() {
     avlTree = await AvlTree.new()
   })
 
+  // generates random int between start and end
+  function getRandInt(start, end) {
+    return Math.floor(Math.random() * (end - start) + start)
+  }
+
   it('should initialize properly', async function() {
     // root should be NULL/0
-    // assert.equal(new web3.BigNumber(0), out)
     let root = await avlTree.getRoot()
     root.should.be.bignumber.equal(0)
-
-    // await avlTree.insertValue(50)
-    // await avlTree.getRoot().should.eventually.equal(50)
-    // await avlTree.search(50).should.equal(true)
   })
 
   it('should set root correct and balanced', async function() {
-    let array = [14, 17, 11, 7, 53, 4]
-    // let p = Promise[]
-    // for(let i = 0;i < array.length; i++) {
-    //   await avlTree.insertValue(array[i])
-    // }
     await avlTree.insert(14)
     await avlTree.insert(17)
     await avlTree.insert(11)
@@ -43,14 +38,31 @@ contract('AvlTree', async function() {
     await avlTree.insert(53)
     await avlTree.insert(4)
 
-    // await promise.all(p)
     let root = await avlTree.getRoot()
     root.should.be.bignumber.equal(14)
-    // await avlTree.insert(13)
+  })
 
-    // let x = await avlTree.getRoot()
-    // console.log(x)
-    // await avlTree.getRoot().should.equal()
-    // console.log(await avlTree.getRoot())
+  it('should insert 100 node randomly and get max back correctly', async function() {
+    let max = -1
+    let min = 99999999999
+    let p = []
+    for (let i = 0; i < 100; i++) {
+      const value = getRandInt(55, 99999999999)
+      if (value > max) max = value
+      else if (value < min) min = value
+      p.push(await avlTree.insert(value))
+    }
+
+    await Promise.all(p)
+    let treeMax = await avlTree.getMax()
+    let treeMin = await avlTree.getMin()
+    treeMax.should.be.bignumber.equal(max)
+    treeMin.should.be.bignumber.equal(min)
+  })
+
+  it('should insert one node and check balancing gas cost after 1000 node', async function() {
+    await avlTree.insert(84630396498)
+    let bool = await avlTree.search(84630396498)
+    assert(bool, 'must find inserted node')
   })
 })

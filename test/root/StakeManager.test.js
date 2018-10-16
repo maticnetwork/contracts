@@ -8,7 +8,7 @@ import { assertRevert } from '../helpers/assert-revert'
 import { StakeManagerMock, RootToken } from '../helpers/contracts'
 import LogDecoder from '../helpers/log-decoder'
 
-//TODO: make faster (promisify/parallel)
+// TODO: make faster (promisify/parallel)
 // add chai pluggin
 chai
   .use(chaiAsPromised)
@@ -454,16 +454,24 @@ contract('StakeManager', async function(accounts) {
 
     it('should unstake all validators and wait for d*2 and varify new validators', async function() {
       let users = [
+        wallets[1].getAddressString(),
+        wallets[2].getAddressString(),
         wallets[3].getAddressString(),
         wallets[4].getAddressString(),
         wallets[5].getAddressString()
       ]
-      let amounts = [web3.toWei(300), web3.toWei(750), web3.toWei(740)]
+      let amounts = [
+        web3.toWei(200),
+        web3.toWei(250),
+        web3.toWei(300),
+        web3.toWei(750),
+        web3.toWei(740)
+      ]
       const oldValidators = await stakeManager.getCurrentValidatorSet()
       const unstakeEvents = [
-        await stakeManager.unstake(amounts[0], '0x0', { from: users[0] }),
-        await stakeManager.unstake(amounts[1], '0x0', { from: users[1] }),
-        await stakeManager.unstake(amounts[2], '0x0', { from: users[2] })
+        await stakeManager.unstake(amounts[2], '0x0', { from: users[2] }),
+        await stakeManager.unstake(amounts[3], '0x0', { from: users[3] }),
+        await stakeManager.unstake(amounts[4], '0x0', { from: users[4] })
       ]
       await stakeManager.updateEpoch()
       await stakeManager.updateEpoch()
@@ -472,23 +480,34 @@ contract('StakeManager', async function(accounts) {
       const unstakeClaimEvents = [
         await stakeManager.unstakeClaim({ from: users[0] }),
         await stakeManager.unstakeClaim({ from: users[1] }),
-        await stakeManager.unstakeClaim({ from: users[2] })
+        await stakeManager.unstakeClaim({ from: users[2] }),
+        await stakeManager.unstakeClaim({ from: users[3] }),
+        await stakeManager.unstakeClaim({ from: users[4] })
       ]
+      // const logs = [
+      //   logDecoder.decodeLogs(unstakeClaimEvents[0].receipt.logs),
+      //   logDecoder.decodeLogs(unstakeClaimEvents[1].receipt.logs),
+      //   logDecoder.decodeLogs(unstakeClaimEvents[2].receipt.logs),
+      //   logDecoder.decodeLogs(unstakeClaimEvents[3].receipt.logs),
+      //   logDecoder.decodeLogs(unstakeClaimEvents[4].receipt.logs)
+      // ]
+      // console.log(logs)
+      // console.log(users)
       const newValidators = await stakeManager.getCurrentValidatorSet()
       expect(newValidators).to.not.have.members(users)
     })
 
     it('should verify unstaked amount', async function() {
-      // let balance = await stakeToken.balanceOf(wallets[1].getAddressString())
-      // balance.should.be.bignumber.equal(web3.toWei(800))
-      // balance = await stakeToken.balanceOf(wallets[2].getAddressString())
-      // balance.should.be.bignumber.equal(web3.toWei(805))
-      // balance = await stakeToken.balanceOf(wallets[3].getAddressString())
-      // balance.should.be.bignumber.equal(web3.toWei(850))
-      // balance = await stakeToken.balanceOf(wallets[4].getAddressString())
-      // balance.should.be.bignumber.equal(web3.toWei(800))
-      // balance = await stakeToken.balanceOf(wallets[5].getAddressString())
-      // balance.should.be.bignumber.equal(web3.toWei(800))
+      let balance = await stakeToken.balanceOf(wallets[1].getAddressString())
+      balance.should.be.bignumber.equal(web3.toWei(800))
+      balance = await stakeToken.balanceOf(wallets[2].getAddressString())
+      balance.should.be.bignumber.equal(web3.toWei(805))
+      balance = await stakeToken.balanceOf(wallets[3].getAddressString())
+      balance.should.be.bignumber.equal(web3.toWei(850))
+      balance = await stakeToken.balanceOf(wallets[4].getAddressString())
+      balance.should.be.bignumber.equal(web3.toWei(800))
+      balance = await stakeToken.balanceOf(wallets[5].getAddressString())
+      balance.should.be.bignumber.equal(web3.toWei(800))
     })
   })
 })
