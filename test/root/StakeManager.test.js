@@ -3,7 +3,7 @@ import chaiAsPromised from 'chai-as-promised'
 import chaiBigNumber from 'chai-bignumber'
 
 import { generateFirstWallets, mnemonics } from '../helpers/wallets'
-import { linkLibs } from '../helpers/utils'
+import { linkLibs, ZeroAddress } from '../helpers/utils'
 import { assertRevert } from '../helpers/assert-revert'
 import { StakeManagerMock, RootToken } from '../helpers/contracts'
 import LogDecoder from '../helpers/log-decoder'
@@ -235,9 +235,8 @@ contract('StakeManager', async function(accounts) {
     it('should dethrone via wallets[1] and become currentValidator', async function() {
       const user = wallets[1].getAddressString()
       const amount = web3.toWei(200)
-      const addressZero = '0x0000000000000000000000000000000000000000'
       // stake now
-      await stakeManager.dethrone(addressZero, { from: user })
+      await stakeManager.dethrone(ZeroAddress, { from: user })
 
       // claim stake
       await stakeManager.stakeClaim({ from: user })
@@ -259,9 +258,8 @@ contract('StakeManager', async function(accounts) {
       const user = wallets[2].getAddressString()
       const UserAmount = web3.toWei(250)
       const amount = web3.toWei(450)
-      const addressZero = '0x0000000000000000000000000000000000000000'
       // stake now
-      await stakeManager.dethrone(addressZero, { from: user })
+      await stakeManager.dethrone(ZeroAddress, { from: user })
 
       // claim stake
       await stakeManager.stakeClaim({ from: user })
@@ -306,10 +304,9 @@ contract('StakeManager', async function(accounts) {
       const user = wallets[4].getAddressString()
       const UserAmount = web3.toWei(750)
       let amount = web3.toWei(2240)
-      const addressZero = '0x0000000000000000000000000000000000000000'
       let users = [user]
       // stake now
-      await stakeManager.dethrone(addressZero, { from: user })
+      await stakeManager.dethrone(ZeroAddress, { from: user })
       // claim stake
       await stakeManager.stakeClaim({ from: user })
       // staked for
@@ -323,7 +320,7 @@ contract('StakeManager', async function(accounts) {
       users.push(user1)
 
       // stake now
-      await stakeManager.dethrone(addressZero, { from: user1 })
+      await stakeManager.dethrone(ZeroAddress, { from: user1 })
       //  claim stake
       await stakeManager.stakeClaim({ from: user1 })
 
@@ -338,11 +335,10 @@ contract('StakeManager', async function(accounts) {
     it('should dethrone address via wallets[7] and fail', async function() {
       const user = wallets[7].getAddressString()
       const amount = web3.toWei(1)
-      const addressZero = '0x0000000000000000000000000000000000000000'
 
       // stake now
       try {
-        await stakeManager.dethrone(addressZero, { from: user })
+        await stakeManager.dethrone(ZeroAddress, { from: user })
       } catch (error) {
         const invalidOpcode = error.message.search('revert') >= 0
         console.log('revert')
