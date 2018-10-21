@@ -14,7 +14,6 @@ import { RootChainable } from "../mixin/RootChainable.sol";
 
 import { StakeManagerInterface } from "./StakeManagerInterface.sol";
 import { RootChain } from "./RootChain.sol";
-import { ValidatorSet } from "./ValidatorSet.sol"; 
 
 
 contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
@@ -41,13 +40,14 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
 
   // genesis/governance variables
   uint256 public _validatorThreshold = 10;
-  uint256 public dynasty = 256;  // in epoch unit
+  uint256 public oneDynasty = 2**13;  // in epoch unit
   uint256 public minStakeThreshold = (10**18);  // ETH/MTX
   uint256 public minLockInPeriod = 2; //(unit dynasty)
   uint256 public maxStakeDrop = 95; // in percent 100-x, current is 5%
   
   uint256 public totalStake = 0;
-  uint256 public currentEpoch = 1;
+  uint256 public currentEpoch = 1; 
+  uint256 public nextValidatorSetChangeEpoch = 0; // in epoch
   
   
   enum ValidatorStatus { WAITING, VALIDATOR, UNSTAKING } // need update 
@@ -63,7 +63,6 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
 
   AvlTree validatorList;
   AvlTree nextValidatorList;
-
   mapping (address => Staker) stakers; 
 
   constructor (address _token) public {
@@ -86,13 +85,9 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     stakeFor(msg.sender, amount, data);
   }
 
-  function validatorSetSize() public view returns(uint256) {
-    return validatorList.currentSize();
-  }
-
-  function nextValidatorSetSize() public view  returns(uint256) {
-    return nextValidatorList.currentSize();
-  }
+  // function nextValidatorSetSize() public view  returns(uint256) {
+  //   return nextValidatorList.currentSize();
+  // }
 
   function getDetails(address user) public view returns(uint256 , uint256, ValidatorStatus) {
     return (stakers[user].activationEpoch, stakers[user].deActivationEpoch, stakers[user].status);
@@ -128,7 +123,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   //     value = nextValidatorList.delMin();
   //     value << 160;
   //     staker = address(uint160(value));
-  //     // if ((stakers[staker].epoch - currentEpoch) > dynasty*flushDynasty ) {
+  //     // if ((stakers[staker].epoch - currentEpoch) > oneDynasty*flushDynasty ) {
   //     require(tokenObj.transfer(staker, stakers[staker].amount));
   //     emit Flushed(staker, stakers[staker].amount, "0");
   //     delete stakers[staker];
@@ -142,7 +137,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   function stakeClaim() public onlyStaker {
     require(stakers[msg.sender].epoch != 0);
     require(stakers[msg.sender].activationEpoch != 0);
-    require(stakers[msg.sender].activationEpoch <= currentEpoch);
+    require(stakers[msg.sender].activationEpoch <= currentEpoch); //addValidator 
     stakers[msg.sender].status = ValidatorStatus.VALIDATOR;
     totalStake = totalStake.add(stakers[msg.sender].amount);
     emit Staked(msg.sender, stakers[msg.sender].amount, totalStake, "0x0");
@@ -154,7 +149,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     uint256 amount = stakers[msg.sender].amount; 
     uint256 value = amount << 160 | uint160(msg.sender);
     validatorList.deleteNode(value);
-    totalStake = totalStake.sub(amount);
+    totalStake = totalStake.sub(amount); // TODO: edge case
     // TODO :add slashing here use soft slashing in slash amt variable
     require(tokenObj.transfer(msg.sender, amount));
     delete stakers[msg.sender];    
@@ -168,12 +163,13 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     uint256 value;
 
     // for empty slot address(0x0) is validator
-    if (validator == address(0x0) || validatorList.currentSize() < _validatorThreshold) { 
+    // TODO: currentSize is not actual validator size  
+    if (validator == address(0x0) || validatorList.currentSize() < _validatorThreshold) {
       require(validatorList.currentSize() < _validatorThreshold);
       value = stakers[msg.sender].amount << 160 | uint160(msg.sender);
       nextValidatorList.deleteNode(value);
       validatorList.insert(value);
-      stakers[msg.sender].activationEpoch = currentEpoch;
+      stakers[msg.sender].activationEpoch = currentEpoch;// nextValidatorSetChangeEpoch; // set it to next imediate d
     } else {
       require(stakers[validator].epoch != 0);      
       require(stakers[validator].status == ValidatorStatus.VALIDATOR);
@@ -184,7 +180,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
       validatorList.insert(value);
       value = stakers[validator].amount << 160 | uint160(validator);
       stakers[validator].status = ValidatorStatus.UNSTAKING;
-      stakers[validator].deActivationEpoch = currentEpoch + dynasty*2;
+      stakers[validator].deActivationEpoch = currentEpoch + oneDynasty*2;
       stakers[msg.sender].activationEpoch = stakers[validator].deActivationEpoch;
       emit UnstakeInit(validator, stakers[validator].amount, "0x0");    
     }
@@ -197,7 +193,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     require(stakers[msg.sender].amount == amount);
     // require((currentEpoch - stakers[msg.sender].epoch ) > minLockInPeriod);
     stakers[msg.sender].status = ValidatorStatus.UNSTAKING;
-    stakers[msg.sender].deActivationEpoch = currentEpoch + dynasty*2;
+    stakers[msg.sender].deActivationEpoch = currentEpoch + oneDynasty*2;
 
     // new descendant selection 
     uint256 value = nextValidatorList.delMax(); 
@@ -251,8 +247,8 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   }
 
   function updateDynastyValue(uint256 newDynasty) public{ // onlyRootChain {
-    emit DynastyValueChange(newDynasty, dynasty);
-    dynasty = newDynasty;
+    emit DynastyValueChange(newDynasty, oneDynasty);
+    oneDynasty = newDynasty;
   }
   
   function getProposer() public  returns (address) {
@@ -260,20 +256,19 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   }
   
   function finalizeCommit() public onlyRootChain { 
-    // if dynasty 
-    // if (totalEpoch == currentEpoch) {
-    //   selectVaidator(); // currentVal.length - _validatorThreasold 
-    // }
-
+    if (nextValidatorSetChangeEpoch == currentEpoch) {
+        // reset validatorset acc
+        // update nextValidatorSetChangeEpoch
+        // do some more maintainance as well
+    } 
     currentEpoch = currentEpoch.add(1);
-
   }
 
   function updateMinLockInPeriod(uint256 epochs) public onlyRootChain {
     minLockInPeriod = epochs;
   }
 
-  function checkSignatures(
+  function checkSignatures( // TODO: user tendermint signs and  validations
     bytes32 root,
     uint256 start,
     uint256 end,
