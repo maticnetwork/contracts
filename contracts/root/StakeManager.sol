@@ -207,8 +207,18 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     emit UnstakeInit(msg.sender, amount, "0x0");
   }
   
+  // returns valid validator for current epoch 
   function getCurrentValidatorSet() public view returns (address[]) {
     return validatorList.getTree();
+    // address[] memory _validators = validatorList.getTree();
+    // for (uint256 i = 0;i < _validators.length;i++) {
+    //   if (stakers[_validators[i]].status != ValidatorStatus.VALIDATOR && 
+    //   stakers[_validators[i]].deActivationEpoch < currentEpoch && 
+    //   stakers[_validators[i]].deActivationEpoch != 0 ) {
+    //     delete _validators[i];
+    //     }
+    // }
+    // return _validators;
   }
 
   function getNextValidatorSet() public view returns (address[]) {
