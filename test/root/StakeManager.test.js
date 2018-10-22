@@ -232,18 +232,25 @@ contract('StakeManager', async function(accounts) {
       stakedFor.should.be.bignumber.equal(0)
     })
 
+    it('should verify running total stake to be correct', async function() {
+      const currentEpoch = await stakeManager.currentEpoch()
+      const stake = await stakeManager.currentValidatorsTotalStake(currentEpoch)
+      stake.should.be.bignumber.equal(0)
+      const validators = await stakeManager.getCurrentValidatorSet()
+      validators.should.have.lengthOf(0)
+    })
+
     it('should dethrone via wallets[1] and become currentValidator', async function() {
       const user = wallets[1].getAddressString()
       const amount = web3.toWei(200)
       // stake now
-      await stakeManager.dethrone(ZeroAddress, { from: user })
-
-      // claim stake
-      await stakeManager.stakeClaim({ from: user })
-
+      await stakeManager.dethrone(user, ZeroAddress, { from: user })
+      const currentEpoch = await stakeManager.currentEpoch()
       // check amount
-      const totalStake = await stakeManager.totalStaked()
-      totalStake.should.be.bignumber.equal(amount)
+      const currentValidatorSetTotalStake = await stakeManager.currentValidatorsTotalStake(
+        currentEpoch
+      )
+      currentValidatorSetTotalStake.should.be.bignumber.equal(amount)
       // staked for
       const stakedFor = await stakeManager.totalStakedFor(user)
       stakedFor.should.be.bignumber.equal(amount)
@@ -259,14 +266,14 @@ contract('StakeManager', async function(accounts) {
       const UserAmount = web3.toWei(250)
       const amount = web3.toWei(450)
       // stake now
-      await stakeManager.dethrone(ZeroAddress, { from: user })
-
-      // claim stake
-      await stakeManager.stakeClaim({ from: user })
+      await stakeManager.dethrone(user, ZeroAddress, { from: user })
 
       // check amount
-      const totalStake = await stakeManager.totalStaked()
-      totalStake.should.be.bignumber.equal(amount)
+      const currentEpoch = await stakeManager.currentEpoch()
+      const currentValidatorSetTotalStake = await stakeManager.currentValidatorsTotalStake(
+        currentEpoch
+      )
+      currentValidatorSetTotalStake.should.be.bignumber.equal(amount)
       // staked for
       const stakedFor = await stakeManager.totalStakedFor(user)
       stakedFor.should.be.bignumber.equal(UserAmount)
@@ -283,14 +290,11 @@ contract('StakeManager', async function(accounts) {
       const amount = web3.toWei(750)
       const validator = wallets[1].getAddressString()
       // stake now
-      await stakeManager.dethrone(validator, { from: user })
-
-      // claim stake
-      await stakeManager.stakeClaim({ from: user })
+      await stakeManager.dethrone(user, validator, { from: user })
 
       // check amount
-      const totalStake = await stakeManager.totalStaked()
-      totalStake.should.be.bignumber.equal(amount)
+      // const totalStake = await stakeManager.totalStaked()
+      // totalStake.should.be.bignumber.equal(amount)
       // staked for
       const stakedFor = await stakeManager.totalStakedFor(user)
       stakedFor.should.be.bignumber.equal(UserAmount)
@@ -306,30 +310,26 @@ contract('StakeManager', async function(accounts) {
       let amount = web3.toWei(2240)
       let users = [user]
       // stake now
-      await stakeManager.dethrone(ZeroAddress, { from: user })
-      // claim stake
-      await stakeManager.stakeClaim({ from: user })
+      await stakeManager.dethrone(user, ZeroAddress, { from: user })
       // staked for
       let stakedFor = await stakeManager.totalStakedFor(user)
       stakedFor.should.be.bignumber.equal(UserAmount)
-      const totalStake1 = await stakeManager.totalStaked()
-      const am2 = web3.toWei(1500)
-      totalStake1.should.be.bignumber.equal(am2)
+      // const totalStake1 = await stakeManager.totalStaked()
+      // const am2 = web3.toWei(1500)
+      // totalStake1.should.be.bignumber.equal(am2)
       const user1 = wallets[5].getAddressString()
       const UserAmount1 = web3.toWei(740)
       users.push(user1)
 
       // stake now
-      await stakeManager.dethrone(ZeroAddress, { from: user1 })
-      //  claim stake
-      await stakeManager.stakeClaim({ from: user1 })
+      await stakeManager.dethrone(user1, ZeroAddress, { from: user1 })
 
       const stakedFor1 = await stakeManager.totalStakedFor(user1)
       stakedFor1.should.be.bignumber.equal(UserAmount1)
 
       // check amount
-      const totalStake = await stakeManager.totalStaked()
-      totalStake.should.be.bignumber.equal(amount)
+      // const totalStake = await stakeManager.totalStaked()
+      // totalStake.should.be.bignumber.equal(amount)
     })
 
     it('should dethrone address via wallets[7] and fail', async function() {
@@ -338,7 +338,7 @@ contract('StakeManager', async function(accounts) {
 
       // stake now
       try {
-        await stakeManager.dethrone(ZeroAddress, { from: user })
+        await stakeManager.dethrone(user, ZeroAddress, { from: user })
       } catch (error) {
         const invalidOpcode = error.message.search('revert') >= 0
         console.log('revert')
@@ -417,7 +417,7 @@ contract('StakeManager', async function(accounts) {
       const validator = wallets[1].getAddressString()
 
       // stake now
-      await stakeManager.dethrone(validator, { from: user })
+      await stakeManager.dethrone(user, validator, { from: user })
       let validators = await stakeManager.getNextValidatorSet()
       expect(validators).to.not.include.members([user])
       const userDetails = await stakeManager.getDetails(user)
@@ -425,7 +425,7 @@ contract('StakeManager', async function(accounts) {
       // exit of validator and entry of new validator should be same
       userDetails[0].should.be.bignumber.equal(validatorDetails[1])
       // validator should be unstaking
-      validatorDetails[2].should.be.bignumber.equal(2)
+      // validatorDetails[2].should.be.bignumber.equal(2)
     })
 
     it('should unstake and select descendent', async function() {
@@ -445,7 +445,7 @@ contract('StakeManager', async function(accounts) {
       // expect(validators).to.not.include.members([user])
       const userDetails = await stakeManager.getDetails(user)
       // should be unstaking
-      userDetails[2].should.be.bignumber.equal(2)
+      // userDetails[2].should.be.bignumber.equal(2)
     })
 
     it('should unstake all validators and wait for d*2 and varify new validators', async function() {
@@ -469,10 +469,12 @@ contract('StakeManager', async function(accounts) {
         await stakeManager.unstake(amounts[3], '0x0', { from: users[3] }),
         await stakeManager.unstake(amounts[4], '0x0', { from: users[4] })
       ]
-      await stakeManager.updateEpoch()
-      await stakeManager.updateEpoch()
-      await stakeManager.updateEpoch()
-      await stakeManager.updateEpoch()
+      await stakeManager.finalizeCommit()
+      await stakeManager.finalizeCommit()
+      await stakeManager.finalizeCommit()
+      await stakeManager.finalizeCommit()
+
+      // const validatorDetails = await stakeManager.getDetails(users[])
       const unstakeClaimEvents = [
         await stakeManager.unstakeClaim({ from: users[0] }),
         await stakeManager.unstakeClaim({ from: users[1] }),
@@ -480,15 +482,7 @@ contract('StakeManager', async function(accounts) {
         await stakeManager.unstakeClaim({ from: users[3] }),
         await stakeManager.unstakeClaim({ from: users[4] })
       ]
-      // const logs = [
-      //   logDecoder.decodeLogs(unstakeClaimEvents[0].receipt.logs),
-      //   logDecoder.decodeLogs(unstakeClaimEvents[1].receipt.logs),
-      //   logDecoder.decodeLogs(unstakeClaimEvents[2].receipt.logs),
-      //   logDecoder.decodeLogs(unstakeClaimEvents[3].receipt.logs),
-      //   logDecoder.decodeLogs(unstakeClaimEvents[4].receipt.logs)
-      // ]
-      // console.log(logs)
-      // console.log(users)
+
       const newValidators = await stakeManager.getCurrentValidatorSet()
       expect(newValidators).to.not.have.members(users)
     })
@@ -504,6 +498,21 @@ contract('StakeManager', async function(accounts) {
       balance.should.be.bignumber.equal(web3.toWei(800))
       balance = await stakeToken.balanceOf(wallets[5].getAddressString())
       balance.should.be.bignumber.equal(web3.toWei(800))
+    })
+
+    it('should verify running total stake to be correct', async function() {
+      const amount = web3.toWei(2950)
+      const currentEpoch = await stakeManager.currentEpoch()
+      const stake = await stakeManager.currentValidatorsTotalStake(currentEpoch)
+      stake.should.be.bignumber.equal(amount)
+      const validators = await stakeManager.getCurrentValidatorSet()
+      expect(validators).to.have.members([
+        wallets[0].getAddressString(),
+        wallets[6].getAddressString(),
+        wallets[7].getAddressString(),
+        wallets[8].getAddressString(),
+        wallets[9].getAddressString()
+      ])
     })
   })
 })

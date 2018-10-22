@@ -34,7 +34,7 @@ contract AvlTree {
   }
     
   function search(uint256 value) public view returns (bool) {
-    require(value > 0);
+    if (value == 0 || root == 0) return false;
     return _search(root, value);
   }
 
@@ -101,7 +101,7 @@ contract AvlTree {
   }
 
   function getTree() public view returns (address[]) {
-    require(root != 0);
+    if (root == 0) return new address[](0);
     address[] memory _tree = new address[](currentSize);
     uint256 j = 0;
     uint256 value;
