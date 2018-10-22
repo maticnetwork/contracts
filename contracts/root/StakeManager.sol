@@ -256,10 +256,6 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     dynasty = newDynasty;
   }
   
-  function getProposer() public  returns (address) {
-    return address(0x0);    
-  }
-  
   function finalizeCommit() public  { // onlyRootChain
     // if (nextValidatorSetChangeEpoch == currentEpoch) {
     //     // update nextValidatorSetChangeEpoch
@@ -277,6 +273,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     bytes32 root,
     uint256 start,
     uint256 end,
+    address proposer,
     bytes sigs
   ) public view returns (bool) {
     // create hash
@@ -295,7 +292,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
       address signer = h.ecrecovery(sigElement);
 
       // check if signer is stacker and not proposer
-      if (totalStakedFor(signer) > 0 && signer != getProposer() && signer > lastAdd) {
+      if (totalStakedFor(signer) > 0 && signer != proposer && signer > lastAdd) {
         lastAdd = signer;
         totalSigners++;
       } else {
