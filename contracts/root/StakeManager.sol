@@ -168,7 +168,8 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
       validatorList.insert(value);
       validatorSetSize++;
       stakers[user].activationEpoch = currentEpoch;// nextValidatorSetChangeEpoch; // set it to next imediate d
-      totalValidatorStake[stakers[user].activationEpoch] = totalValidatorStake[stakers[user].activationEpoch] + stakers[user].amount;
+      totalValidatorStake[stakers[user].activationEpoch] = (
+        totalValidatorStake[stakers[user].activationEpoch] + stakers[user].amount);
     } else {
       require(stakers[validator].epoch != 0);      
       require(stakers[validator].activationEpoch != 0 && stakers[validator].deActivationEpoch == 0);
@@ -187,12 +188,13 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     emit StakeInit(user, stakers[user].amount, "0x0");
   }
   
-  function unstake(uint256 amount, bytes data) public  onlyStaker { 
+  function unstake(uint256 amount, bytes data) public onlyStaker { 
     require(stakers[msg.sender].epoch != 0);  // check staker exists 
     require(stakers[msg.sender].activationEpoch != 0 && stakers[msg.sender].deActivationEpoch == 0);
     require(stakers[msg.sender].amount == amount);
     stakers[msg.sender].deActivationEpoch = currentEpoch + dynasty*2;
-    totalValidatorStake[currentEpoch + dynasty*2] = totalValidatorStake[currentEpoch + dynasty*2] - stakers[msg.sender].amount;
+    totalValidatorStake[currentEpoch + dynasty*2] = (
+      totalValidatorStake[currentEpoch + dynasty*2] - stakers[msg.sender].amount);
 
     // new descendant selection 
     uint256 value = nextValidatorList.delMax(); 
@@ -201,7 +203,8 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
       value >> 160;
       address newStaker = address(uint160(value));
       stakers[newStaker].activationEpoch = stakers[msg.sender].deActivationEpoch;
-      totalValidatorStake[currentEpoch + dynasty*2] = totalValidatorStake[currentEpoch + dynasty*2] + stakers[newStaker].amount;
+      totalValidatorStake[currentEpoch + dynasty*2] = (
+        totalValidatorStake[currentEpoch + dynasty*2] + stakers[newStaker].amount);
       emit StakeInit(newStaker, stakers[newStaker].amount, "0x0");
     } else {
       validatorSetSize--;
@@ -232,10 +235,6 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
 
   function totalStaked() public view returns (uint256) {
     return totalStake;
-  }
-
-  function updateEpoch() public { // onlyrootchain /temp function
-    currentEpoch = currentEpoch.add(1);
   }
 
   function token() public view returns (address) {
