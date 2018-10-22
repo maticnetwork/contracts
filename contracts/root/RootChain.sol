@@ -162,7 +162,7 @@ contract RootChain is Ownable, WithdrawManager {
   }
 
   function submitHeaderBlock(bytes32 root, uint256 end, bytes sigs) public {
-    require(msg.sender == stakeManager.getProposer());
+    // require(msg.sender == stakeManager.getProposer());
     uint256 start = currentChildBlock();
     if (start > 0) {
       start = start.add(1);
@@ -172,7 +172,7 @@ contract RootChain is Ownable, WithdrawManager {
     require(end > start);
 
     // Make sure enough validators sign off on the proposed header root
-    require(stakeManager.checkSignatures(root, start, end, sigs));
+    require(stakeManager.checkSignatures(root, start, end, msg.sender, sigs)); // remove msg.sender with proposer:tindermint
 
     // Add the header root
     HeaderBlock memory headerBlock = HeaderBlock({

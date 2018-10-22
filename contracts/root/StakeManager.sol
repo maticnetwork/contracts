@@ -62,7 +62,8 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   AvlTree nextValidatorList;
   uint256 public validatorSetSize = 0;
   mapping (address => Staker) stakers; 
-  //epoch to stake running totalstake
+
+  //epoch to stake: running totalstake
   mapping (uint256 => uint256) totalValidatorStake;
 
   constructor (address _token) public {
@@ -80,22 +81,6 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   
   function stake(uint256 amount, bytes data) public {
     stakeFor(msg.sender, amount, data);
-  }
-
-  function validatorSetSize() public view  returns(uint256) {
-    return validatorSetSize;
-  }
-
-  function nextValidatorSetSize() public view  returns(uint256) {
-    return nextValidatorList.currentSize();
-  }
-
-  function getDetails(address user) public view returns(uint256 , uint256) {
-    return (stakers[user].activationEpoch, stakers[user].deActivationEpoch);
-  }
-
-  function currentValidatorsTotalStake(uint256 epoch) public view returns(uint256) {
-    return totalValidatorStake[epoch];
   }
 
   function stakeFor(address user, uint256 amount, bytes data) public onlyWhenUnlocked {
@@ -140,7 +125,66 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   //     flushN--;
   //   }
   // }
+  
+  // start force replacement of valid staker by higher stake
+  function dethrone(address user, address validator) public onlyStaker { 
+    require(stakers[user].epoch != 0);
+    require(stakers[user].activationEpoch == 0 && stakers[user].deActivationEpoch == 0);
+    uint256 value;
 
+    // for empty slot address(0x0) is validator
+    if (validatorSetSize < validatorThreshold) {
+      value = stakers[user].amount << 160 | uint160(user);
+      nextValidatorList.deleteNode(value);
+      validatorList.insert(value);
+      validatorSetSize = validatorSetSize.add(1);
+      stakers[user].activationEpoch = currentEpoch;// nextValidatorSetChangeEpoch; // set it to next imediate d
+      totalValidatorStake[stakers[user].activationEpoch] = (
+        totalValidatorStake[stakers[user].activationEpoch].add(stakers[user].amount));
+    } else {
+      require(stakers[validator].epoch != 0);      
+      require(stakers[validator].activationEpoch != 0 && stakers[validator].deActivationEpoch == 0);
+      require(stakers[user].amount > stakers[validator].amount);
+
+      value = stakers[user].amount << 160 | uint160(user);
+      nextValidatorList.deleteNode(value);
+      validatorList.insert(value);
+      value = stakers[validator].amount << 160 | uint160(validator);
+      
+      stakers[validator].deActivationEpoch = currentEpoch.add(dynasty.mul(2));
+      stakers[user].activationEpoch = stakers[validator].deActivationEpoch;
+     
+      totalValidatorStake[currentEpoch.add(dynasty.mul(2))] = (
+        totalValidatorStake[currentEpoch.add(dynasty.mul(2))].add(stakers[user].amount).sub(stakers[validator].amount));
+      emit UnstakeInit(validator, stakers[validator].amount, "0x0");    
+    }
+    emit StakeInit(user, stakers[user].amount, "0x0");
+  }
+  
+  function unstake(uint256 amount, bytes data) public onlyStaker { 
+    require(stakers[msg.sender].epoch != 0);  // check staker exists 
+    require(stakers[msg.sender].activationEpoch != 0 && stakers[msg.sender].deActivationEpoch == 0);
+    require(stakers[msg.sender].amount == amount);
+    stakers[msg.sender].deActivationEpoch = currentEpoch.add(dynasty.mul(2));
+    totalValidatorStake[currentEpoch.add(dynasty.mul(2))] = (
+      totalValidatorStake[currentEpoch.add(dynasty.mul(2))].sub(stakers[msg.sender].amount));
+
+    // new descendant selection 
+    uint256 value = nextValidatorList.delMax(); 
+    if (value != 0) {
+      validatorList.insert(value);
+      value >> 160;
+      address newStaker = address(uint160(value));
+      stakers[newStaker].activationEpoch = stakers[msg.sender].deActivationEpoch;
+      totalValidatorStake[currentEpoch.add(dynasty.mul(2))] = (
+        totalValidatorStake[currentEpoch.add(dynasty.mul(2))].add(stakers[newStaker].amount));
+      emit StakeInit(newStaker, stakers[newStaker].amount, "0x0");
+    } else {
+      validatorSetSize = validatorSetSize.add(1);
+    }
+    emit UnstakeInit(msg.sender, amount, "0x0");
+  }
+  
   function unstakeClaim() public onlyStaker {  
     require(stakers[msg.sender].epoch != 0);
     require(stakers[msg.sender].deActivationEpoch <= currentEpoch);
@@ -153,65 +197,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     delete stakers[msg.sender];    
     emit Unstaked(msg.sender, amount, totalStake, "0x0");
   }
-  
-  // start force replacement of valid staker by higher stake
-  function dethrone(address user, address validator) public onlyStaker { 
-    require(stakers[user].epoch != 0);
-    require(stakers[user].activationEpoch == 0 && stakers[user].deActivationEpoch == 0);
-    uint256 value;
 
-    // for empty slot address(0x0) is validator
-    if (validator == address(0x0) || validatorSetSize < validatorThreshold) {
-      require(validatorSetSize < validatorThreshold);
-      value = stakers[user].amount << 160 | uint160(user);
-      nextValidatorList.deleteNode(value);
-      validatorList.insert(value);
-      validatorSetSize++;
-      stakers[user].activationEpoch = currentEpoch;// nextValidatorSetChangeEpoch; // set it to next imediate d
-      totalValidatorStake[stakers[user].activationEpoch] = (
-        totalValidatorStake[stakers[user].activationEpoch] + stakers[user].amount);
-    } else {
-      require(stakers[validator].epoch != 0);      
-      require(stakers[validator].activationEpoch != 0 && stakers[validator].deActivationEpoch == 0);
-      require(stakers[user].amount > stakers[validator].amount);
-
-      value = stakers[user].amount << 160 | uint160(user);
-      nextValidatorList.deleteNode(value);
-      validatorList.insert(value);
-      value = stakers[validator].amount << 160 | uint160(validator);
-      stakers[validator].deActivationEpoch = currentEpoch + dynasty*2;
-      totalValidatorStake[currentEpoch + dynasty*2] = (
-        stakers[user].amount + totalValidatorStake[currentEpoch + dynasty*2] - stakers[validator].amount);
-      stakers[user].activationEpoch = stakers[validator].deActivationEpoch;
-      emit UnstakeInit(validator, stakers[validator].amount, "0x0");    
-    }
-    emit StakeInit(user, stakers[user].amount, "0x0");
-  }
-  
-  function unstake(uint256 amount, bytes data) public onlyStaker { 
-    require(stakers[msg.sender].epoch != 0);  // check staker exists 
-    require(stakers[msg.sender].activationEpoch != 0 && stakers[msg.sender].deActivationEpoch == 0);
-    require(stakers[msg.sender].amount == amount);
-    stakers[msg.sender].deActivationEpoch = currentEpoch + dynasty*2;
-    totalValidatorStake[currentEpoch + dynasty*2] = (
-      totalValidatorStake[currentEpoch + dynasty*2] - stakers[msg.sender].amount);
-
-    // new descendant selection 
-    uint256 value = nextValidatorList.delMax(); 
-    if (value != 0) {
-      validatorList.insert(value);
-      value >> 160;
-      address newStaker = address(uint160(value));
-      stakers[newStaker].activationEpoch = stakers[msg.sender].deActivationEpoch;
-      totalValidatorStake[currentEpoch + dynasty*2] = (
-        totalValidatorStake[currentEpoch + dynasty*2] + stakers[newStaker].amount);
-      emit StakeInit(newStaker, stakers[newStaker].amount, "0x0");
-    } else {
-      validatorSetSize--;
-    }
-    emit UnstakeInit(msg.sender, amount, "0x0");
-  }
-  
   // returns valid validator for current epoch 
   function getCurrentValidatorSet() public view returns (address[]) {
     address[] memory _validators = validatorList.getTree();
@@ -222,6 +208,22 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
         }
     }
     return _validators;
+  }
+
+  function validatorSetSize() public view  returns(uint256) {
+    return validatorSetSize;
+  }
+
+  function nextValidatorSetSize() public view  returns(uint256) {
+    return nextValidatorList.currentSize();
+  }
+
+  function getDetails(address user) public view returns(uint256 , uint256) {
+    return (stakers[user].activationEpoch, stakers[user].deActivationEpoch);
+  }
+
+  function currentValidatorsTotalStake(uint256 epoch) public view returns(uint256) {
+    return totalValidatorStake[epoch];
   }
 
   function getNextValidatorSet() public view returns (address[]) {
@@ -261,8 +263,8 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     //     // update nextValidatorSetChangeEpoch
     // } 
     currentEpoch = currentEpoch.add(1);
-    totalValidatorStake[currentEpoch] = totalValidatorStake[currentEpoch] + totalValidatorStake[currentEpoch-1];
-    delete totalValidatorStake[currentEpoch-1];
+    totalValidatorStake[currentEpoch] = totalValidatorStake[currentEpoch.sub(1)].add(totalValidatorStake[currentEpoch]);
+    delete totalValidatorStake[currentEpoch.sub(1)];
   }
 
   function updateMinLockInPeriod(uint256 epochs) public onlyRootChain {
