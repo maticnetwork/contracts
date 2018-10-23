@@ -238,19 +238,9 @@ contract('StakeManager', async function(accounts) {
     })
 
     it('should verify running total stake to be correct', async function() {
-      let stake = await stakeManager.currentValidatorSetTotalStake()
-      stake.should.be.bignumber.equal(0)
-      let validators = await stakeManager.getCurrentValidatorSet()
-      console.log(validators)
-      // validators.should.have.lengthOf(0) should not have members
-
-      await stakeManager.finalizeCommit()
-
-      stake = await stakeManager.currentValidatorSetTotalStake()
-      console.log(stake)
+      const stake = await stakeManager.currentValidatorSetTotalStake()
       stake.should.be.bignumber.equal(web3.toWei(2240))
-      validators = await stakeManager.getCurrentValidatorSet()
-      console.log(validators)
+      const validators = await stakeManager.getCurrentValidatorSet()
       validators.should.have.lengthOf(5)
     })
 
@@ -265,7 +255,7 @@ contract('StakeManager', async function(accounts) {
         })
       } catch (error) {
         const invalidOpcode = error.message.search('revert') >= 0
-        console.log('revert')
+        console.log('reverted check')
         assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
         return
       }
@@ -283,9 +273,6 @@ contract('StakeManager', async function(accounts) {
       await stakeToken.approve(stakeManager.address, amount, {
         from: user
       })
-      // console.log(web3.hexToBytes(wallets[1].getAddressString()))
-      // console.log(web3.utils.hexToBytes(wallets[1].getAddressString()))
-      // stake nowweb3.utils.
       let out = await stakeManager.stake(
         amount,
         wallets[1].getAddressString(),
@@ -383,7 +370,8 @@ contract('StakeManager', async function(accounts) {
         web3.toWei(740)
       ]
       // let rootChain = await stakeManager.rootChain()
-      // console.log(rootChain)
+      await stakeManager.finalizeCommit()
+      await stakeManager.finalizeCommit()
       await stakeManager.finalizeCommit()
       await stakeManager.finalizeCommit()
       await stakeManager.finalizeCommit()
@@ -397,7 +385,6 @@ contract('StakeManager', async function(accounts) {
         await stakeManager.unstakeClaim({ from: users[3] }),
         await stakeManager.unstakeClaim({ from: users[4] })
       ]
-
       const newValidators = await stakeManager.getCurrentValidatorSet()
       expect(newValidators).to.not.have.members(users)
     })
