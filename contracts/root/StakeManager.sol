@@ -61,10 +61,10 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   AvlTree validatorList;
   AvlTree nextValidatorList;
   uint256 public validatorSetSize = 0;
-  mapping (address => Staker) stakers; 
+  mapping (address => Staker) private stakers; 
 
   //epoch to stake: running totalstake
-  mapping (uint256 => uint256) totalValidatorStake;
+  mapping (uint256 => uint256) private totalValidatorStake;
 
   constructor (address _token) public {
     require(_token != address(0x0));
@@ -162,7 +162,6 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   }
   
   function unstake(uint256 amount, bytes data) public onlyStaker { 
-    require(stakers[msg.sender].epoch != 0);  // check staker exists 
     require(stakers[msg.sender].activationEpoch != 0 && stakers[msg.sender].deActivationEpoch == 0);
     require(stakers[msg.sender].amount == amount);
     stakers[msg.sender].deActivationEpoch = currentEpoch.add(dynasty.mul(2));
@@ -186,7 +185,6 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   }
   
   function unstakeClaim() public onlyStaker {  
-    require(stakers[msg.sender].epoch != 0);
     require(stakers[msg.sender].deActivationEpoch <= currentEpoch);
     uint256 amount = stakers[msg.sender].amount; 
     uint256 value = amount << 160 | uint160(msg.sender);
@@ -230,7 +228,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     return nextValidatorList.getTree();
   }
 
-  function totalStakedFor(address addr) public view returns (uint256) { // onlyowner ?
+  function totalStakedFor(address addr) public view returns (uint256) { 
     require(addr != address(0x0));
     return stakers[addr].amount;
   }
@@ -248,17 +246,17 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   }
 
   // Change the number of validators required to allow a passed header root
-  function updateValidatorThreshold(uint256 newThreshold) public{ // onlyRootChain {
+  function updateValidatorThreshold(uint256 newThreshold) public  onlyOwner {
     emit ThresholdChange(newThreshold, validatorThreshold);
     validatorThreshold = newThreshold;
   }
 
-  function updateDynastyValue(uint256 newDynasty) public{ // onlyRootChain {
+  function updateDynastyValue(uint256 newDynasty) public onlyOwner { 
     emit DynastyValueChange(newDynasty, dynasty);
     dynasty = newDynasty;
   }
   
-  function finalizeCommit() public  { // onlyRootChain
+  function finalizeCommit() public onlyRootChain {
     // if (nextValidatorSetChangeEpoch == currentEpoch) {
     //     // update nextValidatorSetChangeEpoch
     // } 
@@ -267,7 +265,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     delete totalValidatorStake[currentEpoch.sub(1)];
   }
 
-  function updateMinLockInPeriod(uint256 epochs) public onlyRootChain {
+  function updateMinLockInPeriod(uint256 epochs) public onlyOwner {
     minLockInPeriod = epochs;
   }
 
@@ -277,7 +275,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     uint256 end,
     address proposer,
     bytes sigs
-  ) public view returns (bool) {
+  ) public view returns (bool) onlyRootChain {
     // create hash
     bytes32 h = keccak256(
       abi.encodePacked(
