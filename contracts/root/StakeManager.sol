@@ -37,14 +37,15 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   // event ValidatorLogOut(address indexed user, bytes data);
 
   // genesis/governance variables
-  uint256 public validatorThreshold = 10;
   uint256 public DYNASTY = 2**13;  // unit: epoch
   uint256 public MIN_DEPOSIT_SIZE = (10**18);  // in ERC20 token
-  uint256 public minLockInPeriod = 2; // unit: DYNASTY
-  uint256 public maxStakeDrop = 95; // in percent 100-x, current is 5%
   uint256 public WARM_UP_PERIOD = 1; // unit: epoch
   uint256 public EPOCH_LENGTH = 256; // unit : block
   uint256 public WITHDRAWAL_DELAY = DYNASTY.div(2); // unit: epoch
+
+  uint256 public validatorThreshold = 10;
+  uint256 public maxStakeDrop = 95; // in percent 100-x, current is 5%
+  uint256 public minLockInPeriod = 2; // unit: DYNASTY
   uint256 public totalStake = 0;
   uint256 public currentEpoch = 1; 
   
@@ -59,6 +60,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
 
   AvlTree validatorList;
   uint256 public currentValidatorSetSize = 0;
+  uint256 public currentValidatorSetTotalStake = 0;
   mapping (address => Staker) private stakers; 
  
   struct State {
@@ -103,14 +105,11 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
       data: data,
       activationEpoch: 0,
       deActivationEpoch: 0
-      });
-
-    address validator = bytesToAddress(data);
+    });
 
     // 96bits amount(10^29) 160 bits user address
     uint256 value = stakers[user].amount << 160 | uint160(user);
     validatorList.insert(value);
-      
 
     // for empty slot address(0x0) is validator
     if (currentValidatorSetSize < validatorThreshold) {
@@ -118,10 +117,13 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
       stakers[user].activationEpoch = currentEpoch.add(WARM_UP_PERIOD); // set it to next imediate d
       // update future validator set state
       validatorState[stakers[user].activationEpoch].amount = (
-        validatorState[stakers[user].activationEpoch].amount.add(stakers[user].amount));
+        validatorState[stakers[user].activationEpoch].amount + int256(stakers[user].amount)
+      );
       validatorState[stakers[user].activationEpoch].stakerCount = (
-        validatorState[stakers[user].activationEpoch].stakerCount.add(1));
+        validatorState[stakers[user].activationEpoch].stakerCount + 1
+      );
     } else {
+      address validator = bytesToAddress(data);
       require(stakers[validator].epoch != 0);      
       require(stakers[validator].activationEpoch != 0 && stakers[validator].deActivationEpoch == 0);
       require(stakers[user].amount > stakers[validator].amount);
@@ -130,23 +132,26 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
       stakers[validator].deActivationEpoch = currentEpoch.add(DYNASTY.mul(2));
       stakers[user].activationEpoch = stakers[validator].deActivationEpoch;
      
-      totalValidatorStake[currentEpoch.add(DYNASTY.mul(2))] = (
-        totalValidatorStake[currentEpoch.add(DYNASTY.mul(2))].add(stakers[user].amount).sub(stakers[validator].amount));
-      emit UnstakeInit(validator, stakers[validator].amount, "0x0");    
+      validatorState[currentEpoch.add(DYNASTY.mul(2))].amount = (
+        validatorState[currentEpoch.add(DYNASTY.mul(2))].amount +
+        int256(stakers[user].amount) -
+        int256(stakers[validator].amount)
+      );
+      emit UnstakeInit(validator, stakers[validator].amount, abi.encode(validator, stakers[validator].deActivationEpoch));    
     }
-    emit Staked(user, amount, totalStake, data);// pass activation/deactivation in data
+    emit Staked(user, amount, totalStake, abi.encode(user, stakers[user].activationEpoch));
   }
   
   function unstake(uint256 amount, bytes data) public onlyStaker { 
     require(stakers[msg.sender].activationEpoch != 0 && stakers[msg.sender].deActivationEpoch == 0);
     require(stakers[msg.sender].amount == amount);
     stakers[msg.sender].deActivationEpoch = currentEpoch.add(DYNASTY.mul(2));
-    totalValidatorStake[currentEpoch.add(DYNASTY.mul(2))] = (
-      totalValidatorStake[currentEpoch.add(DYNASTY.mul(2))].sub(stakers[msg.sender].amount));
+    validatorState[currentEpoch.add(DYNASTY.mul(2))].amount = (
+      validatorState[currentEpoch.add(DYNASTY.mul(2))].amount - int256(stakers[msg.sender].amount));
 
     validatorState[currentEpoch.add(DYNASTY.mul(2))].stakerCount = (
-      validatorState[currentEpoch.add(DYNASTY.mul(2))].stakerCount.sub(1));
-    emit UnstakeInit(msg.sender, amount, "0x0");
+      validatorState[currentEpoch.add(DYNASTY.mul(2))].stakerCount - 1);
+    emit UnstakeInit(msg.sender, amount, abi.encode(msg.sender, stakers[msg.sender].deActivationEpoch));
   }
   
   function unstakeClaim() public onlyStaker {  
@@ -165,10 +170,13 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   function getCurrentValidatorSet() public view returns (address[]) {
     address[] memory _validators = validatorList.getTree();
     for (uint256 i = 0;i < _validators.length;i++) {
-      if ( stakers[_validators[i]].deActivationEpoch < currentEpoch && 
-      stakers[_validators[i]].deActivationEpoch != 0 ) {
+      if (
+        stakers[_validators[i]].deActivationEpoch < currentEpoch && 
+        stakers[_validators[i]].deActivationEpoch != 0 ||
+        stakers[_validators[i]].activationEpoch > currentEpoch
+      ) {
         delete _validators[i];
-        }
+      }
     }
     return _validators;
   }
@@ -176,10 +184,6 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
 
   function getDetails(address user) public view returns(uint256 , uint256) {
     return (stakers[user].activationEpoch, stakers[user].deActivationEpoch);
-  }
-
-  function currentValidatorsTotalStake(uint256 epoch) public view returns(uint256) {
-    return totalValidatorStake[epoch];
   }
 
   function totalStakedFor(address addr) public view returns (uint256) { 
@@ -213,10 +217,13 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   function finalizeCommit() public onlyRootChain {
     currentEpoch = currentEpoch.add(1);
     validatorState[currentEpoch].amount = (
-      validatorState[currentEpoch.sub(1)].amount.add(validatorState[currentEpoch].amount));
+      validatorState[currentEpoch.sub(1)].amount + validatorState[currentEpoch].amount
+    );
     validatorState[currentEpoch].stakerCount = (
-      validatorState[currentEpoch.sub(1)].stakerCount.add(validatorState[currentEpoch].stakerCount));
-    currentValidatorSetSize = validatorState[currentEpoch].stakerCount;
+      validatorState[currentEpoch.sub(1)].stakerCount + validatorState[currentEpoch].stakerCount
+    );
+    currentValidatorSetSize = uint256(validatorState[currentEpoch].stakerCount);
+    currentValidatorSetTotalStake = uint256(validatorState[currentEpoch].amount);
     delete validatorState[currentEpoch.sub(1)];
   }
 
