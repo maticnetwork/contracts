@@ -29,9 +29,8 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   event ThresholdChange(uint256 newThreshold, uint256 oldThreshold);
   event DynastyValueChange(uint256 newDynasty, uint256 oldDynasty);
 
-  //optional event to ack staking/unstaking
+  //optional event to ack unstaking
   event UnstakeInit(address indexed user, uint256 indexed amount, bytes data); 
-  event StakeInit(address indexed user, uint256 indexed amount, bytes data); 
   // event ValidatorLogin(address indexed user, bytes data);
   // event ValidatorLogOut(address indexed user, bytes data);
 
@@ -62,7 +61,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     int256 amount;
     int256 stakerCount;
   }
-  //epoch to stake: running totalstake and totalstaker count
+  //Mapping for epoch to totalStake for that epoch
   mapping (uint256 => State) private validatorState;
   uint256 public currentValidatorSetSize = 0;
   uint256 public currentValidatorSetTotalStake = 0;
@@ -70,7 +69,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   constructor (address _token) public {
     require(_token != address(0x0));
     tokenObj = ERC20(_token);
-    validatorList = new AvlTree(); 
+    validatorList = new AvlTree(); // TODO: bind with stakemanager
   }
 
   // only staker
@@ -92,14 +91,14 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     require(amount < MAX_UINT96, "Stay realistic!!"); 
     address validator = bytesToAddress(data);
 
-    uint256 minValue = validatorList.getMin() >> 160;
+    uint256 minValue = validatorList.getMin();
     
-    if (minValue != 0) { // make it small
+    if (minValue != 0) { 
       minValue = minValue >> 160;
       minValue = minValue.mul(maxStakeDrop).div(100);
-    } else {
-      minValue = MIN_DEPOSIT_SIZE;
-    }
+    } 
+    minValue = Math.max256(minValue, MIN_DEPOSIT_SIZE);
+    
     
     require(amount >= minValue, "Stake should be gt then X% of current lowest"); 
     require(tokenObj.transferFrom(user, address(this), amount), "Transfer stake");
@@ -212,11 +211,13 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
 
   // Change the number of validators required to allow a passed header root
   function updateValidatorThreshold(uint256 newThreshold) public onlyOwner {
+    require(newThreshold > 0);
     emit ThresholdChange(newThreshold, validatorThreshold);
     validatorThreshold = newThreshold;
   }
 
   function updateDynastyValue(uint256 newDynasty) public onlyOwner { 
+    require(newDynasty > 0);
     emit DynastyValueChange(newDynasty, DYNASTY);
     DYNASTY = newDynasty;
   }
