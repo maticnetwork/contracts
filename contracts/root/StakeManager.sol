@@ -18,7 +18,6 @@ import { RootChain } from "./RootChain.sol";
 
 contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   using SafeMath for uint256;
-  using SafeMath for uint8;
   using SafeMath for uint128;
   using ECVerify for bytes32;
 
@@ -29,7 +28,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   event ThresholdChange(uint256 newThreshold, uint256 oldThreshold);
   event DynastyValueChange(uint256 newDynasty, uint256 oldDynasty);
 
-  //optional event to ack unstaking
+  // optional event to ack unstaking
   event UnstakeInit(address indexed user, uint256 indexed amount, bytes data); 
   // event ValidatorLogin(address indexed user, bytes data);
   // event ValidatorLogOut(address indexed user, bytes data);
@@ -55,14 +54,15 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     uint256 activationEpoch;
     uint256 deactivationEpoch;
   }
-  mapping (address => Staker) private stakers; 
+  mapping (address => Staker) public stakers; 
  
   struct State {
     int256 amount;
     int256 stakerCount;
+    uint256[] exiters;
   }
   //Mapping for epoch to totalStake for that epoch
-  mapping (uint256 => State) private validatorState;
+  mapping (uint256 => State) public validatorState;
   uint256 public currentValidatorSetSize = 0;
   uint256 public currentValidatorSetTotalStake = 0;
 
@@ -128,7 +128,8 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
       require(stakers[validator].epoch != 0);      
       require(stakers[validator].activationEpoch != 0 && stakers[validator].deactivationEpoch == 0);
       require(stakers[user].amount > stakers[validator].amount);
-      value = stakers[validator].amount << 160 | uint160(validator);
+      value = stakers[validator].amount << 160 | uint160(validator); 
+      validatorState[dPlusTwo.add(1)].exiters.push(value);
       
       uint256 dPlusTwo = currentEpoch.add(DYNASTY.mul(2));
       stakers[validator].deactivationEpoch = dPlusTwo;
@@ -149,6 +150,8 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
 
     uint256 exitTime = currentEpoch.add(DYNASTY.mul(2));
     stakers[msg.sender].deactivationEpoch = exitTime;
+    value = amount << 160 | uint160(msg.sender); 
+    validatorState[exitTime.add(1)].exiters.push(value);
     
     //update future
     validatorState[exitTime].amount = (
@@ -163,12 +166,10 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     // can only claim stake back after WITHDRAWAL_DELAY
     require(stakers[msg.sender].deactivationEpoch.add(WITHDRAWAL_DELAY) <= currentEpoch);
     uint256 amount = stakers[msg.sender].amount; 
-    uint256 value = amount << 160 | uint160(msg.sender);
-    validatorList.deleteNode(value);
     totalStake = totalStake.sub(amount);
     // TODO :add slashing here use soft slashing in slash amt variable
-    require(tokenObj.transfer(msg.sender, amount));
     delete stakers[msg.sender];    
+    require(tokenObj.transfer(msg.sender, amount));
     emit Unstaked(msg.sender, amount, totalStake, "0x0");
   }
 
@@ -186,7 +187,6 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     }
     return _validators;
   }
-
 
   function getDetails(address user) public view returns(uint256 , uint256) {
     return (stakers[user].activationEpoch, stakers[user].deactivationEpoch);
@@ -232,10 +232,17 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
       validatorState[currentEpoch].stakerCount + validatorState[nextEpoch].stakerCount
     );
 
-    currentEpoch = nextEpoch;
-    currentValidatorSetSize = uint256(validatorState[currentEpoch].stakerCount);
-    currentValidatorSetTotalStake = uint256(validatorState[currentEpoch].amount);
+    // remove old validators from tree
+    for (uint256 i = 0; i < validatorState[currentEpoch].exiters.length;i++) {
+      uint256 value = validatorState[currentEpoch].exiters[i];
+      if (value != 0) {
+        validatorList.deleteNode(value);
+      }
+    }
     
+    currentValidatorSetSize = uint256(validatorState[nextEpoch].stakerCount);
+    currentValidatorSetTotalStake = uint256(validatorState[nextEpoch].amount);
+    currentEpoch = nextEpoch;
     // erase old data/history
     delete validatorState[currentEpoch.sub(1)];
   }
