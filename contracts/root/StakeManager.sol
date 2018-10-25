@@ -129,9 +129,9 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
       require(stakers[validator].activationEpoch != 0 && stakers[validator].deactivationEpoch == 0);
       require(stakers[user].amount > stakers[validator].amount);
       value = stakers[validator].amount << 160 | uint160(validator); 
-      validatorState[dPlusTwo.add(1)].exiters.push(value);
       
       uint256 dPlusTwo = currentEpoch.add(DYNASTY.mul(2));
+      validatorState[dPlusTwo.add(1)].exiters.push(value);
       stakers[validator].deactivationEpoch = dPlusTwo;
       stakers[user].activationEpoch = dPlusTwo; 
 
@@ -150,7 +150,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
 
     uint256 exitTime = currentEpoch.add(DYNASTY.mul(2));
     stakers[msg.sender].deactivationEpoch = exitTime;
-    value = amount << 160 | uint160(msg.sender); 
+    uint256 value = amount << 160 | uint160(msg.sender); 
     validatorState[exitTime.add(1)].exiters.push(value);
     
     //update future
