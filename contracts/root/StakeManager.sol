@@ -23,7 +23,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
 
   uint96 MAX_UINT96 = (2**96)-1; //Todo: replace with erc20 token max value
 
-  ERC20 public tokenObj;
+  ERC20 public token;
 
   event ThresholdChange(uint256 newThreshold, uint256 oldThreshold);
   event DynastyValueChange(uint256 newDynasty, uint256 oldDynasty);
@@ -68,7 +68,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
 
   constructor (address _token) public {
     require(_token != address(0x0));
-    tokenObj = ERC20(_token);
+    token = ERC20(_token);
     validatorList = new AvlTree(); // TODO: bind with stakemanager
   }
 
@@ -101,7 +101,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     
     
     require(amount >= minValue, "Stake should be gt then X% of current lowest"); 
-    require(tokenObj.transferFrom(user, address(this), amount), "Transfer stake");
+    require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");
     totalStake = totalStake.add(amount);
 
     stakers[user] = Staker({
@@ -169,7 +169,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     totalStake = totalStake.sub(amount);
     // TODO :add slashing here use soft slashing in slash amt variable
     delete stakers[msg.sender];    
-    require(tokenObj.transfer(msg.sender, amount));
+    require(token.transfer(msg.sender, amount));
     emit Unstaked(msg.sender, amount, totalStake, "0x0");
   }
 
@@ -202,7 +202,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   }
 
   function token() public view returns (address) {
-    return address(tokenObj);
+    return address(token);
   }
 
   function supportsHistory() public pure returns (bool) {
