@@ -8,6 +8,8 @@ import { PriorityQueue } from "../lib/PriorityQueue.sol";
 import { Merkle } from "../lib/Merkle.sol";
 import { MerklePatriciaProof } from "../lib/MerklePatriciaProof.sol";
 import { ExitNFT } from "../token/ExitNFT.sol";
+import { RLP } from "../lib/RLP.sol";
+import { RLPEncode } from "../lib/RLPEncode.sol";
 
 import { WithdrawManager } from "./WithdrawManager.sol";
 import { StakeManager } from "./StakeManager.sol";
@@ -17,9 +19,14 @@ contract RootChain is Ownable, WithdrawManager {
   using SafeMath for uint256;
   using Merkle for bytes32;
 
+  using RLP for bytes;
+  using RLP for RLP.RLPItem;
+  using RLP for RLP.Iterator;
+
   // chain identifier
   // keccak256('Matic Network v0.0.1-beta.1')
   bytes32 public chain = 0x2984301e9762b14f383141ec6a9a7661409103737c37bba9e0a22be26d63486d;
+  bytes32 public TMChain = keccak256("test-chain-5w6Ce4");
 
   // stake interface
   StakeManager public stakeManager;
@@ -161,18 +168,45 @@ contract RootChain is Ownable, WithdrawManager {
     stakeManager = StakeManager(_stakeManager);
   }
 
-  function submitHeaderBlock(bytes32 root, uint256 end, bytes sigs) public {
-    // require(msg.sender == stakeManager.getProposer());
-    uint256 start = currentChildBlock();
+  function getSha256(bytes input) public returns (bytes20) {
+    bytes32 hash = sha256(input);
+    return bytes20(hash);
+  }
+
+  function submitHeaderBlock(bytes vote, bytes sigs, bytes extradata) public {
+    bytes32 memory roundType = "vote";
+    bytes32 memory voteType = "0x02";
+
+    RLP.RLPItem[] memory dataList = vote.toRLPItem().toList();
+    require(keccak256(dataList[0].toData()) == TMChain, "Chain ID not same");
+    require(keccak256(dataList[1].toData()) == keccak256(roundType), "Round Type Not Same ");
+    require(keccak256(dataList[5].toData()) == keccak256(voteType), "Vote Type Not Same");
+
+    // validate extra data using getSha256(extradata) 
+    require(keccak256(dataList[6].toData()) == keccak256(getSha256(extradata)));
+    // check proposer 
+    address proposer = dataList[5].toAddress();
+    require(msg.sender == proposer);
+
+    // extract end and assign to current child 
+    RLP.RLPItem[] memory txDataList;
+    txDataList = extradata.toRLPItem().toList()[0].toList();
+    uint256 start = currentChildBlock(); 
+    uint256 end = txDataList[2];
+    bytes memory root = txDataList[3];
+    
     if (start > 0) {
       start = start.add(1);
     }
+
+    // Start on mainchain and matic chain must be same
+    require(start == uint256(txDataList[1]));
 
     // Make sure we are adding blocks
     require(end > start);
 
     // Make sure enough validators sign off on the proposed header root
-    require(stakeManager.checkSignatures(root, start, end, msg.sender, sigs)); // remove msg.sender with proposer:tindermint
+    require(stakeManager.checkSignatures(root, start, end, proposer, sigs));
 
     // Add the header root
     HeaderBlock memory headerBlock = HeaderBlock({

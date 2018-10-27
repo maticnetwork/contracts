@@ -5,9 +5,11 @@ import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 
-import { ECVerify } from "../lib/ECVerify.sol";
-import { BytesLib } from "../lib/BytesLib.sol";
+
 import { AvlTree } from "../lib/AvlTree.sol";
+import { BytesLib } from "../lib/BytesLib.sol";
+import { ECVerify } from "../lib/ECVerify.sol";
+
 
 import { Lockable } from "../mixin/Lockable.sol";
 import { RootChainable } from "../mixin/RootChainable.sol";
@@ -20,6 +22,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   using SafeMath for uint256;
   using SafeMath for uint128;
   using ECVerify for bytes32;
+   
 
   uint96 MAX_UINT96 = (2**96)-1; //Todo: replace with erc20 token max value
 
@@ -177,11 +180,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   function getCurrentValidatorSet() public view returns (address[]) {
     address[] memory _validators = validatorList.getTree();
     for (uint256 i = 0;i < _validators.length;i++) {
-      if (
-        stakers[_validators[i]].deactivationEpoch < currentEpoch && 
-        stakers[_validators[i]].deactivationEpoch != 0 ||
-        stakers[_validators[i]].activationEpoch > currentEpoch
-      ) {
+      if (!isValidator(_validators[i])) {
         delete _validators[i];
       }
     }
@@ -257,7 +256,16 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     }
   }
 
-  function checkSignatures ( // TODO: user tendermint signs and  validations
+  function isValidator(address user) public view returns (bool) {
+    return (
+      totalStakedFor(user) > 0 &&
+      stakers[user].activationEpoch > 0 &&
+      (stakers[user].deactivationEpoch == 0 ||
+      stakers[user].deactivationEpoch >= currentEpoch)
+    );
+  }
+
+  function checkSignatures (
     bytes32 root,
     uint256 start,
     uint256 end,
@@ -271,8 +279,8 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
       )
     );
 
-    // total signers
-    uint256 totalSigners = 0;
+    // total voting power
+    uint256 stakePower = 0;
 
     address lastAdd = address(0x0); // cannot have address(0x0) as an owner
     for (uint64 i = 0; i < sigs.length; i += 65) {
@@ -280,13 +288,19 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
       address signer = h.ecrecovery(sigElement);
 
       // check if signer is stacker and not proposer
-      if (totalStakedFor(signer) > 0 && signer != proposer && signer > lastAdd) {
+      if (
+        signer != proposer &&
+        isValidator(signer) &&
+        signer > lastAdd
+        ) {
         lastAdd = signer;
-        totalSigners++;
+        stakePower = stakePower.add(stakers[signer].amount); 
       } else {
         break;
       }
     }
-    return totalSigners >= validatorThreshold.mul(2).div(3).add(1);
+    stakePower = stakePower.add(stakers[proposer].amount);
+    return stakePower >= currentValidatorSetTotalStake.mul(2).div(3).add(1);
   }
+
 }
