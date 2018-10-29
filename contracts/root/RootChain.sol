@@ -19,14 +19,9 @@ contract RootChain is Ownable, WithdrawManager {
   using SafeMath for uint256;
   using Merkle for bytes32;
 
-  using RLP for bytes;
-  using RLP for RLP.RLPItem;
-  using RLP for RLP.Iterator;
-
   // chain identifier
   // keccak256('Matic Network v0.0.1-beta.1')
-  bytes32 public chain = 0x2984301e9762b14f383141ec6a9a7661409103737c37bba9e0a22be26d63486d;
-  bytes32 public TMChain = keccak256("test-chain-5w6Ce4");
+  bytes32 public chain = keccak256("test-chain-5w6Ce4");
   bytes32 public roundType = "vote";
   bytes32 public voteType = "0x02";
 
@@ -170,7 +165,7 @@ contract RootChain is Ownable, WithdrawManager {
     stakeManager = StakeManager(_stakeManager);
   }
 
-  function getSha256(bytes input) public returns (bytes20) {
+  function getSha256(bytes input) public view returns (bytes20) {
     bytes32 hash = sha256(input);
     return bytes20(hash);
   }
@@ -178,7 +173,7 @@ contract RootChain is Ownable, WithdrawManager {
   function submitHeaderBlock(bytes vote, bytes sigs, bytes extradata) public {
 
     RLP.RLPItem[] memory dataList = vote.toRLPItem().toList();
-    require(keccak256(dataList[0].toData()) == TMChain, "Chain ID not same");
+    require(keccak256(dataList[0].toData()) == chain, "Chain ID not same");
     require(keccak256(dataList[1].toData()) == keccak256(roundType), "Round Type Not Same ");
     require(keccak256(dataList[5].toData()) == keccak256(voteType), "Vote Type Not Same");
 
@@ -189,8 +184,7 @@ contract RootChain is Ownable, WithdrawManager {
     require(msg.sender == proposer);
 
     // extract end and assign to current child 
-    RLP.RLPItem[] memory txDataList;
-    txDataList = extradata.toRLPItem().toList()[0].toList();
+    RLP.RLPItem[] memory txDataList = extradata.toRLPItem().toList()[0].toList();
     uint256 start = currentChildBlock(); 
     uint256 end = txDataList[2].toUint();
     bytes32 root = txDataList[3].toBytes32();
