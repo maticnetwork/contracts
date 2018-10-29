@@ -27,6 +27,8 @@ contract RootChain is Ownable, WithdrawManager {
   // keccak256('Matic Network v0.0.1-beta.1')
   bytes32 public chain = 0x2984301e9762b14f383141ec6a9a7661409103737c37bba9e0a22be26d63486d;
   bytes32 public TMChain = keccak256("test-chain-5w6Ce4");
+  bytes32 public roundType = "vote";
+  bytes32 public voteType = "0x02";
 
   // stake interface
   StakeManager public stakeManager;
@@ -174,8 +176,6 @@ contract RootChain is Ownable, WithdrawManager {
   }
 
   function submitHeaderBlock(bytes vote, bytes sigs, bytes extradata) public {
-    bytes32 memory roundType = "vote";
-    bytes32 memory voteType = "0x02";
 
     RLP.RLPItem[] memory dataList = vote.toRLPItem().toList();
     require(keccak256(dataList[0].toData()) == TMChain, "Chain ID not same");
@@ -192,15 +192,15 @@ contract RootChain is Ownable, WithdrawManager {
     RLP.RLPItem[] memory txDataList;
     txDataList = extradata.toRLPItem().toList()[0].toList();
     uint256 start = currentChildBlock(); 
-    uint256 end = txDataList[2];
-    bytes memory root = txDataList[3];
+    uint256 end = txDataList[2].toUint();
+    bytes32 root = txDataList[3].toBytes32();
     
     if (start > 0) {
       start = start.add(1);
     }
 
     // Start on mainchain and matic chain must be same
-    require(start == uint256(txDataList[1]));
+    require(start == txDataList[1].toUint());
 
     // Make sure we are adding blocks
     require(end > start);
