@@ -20,9 +20,9 @@ contract RootChain is Ownable, WithdrawManager {
   using Merkle for bytes32;
 
   // chain identifier
-  bytes public chain = keccak256("test-chain-5w6Ce4");
-  bytes public constant roundType = keccak256("vote");
-  bytes public constant voteType = keccak256("0x02");
+  bytes32 public constant chain = keccak256("test-chain-5w6Ce4");
+  bytes32 public constant roundType = keccak256("vote");
+  byte public constant voteType = 0x02;
 
   // stake interface
   StakeManager public stakeManager;
@@ -164,49 +164,44 @@ contract RootChain is Ownable, WithdrawManager {
     stakeManager = StakeManager(_stakeManager);
   }
 
-  function getSha256(bytes input) public view returns (bytes20) {
-    bytes32 hash = sha256(input);
-    return bytes20(hash);
-  }
-
   function submitHeaderBlock(bytes vote, bytes sigs, bytes extradata) public {
-
     RLP.RLPItem[] memory dataList = vote.toRLPItem().toList();
     require(keccak256(dataList[0].toData()) == chain, "Chain ID not same");
-    require(keccak256(dataList[1].toData()) == roundType, "Round Type Not Same ");
-    require(keccak256(dataList[5].toData()) == voteType, "Vote Type Not Same");
+    require(keccak256(dataList[1].toData()) == roundType, "Round type not same ");
+    require(dataList[4].toByte() == voteType, "Vote type not same");
+
+    // check proposer 
+    require(msg.sender == dataList[5].toAddress());
 
     // validate extra data using getSha256(extradata) 
-    require(keccak256(dataList[6].toData()) == keccak256(getSha256(extradata)));
-    // check proposer 
-    address proposer = dataList[5].toAddress();
-    require(msg.sender == proposer);
+    require(keccak256(dataList[6].toData()) == keccak256(bytes20(sha256(extradata))));
 
     // extract end and assign to current child 
-    RLP.RLPItem[] memory txDataList = extradata.toRLPItem().toList()[0].toList();
+    dataList = extradata.toRLPItem().toList()[0].toList();
     uint256 start = currentChildBlock(); 
-    uint256 end = txDataList[2].toUint();
-    bytes32 root = txDataList[3].toBytes32();
+    uint256 end = dataList[2].toUint();
+    bytes32 root = dataList[3].toBytes32();
     
     if (start > 0) {
       start = start.add(1);
     }
 
     // Start on mainchain and matic chain must be same
-    require(start == txDataList[1].toUint());
+    require(start == dataList[1].toUint());
 
     // Make sure we are adding blocks
     require(end > start);
 
     // Make sure enough validators sign off on the proposed header root
-    require(stakeManager.checkSignatures(root, start, end, proposer, sigs));
+    require(stakeManager.checkSignatures(keccak256(vote), sigs));
 
     // Add the header root
     HeaderBlock memory headerBlock = HeaderBlock({
       root: root,
       start: start,
       end: end,
-      createdAt: block.timestamp
+      createdAt: block.timestamp,
+      proposer: msg.sender
     });
     headerBlocks[_currentHeaderBlock] = headerBlock;
 
@@ -229,7 +224,6 @@ contract RootChain is Ownable, WithdrawManager {
 
     // finalize commit
     stakeManager.finalizeCommit();
-
   }
 
   //

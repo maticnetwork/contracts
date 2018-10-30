@@ -65,7 +65,8 @@ contract IRootChainMock is IRootChain {
       root: root,
       start: start,
       end: end,
-      createdAt: createdAt
+      createdAt: createdAt,
+      proposer: msg.sender
     });
   }
 

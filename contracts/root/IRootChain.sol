@@ -11,6 +11,7 @@ contract IRootChain {
     uint256 start;
     uint256 end;
     uint256 createdAt;
+    address proposer;
   }
 
   // deposit block

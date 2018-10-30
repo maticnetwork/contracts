@@ -213,7 +213,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
 
   function updateDynastyValue(uint256 newDynasty) public onlyOwner { 
     require(newDynasty > 0);
-    emit DynastyValueChange(newDynasty, DYNASTY);
+    emit DynastyValueChange(newDynasty, dynasty);
     dynasty = newDynasty;
   }
   
@@ -262,40 +262,28 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   }
 
   function checkSignatures (
-    bytes32 root,
-    uint256 start,
-    uint256 end,
-    address proposer,
+    bytes32 voteHash,
     bytes sigs
   ) public view onlyRootChain returns (bool)  {
-    // create hash
-    bytes32 h = keccak256(
-      abi.encodePacked(
-        RootChain(rootChain).chain(), root, start, end
-      )
-    );
-
     // total voting power
     uint256 stakePower = 0;
 
     address lastAdd = address(0x0); // cannot have address(0x0) as an owner
     for (uint64 i = 0; i < sigs.length; i += 65) {
       bytes memory sigElement = BytesLib.slice(sigs, i, 65);
-      address signer = h.ecrecovery(sigElement);
+      address signer = voteHash.ecrecovery(sigElement);
 
       // check if signer is stacker and not proposer
       if (
-        signer != proposer &&
         isValidator(signer) &&
         signer > lastAdd
-        ) {
+      ) {
         lastAdd = signer;
         stakePower = stakePower.add(stakers[signer].amount); 
       } else {
         break;
       }
     }
-    stakePower = stakePower.add(stakers[proposer].amount);
     return stakePower >= currentValidatorSetTotalStake.mul(2).div(3).add(1);
   }
 
