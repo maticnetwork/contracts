@@ -20,10 +20,9 @@ contract RootChain is Ownable, WithdrawManager {
   using Merkle for bytes32;
 
   // chain identifier
-  // keccak256('Matic Network v0.0.1-beta.1')
-  bytes32 public chain = keccak256("test-chain-5w6Ce4");
-  bytes32 public roundType = "vote";
-  bytes32 public voteType = "0x02";
+  bytes public chain = keccak256("test-chain-5w6Ce4");
+  bytes public constant roundType = keccak256("vote");
+  bytes public constant voteType = keccak256("0x02");
 
   // stake interface
   StakeManager public stakeManager;
@@ -174,8 +173,8 @@ contract RootChain is Ownable, WithdrawManager {
 
     RLP.RLPItem[] memory dataList = vote.toRLPItem().toList();
     require(keccak256(dataList[0].toData()) == chain, "Chain ID not same");
-    require(keccak256(dataList[1].toData()) == keccak256(roundType), "Round Type Not Same ");
-    require(keccak256(dataList[5].toData()) == keccak256(voteType), "Vote Type Not Same");
+    require(keccak256(dataList[1].toData()) == roundType, "Round Type Not Same ");
+    require(keccak256(dataList[5].toData()) == voteType, "Vote Type Not Same");
 
     // validate extra data using getSha256(extradata) 
     require(keccak256(dataList[6].toData()) == keccak256(getSha256(extradata)));
