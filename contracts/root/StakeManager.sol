@@ -33,8 +33,6 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
 
   // optional event to ack unstaking
   event UnstakeInit(address indexed user, uint256 indexed amount, bytes data); 
-  // event ValidatorLogin(address indexed user, bytes data);
-  // event ValidatorLogOut(address indexed user, bytes data);
 
   // genesis/governance variables
   uint256 public dynasty = 2**13;  // unit: epoch

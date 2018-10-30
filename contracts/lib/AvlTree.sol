@@ -8,7 +8,6 @@ import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 // deleteNode leaves hole in array :D 
 // 
 
-
 contract AvlTree {
   struct Node {
     uint256 value;
@@ -22,7 +21,6 @@ contract AvlTree {
   uint256 public currentSize = 0;
   
   constructor() public {
-		
     // NULL PTR node 
     tree.push(Node({
       value: 0,
@@ -31,11 +29,6 @@ contract AvlTree {
       height: 0
       }));
     root = 0;
-  }
-    
-  function search(uint256 value) public view returns (bool) {
-    if (value == 0 || root == 0) return false;
-    return _search(root, value);
   }
 
   function insert(uint256 value) public returns (uint256) {
@@ -52,15 +45,6 @@ contract AvlTree {
     currentSize--;
   }
 
-  function getMax() public view returns (uint256) {
-    if (root == 0) return 0;
-    uint256 _root = root;
-    while (tree[_root].right != 0) {
-      _root = tree[_root].right;
-    }
-    return tree[_root].value;
-  }
-  
   function getMin() public view returns (uint256) {
     if (root == 0) return 0;
     uint256 _root = root;
@@ -68,36 +52,6 @@ contract AvlTree {
       _root = tree[_root].left;
     }
     return tree[_root].value;
-  }
-
-  function delMax() public returns (uint256) {
-    if (root == 0) return 0;
-    uint256 _root = root;
-    while (tree[_root].right != 0) {
-      _root = tree[_root].right;
-    }
-    uint256 value = tree[_root].value;
-    root = _deleteNode(root, value);
-    currentSize--;
-    return value;
-  }
-  
-  function delMin() public returns (uint256) {
-    if (root == 0) return 0;
-    uint256 _root = root;
-    while (tree[_root].left != 0) {
-      _root = tree[_root].left;
-    }
-    uint256 value = tree[_root].value;
-    root = _deleteNode(root, value);
-    currentSize--;
-    return value;
-  }
-
-  // temp helper function 
-  function getChilds(uint256 index) public view  returns (uint256 left, uint256 right) {
-    left = tree[index].left;
-    right = tree[index].right;
   }
 
   function getTree() public view returns (address[]) {
@@ -117,19 +71,6 @@ contract AvlTree {
 
   function getRoot() public view returns(uint256) {
     return tree[root].value;
-  }
-  
-  function _search(uint256 _root, uint256 value) private returns (bool) {
-    if (_root == 0 || value == 0) {  // add correct condition solidity
-      return false;// return true/false !? ;-)
-    }
-    if (tree[_root].value == value) {
-      return true;
-    } else if (value < tree[_root].value) {
-      return _search(tree[_root].left, value);
-    } else {
-      return _search(tree[_root].right, value);
-    }
   }
 
   function _insert(uint256 _root, uint256 value) private returns (uint256) {
