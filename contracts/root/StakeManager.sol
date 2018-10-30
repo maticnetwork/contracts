@@ -62,12 +62,9 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   struct State {
     int256 amount;
     int256 stakerCount;
-    uint256[] exiters;
   }
   //Mapping for epoch to totalStake for that epoch
   mapping (uint256 => State) public validatorState;
-  uint256 public currentValidatorSetSize = 0;
-  uint256 public currentValidatorSetTotalStake = 0;
 
   constructor (address _token) public {
     require(_token != address(0x0));
@@ -84,7 +81,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   function stake(uint256 amount, bytes data) public {
     stakeFor(msg.sender, amount, data);
   }
-
+  
   // everytime data bytes must contain first 20 bytes as adddress be it address(0) or any other address
   function stakeFor(address user, uint256 amount, bytes data) public onlyWhenUnlocked {
     require(stakers[user].epoch == 0, "No second time staking");
@@ -92,7 +89,10 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     // currentValidatorSetSize*2 means everyone is commited
     require(validatorThreshold*2 > validatorList.currentSize(), "Validator set full");
     require(amount < MAX_UINT96, "Stay realistic!!"); 
-    address validator = bytesToAddress(data);
+    address validator = address(0x0);
+    if (data.length >= 20) {
+      validator = BytesLib.toAddress(data, 0);
+    }
 
     uint256 minValue = validatorList.getMin();
     
@@ -114,26 +114,22 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
       activationEpoch: 0,
       deactivationEpoch: 0
     });
+
     // 96bits amount(10^29) 160 bits user address
     uint256 value = amount << 160 | uint160(user);
     validatorList.insert(value);
 
     // for empty slot address(0x0) is validator
-    if (currentValidatorSetSize < validatorThreshold) {
-      currentValidatorSetSize = currentValidatorSetSize.add(1);
-      currentValidatorSetTotalStake = currentValidatorSetTotalStake.add(amount);
+    if ( uint256(validatorState[currentEpoch].stakerCount) < validatorThreshold) {
       stakers[user].activationEpoch = currentEpoch;
-      // update future validator set state
-      validatorState[currentEpoch].amount = int256(currentValidatorSetTotalStake);
-      validatorState[currentEpoch].stakerCount = int256(currentValidatorSetSize);
+      validatorState[currentEpoch].amount += int256(amount);
+      validatorState[currentEpoch].stakerCount += int256(1);
     } else {
       require(stakers[validator].epoch != 0);      
       require(stakers[validator].activationEpoch != 0 && stakers[validator].deactivationEpoch == 0);
       require(stakers[user].amount > stakers[validator].amount);
       value = stakers[validator].amount << 160 | uint160(validator); 
-      
       uint256 dPlusTwo = currentEpoch.add(dynasty.mul(2));
-      validatorState[dPlusTwo.add(1)].exiters.push(value);
       stakers[validator].deactivationEpoch = dPlusTwo;
       stakers[user].activationEpoch = dPlusTwo; 
 
@@ -152,8 +148,6 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     
     uint256 exitEpoch = currentEpoch.add(dynasty.mul(2));
     stakers[msg.sender].deactivationEpoch = exitEpoch;
-    uint256 value = amount << 160 | uint160(msg.sender); 
-    validatorState[exitEpoch.add(1)].exiters.push(value);
     
     //update future
     validatorState[exitEpoch].amount = (
@@ -169,6 +163,8 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     require(stakers[msg.sender].deactivationEpoch.add(WITHDRAWAL_DELAY) <= currentEpoch);
     uint256 amount = stakers[msg.sender].amount; 
     totalStaked = totalStaked.sub(amount);
+    
+    validatorList.deleteNode(amount << 160 | uint160(msg.sender));
     // TODO :add slashing here use soft slashing in slash amt variable
     delete stakers[msg.sender];    
     require(token.transfer(msg.sender, amount));
@@ -226,17 +222,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     validatorState[nextEpoch].stakerCount = (
       validatorState[currentEpoch].stakerCount + validatorState[nextEpoch].stakerCount
     );
-
-    // remove old validators from tree
-    for (uint256 i = 0; i < validatorState[currentEpoch].exiters.length;i++) {
-      uint256 value = validatorState[currentEpoch].exiters[i];
-      if (value != 0) {
-        validatorList.deleteNode(value);
-      }
-    }
     
-    currentValidatorSetSize = uint256(validatorState[nextEpoch].stakerCount);
-    currentValidatorSetTotalStake = uint256(validatorState[nextEpoch].amount);
     currentEpoch = nextEpoch;
     // erase old data/history
     delete validatorState[currentEpoch.sub(1)];
@@ -246,10 +232,12 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     minLockInPeriod = epochs;
   }
   
-  function bytesToAddress(bytes bys) private pure returns (address addr) {
-    assembly {
-      addr := mload(add(bys,20))
-    }
+  function currentValidatorSetSize() public view returns (uint256) {
+    return uint256(validatorState[currentEpoch].stakerCount);
+  }
+  
+  function currentValidatorSetTotalStake() public view returns (uint256) {
+    return uint256(validatorState[currentEpoch].amount);
   }
 
   function isValidator(address user) public view returns (bool) {
@@ -284,7 +272,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
         break;
       }
     }
-    return stakePower >= currentValidatorSetTotalStake.mul(2).div(3).add(1);
+    return stakePower >= currentValidatorSetTotalStake().mul(2).div(3).add(1);
   }
 
 }
