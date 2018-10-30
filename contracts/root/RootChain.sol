@@ -20,7 +20,7 @@ contract RootChain is Ownable, WithdrawManager {
   using Merkle for bytes32;
 
   // chain identifier
-  bytes32 public constant chain = keccak256("test-chain-5w6Ce4");
+  bytes32 public constant chain = keccak256("test-chain-E5igIA");
   bytes32 public constant roundType = keccak256("vote");
   byte public constant voteType = 0x02;
 
