@@ -8,6 +8,8 @@ import { PriorityQueue } from "../lib/PriorityQueue.sol";
 import { Merkle } from "../lib/Merkle.sol";
 import { MerklePatriciaProof } from "../lib/MerklePatriciaProof.sol";
 import { ExitNFT } from "../token/ExitNFT.sol";
+import { RLP } from "../lib/RLP.sol";
+import { RLPEncode } from "../lib/RLPEncode.sol";
 
 import { WithdrawManager } from "./WithdrawManager.sol";
 import { StakeManager } from "./StakeManager.sol";
@@ -18,12 +20,13 @@ contract RootChain is Ownable, WithdrawManager {
   using Merkle for bytes32;
 
   // chain identifier
-  // keccak256('Matic Network v0.0.1-beta.1')
-  bytes32 public chain = 0x2984301e9762b14f383141ec6a9a7661409103737c37bba9e0a22be26d63486d;
+  bytes32 public constant chain = keccak256("test-chain-E5igIA");
+  bytes32 public constant roundType = keccak256("vote");
+  byte public constant voteType = 0x02;
 
   // stake interface
   StakeManager public stakeManager;
-  mapping(address => bool) public validatorContracts;
+  mapping(address => bool) public proofValidatorContracts;
 
   // child chain contract
   address public childChainContract;
@@ -53,8 +56,8 @@ contract RootChain is Ownable, WithdrawManager {
   //
 
   event ChildChainChanged(address indexed previousChildChain, address indexed newChildChain);
-  event ValidatorAdded(address indexed validator, address indexed from);
-  event ValidatorRemoved(address indexed validator, address indexed from);
+  event ProofValidatorAdded(address indexed validator, address indexed from);
+  event ProofValidatorRemoved(address indexed validator, address indexed from);
   event NewHeaderBlock(
     address indexed proposer,
     uint256 indexed number,
@@ -68,8 +71,8 @@ contract RootChain is Ownable, WithdrawManager {
   //
 
   // Checks is msg.sender is valid validator
-  modifier isValidator(address _address) {
-    require(validatorContracts[_address] == true);
+  modifier isProofValidator(address _address) {
+    require(proofValidatorContracts[_address] == true);
     _;
   }
 
@@ -92,14 +95,14 @@ contract RootChain is Ownable, WithdrawManager {
   //
 
   // delete exit
-  function deleteExit(uint256 exitId) external isValidator(msg.sender) {
+  function deleteExit(uint256 exitId) external isProofValidator (msg.sender) {
     ExitNFT exitNFT = ExitNFT(exitNFTContract);
     address owner = exitNFT.ownerOf(exitId);
     exitNFT.burn(owner, exitId);
   }
 
   // slash stakers if fraud is detected
-  function slash() external isValidator(msg.sender) {
+  function slash() external isProofValidator(msg.sender) {
     // TODO pass block/proposer
   }
 
@@ -140,17 +143,17 @@ contract RootChain is Ownable, WithdrawManager {
   }
 
   // add validator
-  function addValidator(address _validator) public onlyOwner {
-    require(_validator != address(0) && validatorContracts[_validator] != true);
-    emit ValidatorAdded(_validator, msg.sender);
-    validatorContracts[_validator] = true;
+  function addProofValidator(address _validator) public onlyOwner {
+    require(_validator != address(0) && proofValidatorContracts[_validator] != true);
+    emit ProofValidatorAdded(_validator, msg.sender);
+    proofValidatorContracts[_validator] = true;
   }
 
   // remove validator
-  function removeValidator(address _validator) public onlyOwner {
-    require(validatorContracts[_validator] == true);
-    emit ValidatorAdded(_validator, msg.sender);
-    delete validatorContracts[_validator];
+  function removeProofValidator(address _validator) public onlyOwner {
+    require(proofValidatorContracts[_validator] == true);
+    emit ProofValidatorRemoved(_validator, msg.sender);
+    delete proofValidatorContracts[_validator];
   }
 
   //
@@ -161,26 +164,44 @@ contract RootChain is Ownable, WithdrawManager {
     stakeManager = StakeManager(_stakeManager);
   }
 
-  function submitHeaderBlock(bytes32 root, uint256 end, bytes sigs) public {
-    uint256 start = currentChildBlock();
+  function submitHeaderBlock(bytes vote, bytes sigs, bytes extradata) public {
+    RLP.RLPItem[] memory dataList = vote.toRLPItem().toList();
+    require(keccak256(dataList[0].toData()) == chain, "Chain ID not same");
+    require(keccak256(dataList[1].toData()) == roundType, "Round type not same ");
+    require(dataList[4].toByte() == voteType, "Vote type not same");
+
+    // check proposer 
+    require(msg.sender == dataList[5].toAddress());
+
+    // validate extra data using getSha256(extradata) 
+    require(keccak256(dataList[6].toData()) == keccak256(bytes20(sha256(extradata))));
+
+    // extract end and assign to current child 
+    dataList = extradata.toRLPItem().toList()[0].toList();
+    uint256 start = currentChildBlock(); 
+    uint256 end = dataList[2].toUint();
+    bytes32 root = dataList[3].toBytes32();
+    
     if (start > 0) {
       start = start.add(1);
     }
+
+    // Start on mainchain and matic chain must be same
+    require(start == dataList[1].toUint());
 
     // Make sure we are adding blocks
     require(end > start);
 
     // Make sure enough validators sign off on the proposed header root
-    require(
-      stakeManager.checkSignatures(root, start, end, sigs) >= stakeManager.validatorThreshold()
-    );
+    require(stakeManager.checkSignatures(keccak256(vote), sigs));
 
     // Add the header root
     HeaderBlock memory headerBlock = HeaderBlock({
       root: root,
       start: start,
       end: end,
-      createdAt: block.timestamp
+      createdAt: block.timestamp,
+      proposer: msg.sender
     });
     headerBlocks[_currentHeaderBlock] = headerBlock;
 
@@ -202,7 +223,7 @@ contract RootChain is Ownable, WithdrawManager {
     // TODO add rewards
 
     // finalize commit
-    stakeManager.finalizeCommit(msg.sender);
+    stakeManager.finalizeCommit();
   }
 
   //
@@ -226,7 +247,7 @@ contract RootChain is Ownable, WithdrawManager {
     return 0;
   }
 
-  function currentHeaderBlock() public view returns(uint256) {
+  function currentHeaderBlock() public view returns (uint256) {
     return _currentHeaderBlock;
   }
 

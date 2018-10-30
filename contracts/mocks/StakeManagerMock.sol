@@ -5,11 +5,11 @@ import { StakeManager } from "../root/StakeManager.sol";
 
 contract StakeManagerMock is StakeManager {
   constructor (address _token) public StakeManager (_token) {
-
+    WITHDRAWAL_DELAY = 0;
+  }
+  
+  modifier onlyRootChain() {
+    _;
   }
 
-  function finalizeCommit(address) public {
-    // set epoch seed
-    epochSeed = keccak256(abi.encodePacked(block.difficulty + block.number + now));
-  }
 }
