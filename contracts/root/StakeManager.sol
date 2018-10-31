@@ -53,8 +53,14 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     uint256 amount;
     uint256 activationEpoch;
     uint256 deactivationEpoch;
+    bytes pubKey;
     bytes data;
   }
+
+  // signer to Staker mapping
+  mapping (address => address) public stakerToSigner;
+  mapping (address => address) public signerToStaker;
+
   mapping (address => Staker) public stakers; 
  
   struct State {
@@ -81,44 +87,50 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   }
   
   // everytime data bytes must contain first 20 bytes as adddress be it address(0) or any other address
+  // data format : validator, signer, pubkey
   function stakeFor(address user, uint256 amount, bytes data) public onlyWhenUnlocked {
     require(stakers[user].epoch == 0, "No second time staking");
-    
+    require(data.length >= 104, "address validator, address signer, bytes pubkey");
     // currentValidatorSetSize*2 means everyone is commited
     require(validatorThreshold*2 > validatorList.currentSize(), "Validator set full");
     require(amount < MAX_UINT96, "Stay realistic!!"); 
-    address validator = address(0x0);
-    if (data.length >= 20) {
-      validator = BytesLib.toAddress(data, 0);
-    }
 
-    uint256 minValue = validatorList.getMin();
+    address validator = BytesLib.toAddress(data, 0);
+    address signer = BytesLib.toAddress(data, 20);
+
+    require(signer != address(0x0) && signerToStaker[signer] == address(0x0));
     
+    bytes memory _pubKey = BytesLib.slice(data, 40, 64);
+  
+    uint256 minValue = validatorList.getMin();
     if (minValue != 0) { 
       minValue = minValue >> 160;
       minValue = minValue.mul(maxStakeDrop).div(100);
     } 
     minValue = Math.max256(minValue, MIN_DEPOSIT_SIZE);
     
-    
-    require(amount >= minValue, "Stake should be gt then X% of current lowest"); 
+    require(amount >= minValue, "Stake should be gt then X% of current lowest");
     require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");
     totalStaked = totalStaked.add(amount);
 
     stakers[user] = Staker({
       epoch: currentEpoch,
       amount: amount,
-      data: data,
       activationEpoch: 0,
-      deactivationEpoch: 0
+      deactivationEpoch: 0,
+      pubKey: _pubKey,
+      data: data
     });
+
+    signerToStaker[signer] = user;
+    stakerToSigner[user] = signer;
 
     // 96bits amount(10^29) 160 bits user address
     uint256 value = amount << 160 | uint160(user);
     validatorList.insert(value);
 
     // for empty slot address(0x0) is validator
-    if ( uint256(validatorState[currentEpoch].stakerCount) < validatorThreshold) {
+    if (uint256(validatorState[currentEpoch].stakerCount) < validatorThreshold) {
       stakers[user].activationEpoch = currentEpoch;
       validatorState[currentEpoch].amount += int256(amount);
       validatorState[currentEpoch].stakerCount += int256(1);
@@ -164,7 +176,11 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     
     validatorList.deleteNode(amount << 160 | uint160(msg.sender));
     // TODO :add slashing here use soft slashing in slash amt variable
+    
+    delete signerToStaker[stakerToSigner[msg.sender]];
+    delete stakerToSigner[msg.sender];
     delete stakers[msg.sender];    
+
     require(token.transfer(msg.sender, amount));
     emit Unstaked(msg.sender, amount, totalStaked, "0x0");
   }
@@ -180,11 +196,12 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     return _validators;
   }
 
-  function getStakerDetails(address user) public view returns(uint256, uint256, uint256, bytes) {
+  function getStakerDetails(address user) public view returns(uint256, uint256, uint256, bytes, bytes) {
     return (
       stakers[user].amount,
       stakers[user].activationEpoch,
       stakers[user].deactivationEpoch,
+      stakers[user].pubKey,
       stakers[user].data
     );
   }
@@ -209,6 +226,15 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     require(newDynasty > 0);
     emit DynastyValueChange(newDynasty, dynasty);
     dynasty = newDynasty;
+  }
+  
+  function updatePubKey(address signer, bytes _pubKey) onlyStaker {
+    require(signer != address(0x0) && signerToStaker[signer] == address(0x0));
+    stakers[msg.sender].pubKey = _pubKey;
+
+    delete signerToStaker[stakerToSigner[msg.sender]];
+    signerToStaker[signer] = msg.sender;
+    stakerToSigner[msg.sender] = signer;
   }
   
   function finalizeCommit() public onlyRootChain {
@@ -253,6 +279,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   ) public view onlyRootChain returns (bool)  {
     // total voting power
     uint256 stakePower = 0;
+    address user;
 
     address lastAdd = address(0x0); // cannot have address(0x0) as an owner
     for (uint64 i = 0; i < sigs.length; i += 65) {
@@ -265,7 +292,8 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
         signer > lastAdd
       ) {
         lastAdd = signer;
-        stakePower = stakePower.add(stakers[signer].amount); 
+        user = signerToStaker[signer];
+        stakePower = stakePower.add(stakers[user].amount); 
       } else {
         break;
       }
