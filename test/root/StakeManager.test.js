@@ -90,7 +90,9 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      const stakeReceipt = await stakeManager.stake(amount, '0x0', {
+      const pubKey = wallets[1].getPublicKeyString()
+      const data = ZeroAddress + user.slice(2) + pubKey.slice(2)
+      const stakeReceipt = await stakeManager.stake(amount, data, {
         from: user
       })
 
@@ -118,7 +120,9 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      const stakeReceipt = await stakeManager.stake(amount, '0x0', {
+      const pubKey = wallets[2].getPublicKeyString()
+      const data = ZeroAddress + user.slice(2) + pubKey.slice(2)
+      const stakeReceipt = await stakeManager.stake(amount, data, {
         from: user
       })
 
@@ -150,7 +154,9 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      await stakeManager.stake(amount, '0x0', { from: user })
+      const pubKey = wallets[3].getPublicKeyString()
+      const data = ZeroAddress + user.slice(2) + pubKey.slice(2)
+      await stakeManager.stake(amount, data, { from: user })
 
       // staked for
       const stakedFor = await stakeManager.totalStakedFor(user)
@@ -168,7 +174,9 @@ contract('StakeManager', async function(accounts) {
 
       // stake now
       try {
-        await stakeManager.stake(amount, '0x0', { from: user })
+        const pubKey = wallets[3].getPublicKeyString()
+        const data = ZeroAddress + user.slice(2) + pubKey.slice(2)
+        await stakeManager.stake(amount, data, { from: user })
       } catch (error) {
         const invalidOpcode = error.message.search('revert') >= 0
         assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
@@ -181,8 +189,8 @@ contract('StakeManager', async function(accounts) {
     })
 
     it('should stake via wallets[4-5]', async function() {
-      const user = wallets[4].getAddressString()
-      const amount = web3.toWei(750)
+      let user = wallets[4].getAddressString()
+      let amount = web3.toWei(750)
 
       // approve tranfer
       await stakeToken.approve(stakeManager.address, amount, {
@@ -190,27 +198,51 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      await stakeManager.stake(amount, '0x0', { from: user })
+      let pubKey = wallets[4].getPublicKeyString()
+      let data = ZeroAddress + user.slice(2) + pubKey.slice(2)
+      await stakeManager.stake(amount, data, { from: user })
 
       // staked for
       let stakedFor = await stakeManager.totalStakedFor(user)
       stakedFor.should.be.bignumber.equal(amount)
 
-      const user1 = wallets[5].getAddressString()
-      const amount1 = web3.toWei(740)
+      user = wallets[5].getAddressString()
+      amount = web3.toWei(740)
 
       // approve tranfer
-      await stakeToken.approve(stakeManager.address, amount1, {
-        from: user1
+      await stakeToken.approve(stakeManager.address, amount, {
+        from: user
       })
 
       // stake now
-      await stakeManager.stake(amount1, '0x0', { from: user1 })
+      pubKey = wallets[5].getPublicKeyString()
+      data = ZeroAddress + user.slice(2) + pubKey.slice(2)
+      await stakeManager.stake(amount, data, { from: user })
 
       // staked for
-      stakedFor = await stakeManager.totalStakedFor(user1)
-      stakedFor.should.be.bignumber.equal(amount1)
+      stakedFor = await stakeManager.totalStakedFor(user)
+      stakedFor.should.be.bignumber.equal(amount)
+      const stakerDetails = await stakeManager.getStakerDetails(user)
+      stakerDetails[3].should.equal(pubKey)
+
       // let validators = await stakeManager.getNextValidatorSet()
+    })
+
+    it('should update and verify signer/pubkey', async function() {
+      let user = wallets[5].getAddressString()
+
+      let pubKey = wallets[0].getPublicKeyString()
+      let signer = wallets[0].getAddressString()
+      await stakeManager.updateSigner(signer, pubKey, { from: user })
+      // staked for
+      let stakerDetails = await stakeManager.getStakerDetails(user)
+      stakerDetails[3].should.equal(pubKey)
+
+      pubKey = wallets[5].getPublicKeyString()
+      await stakeManager.updateSigner(user, pubKey, { from: user })
+      // staked for
+      stakerDetails = await stakeManager.getStakerDetails(user)
+      stakerDetails[3].should.equal(pubKey)
     })
 
     it('should try to stake after validator threshold', async function() {
@@ -225,7 +257,9 @@ contract('StakeManager', async function(accounts) {
 
       // stake now
       try {
-        await stakeManager.stake(amount, '0x0', { from: user })
+        const pubKey = wallets[6].getPublicKeyString()
+        const data = ZeroAddress + user.slice(2) + pubKey.slice(2)
+        await stakeManager.stake(amount, data, { from: user })
       } catch (error) {
         const invalidOpcode = error.message.search('revert') >= 0
         assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
@@ -250,7 +284,9 @@ contract('StakeManager', async function(accounts) {
 
       // stake now
       try {
-        await stakeManager.stake(amount, web3.fromAscii(ZeroAddress), {
+        const pubKey = wallets[7].getPublicKeyString()
+        const data = ZeroAddress + user.slice(2) + pubKey.slice(2)
+        await stakeManager.stake(amount, data, {
           from: user
         })
       } catch (error) {
@@ -273,13 +309,12 @@ contract('StakeManager', async function(accounts) {
       await stakeToken.approve(stakeManager.address, amount, {
         from: user
       })
-      let out = await stakeManager.stake(
-        amount,
-        wallets[1].getAddressString(),
-        {
-          from: user
-        }
-      )
+
+      let pubKey = wallets[6].getPublicKeyString()
+      let data = wallets[1].getAddressString() + user.slice(2) + pubKey.slice(2)
+      await stakeManager.stake(amount, data, {
+        from: user
+      })
       user = wallets[7].getAddressString()
       amount = web3.toWei(450)
 
@@ -289,7 +324,9 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      await stakeManager.stake(amount, wallets[2].getAddressString(), {
+      pubKey = wallets[7].getPublicKeyString()
+      data = wallets[2].getAddressString() + user.slice(2) + pubKey.slice(2)
+      await stakeManager.stake(amount, data, {
         from: user
       })
       user = wallets[8].getAddressString()
@@ -301,7 +338,9 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      await stakeManager.stake(amount, wallets[3].getAddressString(), {
+      pubKey = wallets[8].getPublicKeyString()
+      data = wallets[3].getAddressString() + user.slice(2) + pubKey.slice(2)
+      await stakeManager.stake(amount, data, {
         from: user
       })
 
@@ -314,7 +353,9 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      await stakeManager.stake(amount, wallets[4].getAddressString(), {
+      pubKey = wallets[9].getPublicKeyString()
+      data = wallets[4].getAddressString() + user.slice(2) + pubKey.slice(2)
+      await stakeManager.stake(amount, data, {
         from: user
       })
 
@@ -327,7 +368,9 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      await stakeManager.stake(amount, wallets[5].getAddressString(), {
+      pubKey = wallets[0].getPublicKeyString()
+      data = wallets[5].getAddressString() + user.slice(2) + pubKey.slice(2)
+      await stakeManager.stake(amount, data, {
         from: user
       })
       let size = await stakeManager.currentValidatorSetSize()
