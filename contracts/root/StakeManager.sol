@@ -53,12 +53,12 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     uint256 amount;
     uint256 activationEpoch;
     uint256 deactivationEpoch;
+    address signer;
     bytes pubKey;
     bytes data;
   }
 
   // signer to Staker mapping
-  mapping (address => address) public stakerToSigner;
   mapping (address => address) public signerToStaker;
 
   mapping (address => Staker) public stakers; 
@@ -96,9 +96,9 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     require(amount < MAX_UINT96, "Stay realistic!!"); 
 
     address validator = BytesLib.toAddress(data, 0);
-    address signer = BytesLib.toAddress(data, 20);
+    address _signer = BytesLib.toAddress(data, 20);
 
-    require(signer != address(0x0) && signerToStaker[signer] == address(0x0));
+    require(_signer != address(0x0) && signerToStaker[_signer] == address(0x0));
     
     bytes memory _pubKey = BytesLib.slice(data, 40, 64);
   
@@ -118,12 +118,12 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
       amount: amount,
       activationEpoch: 0,
       deactivationEpoch: 0,
+      signer: _signer,
       pubKey: _pubKey,
       data: data
     });
 
-    signerToStaker[signer] = user;
-    stakerToSigner[user] = signer;
+    signerToStaker[_signer] = user;
 
     // 96bits amount(10^29) 160 bits user address
     uint256 value = amount << 160 | uint160(user);
@@ -177,8 +177,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     validatorList.deleteNode(amount << 160 | uint160(msg.sender));
     // TODO :add slashing here use soft slashing in slash amt variable
     
-    delete signerToStaker[stakerToSigner[msg.sender]];
-    delete stakerToSigner[msg.sender];
+    delete signerToStaker[stakers[msg.sender].signer];
     delete stakers[msg.sender];    
 
     require(token.transfer(msg.sender, amount));
@@ -228,13 +227,13 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     dynasty = newDynasty;
   }
   
-  function updatePubKey(address signer, bytes _pubKey) onlyStaker {
-    require(signer != address(0x0) && signerToStaker[signer] == address(0x0));
+  function updateSigner(address _signer, bytes _pubKey) onlyStaker {
+    require(_signer != address(0x0) && signerToStaker[_signer] == address(0x0));
     stakers[msg.sender].pubKey = _pubKey;
 
-    delete signerToStaker[stakerToSigner[msg.sender]];
-    signerToStaker[signer] = msg.sender;
-    stakerToSigner[msg.sender] = signer;
+    delete signerToStaker[stakers[msg.sender].signer];
+    signerToStaker[_signer] = msg.sender;  
+    stakers[msg.sender].signer = _signer;
   }
   
   function finalizeCommit() public onlyRootChain {

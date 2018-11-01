@@ -228,18 +228,18 @@ contract('StakeManager', async function(accounts) {
       // let validators = await stakeManager.getNextValidatorSet()
     })
 
-    it('should update and verify pubkey', async function() {
+    it('should update and verify signer/pubkey', async function() {
       let user = wallets[5].getAddressString()
 
       let pubKey = wallets[0].getPublicKeyString()
       let signer = wallets[0].getAddressString()
-      await stakeManager.updatePubKey(signer, pubKey, { from: user })
+      await stakeManager.updateSigner(signer, pubKey, { from: user })
       // staked for
       let stakerDetails = await stakeManager.getStakerDetails(user)
       stakerDetails[3].should.equal(pubKey)
 
       pubKey = wallets[5].getPublicKeyString()
-      await stakeManager.updatePubKey(user, pubKey, { from: user })
+      await stakeManager.updateSigner(user, pubKey, { from: user })
       // staked for
       stakerDetails = await stakeManager.getStakerDetails(user)
       stakerDetails[3].should.equal(pubKey)
