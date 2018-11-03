@@ -13,8 +13,10 @@ import { PriorityQueue } from "../lib/PriorityQueue.sol";
 
 import { ExitNFT } from "../token/ExitNFT.sol";
 import { WETH } from "../token/WETH.sol";
-import { DepositManager } from "./DepositManager.sol";
 import { IRootChain } from "./IRootChain.sol";
+import { DepositManager } from "./DepositManager.sol";
+import { WithdrawHelper } from "./WithdrawHelper.sol";
+
 
 
 contract WithdrawManager is DepositManager {
@@ -23,17 +25,10 @@ contract WithdrawManager is DepositManager {
   using RLP for RLP.RLPItem;
   using RLP for RLP.Iterator;
 
-  // 0x2e1a7d4d = sha3('withdraw(uint256)')
-  bytes4 constant private WITHDRAW_SIGNATURE = 0x2e1a7d4d;
-  // 0xa9059cbb = keccak256('transfer(address,uint256)')
-  bytes4 constant private TRANSFER_SIGNATURE = 0xa9059cbb;
-  // keccak256('Withdraw(address,address,uint256)')
-  bytes32 constant private WITHDRAW_EVENT_SIGNATURE = 0x9b1bfa7fa9ee420a16e124f794c35ac9f90472acc99140eb2f6447c714cad8eb;
-
   //
   // Storage
   //
-
+  address withdrawHelper;//= address(1);
   // structure for plasma exit
   struct PlasmaExit {
     address owner;
@@ -71,6 +66,11 @@ contract WithdrawManager is DepositManager {
     uint256 amount
   );
 
+  constructor(address _withdrawHelper) public {
+    require(withdrawHelper != address(0x0));
+    withdrawHelper = _withdrawHelper;
+  }
+  
   //
   // Public functions
   //
@@ -189,29 +189,23 @@ contract WithdrawManager is DepositManager {
     bytes receiptProof
   ) public {
     address rootToken;
+    address childToken;
     uint256 receiptAmount;
 
-    (rootToken, receiptAmount) = _processBurntReceipt(
-      receiptBytes,
-      path,
-      receiptProof,
-      receiptRoot,
-      msg.sender
-    );
-
-    // process withdraw tx
-    _processBurntTx(
+    (rootToken, childToken, receiptAmount) = WithdrawHelper(withdrawHelper).processWithdrawBurnt(
       txBytes,
       path,
       txProof,
+      receiptBytes,
+      receiptProof,
+      networkId(),
       txRoot,
-
-      rootToken,
-      receiptAmount,
-
+      receiptRoot,
       msg.sender
     );
-
+    
+    require(tokens[rootToken] == childToken);
+    
     // exit object
     PlasmaExit memory _exitObject = PlasmaExit({
       owner: msg.sender,
@@ -262,14 +256,20 @@ contract WithdrawManager is DepositManager {
     require(MerklePatriciaProof.verify(receiptBytes, path, receiptProof, receiptRoot) == true);
 
     // process transfer tx/receipt
+    address rootToken;
     uint256 amount;
     uint8 oIndex;
-    (amount, oIndex) = _processWithdrawTransferReceipt(receiptBytes, msg.sender);
+    (rootToken, amount, oIndex) = WithdrawHelper(
+      withdrawHelper).processWithdrawTransfer(
+        txBytes,
+        receiptBytes,
+        msg.sender
+      );
 
     // exit object
     PlasmaExit memory _exitObject = PlasmaExit({
       owner: msg.sender,
-      token: _processWithdrawTransferTx(txBytes),
+      token: rootToken,
       amount: amount,
       burnt: false
     });
@@ -416,136 +416,45 @@ contract WithdrawManager is DepositManager {
     );
   }
 
-  // process withdraw transfer tx
-  function _processWithdrawTransferTx(
-    bytes txBytes
-  ) internal view returns (address rootToken) {
-    // check transaction
-    RLP.RLPItem[] memory items = txBytes.toRLPItem().toList();
-    require(items.length == 9);
-
-    // check if transaction is transfer tx
-    // <4 bytes transfer event,address (32 bytes),amount (32 bytes)>
-    require(BytesLib.toBytes4(BytesLib.slice(items[5].toData(), 0, 4)) == TRANSFER_SIGNATURE);
-
-    // check rootToken is valid
-    rootToken = reverseTokens[items[3].toAddress()];
-    require(rootToken != address(0));
+  
+  function networkId() public view returns (bytes) {
+    return IRootChain(rootChain).networkId();
   }
 
-  // process withdraw transfer receipt
-  function _processWithdrawTransferReceipt(
-    bytes receiptBytes,
-    address sender
-  )
-    internal
-    view
-    returns (uint256 totalBalance, uint8 oIndex)
-  {
-    // receipt
-    RLP.RLPItem[] memory items = receiptBytes.toRLPItem().toList();
-    require(items.length == 4);
+  function headerBlock(uint256 _headerNumber) public view returns (
+    bytes32 _root,
+    uint256 _start,
+    uint256 _end,
+    uint256 _createdAt
+  ) {
+    return (IRootChain(rootChain).headerBlock(_headerNumber));
+  }
+  
+  function mapToken(address _rootToken, address _childToken) public onlyRootChain {
+    // map root token to child token
+    _mapToken(_rootToken, _childToken);
 
-    // retrieve LogTransfer event (UTXO <amount, input1, input2, output1, output2>)
-    items = items[3].toList()[1].toList();
+    // create exit queue
+    exitsQueues[_rootToken] = address(new PriorityQueue());
+  }
+ 
+   // set WETH
+  function setWETHToken(address _token) public onlyRootChain {
+    wethToken = _token;
 
-    // get topics
-    RLP.RLPItem[] memory topics = items[1].toList();
-
-    // get from/to addresses from topics
-    address from = BytesLib.toAddress(topics[2].toData(), 12);
-    address to = BytesLib.toAddress(topics[3].toData(), 12);
-
-    // set totalBalance and oIndex
-    if (to == sender) {
-      totalBalance = BytesLib.toUint(items[2].toData(), 128);
-      oIndex = 1;
-    } else if (from == sender) {
-      totalBalance = BytesLib.toUint(items[2].toData(), 96);
-      oIndex = 0;
-    }
+    // weth token queue
+    exitsQueues[wethToken] = address(new PriorityQueue());
+  }
+  
+    // delete exit
+  function deleteExit(uint256 exitId) external onlyRootChain {
+    ExitNFT exitNFT = ExitNFT(exitNFTContract);
+    address owner = exitNFT.ownerOf(exitId);
+    exitNFT.burn(owner, exitId);
   }
 
-  // process withdraw tx
-  function _processBurntTx(
-    bytes txBytes,
-    bytes path,
-    bytes txProof,
-    bytes32 txRoot,
-
-    address rootToken,
-    uint256 amount,
-
-    address sender
-  ) internal view {
-    // check tx
-    RLP.RLPItem[] memory txList = txBytes.toRLPItem().toList();
-    require(txList.length == 9);
-
-    // check mapped root<->child token
-    require(tokens[rootToken] == txList[3].toAddress());
-
-    // Data check
-    require(txList[5].toData().length == 36);
-    // check withdraw data function signature
-    require(BytesLib.toBytes4(BytesLib.slice(txList[5].toData(), 0, 4)) == WITHDRAW_SIGNATURE);
-    // check amount
-    require(amount > 0 && amount == BytesLib.toUint(txList[5].toData(), 4));
-
-    // Make sure this tx is the value on the path via a MerklePatricia proof
-    require(MerklePatriciaProof.verify(txBytes, path, txProof, txRoot) == true);
-
-    // raw tx
-    bytes[] memory rawTx = new bytes[](9);
-    for (uint8 i = 0; i <= 5; i++) {
-      rawTx[i] = txList[i].toData();
-    }
-    rawTx[4] = hex"";
-    rawTx[6] = networkId();
-    rawTx[7] = hex"";
-    rawTx[8] = hex"";
-
-    // recover sender from v, r and s
-    require(
-      sender == ecrecover(
-        keccak256(RLPEncode.encodeList(rawTx)),
-        Common.getV(txList[6].toData(), Common.toUint8(networkId())),
-        txList[7].toBytes32(),
-        txList[8].toBytes32()
-      )
-    );
-  }
-
-  function _processBurntReceipt(
-    bytes receiptBytes,
-    bytes path,
-    bytes receiptProof,
-    bytes32 receiptRoot,
-    address sender
-  ) internal view returns (address rootToken, uint256 amount) {
-    // check receipt
-    RLP.RLPItem[] memory items = receiptBytes.toRLPItem().toList();
-    require(items.length == 4);
-
-    // [3][0] -> [child token address, [WITHDRAW_EVENT_SIGNATURE, root token address, sender], amount]
-    items = items[3].toList()[0].toList();
-    require(items.length == 3);
-    address childToken = items[0].toAddress(); // child token address
-    amount = items[2].toUint(); // amount
-
-    // [3][0][1] -> [WITHDRAW_EVENT_SIGNATURE, root token address, sender]
-    items = items[1].toList();
-    require(items.length == 3);
-    require(items[0].toBytes32() == WITHDRAW_EVENT_SIGNATURE); // check for withdraw event signature
-
-    // check if root token is mapped to child token
-    rootToken = BytesLib.toAddress(items[1].toData(), 12); // fetch root token address
-    require(tokens[rootToken] == childToken);
-
-    // check if sender is valid
-    require(sender == BytesLib.toAddress(items[2].toData(), 12));
-
-    // Make sure this receipt is the value on the path via a MerklePatricia proof
-    require(MerklePatriciaProof.verify(receiptBytes, path, receiptProof, receiptRoot) == true);
+  function setExitNFTContract(address _nftContract) public onlyRootChain {
+    require(_nftContract != address(0));
+    exitNFTContract = _nftContract;
   }
 }

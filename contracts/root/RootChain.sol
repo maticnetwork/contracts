@@ -13,11 +13,16 @@ import { RLPEncode } from "../lib/RLPEncode.sol";
 
 import { WithdrawManager } from "./WithdrawManager.sol";
 import { StakeManager } from "./StakeManager.sol";
+import { IRootChain } from "./IRootChain.sol";
 
 
-contract RootChain is Ownable, WithdrawManager {
+contract RootChain is IRootChain, Ownable {
   using SafeMath for uint256;
   using Merkle for bytes32;
+
+  using RLP for bytes;
+  using RLP for RLP.RLPItem;
+  using RLP for RLP.Iterator;
 
   // chain identifier
   bytes32 public constant chain = keccak256("test-chain-E5igIA");
@@ -26,6 +31,7 @@ contract RootChain is Ownable, WithdrawManager {
 
   // stake interface
   StakeManager public stakeManager;
+  WithdrawManager public withdrawManager;
   mapping(address => bool) public proofValidatorContracts;
 
   // child chain contract
@@ -41,14 +47,15 @@ contract RootChain is Ownable, WithdrawManager {
   // Constructor
   //
 
-  constructor (address _stakeManager) public {
+  constructor (address _stakeManager, address _withdrawManager) public {
     setStakeManager(_stakeManager);
+    setWithdrawManager(_withdrawManager);
 
     // set current header block
     _currentHeaderBlock = CHILD_BLOCK_INTERVAL;
 
     // reset deposit count
-    depositCount = 1;
+    withdrawManager.resetDepositCount();
   }
 
   //
@@ -82,7 +89,7 @@ contract RootChain is Ownable, WithdrawManager {
 
   // deposit ETH by sending to this contract
   function () public payable {
-    depositEthers(msg.sender);
+    withdrawManager.depositEthers(msg.sender);
   }
 
   //
@@ -96,9 +103,7 @@ contract RootChain is Ownable, WithdrawManager {
 
   // delete exit
   function deleteExit(uint256 exitId) external isProofValidator (msg.sender) {
-    ExitNFT exitNFT = ExitNFT(exitNFTContract);
-    address owner = exitNFT.ownerOf(exitId);
-    exitNFT.burn(owner, exitId);
+    withdrawManager.deleteExit(exitId);
   }
 
   // slash stakers if fraud is detected
@@ -127,19 +132,12 @@ contract RootChain is Ownable, WithdrawManager {
 
   // map child token to root token
   function mapToken(address _rootToken, address _childToken) public onlyOwner {
-    // map root token to child token
-    _mapToken(_rootToken, _childToken);
-
-    // create exit queue
-    exitsQueues[_rootToken] = address(new PriorityQueue());
+    withdrawManager.mapToken(_rootToken, _childToken);
   }
 
   // set WETH
   function setWETHToken(address _token) public onlyOwner {
-    wethToken = _token;
-
-    // weth token queue
-    exitsQueues[wethToken] = address(new PriorityQueue());
+    withdrawManager.setWETHToken(_token);
   }
 
   // add validator
@@ -154,6 +152,12 @@ contract RootChain is Ownable, WithdrawManager {
     require(proofValidatorContracts[_validator] == true);
     emit ProofValidatorRemoved(_validator, msg.sender);
     delete proofValidatorContracts[_validator];
+  }
+
+  // set withdraw Manager
+  function setWithdrawManager(address _withdrawManager) public onlyOwner {
+    require(_withdrawManager != address(0));
+    withdrawManager = WithdrawManager(_withdrawManager);
   }
 
   //
@@ -218,7 +222,7 @@ contract RootChain is Ownable, WithdrawManager {
     _currentHeaderBlock = _currentHeaderBlock.add(CHILD_BLOCK_INTERVAL);
 
     // reset deposit count
-    depositCount = 1;
+    withdrawManager.resetDepositCount();
 
     // TODO add rewards
 
@@ -231,8 +235,7 @@ contract RootChain is Ownable, WithdrawManager {
   //
 
   function setExitNFTContract(address _nftContract) public onlyOwner {
-    require(_nftContract != address(0));
-    exitNFTContract = _nftContract;
+    withdrawManager.setExitNFTContract(_nftContract);
   }
 
   //
@@ -267,7 +270,7 @@ contract RootChain is Ownable, WithdrawManager {
 
   // deposit ethers
   function depositEthers() public payable {
-    depositEthers(msg.sender);
+    withdrawManager.depositEthers(msg.sender);
   }
 
   //

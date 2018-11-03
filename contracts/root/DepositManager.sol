@@ -6,11 +6,12 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { Common } from "../lib/Common.sol";
 
 import { WETH } from "../token/WETH.sol";
+import { RootChainable } from "../mixin/RootChainable.sol";
 import { TokenManager } from "./TokenManager.sol";
+import { IDepositManager } from "./IDepositManager.sol";
 import { IRootChain } from "./IRootChain.sol";
 
-
-contract DepositManager is IRootChain, TokenManager {
+contract DepositManager is IDepositManager, TokenManager, RootChainable {
   using SafeMath for uint256;
 
   // list of deposits
@@ -49,6 +50,14 @@ contract DepositManager is IRootChain, TokenManager {
   // Get next deposit block
   function nextDepositBlock() public view returns (uint256) {
     return currentHeaderBlock().sub(CHILD_BLOCK_INTERVAL).add(depositCount);
+  }
+
+  function currentHeaderBlock() public view returns(uint256) {
+    IRootChain(rootChain).currentHeaderBlock();
+  }
+
+  function resetDepositCount() public onlyRootChain {
+    depositCount = 1;
   }
 
   function depositBlock(uint256 _depositCount) public view returns (

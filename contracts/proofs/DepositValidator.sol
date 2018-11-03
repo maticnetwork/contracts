@@ -7,6 +7,7 @@ import { BytesLib } from "../lib/BytesLib.sol";
 
 import { RootChainValidator } from "../mixin/RootChainValidator.sol";
 import { RootChain } from "../root/RootChain.sol";
+import { WithdrawManager } from "../root/WithdrawManager.sol";
 
 
 contract DepositValidator is RootChainValidator {
@@ -163,7 +164,7 @@ contract DepositValidator is RootChainValidator {
     address depositor = BytesLib.toAddress(dataField, 48);
     uint256 amount = BytesLib.toUint(dataField, 68);
     uint256 depositCount = BytesLib.toUint(dataField, 100);
-    address childToken = RootChain(rootChain).tokens(rootToken);
+    address childToken = WithdrawManager(withdrawManager).tokens(rootToken);
 
     // get receipt data
     items = receiptData.toRLPItem().toList();
@@ -206,7 +207,7 @@ contract DepositValidator is RootChainValidator {
     uint256 _amount;
 
     // fetch deposit block
-    (,_rootToken, _depositor, _amount,) = RootChain(rootChain).depositBlock(depositCount);
+    (,_rootToken, _depositor, _amount,) = WithdrawManager(withdrawManager).depositBlock(depositCount);
 
     if (
       _rootToken == rootToken &&

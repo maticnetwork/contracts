@@ -19,6 +19,17 @@ contract RootChainValidator is RootChainable, Lockable {
   using RLP for bytes;
   using RLP for RLP.RLPItem;
   using RLP for RLP.Iterator;
+  
+  address public withdrawManager;
+
+  /**
+   * @dev Allows the current owner to change withdraw manager address.
+   * @param newWithdrawManager The address to new rootchain.
+   */
+  function changeWithdrawManager(address newWithdrawManager) external onlyOwner {
+    require(newWithdrawManager != address(0));
+    withdrawManager = newWithdrawManager;
+  }
 
   // validate transaction
   function validateTxExistence(
