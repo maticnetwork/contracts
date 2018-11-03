@@ -195,11 +195,12 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     return _validators;
   }
 
-  function getStakerDetails(address user) public view returns(uint256, uint256, uint256, bytes, bytes) {
+  function getStakerDetails(address user) public view returns(uint256, uint256, uint256, address, bytes, bytes) {
     return (
       stakers[user].amount,
       stakers[user].activationEpoch,
       stakers[user].deactivationEpoch,
+      stakers[user].signer,
       stakers[user].pubKey,
       stakers[user].data
     );
@@ -232,7 +233,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     stakers[msg.sender].pubKey = _pubKey;
 
     delete signerToStaker[stakers[msg.sender].signer];
-    signerToStaker[_signer] = msg.sender;  
+    signerToStaker[_signer] = msg.sender;
     stakers[msg.sender].signer = _signer;
   }
   
