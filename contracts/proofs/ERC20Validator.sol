@@ -4,7 +4,9 @@ import { RLP } from "../lib/RLP.sol";
 import { BytesLib } from "../lib/BytesLib.sol";
 
 import { RootChainValidator } from "../mixin/RootChainValidator.sol";
-import { RootChain } from "../root/RootChain.sol";
+import { IRootChain } from "../root/IRootChain.sol";
+import { WithdrawManager } from "../root/WithdrawManager.sol";
+import { DepositManager } from "../root/DepositManager.sol";
 
 
 contract ERC20Validator is RootChainValidator {
@@ -30,6 +32,9 @@ contract ERC20Validator is RootChainValidator {
   // keccak256('LogTransfer(address,address,address,uint256,uint256,uint256,uint256,uint256)')
   bytes32 constant public LOG_TRANSFER_EVENT_SIGNATURE = 0xe6497e3ee548a3372136af2fcb0696db31fc6cf20260707645068bd3fe97f3c4;
 
+  WithdrawManager public withdrawManager;
+  DepositManager public depositManager;
+
   // validate ERC20 TX
   function validateERC20TransferTx(
     bytes transferTx
@@ -39,7 +44,7 @@ contract ERC20Validator is RootChainValidator {
 
     // validate ERC20 transfer tx
     if (!_validateERC20TransferTx(txData)) {
-      RootChain(rootChain).slash();
+      IRootChain(rootChain).slash();
     }
   }
 
@@ -80,7 +85,7 @@ contract ERC20Validator is RootChainValidator {
 
     // check if child token is mapped with root tokens
     address childToken = items[3].toAddress();
-    require(RootChain(rootChain).reverseTokens(childToken) != address(0));
+    require(depositManager.reverseTokens(childToken) != address(0));
 
     // check if transaction is transfer tx
     // <4 bytes transfer event,address (32 bytes),amount (32 bytes)>

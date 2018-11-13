@@ -51,7 +51,7 @@
     "ethers": "^3.0.26",
     "safe-buffer": "^5.1.1",
     "solium": "^1.1.8",
-    "truffle": "^4.1.14",
+    "truffle": "5.0.0-beta.1",
     "web3": "^1.0.0-beta.30"
   },
   "dependencies": {

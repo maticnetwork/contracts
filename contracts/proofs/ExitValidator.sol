@@ -2,9 +2,14 @@ pragma solidity ^0.4.24;
 
 import { RootChainValidator } from "../mixin/RootChainValidator.sol";
 import { RootChain } from "../root/RootChain.sol";
+import { WithdrawManager } from "../root/WithdrawManager.sol";
+import { DepositManager } from "../root/DepositManager.sol";
 
 
 contract ExitValidator is RootChainValidator {
+  WithdrawManager public withdrawManager;
+  DepositManager public depositManager;
+
   // challenge exit
   function challengeExit(
     uint256 exitId,
@@ -66,7 +71,7 @@ contract ExitValidator is RootChainValidator {
     address owner;
     uint256 amount;
     bool burnt;
-    (owner,,amount, burnt) = RootChain(rootChain).getExit(exitId);
+    (owner,,amount, burnt) = withdrawManager.getExit(exitId);
 
     // check if already burnt
     require(burnt == false && amount > 0 && owner != address(0));

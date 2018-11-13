@@ -5,7 +5,7 @@ import { MerklePatriciaProof } from "../lib/MerklePatriciaProof.sol";
 import { RLP } from "../lib/RLP.sol";
 import { Common } from "../lib/Common.sol";
 import { RLPEncode } from "../lib/RLPEncode.sol";
-import { RootChain } from "../root/RootChain.sol";
+import { IRootChain } from "../root/IRootChain.sol";
 
 import { Lockable } from "./Lockable.sol";
 import { RootChainable } from "./RootChainable.sol";
@@ -38,7 +38,7 @@ contract RootChainValidator is RootChainable, Lockable {
     // fetch header block
     bytes32 headerRoot;
     uint256 start;
-    (headerRoot, start,,) = RootChain(rootChain).headerBlock(headerNumber);
+    (headerRoot, start,,) = IRootChain(rootChain).headerBlock(headerNumber);
 
     // check if tx's block is included in header and tx is in block
     return keccak256(blockNumber, blockTime, txRoot, receiptRoot)
@@ -175,14 +175,14 @@ contract RootChainValidator is RootChainable, Lockable {
       rawTx[i] = txList[i].toData();
     }
     rawTx[4] = hex"";
-    rawTx[6] = RootChain(rootChain).networkId();
+    rawTx[6] = IRootChain(rootChain).networkId();
     rawTx[7] = hex"";
     rawTx[8] = hex"";
 
     // recover tx sender
     return ecrecover(
       keccak256(RLPEncode.encodeList(rawTx)),
-      Common.getV(txList[6].toData(), Common.toUint8(RootChain(rootChain).networkId())),
+      Common.getV(txList[6].toData(), Common.toUint8(rawTx[6])),
       txList[7].toBytes32(),
       txList[8].toBytes32()
     );
