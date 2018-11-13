@@ -141,58 +141,58 @@ contract WithdrawManager is IManager, ExitManager, RootChainable {
   }
 
   // withdraw tokens
-//   function withdrawTokens(
-//     uint256 headerNumber,
-//     bytes headerProof,
+  function withdrawTokens(
+    uint256 headerNumber,
+    bytes headerProof,
 
-//     uint256 blockNumber,
-//     uint256 blockTime,
-//     bytes32 txRoot,
-//     bytes32 receiptRoot,
-//     bytes path,
+    uint256 blockNumber,
+    uint256 blockTime,
+    bytes32 txRoot,
+    bytes32 receiptRoot,
+    bytes path,
 
-//     bytes txBytes,
-//     bytes txProof,
+    bytes txBytes,
+    bytes txProof,
 
-//     bytes receiptBytes,
-//     bytes receiptProof
-//   ) public {
-//     // Make sure this tx is the value on the path via a MerklePatricia proof
-//     require(MerklePatriciaProof.verify(txBytes, path, txProof, txRoot) == true);
+    bytes receiptBytes,
+    bytes receiptProof
+  ) public {
+    // Make sure this tx is the value on the path via a MerklePatricia proof
+    require(MerklePatriciaProof.verify(txBytes, path, txProof, txRoot) == true);
 
-//     // Make sure this receipt is the value on the path via a MerklePatricia proof
-//     require(MerklePatriciaProof.verify(receiptBytes, path, receiptProof, receiptRoot) == true);
+    // Make sure this receipt is the value on the path via a MerklePatricia proof
+    require(MerklePatriciaProof.verify(receiptBytes, path, receiptProof, receiptRoot) == true);
 
-//     // process transfer tx/receipt
-//     uint256 amount;
-//     uint8 oIndex;
-//     (amount, oIndex) = _processWithdrawTransferReceipt(receiptBytes, msg.sender);
+    // process transfer tx/receipt
+    uint256 amount;
+    uint8 oIndex;
+    (amount, oIndex) = _processWithdrawTransferReceipt(receiptBytes, msg.sender);
 
-//     // exit object
-//     PlasmaExit memory _exitObject = PlasmaExit({
-//       owner: msg.sender,
-//       token: _processWithdrawTransferTx(txBytes),
-//       amount: amount,
-//       burnt: false
-//     });
+    // exit object
+    PlasmaExit memory _exitObject = PlasmaExit({
+      owner: msg.sender,
+      token: _processWithdrawTransferTx(txBytes),
+      amount: amount,
+      burnt: false
+    });
 
-//     // withdraw
-//     _withdraw(
-//       _exitObject,
+    // withdraw
+    _withdraw(
+      _exitObject,
 
-//       headerNumber,
-//       headerProof,
+      headerNumber,
+      headerProof,
 
-//       blockNumber,
-//       blockTime,
+      blockNumber,
+      blockTime,
 
-//       txRoot,
-//       receiptRoot,
+      txRoot,
+      receiptRoot,
 
-//       path,
-//       oIndex
-//     );
-//   }
+      path,
+      oIndex
+    );
+  }
 
   function withdrawDepositTokens(uint256 _depositCount) public {
     // get and validate deposit block
