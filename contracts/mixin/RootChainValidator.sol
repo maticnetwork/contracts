@@ -6,10 +6,11 @@ import { RLP } from "../lib/RLP.sol";
 import { Common } from "../lib/Common.sol";
 import { RLPEncode } from "../lib/RLPEncode.sol";
 import { IRootChain } from "../root/IRootChain.sol";
+import { WithdrawManager } from "../root/WithdrawManager.sol";
+import { DepositManager } from "../root/DepositManager.sol";
 
 import { Lockable } from "./Lockable.sol";
 import { RootChainable } from "./RootChainable.sol";
-
 
 /**
  * @title RootChainValidator
@@ -19,6 +20,31 @@ contract RootChainValidator is RootChainable, Lockable {
   using RLP for bytes;
   using RLP for RLP.RLPItem;
   using RLP for RLP.Iterator;
+
+  // managers
+  DepositManager public depositManager;
+  WithdrawManager public withdrawManager;
+
+  // child chain contract
+  address public childChainContract;
+
+  // set deposit manager
+  function setDepositManager(address _depositManager) public onlyOwner {
+    require(_depositManager != address(0));
+    depositManager = DepositManager(_depositManager);
+  }
+
+  // set withdraw manager
+  function setWithdrawManager(address _withdrawManager) public onlyOwner {
+    require(_withdrawManager != address(0));
+    withdrawManager = WithdrawManager(_withdrawManager);
+  }
+
+  // set child chain contract
+  function setChildChainContract(address _childChainContract) public onlyOwner {
+    require(_childChainContract != address(0));
+    childChainContract = _childChainContract;
+  }
 
   // validate transaction
   function validateTxExistence(

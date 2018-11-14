@@ -5,8 +5,6 @@ import { BytesLib } from "../lib/BytesLib.sol";
 
 import { RootChainValidator } from "../mixin/RootChainValidator.sol";
 import { IRootChain } from "../root/IRootChain.sol";
-import { WithdrawManager } from "../root/WithdrawManager.sol";
-import { DepositManager } from "../root/DepositManager.sol";
 
 
 contract ERC20Validator is RootChainValidator {
@@ -31,9 +29,6 @@ contract ERC20Validator is RootChainValidator {
   // bytes32 constant public LOG_WITHDRAW_EVENT_SIGNATURE = 0x3228bf4a0d547ed34051296b931fce02a1927888b6bc3dfbb85395d0cca1e9e0;
   // keccak256('LogTransfer(address,address,address,uint256,uint256,uint256,uint256,uint256)')
   bytes32 constant public LOG_TRANSFER_EVENT_SIGNATURE = 0xe6497e3ee548a3372136af2fcb0696db31fc6cf20260707645068bd3fe97f3c4;
-
-  WithdrawManager public withdrawManager;
-  DepositManager public depositManager;
 
   // validate ERC20 TX
   function validateERC20TransferTx(

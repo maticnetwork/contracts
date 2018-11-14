@@ -2,14 +2,9 @@ pragma solidity ^0.4.24;
 
 import { RootChainValidator } from "../mixin/RootChainValidator.sol";
 import { RootChain } from "../root/RootChain.sol";
-import { WithdrawManager } from "../root/WithdrawManager.sol";
-import { DepositManager } from "../root/DepositManager.sol";
 
 
 contract ExitValidator is RootChainValidator {
-  WithdrawManager public withdrawManager;
-  DepositManager public depositManager;
-
   // challenge exit
   function challengeExit(
     uint256 exitId,

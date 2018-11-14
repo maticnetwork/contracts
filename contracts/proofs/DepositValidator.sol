@@ -7,8 +7,6 @@ import { BytesLib } from "../lib/BytesLib.sol";
 
 import { RootChainValidator } from "../mixin/RootChainValidator.sol";
 import { IRootChain } from "../root/IRootChain.sol";
-import { WithdrawManager } from "../root/WithdrawManager.sol";
-import { DepositManager } from "../root/DepositManager.sol";
 
 
 contract DepositValidator is RootChainValidator {
@@ -25,10 +23,6 @@ contract DepositValidator is RootChainValidator {
   bytes32 constant public DEPOSIT_EVENT_SIGNATURE = 0x5548c837ab068cf56a2c2479df0882a4922fd203edb7517321831d95078c5f62;
   // keccak256('LogDeposit(address,address,uint256,uint256,uint256)')
   bytes32 constant public LOG_DEPOSIT_EVENT_SIGNATURE = 0xab14747d46633612ff5c029a3117f98ffb6506ebf31bab40972f911b7dd18891;
-
-  address public childChainContract;
-  WithdrawManager public withdrawManager;
-  DepositManager public depositManager;
 
   // validate deposit
   function validateDepositTx(

@@ -255,6 +255,18 @@ contract RootChain is Ownable, IRootChain {
     stakeManager = StakeManager(_stakeManager);
   }
 
+  // set deposit manager
+  function setDepositManager(address _depositManager) public onlyOwner {
+    require(_depositManager != address(0));
+    depositManager = DepositManager(_depositManager);
+  }
+
+  // set withdraw manager
+  function setWithdrawManager(address _withdrawManager) public onlyOwner {
+    require(_withdrawManager != address(0));
+    withdrawManager = WithdrawManager(_withdrawManager);
+  }
+
   // deposit ethers
   function depositEthers() public payable {
     // retrieve ether amount
