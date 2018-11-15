@@ -49,7 +49,7 @@ export async function linkLibs(web3Child) {
     contracts.MaticWETH,
     contracts.StakeManagerMock,
     contracts.TokenManagerMock,
-    contracts.IRootChainMock,
+    contracts.RootChainMock,
     contracts.DepositManagerMock,
     contracts.WithdrawManagerMock,
     contracts.TxValidator,
