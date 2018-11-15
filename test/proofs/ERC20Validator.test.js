@@ -19,7 +19,9 @@ import LogDecoder from '../helpers/log-decoder.js'
 import {
   RootToken,
   WithdrawManagerMock,
-  ERC20ValidatorMock
+  ERC20ValidatorMock,
+  DepositManagerMock,
+  RootChainMock
 } from '../helpers/contracts.js'
 
 let ChildChain = artifacts.require('../child/ChildChain.sol')
@@ -41,8 +43,11 @@ contract('ERC20Validator', async function(accounts) {
     let childToken
     let rootChain
     let childChain
+    let withdrawManager
     let user
     let childBlockInterval
+    let depositManager
+    let owner = accounts[0]
 
     before(async function() {
       // link libs
@@ -51,29 +56,73 @@ contract('ERC20Validator', async function(accounts) {
       logDecoder = new LogDecoder([
         RootToken._json.abi,
         ERC20ValidatorMock._json.abi,
-        WithdrawManagerMock._json.abi
+        WithdrawManagerMock._json.abi,
+        RootChainMock._json.abi,
+        DepositManagerMock._json.abi
+        // ExitNFT._json.abi
       ])
 
       user = accounts[0]
 
-      rootToken = await RootToken.new('Test Token', 'TEST', { from: user })
-      rootChain = await WithdrawManagerMock.new()
+      rootToken = await RootToken.new('Root Token', 'ROOT', { from: user })
+      // rootToken = await RootToken.new('Test Token', 'TEST', { from: user })
+      // withdrawManager = WithdrawManagerMock.new()
+      // rootChain = await RootChainMock.new(rootToken.address).new()
 
-      // set current header block
-      childBlockInterval = await rootChain.CHILD_BLOCK_INTERVAL()
-      rootChain.setCurrentHeaderBlock(+childBlockInterval)
+      // // set current header block
+      // childBlockInterval = await rootChain.CHILD_BLOCK_INTERVAL()
+      // rootChain.setCurrentHeaderBlock(+childBlockInterval)
 
       // child chain
+      // childChain = await ChildChain.new()
+      // const receipt = await childChain.addToken(rootToken.address, 18)
+      // childToken = ChildToken.at(receipt.logs[0].args.token)
+      // // child chain
       childChain = await ChildChain.new({ from: user, gas: 6000000 })
-      childToken = await ChildToken.new(rootToken.address, 18)
+      // childToken = await ChildToken.new(rootToken.address, 18)
 
       let childTokenReceipt = await childChain.addToken(rootToken.address, 18, {
         from: user
       })
       childToken = ChildToken.at(childTokenReceipt.logs[0].args.token)
 
-      // map root token
-      await rootChain.mapToken(rootToken.address, childToken.address)
+      // // map root token
+      // await rootChain.mapToken(rootToken.address, childToken.address)
+      // withdrawManager = await WithdrawManagerMock.new()
+      // childBlockInterval = await withdrawManager.CHILD_BLOCK_INTERVAL()
+
+      // root token / child chain / child token
+      // exitNFTContract = await ExitNFT.new('Matic Exit NFT', 'MATIC-NFT')
+
+      rootChain = await RootChainMock.new(rootToken.address) // dummy address for stakemanager
+      depositManager = await DepositManagerMock.new({ from: owner })
+      withdrawManager = await WithdrawManagerMock.new({ from: owner })
+
+      await depositManager.changeRootChain(rootChain.address, { from: owner })
+      await withdrawManager.changeRootChain(rootChain.address, {
+        from: owner
+      })
+
+      await rootChain.setDepositManager(depositManager.address, {
+        from: owner
+      })
+      await rootChain.setWithdrawManager(withdrawManager.address, {
+        from: owner
+      })
+
+      // set exit NFT
+      // await withdrawManager.setExitNFTContract(exitNFTContract.address)
+      await withdrawManager.setDepositManager(depositManager.address)
+      // set withdraw manager as root chain for exit NFT
+
+      // await exitNFTContract.changeRootChain(withdrawManager.address, {
+      //   from: owner
+      // })
+
+      // map token
+      await rootChain.mapToken(rootToken.address, childToken.address, {
+        from: owner
+      })
     })
 
     it('should deposit token', async function() {
