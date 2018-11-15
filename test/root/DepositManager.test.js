@@ -54,9 +54,6 @@ contract('DepositManager', async function(accounts) {
     // const childBlockInterval = await depositManager.CHILD_BLOCK_INTERVAL()
     // await depositManager.setCurrentHeaderBlock(+childBlockInterval)
 
-    rootToken = await RootToken.new('Root Token', 'ROOT')
-    childToken = await RootToken.new('Child Token', 'CHILD')
-
     // map token
     await depositManager.mapToken(rootToken.address, childToken.address)
   })
