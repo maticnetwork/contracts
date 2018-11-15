@@ -25,7 +25,7 @@ export const StakeManagerMock = artifacts.require(
 export const TokenManagerMock = artifacts.require(
   './mocks/TokenManagerMock.sol'
 )
-export const IRootChainMock = artifacts.require('./mocks/IRootChainMock.sol')
+export const RootChainMock = artifacts.require('./mocks/RootChainMock.sol')
 export const DepositManagerMock = artifacts.require(
   './mocks/DepositManagerMock.sol'
 )
