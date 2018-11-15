@@ -8,9 +8,11 @@ import { Merkle } from "../lib/Merkle.sol";
 import { PriorityQueue } from "../lib/PriorityQueue.sol";
 import { ExitNFT } from "../token/ExitNFT.sol";
 import { WETH } from "../token/WETH.sol";
+import { RootChainable } from "../mixin/RootChainable.sol";
 
+import { IRootChain } from "./IRootChain.sol";
 
-contract ExitManager {
+contract ExitManager is RootChainable {
   using Merkle for bytes32;
   using RLP for bytes;
   using RLP for RLP.RLPItem;
@@ -174,13 +176,7 @@ contract ExitManager {
           delete ownerExits[_token][currentExit.owner];
         }
 
-        if (_token == address(wethContract)) {
-          // transfer ETH to token owner if `rootToken` is `wethToken`
-          wethContract.withdraw(currentExit.amount, exitOwner);
-        } else {
-          // transfer tokens to current contract
-          ERC20(_token).transfer(exitOwner, currentExit.amount);
-        }
+        IRootChain(rootChain).transferAmount(_token, exitOwner, currentExit.amount);
 
         // broadcast withdraw events
         emit Withdraw(exitOwner, _token, currentExit.amount);

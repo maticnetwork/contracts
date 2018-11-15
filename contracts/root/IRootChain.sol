@@ -45,4 +45,10 @@ contract IRootChain is IManager {
 
   // slash
   function slash() public;
+  
+  function transferAmount(
+    address _token,
+    address _user,
+    uint256 _amount
+  ) public returns(bool);
 }

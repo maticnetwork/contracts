@@ -20,11 +20,11 @@ import { ExitManager } from "./ExitManager.sol";
 import { RootChainable } from "../mixin/RootChainable.sol";
 
 
-contract WithdrawManager is IManager, ExitManager, RootChainable {
-  using Merkle for bytes32;
-  using RLP for bytes;
-  using RLP for RLP.RLPItem;
-  using RLP for RLP.Iterator;
+contract WithdrawManager is IManager, ExitManager {
+  // using Merkle for bytes32;
+  // using RLP for bytes;
+  // using RLP for RLP.RLPItem;
+  // using RLP for RLP.Iterator;
 
   // 0x2e1a7d4d = sha3('withdraw(uint256)')
   bytes4 constant private WITHDRAW_SIGNATURE = 0x2e1a7d4d;
@@ -48,6 +48,9 @@ contract WithdrawManager is IManager, ExitManager, RootChainable {
     _setExitNFTContract(_nftContract);
   }
 
+  function setDepositManager(address _depositManager) public {
+    depositManager = DepositManager(_depositManager);
+  }
   // set WETH token
   function setWETHToken(address _token) public onlyRootChain {
     _setWETHToken(_token);

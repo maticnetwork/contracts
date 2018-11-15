@@ -9,6 +9,12 @@ import { DepositManager } from "../root/DepositManager.sol";
 
 
 contract DepositManagerMock is DepositManager, TokenManagerMock {
+  
+  // only root chain
+  modifier onlyRootChain() {
+    _;
+  }
+  
   // deposit ETH by sending to this contract
   function () public payable {
     // retrieve ether amount

@@ -54,6 +54,12 @@ contract RootChain is Ownable, IRootChain {
   // deposit manager
   DepositManager public depositManager;
 
+  // only root chain
+  modifier onlyDepositManager() {
+    require(msg.sender == address(depositManager));
+    _;
+  }
+
   //
   // Constructor
   //
@@ -294,7 +300,28 @@ contract RootChain is Ownable, IRootChain {
     // generate deposit block and udpate counter
     depositManager.createDepositBlock(_currentHeaderBlock, _token, _user, _amount);
   }
+  
+  // deposit tokens for another user
+  function transferAmount(
+    address _token,
+    address _user,
+    uint256 _amount
+  ) public onlyDepositManager returns(bool)  { 
 
+    // transfer tokens to current contract
+    address wethToken = depositManager.wethToken();
+    if (_token == wethToken) {
+        // transfer ethers to this contract (through WETH)
+        WETH t = WETH(wethToken); 
+        // transfer ETH to token owner if `rootToken` is `wethToken`
+        t.withdraw(_amount, _user);
+    } else {
+        // transfer tokens to current contract
+        require(ERC20(_token).transfer(_user, _amount));
+    }
+    return true;
+  }
+  
   /**
    * @dev Accept ERC223 compatible tokens
    * @param _user address The address that is transferring the tokens
