@@ -343,7 +343,7 @@ contract('WithdrawManager', async function(accounts) {
       let exitId
 
       before(async function() {
-        
+        // withdraw manager
         withdrawManager = await WithdrawManagerMock.new()
 
         // root token / child chain / child token
