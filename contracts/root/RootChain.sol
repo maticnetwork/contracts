@@ -55,8 +55,8 @@ contract RootChain is Ownable, IRootChain {
   DepositManager public depositManager;
 
   // only root chain
-  modifier onlyDepositManager() {
-    require(msg.sender == address(depositManager));
+  modifier onlyWithdrawManager() {
+    require(msg.sender == address(withdrawManager));
     _;
   }
 
@@ -306,7 +306,7 @@ contract RootChain is Ownable, IRootChain {
     address _token,
     address _user,
     uint256 _amount
-  ) public onlyDepositManager returns(bool)  { 
+  ) public onlyWithdrawManager returns(bool)  { 
 
     // transfer tokens to current contract
     address wethToken = depositManager.wethToken();
