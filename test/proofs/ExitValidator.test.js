@@ -100,12 +100,15 @@ contract('ExitValidator', async function(accounts) {
         depositManager = await DepositManagerMock.new({ from: owner })
         withdrawManager = await WithdrawManagerMock.new({ from: owner })
 
+        await exitValidator.changeRootChain(rootChain.address, { from: owner })
+
         childBlockInterval = await withdrawManager.CHILD_BLOCK_INTERVAL()
 
         await depositManager.changeRootChain(rootChain.address, { from: owner })
         await withdrawManager.changeRootChain(rootChain.address, {
           from: owner
         })
+        await exitValidator.setWithdrawManager(withdrawManager.address)
 
         await rootChain.setDepositManager(depositManager.address, {
           from: owner
@@ -114,11 +117,15 @@ contract('ExitValidator', async function(accounts) {
           from: owner
         })
 
+        await rootChain.addProofValidator(exitValidator.address, {
+          from: owner
+        })
+
         // set exit NFT
         await withdrawManager.setExitNFTContract(exitNFTContract.address)
         // set withdraw manager as root chain for exit NFT
 
-        await exitValidator.changeRootChain(withdrawManager.address)
+        await exitValidator.setDepositManager(depositManager.address)
         // set exit NFT
         await withdrawManager.setDepositManager(depositManager.address)
         // set withdraw manager as root chain for exit NFT

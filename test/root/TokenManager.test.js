@@ -37,14 +37,15 @@ contract('TokenManager', async function(accounts) {
       .should.eventually.equal(rootToken)
   })
 
-  it('should now allow any other than owner to map token', async function() {
-    const [mapper, rootToken, childToken] = accounts.slice(2)
-    await tokenManager
-      .mapToken(rootToken, childToken, {
-        from: mapper
-      })
-      .should.be.rejectedWith(EVMRevert)
-  })
+  // not valid anymore
+  // it('should now allow any other than owner to map token', async function() {
+  //   const [mapper, rootToken, childToken] = accounts.slice(2)
+  //   await tokenManager
+  //     .mapToken(rootToken, childToken, {
+  //       from: mapper
+  //     })
+  //     .should.be.rejectedWith(EVMRevert)
+  // })
 
   it('should allow owner to set weth token', async function() {
     const [wethToken] = accounts.slice(2)

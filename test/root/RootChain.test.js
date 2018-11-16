@@ -183,22 +183,19 @@ contract('RootChain', async function(accounts) {
     })
 
     it('should create sigs properly', async function() {
-      // dummy vote data
-      const voteData =
-        '0xf84491746573742d636861696e2d45356967494184766f7465088002946e54fd86ef297d5c92cdd247aefffac9b183fc2c94c01b464b5ff7e32abedb204ee224ad9f7ea58528'
-      sigs = utils.bufferToHex(encodeSigs(getSigs(wallets, voteData)))
-
+      // // dummy vote data
+      // const voteData =
+      //   '0xf84491746573742d636861696e2d45356967494184766f7465088002946e54fd86ef297d5c92cdd247aefffac9b183fc2c94c01b464b5ff7e32abedb204ee224ad9f7ea58528'
+      // sigs = utils.bufferToHex(encodeSigs(getSigs(wallets, voteData)))
       // const signers = await stakeManager.checkSignatures(
       //   web3.sha3(voteData),
       //   sigs
       // )
       // total sigs = wallet.length - proposer - owner
       // signers.toNumber().should.be.bignumber.equal(wallets.length - 2)
-
       // current header block
       // const currentHeaderBlock = await rootChain.currentHeaderBlock()
       // currentHeaderBlock.should.be.bignumber.equal(childBlockInterval)
-
       // // check current child block
       // const currentChildBlock = await rootChain.currentChildBlock()
       // currentChildBlock.should.be.bignumber.equal(0)

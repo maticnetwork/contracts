@@ -45,7 +45,6 @@ contract('ERC20Validator', async function(accounts) {
     let childChain
     let withdrawManager
     let user
-    let childBlockInterval
     let depositManager
     let owner = accounts[0]
 
@@ -59,40 +58,17 @@ contract('ERC20Validator', async function(accounts) {
         WithdrawManagerMock._json.abi,
         RootChainMock._json.abi,
         DepositManagerMock._json.abi
-        // ExitNFT._json.abi
       ])
 
       user = accounts[0]
 
-      rootToken = await RootToken.new('Root Token', 'ROOT', { from: user })
-      // rootToken = await RootToken.new('Test Token', 'TEST', { from: user })
-      // withdrawManager = WithdrawManagerMock.new()
-      // rootChain = await RootChainMock.new(rootToken.address).new()
-
-      // // set current header block
-      // childBlockInterval = await rootChain.CHILD_BLOCK_INTERVAL()
-      // rootChain.setCurrentHeaderBlock(+childBlockInterval)
-
-      // child chain
-      // childChain = await ChildChain.new()
-      // const receipt = await childChain.addToken(rootToken.address, 18)
-      // childToken = ChildToken.at(receipt.logs[0].args.token)
-      // // child chain
+      rootToken = await RootToken.new('Test Token', 'TEST', { from: user })
       childChain = await ChildChain.new({ from: user, gas: 6000000 })
-      // childToken = await ChildToken.new(rootToken.address, 18)
 
       let childTokenReceipt = await childChain.addToken(rootToken.address, 18, {
         from: user
       })
       childToken = ChildToken.at(childTokenReceipt.logs[0].args.token)
-
-      // // map root token
-      // await rootChain.mapToken(rootToken.address, childToken.address)
-      // withdrawManager = await WithdrawManagerMock.new()
-      // childBlockInterval = await withdrawManager.CHILD_BLOCK_INTERVAL()
-
-      // root token / child chain / child token
-      // exitNFTContract = await ExitNFT.new('Matic Exit NFT', 'MATIC-NFT')
 
       rootChain = await RootChainMock.new(rootToken.address) // dummy address for stakemanager
       depositManager = await DepositManagerMock.new({ from: owner })
@@ -110,14 +86,7 @@ contract('ERC20Validator', async function(accounts) {
         from: owner
       })
 
-      // set exit NFT
-      // await withdrawManager.setExitNFTContract(exitNFTContract.address)
       await withdrawManager.setDepositManager(depositManager.address)
-      // set withdraw manager as root chain for exit NFT
-
-      // await exitNFTContract.changeRootChain(withdrawManager.address, {
-      //   from: owner
-      // })
 
       // map token
       await rootChain.mapToken(rootToken.address, childToken.address, {
@@ -221,6 +190,7 @@ contract('ERC20Validator', async function(accounts) {
       // create  erc20 validator
       const erc20Validator = await ERC20ValidatorMock.new()
       await erc20Validator.changeRootChain(rootChain.address)
+      await erc20Validator.setDepositManager(depositManager.address)
 
       // ERC20 validator
       receipt = await erc20Validator.validateERC20Tx(
