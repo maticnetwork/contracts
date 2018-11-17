@@ -48,7 +48,7 @@ contract WithdrawManager is IManager, ExitManager {
     _setExitNFTContract(_nftContract);
   }
 
-  function setDepositManager(address _depositManager) public {
+  function setDepositManager(address _depositManager) public onlyOwner {
     depositManager = DepositManager(_depositManager);
   }
   // set WETH token

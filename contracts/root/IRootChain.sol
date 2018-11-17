@@ -49,6 +49,7 @@ contract IRootChain is IManager {
   function transferAmount(
     address _token,
     address _user,
-    uint256 _amount
+    uint256 _amount,
+    bool isWeth
   ) public returns(bool);
 }

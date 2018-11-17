@@ -113,7 +113,8 @@ contract DepositManager is IManager, TokenManager, RootChainable {
     emit Deposit(_user, _token, _amount, _depositId);
 
     // add deposit into deposits
-    DepositBlock memory _depositBlock = DepositBlock({
+    // DepositBlock memory _depositBlock 
+    deposits[_depositId] = DepositBlock({
       header: _currentHeaderBlock,
       owner: _user,
       token: _token,
@@ -121,7 +122,7 @@ contract DepositManager is IManager, TokenManager, RootChainable {
       createdAt: block.timestamp
     });
 
-    deposits[_depositId] = _depositBlock;
+    // deposits[_depositId] = _depositBlock;
 
     // increase deposit counter
     depositCount = depositCount.add(1);

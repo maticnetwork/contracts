@@ -43,7 +43,7 @@ contract ExitManager is RootChainable {
   address public exitNFTContract;
 
   // WETH address
-  WETH public wethContract;
+  address public wethToken;
 
   //
   // Events
@@ -123,7 +123,7 @@ contract ExitManager is RootChainable {
     require(_token != address(0));
 
     // create weth contract
-    wethContract = WETH(_token);
+    wethToken = _token;
 
     // weth token queue
     exitsQueues[_token] = address(new PriorityQueue());
@@ -176,7 +176,7 @@ contract ExitManager is RootChainable {
           delete ownerExits[_token][currentExit.owner];
         }
 
-        IRootChain(rootChain).transferAmount(_token, exitOwner, currentExit.amount);
+        IRootChain(rootChain).transferAmount(_token, exitOwner, currentExit.amount, _token == wethToken);
 
         // broadcast withdraw events
         emit Withdraw(exitOwner, _token, currentExit.amount);

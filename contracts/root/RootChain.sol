@@ -181,7 +181,7 @@ contract RootChain is Ownable, IRootChain {
 
   // set Exit NFT contract
   function setExitNFTContract(address _nftContract) public onlyOwner {
-    depositManager.setExitNFTContract(_nftContract);
+    // depositManager.setExitNFTContract(_nftContract);
     withdrawManager.setExitNFTContract(_nftContract);
   }
 
@@ -301,23 +301,19 @@ contract RootChain is Ownable, IRootChain {
     depositManager.createDepositBlock(_currentHeaderBlock, _token, _user, _amount);
   }
   
-  // deposit tokens for another user
+  // transfer tokens to user
   function transferAmount(
     address _token,
     address _user,
-    uint256 _amount
+    uint256 _amount,
+    bool isWeth
   ) public onlyWithdrawManager returns(bool)  { 
 
-    // transfer tokens to current contract
-    address wethToken = depositManager.wethToken();
-    if (_token == wethToken) {
-        // transfer ethers to this contract (through WETH)
-        WETH t = WETH(wethToken); 
-        // transfer ETH to token owner if `rootToken` is `wethToken`
-        t.withdraw(_amount, _user);
+    if (isWeth) {
+      WETH t = WETH(_token); 
+      t.withdraw(_amount, _user);
     } else {
-        // transfer tokens to current contract
-        require(ERC20(_token).transfer(_user, _amount));
+      require(ERC20(_token).transfer(_user, _amount));
     }
     return true;
   }
