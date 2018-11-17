@@ -35,8 +35,6 @@ contract RootChain is Ownable, IRootChain {
   //   address proposer;
   // }
 
-  // stake interface
-  StakeManager public stakeManager;
   mapping(address => bool) public proofValidatorContracts;
 
   // child chain contract
@@ -48,6 +46,10 @@ contract RootChain is Ownable, IRootChain {
   // current header block number
   uint256 private _currentHeaderBlock;
 
+
+  // stake interface
+  StakeManager public stakeManager;
+  
   // withdraw manager
   WithdrawManager public withdrawManager;
 

@@ -6,15 +6,9 @@ import chaiBigNumber from 'chai-bignumber'
 import utils from 'ethereumjs-util'
 
 import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
+import { linkLibs, encodeSigs, getSigs, ZeroAddress } from '../helpers/utils.js'
 import {
-  linkLibs,
-  encodeSigs,
-  getSigs,
-  getSigs1,
-  ZeroAddress
-} from '../helpers/utils.js'
-import {
-  StakeManager,
+  StakeManagerMock,
   DepositManagerMock,
   WithdrawManagerMock,
   RootToken,
@@ -55,7 +49,7 @@ contract('RootChain', async function(accounts) {
       await linkLibs(web3Child)
 
       logDecoder = new LogDecoder([
-        StakeManager._json.abi,
+        StakeManagerMock._json.abi,
         RootToken._json.abi,
         RootChain._json.abi,
         DepositManagerMock._json.abi,
@@ -67,7 +61,7 @@ contract('RootChain', async function(accounts) {
       childToken = await RootToken.new('Child Token', 'CHILD')
       stakeToken = await RootToken.new('Stake Token', 'STAKE')
 
-      stakeManager = await StakeManager.new(stakeToken.address)
+      stakeManager = await StakeManagerMock.new(stakeToken.address)
       rootChain = await RootChain.new(stakeManager.address)
       depositManager = await DepositManagerMock.new({ from: owner })
       withdrawManager = await WithdrawManagerMock.new({ from: owner })
@@ -137,16 +131,12 @@ contract('RootChain', async function(accounts) {
       3: web3.toWei(20),
       4: web3.toWei(50)
     }
-    let chain
-    let dummyRoot
-    let sigs
     let logDecoder
-    let childBlockInterval
 
     before(async function() {
       // log decoder
       logDecoder = new LogDecoder([
-        StakeManager._json.abi,
+        StakeManagerMock._json.abi,
         RootToken._json.abi,
         RootChain._json.abi,
         DepositManagerMock._json.abi,
@@ -156,9 +146,9 @@ contract('RootChain', async function(accounts) {
       wallets = generateFirstWallets(mnemonics, Object.keys(stakes).length)
 
       stakeToken = await RootToken.new('Stake Token', 'STAKE')
-      stakeManager = await StakeManager.new(stakeToken.address)
+      stakeManager = await StakeManagerMock.new(stakeToken.address)
       rootChain = await RootChain.new(stakeManager.address)
-      childBlockInterval = await rootChain.CHILD_BLOCK_INTERVAL()
+
       await stakeManager.changeRootChain(rootChain.address)
 
       for (var i = 1; i < wallets.length; i++) {
@@ -175,30 +165,18 @@ contract('RootChain', async function(accounts) {
         // stake
         await stakeManager.stake(amount, data, { from: user })
       }
-
-      // increase threshold to 2
-      // await stakeManager.updateValidatorThreshold(2)
-      chain = await rootChain.chain()
-      dummyRoot = utils.bufferToHex(utils.sha3('dummy'))
     })
 
     it('should create sigs properly', async function() {
       // // dummy vote data
-      // const voteData =
-      //   '0xf84491746573742d636861696e2d45356967494184766f7465088002946e54fd86ef297d5c92cdd247aefffac9b183fc2c94c01b464b5ff7e32abedb204ee224ad9f7ea58528'
-      // sigs = utils.bufferToHex(encodeSigs(getSigs(wallets, voteData)))
-      // const signers = await stakeManager.checkSignatures(
-      //   web3.sha3(voteData),
-      //   sigs
-      // )
-      // total sigs = wallet.length - proposer - owner
-      // signers.toNumber().should.be.bignumber.equal(wallets.length - 2)
-      // current header block
-      // const currentHeaderBlock = await rootChain.currentHeaderBlock()
-      // currentHeaderBlock.should.be.bignumber.equal(childBlockInterval)
-      // // check current child block
-      // const currentChildBlock = await rootChain.currentChildBlock()
-      // currentChildBlock.should.be.bignumber.equal(0)
+      const voteData = 'dummy'
+      const sigs = utils.bufferToHex(
+        encodeSigs(getSigs(wallets, utils.sha3(voteData)))
+      )
+
+      await stakeManager
+        .checkSignatures(utils.bufferToHex(utils.sha3(voteData)), sigs)
+        .should.eventually.equal(true)
     })
 
     // it('should allow proposer to submit block', async function() {

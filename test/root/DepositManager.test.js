@@ -4,7 +4,6 @@ import chaiBigNumber from 'chai-bignumber'
 
 import {
   DepositManagerMock,
-  StakeManager,
   RootChain,
   RootToken,
   MaticWETH
@@ -25,7 +24,6 @@ contract('DepositManager', async function(accounts) {
   let rootToken
   let childToken
   let amount
-  let stakeManager
   let rootChain
   let stakeToken
   let logDecoder
@@ -43,16 +41,11 @@ contract('DepositManager', async function(accounts) {
     amount = web3.toWei('10', 'ether') // 10 tokens
     rootToken = await RootToken.new('Root Token', 'ROOT')
     childToken = await RootToken.new('Child Token', 'CHILD')
-    stakeToken = await RootToken.new('Stake Token', 'STAKE')
 
-    stakeManager = await StakeManager.new(stakeToken.address)
-    rootChain = await RootChain.new(stakeManager.address)
+    rootChain = await RootChain.new(childToken.address) // dummy address for stake manager
     depositManager = await DepositManagerMock.new({ from: owner })
     await depositManager.changeRootChain(rootChain.address, { from: owner })
     await rootChain.setDepositManager(depositManager.address, { from: owner })
-
-    // const childBlockInterval = await depositManager.CHILD_BLOCK_INTERVAL()
-    // await depositManager.setCurrentHeaderBlock(+childBlockInterval)
 
     // map token
     await depositManager.mapToken(rootToken.address, childToken.address)
