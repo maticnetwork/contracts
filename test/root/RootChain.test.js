@@ -157,8 +157,7 @@ contract('RootChain', async function(accounts) {
 
         // get tokens
         await stakeToken.mint(user, amount)
-        const pubKey = wallets[i].getPublicKeyString()
-        const data = ZeroAddress + user.slice(2) + pubKey.slice(2)
+        const data = ZeroAddress + user.slice(2)
 
         // approve transfer
         await stakeToken.approve(stakeManager.address, amount, { from: user })
