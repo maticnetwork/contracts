@@ -5,9 +5,12 @@ import utils from 'ethereumjs-util'
 
 import {
   WithdrawManagerMock,
+  DepositManagerMock,
   RootToken,
   ChildChain,
   ChildToken,
+  StakeManager,
+  RootChainMock,
   ExitNFT
 } from '../helpers/contracts'
 import { getHeaders, getBlockHeader } from '../helpers/blocks'
@@ -41,7 +44,7 @@ ChildToken.web3 = web3Child
 contract('WithdrawManager', async function(accounts) {
   describe('withdraw', async function() {
     let amount
-    let withdrawManagerLogDecoder
+    let logDecoder
 
     before(async function() {
       // link libs
@@ -51,10 +54,13 @@ contract('WithdrawManager', async function(accounts) {
       amount = web3.toWei(1)
 
       // log decoder
-      withdrawManagerLogDecoder = new LogDecoder([
-        ExitNFT._json.abi,
+      logDecoder = new LogDecoder([
+        StakeManager._json.abi,
+        RootToken._json.abi,
+        RootChainMock._json.abi,
+        DepositManagerMock._json.abi,
         WithdrawManagerMock._json.abi,
-        RootToken._json.abi
+        ExitNFT._json.abi
       ])
     })
 
@@ -64,6 +70,9 @@ contract('WithdrawManager', async function(accounts) {
       let childChain
       let childToken
       let exitNFTContract
+      let rootChain
+      let owner = accounts[0]
+      let depositManager
 
       let exitId
       let childBlockInterval
@@ -77,23 +86,45 @@ contract('WithdrawManager', async function(accounts) {
         rootToken = await RootToken.new('Root Token', 'ROOT')
         exitNFTContract = await ExitNFT.new('Matic Exit NFT', 'MATIC-NFT')
 
+        rootChain = await RootChainMock.new(rootToken.address) // dummy address for stakemanager
+        depositManager = await DepositManagerMock.new({ from: owner })
+        withdrawManager = await WithdrawManagerMock.new({ from: owner })
+
+        await depositManager.changeRootChain(rootChain.address, { from: owner })
+        await withdrawManager.changeRootChain(rootChain.address, {
+          from: owner
+        })
+
+        await rootChain.setDepositManager(depositManager.address, {
+          from: owner
+        })
+        await rootChain.setWithdrawManager(withdrawManager.address, {
+          from: owner
+        })
         // child chain
         childChain = await ChildChain.new()
         const receipt = await childChain.addToken(rootToken.address, 18)
         childToken = ChildToken.at(receipt.logs[0].args.token)
 
-        // map token
-        await withdrawManager.mapToken(rootToken.address, childToken.address)
         // set exit NFT
         await withdrawManager.setExitNFTContract(exitNFTContract.address)
+        await withdrawManager.setDepositManager(depositManager.address)
         // set withdraw manager as root chain for exit NFT
-        await exitNFTContract.changeRootChain(withdrawManager.address)
+
+        await exitNFTContract.changeRootChain(withdrawManager.address, {
+          from: owner
+        })
+
+        // map token
+        await rootChain.mapToken(rootToken.address, childToken.address, {
+          from: owner
+        })
       })
 
       it('should allow user to deposit tokens', async function() {
         // transfer tokens
         await rootToken.mint(accounts[9], amount)
-        await rootToken.transfer(withdrawManager.address, amount, {
+        await rootToken.transfer(rootChain.address, amount, {
           from: accounts[9]
         })
 
@@ -136,7 +167,7 @@ contract('WithdrawManager', async function(accounts) {
         const headerNumber = +childBlockInterval
 
         // set header block (mocking header block)
-        await withdrawManager.setHeaderBlock(
+        await rootChain.setHeaderBlock(
           headerNumber,
           headerRoot,
           start,
@@ -169,7 +200,6 @@ contract('WithdrawManager', async function(accounts) {
           verifyReceiptProof(receiptProof),
           'Receipt proof must be valid'
         )
-
         // withdraw
         const burnWithdrawReceipt = await withdrawManager.withdrawBurntTokens(
           headerNumber, // header block
@@ -190,11 +220,8 @@ contract('WithdrawManager', async function(accounts) {
             from: user
           }
         )
-
         // total logs
-        const burnLogs = withdrawManagerLogDecoder.decodeLogs(
-          burnWithdrawReceipt.receipt.logs
-        )
+        const burnLogs = logDecoder.decodeLogs(burnWithdrawReceipt.receipt.logs)
         burnLogs.should.have.lengthOf(2)
 
         burnLogs[0].event.should.equal('Transfer')
@@ -263,9 +290,9 @@ contract('WithdrawManager', async function(accounts) {
       it('should burn exit NFT after challenge period', async function() {
         // wait 2 weeks
         await increaseBlockTime(14 * 86400)
-
         const receipt = await withdrawManager.processExits(rootToken.address)
-        const logs = withdrawManagerLogDecoder.decodeLogs(receipt.receipt.logs)
+        const logs = logDecoder.decodeLogs(receipt.receipt.logs)
+
         logs.should.have.lengthOf(3)
 
         logs[0].event.should.equal('Transfer')
@@ -274,7 +301,7 @@ contract('WithdrawManager', async function(accounts) {
         logs[0].args._tokenId.should.be.bignumber.equal(exitId)
 
         logs[1].event.should.equal('Transfer')
-        logs[1].args.from.toLowerCase().should.equal(withdrawManager.address)
+        logs[1].args.from.toLowerCase().should.equal(rootChain.address)
         logs[1].args.to.toLowerCase().should.equal(accounts[9])
         logs[1].args.value.should.be.bignumber.equal(amount)
 
@@ -307,6 +334,9 @@ contract('WithdrawManager', async function(accounts) {
       let rootToken
       let childChain
       let childToken
+      let rootChain
+      let owner = accounts[0]
+      let depositManager
       let exitNFTContract
 
       let receivedTx
@@ -320,23 +350,45 @@ contract('WithdrawManager', async function(accounts) {
         rootToken = await RootToken.new('Root Token', 'ROOT')
         exitNFTContract = await ExitNFT.new('Matic Exit NFT', 'MATIC-NFT')
 
+        rootChain = await RootChainMock.new(rootToken.address) // dummy address for stakemanager
+        depositManager = await DepositManagerMock.new({ from: owner })
+        withdrawManager = await WithdrawManagerMock.new({ from: owner })
+
+        await depositManager.changeRootChain(rootChain.address, { from: owner })
+        await withdrawManager.changeRootChain(rootChain.address, {
+          from: owner
+        })
+
+        await rootChain.setDepositManager(depositManager.address, {
+          from: owner
+        })
+        await rootChain.setWithdrawManager(withdrawManager.address, {
+          from: owner
+        })
         // child chain
         childChain = await ChildChain.new()
         const receipt = await childChain.addToken(rootToken.address, 18)
         childToken = ChildToken.at(receipt.logs[0].args.token)
 
-        // map token
-        await withdrawManager.mapToken(rootToken.address, childToken.address)
         // set exit NFT
         await withdrawManager.setExitNFTContract(exitNFTContract.address)
+        await withdrawManager.setDepositManager(depositManager.address)
         // set withdraw manager as root chain for exit NFT
-        await exitNFTContract.changeRootChain(withdrawManager.address)
+
+        await exitNFTContract.changeRootChain(withdrawManager.address, {
+          from: owner
+        })
+
+        // map token
+        await rootChain.mapToken(rootToken.address, childToken.address, {
+          from: owner
+        })
       })
 
       it('should allow user to deposit tokens', async function() {
         // transfer tokens
         await rootToken.mint(accounts[1], amount)
-        await rootToken.transfer(withdrawManager.address, amount, {
+        await rootToken.transfer(rootChain.address, amount, {
           from: accounts[1]
         })
 
@@ -389,7 +441,7 @@ contract('WithdrawManager', async function(accounts) {
         const headerNumber = 0
 
         // set header block (mocking header block)
-        await withdrawManager.setHeaderBlock(
+        await rootChain.setHeaderBlock(
           headerNumber,
           headerRoot,
           start,
@@ -445,9 +497,7 @@ contract('WithdrawManager', async function(accounts) {
         )
 
         // total logs
-        const exitLogs = withdrawManagerLogDecoder.decodeLogs(
-          exitReceipt.receipt.logs
-        )
+        const exitLogs = logDecoder.decodeLogs(exitReceipt.receipt.logs)
         exitLogs.should.have.lengthOf(2)
 
         exitLogs[0].event.should.equal('Transfer')
@@ -520,7 +570,8 @@ contract('WithdrawManager', async function(accounts) {
         await increaseBlockTime(14 * 86400)
 
         const receipt = await withdrawManager.processExits(rootToken.address)
-        const logs = withdrawManagerLogDecoder.decodeLogs(receipt.receipt.logs)
+        const logs = logDecoder.decodeLogs(receipt.receipt.logs)
+
         logs.should.have.lengthOf(3)
 
         logs[0].event.should.equal('Transfer')
@@ -529,7 +580,7 @@ contract('WithdrawManager', async function(accounts) {
         logs[0].args._tokenId.should.be.bignumber.equal(exitId)
 
         logs[1].event.should.equal('Transfer')
-        logs[1].args.from.toLowerCase().should.equal(withdrawManager.address)
+        logs[1].args.from.toLowerCase().should.equal(rootChain.address)
         logs[1].args.to.toLowerCase().should.equal(accounts[1])
         logs[1].args.value.should.be.bignumber.equal(amount)
 

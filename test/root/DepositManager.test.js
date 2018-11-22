@@ -2,9 +2,15 @@ import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import chaiBigNumber from 'chai-bignumber'
 
-import { DepositManagerMock, RootToken, MaticWETH } from '../helpers/contracts'
+import {
+  DepositManagerMock,
+  RootChain,
+  RootToken,
+  MaticWETH
+} from '../helpers/contracts'
 import { linkLibs } from '../helpers/utils'
 import EVMRevert from '../helpers/evm-revert'
+import LogDecoder from '../helpers/log-decoder'
 
 // add chai pluggin
 chai
@@ -18,19 +24,28 @@ contract('DepositManager', async function(accounts) {
   let rootToken
   let childToken
   let amount
+  let rootChain
+  let stakeToken
+  let logDecoder
 
   beforeEach(async function() {
     await linkLibs()
 
+    logDecoder = new LogDecoder([
+      RootChain._json.abi,
+      RootToken._json.abi,
+      DepositManagerMock._json.abi
+    ])
+
     owner = accounts[0]
-    amount = web3.toWei(10) // 10 tokens
-    depositManager = await DepositManagerMock.new({ from: owner })
-
-    const childBlockInterval = await depositManager.CHILD_BLOCK_INTERVAL()
-    await depositManager.setCurrentHeaderBlock(+childBlockInterval)
-
+    amount = web3.toWei('10', 'ether') // 10 tokens
     rootToken = await RootToken.new('Root Token', 'ROOT')
     childToken = await RootToken.new('Child Token', 'CHILD')
+
+    rootChain = await RootChain.new(childToken.address) // dummy address for stake manager
+    depositManager = await DepositManagerMock.new({ from: owner })
+    await depositManager.changeRootChain(rootChain.address, { from: owner })
+    await rootChain.setDepositManager(depositManager.address, { from: owner })
 
     // map token
     await depositManager.mapToken(rootToken.address, childToken.address)
@@ -42,27 +57,25 @@ contract('DepositManager', async function(accounts) {
 
       // mint root token
       await rootToken.mint(user, amount)
-      await rootToken.approve(depositManager.address, amount, {
+      await rootToken.approve(rootChain.address, amount, {
         from: user
       })
 
       // deposit tokens
-      const receipt = await depositManager.deposit(
-        rootToken.address,
-        user,
-        amount,
-        {
-          from: user
-        }
-      )
+      const receipt = await rootChain.deposit(rootToken.address, user, amount, {
+        from: user
+      })
+      let logs = logDecoder.decodeLogs(receipt.receipt.logs)
 
-      receipt.logs.should.have.lengthOf(1)
-      receipt.logs[0].event.should.equal('Deposit')
-      receipt.logs[0].args._user.should.equal(user)
-      receipt.logs[0].args._token.should.equal(rootToken.address)
-      receipt.logs[0].args._amount.should.be.bignumber.equal(amount)
+      logs.should.have.lengthOf(2)
+      logs[1].event.should.equal('Deposit')
+      logs[1].args._user.toLowerCase().should.equal(user.toLowerCase())
+      logs[1].args._token
+        .toLowerCase()
+        .should.equal(rootToken.address.toLowerCase())
+      logs[1].args._amount.should.be.bignumber.equal(amount)
 
-      const contractBalance = await rootToken.balanceOf(depositManager.address)
+      const contractBalance = await rootToken.balanceOf(rootChain.address)
       contractBalance.should.be.bignumber.equal(amount)
     })
 
@@ -70,21 +83,21 @@ contract('DepositManager', async function(accounts) {
       const user = accounts[1]
 
       // mint root token
-      await rootToken.approve(depositManager.address, amount)
+      await rootToken.approve(rootChain.address, amount)
       // deposit tokens
-      const receipt = await depositManager.deposit(
-        rootToken.address,
-        user,
-        amount
-      )
+      const receipt = await rootChain.deposit(rootToken.address, user, amount)
 
-      receipt.logs.should.have.lengthOf(1)
-      receipt.logs[0].event.should.equal('Deposit')
-      receipt.logs[0].args._user.should.equal(user)
-      receipt.logs[0].args._token.should.equal(rootToken.address)
-      receipt.logs[0].args._amount.should.be.bignumber.equal(amount)
+      let logs = logDecoder.decodeLogs(receipt.receipt.logs)
 
-      const contractBalance = await rootToken.balanceOf(depositManager.address)
+      logs.should.have.lengthOf(2)
+      logs[1].event.should.equal('Deposit')
+      logs[1].args._user.toLowerCase().should.equal(user.toLowerCase())
+      logs[1].args._token
+        .toLowerCase()
+        .should.equal(rootToken.address.toLowerCase())
+      logs[1].args._amount.should.be.bignumber.equal(amount)
+
+      const contractBalance = await rootToken.balanceOf(rootChain.address)
       contractBalance.should.be.bignumber.equal(amount)
     })
 
@@ -95,12 +108,12 @@ contract('DepositManager', async function(accounts) {
       await rootToken.mint(user, amount)
 
       // transfer token to deposit manager
-      await rootToken.transfer(depositManager.address, amount, {
+      await rootToken.transfer(rootChain.address, amount, {
         from: user
       })
 
       // check deposit manager balance
-      const contractBalance = await rootToken.balanceOf(depositManager.address)
+      const contractBalance = await rootToken.balanceOf(rootChain.address)
       contractBalance.should.be.bignumber.equal(amount)
     })
 
@@ -108,28 +121,28 @@ contract('DepositManager', async function(accounts) {
       const newToken = await RootToken.new('New root Token', 'ROOT2')
 
       // mint root token
-      await newToken.approve(depositManager.address, amount)
-      await depositManager
+      await newToken.approve(rootChain.address, amount)
+      await rootChain
         .deposit(newToken.address, owner, amount)
         .should.be.rejectedWith(EVMRevert)
     })
 
     it('should not allow to deposit if token is not approved', async function() {
-      await depositManager
+      await rootChain
         .deposit(rootToken.address, owner, amount)
         .should.be.rejectedWith(EVMRevert)
     })
 
     it('should not allow to deposit if amount is zero', async function() {
-      await rootToken.approve(depositManager.address, amount)
-      await depositManager
+      await rootToken.approve(rootChain.address, amount)
+      await rootChain
         .deposit(rootToken.address, owner, 0)
         .should.be.rejectedWith(EVMRevert)
     })
 
     it('should not allow to deposit if amount is more than approved', async function() {
-      await rootToken.approve(depositManager.address, amount)
-      await depositManager
+      await rootToken.approve(rootChain.address, amount)
+      await rootChain
         .deposit(rootToken.address, owner, web3.toWei(11))
         .should.be.rejectedWith(EVMRevert)
     })
@@ -141,7 +154,7 @@ contract('DepositManager', async function(accounts) {
 
     beforeEach(async function() {
       wethToken = await MaticWETH.new()
-      ethAmount = web3.toWei('0.01')
+      ethAmount = web3.toWei('0.01', 'ether')
       // set weth token and map weth token
       await depositManager.setWETHToken(wethToken.address)
       await depositManager.mapToken(wethToken.address, wethToken.address)
@@ -149,27 +162,21 @@ contract('DepositManager', async function(accounts) {
 
     it('should allow anyone to deposit ethers', async function() {
       // deposit tokens
-      const receipt = await depositManager.depositEthers(owner, {
+      await rootChain.depositEthers({
         value: ethAmount
       })
-
-      receipt.logs.should.have.lengthOf(1)
-      receipt.logs[0].event.should.equal('Deposit')
-      receipt.logs[0].args._user.should.equal(owner)
-      receipt.logs[0].args._token.should.equal(wethToken.address)
-      receipt.logs[0].args._amount.should.be.bignumber.equal(ethAmount)
 
       const wethBalance = await web3.eth.getBalance(wethToken.address)
       wethBalance.should.be.bignumber.equal(ethAmount)
 
-      const contractBalance = await wethToken.balanceOf(depositManager.address)
+      const contractBalance = await wethToken.balanceOf(rootChain.address)
       contractBalance.should.be.bignumber.equal(ethAmount)
     })
 
     it('should allow to deposit ethers by sending ethers to contract', async function() {
       await web3.eth.sendTransaction({
         from: owner,
-        to: depositManager.address,
+        to: rootChain.address,
         value: ethAmount,
         gas: 200000
       })
@@ -177,13 +184,13 @@ contract('DepositManager', async function(accounts) {
       const wethBalance = await web3.eth.getBalance(wethToken.address)
       wethBalance.should.be.bignumber.equal(ethAmount)
 
-      const contractBalance = await wethToken.balanceOf(depositManager.address)
+      const contractBalance = await wethToken.balanceOf(rootChain.address)
       contractBalance.should.be.bignumber.equal(ethAmount)
     })
 
     it('should not allow to deposit if eth amount is zero', async function() {
-      await depositManager
-        .depositEthers(owner, { value: 0 })
+      await rootChain
+        .depositEthers({ value: 0 })
         .should.be.rejectedWith(EVMRevert)
     })
   })

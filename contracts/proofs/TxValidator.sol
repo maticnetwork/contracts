@@ -4,7 +4,7 @@ import { RLP } from "../lib/RLP.sol";
 import { Merkle } from "../lib/Merkle.sol";
 import { RootChainValidator } from "../mixin/RootChainValidator.sol";
 
-import { RootChain } from "../root/RootChain.sol";
+import { IRootChain } from "../root/IRootChain.sol";
 
 
 contract TxValidator is RootChainValidator {
@@ -49,7 +49,7 @@ contract TxValidator is RootChainValidator {
       )
     ) {
       // slash if tx is not valid
-      RootChain(rootChain).slash();
+      IRootChain(rootChain).slash();
       return;
     }
 

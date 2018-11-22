@@ -5,11 +5,12 @@ import { MerklePatriciaProof } from "../lib/MerklePatriciaProof.sol";
 import { RLP } from "../lib/RLP.sol";
 import { Common } from "../lib/Common.sol";
 import { RLPEncode } from "../lib/RLPEncode.sol";
-import { RootChain } from "../root/RootChain.sol";
+import { IRootChain } from "../root/IRootChain.sol";
+import { WithdrawManager } from "../root/WithdrawManager.sol";
+import { DepositManager } from "../root/DepositManager.sol";
 
 import { Lockable } from "./Lockable.sol";
 import { RootChainable } from "./RootChainable.sol";
-
 
 /**
  * @title RootChainValidator
@@ -19,6 +20,31 @@ contract RootChainValidator is RootChainable, Lockable {
   using RLP for bytes;
   using RLP for RLP.RLPItem;
   using RLP for RLP.Iterator;
+
+  // managers
+  DepositManager public depositManager;
+  WithdrawManager public withdrawManager;
+
+  // child chain contract
+  address public childChainContract;
+
+  // set deposit manager
+  function setDepositManager(address _depositManager) public onlyOwner {
+    require(_depositManager != address(0));
+    depositManager = DepositManager(_depositManager);
+  }
+
+  // set withdraw manager
+  function setWithdrawManager(address _withdrawManager) public onlyOwner {
+    require(_withdrawManager != address(0));
+    withdrawManager = WithdrawManager(_withdrawManager);
+  }
+
+  // set child chain contract
+  function setChildChainContract(address _childChainContract) public onlyOwner {
+    require(_childChainContract != address(0));
+    childChainContract = _childChainContract;
+  }
 
   // validate transaction
   function validateTxExistence(
@@ -38,7 +64,7 @@ contract RootChainValidator is RootChainable, Lockable {
     // fetch header block
     bytes32 headerRoot;
     uint256 start;
-    (headerRoot, start,,) = RootChain(rootChain).headerBlock(headerNumber);
+    (headerRoot, start,,) = IRootChain(rootChain).headerBlock(headerNumber);
 
     // check if tx's block is included in header and tx is in block
     return keccak256(blockNumber, blockTime, txRoot, receiptRoot)
@@ -175,14 +201,14 @@ contract RootChainValidator is RootChainable, Lockable {
       rawTx[i] = txList[i].toData();
     }
     rawTx[4] = hex"";
-    rawTx[6] = RootChain(rootChain).networkId();
+    rawTx[6] = IRootChain(rootChain).networkId();
     rawTx[7] = hex"";
     rawTx[8] = hex"";
 
     // recover tx sender
     return ecrecover(
       keccak256(RLPEncode.encodeList(rawTx)),
-      Common.getV(txList[6].toData(), Common.toUint8(RootChain(rootChain).networkId())),
+      Common.getV(txList[6].toData(), Common.toUint8(rawTx[6])),
       txList[7].toBytes32(),
       txList[8].toBytes32()
     );
