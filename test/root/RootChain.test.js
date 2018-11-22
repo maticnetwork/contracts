@@ -157,17 +157,18 @@ contract('RootChain', async function(accounts) {
 
         // get tokens
         await stakeToken.mint(user, amount)
-        const data = ZeroAddress + user.slice(2)
 
         // approve transfer
         await stakeToken.approve(stakeManager.address, amount, { from: user })
         // stake
-        await stakeManager.stake(amount, data, { from: user })
+        await stakeManager.stake(ZeroAddress, user, amount, {
+          from: user
+        })
       }
     })
 
     it('should create sigs properly', async function() {
-      // // dummy vote data
+      // dummy vote data
       const voteData = 'dummy'
       const sigs = utils.bufferToHex(
         encodeSigs(getSigs(wallets, utils.sha3(voteData), [wallets[2]]))

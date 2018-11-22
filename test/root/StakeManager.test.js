@@ -93,7 +93,7 @@ contract('StakeManager', async function(accounts) {
         ZeroAddress,
         user,
         amount,
-        '0x0',
+
         {
           from: user
         }
@@ -123,15 +123,9 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      const stakeReceipt = await stakeManager.stake(
-        ZeroAddress,
-        user,
-        amount,
-        '0x0',
-        {
-          from: user
-        }
-      )
+      const stakeReceipt = await stakeManager.stake(ZeroAddress, user, amount, {
+        from: user
+      })
 
       // decode logs
       const logs = logDecoder.decodeLogs(stakeReceipt.receipt.logs)
@@ -161,7 +155,7 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      await stakeManager.stake(ZeroAddress, user, amount, '0x0', { from: user })
+      await stakeManager.stake(ZeroAddress, user, amount, { from: user })
 
       // staked for
       const stakedFor = await stakeManager.totalStakedFor(user)
@@ -179,7 +173,7 @@ contract('StakeManager', async function(accounts) {
 
       // stake now
       try {
-        await stakeManager.stake(ZeroAddress, user, amount, '0x0', {
+        await stakeManager.stake(ZeroAddress, user, amount, {
           from: user
         })
       } catch (error) {
@@ -203,7 +197,7 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      await stakeManager.stake(ZeroAddress, user, amount, '0x0', { from: user })
+      await stakeManager.stake(ZeroAddress, user, amount, { from: user })
 
       // staked for
       let stakedFor = await stakeManager.totalStakedFor(user)
@@ -218,7 +212,7 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      await stakeManager.stake(ZeroAddress, user, amount, '0x0', { from: user })
+      await stakeManager.stake(ZeroAddress, user, amount, { from: user })
 
       // staked for
       stakedFor = await stakeManager.totalStakedFor(user)
@@ -265,7 +259,7 @@ contract('StakeManager', async function(accounts) {
 
       // stake now
       try {
-        await stakeManager.stake(ZeroAddress, user, amount, '0x0', {
+        await stakeManager.stake(ZeroAddress, user, amount, {
           from: user
         })
       } catch (error) {
@@ -291,7 +285,7 @@ contract('StakeManager', async function(accounts) {
 
       // stake now
       try {
-        await stakeManager.stake(ZeroAddress, user, amount, '0x0', {
+        await stakeManager.stake(ZeroAddress, user, amount, {
           from: user
         })
       } catch (error) {
@@ -314,15 +308,9 @@ contract('StakeManager', async function(accounts) {
         from: user
       })
 
-      await stakeManager.stake(
-        wallets[1].getAddressString(),
-        user,
-        amount,
-        '0x0',
-        {
-          from: user
-        }
-      )
+      await stakeManager.stake(wallets[1].getAddressString(), user, amount, {
+        from: user
+      })
       user = wallets[7].getAddressString()
       amount = web3.toWei(450)
 
@@ -332,15 +320,9 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      await stakeManager.stake(
-        wallets[2].getAddressString(),
-        user,
-        amount,
-        '0x0',
-        {
-          from: user
-        }
-      )
+      await stakeManager.stake(wallets[2].getAddressString(), user, amount, {
+        from: user
+      })
       user = wallets[8].getAddressString()
       amount = web3.toWei(600)
 
@@ -350,15 +332,9 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      await stakeManager.stake(
-        wallets[3].getAddressString(),
-        user,
-        amount,
-        '0x0',
-        {
-          from: user
-        }
-      )
+      await stakeManager.stake(wallets[3].getAddressString(), user, amount, {
+        from: user
+      })
 
       user = wallets[9].getAddressString()
       amount = web3.toWei(760)
@@ -369,15 +345,9 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      await stakeManager.stake(
-        wallets[4].getAddressString(),
-        user,
-        amount,
-        '0x0',
-        {
-          from: user
-        }
-      )
+      await stakeManager.stake(wallets[4].getAddressString(), user, amount, {
+        from: user
+      })
 
       user = wallets[0].getAddressString()
       amount = web3.toWei(800)
@@ -388,15 +358,9 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      await stakeManager.stake(
-        wallets[5].getAddressString(),
-        user,
-        amount,
-        '0x0',
-        {
-          from: user
-        }
-      )
+      await stakeManager.stake(wallets[5].getAddressString(), user, amount, {
+        from: user
+      })
       let size = await stakeManager.currentValidatorSetSize()
       size.should.be.bignumber.equal(5)
     })
