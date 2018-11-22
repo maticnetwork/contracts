@@ -3,12 +3,12 @@ pragma solidity ^0.4.24;
 
 // ERC900
 interface StakeManagerInterface {
-  event Staked(address indexed user, uint256 amount, uint256 total, bytes data);
-  event Unstaked(address indexed user, uint256 amount, uint256 total, bytes data);
+  event Staked(address indexed user, address indexed signer, uint256 indexed activatonEpoch, uint256 amount, uint256 total);
+  event Unstaked(address indexed user, uint256 amount, uint256 total);
 
-  function stake(uint256 amount, bytes data) public;
-  function stakeFor(address user, uint256 amount, bytes data) public;
-  function unstake(uint256 amount, bytes data) public;
+  function stake(address unstakeValidator, address signer, uint256 amount) public;
+  function stakeFor(address user, address unstakeValidator, address signer, uint256 amount) public;
+  function unstake() public;
   function totalStakedFor(address addr) public view returns (uint256);
   // function totalStaked() public view returns (uint256);
   // function token() public view returns (address);

@@ -89,10 +89,15 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      const data = ZeroAddress + user.slice(2)
-      const stakeReceipt = await stakeManager.stake(amount, data, {
-        from: user
-      })
+      const stakeReceipt = await stakeManager.stake(
+        ZeroAddress,
+        user,
+        amount,
+
+        {
+          from: user
+        }
+      )
 
       // decode logs
       const logs = logDecoder.decodeLogs(stakeReceipt.receipt.logs)
@@ -118,8 +123,7 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      const data = ZeroAddress + user.slice(2)
-      const stakeReceipt = await stakeManager.stake(amount, data, {
+      const stakeReceipt = await stakeManager.stake(ZeroAddress, user, amount, {
         from: user
       })
 
@@ -151,8 +155,7 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      const data = ZeroAddress + user.slice(2)
-      await stakeManager.stake(amount, data, { from: user })
+      await stakeManager.stake(ZeroAddress, user, amount, { from: user })
 
       // staked for
       const stakedFor = await stakeManager.totalStakedFor(user)
@@ -170,8 +173,9 @@ contract('StakeManager', async function(accounts) {
 
       // stake now
       try {
-        const data = ZeroAddress + user.slice(2)
-        await stakeManager.stake(amount, data, { from: user })
+        await stakeManager.stake(ZeroAddress, user, amount, {
+          from: user
+        })
       } catch (error) {
         const invalidOpcode = error.message.search('revert') >= 0
         assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
@@ -193,8 +197,7 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      let data = ZeroAddress + user.slice(2)
-      await stakeManager.stake(amount, data, { from: user })
+      await stakeManager.stake(ZeroAddress, user, amount, { from: user })
 
       // staked for
       let stakedFor = await stakeManager.totalStakedFor(user)
@@ -209,8 +212,7 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      data = ZeroAddress + user.slice(2)
-      await stakeManager.stake(amount, data, { from: user })
+      await stakeManager.stake(ZeroAddress, user, amount, { from: user })
 
       // staked for
       stakedFor = await stakeManager.totalStakedFor(user)
@@ -257,8 +259,9 @@ contract('StakeManager', async function(accounts) {
 
       // stake now
       try {
-        const data = ZeroAddress + user.slice(2)
-        await stakeManager.stake(amount, data, { from: user })
+        await stakeManager.stake(ZeroAddress, user, amount, {
+          from: user
+        })
       } catch (error) {
         const invalidOpcode = error.message.search('revert') >= 0
         assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
@@ -282,8 +285,7 @@ contract('StakeManager', async function(accounts) {
 
       // stake now
       try {
-        const data = ZeroAddress + user.slice(2)
-        await stakeManager.stake(amount, data, {
+        await stakeManager.stake(ZeroAddress, user, amount, {
           from: user
         })
       } catch (error) {
@@ -306,8 +308,7 @@ contract('StakeManager', async function(accounts) {
         from: user
       })
 
-      let data = wallets[1].getAddressString() + user.slice(2)
-      await stakeManager.stake(amount, data, {
+      await stakeManager.stake(wallets[1].getAddressString(), user, amount, {
         from: user
       })
       user = wallets[7].getAddressString()
@@ -319,8 +320,7 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      data = wallets[2].getAddressString() + user.slice(2)
-      await stakeManager.stake(amount, data, {
+      await stakeManager.stake(wallets[2].getAddressString(), user, amount, {
         from: user
       })
       user = wallets[8].getAddressString()
@@ -332,8 +332,7 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      data = wallets[3].getAddressString() + user.slice(2)
-      await stakeManager.stake(amount, data, {
+      await stakeManager.stake(wallets[3].getAddressString(), user, amount, {
         from: user
       })
 
@@ -346,8 +345,7 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      data = wallets[4].getAddressString() + user.slice(2)
-      await stakeManager.stake(amount, data, {
+      await stakeManager.stake(wallets[4].getAddressString(), user, amount, {
         from: user
       })
 
@@ -360,33 +358,12 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      data = wallets[5].getAddressString() + user.slice(2)
-      await stakeManager.stake(amount, data, {
+      await stakeManager.stake(wallets[5].getAddressString(), user, amount, {
         from: user
       })
       let size = await stakeManager.currentValidatorSetSize()
       size.should.be.bignumber.equal(5)
     })
-
-    // it('should unstake and select descendent', async function() {
-    //   const user = wallets[2].getAddressString()
-    //   const amount = web3.toWei(250)
-    //   // stake now
-    //   const events = await stakeManager.unstake(amount, '0x0', { from: user })
-    //   const logs = logDecoder.decodeLogs(events.receipt.logs)
-    //   logs[0].event.should.equal('StakeInit') // StakeInit
-    //   logs[0].args.user
-    //     .toLowerCase()
-    //     .should.equal(wallets[0].getAddressString())
-    //   logs[0].args.amount.should.be.bignumber.equal(web3.toWei(800))
-    //   logs[1].event.should.equal('UnstakeInit') // StakeInit
-    //   logs[1].args.user.toLowerCase().should.equal(user)
-    //   logs[1].args.amount.should.be.bignumber.equal(amount)
-    //   // expect(validators).to.not.include.members([user])
-    //   const userDetails = await stakeManager.getDetails(user)
-    //   // should be unstaking
-    //   // userDetails[2].should.be.bignumber.equal(2)
-    // })
 
     it('should unstake all validators and wait for d*2 and varify new validators', async function() {
       let users = [
