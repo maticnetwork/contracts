@@ -126,10 +126,10 @@ contract('RootChain', async function(accounts) {
     let rootChain
     let wallets
     let stakes = {
-      1: web3.toWei(1),
-      2: web3.toWei(10),
-      3: web3.toWei(20),
-      4: web3.toWei(50)
+      1: web3.toWei(101),
+      2: web3.toWei(100),
+      3: web3.toWei(100),
+      4: web3.toWei(100)
     }
     let logDecoder
 
@@ -171,38 +171,14 @@ contract('RootChain', async function(accounts) {
       // // dummy vote data
       const voteData = 'dummy'
       const sigs = utils.bufferToHex(
-        encodeSigs(getSigs(wallets, utils.sha3(voteData)))
+        encodeSigs(getSigs(wallets, utils.sha3(voteData), [wallets[2]]))
       )
 
-      await stakeManager
-        .checkSignatures(utils.bufferToHex(utils.sha3(voteData)), sigs)
-        .should.eventually.equal(true)
+      const result = await stakeManager.checkSignatures(
+        utils.bufferToHex(utils.sha3(voteData)),
+        sigs
+      )
+      assert.isOk(result, '2/3 majority vote should be true')
     })
-
-    // it('should allow proposer to submit block', async function() {
-    //   const proposer = await stakeManager.getProposer()
-
-    //   // submit header block
-    //   const receipt = await rootChain.submitHeaderBlock(dummyRoot, 10, sigs, {
-    //     from: proposer
-    //   })
-
-    //   const logs = logDecoder.decodeLogs(receipt.receipt.logs)
-    //   logs.should.have.lengthOf(1)
-    //   logs[0].event.should.equal('NewHeaderBlock')
-    //   logs[0].args.proposer.toLowerCase().should.equal(proposer)
-    //   logs[0].args.start.should.be.bignumber.equal(0)
-    //   logs[0].args.end.should.be.bignumber.equal(10)
-    //   logs[0].args.root.should.equal(dummyRoot)
-
-    //   // current header block
-    //   const currentHeaderBlock = await rootChain.currentHeaderBlock()
-    //   currentHeaderBlock.should.be.bignumber.equal(childBlockInterval.mul(2))
-    //   // assert.equal(+currentHeaderBlock, 1)
-
-    //   // current child block
-    //   const currentChildBlock = await rootChain.currentChildBlock()
-    //   assert.equal(+currentChildBlock, 10)
-    // })
   })
 })

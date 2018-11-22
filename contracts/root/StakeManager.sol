@@ -265,7 +265,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
 
   function isValidator(address user) public view returns (bool) {
     return (
-      totalStakedFor(user) > 0 &&
+      stakers[user].amount > 0 &&
       stakers[user].activationEpoch > 0 &&
       (stakers[user].deactivationEpoch == 0 ||
       stakers[user].deactivationEpoch >= currentEpoch)
@@ -285,13 +285,13 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
       bytes memory sigElement = BytesLib.slice(sigs, i, 65);
       address signer = voteHash.ecrecovery(sigElement);
 
+      user = signerToStaker[signer];
       // check if signer is stacker and not proposer
       if (
-        isValidator(signer) &&
+        isValidator(user) &&
         signer > lastAdd
       ) {
         lastAdd = signer;
-        user = signerToStaker[signer];
         stakePower = stakePower.add(stakers[user].amount); 
       } else {
         break;
