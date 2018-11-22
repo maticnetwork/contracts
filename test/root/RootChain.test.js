@@ -157,8 +157,7 @@ contract('RootChain', async function(accounts) {
 
         // get tokens
         await stakeToken.mint(user, amount)
-        const pubKey = wallets[i].getPublicKeyString()
-        const data = ZeroAddress + user.slice(2) + pubKey.slice(2)
+        const data = ZeroAddress + user.slice(2)
 
         // approve transfer
         await stakeToken.approve(stakeManager.address, amount, { from: user })
@@ -178,7 +177,8 @@ contract('RootChain', async function(accounts) {
         utils.bufferToHex(utils.sha3(voteData)),
         sigs
       )
-      assert.isOk(result, '2/3 majority vote should be true')
+      assert.isTrue(result)
+      // assert.ok(result, '2/3 majority vote should be true')
     })
   })
 })

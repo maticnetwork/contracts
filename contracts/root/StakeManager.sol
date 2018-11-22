@@ -22,7 +22,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   using SafeMath for uint256;
   using SafeMath for uint128;
   using ECVerify for bytes32;
-   
+
 
   uint96 MAX_UINT96 = (2**96)-1; //Todo: replace with erc20 token max value
 
@@ -32,7 +32,10 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   event DynastyValueChange(uint256 newDynasty, uint256 oldDynasty);
 
   // optional event to ack unstaking
-  event UnstakeInit(address indexed user, uint256 indexed amount, bytes data); 
+  event UnstakeInit(address indexed user, uint256 indexed amount, bytes data);
+
+  // signer changed
+  event SignerChange(address indexed validator, address indexed newSigner, address indexed oldSigner);
 
   // genesis/governance variables
   uint256 public dynasty = 2**13;  // unit: epoch
@@ -44,25 +47,24 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   uint256 public maxStakeDrop = 95; // in percent 100-x, current is 5%
   uint256 public minLockInPeriod = 2; // unit: dynasty
   uint256 public totalStaked = 0;
-  uint256 public currentEpoch = 1; 
-  
+  uint256 public currentEpoch = 1;
+
   AvlTree validatorList;
-  
+
   struct Staker {
-    uint256 epoch;  
+    uint256 epoch;
     uint256 amount;
     uint256 activationEpoch;
     uint256 deactivationEpoch;
     address signer;
-    bytes pubKey;
     bytes data;
   }
 
   // signer to Staker mapping
   mapping (address => address) public signerToStaker;
 
-  mapping (address => Staker) public stakers; 
- 
+  mapping (address => Staker) public stakers;
+
   struct State {
     int256 amount;
     int256 stakerCount;
@@ -81,34 +83,32 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     require(totalStakedFor(msg.sender) > 0);
     _;
   }
-  
+
   function stake(uint256 amount, bytes data) public {
     stakeFor(msg.sender, amount, data);
   }
-  
+
   // everytime data bytes must contain first 20 bytes as adddress be it address(0) or any other address
-  // data format : validator, signer, pubkey
+  // data format : validator, signer
   function stakeFor(address user, uint256 amount, bytes data) public onlyWhenUnlocked {
     require(stakers[user].epoch == 0, "No second time staking");
-    require(data.length >= 104, "address validator, address signer, bytes pubkey");
+    require(data.length >= 40, "address validator, address signer");
     // currentValidatorSetSize*2 means everyone is commited
     require(validatorThreshold*2 > validatorList.currentSize(), "Validator set full");
-    require(amount < MAX_UINT96, "Stay realistic!!"); 
+    require(amount < MAX_UINT96, "Stay realistic!!");
 
     address validator = BytesLib.toAddress(data, 0);
     address _signer = BytesLib.toAddress(data, 20);
 
     require(_signer != address(0x0) && signerToStaker[_signer] == address(0x0));
-    
-    bytes memory _pubKey = BytesLib.slice(data, 40, 64);
-  
+
     uint256 minValue = validatorList.getMin();
-    if (minValue != 0) { 
+    if (minValue != 0) {
       minValue = minValue >> 160;
       minValue = minValue.mul(maxStakeDrop).div(100);
-    } 
+    }
     minValue = Math.max256(minValue, MIN_DEPOSIT_SIZE);
-    
+
     require(amount >= minValue, "Stake should be gt then X% of current lowest");
     require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");
     totalStaked = totalStaked.add(amount);
@@ -119,7 +119,6 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
       activationEpoch: 0,
       deactivationEpoch: 0,
       signer: _signer,
-      pubKey: _pubKey,
       data: data
     });
 
@@ -135,30 +134,30 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
       validatorState[currentEpoch].amount += int256(amount);
       validatorState[currentEpoch].stakerCount += int256(1);
     } else {
-      require(stakers[validator].epoch != 0);      
+      require(stakers[validator].epoch != 0);
       require(stakers[validator].activationEpoch != 0 && stakers[validator].deactivationEpoch == 0);
       require(stakers[user].amount > stakers[validator].amount);
-      value = stakers[validator].amount << 160 | uint160(validator); 
+      value = stakers[validator].amount << 160 | uint160(validator);
       uint256 dPlusTwo = currentEpoch.add(dynasty.mul(2));
       stakers[validator].deactivationEpoch = dPlusTwo;
-      stakers[user].activationEpoch = dPlusTwo; 
+      stakers[user].activationEpoch = dPlusTwo;
 
       validatorState[dPlusTwo].amount = (
         validatorState[dPlusTwo].amount +
         int256(amount) - int256(stakers[validator].amount)
       );
-      emit UnstakeInit(validator, stakers[validator].amount, abi.encode(dPlusTwo));    
+      emit UnstakeInit(validator, stakers[validator].amount, abi.encode(dPlusTwo));
     }
     emit Staked(user, amount, totalStaked, abi.encode(stakers[user].activationEpoch));
   }
-  
-  function unstake(uint256 amount, bytes data) public onlyStaker { 
+
+  function unstake(uint256 amount, bytes data) public onlyStaker {
     require(stakers[msg.sender].activationEpoch > 0 && stakers[msg.sender].deactivationEpoch == 0);
     require(stakers[msg.sender].amount == amount);
-    
+
     uint256 exitEpoch = currentEpoch.add(dynasty.mul(2));
     stakers[msg.sender].deactivationEpoch = exitEpoch;
-    
+
     //update future
     validatorState[exitEpoch].amount = (
       validatorState[exitEpoch].amount - int256(amount));
@@ -167,24 +166,24 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
 
     emit UnstakeInit(msg.sender, amount, abi.encode(exitEpoch));
   }
-  
-  function unstakeClaim() public onlyStaker {  
+
+  function unstakeClaim() public onlyStaker {
     // can only claim stake back after WITHDRAWAL_DELAY
     require(stakers[msg.sender].deactivationEpoch.add(WITHDRAWAL_DELAY) <= currentEpoch);
-    uint256 amount = stakers[msg.sender].amount; 
+    uint256 amount = stakers[msg.sender].amount;
     totalStaked = totalStaked.sub(amount);
-    
+
     validatorList.deleteNode(amount << 160 | uint160(msg.sender));
     // TODO :add slashing here use soft slashing in slash amt variable
-    
+
     delete signerToStaker[stakers[msg.sender].signer];
-    delete stakers[msg.sender];    
+    delete stakers[msg.sender];
 
     require(token.transfer(msg.sender, amount));
     emit Unstaked(msg.sender, amount, totalStaked, "0x0");
   }
 
-  // returns valid validator for current epoch 
+  // returns valid validator for current epoch
   function getCurrentValidatorSet() public view returns (address[]) {
     address[] memory _validators = validatorList.getTree();
     for (uint256 i = 0;i < _validators.length;i++) {
@@ -195,17 +194,17 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     return _validators;
   }
 
-  function getStakerDetails(address user) public view returns(uint256, uint256, uint256, bytes, bytes) {
+  function getStakerDetails(address user) public view returns(uint256, uint256, uint256, address, bytes) {
     return (
       stakers[user].amount,
       stakers[user].activationEpoch,
       stakers[user].deactivationEpoch,
-      stakers[user].pubKey,
+      stakers[user].signer,
       stakers[user].data
     );
   }
 
-  function totalStakedFor(address addr) public view returns (uint256) { 
+  function totalStakedFor(address addr) public view returns (uint256) {
     require(addr != address(0x0));
     return stakers[addr].amount;
   }
@@ -221,31 +220,33 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
     validatorThreshold = newThreshold;
   }
 
-  function updateDynastyValue(uint256 newDynasty) public onlyOwner { 
+  function updateDynastyValue(uint256 newDynasty) public onlyOwner {
     require(newDynasty > 0);
     emit DynastyValueChange(newDynasty, dynasty);
     dynasty = newDynasty;
   }
-  
-  function updateSigner(address _signer, bytes _pubKey) onlyStaker {
+
+  function updateSigner(address _signer) public onlyStaker {
     require(_signer != address(0x0) && signerToStaker[_signer] == address(0x0));
-    stakers[msg.sender].pubKey = _pubKey;
+
+    // update signer event
+    SignerChange(msg.sender, stakers[msg.sender].signer, _signer);
 
     delete signerToStaker[stakers[msg.sender].signer];
-    signerToStaker[_signer] = msg.sender;  
+    signerToStaker[_signer] = msg.sender;
     stakers[msg.sender].signer = _signer;
   }
-  
+
   function finalizeCommit() public onlyRootChain {
     uint256 nextEpoch = currentEpoch.add(1);
-    // update totalstake and validator count 
+    // update totalstake and validator count
     validatorState[nextEpoch].amount = (
       validatorState[currentEpoch].amount + validatorState[nextEpoch].amount
     );
     validatorState[nextEpoch].stakerCount = (
       validatorState[currentEpoch].stakerCount + validatorState[nextEpoch].stakerCount
     );
-    
+
     currentEpoch = nextEpoch;
     // erase old data/history
     delete validatorState[currentEpoch.sub(1)];
@@ -254,11 +255,11 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   function updateMinLockInPeriod(uint256 epochs) public onlyOwner {
     minLockInPeriod = epochs;
   }
-  
+
   function currentValidatorSetSize() public view returns (uint256) {
     return uint256(validatorState[currentEpoch].stakerCount);
   }
-  
+
   function currentValidatorSetTotalStake() public view returns (uint256) {
     return uint256(validatorState[currentEpoch].amount);
   }
