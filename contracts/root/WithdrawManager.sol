@@ -51,6 +51,7 @@ contract WithdrawManager is IManager, ExitManager {
   function setDepositManager(address _depositManager) public onlyOwner {
     depositManager = DepositManager(_depositManager);
   }
+  
   // set WETH token
   function setWETHToken(address _token) public onlyRootChain {
     _setWETHToken(_token);

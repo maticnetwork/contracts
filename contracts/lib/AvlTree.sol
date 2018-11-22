@@ -8,6 +8,7 @@ import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 // deleteNode leaves hole in array :D 
 // 
 
+
 contract AvlTree {
   struct Node {
     uint256 value;

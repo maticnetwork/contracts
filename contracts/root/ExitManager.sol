@@ -12,6 +12,7 @@ import { RootChainable } from "../mixin/RootChainable.sol";
 
 import { IRootChain } from "./IRootChain.sol";
 
+
 contract ExitManager is RootChainable {
   using Merkle for bytes32;
   using RLP for bytes;

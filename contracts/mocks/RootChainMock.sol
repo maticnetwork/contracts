@@ -8,14 +8,13 @@ contract RootChainMock is RootChain {
   uint256 private _currentHeaderBlock;
   uint256 private _currentChildBlock;
 
- constructor (address _stakeManager) RootChain(_stakeManager) public {
+  constructor (address _stakeManager) RootChain(_stakeManager) public {
   }
 
   // retrieve current child block
   function currentChildBlock() public view returns(uint256) {
     return _currentChildBlock;
   }
-  
   
   function setCurrentHeaderBlock(uint256 _c) public {
     _currentHeaderBlock = _c;
