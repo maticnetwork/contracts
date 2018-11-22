@@ -1,29 +1,41 @@
 pragma solidity ^0.4.24;
 
-
+import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
+import { WETH } from "../token/WETH.sol";
 import { PriorityQueue } from "../lib/PriorityQueue.sol";
 import { Merkle } from "../lib/Merkle.sol";
 import { MerklePatriciaProof } from "../lib/MerklePatriciaProof.sol";
 import { ExitNFT } from "../token/ExitNFT.sol";
+import { RLP } from "../lib/RLP.sol";
+import { RLPEncode } from "../lib/RLPEncode.sol";
 
 import { WithdrawManager } from "./WithdrawManager.sol";
+import { DepositManager } from "./DepositManager.sol";
+import { IRootChain } from "./IRootChain.sol";
+import { IManager } from "./IManager.sol";
 import { StakeManager } from "./StakeManager.sol";
 
 
-contract RootChain is Ownable, WithdrawManager {
+contract RootChain is Ownable, IRootChain {
   using SafeMath for uint256;
   using Merkle for bytes32;
+  using RLP for bytes;
+  using RLP for RLP.RLPItem;
+  using RLP for RLP.Iterator;
 
-  // chain identifier
-  // keccak256('Matic Network v0.0.1-beta.1')
-  bytes32 public chain = 0x2984301e9762b14f383141ec6a9a7661409103737c37bba9e0a22be26d63486d;
+  // header block
+  // struct HeaderBlock {
+  //   bytes32 root;
+  //   uint256 start;
+  //   uint256 end;
+  //   uint256 createdAt;
+  //   address proposer;
+  // }
 
-  // stake interface
-  StakeManager public stakeManager;
-  mapping(address => bool) public validatorContracts;
+  mapping(address => bool) public proofValidatorContracts;
 
   // child chain contract
   address public childChainContract;
@@ -34,6 +46,22 @@ contract RootChain is Ownable, WithdrawManager {
   // current header block number
   uint256 private _currentHeaderBlock;
 
+
+  // stake interface
+  StakeManager public stakeManager;
+  
+  // withdraw manager
+  WithdrawManager public withdrawManager;
+
+  // deposit manager
+  DepositManager public depositManager;
+
+  // only root chain
+  modifier onlyWithdrawManager() {
+    require(msg.sender == address(withdrawManager));
+    _;
+  }
+
   //
   // Constructor
   //
@@ -43,9 +71,6 @@ contract RootChain is Ownable, WithdrawManager {
 
     // set current header block
     _currentHeaderBlock = CHILD_BLOCK_INTERVAL;
-
-    // reset deposit count
-    depositCount = 1;
   }
 
   //
@@ -53,8 +78,8 @@ contract RootChain is Ownable, WithdrawManager {
   //
 
   event ChildChainChanged(address indexed previousChildChain, address indexed newChildChain);
-  event ValidatorAdded(address indexed validator, address indexed from);
-  event ValidatorRemoved(address indexed validator, address indexed from);
+  event ProofValidatorAdded(address indexed validator, address indexed from);
+  event ProofValidatorRemoved(address indexed validator, address indexed from);
   event NewHeaderBlock(
     address indexed proposer,
     uint256 indexed number,
@@ -68,8 +93,8 @@ contract RootChain is Ownable, WithdrawManager {
   //
 
   // Checks is msg.sender is valid validator
-  modifier isValidator(address _address) {
-    require(validatorContracts[_address] == true);
+  modifier isProofValidator(address _address) {
+    require(proofValidatorContracts[_address] == true);
     _;
   }
 
@@ -79,108 +104,51 @@ contract RootChain is Ownable, WithdrawManager {
 
   // deposit ETH by sending to this contract
   function () public payable {
-    depositEthers(msg.sender);
+    depositEthers();
   }
 
   //
   // External functions
   //
 
+  function submitHeaderBlock(bytes vote, bytes sigs, bytes extradata) external {
+    RLP.RLPItem[] memory dataList = vote.toRLPItem().toList();
+    require(keccak256(dataList[0].toData()) == chain, "Chain ID not same");
+    require(keccak256(dataList[1].toData()) == roundType, "Round type not same ");
+    require(dataList[4].toByte() == voteType, "Vote type not same");
 
-  //
-  // Methods which will be called by validators
-  //
+    // check proposer
+    require(msg.sender == dataList[5].toAddress());
 
-  // delete exit
-  function deleteExit(uint256 exitId) external isValidator(msg.sender) {
-    ExitNFT exitNFT = ExitNFT(exitNFTContract);
-    address owner = exitNFT.ownerOf(exitId);
-    exitNFT.burn(owner, exitId);
-  }
+    // validate extra data using getSha256(extradata)
+    require(keccak256(dataList[6].toData()) == keccak256(bytes20(sha256(extradata))));
 
-  // slash stakers if fraud is detected
-  function slash() external isValidator(msg.sender) {
-    // TODO pass block/proposer
-  }
-
-  //
-  // Public functions
-  //
-
-  //
-  // Admin functions
-  //
-
-  function networkId() public pure returns (bytes) {
-    return "\x0d";
-  }
-
-  // change child chain contract
-  function setChildContract(address newChildChain) public onlyOwner {
-    require(newChildChain != address(0));
-    emit ChildChainChanged(childChainContract, newChildChain);
-    childChainContract = newChildChain;
-  }
-
-  // map child token to root token
-  function mapToken(address _rootToken, address _childToken) public onlyOwner {
-    // map root token to child token
-    _mapToken(_rootToken, _childToken);
-
-    // create exit queue
-    exitsQueues[_rootToken] = address(new PriorityQueue());
-  }
-
-  // set WETH
-  function setWETHToken(address _token) public onlyOwner {
-    wethToken = _token;
-
-    // weth token queue
-    exitsQueues[wethToken] = address(new PriorityQueue());
-  }
-
-  // add validator
-  function addValidator(address _validator) public onlyOwner {
-    require(_validator != address(0) && validatorContracts[_validator] != true);
-    emit ValidatorAdded(_validator, msg.sender);
-    validatorContracts[_validator] = true;
-  }
-
-  // remove validator
-  function removeValidator(address _validator) public onlyOwner {
-    require(validatorContracts[_validator] == true);
-    emit ValidatorAdded(_validator, msg.sender);
-    delete validatorContracts[_validator];
-  }
-
-  //
-  // PoS functions
-  //
-  function setStakeManager(address _stakeManager) public onlyOwner {
-    require(_stakeManager != address(0));
-    stakeManager = StakeManager(_stakeManager);
-  }
-
-  function submitHeaderBlock(bytes32 root, uint256 end, bytes sigs) public {
+    // extract end and assign to current child
+    dataList = extradata.toRLPItem().toList()[0].toList();
     uint256 start = currentChildBlock();
+    uint256 end = dataList[2].toUint();
+    bytes32 root = dataList[3].toBytes32();
+
     if (start > 0) {
       start = start.add(1);
     }
+
+    // Start on mainchain and matic chain must be same
+    require(start == dataList[1].toUint());
 
     // Make sure we are adding blocks
     require(end > start);
 
     // Make sure enough validators sign off on the proposed header root
-    require(
-      stakeManager.checkSignatures(root, start, end, sigs) >= stakeManager.validatorThreshold()
-    );
+    require(stakeManager.checkSignatures(keccak256(vote), sigs));
 
     // Add the header root
     HeaderBlock memory headerBlock = HeaderBlock({
       root: root,
       start: start,
       end: end,
-      createdAt: block.timestamp
+      createdAt: block.timestamp,
+      proposer: msg.sender
     });
     headerBlocks[_currentHeaderBlock] = headerBlock;
 
@@ -196,27 +164,61 @@ contract RootChain is Ownable, WithdrawManager {
     // update current header block
     _currentHeaderBlock = _currentHeaderBlock.add(CHILD_BLOCK_INTERVAL);
 
-    // reset deposit count
-    depositCount = 1;
+    // finalize commit
+    depositManager.finalizeCommit(_currentHeaderBlock);
+    withdrawManager.finalizeCommit(_currentHeaderBlock);
+    stakeManager.finalizeCommit();
 
     // TODO add rewards
-
-    // finalize commit
-    stakeManager.finalizeCommit(msg.sender);
   }
 
   //
-  // Exit NFT
+  // Public functions
   //
 
+  // delete exit
+  function deleteExit(uint256 exitId) public isProofValidator(msg.sender) {
+    withdrawManager.deleteExit(exitId);
+  }
+
+  // set Exit NFT contract
   function setExitNFTContract(address _nftContract) public onlyOwner {
-    require(_nftContract != address(0));
-    exitNFTContract = _nftContract;
+    // depositManager.setExitNFTContract(_nftContract);
+    withdrawManager.setExitNFTContract(_nftContract);
   }
 
-  //
-  // Header block
-  //
+  // set WETH
+  function setWETHToken(address _token) public onlyOwner {
+    depositManager.setWETHToken(_token);
+    withdrawManager.setWETHToken(_token);
+  }
+
+  // map child token to root token
+  function mapToken(address _rootToken, address _childToken) public onlyOwner {
+    depositManager.mapToken(_rootToken, _childToken);
+    withdrawManager.mapToken(_rootToken, _childToken);
+  }
+
+  // change child chain contract
+  function setChildContract(address newChildChain) public onlyOwner {
+    require(newChildChain != address(0));
+    emit ChildChainChanged(childChainContract, newChildChain);
+    childChainContract = newChildChain;
+  }
+
+  // add validator
+  function addProofValidator(address _validator) public onlyOwner {
+    require(_validator != address(0) && proofValidatorContracts[_validator] != true);
+    emit ProofValidatorAdded(_validator, msg.sender);
+    proofValidatorContracts[_validator] = true;
+  }
+
+  // remove validator
+  function removeProofValidator(address _validator) public onlyOwner {
+    require(proofValidatorContracts[_validator] == true);
+    emit ProofValidatorRemoved(_validator, msg.sender);
+    delete proofValidatorContracts[_validator];
+  }
 
   function currentChildBlock() public view returns(uint256) {
     if (_currentHeaderBlock != CHILD_BLOCK_INTERVAL) {
@@ -226,7 +228,7 @@ contract RootChain is Ownable, WithdrawManager {
     return 0;
   }
 
-  function currentHeaderBlock() public view returns(uint256) {
+  function currentHeaderBlock() public view returns (uint256) {
     return _currentHeaderBlock;
   }
 
@@ -244,18 +246,98 @@ contract RootChain is Ownable, WithdrawManager {
     _createdAt = _headerBlock.createdAt;
   }
 
-  // deposit ethers
-  function depositEthers() public payable {
-    depositEthers(msg.sender);
+  // Get deposit block
+  function depositBlock(uint256 _depositCount) public view returns (
+    uint256,
+    address,
+    address,
+    uint256,
+    uint256
+  ) {
+    return depositManager.depositBlock(_depositCount);
   }
 
-  //
-  // Internal methods
-  //
+  // set stake manager
+  function setStakeManager(address _stakeManager) public onlyOwner {
+    require(_stakeManager != address(0));
+    stakeManager = StakeManager(_stakeManager);
+  }
 
-  function getHeaderBlock(
-    uint256 headerNumber
-  ) internal view returns (HeaderBlock _headerBlock) {
-    _headerBlock = headerBlocks[headerNumber];
+  // set deposit manager
+  function setDepositManager(address _depositManager) public onlyOwner {
+    require(_depositManager != address(0));
+    depositManager = DepositManager(_depositManager);
+  }
+
+  // set withdraw manager
+  function setWithdrawManager(address _withdrawManager) public onlyOwner {
+    require(_withdrawManager != address(0));
+    withdrawManager = WithdrawManager(_withdrawManager);
+  }
+
+  // deposit ethers
+  function depositEthers() public payable {
+    // retrieve ether amount
+    uint256 _amount = msg.value;
+    // get weth token
+    address wethToken = depositManager.wethToken();
+
+    // transfer ethers to this contract (through WETH)
+    WETH t = WETH(wethToken);
+    t.deposit.value(_amount)();
+
+    // generate deposit block and udpate counter
+    depositManager.createDepositBlock(_currentHeaderBlock, wethToken, msg.sender, _amount);
+  }
+
+  // deposit tokens for another user
+  function deposit(
+    address _token,
+    address _user,
+    uint256 _amount
+  ) public {
+    // transfer tokens to current contract
+    require(ERC20(_token).transferFrom(msg.sender, address(this), _amount));
+
+    // generate deposit block and udpate counter
+    depositManager.createDepositBlock(_currentHeaderBlock, _token, _user, _amount);
+  }
+  
+  // transfer tokens to user
+  function transferAmount(
+    address _token,
+    address _user,
+    uint256 _amount,
+    bool isWeth
+  ) public onlyWithdrawManager returns(bool)  { 
+
+    if (isWeth) {
+      WETH t = WETH(_token); 
+      t.withdraw(_amount, _user);
+    } else {
+      require(ERC20(_token).transfer(_user, _amount));
+    }
+    return true;
+  }
+  
+  /**
+   * @dev Accept ERC223 compatible tokens
+   * @param _user address The address that is transferring the tokens
+   * @param _amount uint256 the amount of the specified token
+   * @param _data Bytes The data passed from the caller.
+   */
+  function tokenFallback(address _user, uint256 _amount, bytes _data) public {
+    address _token = msg.sender;
+
+    // create deposit block with token fallback
+    depositManager.createDepositBlock(_currentHeaderBlock, _token, _user, _amount);
+  }
+
+  // finalize commit
+  function finalizeCommit(uint256) public {}
+
+  // slash stakers if fraud is detected
+  function slash() public isProofValidator(msg.sender) {
+    // TODO pass block/proposer
   }
 }

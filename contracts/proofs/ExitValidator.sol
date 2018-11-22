@@ -66,7 +66,7 @@ contract ExitValidator is RootChainValidator {
     address owner;
     uint256 amount;
     bool burnt;
-    (owner,,amount, burnt) = RootChain(rootChain).getExit(exitId);
+    (owner,,amount, burnt) = withdrawManager.getExit(exitId);
 
     // check if already burnt
     require(burnt == false && amount > 0 && owner != address(0));

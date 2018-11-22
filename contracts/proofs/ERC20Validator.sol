@@ -4,7 +4,7 @@ import { RLP } from "../lib/RLP.sol";
 import { BytesLib } from "../lib/BytesLib.sol";
 
 import { RootChainValidator } from "../mixin/RootChainValidator.sol";
-import { RootChain } from "../root/RootChain.sol";
+import { IRootChain } from "../root/IRootChain.sol";
 
 
 contract ERC20Validator is RootChainValidator {
@@ -39,7 +39,7 @@ contract ERC20Validator is RootChainValidator {
 
     // validate ERC20 transfer tx
     if (!_validateERC20TransferTx(txData)) {
-      RootChain(rootChain).slash();
+      IRootChain(rootChain).slash();
     }
   }
 
@@ -80,7 +80,7 @@ contract ERC20Validator is RootChainValidator {
 
     // check if child token is mapped with root tokens
     address childToken = items[3].toAddress();
-    require(RootChain(rootChain).reverseTokens(childToken) != address(0));
+    require(depositManager.reverseTokens(childToken) != address(0));
 
     // check if transaction is transfer tx
     // <4 bytes transfer event,address (32 bytes),amount (32 bytes)>

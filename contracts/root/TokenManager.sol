@@ -25,7 +25,7 @@ contract TokenManager {
    * @dev Checks if token is mapped
    */
   function _isTokenMapped(address _token) internal view returns (bool) {
-    return _token != address(0) && tokens[_token] != address(0);
+    return _token != address(0x0) && tokens[_token] != address(0x0);
   }
 
   /**

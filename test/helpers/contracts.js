@@ -17,6 +17,7 @@ export const RootToken = artifacts.require('./token/TestToken.sol')
 export const MaticWETH = artifacts.require('./token/MaticWETH.sol')
 export const StakeManager = artifacts.require('./root/StakeManager.sol')
 export const ExitNFT = artifacts.require('./token/ExitNFT.sol')
+export const AvlTree = artifacts.require('./lib/AvlTree.sol')
 
 export const StakeManagerMock = artifacts.require(
   './mocks/StakeManagerMock.sol'
@@ -24,7 +25,7 @@ export const StakeManagerMock = artifacts.require(
 export const TokenManagerMock = artifacts.require(
   './mocks/TokenManagerMock.sol'
 )
-export const IRootChainMock = artifacts.require('./mocks/IRootChainMock.sol')
+export const RootChainMock = artifacts.require('./mocks/RootChainMock.sol')
 export const DepositManagerMock = artifacts.require(
   './mocks/DepositManagerMock.sol'
 )

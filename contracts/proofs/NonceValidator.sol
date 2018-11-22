@@ -5,7 +5,7 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { RLP } from "../lib/RLP.sol";
 
 import { RootChainValidator } from "../mixin/RootChainValidator.sol";
-import { RootChain } from "../root/RootChain.sol";
+import { IRootChain } from "../root/IRootChain.sol";
 
 
 contract NonceValidator is RootChainValidator {
@@ -72,7 +72,7 @@ contract NonceValidator is RootChainValidator {
 
     // check if both nonce values are same or nonce2 < nonce1, just call slasher
     if (txData[7].toList()[0].toUint() <= nonce) {
-      RootChain(rootChain).slash();
+      IRootChain(rootChain).slash();
       return;
     }
 
