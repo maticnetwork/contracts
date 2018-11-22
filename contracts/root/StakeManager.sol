@@ -92,7 +92,6 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   // data format : validator, signer
   function stakeFor(address user, address unstakeValidator, address signer, uint256 amount, bytes data) public onlyWhenUnlocked {
     require(stakers[user].epoch == 0, "No second time staking");
-    require(data.length >= 40, "address validator, address signer");
     // currentValidatorSetSize*2 means everyone is commited
     require(validatorThreshold*2 > validatorList.currentSize(), "Validator set full");
     require(amount < MAX_UINT96, "Stay realistic!!");
@@ -145,7 +144,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
       );
       emit UnstakeInit(unstakeValidator, stakers[unstakeValidator].amount, dPlusTwo, "0x0");
     }
-    emit Staked(user, signer, amount, totalStaked, stakers[user].activationEpoch, "0x0");
+    emit Staked(user, signer, stakers[user].activationEpoch, amount, totalStaked, "0x0");
   }
 
   function unstake(uint256 amount, bytes data) public onlyStaker {
