@@ -1,6 +1,7 @@
 pragma solidity ^0.4.24;
 
 import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 // TODO: move recursive to iterative 
 // load in memory and do balancing and rewrite tree 
@@ -9,7 +10,7 @@ import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 // 
 
 
-contract AvlTree {
+contract AvlTree is Ownable {
   struct Node {
     uint256 value;
     uint256 left;
@@ -32,7 +33,7 @@ contract AvlTree {
     root = 0;
   }
 
-  function insert(uint256 value) public returns (uint256) {
+  function insert(uint256 value) public onlyOwner returns (uint256) {
     require(value > 0);
     root = _insert(root, value);
     currentSize++;
@@ -40,7 +41,7 @@ contract AvlTree {
   }
   
   //should return bool ?
-  function deleteNode(uint256 value) public {
+  function deleteNode(uint256 value) public onlyOwner {
     require(value > 0);
     root = _deleteNode(root, value);
     currentSize--;
