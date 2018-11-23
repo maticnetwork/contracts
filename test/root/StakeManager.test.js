@@ -1,9 +1,10 @@
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import chaiBigNumber from 'chai-bignumber'
+import utils from 'ethereumjs-util'
 
 import { generateFirstWallets, mnemonics } from '../helpers/wallets'
-import { linkLibs, ZeroAddress } from '../helpers/utils'
+import { linkLibs, encodeSigs, getSigs, ZeroAddress } from '../helpers/utils'
 import { StakeManagerMock, RootToken } from '../helpers/contracts'
 import LogDecoder from '../helpers/log-decoder'
 
@@ -299,9 +300,9 @@ contract('StakeManager', async function(accounts) {
       expect(validators).to.not.include.members([user])
     })
 
-    it('should stake via wallets[6-9]', async function() {
-      let user = wallets[6].getAddressString()
-      let amount = web3.toWei(400)
+    it('should stake via wallets[6]', async function() {
+      const user = wallets[6].getAddressString()
+      const amount = web3.toWei(400)
 
       // approve tranfer
       await stakeToken.approve(stakeManager.address, amount, {
@@ -311,8 +312,11 @@ contract('StakeManager', async function(accounts) {
       await stakeManager.stake(wallets[1].getAddressString(), user, amount, {
         from: user
       })
-      user = wallets[7].getAddressString()
-      amount = web3.toWei(450)
+    })
+
+    it('should stake via wallets[7]', async function() {
+      const user = wallets[7].getAddressString()
+      const amount = web3.toWei(450)
 
       // approve tranfer
       await stakeToken.approve(stakeManager.address, amount, {
@@ -323,8 +327,11 @@ contract('StakeManager', async function(accounts) {
       await stakeManager.stake(wallets[2].getAddressString(), user, amount, {
         from: user
       })
-      user = wallets[8].getAddressString()
-      amount = web3.toWei(600)
+    })
+
+    it('should stake via wallets[8]', async function() {
+      const user = wallets[8].getAddressString()
+      const amount = web3.toWei(600)
 
       // approve tranfer
       await stakeToken.approve(stakeManager.address, amount, {
@@ -335,9 +342,11 @@ contract('StakeManager', async function(accounts) {
       await stakeManager.stake(wallets[3].getAddressString(), user, amount, {
         from: user
       })
+    })
 
-      user = wallets[9].getAddressString()
-      amount = web3.toWei(760)
+    it('should stake via wallets[9]', async function() {
+      const user = wallets[9].getAddressString()
+      const amount = web3.toWei(760)
 
       // approve tranfer
       await stakeToken.approve(stakeManager.address, amount, {
@@ -348,9 +357,11 @@ contract('StakeManager', async function(accounts) {
       await stakeManager.stake(wallets[4].getAddressString(), user, amount, {
         from: user
       })
+    })
 
-      user = wallets[0].getAddressString()
-      amount = web3.toWei(800)
+    it('should stake via wallets[0]', async function() {
+      const user = wallets[0].getAddressString()
+      const amount = web3.toWei(800)
 
       // approve tranfer
       await stakeToken.approve(stakeManager.address, amount, {
@@ -426,6 +437,22 @@ contract('StakeManager', async function(accounts) {
         wallets[8].getAddressString(),
         wallets[9].getAddressString()
       ])
+    })
+
+    it('should create sigs properly', async function() {
+      // dummy vote data
+      let w = [wallets[0], wallets[6], wallets[7], wallets[8], wallets[9]]
+
+      const voteData = 'dummyData'
+      const sigs = utils.bufferToHex(
+        encodeSigs(getSigs(w, utils.sha3(voteData)))
+      )
+      const result = await stakeManager.checkSignatures(
+        utils.bufferToHex(utils.sha3(voteData)),
+        sigs
+      )
+      // 2/3 majority vote
+      assert.isTrue(result)
     })
   })
 })

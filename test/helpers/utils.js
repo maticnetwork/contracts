@@ -91,19 +91,17 @@ export async function linkLibs(web3Child) {
   }
 }
 
-export function getSigs(wallets, votedata, exclude = []) {
+export function getSigs(wallets, votedata) {
   wallets.sort((w1, w2) => {
-    return Buffer.compare(w1.getAddress(), w2.getAddress()) >= 0
+    return w1.getAddressString().localeCompare(w2.getAddressString())
   })
 
   const h = utils.toBuffer(votedata)
 
   return wallets
     .map(w => {
-      if (exclude.indexOf(w.getAddressString()) === -1) {
-        const vrs = utils.ecsign(h, w.getPrivateKey())
-        return utils.toRpcSig(vrs.v, vrs.r, vrs.s)
-      }
+      const vrs = utils.ecsign(h, w.getPrivateKey())
+      return utils.toRpcSig(vrs.v, vrs.r, vrs.s)
     })
     .filter(d => d)
 }
