@@ -154,7 +154,6 @@ contract('RootChain', async function(accounts) {
       for (var i = 1; i < wallets.length; i++) {
         const amount = stakes[i]
         const user = wallets[i].getAddressString()
-
         // get tokens
         await stakeToken.mint(user, amount)
 
@@ -170,16 +169,17 @@ contract('RootChain', async function(accounts) {
     it('should create sigs properly', async function() {
       // dummy vote data
       const voteData = 'dummy'
+      let w = [wallets[1], wallets[2], wallets[3]]
+
       const sigs = utils.bufferToHex(
-        encodeSigs(getSigs(wallets, utils.sha3(voteData), [wallets[2]]))
+        encodeSigs(getSigs(w, utils.keccak256(voteData)))
       )
 
       const result = await stakeManager.checkSignatures(
-        utils.bufferToHex(utils.sha3(voteData)),
+        utils.bufferToHex(utils.keccak256(voteData)),
         sigs
       )
       assert.isTrue(result)
-      // assert.ok(result, '2/3 majority vote should be true')
     })
   })
 })

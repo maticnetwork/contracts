@@ -1,7 +1,7 @@
 import utils from 'ethereumjs-util'
-import {Buffer} from 'safe-buffer'
+import { Buffer } from 'safe-buffer'
 
-const sha3 = utils.sha3
+const sha3 = utils.keccak256
 const BN = utils.BN
 
 export async function getHeaders(start, end, web3) {

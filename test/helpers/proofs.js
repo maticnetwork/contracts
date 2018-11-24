@@ -104,7 +104,7 @@ export function verifyTxProof(proof) {
     for (var i = 0; i < len; i++) {
       currentNode = parentNodes[i]
       const encodedNode = Buffer.from(
-        utils.sha3(rlp.encode(currentNode)),
+        utils.keccak256(rlp.encode(currentNode)),
         'hex'
       )
       if (!nodeKey.equals(encodedNode)) {
