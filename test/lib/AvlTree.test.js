@@ -11,7 +11,7 @@ chai
   .use(chaiBigNumber(web3.BigNumber))
   .should()
 
-contract('AvlTree', async function() {
+contract('AvlTree', async function(accounts) {
   let avlTree
 
   beforeEach(async function() {
@@ -28,6 +28,29 @@ contract('AvlTree', async function() {
     // root should be NULL/0
     let root = await avlTree.getRoot()
     root.should.be.bignumber.equal(0)
+  })
+
+  it('should try to insert from non-owner and fail ', async function() {
+    try {
+      await avlTree.insert(145, { from: accounts[1] })
+    } catch (error) {
+      const invalidOpcode = error.message.search('revert') >= 0
+      assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
+    }
+  })
+
+  it('should try to delete node from non-owner and fail', async function() {
+    try {
+      await avlTree.deleteNode(145, { from: accounts[1] })
+    } catch (error) {
+      const invalidOpcode = error.message.search('revert') >= 0
+      assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
+    }
+  })
+
+  it('should delete node', async function() {
+    await avlTree.insert(140)
+    await avlTree.deleteNode(140, { from: accounts[0] })
   })
 
   it('should set root correct and balanced', async function() {
