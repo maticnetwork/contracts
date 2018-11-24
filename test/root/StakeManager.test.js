@@ -445,10 +445,10 @@ contract('StakeManager', async function(accounts) {
 
       const voteData = 'dummyData'
       const sigs = utils.bufferToHex(
-        encodeSigs(getSigs(w, utils.sha3(voteData)))
+        encodeSigs(getSigs(w, utils.keccak256(voteData)))
       )
       const result = await stakeManager.checkSignatures(
-        utils.bufferToHex(utils.sha3(voteData)),
+        utils.bufferToHex(utils.keccak256(voteData)),
         sigs
       )
       // 2/3 majority vote

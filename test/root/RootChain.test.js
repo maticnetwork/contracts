@@ -172,11 +172,11 @@ contract('RootChain', async function(accounts) {
       let w = [wallets[1], wallets[2], wallets[3]]
 
       const sigs = utils.bufferToHex(
-        encodeSigs(getSigs(w, utils.sha3(voteData)))
+        encodeSigs(getSigs(w, utils.keccak256(voteData)))
       )
 
       const result = await stakeManager.checkSignatures(
-        utils.bufferToHex(utils.sha3(voteData)),
+        utils.bufferToHex(utils.keccak256(voteData)),
         sigs
       )
       assert.isTrue(result)
