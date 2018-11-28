@@ -19,14 +19,14 @@ contract ChildERC721 is ERC721Full, ERC721Mintable, ERC721Burnable, Ownable {
   // Events
   //
 
-  event LogDeposit(
+  event LogDepositERC721(
     address indexed token,
     uint256 indexed tokenId,
     address indexed from,
     uint256 count // count of owned NFT
   );
 
-  event LogTransfer(
+  event LogTransferERC721(
     address indexed token,
     uint256 indexed tokenId,
     address indexed from,
@@ -37,7 +37,7 @@ contract ChildERC721 is ERC721Full, ERC721Mintable, ERC721Burnable, Ownable {
     uint256 output2
   );
 
-  event LogWithdraw(
+  event LogWithdrawERC721(
     address indexed token,
     address indexed from,
     uint256 tokenId,

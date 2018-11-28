@@ -1,6 +1,8 @@
 pragma solidity ^0.4.24;
 
 import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import { ERC721 } from "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
+
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
@@ -288,6 +290,18 @@ contract RootChain is Ownable, IRootChain {
 
     // generate deposit block and udpate counter
     depositManager.createDepositBlock(_currentHeaderBlock, wethToken, msg.sender, _amount);
+  }
+
+  // deposit erc721
+  function depositERC721(
+    address _token,
+    address _user,
+    uint256 _tokenId) public {
+    // transfer tokens to current contract
+    require(ERC721(_token).transferFrom(msg.sender, address(this), _tokenId));
+
+    // generate deposit block and udpate counter
+    depositManager.createDepositBlock(_currentHeaderBlock, _token, _user, _tokenId);
   }
 
   // deposit tokens for another user

@@ -8,6 +8,9 @@ contract TokenManager {
   // mapping for (child token => root token)
   mapping(address => address) public reverseTokens;
 
+  // mapping weather a token is erc721 or not 
+  // mapping(address => bool) public isERC721;
+
   // weth token
   address public wethToken;
 
