@@ -3,10 +3,15 @@ pragma solidity ^0.4.24;
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
+// import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import { ERC20Burnable } from "openzeppelin-solidity/contracts/token/ERC20/ERC20Burnable.sol";
+
+import { ERC20Mintable } from "openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol";
+
 import "../token/StandardToken.sol";
 
 
-contract ChildERC20 is StandardToken, Ownable {
+contract ChildERC20 is ERC20Mintable, ERC20Burnable, Ownable {
   using SafeMath for uint256;
 
   // detailed ERC20
@@ -72,7 +77,8 @@ contract ChildERC20 is StandardToken, Ownable {
     uint256 input1 = balanceOf(user);
 
     // increase balance
-    balances[user] = balances[user].add(amount);
+    // balances[user] = balances[user].add(amount);
+    mint(user, amount);
 
     // deposit events
     emit Deposit(token, user, amount);
@@ -88,13 +94,14 @@ contract ChildERC20 is StandardToken, Ownable {
     address user = msg.sender;
 
     // check for amount
-    require(amount > 0 && balances[user] >= amount);
+    require(amount > 0 && balanceOf(user) >= amount);
 
     // input balance
     uint256 input1 = balanceOf(user);
 
     // decrease balance
-    balances[user] = balances[user].sub(amount);
+    // balances[user] = balances[user].sub(amount);
+    burnFrom(user, amount);
 
     // withdraw event
     emit Withdraw(token, user, amount);
