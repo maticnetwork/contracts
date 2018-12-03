@@ -95,9 +95,9 @@ contract WithdrawManager is IManager, ExitManager {
     bytes receiptProof
   ) public {
     address rootToken;
-    uint256 receiptAmount;
+    uint256 receiptAmountOrTokenId;
 
-    (rootToken, receiptAmount) = _processBurntReceipt(
+    (rootToken, receiptAmountOrTokenId) = _processBurntReceipt(
       receiptBytes,
       path,
       receiptProof,
@@ -113,7 +113,7 @@ contract WithdrawManager is IManager, ExitManager {
       txRoot,
 
       rootToken,
-      receiptAmount,
+      receiptAmountOrTokenId,
 
       msg.sender
     );
@@ -122,7 +122,7 @@ contract WithdrawManager is IManager, ExitManager {
     PlasmaExit memory _exitObject = PlasmaExit({
       owner: msg.sender,
       token: rootToken,
-      amount: receiptAmount,
+      amount: receiptAmountOrTokenId,
       burnt: true
     });
 
@@ -168,15 +168,15 @@ contract WithdrawManager is IManager, ExitManager {
     require(MerklePatriciaProof.verify(receiptBytes, path, receiptProof, receiptRoot) == true);
 
     // process transfer tx/receipt
-    uint256 amount;
+    uint256 amountOrTokenId;
     uint8 oIndex;
-    (amount, oIndex) = _processWithdrawTransferReceipt(receiptBytes, msg.sender);
+    (amountOrTokenId, oIndex) = _processWithdrawTransferReceipt(receiptBytes, msg.sender);
 
     // exit object
     PlasmaExit memory _exitObject = PlasmaExit({
       owner: msg.sender,
       token: _processWithdrawTransferTx(txBytes),
-      amount: amount,
+      amountOrTokenId: amountOrTokenId,
       burnt: false
     });
 
@@ -203,10 +203,10 @@ contract WithdrawManager is IManager, ExitManager {
     uint256 _header;
     address _owner;
     address _token;
-    uint256 _amount;
+    uint256 _amountOrTokenId;
     uint256 _createdAt;
 
-    (_header, _owner, _token, _amount, _createdAt) = depositManager.deposits(_depositCount);
+    (_header, _owner, _token, _amountOrTokenId, _createdAt) = depositManager.deposits(_depositCount);
     require(_token != address(0) && _owner == msg.sender);
 
     // get header block
@@ -218,7 +218,7 @@ contract WithdrawManager is IManager, ExitManager {
     PlasmaExit memory _exitObject = PlasmaExit({
       owner: msg.sender,
       token: _token,
-      amount: _amount,
+      amountOrTokenId: _amountOrTokenId,
       burnt: false
     });
 
@@ -293,7 +293,7 @@ contract WithdrawManager is IManager, ExitManager {
     require(items.length == 9);
 
     // check if transaction is transfer tx
-    // <4 bytes transfer event,address (32 bytes),amount (32 bytes)>
+    // <4 bytes transfer event,address (32 bytes),amountOrTokenId (32 bytes)>
     require(BytesLib.toBytes4(BytesLib.slice(items[5].toData(), 0, 4)) == TRANSFER_SIGNATURE);
 
     // check rootToken is valid
@@ -342,7 +342,7 @@ contract WithdrawManager is IManager, ExitManager {
     bytes32 txRoot,
 
     address rootToken,
-    uint256 amount,
+    uint256 amountOrTokenId,
 
     address sender
   ) internal view {
@@ -358,7 +358,8 @@ contract WithdrawManager is IManager, ExitManager {
     // check withdraw data function signature
     require(BytesLib.toBytes4(BytesLib.slice(txList[5].toData(), 0, 4)) == WITHDRAW_SIGNATURE);
     // check amount
-    require(amount > 0 && amount == BytesLib.toUint(txList[5].toData(), 4));
+    // require(amount > 0)
+    require(amountOrTokenId == BytesLib.toUint(txList[5].toData(), 4));
 
     // Make sure this tx is the value on the path via a MerklePatricia proof
     require(MerklePatriciaProof.verify(txBytes, path, txProof, txRoot) == true);
@@ -390,16 +391,16 @@ contract WithdrawManager is IManager, ExitManager {
     bytes receiptProof,
     bytes32 receiptRoot,
     address sender
-  ) internal view returns (address rootToken, uint256 amount) {
+  ) internal view returns (address rootToken, uint256 amountOrTokenId) {
     // check receipt
     RLP.RLPItem[] memory items = receiptBytes.toRLPItem().toList();
     require(items.length == 4);
 
-    // [3][0] -> [child token address, [WITHDRAW_EVENT_SIGNATURE, root token address, sender], amount]
+    // [3][0] -> [child token address, [WITHDRAW_EVENT_SIGNATURE, root token address, sender], amountOrTokenId]
     items = items[3].toList()[0].toList();
     require(items.length == 3);
     address childToken = items[0].toAddress(); // child token address
-    amount = items[2].toUint(); // amount
+    amountOrTokenId = items[2].toUint(); // amountOrTokenId
 
     // [3][0][1] -> [WITHDRAW_EVENT_SIGNATURE, root token address, sender]
     items = items[1].toList();
