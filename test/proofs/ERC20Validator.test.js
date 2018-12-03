@@ -68,7 +68,7 @@ contract('ERC20Validator', async function(accounts) {
       let childTokenReceipt = await childChain.addToken(rootToken.address, 18, {
         from: user
       })
-      childToken = ChildToken.at(childTokenReceipt.logs[0].args.token)
+      childToken = ChildToken.at(childTokenReceipt.logs[1].args.token)
 
       rootChain = await RootChainMock.new(rootToken.address) // dummy address for stakemanager
       depositManager = await DepositManagerMock.new({ from: owner })

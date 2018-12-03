@@ -45,17 +45,25 @@ contract('ChildChain', async function(accounts) {
   it('should allow owner to add new token ', async function() {
     const receipt = await childChainContract.addToken(rootToken.address, 18)
     const logs = logDecoder.decodeLogs(receipt.receipt.logs)
-    logs.should.have.lengthOf(1)
-    logs[0].event.should.equal('NewToken')
-    logs[0].args.rootToken.toLowerCase().should.equal(rootToken.address)
+    logs.should.have.lengthOf(3)
+
+    logs[0].event.should.equal('MinterAdded')
+    logs[0].args.account.toLowerCase().should.equal(childChainContract.address)
+
+    logs[1].event.should.equal('OwnershipTransferred')
+    logs[1].args.previousOwner.toLowerCase().should.equal(ZeroAddress)
+    logs[1].args.newOwner.toLowerCase().should.equal(childChainContract.address)
+
+    logs[2].event.should.equal('NewToken')
+    logs[2].args.rootToken.toLowerCase().should.equal(rootToken.address)
 
     // child chain contract
     await childChainContract
       .tokens(rootToken.address)
-      .should.eventually.equal(receipt.logs[0].args.token)
+      .should.eventually.equal(logs[2].args.token.toLowerCase())
 
     // get child chain token
-    const childToken = ChildToken.at(receipt.logs[0].args.token)
+    const childToken = ChildToken.at(logs[2].args.token.toLowerCase())
 
     // should have proper owner
     await childToken.owner().should.eventually.equal(childChainContract.address)
