@@ -4,7 +4,7 @@ import chaiBigNumber from 'chai-bignumber'
 
 import { linkLibs, ZeroAddress } from '../helpers/utils'
 
-import { ChildChain, ChildToken, RootToken } from '../helpers/contracts'
+import { ChildChain, ChildERC20, RootToken } from '../helpers/contracts'
 import LogDecoder from '../helpers/log-decoder'
 
 // add chai pluggin
@@ -16,7 +16,7 @@ chai
 contract('ChildChain', async function(accounts) {
   let childChainContract
   let rootToken
-  let logDecoder = new LogDecoder([ChildChain._json.abi, ChildToken._json.abi])
+  let logDecoder = new LogDecoder([ChildChain._json.abi, ChildERC20._json.abi])
 
   beforeEach(async function() {
     // link libs
@@ -55,7 +55,7 @@ contract('ChildChain', async function(accounts) {
       .should.eventually.equal(receipt.logs[0].args.token)
 
     // get child chain token
-    const childToken = ChildToken.at(receipt.logs[0].args.token)
+    const childToken = ChildERC20.at(receipt.logs[0].args.token)
 
     // should have proper owner
     await childToken.owner().should.eventually.equal(childChainContract.address)

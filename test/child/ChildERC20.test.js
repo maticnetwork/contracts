@@ -3,7 +3,7 @@ import chaiAsPromised from 'chai-as-promised'
 import chaiBigNumber from 'chai-bignumber'
 
 import { linkLibs } from '../helpers/utils'
-import { ChildChain, ChildToken, RootToken } from '../helpers/contracts'
+import { ChildChain, ChildERC20, RootToken } from '../helpers/contracts'
 
 // add chai pluggin
 chai
@@ -30,7 +30,7 @@ contract('ChildERC20', async function(accounts) {
 
     // receipt
     const receipt = await childChain.addToken(rootToken.address, 18)
-    childToken = ChildToken.at(receipt.logs[0].args.token)
+    childToken = ChildERC20.at(receipt.logs[0].args.token)
 
     // amount
     amount = web3.toWei(10)

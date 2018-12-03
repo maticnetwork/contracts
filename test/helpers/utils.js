@@ -76,7 +76,7 @@ export async function linkLibs(web3Child) {
 
   // web3Child
   if (web3Child) {
-    const childContractList = [contracts.ChildChain, contracts.ChildToken]
+    const childContractList = [contracts.ChildChain, contracts.ChildERC20]
     let i
     for (i = 0; i < libList.length; i++) {
       const M = libList[i]
