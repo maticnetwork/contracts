@@ -100,7 +100,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
       minValue = minValue >> 160;
       minValue = minValue.mul(maxStakeDrop).div(100);
     }
-    minValue = Math.max256(minValue, MIN_DEPOSIT_SIZE);
+    minValue = Math.max(minValue, MIN_DEPOSIT_SIZE);
 
     require(amount >= minValue, "Stake should be gt then X% of current lowest");
     require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");

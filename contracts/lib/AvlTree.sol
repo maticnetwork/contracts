@@ -130,10 +130,10 @@ contract AvlTree is Ownable {
     tree[_root].left = tree[temp].right;
     tree[temp].right = _root;
     if (_root > 0) { 
-      tree[_root].height = 1 + Math.max256(tree[tree[_root].left].height, tree[tree[_root].right].height);
+      tree[_root].height = 1 + Math.max(tree[tree[_root].left].height, tree[tree[_root].right].height);
     }
     if (temp > 0) { 
-      tree[temp].height = 1 + Math.max256(tree[tree[temp].left].height, tree[tree[temp].right].height);
+      tree[temp].height = 1 + Math.max(tree[tree[temp].left].height, tree[tree[temp].right].height);
     }
     return temp;
   }
@@ -143,17 +143,17 @@ contract AvlTree is Ownable {
     tree[_root].right = tree[temp].left;
     tree[temp].left = _root;
     if (_root > 0) { 
-      tree[_root].height = 1 + Math.max256(tree[tree[_root].left].height, tree[tree[_root].right].height);
+      tree[_root].height = 1 + Math.max(tree[tree[_root].left].height, tree[tree[_root].right].height);
     }
     if (temp > 0) { 
-      tree[temp].height = 1 + Math.max256(tree[tree[temp].left].height, tree[tree[temp].right].height);
+      tree[temp].height = 1 + Math.max(tree[tree[temp].left].height, tree[tree[temp].right].height);
     }
     return temp;
   }
 
   function balance(uint256 _root) private returns (uint256) { 
     if (_root > 0) { 
-      tree[_root].height = 1 + Math.max256(tree[tree[_root].left].height, tree[tree[_root].right].height);
+      tree[_root].height = 1 + Math.max(tree[tree[_root].left].height, tree[tree[_root].right].height);
     }
     if (tree[tree[_root].left].height > tree[tree[_root].right].height + 1) {		
       if (tree[tree[tree[_root].left].right].height > tree[tree[tree[_root].left].left].height) {
