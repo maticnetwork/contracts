@@ -17,7 +17,7 @@ contract MaticWETH is ERC20Mintable, ERC20Burnable {
 
   function deposit() public payable {
     // balances[msg.sender] += msg.value;
-    mint(msg.sender, msg.value);
+    _mint(msg.sender, msg.value);
     emit Deposit(msg.sender, msg.value);
   }
 
@@ -25,7 +25,7 @@ contract MaticWETH is ERC20Mintable, ERC20Burnable {
     require(balanceOf(msg.sender) >= wad);
     // balances[msg.sender] -= wad;
     // msg.sender.transfer(wad);?
-    burnFrom(msg.sender, wad);
+    _burn(msg.sender, wad);
     emit Withdrawal(msg.sender, wad);
   }
 
@@ -33,7 +33,7 @@ contract MaticWETH is ERC20Mintable, ERC20Burnable {
     require(balanceOf(msg.sender)>= wad);
     // balances[msg.sender] -= wad;
     // user.transfer(wad);
-    burnFrom(msg.sender, wad);
+    _burn(msg.sender, wad);
     
     emit Withdrawal(user, wad);
   }
