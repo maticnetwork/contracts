@@ -104,7 +104,7 @@ contract('WithdrawManager', async function(accounts) {
         // child chain
         childChain = await ChildChain.new()
         const receipt = await childChain.addToken(rootToken.address, 18)
-        childToken = ChildToken.at(receipt.logs[0].args.token)
+        childToken = ChildToken.at(receipt.logs[1].args.token.toLowerCase())
 
         // set exit NFT
         await withdrawManager.setExitNFTContract(exitNFTContract.address)
@@ -188,7 +188,7 @@ contract('WithdrawManager', async function(accounts) {
 
         // validate tx proof
         const txProof = await getTxProof(withdraw, withdrawBlock)
-        assert.isOk(verifyTxProof(txProof), 'Tx proof must be valid')
+        assert.isTrue(verifyTxProof(txProof), 'Tx proof must be valid')
 
         // validate receipt proof
         const receiptProof = await getReceiptProof(
@@ -196,11 +196,11 @@ contract('WithdrawManager', async function(accounts) {
           withdrawBlock,
           web3Child
         )
-        assert.isOk(
+        assert.isTrue(
           verifyReceiptProof(receiptProof),
           'Receipt proof must be valid'
         )
-        // withdraw
+
         const burnWithdrawReceipt = await withdrawManager.withdrawBurntTokens(
           headerNumber, // header block
           utils.bufferToHex(Buffer.concat(headerProof)), // header proof
@@ -222,13 +222,14 @@ contract('WithdrawManager', async function(accounts) {
         )
         // total logs
         const burnLogs = logDecoder.decodeLogs(burnWithdrawReceipt.receipt.logs)
+
         burnLogs.should.have.lengthOf(2)
 
         burnLogs[0].event.should.equal('Transfer')
         burnLogs[0].address.should.equal(exitNFTContract.address)
-        burnLogs[0].args._to.toLowerCase().should.equal(user)
+        burnLogs[0].args.to.toLowerCase().should.equal(user)
 
-        exitId = burnLogs[0].args._tokenId.toString()
+        exitId = burnLogs[0].args.tokenId.toString()
 
         burnLogs[1].event.should.equal('ExitStarted')
         burnLogs[1].address.should.equal(withdrawManager.address)
@@ -255,9 +256,8 @@ contract('WithdrawManager', async function(accounts) {
         tokenId.should.be.bignumber.equal(exitId)
 
         // check owner
-        await exitNFTContract
-          .ownerOf(tokenId)
-          .should.eventually.equal(accounts[9])
+        let out = await exitNFTContract.ownerOf(tokenId)
+        out.toLowerCase().should.be.equal(accounts[9])
 
         const [
           exitOwner,
@@ -292,13 +292,12 @@ contract('WithdrawManager', async function(accounts) {
         await increaseBlockTime(14 * 86400)
         const receipt = await withdrawManager.processExits(rootToken.address)
         const logs = logDecoder.decodeLogs(receipt.receipt.logs)
-
         logs.should.have.lengthOf(3)
 
         logs[0].event.should.equal('Transfer')
-        logs[0].args._from.toLowerCase().should.equal(accounts[9])
-        logs[0].args._to.toLowerCase().should.equal(ZeroAddress)
-        logs[0].args._tokenId.should.be.bignumber.equal(exitId)
+        logs[0].args.from.toLowerCase().should.equal(accounts[9])
+        logs[0].args.to.toLowerCase().should.equal(ZeroAddress)
+        logs[0].args.tokenId.should.be.bignumber.equal(exitId)
 
         logs[1].event.should.equal('Transfer')
         logs[1].args.from.toLowerCase().should.equal(rootChain.address)
@@ -315,9 +314,12 @@ contract('WithdrawManager', async function(accounts) {
         totalSupply.should.be.bignumber.equal(0)
 
         // check owner
-        await exitNFTContract
-          .ownerOf(exitId)
-          .should.eventually.equal(ZeroAddress)
+        try {
+          await exitNFTContract.ownerOf(exitId)
+        } catch (error) {
+          const invalidOpcode = error.message.search('revert') >= 0
+          assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
+        }
       })
 
       it('should have proper 0 exitId for given user', async function() {
@@ -343,17 +345,12 @@ contract('WithdrawManager', async function(accounts) {
       let exitId
 
       before(async function() {
-        // withdraw manager
-        withdrawManager = await WithdrawManagerMock.new()
-
         // root token / child chain / child token
         rootToken = await RootToken.new('Root Token', 'ROOT')
         exitNFTContract = await ExitNFT.new('Matic Exit NFT', 'MATIC-NFT')
-
         rootChain = await RootChainMock.new(rootToken.address) // dummy address for stakemanager
         depositManager = await DepositManagerMock.new({ from: owner })
         withdrawManager = await WithdrawManagerMock.new({ from: owner })
-
         await depositManager.changeRootChain(rootChain.address, { from: owner })
         await withdrawManager.changeRootChain(rootChain.address, {
           from: owner
@@ -368,7 +365,7 @@ contract('WithdrawManager', async function(accounts) {
         // child chain
         childChain = await ChildChain.new()
         const receipt = await childChain.addToken(rootToken.address, 18)
-        childToken = ChildToken.at(receipt.logs[0].args.token)
+        childToken = ChildToken.at(receipt.logs[1].args.token.toLowerCase())
 
         // set exit NFT
         await withdrawManager.setExitNFTContract(exitNFTContract.address)
@@ -462,7 +459,7 @@ contract('WithdrawManager', async function(accounts) {
 
         // validate tx proof
         const txProof = await getTxProof(withdraw, withdrawBlock)
-        assert.isOk(verifyTxProof(txProof), 'Tx proof must be valid')
+        assert.isTrue(verifyTxProof(txProof), 'Tx proof must be valid')
 
         // validate receipt proof
         const receiptProof = await getReceiptProof(
@@ -470,7 +467,7 @@ contract('WithdrawManager', async function(accounts) {
           withdrawBlock,
           web3Child
         )
-        assert.isOk(
+        assert.isTrue(
           verifyReceiptProof(receiptProof),
           'Receipt proof must be valid'
         )
@@ -499,14 +496,12 @@ contract('WithdrawManager', async function(accounts) {
         // total logs
         const exitLogs = logDecoder.decodeLogs(exitReceipt.receipt.logs)
         exitLogs.should.have.lengthOf(2)
-
         exitLogs[0].event.should.equal('Transfer')
         exitLogs[0].address.should.equal(exitNFTContract.address)
-        exitLogs[0].args._to.toLowerCase().should.equal(user)
+        exitLogs[0].args.to.toLowerCase().should.equal(user)
 
         // exit id
-        exitId = exitLogs[0].args._tokenId.toString()
-
+        exitId = exitLogs[0].args.tokenId.toString()
         exitLogs[1].event.should.equal('ExitStarted')
         exitLogs[1].address.should.equal(withdrawManager.address)
         exitLogs[1].args.exitor.toLowerCase().should.equal(user)
@@ -532,9 +527,9 @@ contract('WithdrawManager', async function(accounts) {
         tokenId.should.be.bignumber.equal(exitId)
 
         // check owner
-        await exitNFTContract
-          .ownerOf(exitId)
-          .should.eventually.equal(accounts[9])
+        let out = await exitNFTContract.ownerOf(exitId)
+
+        out.toLowerCase().should.equal(accounts[9])
 
         const [
           exitOwner,
@@ -555,9 +550,8 @@ contract('WithdrawManager', async function(accounts) {
         })
 
         // check owner
-        await exitNFTContract
-          .ownerOf(exitId)
-          .should.eventually.equal(accounts[1])
+        const out = await exitNFTContract.ownerOf(exitId)
+        out.toLowerCase().should.equal(accounts[1])
       })
 
       it('should not burn exit NFT with processExit', async function() {
@@ -575,9 +569,9 @@ contract('WithdrawManager', async function(accounts) {
         logs.should.have.lengthOf(3)
 
         logs[0].event.should.equal('Transfer')
-        logs[0].args._from.toLowerCase().should.equal(accounts[1])
-        logs[0].args._to.toLowerCase().should.equal(ZeroAddress)
-        logs[0].args._tokenId.should.be.bignumber.equal(exitId)
+        logs[0].args.from.toLowerCase().should.equal(accounts[1])
+        logs[0].args.to.toLowerCase().should.equal(ZeroAddress)
+        logs[0].args.tokenId.should.be.bignumber.equal(exitId)
 
         logs[1].event.should.equal('Transfer')
         logs[1].args.from.toLowerCase().should.equal(rootChain.address)
@@ -592,11 +586,13 @@ contract('WithdrawManager', async function(accounts) {
         // transfer
         const totalSupply = await exitNFTContract.totalSupply()
         totalSupply.should.be.bignumber.equal(0)
-
         // check owner
-        await exitNFTContract
-          .ownerOf(exitId)
-          .should.eventually.equal(ZeroAddress)
+        try {
+          await exitNFTContract.ownerOf(exitId)
+        } catch (error) {
+          const invalidOpcode = error.message.search('revert') >= 0
+          assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
+        }
       })
 
       it('should transfer amount to NFT owner', async function() {
@@ -613,7 +609,7 @@ contract('WithdrawManager', async function(accounts) {
       })
 
       it('should pass (added for sanity)', async function() {
-        assert.isOk(true)
+        assert.isTrue(true)
       })
     })
   })
