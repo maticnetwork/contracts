@@ -13,12 +13,13 @@ contract ExitNFT is RootChainable, ERC721Full, ERC721Mintable, ERC721Burnable {
   constructor(string _name, string _symbol) public ERC721Full(_name, _symbol) {
 
   }
- 
-  // function mint(address _owner, uint256 _tokenId) public onlyRootChain returns (bool)  {
-  //   return _mint(_owner, _tokenId);
-  // }
+  //  Todo: reuse mint and burn
+  function mint(address _owner, uint256 _tokenId) public returns (bool){
+    _mint(_owner, _tokenId);
+    return true;
+  }
 
-  function burnFrom(address _owner, uint256 _tokenId) public onlyRootChain {
+  function burnFrom(address _owner, uint256 _tokenId) public {
     _burn(_owner, _tokenId);
   }
 

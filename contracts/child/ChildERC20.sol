@@ -101,7 +101,7 @@ contract ChildERC20 is ERC20Mintable, ERC20Burnable, Ownable {
 
     // decrease balance
     // balances[user] = balances[user].sub(amount);
-    burnFrom(user, amount);
+    _burn(user, amount);
 
     // withdraw event
     emit Withdraw(token, user, amount);

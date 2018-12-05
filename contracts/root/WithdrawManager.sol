@@ -396,7 +396,7 @@ contract WithdrawManager is IManager, ExitManager {
     require(items.length == 4);
 
     // [3][0] -> [child token address, [WITHDRAW_EVENT_SIGNATURE, root token address, sender], amount]
-    items = items[3].toList()[0].toList();
+    items = items[3].toList()[1].toList();
     require(items.length == 3);
     address childToken = items[0].toAddress(); // child token address
     amount = items[2].toUint(); // amount
