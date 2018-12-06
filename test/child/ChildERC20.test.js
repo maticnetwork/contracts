@@ -29,7 +29,12 @@ contract('ChildERC20', async function(accounts) {
     childChain = await ChildChain.new()
 
     // receipt
-    const receipt = await childChain.addToken(rootToken.address, 18)
+    const receipt = await childChain.addToken(
+      rootToken.address,
+      'Token Test',
+      'TEST',
+      18
+    )
     childToken = ChildToken.at(receipt.logs[1].args.token.toLowerCase())
 
     // amount

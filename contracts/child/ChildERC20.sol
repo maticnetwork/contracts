@@ -3,21 +3,12 @@ pragma solidity ^0.4.24;
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
-// import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
-import { ERC20Burnable } from "openzeppelin-solidity/contracts/token/ERC20/ERC20Burnable.sol";
-
-import { ERC20Mintable } from "openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol";
-
-import "../token/StandardToken.sol";
+import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import { ERC20Detailed } from "openzeppelin-solidity/contracts/token/ERC20/ERC20Detailed.sol";
 
 
-contract ChildERC20 is ERC20Mintable, ERC20Burnable, Ownable {
+contract ChildERC20 is ERC20, ERC20Detailed, Ownable {
   using SafeMath for uint256;
-
-  // detailed ERC20
-  string public name;
-  string public symbol;
-  uint8  public decimals;
 
   // token address on root chain
   address public token;
@@ -56,11 +47,11 @@ contract ChildERC20 is ERC20Mintable, ERC20Burnable, Ownable {
   );
 
   // constructor
-  constructor (address _token, uint8 _decimals) public {
-    require(_token != address(0));
-
-    token = _token;
-    decimals = _decimals;
+  constructor (address _token, string _name, string _symbol, uint8 _decimals)
+    public
+    ERC20Detailed(_name, _symbol, _decimals) {
+      require(_token != address(0));
+      token = _token;
   }
 
   /**
@@ -77,8 +68,7 @@ contract ChildERC20 is ERC20Mintable, ERC20Burnable, Ownable {
     uint256 input1 = balanceOf(user);
 
     // increase balance
-    // balances[user] = balances[user].add(amount);
-    mint(user, amount);
+    _mint(user, amount);
 
     // deposit events
     emit Deposit(token, user, amount);
