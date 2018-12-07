@@ -1,15 +1,12 @@
 pragma solidity ^0.4.24;
 
-import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import { WETH } from "./WETH.sol";
 
 
-contract MaticWETH is ERC20 {
+contract MaticWETH is WETH {
   string public name = "Wrapped Ether";
   string public symbol = "WETH";
   uint8  public decimals = 18;
-
-  event Deposit(address indexed dst, uint256 wad);
-  event Withdrawal(address indexed src, uint256 wad);
 
   function deposit() public payable {
     _mint(msg.sender, msg.value);
@@ -18,8 +15,8 @@ contract MaticWETH is ERC20 {
 
   function withdraw(uint wad) public {
     require(balanceOf(msg.sender) >= wad);
-    // msg.sender.transfer(wad);?
     _burn(msg.sender, wad);
+    // msg.sender.transfer(wad);?
     emit Withdrawal(msg.sender, wad);
   }
 

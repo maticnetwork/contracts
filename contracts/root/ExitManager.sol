@@ -140,7 +140,7 @@ contract ExitManager is RootChainable {
   function _deleteExit(uint256 exitId) internal {
     ExitNFT exitNFT = ExitNFT(exitNFTContract);
     address owner = exitNFT.ownerOf(exitId);
-    exitNFT.burnFrom(owner, exitId);
+    exitNFT.burn(owner, exitId);
   }
 
   /**
@@ -170,7 +170,7 @@ contract ExitManager is RootChainable {
       address exitOwner = ExitNFT(exitNFTContract).ownerOf(utxoPos);
       if (exitOwner != address(0)) {
         // burn NFT first
-        ExitNFT(exitNFTContract).burnFrom(exitOwner, utxoPos);
+        ExitNFT(exitNFTContract).burn(exitOwner, utxoPos);
 
         // delete current exit if exit was "burnt"
         if (currentExit.burnt) {

@@ -92,10 +92,6 @@ contract('WithdrawManager', async function(accounts) {
         depositManager = await DepositManagerMock.new({ from: owner })
         withdrawManager = await WithdrawManagerMock.new({ from: owner })
 
-        await exitNFTContract.addMinter(withdrawManager.address, {
-          from: owner
-        })
-
         await depositManager.changeRootChain(rootChain.address, { from: owner })
         await withdrawManager.changeRootChain(rootChain.address, {
           from: owner
@@ -389,10 +385,6 @@ contract('WithdrawManager', async function(accounts) {
         // set withdraw manager as root chain for exit NFT
 
         await exitNFTContract.changeRootChain(withdrawManager.address, {
-          from: owner
-        })
-
-        await exitNFTContract.addMinter(withdrawManager.address, {
           from: owner
         })
 

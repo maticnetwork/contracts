@@ -9,12 +9,16 @@ import { ERC721Burnable } from "openzeppelin-solidity/contracts/token/ERC721/ERC
 import { RootChainable } from "../mixin/RootChainable.sol";
 
 
-contract ExitNFT is RootChainable, ERC721Mintable, ERC721Burnable, ERC721Full {
+contract ExitNFT is RootChainable, ERC721Full {
   constructor(string _name, string _symbol) public ERC721Full(_name, _symbol) {
 
   }
- 
-  function burnFrom(address _owner, uint256 _tokenId) public onlyMinter {
+  
+  function mint(address _owner, uint256 _tokenId) external onlyRootChain {
+    _mint(_owner, _tokenId);
+  }
+
+  function burn(address _owner, uint256 _tokenId) external onlyRootChain {
     _burn(_owner, _tokenId);
   }
 
