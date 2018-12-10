@@ -53,7 +53,7 @@ contract('ChildERC20', async function(accounts) {
       amount,
       0
     )
-    receipt.receipt.logs.should.have.lengthOf(4)
+    receipt.receipt.logs.should.have.lengthOf(3)
   })
 
   it('should not allow to withdraw more than amount', async function() {
@@ -66,7 +66,7 @@ contract('ChildERC20', async function(accounts) {
 
     // withdraw those tokens
     const receipt = await childToken.withdraw(amount)
-    receipt.logs.should.have.lengthOf(3)
+    receipt.logs.should.have.lengthOf(2)
 
     receipt.logs[0].event.should.equal('Transfer')
     receipt.logs[0].args.from.toLowerCase().should.equal(owner)
@@ -77,11 +77,6 @@ contract('ChildERC20', async function(accounts) {
     receipt.logs[1].args.token.should.equal(rootToken.address)
     receipt.logs[1].args.user.should.equal(owner)
     receipt.logs[1].args.amount.toString().should.equal(amount)
-
-    receipt.logs[2].event.should.equal('LogWithdraw')
-    receipt.logs[2].args.input1.should.be.bignumber.equal(amount)
-    receipt.logs[2].args.amount.should.be.bignumber.equal(amount)
-    receipt.logs[2].args.output1.should.be.bignumber.equal(0)
 
     const afterBalance = await childToken.balanceOf(owner)
     afterBalance.should.be.bignumber.equal(0)

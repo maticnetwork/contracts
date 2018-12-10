@@ -20,9 +20,9 @@ contract DepositValidator is RootChainValidator {
   // keccak256('TokenDeposited(address,address,address,uint256,uint256)')
   bytes32 constant public TOKEN_DEPOSITED_EVENT_SIGNATURE = 0xec3afb067bce33c5a294470ec5b29e6759301cd3928550490c6d48816cdc2f5d;
   // keccak256('Deposit(address,address,uint256)')
-  bytes32 constant public DEPOSIT_EVENT_SIGNATURE = 0x5548c837ab068cf56a2c2479df0882a4922fd203edb7517321831d95078c5f62;
-  // keccak256('LogDeposit(address,address,uint256,uint256,uint256)')
-  bytes32 constant public LOG_DEPOSIT_EVENT_SIGNATURE = 0xab14747d46633612ff5c029a3117f98ffb6506ebf31bab40972f911b7dd18891;
+  // bytes32 constant public DEPOSIT_EVENT_SIGNATURE = 0x5548c837ab068cf56a2c2479df0882a4922fd203edb7517321831d95078c5f62;
+  // keccak256('Deposit(address,address,uint256,uint256,uint256)')
+  bytes32 constant public DEPOSIT_EVENT_SIGNATURE = 0x4e2ca0515ed1aef1395f66b5303bb5d6f1bf9d61a353fa53f73f8ac9973fa9f6;
 
   // validate deposit
   function validateDepositTx(
@@ -185,8 +185,8 @@ contract DepositValidator is RootChainValidator {
       items.length == 4 &&
       items[3].toList().length == 3 &&
       _validateDataField(depositCount, rootToken, depositor, amount) &&
-      _validateDepositEvent(items[3].toList()[0].toList(), rootToken, childToken, depositor, amount) &&
-      _validateLogDepositEvent(items[3].toList()[1].toList(), rootToken, childToken, depositor, amount) &&
+      // _validateDepositEvent(items[3].toList()[0].toList(), rootToken, childToken, depositor, amount) &&
+      _validateDepositEvent(items[3].toList()[1].toList(), rootToken, childToken, depositor, amount) &&
       _validateTokenDepositedEvent(items[3].toList()[2].toList(), rootToken, childToken, depositor, amount)
     ) {
       return true;
@@ -218,33 +218,33 @@ contract DepositValidator is RootChainValidator {
     return false;
   }
 
+  // function _validateDepositEvent(
+  //   RLP.RLPItem[] items,
+  //   address rootToken,
+  //   address childToken,
+  //   address depositor,
+  //   uint256 amount
+  // ) internal returns (bool) {
+  //   if (items.length != 3) {
+  //     return false;
+  //   }
+
+  //   RLP.RLPItem[] memory topics = items[1].toList();
+  //   if (
+  //     topics.length == 3 &&
+  //     items[0].toAddress() == childToken &&
+  //     topics[0].toBytes32() == DEPOSIT_EVENT_SIGNATURE &&
+  //     BytesLib.toAddress(topics[1].toData(), 12) == rootToken &&
+  //     BytesLib.toAddress(topics[2].toData(), 12) == depositor &&
+  //     BytesLib.toUint(items[2].toData(), 0) == amount
+  //   ) {
+  //     return true;
+  //   }
+
+  //   return false;
+  // }
+
   function _validateDepositEvent(
-    RLP.RLPItem[] items,
-    address rootToken,
-    address childToken,
-    address depositor,
-    uint256 amount
-  ) internal returns (bool) {
-    if (items.length != 3) {
-      return false;
-    }
-
-    RLP.RLPItem[] memory topics = items[1].toList();
-    if (
-      topics.length == 3 &&
-      items[0].toAddress() == childToken &&
-      topics[0].toBytes32() == DEPOSIT_EVENT_SIGNATURE &&
-      BytesLib.toAddress(topics[1].toData(), 12) == rootToken &&
-      BytesLib.toAddress(topics[2].toData(), 12) == depositor &&
-      BytesLib.toUint(items[2].toData(), 0) == amount
-    ) {
-      return true;
-    }
-
-    return false;
-  }
-
-  function _validateLogDepositEvent(
     RLP.RLPItem[] items,
     address rootToken,
     address childToken,
@@ -259,7 +259,7 @@ contract DepositValidator is RootChainValidator {
     if (
       topics.length == 1 &&
       items[0].toAddress() == childToken &&
-      topics[0].toBytes32() == LOG_DEPOSIT_EVENT_SIGNATURE &&
+      topics[0].toBytes32() == DEPOSIT_EVENT_SIGNATURE &&
       BytesLib.toUint(items[2].toData(), 0) == amount &&
       BytesLib.toUint(items[2].toData(), 32).add(amount) == BytesLib.toUint(items[2].toData(), 64)
     ) {

@@ -16,10 +16,8 @@ contract ChildERC20 is ERC20, ERC20Detailed, Ownable {
   //
   // Events
   //
-  event Deposit(address indexed token, address indexed user, uint256 amount);
-  event Withdraw(address indexed token, address indexed user, uint256 amount);
 
-  event LogDeposit(
+  event Deposit(
     address indexed token,
     address indexed from,
     uint256 amount,
@@ -38,9 +36,9 @@ contract ChildERC20 is ERC20, ERC20Detailed, Ownable {
     uint256 output2
   );
 
-  event LogWithdraw(
+  event Withdraw(
     address indexed token,
-    address indexed from,
+    address indexed user,
     uint256 amount,
     uint256 input1,
     uint256 output1
@@ -71,8 +69,7 @@ contract ChildERC20 is ERC20, ERC20Detailed, Ownable {
     _mint(user, amount);
 
     // deposit events
-    emit Deposit(token, user, amount);
-    emit LogDeposit(token, user, amount, input1, balanceOf(user));
+    emit Deposit(token, user, amount, input1, balanceOf(user));
   }
 
   /**
@@ -82,20 +79,17 @@ contract ChildERC20 is ERC20, ERC20Detailed, Ownable {
    */
   function withdraw(uint256 amount) public {
     address user = msg.sender;
-
-    // check for amount
-    require(amount > 0 && balanceOf(user) >= amount);
-
     // input balance
     uint256 input1 = balanceOf(user);
 
+    // check for amount
+    require(amount > 0 && input1 >= amount);
+
     // decrease balance
-    // balances[user] = balances[user].sub(amount);
     _burn(user, amount);
 
     // withdraw event
-    emit Withdraw(token, user, amount);
-    emit LogWithdraw(token, user, amount, input1, balanceOf(user));
+    emit Withdraw(token, user, amount, input1, balanceOf(user));
   }
 
   /// @dev Function that is called when a user or another contract wants to transfer funds.
