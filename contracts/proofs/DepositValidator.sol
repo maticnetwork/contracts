@@ -19,8 +19,6 @@ contract DepositValidator is RootChainValidator {
   bytes4 constant public DEPOSIT_TOKENS_SIGNATURE = 0x487cda0d;
   // keccak256('TokenDeposited(address,address,address,uint256,uint256)')
   bytes32 constant public TOKEN_DEPOSITED_EVENT_SIGNATURE = 0xec3afb067bce33c5a294470ec5b29e6759301cd3928550490c6d48816cdc2f5d;
-  // keccak256('Deposit(address,address,uint256)')
-  // bytes32 constant public DEPOSIT_EVENT_SIGNATURE = 0x5548c837ab068cf56a2c2479df0882a4922fd203edb7517321831d95078c5f62;
   // keccak256('Deposit(address,address,uint256,uint256,uint256)')
   bytes32 constant public DEPOSIT_EVENT_SIGNATURE = 0x4e2ca0515ed1aef1395f66b5303bb5d6f1bf9d61a353fa53f73f8ac9973fa9f6;
 

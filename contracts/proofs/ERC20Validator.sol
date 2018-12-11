@@ -17,16 +17,15 @@ contract ERC20Validator is RootChainValidator {
   // 0xa9059cbb = keccak256('transfer(address,uint256)')
   bytes4 constant public TRANSFER_SIGNATURE = 0xa9059cbb;
 
-  // keccak256('Withdraw(address,address,uint256)')
-  // bytes32 constant public WITHDRAW_EVENT_SIGNATURE = 0x9b1bfa7fa9ee420a16e124f794c35ac9f90472acc99140eb2f6447c714cad8eb;
   // keccak256('Transfer(address,address,uint256)')
   bytes32 constant public TRANSFER_EVENT_SIGNATURE = 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef;
   // keccak256('Approval(address,address,uint256)')
   bytes32 constant public APPROVAL_EVENT_SIGNATURE = 0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925;
-  // keccak256('LogDeposit(uint256,uint256,uint256)')
-  bytes32 constant public LOG_DEPOSIT_EVENT_SIGNATURE = 0xd5f41a4c53ae8d3f972ea59f65a253e16b5fca34ab8e51869011143e11f2ef20;
-  // keccak256('LogWithdraw(uint256,uint256,uint256)')
-  // bytes32 constant public LOG_WITHDRAW_EVENT_SIGNATURE = 0x3228bf4a0d547ed34051296b931fce02a1927888b6bc3dfbb85395d0cca1e9e0;
+  // keccak256('Deposit(address,address,uint256,uint256,uint256)')
+  bytes32 constant public DEPOSIT_EVENT_SIGNATURE = 0x4e2ca0515ed1aef1395f66b5303bb5d6f1bf9d61a353fa53f73f8ac9973fa9f6;
+  // keccak256('Withdraw(address,address,uint256,uint256,uint256)')
+  bytes32 constant private WITHDRAW_EVENT_SIGNATURE = 0xebff2602b3f468259e1e99f613fed6691f3a6526effe6ef3e768ba7ae7a36c4f;
+
   // keccak256('LogTransfer(address,address,address,uint256,uint256,uint256,uint256,uint256)')
   bytes32 constant public LOG_TRANSFER_EVENT_SIGNATURE = 0xe6497e3ee548a3372136af2fcb0696db31fc6cf20260707645068bd3fe97f3c4;
 
