@@ -3,16 +3,12 @@ pragma solidity ^0.4.24;
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
-import "../token/StandardToken.sol";
+import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import { ERC20Detailed } from "openzeppelin-solidity/contracts/token/ERC20/ERC20Detailed.sol";
 
 
-contract ChildERC20 is StandardToken, Ownable {
+contract ChildERC20 is ERC20, ERC20Detailed, Ownable {
   using SafeMath for uint256;
-
-  // detailed ERC20
-  string public name;
-  string public symbol;
-  uint8  public decimals;
 
   // token address on root chain
   address public token;
@@ -20,10 +16,8 @@ contract ChildERC20 is StandardToken, Ownable {
   //
   // Events
   //
-  event Deposit(address indexed token, address indexed user, uint256 amount);
-  event Withdraw(address indexed token, address indexed user, uint256 amount);
 
-  event LogDeposit(
+  event Deposit(
     address indexed token,
     address indexed from,
     uint256 amount,
@@ -42,20 +36,20 @@ contract ChildERC20 is StandardToken, Ownable {
     uint256 output2
   );
 
-  event LogWithdraw(
+  event Withdraw(
     address indexed token,
-    address indexed from,
+    address indexed user,
     uint256 amount,
     uint256 input1,
     uint256 output1
   );
 
   // constructor
-  constructor (address _token, uint8 _decimals) public {
-    require(_token != address(0));
-
-    token = _token;
-    decimals = _decimals;
+  constructor (address _token, string _name, string _symbol, uint8 _decimals)
+    public
+    ERC20Detailed(_name, _symbol, _decimals) {
+      require(_token != address(0));
+      token = _token;
   }
 
   /**
@@ -72,11 +66,10 @@ contract ChildERC20 is StandardToken, Ownable {
     uint256 input1 = balanceOf(user);
 
     // increase balance
-    balances[user] = balances[user].add(amount);
+    _mint(user, amount);
 
     // deposit events
-    emit Deposit(token, user, amount);
-    emit LogDeposit(token, user, amount, input1, balanceOf(user));
+    emit Deposit(token, user, amount, input1, balanceOf(user));
   }
 
   /**
@@ -86,19 +79,17 @@ contract ChildERC20 is StandardToken, Ownable {
    */
   function withdraw(uint256 amount) public {
     address user = msg.sender;
-
-    // check for amount
-    require(amount > 0 && balances[user] >= amount);
-
     // input balance
     uint256 input1 = balanceOf(user);
 
+    // check for amount
+    require(amount > 0 && input1 >= amount);
+
     // decrease balance
-    balances[user] = balances[user].sub(amount);
+    _burn(user, amount);
 
     // withdraw event
-    emit Withdraw(token, user, amount);
-    emit LogWithdraw(token, user, amount, input1, balanceOf(user));
+    emit Withdraw(token, user, amount, input1, balanceOf(user));
   }
 
   /// @dev Function that is called when a user or another contract wants to transfer funds.

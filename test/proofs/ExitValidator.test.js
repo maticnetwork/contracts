@@ -91,8 +91,13 @@ contract('ExitValidator', async function(accounts) {
 
         // child chain
         childChain = await ChildChain.new()
-        const receipt = await childChain.addToken(rootToken.address, 18)
-        childToken = ChildToken.at(receipt.logs[0].args.token)
+        const receipt = await childChain.addToken(
+          rootToken.address,
+          'Token Test',
+          'TEST',
+          18
+        )
+        childToken = ChildToken.at(receipt.logs[1].args.token.toLowerCase())
 
         // exit validator
         exitValidator = await ExitValidator.new()
@@ -250,9 +255,9 @@ contract('ExitValidator', async function(accounts) {
         // set tokenId
         exitLogs[0].event.should.equal('Transfer')
         exitLogs[0].address.should.equal(exitNFTContract.address)
-        exitLogs[0].args._to.toLowerCase().should.equal(user)
+        exitLogs[0].args.to.toLowerCase().should.equal(user)
 
-        exitId = exitLogs[0].args._tokenId.toString()
+        exitId = exitLogs[0].args.tokenId.toString()
 
         exitLogs[1].event.should.equal('ExitStarted')
         exitLogs[1].address.should.equal(withdrawManager.address)
@@ -330,9 +335,9 @@ contract('ExitValidator', async function(accounts) {
 
         const logs = logDecoder.decodeLogs(challengeReceipt.receipt.logs)
         logs.should.have.lengthOf(1)
-        logs[0].args._from.toLowerCase().should.equal(accounts[9])
-        logs[0].args._to.should.equal(ZeroAddress)
-        logs[0].args._tokenId.should.be.bignumber.equal(exitId)
+        logs[0].args.from.toLowerCase().should.equal(accounts[9])
+        logs[0].args.to.should.equal(ZeroAddress)
+        logs[0].args.tokenId.should.be.bignumber.equal(exitId)
       })
 
       it('should pass (added for sanity)', async function() {

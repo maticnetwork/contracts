@@ -52,13 +52,15 @@ contract ChildChain is Ownable {
 
   function addToken(
     address _rootToken,
+    string _name,
+    string _symbol,
     uint8 _decimals
   ) public onlyOwner returns (address token) {
     // check if root token already exists
     require(tokens[_rootToken] == address(0x0));
 
     // create new token contract
-    token = new ChildERC20(_rootToken, _decimals);
+    token = new ChildERC20(_rootToken, _name, _symbol, _decimals);
 
     // add mapping with root token
     tokens[_rootToken] = token;

@@ -1,12 +1,12 @@
 pragma solidity ^0.4.24;
 
-import { StandardToken as ZeppelinStandardToken } from "openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
+import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 
 import "./ContractReceiver.sol";
 
 
 /// @title Standard token contract - Standard token implementation.
-contract StandardToken is ZeppelinStandardToken {
+contract StandardToken is ERC20 {
 
   /// @dev Transfers sender's tokens to a given address
   /// @param _to Address of token receiver.

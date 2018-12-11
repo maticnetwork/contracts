@@ -212,7 +212,7 @@ contract ExitManager is RootChainable {
     require(_exitObject.amount > 0);
 
     // Calculate priority.
-    uint256 exitableAt = Math.max256(_createdAt + 2 weeks, block.timestamp + 1 weeks);
+    uint256 exitableAt = Math.max(_createdAt + 2 weeks, block.timestamp + 1 weeks);
 
     // Check exit is valid and doesn't already exist.
     require(_exitObject.amount > 0);
