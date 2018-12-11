@@ -183,7 +183,6 @@ contract DepositValidator is RootChainValidator {
       items.length == 4 &&
       items[3].toList().length == 3 &&
       _validateDataField(depositCount, rootToken, depositor, amount) &&
-      // _validateDepositEvent(items[3].toList()[0].toList(), rootToken, childToken, depositor, amount) &&
       _validateDepositEvent(items[3].toList()[1].toList(), rootToken, childToken, depositor, amount) &&
       _validateTokenDepositedEvent(items[3].toList()[2].toList(), rootToken, childToken, depositor, amount)
     ) {
@@ -215,32 +214,6 @@ contract DepositValidator is RootChainValidator {
     }
     return false;
   }
-
-  // function _validateDepositEvent(
-  //   RLP.RLPItem[] items,
-  //   address rootToken,
-  //   address childToken,
-  //   address depositor,
-  //   uint256 amount
-  // ) internal returns (bool) {
-  //   if (items.length != 3) {
-  //     return false;
-  //   }
-
-  //   RLP.RLPItem[] memory topics = items[1].toList();
-  //   if (
-  //     topics.length == 3 &&
-  //     items[0].toAddress() == childToken &&
-  //     topics[0].toBytes32() == DEPOSIT_EVENT_SIGNATURE &&
-  //     BytesLib.toAddress(topics[1].toData(), 12) == rootToken &&
-  //     BytesLib.toAddress(topics[2].toData(), 12) == depositor &&
-  //     BytesLib.toUint(items[2].toData(), 0) == amount
-  //   ) {
-  //     return true;
-  //   }
-
-  //   return false;
-  // }
 
   function _validateDepositEvent(
     RLP.RLPItem[] items,

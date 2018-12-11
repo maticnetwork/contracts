@@ -104,7 +104,7 @@ contract('ExitValidator', async function(accounts) {
         rootChain = await RootChainMock.new(rootToken.address) // dummy address for stakemanager
         depositManager = await DepositManagerMock.new({ from: owner })
         withdrawManager = await WithdrawManagerMock.new({ from: owner })
-        
+
         await exitValidator.changeRootChain(rootChain.address, { from: owner })
 
         childBlockInterval = await withdrawManager.CHILD_BLOCK_INTERVAL()

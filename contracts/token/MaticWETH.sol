@@ -24,7 +24,6 @@ contract MaticWETH is WETH {
     require(balanceOf(msg.sender)>= wad);
     user.transfer(wad);
     _burn(msg.sender, wad);
-    
     emit Withdrawal(user, wad);
   }
 }
