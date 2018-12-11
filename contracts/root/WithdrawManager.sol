@@ -395,13 +395,13 @@ contract WithdrawManager is IManager, ExitManager {
     RLP.RLPItem[] memory items = receiptBytes.toRLPItem().toList();
     require(items.length == 4);
 
-    // [3][0] -> [child token address, [WITHDRAW_EVENT_SIGNATURE, root token address, sender], amount]
+    // [3][1] -> [child token address, [WITHDRAW_EVENT_SIGNATURE, root token address, sender], amount]
     items = items[3].toList()[1].toList();
     require(items.length == 3);
     address childToken = items[0].toAddress(); // child token address
     amount = BytesLib.toUint(items[2].toData(), 0); // amount
 
-    // [3][0][1] -> [WITHDRAW_EVENT_SIGNATURE, root token address, sender]
+    // [3][1][1] -> [WITHDRAW_EVENT_SIGNATURE, root token address, sender]
     items = items[1].toList();
     require(items.length == 3);
     require(items[0].toBytes32() == WITHDRAW_EVENT_SIGNATURE); // check for withdraw event signature
