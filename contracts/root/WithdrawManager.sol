@@ -30,8 +30,8 @@ contract WithdrawManager is IManager, ExitManager {
   bytes4 constant private WITHDRAW_SIGNATURE = 0x2e1a7d4d;
   // 0xa9059cbb = keccak256('transfer(address,uint256)')
   bytes4 constant private TRANSFER_SIGNATURE = 0xa9059cbb;
-  // keccak256('Withdraw(address,address,uint256)')
-  bytes32 constant private WITHDRAW_EVENT_SIGNATURE = 0x9b1bfa7fa9ee420a16e124f794c35ac9f90472acc99140eb2f6447c714cad8eb;
+  // keccak256('Withdraw(address,address,uint256,uint256,uint256)')
+  bytes32 constant private WITHDRAW_EVENT_SIGNATURE = 0xebff2602b3f468259e1e99f613fed6691f3a6526effe6ef3e768ba7ae7a36c4f;
 
   //
   // Storage
@@ -396,13 +396,13 @@ contract WithdrawManager is IManager, ExitManager {
     RLP.RLPItem[] memory items = receiptBytes.toRLPItem().toList();
     require(items.length == 4);
 
-    // [3][0] -> [child token address, [WITHDRAW_EVENT_SIGNATURE, root token address, sender], amountOrTokenId]
-    items = items[3].toList()[0].toList();
+    // [3][1] -> [child token address, [WITHDRAW_EVENT_SIGNATURE, root token address, sender], amount]
+    items = items[3].toList()[1].toList();
     require(items.length == 3);
     address childToken = items[0].toAddress(); // child token address
-    amountOrTokenId = items[2].toUint(); // amountOrTokenId
+    amount = BytesLib.toUint(items[2].toData(), 0); // amount
 
-    // [3][0][1] -> [WITHDRAW_EVENT_SIGNATURE, root token address, sender]
+    // [3][1][1] -> [WITHDRAW_EVENT_SIGNATURE, root token address, sender]
     items = items[1].toList();
     require(items.length == 3);
     require(items[0].toBytes32() == WITHDRAW_EVENT_SIGNATURE); // check for withdraw event signature
