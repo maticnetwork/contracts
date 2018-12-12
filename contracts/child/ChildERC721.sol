@@ -24,14 +24,14 @@ contract ChildERC721 is ChildToken, ERC721Full {
   function deposit(address user, uint256 tokenId) public onlyOwner {
     // check for amount and user
     require(user != address(0x0));
-    uint256 input1 = balanceOf(user);
+    uint256 input = balanceOf(user);
 
     _mint(user, tokenId);
 
     require(ownerOf(tokenId) == user);
 
     // deposit event
-    emit Deposit(token, user, tokenId, input1, balanceOf(user));
+    emit Deposit(token, user, tokenId, input, balanceOf(user));
   }
 
   /**
@@ -51,23 +51,23 @@ contract ChildERC721 is ChildToken, ERC721Full {
     emit Withdraw(token, user, tokenId, input1, balanceOf(user));
   }
 
-  function transferFrom(address _from, address _to, uint256 tokeId) public {
-    uint256 _input1 = balanceOf(_from);
-    uint256 _input2 = balanceOf(_to);
+  function transferFrom(address from, address to, uint256 tokeId) public {
+    uint256 input1 = balanceOf(from);
+    uint256 input2 = balanceOf(to);
 
     // actual transfer
-    super.transferFrom(_from, _to, tokeId);
+    super.transferFrom(from, to, tokeId);
 
     // log balance
     emit LogTransfer(
       token,
-      _from,
-      _to,
+      from,
+      to,
       tokeId,
-      _input1,
-      _input2,
-      balanceOf(_from),
-      balanceOf(_to)
+      input1,
+      input2,
+      balanceOf(from),
+      balanceOf(to)
     );
   }
   

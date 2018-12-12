@@ -33,7 +33,8 @@ contract('ChildERC20', async function(accounts) {
       rootToken.address,
       'Token Test',
       'TEST',
-      18
+      18,
+      false
     )
     childToken = ChildERC20.at(receipt.logs[1].args.token.toLowerCase())
 
@@ -75,8 +76,8 @@ contract('ChildERC20', async function(accounts) {
 
     receipt.logs[1].event.should.equal('Withdraw')
     receipt.logs[1].args.token.should.equal(rootToken.address)
-    receipt.logs[1].args.user.should.equal(owner)
-    receipt.logs[1].args.amount.toString().should.equal(amount)
+    receipt.logs[1].args.from.should.equal(owner)
+    receipt.logs[1].args.amountOrTokenId.toString().should.equal(amount)
 
     const afterBalance = await childToken.balanceOf(owner)
     afterBalance.should.be.bignumber.equal(0)

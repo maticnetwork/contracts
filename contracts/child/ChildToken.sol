@@ -40,10 +40,8 @@ contract ChildToken is Ownable {
     uint256 output1
   );
 
-  function deposit(address user, uint256 tokenId) public onlyOwner;
+  function deposit(address user, uint256 amountOrTokenId) public onlyOwner;
 
-  function withdraw(uint256 tokenId) public;
-
-  function transferFrom(address _from, address _to, uint256 tokeId) public;
+  function withdraw(uint256 amountOrTokenId) public;
 
 }
