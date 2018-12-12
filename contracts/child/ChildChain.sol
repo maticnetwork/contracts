@@ -3,6 +3,7 @@ pragma solidity ^0.4.24;
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "./ChildERC20.sol";
+import "./ChildERC721.sol";
 
 
 contract ChildChain is Ownable {
@@ -14,6 +15,7 @@ contract ChildChain is Ownable {
 
   // mapping for (root token => child token)
   mapping(address => address) public tokens;
+  mapping(address => bool) public isERC721;
 
   // deposit mapping
   mapping(uint256 => bool) public deposits;
@@ -54,13 +56,19 @@ contract ChildChain is Ownable {
     address _rootToken,
     string _name,
     string _symbol,
-    uint8 _decimals
+    uint8 _decimals,
+    bool _isERC721
   ) public onlyOwner returns (address token) {
     // check if root token already exists
     require(tokens[_rootToken] == address(0x0));
 
     // create new token contract
-    token = new ChildERC20(_rootToken, _name, _symbol, _decimals);
+    if (_isERC721) {
+      token = new ChildERC721(_rootToken, _name, _symbol);
+      isERC721[_rootToken] = true;
+    } else {
+      token = new ChildERC20(_rootToken, _name, _symbol, _decimals);
+    }
 
     // add mapping with root token
     tokens[_rootToken] = token;
@@ -68,11 +76,11 @@ contract ChildChain is Ownable {
     // broadcast new token's event
     emit NewToken(_rootToken, token, _decimals);
   }
-
+ 
   function depositTokens(
     address rootToken,
     address user,
-    uint256 amount,
+    uint256 amountOrTokenId,
     uint256 depositCount
   ) public onlyOwner {
     // check if deposit happens only once
@@ -86,19 +94,24 @@ contract ChildChain is Ownable {
 
     // check if child token is mapped
     require(childToken != address(0x0));
-
+    
     // deposit tokens
-    ChildERC20 obj = ChildERC20(childToken);
-    obj.deposit(user, amount);
+    if (isERC721[rootToken]) {
+      ChildERC721 obj1 = ChildERC721(childToken);
+      obj1.deposit(user, amountOrTokenId);
+    } else {
+      ChildERC20 obj = ChildERC20(childToken);
+      obj.deposit(user, amountOrTokenId);
+    }
 
     // Emit TokenDeposited event
-    emit TokenDeposited(rootToken, childToken, user, amount, depositCount);
+    emit TokenDeposited(rootToken, childToken, user, amountOrTokenId, depositCount);
   }
 
   function withdrawTokens(
     address rootToken,
     address user,
-    uint256 amount,
+    uint256 amountOrTokenId,
     uint256 withdrawCount
   ) public onlyOwner {
     // check if withdrawal happens only once
@@ -112,12 +125,17 @@ contract ChildChain is Ownable {
 
     // check if child token is mapped
     require(childToken != address(0x0));
-
+    
     // withdraw tokens
-    ChildERC20 obj = ChildERC20(childToken);
-    obj.withdraw(amount);
+    if (isERC721[rootToken]) {
+      ChildERC721 obj1 = ChildERC721(childToken);
+      obj1.withdraw(amountOrTokenId);
+    } else {
+      ChildERC20 obj = ChildERC20(childToken);
+      obj.withdraw(amountOrTokenId);
+    }
 
     // Emit TokenWithdrawn event
-    emit TokenWithdrawn(rootToken, childToken, user, amount, withdrawCount);
+    emit TokenWithdrawn(rootToken, childToken, user, amountOrTokenId, withdrawCount);
   }
 }
