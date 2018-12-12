@@ -287,7 +287,8 @@ contract RootChain is Ownable, IRootChain {
     address _user,
     uint256 _tokenId) public {
     // transfer tokens to current contract
-    require(ERC721(_token).transferFrom(msg.sender, address(this), _tokenId));
+    ERC721(_token).transferFrom(msg.sender, address(this), _tokenId);
+    require(ERC721(_token).ownerOf(_tokenId) == msg.sender); // checkowner or something
 
     // generate deposit block and udpate counter
     depositManager.createDepositBlock(_currentHeaderBlock, _token, _user, _tokenId);

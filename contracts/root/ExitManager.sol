@@ -27,7 +27,7 @@ contract ExitManager is RootChainable {
   struct PlasmaExit {
     address owner;
     address token;
-    uint256 amount;
+    uint256 amountOrTokenId;
     bool burnt;
   }
 
@@ -80,7 +80,7 @@ contract ExitManager is RootChainable {
     return (
       exits[_utxoPos].owner,
       exits[_utxoPos].token,
-      exits[_utxoPos].amount,
+      exits[_utxoPos].amountOrTokenId,
       exits[_utxoPos].burnt
     );
   }
@@ -177,10 +177,10 @@ contract ExitManager is RootChainable {
           delete ownerExits[_token][currentExit.owner];
         }
 
-        IRootChain(rootChain).transferAmount(_token, exitOwner, currentExit.amount, _token == wethToken);
+        IRootChain(rootChain).transferAmount(_token, exitOwner, currentExit.amountOrTokenId, _token == wethToken);
 
         // broadcast withdraw events
-        emit Withdraw(exitOwner, _token, currentExit.amount);
+        emit Withdraw(exitOwner, _token, currentExit.amountOrTokenId);
 
         // Delete owner but keep amount to prevent another exit from the same UTXO.
         // delete exits[utxoPos].owner;
@@ -209,14 +209,14 @@ contract ExitManager is RootChainable {
     require(ownerExits[_exitObject.token][_exitObject.owner] == 0);
 
     // validate amount
-    require(_exitObject.amount > 0);
+    // require(_exitObject.amountOrTokenId > 0);
 
     // Calculate priority.
     uint256 exitableAt = Math.max(_createdAt + 2 weeks, block.timestamp + 1 weeks);
 
     // Check exit is valid and doesn't already exist.
-    require(_exitObject.amount > 0);
-    require(exits[_utxoPos].amount == 0);
+    // require(_exitObject.amountOrTokenId > 0);
+    require(exits[_utxoPos].amountOrTokenId == 0);
 
     PriorityQueue queue = PriorityQueue(exitsQueues[_exitObject.token]);
     queue.insert(exitableAt, _utxoPos);
@@ -229,6 +229,6 @@ contract ExitManager is RootChainable {
     ownerExits[_exitObject.token][_exitObject.owner] = _utxoPos;
 
     // emit exit started event
-    emit ExitStarted(_exitObject.owner, _utxoPos, _exitObject.token, _exitObject.amount);
+    emit ExitStarted(_exitObject.owner, _utxoPos, _exitObject.token, _exitObject.amountOrTokenId);
   }
 }

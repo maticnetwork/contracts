@@ -19,25 +19,25 @@ contract ChildERC721 is ERC721Full, ERC721Mintable, ERC721Burnable, Ownable {
   // Events
   //
 
-  event LogDepositERC721(
+  event DepositERC721(
     address indexed token,
-    uint256 indexed tokenId,
     address indexed from,
+    uint256 indexed tokenId,
     uint256 count // count of owned NFT
   );
 
   event LogTransferERC721(
     address indexed token,
-    uint256 indexed tokenId,
     address indexed from,
     address indexed to,
+    uint256 tokenId,
     uint256 input1,
     uint256 input2,
     uint256 output1,
     uint256 output2
   );
 
-  event LogWithdrawERC721(
+  event WithdrawERC721(
     address indexed token,
     address indexed from,
     uint256 tokenId,
@@ -54,61 +54,61 @@ contract ChildERC721 is ERC721Full, ERC721Mintable, ERC721Burnable, Ownable {
     token = _token;
   }
 
+
   /**
    * Deposit tokens
    *
    * @param user address for address
-   * @param amount token balance
+   * @param tokenId token balance
    */
   function deposit(address user, uint256 tokenId) public onlyOwner {
     // check for amount and user
     require(user != address(0x0));
+    _mint(user, tokenId);
 
-    require(ownerOf(tokenId) == address(0x0));
-    require(mint(user, tokenId));
+    require(ownerOf(tokenId) == user);
 
     // deposit events
     // emit Deposit(token, user, amount);
-    emit LogDeposit(token, user, tokenId, balanceOf(user));
+    emit DepositERC721(token, user, tokenId, balanceOf(user));
   }
 
   /**
    * Withdraw tokens
    *
-   * @param amount tokens
+   * @param tokenId tokens
    */
   function withdraw(uint256 tokenId) public {
     require(ownerOf(tokenId) == msg.sender);
 
     address user = msg.sender;
+    uint256 input1 = balanceOf(user);
 
-    burn(tokenId);
+    _burn(user, tokenId);
 
     // withdraw event
     // emit Withdraw(token, user, amount);
-    emit LogWithdraw(token, user, tokenId, balanceOf(user));
+    emit WithdrawERC721(token, user, tokenId, input1, balanceOf(user));
   }
 
-  function transferFrom(address _from, address _to, uint256 tokeId) public returns (bool) {
+  function transferFrom(address _from, address _to, uint256 tokeId) public {
     uint256 _input1 = balanceOf(_from);
     uint256 _input2 = balanceOf(_to);
 
     // actual transfer
-    bool result = super.transferFrom(_from, _to, tokeId);
+    super.transferFrom(_from, _to, tokeId);
 
     // log balance
-    emit LogTransfer(
+    emit LogTransferERC721(
       token,
       _from,
       _to,
-      _value,
+      tokeId,
       _input1,
       _input2,
       balanceOf(_from),
       balanceOf(_to)
     );
-
-    return result;
   }
   
 }

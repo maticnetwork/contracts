@@ -122,7 +122,7 @@ contract WithdrawManager is IManager, ExitManager {
     PlasmaExit memory _exitObject = PlasmaExit({
       owner: msg.sender,
       token: rootToken,
-      amount: receiptAmountOrTokenId,
+      amountOrTokenId: receiptAmountOrTokenId,
       burnt: true
     });
 
@@ -400,7 +400,7 @@ contract WithdrawManager is IManager, ExitManager {
     items = items[3].toList()[1].toList();
     require(items.length == 3);
     address childToken = items[0].toAddress(); // child token address
-    amount = BytesLib.toUint(items[2].toData(), 0); // amount
+    amountOrTokenId = BytesLib.toUint(items[2].toData(), 0); // amount
 
     // [3][1][1] -> [WITHDRAW_EVENT_SIGNATURE, root token address, sender]
     items = items[1].toList();
