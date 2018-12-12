@@ -1,48 +1,12 @@
 pragma solidity ^0.4.24;
 
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import { ERC20Detailed } from "openzeppelin-solidity/contracts/token/ERC20/ERC20Detailed.sol";
 
+import "./ChildToken.sol";
 
-contract ChildERC20 is ERC20, ERC20Detailed, Ownable {
-  using SafeMath for uint256;
-
-  // token address on root chain
-  address public token;
-
-  //
-  // Events
-  //
-
-  event Deposit(
-    address indexed token,
-    address indexed from,
-    uint256 amount,
-    uint256 input1,
-    uint256 output1
-  );
-
-  event LogTransfer(
-    address indexed token,
-    address indexed from,
-    address indexed to,
-    uint256 amount,
-    uint256 input1,
-    uint256 input2,
-    uint256 output1,
-    uint256 output2
-  );
-
-  event Withdraw(
-    address indexed token,
-    address indexed user,
-    uint256 amount,
-    uint256 input1,
-    uint256 output1
-  );
+contract ChildERC20 is ChildToken, ERC20, ERC20Detailed {
 
   // constructor
   constructor (address _token, string _name, string _symbol, uint8 _decimals)
