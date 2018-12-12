@@ -7,5 +7,8 @@ import { ERC721Burnable } from "openzeppelin-solidity/contracts/token/ERC721/ERC
 
 
 contract RootERC721 is ERC721Full, ERC721Mintable, ERC721Burnable {
-
+  constructor (string name, string symbol) ERC721Full(name, symbol)
+    public 
+    {
+  }
 }
