@@ -109,7 +109,8 @@ contract('WithdrawManager', async function(accounts) {
           rootToken.address,
           'Token Test',
           'TEST',
-          18
+          18,
+          false
         )
         childToken = ChildERC20.at(receipt.logs[1].args.token.toLowerCase())
 
@@ -123,7 +124,7 @@ contract('WithdrawManager', async function(accounts) {
         })
 
         // map token
-        await rootChain.mapToken(rootToken.address, childToken.address, {
+        await rootChain.mapToken(rootToken.address, childToken.address, false, {
           from: owner
         })
       })
@@ -375,7 +376,8 @@ contract('WithdrawManager', async function(accounts) {
           rootToken.address,
           'Token Test',
           'TEST',
-          18
+          18,
+          false
         )
         childToken = ChildERC20.at(receipt.logs[0].args.token)
 
@@ -389,7 +391,7 @@ contract('WithdrawManager', async function(accounts) {
         })
 
         // map token
-        await rootChain.mapToken(rootToken.address, childToken.address, {
+        await rootChain.mapToken(rootToken.address, childToken.address, false, {
           from: owner
         })
       })

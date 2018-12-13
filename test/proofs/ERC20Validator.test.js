@@ -70,6 +70,7 @@ contract('ERC20Validator', async function(accounts) {
         'Token Test',
         'TEST',
         18,
+        false,
         {
           from: user
         }
@@ -95,7 +96,7 @@ contract('ERC20Validator', async function(accounts) {
       await withdrawManager.setDepositManager(depositManager.address)
 
       // map token
-      await rootChain.mapToken(rootToken.address, childToken.address, {
+      await rootChain.mapToken(rootToken.address, childToken.address, false, {
         from: owner
       })
     })

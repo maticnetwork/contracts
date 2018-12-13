@@ -48,7 +48,7 @@ contract('DepositManager', async function(accounts) {
     await rootChain.setDepositManager(depositManager.address, { from: owner })
 
     // map token
-    await depositManager.mapToken(rootToken.address, childToken.address)
+    await depositManager.mapToken(rootToken.address, childToken.address, false)
   })
 
   describe('token deposits', async function() {

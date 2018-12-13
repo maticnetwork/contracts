@@ -22,7 +22,7 @@ contract('TokenManager', async function(accounts) {
 
   it('should allow owner to map token', async function() {
     const [rootToken, childToken] = accounts.slice(1)
-    const receipt = await tokenManager.mapToken(rootToken, childToken, {
+    const receipt = await tokenManager.mapToken(rootToken, childToken, false, {
       from: owner
     })
 

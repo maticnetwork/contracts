@@ -33,9 +33,16 @@ contract('ChildChain', async function(accounts) {
   })
 
   it('should allow only owner to add new token ', async function() {
-    await childChainContract.addToken(rootToken.address, 'Token S', 'STX', 18, {
-      from: accounts[1]
-    }).should.be.rejected
+    await childChainContract.addToken(
+      rootToken.address,
+      'Token S',
+      'STX',
+      18,
+      false,
+      {
+        from: accounts[1]
+      }
+    ).should.be.rejected
 
     await childChainContract
       .tokens(rootToken.address)
@@ -47,7 +54,8 @@ contract('ChildChain', async function(accounts) {
       rootToken.address,
       'Token One',
       'OTX',
-      18
+      18,
+      false
     )
     const logs = logDecoder.decodeLogs(receipt.receipt.logs)
     logs.should.have.lengthOf(2)
@@ -78,10 +86,22 @@ contract('ChildChain', async function(accounts) {
 
   it('should not allow to add new token again', async function() {
     // add token
-    await childChainContract.addToken(rootToken.address, 'Token One', 'OTX', 18)
+    await childChainContract.addToken(
+      rootToken.address,
+      'Token One',
+      'OTX',
+      18,
+      false
+    )
 
     // add again
-    await childChainContract.addToken(rootToken.address, 18).should.be.rejected
+    await childChainContract.addToken(
+      rootToken.address,
+      'a',
+      'b',
+      18,
+      false
+    ).should.be.rejected
   })
 
   it('should check true (safety check)', async function() {
