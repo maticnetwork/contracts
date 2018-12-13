@@ -2,6 +2,8 @@ pragma solidity ^0.4.24;
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+
+import "./ChildToken.sol";
 import "./ChildERC20.sol";
 import "./ChildERC721.sol";
 
@@ -15,6 +17,7 @@ contract ChildChain is Ownable {
 
   // mapping for (root token => child token)
   mapping(address => address) public tokens;
+
   mapping(address => bool) public isERC721;
 
   // deposit mapping
@@ -95,14 +98,16 @@ contract ChildChain is Ownable {
     // check if child token is mapped
     require(childToken != address(0x0));
     
-    // deposit tokens
+    ChildToken obj;
+
     if (isERC721[rootToken]) {
-      ChildERC721 obj1 = ChildERC721(childToken);
-      obj1.deposit(user, amountOrTokenId);
+      obj = ChildERC721(childToken);
     } else {
-      ChildERC20 obj = ChildERC20(childToken);
-      obj.deposit(user, amountOrTokenId);
+      obj = ChildERC20(childToken);
     }
+
+    // deposit tokens
+    obj.deposit(user, amountOrTokenId);
 
     // Emit TokenDeposited event
     emit TokenDeposited(rootToken, childToken, user, amountOrTokenId, depositCount);
@@ -126,14 +131,15 @@ contract ChildChain is Ownable {
     // check if child token is mapped
     require(childToken != address(0x0));
     
-    // withdraw tokens
+    ChildToken obj;
+
     if (isERC721[rootToken]) {
-      ChildERC721 obj1 = ChildERC721(childToken);
-      obj1.withdraw(amountOrTokenId);
+      obj = ChildERC721(childToken);
     } else {
-      ChildERC20 obj = ChildERC20(childToken);
-      obj.withdraw(amountOrTokenId);
+      obj = ChildERC20(childToken);
     }
+    // withdraw tokens
+    obj.withdraw(amountOrTokenId);
 
     // Emit TokenWithdrawn event
     emit TokenWithdrawn(rootToken, childToken, user, amountOrTokenId, withdrawCount);
