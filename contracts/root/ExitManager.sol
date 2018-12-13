@@ -23,6 +23,8 @@ contract ExitManager is RootChainable {
   // Storage
   //
 
+  DepositManager public depositManager;
+
   // structure for plasma exit
   struct PlasmaExit {
     address owner;
@@ -131,7 +133,7 @@ contract ExitManager is RootChainable {
   }
 
   // map child token to root token
-  function _mapToken(address _rootToken, address _childToken) internal {
+  function _mapToken(address _rootToken, address _childToken, bool _isERC721) internal {
     // create exit queue
     exitsQueues[_rootToken] = address(new PriorityQueue());
   }
@@ -177,6 +179,7 @@ contract ExitManager is RootChainable {
           delete ownerExits[_token][currentExit.owner];
         }
 
+        //TODO: add transfers for nfts , instead of bool add uint8 0-erc, 1-weth, 2-nft
         IRootChain(rootChain).transferAmount(_token, exitOwner, currentExit.amountOrTokenId, _token == wethToken);
 
         // broadcast withdraw events
@@ -209,14 +212,14 @@ contract ExitManager is RootChainable {
     require(ownerExits[_exitObject.token][_exitObject.owner] == 0);
 
     // validate amount
-    // require(_exitObject.amountOrTokenId > 0);
+    require(depositManager.isERC721[_exitObject.token] || _exitObject.amountOrTokenId > 0);
 
     // Calculate priority.
     uint256 exitableAt = Math.max(_createdAt + 2 weeks, block.timestamp + 1 weeks);
 
     // Check exit is valid and doesn't already exist.
     // require(_exitObject.amountOrTokenId > 0);
-    require(exits[_utxoPos].amountOrTokenId == 0);
+    require(exits[_utxoPos].token == address(0x0));
 
     PriorityQueue queue = PriorityQueue(exitsQueues[_exitObject.token]);
     queue.insert(exitableAt, _utxoPos);

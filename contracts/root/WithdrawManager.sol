@@ -21,11 +21,7 @@ import { RootChainable } from "../mixin/RootChainable.sol";
 
 
 contract WithdrawManager is IManager, ExitManager {
-  // using Merkle for bytes32;
-  // using RLP for bytes;
-  // using RLP for RLP.RLPItem;
-  // using RLP for RLP.Iterator;
-
+ 
   // 0x2e1a7d4d = sha3('withdraw(uint256)')
   bytes4 constant private WITHDRAW_SIGNATURE = 0x2e1a7d4d;
   // 0xa9059cbb = keccak256('transfer(address,uint256)')
@@ -37,7 +33,7 @@ contract WithdrawManager is IManager, ExitManager {
   // Storage
   //
 
-  DepositManager public depositManager;
+  // DepositManager public depositManager;
 
   //
   // Public functions
@@ -58,8 +54,8 @@ contract WithdrawManager is IManager, ExitManager {
   }
 
   // map child token to root token
-  function mapToken(address _rootToken, address _childToken) public onlyRootChain {
-    _mapToken(_rootToken, _childToken);
+  function mapToken(address _rootToken, address _childToken, bool _isERC721) public onlyRootChain {
+    _mapToken(_rootToken, _childToken, _isERC721);
   }
 
   // finalize commit

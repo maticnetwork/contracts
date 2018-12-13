@@ -57,8 +57,8 @@ contract DepositManager is IManager, TokenManager, RootChainable {
   }
 
   // map child token to root token
-  function mapToken(address _rootToken, address _childToken) public onlyRootChain {
-    _mapToken(_rootToken, _childToken);
+  function mapToken(address _rootToken, address _childToken, bool _isERC721) public onlyRootChain {
+    _mapToken(_rootToken, _childToken, _isERC721);
   }
 
   // finalize commit when new header block commited
@@ -97,8 +97,8 @@ contract DepositManager is IManager, TokenManager, RootChainable {
     // throw if user is contract
     require(Common.isContract(_user) == false);
 
-    // throw if amount is zero
-    // require(_amount > 0);  TODO: only if ERC20
+    // throw if amount is zero if !NFT
+    require(isERC721[_token] || _amountOrTokenId > 0); 
 
     // throws if token is not mapped
     require(_isTokenMapped(_token));

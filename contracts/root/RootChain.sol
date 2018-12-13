@@ -185,9 +185,9 @@ contract RootChain is Ownable, IRootChain {
   }
 
   // map child token to root token
-  function mapToken(address _rootToken, address _childToken) public onlyOwner {
-    depositManager.mapToken(_rootToken, _childToken);
-    withdrawManager.mapToken(_rootToken, _childToken);
+  function mapToken(address _rootToken, address _childToken, bool _isERC721) public onlyOwner {
+    depositManager.mapToken(_rootToken, _childToken, _isERC721);
+    withdrawManager.mapToken(_rootToken, _childToken, _isERC721);
   }
 
   // change child chain contract
