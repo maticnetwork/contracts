@@ -12,6 +12,7 @@ import { RootChainable } from "../mixin/RootChainable.sol";
 
 import { IRootChain } from "./IRootChain.sol";
 
+import { DepositManager } from "./DepositManager.sol";
 
 contract ExitManager is RootChainable {
   using Merkle for bytes32;
@@ -211,7 +212,7 @@ contract ExitManager is RootChainable {
     require(ownerExits[_exitObject.token][_exitObject.owner] == 0);
 
     // validate amount
-    require(depositManager.isERC721[_exitObject.token] || _exitObject.amountOrTokenId > 0);
+    require(depositManager.isERC721(_exitObject.token) || _exitObject.amountOrTokenId > 0);
 
     // Calculate priority.
     uint256 exitableAt = Math.max(_createdAt + 2 weeks, block.timestamp + 1 weeks);

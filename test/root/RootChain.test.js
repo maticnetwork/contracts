@@ -67,11 +67,9 @@ contract('RootChain', async function(accounts) {
       rootChain = await RootChain.new(stakeManager.address)
       depositManager = await DepositManagerMock.new({ from: owner })
       withdrawManager = await WithdrawManagerMock.new({ from: owner })
-
       await stakeManager.changeRootChain(rootChain.address, { from: owner })
       await depositManager.changeRootChain(rootChain.address, { from: owner })
       await withdrawManager.changeRootChain(rootChain.address, { from: owner })
-
       await rootChain.setDepositManager(depositManager.address, { from: owner })
       await rootChain.setWithdrawManager(withdrawManager.address, {
         from: owner
@@ -85,7 +83,8 @@ contract('RootChain', async function(accounts) {
       // map token
       const receipt = await depositManager.mapToken(
         rootToken.address,
-        childToken.address
+        childToken.address,
+        false
       )
 
       const logs = logDecoder.decodeLogs(receipt.receipt.logs)

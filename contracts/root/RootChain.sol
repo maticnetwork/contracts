@@ -311,8 +311,7 @@ contract RootChain is Ownable, IRootChain {
   function transferAmount(
     address _token,
     address _user,
-    uint256 _amount,
-    bool isWeth
+    uint256 _amount
   ) public onlyWithdrawManager returns(bool)  { 
 
     address wethToken = depositManager.wethToken();
