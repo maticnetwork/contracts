@@ -98,7 +98,7 @@ contract('ExitValidator', async function(accounts) {
           18,
           false
         )
-        childToken = ChildERC20.at(receipt.logs[0].args.token)
+        childToken = ChildERC20.at(receipt.logs[1].args.token)
 
         // exit validator
         exitValidator = await ExitValidator.new()

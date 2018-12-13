@@ -58,7 +58,7 @@ contract('ChildERC721', async function(accounts) {
       rootToken.address,
       owner,
       tokenId,
-      1
+      11
     )
     const logs = logDecoder.decodeLogs(receipt.receipt.logs)
     logs.should.have.lengthOf(3)
@@ -76,7 +76,7 @@ contract('ChildERC721', async function(accounts) {
       rootToken.address,
       owner,
       tokenId,
-      2
+      12
     )
 
     let logs = logDecoder.decodeLogs(rec.receipt.logs)

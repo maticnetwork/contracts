@@ -73,7 +73,7 @@ contract('DepositManager', async function(accounts) {
       logs[1].args._token
         .toLowerCase()
         .should.equal(rootToken.address.toLowerCase())
-      logs[1].args._amount.should.be.bignumber.equal(amount)
+      logs[1].args._amountOrTokenId.should.be.bignumber.equal(amount)
 
       const contractBalance = await rootToken.balanceOf(rootChain.address)
       contractBalance.should.be.bignumber.equal(amount)
@@ -95,7 +95,7 @@ contract('DepositManager', async function(accounts) {
       logs[1].args._token
         .toLowerCase()
         .should.equal(rootToken.address.toLowerCase())
-      logs[1].args._amount.should.be.bignumber.equal(amount)
+      logs[1].args._amountOrTokenId.should.be.bignumber.equal(amount)
 
       const contractBalance = await rootToken.balanceOf(rootChain.address)
       contractBalance.should.be.bignumber.equal(amount)
@@ -157,7 +157,7 @@ contract('DepositManager', async function(accounts) {
       ethAmount = web3.toWei('0.01', 'ether')
       // set weth token and map weth token
       await depositManager.setWETHToken(wethToken.address)
-      await depositManager.mapToken(wethToken.address, wethToken.address)
+      await depositManager.mapToken(wethToken.address, wethToken.address, false)
     })
 
     it('should allow anyone to deposit ethers', async function() {

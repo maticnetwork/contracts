@@ -73,15 +73,17 @@ contract('ChildChain', async function(accounts) {
       .should.eventually.equal(logs[1].args.token.toLowerCase())
 
     // get child chain token
-    const childToken = ChildERC20.at(receipt.logs[0].args.token)
+    const childToken = ChildERC20.at(logs[1].args.token)
 
     // should have proper owner
-    await childToken.owner().should.eventually.equal(childChainContract.address)
+    await childToken
+      .owner()
+      .should.eventually.equal(childChainContract.address.toLowerCase())
 
     // should match mapping
     await childChainContract
       .tokens(rootToken.address)
-      .should.eventually.equal(childToken.address)
+      .should.eventually.equal(childToken.address.toLowerCase())
   })
 
   it('should not allow to add new token again', async function() {
@@ -105,6 +107,6 @@ contract('ChildChain', async function(accounts) {
   })
 
   it('should check true (safety check)', async function() {
-    assert.isOk(true)
+    assert.isTrue(true)
   })
 })
