@@ -6,9 +6,9 @@ import { TokenManager } from "../root/TokenManager.sol";
 
 contract TokenManagerMock is TokenManager, Ownable {
   // map child token to root token
-  function mapToken(address _rootToken, address _childToken) public  {
+  function mapToken(address _rootToken, address _childToken, bool _isERC721) public  {
     // map root token to child token
-    _mapToken(_rootToken, _childToken);
+    _mapToken(_rootToken, _childToken, _isERC721);
   }
 
   // set WETH

@@ -17,7 +17,7 @@ import { RLPEncode } from "../lib/RLPEncode.sol";
 import { WithdrawManager } from "./WithdrawManager.sol";
 import { DepositManager } from "./DepositManager.sol";
 import { IRootChain } from "./IRootChain.sol";
-import { IManager } from "./IManager.sol";
+// import { IManager } from "./IManager.sol";
 import { StakeManager } from "./StakeManager.sol";
 
 
@@ -318,7 +318,7 @@ contract RootChain is Ownable, IRootChain {
     address wethToken = depositManager.wethToken();
 
     // transfer to user TODO: use pull for transfer
-    if (depositManager.isERC721[_token]) {
+    if (depositManager.isERC721(_token)) {
       ERC721(_token).transferFrom(address(this), _user, _amount);
     } else if(_token == wethToken) {
       WETH t = WETH(_token); 
