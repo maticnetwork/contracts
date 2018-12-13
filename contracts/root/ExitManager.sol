@@ -179,8 +179,7 @@ contract ExitManager is RootChainable {
           delete ownerExits[_token][currentExit.owner];
         }
 
-        //TODO: add transfers for nfts , instead of bool add uint8 0-erc, 1-weth, 2-nft
-        IRootChain(rootChain).transferAmount(_token, exitOwner, currentExit.amountOrTokenId, _token == wethToken);
+        IRootChain(rootChain).transferAmount(_token, exitOwner, currentExit.amountOrTokenId);
 
         // broadcast withdraw events
         emit Withdraw(exitOwner, _token, currentExit.amountOrTokenId);
