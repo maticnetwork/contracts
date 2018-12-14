@@ -14,7 +14,9 @@ import {
   WithdrawManagerMock,
   RootToken,
   RootChain,
-  RootChainMock
+  RootERC721,
+  RootChainMock,
+  ChildERC721
 } from '../helpers/contracts.js'
 import LogDecoder from '../helpers/log-decoder'
 
@@ -45,6 +47,8 @@ contract('RootChain', async function(accounts) {
     let withdrawManager
     let owner
     let logDecoder
+    let rootERC721
+    let childChain
 
     before(async function() {
       // link libs
@@ -55,12 +59,18 @@ contract('RootChain', async function(accounts) {
         RootToken._json.abi,
         RootChain._json.abi,
         DepositManagerMock._json.abi,
-        WithdrawManagerMock._json.abi
+        WithdrawManagerMock._json.abi,
+        RootERC721._json.abi
       ])
 
       owner = accounts[0]
+
+      childChain = await ChildChain.new()
+
       rootToken = await RootToken.new('Root Token', 'ROOT')
       childToken = await RootToken.new('Child Token', 'CHILD')
+
+      rootERC721 = await RootERC721.new('Root ERC721', 'R721')
       stakeToken = await RootToken.new('Stake Token', 'STAKE')
 
       stakeManager = await StakeManagerMock.new(stakeToken.address)
@@ -74,6 +84,31 @@ contract('RootChain', async function(accounts) {
       await rootChain.setWithdrawManager(withdrawManager.address, {
         from: owner
       })
+    })
+    it('should allow to map, add erc721 and deposit ERC721', async function() {
+      let receipt = await childChain.addToken(
+        rootERC721.address,
+        'Root ERC721',
+        'R721',
+        18,
+        true
+      )
+      const childERC721 = ChildERC721.at(receipt.logs[1].args.token)
+      receipt = await rootChain.mapToken(
+        rootERC721.address,
+        childERC721.address,
+        true
+      )
+      const tokenID = web3.toWei(12)
+      await rootERC721.mint(tokenID, { from: owner })
+      await rootERC721.approve(rootChain.address, tokenID, { from: owner })
+
+      receipt = await rootChain.depositERC721(
+        rootERC721.address,
+        owner,
+        tokenID
+      )
+      receipt.receipt.logs.should.have.length(2)
     })
 
     it('should allow to map token', async function() {

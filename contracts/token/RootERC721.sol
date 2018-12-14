@@ -8,4 +8,8 @@ contract RootERC721 is ERC721Full {
     public 
     {
   }
+
+  function mint(uint256 tokenId) public {
+    _mint(msg.sender, tokenId);
+  }
 }
