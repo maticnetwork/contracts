@@ -26,6 +26,8 @@ contract WithdrawManager is IManager, ExitManager {
   bytes4 constant private WITHDRAW_SIGNATURE = 0x2e1a7d4d;
   // 0xa9059cbb = keccak256('transfer(address,uint256)')
   bytes4 constant private TRANSFER_SIGNATURE = 0xa9059cbb;
+  // 0xa0cda4eb = keccak256('transferFrom(address,adress,uint256)')
+  bytes4 constant private TRANSFER_SIGNATURE_ERC721 = 0x23b872dd;
   // keccak256('Withdraw(address,address,uint256,uint256,uint256)')
   bytes32 constant private WITHDRAW_EVENT_SIGNATURE = 0xebff2602b3f468259e1e99f613fed6691f3a6526effe6ef3e768ba7ae7a36c4f;
 
@@ -288,13 +290,13 @@ contract WithdrawManager is IManager, ExitManager {
     RLP.RLPItem[] memory items = txBytes.toRLPItem().toList();
     require(items.length == 9);
 
-    // check if transaction is transfer tx
-    // <4 bytes transfer event,address (32 bytes),amountOrTokenId (32 bytes)>
-    require(BytesLib.toBytes4(BytesLib.slice(items[5].toData(), 0, 4)) == TRANSFER_SIGNATURE);
-
     // check rootToken is valid
     rootToken = depositManager.reverseTokens(items[3].toAddress());
     require(rootToken != address(0));
+    // check if transaction is transfer tx
+    // <4 bytes transfer event,address (32 bytes),amountOrTokenId (32 bytes)>
+    bytes4 transferSIG = BytesLib.toBytes4(BytesLib.slice(items[5].toData(), 0, 4));
+    require(transferSIG == TRANSFER_SIGNATURE || (depositManager.isERC721(rootToken) &&  transferSIG == TRANSFER_SIGNATURE_ERC721));
   }
 
   // process withdraw transfer receipt
@@ -328,6 +330,12 @@ contract WithdrawManager is IManager, ExitManager {
       totalBalance = BytesLib.toUint(items[2].toData(), 96);
       oIndex = 0;
     }
+    require(totalBalance > 0);
+
+    // if (depositManager.isERC721(rootToken)) {
+    //   require(oIndex == 1, "Can't exit with transfered NFT");
+    //   totalBalance = BytesLib.toUint(items[2].toData(), 64);
+    // }
   }
 
   // process withdraw tx

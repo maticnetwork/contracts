@@ -63,11 +63,12 @@ contract ChildERC721 is ChildToken, ERC721Full {
       token,
       from,
       to,
-      tokeId,
+      balanceOf(to),
       input1,
       input2,
+      // tokeId, // TODO: refactor withdraw proofs and undo it
       balanceOf(from),
-      balanceOf(to)
+      tokeId
     );
   }
   
