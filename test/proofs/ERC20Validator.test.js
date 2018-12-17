@@ -60,7 +60,7 @@ contract('ERC20Validator', async function(accounts) {
         DepositManagerMock._json.abi
       ])
 
-      user = accounts[0]
+      user = accounts[1]
 
       rootToken = await RootToken.new('Test Token', 'TEST', { from: user })
       childChain = await ChildChain.new({ from: user, gas: 6000000 })
@@ -117,7 +117,6 @@ contract('ERC20Validator', async function(accounts) {
           from: user
         }
       )
-
       const depositLogs = logDecoder.decodeLogs(depositReceipt.receipt.logs)
       const depositCount = depositLogs[1].args._depositCount.toString()
       await childChain.depositTokens(
@@ -133,9 +132,10 @@ contract('ERC20Validator', async function(accounts) {
 
     it('should transfer tokens', async function() {
       const amount = web3.toWei(1)
+      const usr = accounts[2]
 
       // transfer receipt
-      let obj = await childToken.transfer(user, amount, {
+      let obj = await childToken.transfer(usr, amount, {
         from: user
       })
 
