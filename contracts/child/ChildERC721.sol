@@ -6,6 +6,16 @@ import "./ChildToken.sol";
 
 contract ChildERC721 is ChildToken, ERC721Full {
 
+  event LogTransfer(
+    address indexed token,
+    address indexed from,
+    address indexed to,
+    uint256 amountOrTokenId,
+    uint256 input1,
+    uint256 input2,
+    uint256 output2
+  );
+
   // constructor
   constructor (address _token, string name, string symbol) ERC721Full(name, symbol)
     public 
@@ -67,7 +77,7 @@ contract ChildERC721 is ChildToken, ERC721Full {
       input1,
       input2,
       // tokeId, // TODO: refactor withdraw proofs and undo it
-      balanceOf(from),
+      // balanceOf(from),
       tokeId
     );
   }

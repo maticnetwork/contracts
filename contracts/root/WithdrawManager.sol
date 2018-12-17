@@ -323,14 +323,14 @@ contract WithdrawManager is IManager, ExitManager {
     address to = BytesLib.toAddress(topics[3].toData(), 12);
 
     // set totalBalance and oIndex
-    if (to == sender) {
+    if (from == sender) {
       totalBalance = BytesLib.toUint(items[2].toData(), 128);
-      oIndex = 1;
-    } else if (from == sender) {
-      totalBalance = BytesLib.toUint(items[2].toData(), 96);
       oIndex = 0;
+    } else if (to == sender) {
+      totalBalance = BytesLib.toUint(items[2].toData(), 96);
+      oIndex = 1;
     }
-    require(totalBalance > 0);
+    // require(totalBalance > 0); // tokenId can be 0
 
     // if (depositManager.isERC721(rootToken)) {
     //   require(oIndex == 1, "Can't exit with transfered NFT");

@@ -75,8 +75,8 @@ contract ChildERC20 is ChildToken, ERC20, ERC20Detailed {
       value,
       input1,
       input2,
-      balanceOf(msg.sender),
-      balanceOf(to)
+      balanceOf(to),
+      balanceOf(msg.sender)
     );
 
     return result;
@@ -102,8 +102,8 @@ contract ChildERC20 is ChildToken, ERC20, ERC20Detailed {
       value,
       input1,
       input2,
-      balanceOf(from),
-      balanceOf(to)
+      balanceOf(to), // output2
+      balanceOf(from) // output1
     );
 
     return result;
