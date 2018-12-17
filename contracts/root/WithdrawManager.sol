@@ -362,7 +362,7 @@ contract WithdrawManager is IManager, ExitManager {
     // check withdraw data function signature
     require(BytesLib.toBytes4(BytesLib.slice(txList[5].toData(), 0, 4)) == WITHDRAW_SIGNATURE);
     // check amount
-    // require(amount > 0)
+    require(depositManager.isERC721(rootToken) || amountOrTokenId > 0);
     require(amountOrTokenId == BytesLib.toUint(txList[5].toData(), 4));
 
     // Make sure this tx is the value on the path via a MerklePatricia proof

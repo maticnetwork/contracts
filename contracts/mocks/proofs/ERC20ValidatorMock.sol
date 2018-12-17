@@ -17,6 +17,6 @@ contract ERC20ValidatorMock is ERC20Validator {
     RLP.RLPItem[] memory txData = transferTx.toRLPItem().toList();
 
     // validate ERC20 transfer tx
-    return _validateERC20TransferTx(txData);
+    return _validateTransferTx(txData);
   }
 }

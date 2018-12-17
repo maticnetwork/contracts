@@ -30,19 +30,19 @@ contract ERC20Validator is RootChainValidator {
   bytes32 constant public LOG_TRANSFER_EVENT_SIGNATURE = 0xe6497e3ee548a3372136af2fcb0696db31fc6cf20260707645068bd3fe97f3c4;
 
   // validate ERC20 TX
-  function validateERC20TransferTx(
+  function validateTransferTx(
     bytes transferTx
   ) public {
     // validate transfer tx
     RLP.RLPItem[] memory txData = transferTx.toRLPItem().toList();
 
     // validate ERC20 transfer tx
-    if (!_validateERC20TransferTx(txData)) {
+    if (!_validateTransferTx(txData)) {
       IRootChain(rootChain).slash();
     }
   }
 
-  function _validateERC20TransferTx(
+  function _validateTransferTx(
     RLP.RLPItem[] memory txData
   ) internal returns (bool) {
     // validate tx receipt existence
@@ -102,7 +102,7 @@ contract ERC20Validator is RootChainValidator {
         [2]
         [3]-> [
           [child token address, [TRANSFER_EVENT_SIGNATURE, from, to], <amount>],
-          [child token address, [LOG_TRANSFER_EVENT_SIGNATURE,token,from,to], <amount,input1,input2,output1,output2>]
+          [child token address, [LOG_TRANSFER_EVENT_SIGNATURE,token,from,to], <amount,input1,input2,output2,output1>]
         ]
     */
     items = receiptData.toRLPItem().toList();
@@ -161,7 +161,7 @@ contract ERC20Validator is RootChainValidator {
     address from,
     address to,
     uint256 amount,
-    RLP.RLPItem[] items // [child token address, [LOG_TRANSFER_EVENT_SIGNATURE,token,from,to], <amount,input1,input2,output1,output2>]
+    RLP.RLPItem[] items // [child token address, [LOG_TRANSFER_EVENT_SIGNATURE,token,from,to], <amount,input1,input2,output2,output1>]
   ) internal view returns (bool) {
     if (items.length != 3) {
       return false;
@@ -176,8 +176,8 @@ contract ERC20Validator is RootChainValidator {
       BytesLib.toAddress(topics[2].toData(), 12) == from &&
       BytesLib.toAddress(topics[3].toData(), 12) == to &&
       BytesLib.toUint(items[2].toData(), 0) == amount &&
-      (BytesLib.toUint(items[2].toData(), 32) - BytesLib.toUint(items[2].toData(), 96)) == diff &&
-      (BytesLib.toUint(items[2].toData(), 128) - BytesLib.toUint(items[2].toData(), 64)) == diff
+      (BytesLib.toUint(items[2].toData(), 32) - BytesLib.toUint(items[2].toData(), 128)) == diff &&
+      (BytesLib.toUint(items[2].toData(), 96) - BytesLib.toUint(items[2].toData(), 64)) == diff
     ) {
       return true;
     }
