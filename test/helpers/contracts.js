@@ -46,3 +46,6 @@ export const ExitValidator = artifacts.require('./proofs/ExitValidator.sol')
 export const ERC20ValidatorMock = artifacts.require(
   './mocks/proofs/ERC20ValidatorMock.sol'
 )
+export const ERC721ValidatorMock = artifacts.require(
+  './mocks/proofs/ERC721ValidatorMock.sol'
+)

@@ -55,7 +55,8 @@ export async function linkLibs(web3Child) {
     contracts.TxValidator,
     contracts.ExitValidator,
     contracts.ERC20Validator,
-    contracts.ERC20ValidatorMock
+    contracts.ERC20ValidatorMock,
+    contracts.ERC721ValidatorMock
   ]
 
   const libAddresses = {}
