@@ -319,7 +319,7 @@ contract RootChain is Ownable, IRootChain {
     // transfer to user TODO: use pull for transfer
     if (depositManager.isERC721(_token)) {
       ERC721(_token).transferFrom(address(this), _user, _amount);
-    } else if(_token == wethToken) {
+    } else if (_token == wethToken) {
       WETH t = WETH(_token); 
       t.withdraw(_amount, _user);
     } else {

@@ -25,7 +25,6 @@ contract ERC721Validator is RootChainValidator {
   bytes32 constant public DEPOSIT_EVENT_SIGNATURE = 0x4e2ca0515ed1aef1395f66b5303bb5d6f1bf9d61a353fa53f73f8ac9973fa9f6;
   // keccak256('Withdraw(address,address,uint256,uint256,uint256)')
   bytes32 constant private WITHDRAW_EVENT_SIGNATURE = 0xebff2602b3f468259e1e99f613fed6691f3a6526effe6ef3e768ba7ae7a36c4f;
-
   // keccak256('LogTransfer(address,address,address,uint256,uint256,uint256,uint256)') ERC721 log transfer
   bytes32 public LOG_TRANSFER_EVENT_SIGNATURE = 0x89a7442af1c60542680034769f1d7362e2bf7f1dcff121c3a04df897c1735d92;
 
@@ -99,8 +98,8 @@ contract ERC721Validator is RootChainValidator {
         [1]
         [2]
         [3]-> [
-          [child token address, [TRANSFER_EVENT_SIGNATURE, from, to], <amount>],
-          [child token address, [LOG_TRANSFER_EVENT_SIGNATURE,token,from,to], <amount,input1,input2,output2,output1>]
+          [child token address, [TRANSFER_EVENT_SIGNATURE, from, to, amount], <>],
+          [child token address, [LOG_TRANSFER_EVENT_SIGNATURE,token,from,to], <amount,input1,input2,output2>]
         ]
     */
     items = receiptData.toRLPItem().toList();

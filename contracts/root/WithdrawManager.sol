@@ -296,7 +296,7 @@ contract WithdrawManager is IManager, ExitManager {
     // check if transaction is transfer tx
     // <4 bytes transfer event,address (32 bytes),amountOrTokenId (32 bytes)>
     bytes4 transferSIG = BytesLib.toBytes4(BytesLib.slice(items[5].toData(), 0, 4));
-    require(transferSIG == TRANSFER_SIGNATURE || (depositManager.isERC721(rootToken) &&  transferSIG == TRANSFER_SIGNATURE_ERC721));
+    require(transferSIG == TRANSFER_SIGNATURE || (depositManager.isERC721(rootToken) && transferSIG == TRANSFER_SIGNATURE_ERC721));
   }
 
   // process withdraw transfer receipt
@@ -331,7 +331,7 @@ contract WithdrawManager is IManager, ExitManager {
       oIndex = 1;
     }
     // require(totalBalance > 0); // tokenId can be 0
-
+    // TODO: reafctor _processBurntReceipt, _processBurntTx and remove these comments
     // if (depositManager.isERC721(rootToken)) {
     //   require(oIndex == 1, "Can't exit with transfered NFT");
     //   totalBalance = BytesLib.toUint(items[2].toData(), 64);
