@@ -161,6 +161,8 @@ contract('StakeManager', async function(accounts) {
       // staked for
       const stakedFor = await stakeManager.totalStakedFor(user)
       stakedFor.should.be.bignumber.equal(amount)
+      const value = await stakeManager.isValidator(user)
+      assert.isTrue(value)
     })
 
     it('Duplicate: should stake via wallets[3] fail', async function() {
@@ -374,6 +376,8 @@ contract('StakeManager', async function(accounts) {
       })
       let size = await stakeManager.currentValidatorSetSize()
       size.should.be.bignumber.equal(5)
+      const value = await stakeManager.isValidator(user)
+      assert.isTrue(!value)
     })
 
     it('should unstake all validators and wait for d*2 and varify new validators', async function() {

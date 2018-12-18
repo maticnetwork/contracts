@@ -258,7 +258,8 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   function isValidator(address user) public view returns (bool) {
     return (
       stakers[user].amount > 0 &&
-      stakers[user].activationEpoch > 0 &&
+      (stakers[user].activationEpoch != 0 &&
+      stakers[user].activationEpoch <= currentEpoch ) &&
       (stakers[user].deactivationEpoch == 0 ||
       stakers[user].deactivationEpoch >= currentEpoch)
     );
