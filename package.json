@@ -7,11 +7,7 @@
   "scripts": {
     "testrpc": "ganache-cli --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' --gasLimit 13000000",
     "truffle": "truffle",
-    "truffle:test": "npm run testChild && npm run testRoot && npm run testLib && npm run testProofs",
-    "testChild": "truffle test ../contracts/test/child/*",
-    "testRoot": "truffle test ../contracts/test/root/*",
-    "testLib": "truffle test ../contracts/test/lib/*",
-    "testProofs": "truffle test ../contracts/test/proofs/*",
+    "truffle:test": "truffle test",
     "truffle:compile": "truffle compile",
     "test:ci": "scripts/run-test.sh",
     "lint": "npm run lint:sol && npm run lint:js",
@@ -64,7 +60,7 @@
     "ethereumjs-block": "2.1.0",
     "ethereumjs-tx": "1.3.7",
     "ethereumjs-util": "6.0.0",
-    "ganache-cli": "6.2.3",
+    "ganache-cli": "6.2.4",
     "merkle-patricia-tree": "2.3.2",
     "openzeppelin-solidity": "^2.0.0"
   }
