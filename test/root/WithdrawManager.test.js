@@ -731,7 +731,7 @@ contract('WithdrawManager', async function(accounts) {
         eId.should.be.bignumber.equal(0)
       })
 
-      it('should allow user to start exit without burning tokens', async function() {
+      it('should allow user to start exit without burning tokens &try to double exit', async function() {
         const user = accounts[9]
 
         const receipt = receivedTx.receipt
@@ -809,7 +809,30 @@ contract('WithdrawManager', async function(accounts) {
             from: user
           }
         )
+        try {
+          await withdrawManager.withdrawTokens(
+            headerNumber, // header block
+            utils.bufferToHex(Buffer.concat(headerProof)), // header proof
 
+            withdrawBlock.number, // block number
+            withdrawBlock.timestamp, // block timestamp
+            utils.bufferToHex(withdrawBlock.transactionsRoot), // tx root
+            utils.bufferToHex(withdrawBlock.receiptsRoot), // tx root
+            utils.bufferToHex(rlp.encode(receiptProof.path)), // key for trie (both tx and receipt)
+
+            utils.bufferToHex(getTxBytes(withdraw)), // tx bytes
+            utils.bufferToHex(rlp.encode(txProof.parentNodes)), // tx proof nodes
+
+            utils.bufferToHex(getReceiptBytes(withdrawReceipt)), // receipt bytes
+            utils.bufferToHex(rlp.encode(receiptProof.parentNodes)), // reciept proof nodes
+            {
+              from: user
+            }
+          )
+        } catch (err) {
+          const invalidOpcode = err.message.search('revert') >= 0
+          assert(invalidOpcode, "Expected revert, got '" + err + "' instead")
+        }
         // total logs
         const exitLogs = logDecoder.decodeLogs(exitReceipt.receipt.logs)
 

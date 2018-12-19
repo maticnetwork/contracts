@@ -80,11 +80,11 @@ contract ERC721Validator is RootChainValidator {
     require(depositManager.reverseTokens(childToken) != address(0));
 
     // check if transaction is transfer tx
-    // <4 bytes transfer event,address (32 bytes),amount (32 bytes)>
+    // <4 bytes transfer event,address (32 bytes),address (32 bytes), tokenId (32 bytes)>
     bytes memory dataField = items[5].toData();
     require(BytesLib.toBytes4(BytesLib.slice(dataField, 0, 4)) == TRANSFER_SIGNATURE);
 
-    // if data field is not 68 bytes, return
+    // if data field is not 100(4+32+32+32) bytes, return
     if (dataField.length != 100) {
       return false;
     }
@@ -98,8 +98,8 @@ contract ERC721Validator is RootChainValidator {
         [1]
         [2]
         [3]-> [
-          [child token address, [TRANSFER_EVENT_SIGNATURE, from, to, amount], <>],
-          [child token address, [LOG_TRANSFER_EVENT_SIGNATURE,token,from,to], <amount,input1,input2,output2>]
+          [child token address, [TRANSFER_EVENT_SIGNATURE, from, to, tokenId], <>],
+          [child token address, [LOG_TRANSFER_EVENT_SIGNATURE,token,from,to], <tokenId,input1,input2,tokenId>]
         ]
     */
     items = receiptData.toRLPItem().toList();
@@ -131,8 +131,8 @@ contract ERC721Validator is RootChainValidator {
     address childToken,
     address from,
     address to,
-    uint256 amount,
-    RLP.RLPItem[] items // [child token address, [TRANSFER_EVENT_SIGNATURE, from, to], <amount>]
+    uint256 tokenId,
+    RLP.RLPItem[] items // [child token address, [TRANSFER_EVENT_SIGNATURE, from, to, tokenId], <>]
   ) internal view returns (bool) {
     if (items.length != 3) {
       return false;
@@ -146,7 +146,7 @@ contract ERC721Validator is RootChainValidator {
       topics[0].toBytes32() == TRANSFER_EVENT_SIGNATURE  &&
       address(topics[1].toUint())==from &&
       address(topics[2].toUint())==to &&
-      topics[3].toUint() == amount
+      topics[3].toUint() == tokenId
     ) {
       return true;
     }

@@ -18,6 +18,7 @@ contract ChildChain is Ownable {
   // mapping for (root token => child token)
   mapping(address => address) public tokens;
 
+  // weather contract is erc721 or not
   mapping(address => bool) public isERC721;
 
   // deposit mapping
