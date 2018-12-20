@@ -17,7 +17,6 @@ import { RLPEncode } from "../lib/RLPEncode.sol";
 import { WithdrawManager } from "./WithdrawManager.sol";
 import { DepositManager } from "./DepositManager.sol";
 import { IRootChain } from "./IRootChain.sol";
-// import { IManager } from "./IManager.sol";
 import { StakeManager } from "./StakeManager.sol";
 
 

@@ -43,8 +43,8 @@ contract('ChildERC20', async function(accounts) {
   })
 
   it('should initialize properly', async function() {
-    // await childToken.owner().should.eventually.equal(childChain.address)
-    // await childToken.token().should.eventually.equal(rootToken.address)
+    await childToken.owner().should.eventually.equal(childChain.address)
+    await childToken.token().should.eventually.equal(rootToken.address)
   })
 
   it('should allow to deposit', async function() {

@@ -2,7 +2,7 @@ import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import chaiBigNumber from 'chai-bignumber'
 
-import { linkLibs } from '../helpers/utils'
+import { linkLibs, ZeroAddress } from '../helpers/utils'
 import { ChildChain, ChildERC721, RootERC721 } from '../helpers/contracts'
 
 import LogDecoder from '../helpers/log-decoder'
@@ -48,8 +48,8 @@ contract('ChildERC721', async function(accounts) {
   })
 
   it('should initialize properly', async function() {
-    // await childToken.owner().should.eventually.equal(childChain.address)
-    // await childToken.token().should.eventually.equal(rootToken.address)
+    await childToken.owner().should.eventually.equal(childChain.address)
+    await childToken.token().should.eventually.equal(rootToken.address)
   })
 
   it('should allow to deposit', async function() {
@@ -66,7 +66,7 @@ contract('ChildERC721', async function(accounts) {
   })
 
   it('should not allow to withdraw more than amount', async function() {
-    // await childToken.withdraw(web3.toWei(13)).should.be.rejected
+    await childToken.withdraw(web3.toWei(13)).should.be.rejected
   })
 
   it('should allow to withdraw mentioned amount', async function() {
@@ -89,15 +89,16 @@ contract('ChildERC721', async function(accounts) {
 
     logs.should.have.lengthOf(2)
 
-    // receipt.logs[0].event.should.equal('Transfer')
-    // // receipt.logs[0].args.token.should.equal(rootToken.address)
-    // // receipt.logs[0].args.user.should.equal(owner)
-    // // receipt.logs[0].args.value.toString().should.equal(tokenId)
+    logs[0].event.should.equal('Transfer')
+    logs[0].args.from.toLowerCase().should.equal(owner)
+    logs[0].args.to.should.equal(ZeroAddress)
+    logs[0].args.tokenId.should.be.bignumber.equal(tokenId)
 
-    // receipt.logs[1].event.should.equal('WithdrawERC721')
-    // receipt.logs[1].args.token.should.be.bignumber.equal(rootToken.address)
-    // receipt.logs[1].args.tokenId.should.be.bignumber.equal(tokenId)
-    // receipt.logs[1].args.output1.should.be.bignumber.equal(0)
+    logs[1].event.should.equal('Withdraw')
+    logs[1].args.token.toLowerCase().should.equal(rootToken.address)
+    logs[1].args.from.toLowerCase().should.equal(owner)
+    logs[1].args.amountOrTokenId.should.be.bignumber.equal(tokenId)
+    logs[1].args.output1.should.be.bignumber.equal(0)
 
     // const afterBalance = await childToken.balanceOf(owner)
     // afterBalance.should.be.bignumber.equal(0)

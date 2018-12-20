@@ -218,7 +218,6 @@ contract ExitManager is RootChainable {
     uint256 exitableAt = Math.max(_createdAt + 2 weeks, block.timestamp + 1 weeks);
 
     // Check exit is valid and doesn't already exist.
-    // require(_exitObject.amountOrTokenId > 0);
     require(exits[_utxoPos].token == address(0x0));
 
     PriorityQueue queue = PriorityQueue(exitsQueues[_exitObject.token]);
