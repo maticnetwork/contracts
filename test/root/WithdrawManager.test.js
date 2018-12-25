@@ -250,9 +250,10 @@ contract('WithdrawManager', async function(accounts) {
       })
 
       it('should have proper exitId for given user', async function() {
-        const eId = await withdrawManager.exitIdByOwner(
+        const eId = await withdrawManager.getExitId(
           rootToken.address,
-          accounts[9]
+          accounts[9],
+          0 // bug in truffle with function overriding
         )
         eId.should.be.bignumber.equal(exitId)
       })
@@ -334,9 +335,10 @@ contract('WithdrawManager', async function(accounts) {
       })
 
       it('should have proper 0 exitId for given user', async function() {
-        const eId = await withdrawManager.exitIdByOwner(
+        const eId = await withdrawManager.getExitId(
           rootToken.address,
-          accounts[9]
+          accounts[9],
+          0
         )
         eId.should.be.bignumber.equal(0)
       })
@@ -423,9 +425,10 @@ contract('WithdrawManager', async function(accounts) {
       })
 
       it('should have 0 exitId for given user', async function() {
-        const eId = await withdrawManager.exitIdByOwner(
+        const eId = await withdrawManager.getExitId(
           rootToken.address,
-          accounts[9]
+          accounts[9],
+          0
         )
         eId.should.be.bignumber.equal(0)
       })
@@ -527,9 +530,10 @@ contract('WithdrawManager', async function(accounts) {
       })
 
       it('should have proper exitId for given user', async function() {
-        const eId = await withdrawManager.exitIdByOwner(
+        const eId = await withdrawManager.getExitId(
           rootToken.address,
-          accounts[9]
+          accounts[9],
+          0
         )
         eId.should.be.bignumber.equal(exitId)
       })
@@ -618,9 +622,10 @@ contract('WithdrawManager', async function(accounts) {
       })
 
       it('should have proper exitId for given user in case of exit without burn', async function() {
-        const eId = await withdrawManager.exitIdByOwner(
+        const eId = await withdrawManager.getExitId(
           rootToken.address,
-          accounts[9]
+          accounts[9],
+          0
         )
         eId.should.be.bignumber.equal(exitId)
       })
@@ -724,9 +729,10 @@ contract('WithdrawManager', async function(accounts) {
       })
 
       it('should have 0 exitId for given user', async function() {
-        const eId = await withdrawManager.exitIdByOwner(
+        const eId = await withdrawManager.getExitId(
           rootToken.address,
-          accounts[9]
+          accounts[9],
+          tokenId
         )
         eId.should.be.bignumber.equal(0)
       })
@@ -851,9 +857,10 @@ contract('WithdrawManager', async function(accounts) {
       })
 
       it('should have proper exitId for given user', async function() {
-        const eId = await withdrawManager.exitIdByOwner(
+        const eId = await withdrawManager.getExitId(
           rootToken.address,
-          accounts[9]
+          accounts[9],
+          tokenId
         )
         eId.should.be.bignumber.equal(exitId)
       })
@@ -942,9 +949,10 @@ contract('WithdrawManager', async function(accounts) {
       })
 
       it('should have proper exitId for given user in case of exit without burn', async function() {
-        const eId = await withdrawManager.exitIdByOwner(
+        const eId = await withdrawManager.getExitId(
           rootToken.address,
-          accounts[9]
+          accounts[9],
+          tokenId
         )
         eId.should.be.bignumber.equal(exitId)
       })

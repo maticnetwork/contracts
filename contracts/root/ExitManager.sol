@@ -37,8 +37,9 @@ contract ExitManager is RootChainable {
   // all plasma exits
   mapping (uint256 => PlasmaExit) public exits;
 
-  // mapping with token => (owner => exitId)
-  mapping (address => mapping(address => uint256)) public ownerExits;
+  // mapping with token => (owner => exitId) keccak(token+owner) keccak(token+owner+tokenId)
+  mapping (bytes32 => uint256) public ownerExits;
+
 
   // exit queue for each token
   mapping (address => address) public exitsQueues;
@@ -101,15 +102,11 @@ contract ExitManager is RootChainable {
     return PriorityQueue(exitsQueues[_token]).getMin();
   }
 
-  /**
-   * @dev Fetches current exitId for given token and address
-   */
-  function exitIdByOwner(address _token, address _owner)
-    public
-    view
-    returns (uint256)
-  {
-    return ownerExits[_token][_owner];
+  function getExitId(address _token, address _owner, uint256 _tokenId) public view returns (uint256) {
+    if (depositManager.isERC721(_token)) {
+      return ownerExits[keccak256(_token, _owner, _tokenId)];
+    }
+    return ownerExits[keccak256(_token, _owner)];
   }
 
   //
@@ -177,7 +174,7 @@ contract ExitManager is RootChainable {
 
         // delete current exit if exit was "burnt"
         if (currentExit.burnt) {
-          delete ownerExits[_token][currentExit.owner];
+          delete ownerExits[keccak256(_token, currentExit.owner)];
         }
 
         IRootChain(rootChain).transferAmount(_token, exitOwner, currentExit.amountOrTokenId);
@@ -207,13 +204,16 @@ contract ExitManager is RootChainable {
   ) internal {
     // Check that we're exiting a known token.
     require(exitsQueues[_exitObject.token] != address(0));
-
+    bytes32 key;
+    if (depositManager.isERC721(_exitObject.token)) {
+      key = keccak256(_exitObject.token, _exitObject.owner, _exitObject.amountOrTokenId);
+    } else {
+      // validate amount
+      require(_exitObject.amountOrTokenId > 0);
+      key = keccak256(_exitObject.token, _exitObject.owner);
+    }
     // validate token exit
-    require(ownerExits[_exitObject.token][_exitObject.owner] == 0);
-
-    // validate amount
-    require(depositManager.isERC721(_exitObject.token) || _exitObject.amountOrTokenId > 0);
-
+    require(ownerExits[key] == 0);
     // Calculate priority.
     uint256 exitableAt = Math.max(_createdAt + 2 weeks, block.timestamp + 1 weeks);
 
@@ -228,7 +228,7 @@ contract ExitManager is RootChainable {
     exits[_utxoPos] = _exitObject;
 
     // set current exit
-    ownerExits[_exitObject.token][_exitObject.owner] = _utxoPos;
+    ownerExits[key] = _utxoPos;
 
     // emit exit started event
     emit ExitStarted(_exitObject.owner, _utxoPos, _exitObject.token, _exitObject.amountOrTokenId);
