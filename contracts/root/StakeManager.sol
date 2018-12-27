@@ -71,9 +71,8 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   //Mapping for epoch to totalStake for that epoch
   mapping (uint256 => State) public validatorState;
 
-  constructor (address _token) public {
+  constructor () public {
     require(_token != address(0x0));
-    token = ERC20(_token);
     validatorList = new AvlTree(); // TODO: bind with stakemanager
   }
 
@@ -202,6 +201,11 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
 
   function supportsHistory() public pure returns (bool) {
     return false;
+  }
+  
+  // set staking Token
+  function setToken(address _token) public onlyOwner {
+    token = ERC20(_token);
   }
 
   // Change the number of validators required to allow a passed header root
