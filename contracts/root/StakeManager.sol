@@ -72,7 +72,6 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   mapping (uint256 => State) public validatorState;
 
   constructor () public {
-    require(_token != address(0x0));
     validatorList = new AvlTree(); // TODO: bind with stakemanager
   }
 
@@ -205,6 +204,7 @@ contract StakeManager is StakeManagerInterface, RootChainable, Lockable {
   
   // set staking Token
   function setToken(address _token) public onlyOwner {
+    require(_token != address(0x0));
     token = ERC20(_token);
   }
 

@@ -5,6 +5,8 @@
 const SafeMath = artifacts.require(
   'openzeppelin-solidity/contracts/math/SafeMath.sol'
 )
+
+const Math = artifacts.require('openzeppelin-solidity/contracts/math/Math.sol')
 const ECVerify = artifacts.require('./lib/ECVerify.sol')
 const BytesLib = artifacts.require('./lib/BytesLib.sol')
 const RLP = artifacts.require('./lib/RLP.sol')
@@ -37,32 +39,103 @@ const DepositValidator = artifacts.require('./proofs/DepositValidator.sol')
 
 module.exports = async function(deployer, network) {
   console.log(`network: ${network}`)
-  deployer.deploy(ECVerify)
-  deployer.deploy(BytesLib)
-  deployer.deploy(RLP)
-  deployer.deploy(MerklePatriciaProof)
-  deployer.deploy(Merkle)
-  deployer.deploy(RLPEncode)
-  deployer.deploy(Common)
-  deployer.deploy(DepositManager)
-  deployer.deploy(WithdrawManager)
-  deployer.deploy(RootToken)
-  deployer.deploy(StakeManager)
-  deployer.deploy(ExitNFT)
+  deployer.then(async() => {
+    await deployer.deploy(ECVerify)
+    await deployer.deploy(BytesLib)
+    await deployer.deploy(RLP)
+    await deployer.deploy(MerklePatriciaProof)
+    await deployer.deploy(Merkle)
+    await deployer.deploy(RLPEncode)
+    await deployer.deploy(Common)
+    await deployer.deploy(SafeMath)
+    await deployer.deploy(Math)
 
-  // proof validators
-  deployer.deploy(DepositValidator)
-  deployer.deploy(TxValidator)
-  deployer.deploy(ERC20Validator)
-  deployer.deploy(ExitValidator)
-  deployer.deploy(NonceValidator)
-  deployer.deploy(ERC721Validator)
+    await deployer.link(SafeMath, [
+      StakeManager,
+      RootChain,
+      DepositManager,
+      WithdrawManager,
+      DepositValidator,
+      TxValidator,
+      ERC20Validator,
+      ExitValidator,
+      NonceValidator,
+      ERC721Validator
+    ])
+    await deployer.link(BytesLib, [
+      StakeManager,
+      RootChain,
+      WithdrawManager,
+      DepositValidator,
+      TxValidator,
+      ERC20Validator,
+      ExitValidator,
+      NonceValidator,
+      ERC721Validator
+    ])
+    await deployer.link(RLP, [
+      RootChain,
+      WithdrawManager,
+      DepositValidator,
+      TxValidator,
+      ERC20Validator,
+      ExitValidator,
+      NonceValidator,
+      ERC721Validator
+    ])
+    await deployer.link(RLPEncode, [
+      WithdrawManager,
+      DepositValidator,
+      TxValidator,
+      ERC20Validator,
+      ExitValidator,
+      NonceValidator,
+      ERC721Validator
+    ])
+    await deployer.link(ECVerify, [StakeManager])
+    await deployer.link(MerklePatriciaProof, [
+      WithdrawManager,
+      DepositValidator,
+      TxValidator,
+      ERC20Validator,
+      ExitValidator,
+      NonceValidator,
+      ERC721Validator
+    ])
+    await deployer.link(Merkle, [
+      StakeManager,
+      WithdrawManager,
+      DepositValidator,
+      TxValidator,
+      ERC20Validator,
+      ExitValidator,
+      NonceValidator,
+      ERC721Validator
+    ])
+    await deployer.link(Common, [
+      DepositManager,
+      WithdrawManager,
+      DepositValidator,
+      TxValidator,
+      ERC20Validator,
+      ExitValidator,
+      NonceValidator,
+      ERC721Validator
+    ])
 
-  deployer.link(SafeMath, [RootChain, DepositManager, WithdrawManager])
-  deployer.link(BytesLib, [RootChain, WithdrawManager])
-  deployer.link(RLP, [RootChain])
-  deployer.link(RLPEncode, [WithdrawManager])
-  deployer.link(MerklePatriciaProof, [WithdrawManager])
-  deployer.link(Merkle, [WithdrawManager])
-  deployer.link(Common, [DepositManager])
+    await deployer.deploy(DepositManager)
+    await deployer.deploy(WithdrawManager)
+    await deployer.deploy(RootToken, 'Test token', 'TEST')
+    await deployer.deploy(StakeManager)
+    await deployer.deploy(ExitNFT, 'EXIT NFT', 'ENFT')
+    await deployer.deploy(RootChain)
+
+    // proof validators
+    await deployer.deploy(DepositValidator)
+    await deployer.deploy(TxValidator)
+    await deployer.deploy(ERC20Validator)
+    await deployer.deploy(ExitValidator)
+    await deployer.deploy(NonceValidator)
+    await deployer.deploy(ERC721Validator)
+  })
 }

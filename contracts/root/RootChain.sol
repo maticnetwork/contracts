@@ -58,9 +58,7 @@ contract RootChain is Ownable, IRootChain {
   // Constructor
   //
 
-  constructor (address _stakeManager) public {
-    setStakeManager(_stakeManager);
-
+  constructor () public {
     // set current header block
     _currentHeaderBlock = CHILD_BLOCK_INTERVAL;
   }

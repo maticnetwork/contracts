@@ -53,19 +53,32 @@ module.exports = {
       },
       network_id: 1,
       gas: 4000000
+    },
+    matic: {
+      provider: function() {
+        return new HDWalletProvider(MNEMONIC, `https://testnet.matic.network`)
+      },
+      network_id: 13,
+      gas: 400000000
     }
   },
-  compilers: {
-    solc: {
-      version: '0.4.24',
-      docker: true,
-      settings: {
-        optimizer: {
-          enabled: true,
-          runs: 200
-        },
-        evmVersion: 'byzantium'
-      }
+  // compilers: {
+  //   solc: {
+  //     version: '0.4.24',
+  //     docker: true,
+  //     settings: {
+  //       optimizer: {
+  //         enabled: true,
+  //         runs: 200
+  //       },
+  //       evmVersion: 'byzantium'
+  //     }
+  //   }
+  // },
+  solc: {
+    optimizer: {
+      enabled: true,
+      runs: 200
     }
   },
   mocha: {

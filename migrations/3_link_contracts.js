@@ -64,6 +64,7 @@ module.exports = async function(deployer, network) {
   await rootChain.setStakeManager(exitNFT.address)
   await rootChain.setDepositManager(exitNFT.address)
   await rootChain.setWithdrawManager(exitNFT.address)
+  await rootChain.setStakeManager(stakeManager.address)
   // await rootChain.setChildContract(exitNFT.address)
 
   await withdrawManager.setDepositManager(depositManager.address)
