@@ -8,8 +8,6 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { WETH } from "../token/WETH.sol";
 import { PriorityQueue } from "../lib/PriorityQueue.sol";
-import { Merkle } from "../lib/Merkle.sol";
-import { MerklePatriciaProof } from "../lib/MerklePatriciaProof.sol";
 import { ExitNFT } from "../token/ExitNFT.sol";
 import { RLP } from "../lib/RLP.sol";
 import { RLPEncode } from "../lib/RLPEncode.sol";
@@ -22,7 +20,6 @@ import { StakeManager } from "./StakeManager.sol";
 
 contract RootChain is Ownable, IRootChain {
   using SafeMath for uint256;
-  using Merkle for bytes32;
   using RLP for bytes;
   using RLP for RLP.RLPItem;
   using RLP for RLP.Iterator;
