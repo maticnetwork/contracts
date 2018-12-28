@@ -4,6 +4,7 @@ import { ERC721Full } from "openzeppelin-solidity/contracts/token/ERC721/ERC721F
 
 import "./ChildToken.sol";
 
+
 contract ChildERC721 is ChildToken, ERC721Full {
 
   event LogTransfer(

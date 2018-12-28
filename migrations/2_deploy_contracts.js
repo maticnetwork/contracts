@@ -23,7 +23,7 @@ const DepositManager = artifacts.require('./DepositManager.sol')
 const WithdrawManager = artifacts.require('./WithdrawManager.sol')
 const RootToken = artifacts.require('./token/TestToken.sol')
 // const RootERC721 = artifacts.require('./token/RootERC721.sol')
-// const MaticWETH = artifacts.require('./token/MaticWETH.sol')
+const MaticWETH = artifacts.require('./token/MaticWETH.sol')
 const StakeManager = artifacts.require('./root/StakeManager.sol')
 const ExitNFT = artifacts.require('./token/ExitNFT.sol')
 
@@ -129,6 +129,7 @@ module.exports = async function(deployer, network) {
     await deployer.deploy(StakeManager)
     await deployer.deploy(ExitNFT, 'EXIT NFT', 'ENFT')
     await deployer.deploy(RootChain)
+    await deployer.deploy(MaticWETH)
 
     // proof validators
     await deployer.deploy(DepositValidator)

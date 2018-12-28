@@ -42,7 +42,7 @@ module.exports = {
         )
       },
       network_id: 42,
-      gas: 4000000
+      gas: 8000000
     },
     mainnet: {
       provider: function() {

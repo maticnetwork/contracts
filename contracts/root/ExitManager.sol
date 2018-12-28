@@ -14,6 +14,7 @@ import { IRootChain } from "./IRootChain.sol";
 
 import { DepositManager } from "./DepositManager.sol";
 
+
 contract ExitManager is RootChainable {
   using Merkle for bytes32;
   using RLP for bytes;
