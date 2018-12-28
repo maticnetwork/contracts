@@ -15,6 +15,9 @@
     "lint:sol:fix": "solium -d contracts/ --fix",
     "lint:sol": "solium -d contracts/"
   },
+  "pre-commit": [
+    "lint"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jdkanani/protocol.git"
@@ -52,7 +55,8 @@
     "safe-buffer": "5.1.2",
     "solium": "^1.1.8",
     "truffle": "4.1.14",
-    "web3": "^1.0.0-beta.30"
+    "web3": "^1.0.0-beta.30",
+    "pre-commit": "^1.2.2"
   },
   "dependencies": {
     "eth-sig-util": "2.1.0",
