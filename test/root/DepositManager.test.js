@@ -45,7 +45,7 @@ contract('DepositManager', async function(accounts) {
     rootToken = await RootToken.new('Root Token', 'ROOT')
     childToken = await RootToken.new('Child Token', 'CHILD')
 
-    rootChain = await RootChain.new(childToken.address) // dummy address for stake manager
+    rootChain = await RootChain.new()
     depositManager = await DepositManagerMock.new({ from: owner })
 
     rootERC721 = await RootERC721.new('Root ERC721', 'R721')

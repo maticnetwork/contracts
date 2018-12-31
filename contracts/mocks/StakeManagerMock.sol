@@ -5,9 +5,8 @@ import { StakeManager } from "../root/StakeManager.sol";
 
 
 contract StakeManagerMock is StakeManager {
-  constructor (address _token) public StakeManager {
+  constructor () public StakeManager {
     WITHDRAWAL_DELAY = 0;
-    token = ERC20(_token);
   }
   
   modifier onlyRootChain() {

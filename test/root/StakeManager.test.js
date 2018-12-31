@@ -37,7 +37,8 @@ contract('StakeManager', async function(accounts) {
   describe('Stake', async function() {
     before(async function() {
       stakeToken = await RootToken.new('Stake Token', 'STAKE')
-      stakeManager = await StakeManagerMock.new(stakeToken.address)
+      stakeManager = await StakeManagerMock.new()
+      await stakeManager.setToken(stakeToken.address)
       wallets = generateFirstWallets(mnemonics, 10)
 
       // transfer tokens to other accounts
@@ -220,7 +221,6 @@ contract('StakeManager', async function(accounts) {
       stakedFor.should.be.bignumber.equal(amount)
       const stakerDetails = await stakeManager.getStakerDetails(user)
       stakerDetails[3].should.equal(user)
-
     })
 
     it('should update and verify signer/pubkey', async function() {

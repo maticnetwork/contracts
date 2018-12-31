@@ -78,7 +78,7 @@ contract('ERC721Validator', async function(accounts) {
       )
       childToken = ChildToken.at(childTokenReceipt.logs[1].args.token)
 
-      rootChain = await RootChainMock.new(rootToken.address) // dummy address for stakemanager
+      rootChain = await RootChainMock.new()
       depositManager = await DepositManagerMock.new({ from: owner })
       withdrawManager = await WithdrawManagerMock.new({ from: owner })
 

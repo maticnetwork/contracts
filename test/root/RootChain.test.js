@@ -73,8 +73,10 @@ contract('RootChain', async function(accounts) {
       rootERC721 = await RootERC721.new('Root ERC721', 'R721')
       stakeToken = await RootToken.new('Stake Token', 'STAKE')
 
-      stakeManager = await StakeManagerMock.new(stakeToken.address)
-      rootChain = await RootChain.new(stakeManager.address)
+      stakeManager = await StakeManagerMock.new()
+      await stakeManager.setToken(stakeToken.address)
+      rootChain = await RootChain.new()
+      await rootChain.setStakeManager(stakeManager.address)
       depositManager = await DepositManagerMock.new({ from: owner })
       withdrawManager = await WithdrawManagerMock.new({ from: owner })
       await stakeManager.changeRootChain(rootChain.address, { from: owner })
@@ -185,11 +187,13 @@ contract('RootChain', async function(accounts) {
       wallets = generateFirstWallets(mnemonics, Object.keys(stakes).length)
 
       stakeToken = await RootToken.new('Stake Token', 'STAKE')
-      stakeManager = await StakeManagerMock.new(stakeToken.address)
-      rootChain = await RootChainMock.new(stakeManager.address)
+      stakeManager = await StakeManagerMock.new()
+      await stakeManager.setToken(stakeToken.address)
+      rootChain = await RootChainMock.new()
+
       depositManager = await DepositManagerMock.new({ from: owner })
       withdrawManager = await WithdrawManagerMock.new({ from: owner })
-
+      await rootChain.setStakeManager(stakeManager.address)
       await depositManager.changeRootChain(rootChain.address, { from: owner })
       await withdrawManager.changeRootChain(rootChain.address, {
         from: owner
