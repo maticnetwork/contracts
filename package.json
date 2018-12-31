@@ -11,12 +11,12 @@
     "truffle:compile": "truffle compile",
     "test:ci": "scripts/run-test.sh",
     "lint": "npm run lint:sol && npm run lint:js",
-    "lint:js": "eslint src/**/*.js test/**/*.js",
+    "lint:js": "eslint test/**/*.js",
     "lint:sol:fix": "solium -d contracts/ --fix",
     "lint:sol": "solium -d contracts/"
   },
   "pre-commit": [
-    "lint"
+    "lint:sol"
   ],
   "repository": {
     "type": "git",

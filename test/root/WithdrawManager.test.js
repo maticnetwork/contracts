@@ -702,7 +702,7 @@ contract('WithdrawManager', async function(accounts) {
         await rootToken.approve(rootChain.address, tokenId, {
           from: owner
         })
-        let out = await rootChain.depositERC721(
+        await rootChain.depositERC721(
           rootToken.address,
           owner,
           tokenId,

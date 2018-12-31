@@ -26,7 +26,6 @@ contract('DepositManager', async function(accounts) {
   let childToken
   let amount
   let rootChain
-  let stakeToken
   let logDecoder
   let rootERC721
   let childERC721
