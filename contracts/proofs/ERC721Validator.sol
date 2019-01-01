@@ -25,8 +25,8 @@ contract ERC721Validator is RootChainValidator {
   bytes32 constant public DEPOSIT_EVENT_SIGNATURE = 0x4e2ca0515ed1aef1395f66b5303bb5d6f1bf9d61a353fa53f73f8ac9973fa9f6;
   // keccak256('Withdraw(address,address,uint256,uint256,uint256)')
   bytes32 constant private WITHDRAW_EVENT_SIGNATURE = 0xebff2602b3f468259e1e99f613fed6691f3a6526effe6ef3e768ba7ae7a36c4f;
-  // keccak256('LogTransfer(address,address,address,uint256,uint256,uint256,uint256)') ERC721 log transfer
-  bytes32 public LOG_TRANSFER_EVENT_SIGNATURE = 0x89a7442af1c60542680034769f1d7362e2bf7f1dcff121c3a04df897c1735d92;
+  // keccak256('LogTransfer(address,address,address,uint256)') ERC721 log transfer
+  bytes32 public LOG_TRANSFER_EVENT_SIGNATURE = 0x6eabe333476233fd382224f233210cb808a7bc4c4de64f9d76628bf63c677b1a;
 
   // validate ERC20 TX
   function validateTransferTx(
@@ -99,7 +99,7 @@ contract ERC721Validator is RootChainValidator {
         [2]
         [3]-> [
           [child token address, [TRANSFER_EVENT_SIGNATURE, from, to, tokenId], <>],
-          [child token address, [LOG_TRANSFER_EVENT_SIGNATURE,token,from,to], <tokenId,input1,input2,tokenId>]
+          [child token address, [LOG_TRANSFER_EVENT_SIGNATURE,token,from,to], <tokenId>]
         ]
     */
     items = receiptData.toRLPItem().toList();
@@ -159,7 +159,7 @@ contract ERC721Validator is RootChainValidator {
     address from,
     address to,
     uint256 tokenId,
-    RLP.RLPItem[] items // [child token address, [LOG_TRANSFER_EVENT_SIGNATURE,token,from,to], <tokenId,input1,input2,tokenId>]
+    RLP.RLPItem[] items // [child token address, [LOG_TRANSFER_EVENT_SIGNATURE,token,from,to], <tokenId>]
   ) internal view returns (bool) {
     if (items.length != 3) {
       return false;
@@ -172,7 +172,7 @@ contract ERC721Validator is RootChainValidator {
       topics[0].toBytes32() == LOG_TRANSFER_EVENT_SIGNATURE &&
       address(topics[2].toUint()) == from &&
       address(topics[3].toUint()) == to &&
-      BytesLib.toUint(items[2].toData(),96) == tokenId
+      BytesLib.toUint(items[2].toData(),0) == tokenId
     ) {
       return true;
     }
