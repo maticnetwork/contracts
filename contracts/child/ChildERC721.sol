@@ -35,8 +35,6 @@ contract ChildERC721 is ChildToken, ERC721Full {
 
     _mint(user, tokenId);
 
-    require(ownerOf(tokenId) == user);
-
     // deposit event
     emit Deposit(token, user, tokenId, input, balanceOf(user));
   }

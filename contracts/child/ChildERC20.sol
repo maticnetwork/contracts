@@ -111,8 +111,8 @@ contract ChildERC20 is ChildToken, ERC20, ERC20Detailed {
       value,
       input1,
       input2,
-      balanceOf(from), // output1
-      balanceOf(to) // output2
+      balanceOf(from),
+      balanceOf(to)
     );
 
     return result;
