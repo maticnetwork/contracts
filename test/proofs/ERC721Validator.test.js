@@ -17,15 +17,15 @@ import { linkLibs } from '../helpers/utils.js'
 import LogDecoder from '../helpers/log-decoder.js'
 
 import {
-  RootToken,
+  RootERC721,
   WithdrawManagerMock,
-  ERC20ValidatorMock,
+  ERC721ValidatorMock,
   DepositManagerMock,
   RootChainMock
 } from '../helpers/contracts.js'
 
 let ChildChain = artifacts.require('../child/ChildChain.sol')
-let ChildToken = artifacts.require('../child/ChildERC20.sol')
+let ChildToken = artifacts.require('../child/ChildERC721.sol')
 
 const web3Child = new web3.constructor(
   new web3.providers.HttpProvider('http://localhost:8546')
@@ -36,7 +36,7 @@ ChildToken.web3 = web3Child
 
 const rlp = utils.rlp
 
-contract('ERC20Validator', async function(accounts) {
+contract('ERC721Validator', async function(accounts) {
   describe('initialization', async function() {
     let logDecoder
     let rootToken
@@ -47,22 +47,23 @@ contract('ERC20Validator', async function(accounts) {
     let user
     let depositManager
     let owner = accounts[0]
+    let tokenID
 
     before(async function() {
       // link libs
       await linkLibs(web3Child)
 
       logDecoder = new LogDecoder([
-        RootToken._json.abi,
-        ERC20ValidatorMock._json.abi,
+        RootERC721._json.abi,
+        ERC721ValidatorMock._json.abi,
         WithdrawManagerMock._json.abi,
         RootChainMock._json.abi,
         DepositManagerMock._json.abi
       ])
 
-      user = accounts[1]
+      user = accounts[0]
 
-      rootToken = await RootToken.new('Test Token', 'TEST', { from: user })
+      rootToken = await RootERC721.new('Test Token', 'TEST', { from: user })
       childChain = await ChildChain.new({ from: user, gas: 6000000 })
 
       let childTokenReceipt = await childChain.addToken(
@@ -70,7 +71,7 @@ contract('ERC20Validator', async function(accounts) {
         'Token Test',
         'TEST',
         18,
-        false,
+        true,
         {
           from: user
         }
@@ -96,33 +97,29 @@ contract('ERC20Validator', async function(accounts) {
       await withdrawManager.setDepositManager(depositManager.address)
 
       // map token
-      await rootChain.mapToken(rootToken.address, childToken.address, false, {
+      await rootChain.mapToken(rootToken.address, childToken.address, true, {
         from: owner
       })
+      tokenID = web3.toWei(12)
     })
 
     it('should deposit token', async function() {
-      const amount = web3.toWei(10)
+      await rootToken.mint(tokenID, { from: user })
+      await rootToken.approve(rootChain.address, tokenID, { from: user })
 
-      // deposit amount
-      await rootToken.approve(rootChain.address, amount, {
-        from: user
-      })
-
-      let depositReceipt = await rootChain.deposit(
+      let receipt = await rootChain.depositERC721(
         rootToken.address,
-        user,
-        amount,
-        {
-          from: user
-        }
+        owner,
+        tokenID
       )
-      const depositLogs = logDecoder.decodeLogs(depositReceipt.receipt.logs)
+      // receipt.receipt.logs.should.have.length(2)
+
+      const depositLogs = logDecoder.decodeLogs(receipt.receipt.logs)
       const depositCount = depositLogs[1].args._depositCount.toString()
       await childChain.depositTokens(
         rootToken.address,
         user,
-        amount,
+        tokenID,
         depositCount,
         {
           from: user
@@ -131,16 +128,16 @@ contract('ERC20Validator', async function(accounts) {
     })
 
     it('should transfer tokens', async function() {
-      const amount = web3.toWei(1)
-      const usr = accounts[2]
-
-      // transfer receipt
-      let obj = await childToken.transfer(usr, amount, {
+      // const amount = web3.toWei(1)
+      await childToken.approve(accounts[9], tokenID, {
         from: user
       })
-
+      let obj = await childToken.transferFrom(user, accounts[9], tokenID, {
+        from: user
+      })
       // receipt
       let receipt = obj.receipt
+
       let transfer = await web3Child.eth.getTransaction(receipt.transactionHash)
       let transferBlock = await web3Child.eth.getBlock(receipt.blockHash, true)
       let transferReceipt = await web3Child.eth.getTransactionReceipt(
@@ -193,14 +190,12 @@ contract('ERC20Validator', async function(accounts) {
 
       // validate header proof
       const headerProof = await tree.getProof(getBlockHeader(transferBlock))
-
       // create  erc20 validator
-      const erc20Validator = await ERC20ValidatorMock.new()
-      await erc20Validator.changeRootChain(rootChain.address)
-      await erc20Validator.setDepositManager(depositManager.address)
-
+      const erc721Validator = await ERC721ValidatorMock.new()
+      await erc721Validator.changeRootChain(rootChain.address)
+      await erc721Validator.setDepositManager(depositManager.address)
       // ERC20 validator
-      receipt = await erc20Validator.validateERC20Tx(
+      receipt = await erc721Validator.validateERC721Tx(
         utils.bufferToHex(
           rlp.encode([
             headerNumber, // header block

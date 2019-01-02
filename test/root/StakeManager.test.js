@@ -223,7 +223,6 @@ contract('StakeManager', async function(accounts) {
       const stakerDetails = await stakeManager.getStakerDetails(user)
       stakerDetails[3].should.equal(user)
 
-      // let validators = await stakeManager.getNextValidatorSet()
     })
 
     it('should update and verify signer/pubkey', async function() {

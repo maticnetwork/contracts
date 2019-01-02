@@ -1,13 +1,13 @@
 pragma solidity ^0.4.24;
 
 import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import { ERC721 } from "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
+
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { WETH } from "../token/WETH.sol";
 import { PriorityQueue } from "../lib/PriorityQueue.sol";
-import { Merkle } from "../lib/Merkle.sol";
-import { MerklePatriciaProof } from "../lib/MerklePatriciaProof.sol";
 import { ExitNFT } from "../token/ExitNFT.sol";
 import { RLP } from "../lib/RLP.sol";
 import { RLPEncode } from "../lib/RLPEncode.sol";
@@ -15,13 +15,11 @@ import { RLPEncode } from "../lib/RLPEncode.sol";
 import { WithdrawManager } from "./WithdrawManager.sol";
 import { DepositManager } from "./DepositManager.sol";
 import { IRootChain } from "./IRootChain.sol";
-import { IManager } from "./IManager.sol";
 import { StakeManager } from "./StakeManager.sol";
 
 
 contract RootChain is Ownable, IRootChain {
   using SafeMath for uint256;
-  using Merkle for bytes32;
   using RLP for bytes;
   using RLP for RLP.RLPItem;
   using RLP for RLP.Iterator;
@@ -183,9 +181,9 @@ contract RootChain is Ownable, IRootChain {
   }
 
   // map child token to root token
-  function mapToken(address _rootToken, address _childToken) public onlyOwner {
-    depositManager.mapToken(_rootToken, _childToken);
-    withdrawManager.mapToken(_rootToken, _childToken);
+  function mapToken(address _rootToken, address _childToken, bool _isERC721) public onlyOwner {
+    depositManager.mapToken(_rootToken, _childToken, _isERC721);
+    withdrawManager.mapToken(_rootToken, _childToken, _isERC721);
   }
 
   // change child chain contract
@@ -279,6 +277,18 @@ contract RootChain is Ownable, IRootChain {
     depositManager.createDepositBlock(_currentHeaderBlock, wethToken, msg.sender, _amount);
   }
 
+  // deposit erc721
+  function depositERC721(
+    address _token,
+    address _user,
+    uint256 _tokenId) public {
+    // transfer tokens to current contract
+    ERC721(_token).transferFrom(msg.sender, address(this), _tokenId);
+
+    // generate deposit block and udpate counter
+    depositManager.createDepositBlock(_currentHeaderBlock, _token, _user, _tokenId);
+  }
+
   // deposit tokens for another user
   function deposit(
     address _token,
@@ -296,11 +306,15 @@ contract RootChain is Ownable, IRootChain {
   function transferAmount(
     address _token,
     address _user,
-    uint256 _amount,
-    bool isWeth
+    uint256 _amount
   ) public onlyWithdrawManager returns(bool)  { 
 
-    if (isWeth) {
+    address wethToken = depositManager.wethToken();
+
+    // transfer to user TODO: use pull for transfer
+    if (depositManager.isERC721(_token)) {
+      ERC721(_token).transferFrom(address(this), _user, _amount);
+    } else if (_token == wethToken) {
       WETH t = WETH(_token); 
       t.withdraw(_amount, _user);
     } else {

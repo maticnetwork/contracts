@@ -19,7 +19,7 @@ contract DepositManager is IManager, TokenManager, RootChainable {
     uint256 header;
     address owner;
     address token;
-    uint256 amount;
+    uint256 amountOrTokenId; // needs better name
     uint256 createdAt;
   }
 
@@ -33,7 +33,7 @@ contract DepositManager is IManager, TokenManager, RootChainable {
   // Events
   //
 
-  event Deposit(address indexed _user, address indexed _token, uint256 _amount, uint256 _depositCount);
+  event Deposit(address indexed _user, address indexed _token, uint256 _amountOrTokenId, uint256 _depositCount);
 
   //
   // Constructor
@@ -57,8 +57,8 @@ contract DepositManager is IManager, TokenManager, RootChainable {
   }
 
   // map child token to root token
-  function mapToken(address _rootToken, address _childToken) public onlyRootChain {
-    _mapToken(_rootToken, _childToken);
+  function mapToken(address _rootToken, address _childToken, bool _isERC721) public onlyRootChain {
+    _mapToken(_rootToken, _childToken, _isERC721);
   }
 
   // finalize commit when new header block commited
@@ -75,7 +75,7 @@ contract DepositManager is IManager, TokenManager, RootChainable {
     uint256 _header,
     address _owner,
     address _token,
-    uint256 _amount,
+    uint256 _amountOrTokenId,
     uint256 _createdAt
   ) {
     DepositBlock memory _depositBlock = deposits[_depositCount];
@@ -83,7 +83,7 @@ contract DepositManager is IManager, TokenManager, RootChainable {
     _header = _depositBlock.header;
     _owner = _depositBlock.owner;
     _token = _depositBlock.token;
-    _amount = _depositBlock.amount;
+    _amountOrTokenId = _depositBlock.amountOrTokenId;
     _createdAt = _depositBlock.createdAt;
   }
 
@@ -92,13 +92,13 @@ contract DepositManager is IManager, TokenManager, RootChainable {
     uint256 _currentHeaderBlock,
     address _token,
     address _user,
-    uint256 _amount
+    uint256 _amountOrTokenId
   ) public onlyRootChain {
     // throw if user is contract
     require(Common.isContract(_user) == false);
 
-    // throw if amount is zero
-    require(_amount > 0);
+    // throw if amount is zero if !NFT
+    require(isERC721[_token] || _amountOrTokenId > 0); 
 
     // throws if token is not mapped
     require(_isTokenMapped(_token));
@@ -110,20 +110,16 @@ contract DepositManager is IManager, TokenManager, RootChainable {
     uint256 _depositId = nextDepositBlock(_currentHeaderBlock);
 
     // broadcast deposit event
-    emit Deposit(_user, _token, _amount, _depositId);
+    emit Deposit(_user, _token, _amountOrTokenId, _depositId);
 
     // add deposit into deposits
-    // DepositBlock memory _depositBlock 
     deposits[_depositId] = DepositBlock({
       header: _currentHeaderBlock,
       owner: _user,
       token: _token,
-      amount: _amount,
+      amountOrTokenId: _amountOrTokenId,
       createdAt: block.timestamp
     });
-
-    // deposits[_depositId] = _depositBlock;
-
     // increase deposit counter
     depositCount = depositCount.add(1);
   }

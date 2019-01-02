@@ -2,8 +2,8 @@ import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import chaiBigNumber from 'chai-bignumber'
 
+import { ChildChain, ChildERC20, RootToken } from '../helpers/contracts'
 import { linkLibs, ZeroAddress } from '../helpers/utils'
-import { ChildChain, ChildToken, RootToken } from '../helpers/contracts'
 
 // add chai pluggin
 chai
@@ -33,9 +33,10 @@ contract('ChildERC20', async function(accounts) {
       rootToken.address,
       'Token Test',
       'TEST',
-      18
+      18,
+      false
     )
-    childToken = ChildToken.at(receipt.logs[1].args.token.toLowerCase())
+    childToken = ChildERC20.at(receipt.logs[1].args.token.toLowerCase())
 
     // amount
     amount = web3.toWei(10)
@@ -51,7 +52,7 @@ contract('ChildERC20', async function(accounts) {
       rootToken.address,
       owner,
       amount,
-      0
+      11
     )
     receipt.receipt.logs.should.have.lengthOf(3)
   })
@@ -75,14 +76,14 @@ contract('ChildERC20', async function(accounts) {
 
     receipt.logs[1].event.should.equal('Withdraw')
     receipt.logs[1].args.token.should.equal(rootToken.address)
-    receipt.logs[1].args.user.should.equal(owner)
-    receipt.logs[1].args.amount.toString().should.equal(amount)
+    receipt.logs[1].args.from.should.equal(owner)
+    receipt.logs[1].args.amountOrTokenId.toString().should.equal(amount)
 
     const afterBalance = await childToken.balanceOf(owner)
     afterBalance.should.be.bignumber.equal(0)
   })
 
   it('should check true (safety check)', async function() {
-    assert.isOk(true)
+    assert.isTrue(true)
   })
 })

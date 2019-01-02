@@ -55,7 +55,8 @@ export async function linkLibs(web3Child) {
     contracts.TxValidator,
     contracts.ExitValidator,
     contracts.ERC20Validator,
-    contracts.ERC20ValidatorMock
+    contracts.ERC20ValidatorMock,
+    contracts.ERC721ValidatorMock
   ]
 
   const libAddresses = {}
@@ -76,7 +77,11 @@ export async function linkLibs(web3Child) {
 
   // web3Child
   if (web3Child) {
-    const childContractList = [contracts.ChildChain, contracts.ChildToken]
+    const childContractList = [
+      contracts.ChildChain,
+      contracts.ChildERC20,
+      contracts.ChildERC721
+    ]
     let i
     for (i = 0; i < libList.length; i++) {
       const M = libList[i]

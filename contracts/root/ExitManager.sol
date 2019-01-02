@@ -11,6 +11,7 @@ import { WETH } from "../token/WETH.sol";
 import { RootChainable } from "../mixin/RootChainable.sol";
 
 import { IRootChain } from "./IRootChain.sol";
+import { DepositManager } from "./DepositManager.sol";
 
 
 contract ExitManager is RootChainable {
@@ -23,19 +24,22 @@ contract ExitManager is RootChainable {
   // Storage
   //
 
+  DepositManager public depositManager;
+
   // structure for plasma exit
   struct PlasmaExit {
     address owner;
     address token;
-    uint256 amount;
+    uint256 amountOrTokenId;
     bool burnt;
   }
 
   // all plasma exits
   mapping (uint256 => PlasmaExit) public exits;
 
-  // mapping with token => (owner => exitId)
-  mapping (address => mapping(address => uint256)) public ownerExits;
+  // mapping with token => (owner => exitId) keccak(token+owner) keccak(token+owner+tokenId)
+  mapping (bytes32 => uint256) public ownerExits;
+
 
   // exit queue for each token
   mapping (address => address) public exitsQueues;
@@ -80,7 +84,7 @@ contract ExitManager is RootChainable {
     return (
       exits[_utxoPos].owner,
       exits[_utxoPos].token,
-      exits[_utxoPos].amount,
+      exits[_utxoPos].amountOrTokenId,
       exits[_utxoPos].burnt
     );
   }
@@ -98,15 +102,11 @@ contract ExitManager is RootChainable {
     return PriorityQueue(exitsQueues[_token]).getMin();
   }
 
-  /**
-   * @dev Fetches current exitId for given token and address
-   */
-  function exitIdByOwner(address _token, address _owner)
-    public
-    view
-    returns (uint256)
-  {
-    return ownerExits[_token][_owner];
+  function getExitId(address _token, address _owner, uint256 _tokenId) public view returns (uint256) {
+    if (depositManager.isERC721(_token)) {
+      return ownerExits[keccak256(_token, _owner, _tokenId)];
+    }
+    return ownerExits[keccak256(_token, _owner)];
   }
 
   //
@@ -131,7 +131,7 @@ contract ExitManager is RootChainable {
   }
 
   // map child token to root token
-  function _mapToken(address _rootToken, address _childToken) internal {
+  function _mapToken(address _rootToken, address _childToken, bool _isERC721) internal {
     // create exit queue
     exitsQueues[_rootToken] = address(new PriorityQueue());
   }
@@ -174,13 +174,13 @@ contract ExitManager is RootChainable {
 
         // delete current exit if exit was "burnt"
         if (currentExit.burnt) {
-          delete ownerExits[_token][currentExit.owner];
+          delete ownerExits[keccak256(_token, currentExit.owner)];
         }
 
-        IRootChain(rootChain).transferAmount(_token, exitOwner, currentExit.amount, _token == wethToken);
+        IRootChain(rootChain).transferAmount(_token, exitOwner, currentExit.amountOrTokenId);
 
         // broadcast withdraw events
-        emit Withdraw(exitOwner, _token, currentExit.amount);
+        emit Withdraw(exitOwner, _token, currentExit.amountOrTokenId);
 
         // Delete owner but keep amount to prevent another exit from the same UTXO.
         // delete exits[utxoPos].owner;
@@ -204,19 +204,21 @@ contract ExitManager is RootChainable {
   ) internal {
     // Check that we're exiting a known token.
     require(exitsQueues[_exitObject.token] != address(0));
-
+    bytes32 key;
+    if (depositManager.isERC721(_exitObject.token)) {
+      key = keccak256(_exitObject.token, _exitObject.owner, _exitObject.amountOrTokenId);
+    } else {
+      // validate amount
+      require(_exitObject.amountOrTokenId > 0);
+      key = keccak256(_exitObject.token, _exitObject.owner);
+    }
     // validate token exit
-    require(ownerExits[_exitObject.token][_exitObject.owner] == 0);
-
-    // validate amount
-    require(_exitObject.amount > 0);
-
+    require(ownerExits[key] == 0);
     // Calculate priority.
     uint256 exitableAt = Math.max(_createdAt + 2 weeks, block.timestamp + 1 weeks);
 
     // Check exit is valid and doesn't already exist.
-    require(_exitObject.amount > 0);
-    require(exits[_utxoPos].amount == 0);
+    require(exits[_utxoPos].token == address(0x0));
 
     PriorityQueue queue = PriorityQueue(exitsQueues[_exitObject.token]);
     queue.insert(exitableAt, _utxoPos);
@@ -226,9 +228,9 @@ contract ExitManager is RootChainable {
     exits[_utxoPos] = _exitObject;
 
     // set current exit
-    ownerExits[_exitObject.token][_exitObject.owner] = _utxoPos;
+    ownerExits[key] = _utxoPos;
 
     // emit exit started event
-    emit ExitStarted(_exitObject.owner, _utxoPos, _exitObject.token, _exitObject.amount);
+    emit ExitStarted(_exitObject.owner, _utxoPos, _exitObject.token, _exitObject.amountOrTokenId);
   }
 }

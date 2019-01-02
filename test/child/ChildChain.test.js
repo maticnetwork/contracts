@@ -4,7 +4,7 @@ import chaiBigNumber from 'chai-bignumber'
 
 import { linkLibs, ZeroAddress } from '../helpers/utils'
 
-import { ChildChain, ChildToken, RootToken } from '../helpers/contracts'
+import { ChildChain, ChildERC20, RootToken } from '../helpers/contracts'
 import LogDecoder from '../helpers/log-decoder'
 
 // add chai pluggin
@@ -16,7 +16,7 @@ chai
 contract('ChildChain', async function(accounts) {
   let childChainContract
   let rootToken
-  let logDecoder = new LogDecoder([ChildChain._json.abi, ChildToken._json.abi])
+  let logDecoder = new LogDecoder([ChildChain._json.abi, ChildERC20._json.abi])
 
   beforeEach(async function() {
     // link libs
@@ -33,9 +33,16 @@ contract('ChildChain', async function(accounts) {
   })
 
   it('should allow only owner to add new token ', async function() {
-    await childChainContract.addToken(rootToken.address, 'Token S', 'STX', 18, {
-      from: accounts[1]
-    }).should.be.rejected
+    await childChainContract.addToken(
+      rootToken.address,
+      'Token S',
+      'STX',
+      18,
+      false,
+      {
+        from: accounts[1]
+      }
+    ).should.be.rejected
 
     await childChainContract
       .tokens(rootToken.address)
@@ -47,7 +54,8 @@ contract('ChildChain', async function(accounts) {
       rootToken.address,
       'Token One',
       'OTX',
-      18
+      18,
+      false
     )
     const logs = logDecoder.decodeLogs(receipt.receipt.logs)
     logs.should.have.lengthOf(2)
@@ -65,26 +73,40 @@ contract('ChildChain', async function(accounts) {
       .should.eventually.equal(logs[1].args.token.toLowerCase())
 
     // get child chain token
-    const childToken = ChildToken.at(logs[1].args.token.toLowerCase())
+    const childToken = ChildERC20.at(logs[1].args.token)
 
     // should have proper owner
-    await childToken.owner().should.eventually.equal(childChainContract.address)
+    await childToken
+      .owner()
+      .should.eventually.equal(childChainContract.address.toLowerCase())
 
     // should match mapping
     await childChainContract
       .tokens(rootToken.address)
-      .should.eventually.equal(childToken.address)
+      .should.eventually.equal(childToken.address.toLowerCase())
   })
 
   it('should not allow to add new token again', async function() {
     // add token
-    await childChainContract.addToken(rootToken.address, 'Token One', 'OTX', 18)
+    await childChainContract.addToken(
+      rootToken.address,
+      'Token One',
+      'OTX',
+      18,
+      false
+    )
 
     // add again
-    await childChainContract.addToken(rootToken.address, 18).should.be.rejected
+    await childChainContract.addToken(
+      rootToken.address,
+      'a',
+      'b',
+      18,
+      false
+    ).should.be.rejected
   })
 
   it('should check true (safety check)', async function() {
-    assert.isOk(true)
+    assert.isTrue(true)
   })
 })

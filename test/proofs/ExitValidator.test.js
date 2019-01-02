@@ -9,7 +9,7 @@ import {
   RootChainMock,
   RootToken,
   ChildChain,
-  ChildToken,
+  ChildERC20,
   ExitNFT,
   ExitValidator
 } from '../helpers/contracts'
@@ -39,7 +39,7 @@ const web3Child = new web3.constructor(
 )
 
 ChildChain.web3 = web3Child
-ChildToken.web3 = web3Child
+ChildERC20.web3 = web3Child
 
 contract('ExitValidator', async function(accounts) {
   describe('exit validation', async function() {
@@ -95,9 +95,10 @@ contract('ExitValidator', async function(accounts) {
           rootToken.address,
           'Token Test',
           'TEST',
-          18
+          18,
+          false
         )
-        childToken = ChildToken.at(receipt.logs[1].args.token.toLowerCase())
+        childToken = ChildERC20.at(receipt.logs[1].args.token)
 
         // exit validator
         exitValidator = await ExitValidator.new()
@@ -140,7 +141,7 @@ contract('ExitValidator', async function(accounts) {
         })
 
         // map token
-        await rootChain.mapToken(rootToken.address, childToken.address, {
+        await rootChain.mapToken(rootToken.address, childToken.address, false, {
           from: owner
         })
       })

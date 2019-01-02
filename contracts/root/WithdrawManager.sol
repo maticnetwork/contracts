@@ -21,15 +21,13 @@ import { RootChainable } from "../mixin/RootChainable.sol";
 
 
 contract WithdrawManager is IManager, ExitManager {
-  // using Merkle for bytes32;
-  // using RLP for bytes;
-  // using RLP for RLP.RLPItem;
-  // using RLP for RLP.Iterator;
-
+ 
   // 0x2e1a7d4d = sha3('withdraw(uint256)')
   bytes4 constant private WITHDRAW_SIGNATURE = 0x2e1a7d4d;
   // 0xa9059cbb = keccak256('transfer(address,uint256)')
   bytes4 constant private TRANSFER_SIGNATURE = 0xa9059cbb;
+  // 0xa0cda4eb = keccak256('transferFrom(address,adress,uint256)')
+  bytes4 constant private TRANSFER_SIGNATURE_ERC721 = 0x23b872dd;
   // keccak256('Withdraw(address,address,uint256,uint256,uint256)')
   bytes32 constant private WITHDRAW_EVENT_SIGNATURE = 0xebff2602b3f468259e1e99f613fed6691f3a6526effe6ef3e768ba7ae7a36c4f;
 
@@ -37,7 +35,7 @@ contract WithdrawManager is IManager, ExitManager {
   // Storage
   //
 
-  DepositManager public depositManager;
+  // DepositManager public depositManager;
 
   //
   // Public functions
@@ -58,8 +56,8 @@ contract WithdrawManager is IManager, ExitManager {
   }
 
   // map child token to root token
-  function mapToken(address _rootToken, address _childToken) public onlyRootChain {
-    _mapToken(_rootToken, _childToken);
+  function mapToken(address _rootToken, address _childToken, bool _isERC721) public onlyRootChain {
+    _mapToken(_rootToken, _childToken, _isERC721);
   }
 
   // finalize commit
@@ -95,9 +93,9 @@ contract WithdrawManager is IManager, ExitManager {
     bytes receiptProof
   ) public {
     address rootToken;
-    uint256 receiptAmount;
+    uint256 receiptAmountOrTokenId;
 
-    (rootToken, receiptAmount) = _processBurntReceipt(
+    (rootToken, receiptAmountOrTokenId) = _processBurntReceipt(
       receiptBytes,
       path,
       receiptProof,
@@ -113,7 +111,7 @@ contract WithdrawManager is IManager, ExitManager {
       txRoot,
 
       rootToken,
-      receiptAmount,
+      receiptAmountOrTokenId,
 
       msg.sender
     );
@@ -122,7 +120,7 @@ contract WithdrawManager is IManager, ExitManager {
     PlasmaExit memory _exitObject = PlasmaExit({
       owner: msg.sender,
       token: rootToken,
-      amount: receiptAmount,
+      amountOrTokenId: receiptAmountOrTokenId,
       burnt: true
     });
 
@@ -168,15 +166,15 @@ contract WithdrawManager is IManager, ExitManager {
     require(MerklePatriciaProof.verify(receiptBytes, path, receiptProof, receiptRoot) == true);
 
     // process transfer tx/receipt
-    uint256 amount;
+    uint256 amountOrTokenId;
     uint8 oIndex;
-    (amount, oIndex) = _processWithdrawTransferReceipt(receiptBytes, msg.sender);
+    (amountOrTokenId, oIndex) = _processWithdrawTransferReceipt(receiptBytes, msg.sender);
 
     // exit object
     PlasmaExit memory _exitObject = PlasmaExit({
       owner: msg.sender,
       token: _processWithdrawTransferTx(txBytes),
-      amount: amount,
+      amountOrTokenId: amountOrTokenId,
       burnt: false
     });
 
@@ -203,10 +201,10 @@ contract WithdrawManager is IManager, ExitManager {
     uint256 _header;
     address _owner;
     address _token;
-    uint256 _amount;
+    uint256 _amountOrTokenId;
     uint256 _createdAt;
 
-    (_header, _owner, _token, _amount, _createdAt) = depositManager.deposits(_depositCount);
+    (_header, _owner, _token, _amountOrTokenId, _createdAt) = depositManager.deposits(_depositCount);
     require(_token != address(0) && _owner == msg.sender);
 
     // get header block
@@ -218,7 +216,7 @@ contract WithdrawManager is IManager, ExitManager {
     PlasmaExit memory _exitObject = PlasmaExit({
       owner: msg.sender,
       token: _token,
-      amount: _amount,
+      amountOrTokenId: _amountOrTokenId,
       burnt: false
     });
 
@@ -275,7 +273,6 @@ contract WithdrawManager is IManager, ExitManager {
       path.toRLPItem().toData().toRLPItem().toUint() * 100000 +
       oIndex
     );
-
     // add exit to queue
     _addExitToQueue(
       _exitObject,
@@ -292,13 +289,13 @@ contract WithdrawManager is IManager, ExitManager {
     RLP.RLPItem[] memory items = txBytes.toRLPItem().toList();
     require(items.length == 9);
 
-    // check if transaction is transfer tx
-    // <4 bytes transfer event,address (32 bytes),amount (32 bytes)>
-    require(BytesLib.toBytes4(BytesLib.slice(items[5].toData(), 0, 4)) == TRANSFER_SIGNATURE);
-
     // check rootToken is valid
     rootToken = depositManager.reverseTokens(items[3].toAddress());
     require(rootToken != address(0));
+    // check if transaction is transfer tx
+    // <4 bytes transfer event,address (32 bytes),amountOrTokenId (32 bytes)>
+    bytes4 transferSIG = BytesLib.toBytes4(BytesLib.slice(items[5].toData(), 0, 4));
+    require(transferSIG == TRANSFER_SIGNATURE || (depositManager.isERC721(rootToken) && transferSIG == TRANSFER_SIGNATURE_ERC721));
   }
 
   // process withdraw transfer receipt
@@ -324,6 +321,13 @@ contract WithdrawManager is IManager, ExitManager {
     address from = BytesLib.toAddress(topics[2].toData(), 12);
     address to = BytesLib.toAddress(topics[3].toData(), 12);
 
+    if (depositManager.isERC721(address(topics[1].toUint()))) {
+      require(to == sender, "Can't exit with transfered NFT");
+      totalBalance = BytesLib.toUint(items[2].toData(), 0);
+      oIndex = 0;
+      return;
+    }
+
     // set totalBalance and oIndex
     if (to == sender) {
       totalBalance = BytesLib.toUint(items[2].toData(), 128);
@@ -332,8 +336,8 @@ contract WithdrawManager is IManager, ExitManager {
       totalBalance = BytesLib.toUint(items[2].toData(), 96);
       oIndex = 0;
     }
+    require(totalBalance > 0);
   }
-
   // process withdraw tx
   function _processBurntTx(
     bytes txBytes,
@@ -342,7 +346,7 @@ contract WithdrawManager is IManager, ExitManager {
     bytes32 txRoot,
 
     address rootToken,
-    uint256 amount,
+    uint256 amountOrTokenId,
 
     address sender
   ) internal view {
@@ -358,7 +362,8 @@ contract WithdrawManager is IManager, ExitManager {
     // check withdraw data function signature
     require(BytesLib.toBytes4(BytesLib.slice(txList[5].toData(), 0, 4)) == WITHDRAW_SIGNATURE);
     // check amount
-    require(amount > 0 && amount == BytesLib.toUint(txList[5].toData(), 4));
+    require(depositManager.isERC721(rootToken) || amountOrTokenId > 0);
+    require(amountOrTokenId == BytesLib.toUint(txList[5].toData(), 4));
 
     // Make sure this tx is the value on the path via a MerklePatricia proof
     require(MerklePatriciaProof.verify(txBytes, path, txProof, txRoot) == true);
@@ -390,7 +395,7 @@ contract WithdrawManager is IManager, ExitManager {
     bytes receiptProof,
     bytes32 receiptRoot,
     address sender
-  ) internal view returns (address rootToken, uint256 amount) {
+  ) internal view returns (address rootToken, uint256 amountOrTokenId) {
     // check receipt
     RLP.RLPItem[] memory items = receiptBytes.toRLPItem().toList();
     require(items.length == 4);
@@ -399,7 +404,7 @@ contract WithdrawManager is IManager, ExitManager {
     items = items[3].toList()[1].toList();
     require(items.length == 3);
     address childToken = items[0].toAddress(); // child token address
-    amount = BytesLib.toUint(items[2].toData(), 0); // amount
+    amountOrTokenId = BytesLib.toUint(items[2].toData(), 0); // amount
 
     // [3][1][1] -> [WITHDRAW_EVENT_SIGNATURE, root token address, sender]
     items = items[1].toList();

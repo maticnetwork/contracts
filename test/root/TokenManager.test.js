@@ -3,7 +3,6 @@ import chaiAsPromised from 'chai-as-promised'
 import chaiBigNumber from 'chai-bignumber'
 
 import { TokenManagerMock } from '../helpers/contracts'
-import EVMRevert from '../helpers/evm-revert'
 
 // add chai pluggin
 chai
@@ -20,9 +19,9 @@ contract('TokenManager', async function(accounts) {
     tokenManager = await TokenManagerMock.new({ from: owner })
   })
 
-  it('should allow owner to map token', async function() {
+  it('should allow owner to map token:ERC20', async function() {
     const [rootToken, childToken] = accounts.slice(1)
-    const receipt = await tokenManager.mapToken(rootToken, childToken, {
+    const receipt = await tokenManager.mapToken(rootToken, childToken, false, {
       from: owner
     })
 
@@ -35,6 +34,27 @@ contract('TokenManager', async function(accounts) {
     await tokenManager
       .reverseTokens(childToken)
       .should.eventually.equal(rootToken)
+
+    await tokenManager.isERC721(rootToken).should.eventually.equal(false)
+  })
+
+  it('should allow owner to map token:ERC721', async function() {
+    const [rootToken, childToken] = accounts.slice(1)
+    const receipt = await tokenManager.mapToken(rootToken, childToken, true, {
+      from: owner
+    })
+
+    receipt.logs.should.have.lengthOf(1)
+    receipt.logs[0].event.should.equal('TokenMapped')
+    receipt.logs[0].args._rootToken.should.equal(rootToken)
+    receipt.logs[0].args._childToken.should.equal(childToken)
+
+    await tokenManager.tokens(rootToken).should.eventually.equal(childToken)
+    await tokenManager
+      .reverseTokens(childToken)
+      .should.eventually.equal(rootToken)
+
+    await tokenManager.isERC721(rootToken).should.eventually.equal(true)
   })
 
   // not valid anymore

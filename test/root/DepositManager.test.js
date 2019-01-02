@@ -6,6 +6,7 @@ import {
   DepositManagerMock,
   RootChain,
   RootToken,
+  RootERC721,
   MaticWETH
 } from '../helpers/contracts'
 import { linkLibs } from '../helpers/utils'
@@ -27,6 +28,8 @@ contract('DepositManager', async function(accounts) {
   let rootChain
   let stakeToken
   let logDecoder
+  let rootERC721
+  let childERC721
 
   beforeEach(async function() {
     await linkLibs()
@@ -44,11 +47,16 @@ contract('DepositManager', async function(accounts) {
 
     rootChain = await RootChain.new(childToken.address) // dummy address for stake manager
     depositManager = await DepositManagerMock.new({ from: owner })
+
+    rootERC721 = await RootERC721.new('Root ERC721', 'R721')
+
+    childERC721 = await RootERC721.new('Child ERC721', 'C721')
+
     await depositManager.changeRootChain(rootChain.address, { from: owner })
     await rootChain.setDepositManager(depositManager.address, { from: owner })
 
     // map token
-    await depositManager.mapToken(rootToken.address, childToken.address)
+    await depositManager.mapToken(rootToken.address, childToken.address, false)
   })
 
   describe('token deposits', async function() {
@@ -73,7 +81,7 @@ contract('DepositManager', async function(accounts) {
       logs[1].args._token
         .toLowerCase()
         .should.equal(rootToken.address.toLowerCase())
-      logs[1].args._amount.should.be.bignumber.equal(amount)
+      logs[1].args._amountOrTokenId.should.be.bignumber.equal(amount)
 
       const contractBalance = await rootToken.balanceOf(rootChain.address)
       contractBalance.should.be.bignumber.equal(amount)
@@ -95,10 +103,28 @@ contract('DepositManager', async function(accounts) {
       logs[1].args._token
         .toLowerCase()
         .should.equal(rootToken.address.toLowerCase())
-      logs[1].args._amount.should.be.bignumber.equal(amount)
+      logs[1].args._amountOrTokenId.should.be.bignumber.equal(amount)
 
       const contractBalance = await rootToken.balanceOf(rootChain.address)
       contractBalance.should.be.bignumber.equal(amount)
+    })
+
+    it('should allow to map, add erc721 and deposit ERC721', async function() {
+      let receipt = await depositManager.mapToken(
+        rootERC721.address,
+        childERC721.address,
+        true
+      )
+      const tokenID = web3.toWei(12)
+      await rootERC721.mint(tokenID, { from: owner })
+      await rootERC721.approve(rootChain.address, tokenID, { from: owner })
+
+      receipt = await rootChain.depositERC721(
+        rootERC721.address,
+        owner,
+        tokenID
+      )
+      receipt.receipt.logs.should.have.length(2)
     })
 
     it('should allow anyone to deposit ERC223 token directly without approve', async function() {
@@ -157,7 +183,7 @@ contract('DepositManager', async function(accounts) {
       ethAmount = web3.toWei('0.01', 'ether')
       // set weth token and map weth token
       await depositManager.setWETHToken(wethToken.address)
-      await depositManager.mapToken(wethToken.address, wethToken.address)
+      await depositManager.mapToken(wethToken.address, wethToken.address, false)
     })
 
     it('should allow anyone to deposit ethers', async function() {
