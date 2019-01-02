@@ -50,5 +50,5 @@ contract IRootChain is IManager {
     address _token,
     address _user,
     uint256 _amountOrTokenId
-  ) public returns(bool);
+    ) public returns(bool);
 }

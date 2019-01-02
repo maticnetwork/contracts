@@ -66,7 +66,7 @@ contract('AvlTree', async function(accounts) {
   })
 
   it('should insert 100 node randomly and get max back correctly', async function() {
-    let max = -1
+    // let max = -1
     let min = 99999999999
     let p = []
     for (let i = 0; i < 100; i++) {

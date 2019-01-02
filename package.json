@@ -11,10 +11,13 @@
     "truffle:compile": "truffle compile",
     "test:ci": "scripts/run-test.sh",
     "lint": "npm run lint:sol && npm run lint:js",
-    "lint:js": "eslint src/**/*.js test/**/*.js",
+    "lint:js": "eslint test/**/*.js",
     "lint:sol:fix": "solium -d contracts/ --fix",
     "lint:sol": "solium -d contracts/"
   },
+  "pre-commit": [
+    "lint:sol"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jdkanani/protocol.git"
@@ -52,7 +55,8 @@
     "safe-buffer": "5.1.2",
     "solium": "^1.1.8",
     "truffle": "4.1.14",
-    "web3": "^1.0.0-beta.30"
+    "web3": "^1.0.0-beta.30",
+    "pre-commit": "^1.2.2"
   },
   "dependencies": {
     "eth-sig-util": "2.1.0",
@@ -62,6 +66,7 @@
     "ethereumjs-util": "6.0.0",
     "ganache-cli": "6.2.4",
     "merkle-patricia-tree": "2.3.2",
-    "openzeppelin-solidity": "^2.0.0"
+    "openzeppelin-solidity": "^2.0.0",
+    "truffle-hdwallet-provider": "^1.0.1"
   }
 }

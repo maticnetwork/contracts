@@ -91,7 +91,8 @@ contract('WithdrawManager', async function(accounts) {
           from: owner
         })
 
-        rootChain = await RootChainMock.new(rootToken.address) // dummy address for stakemanager
+        rootChain = await RootChainMock.new()
+
         depositManager = await DepositManagerMock.new({ from: owner })
         withdrawManager = await WithdrawManagerMock.new({ from: owner })
 
@@ -361,7 +362,7 @@ contract('WithdrawManager', async function(accounts) {
         // root token / child chain / child token
         rootToken = await RootToken.new('Root Token', 'ROOT')
         exitNFTContract = await ExitNFT.new('Matic Exit NFT', 'MATIC-NFT')
-        rootChain = await RootChainMock.new(rootToken.address) // dummy address for stakemanager
+        rootChain = await RootChainMock.new()
         depositManager = await DepositManagerMock.new({ from: owner })
         withdrawManager = await WithdrawManagerMock.new({ from: owner })
         await depositManager.changeRootChain(rootChain.address, { from: owner })
@@ -653,7 +654,7 @@ contract('WithdrawManager', async function(accounts) {
         // root token / child chain / child token
         rootToken = await RootERC721.new('Root ERC721', 'R721')
         exitNFTContract = await ExitNFT.new('Matic Exit NFT', 'MATIC-NFT')
-        rootChain = await RootChainMock.new(rootToken.address) // dummy address for stakemanager
+        rootChain = await RootChainMock.new()
         depositManager = await DepositManagerMock.new({ from: owner })
         withdrawManager = await WithdrawManagerMock.new({ from: owner })
         await depositManager.changeRootChain(rootChain.address, { from: owner })
@@ -701,7 +702,7 @@ contract('WithdrawManager', async function(accounts) {
         await rootToken.approve(rootChain.address, tokenId, {
           from: owner
         })
-        let out = await rootChain.depositERC721(
+        await rootChain.depositERC721(
           rootToken.address,
           owner,
           tokenId,

@@ -12,6 +12,7 @@ import { DepositManager } from "../root/DepositManager.sol";
 import { Lockable } from "./Lockable.sol";
 import { RootChainable } from "./RootChainable.sol";
 
+
 /**
  * @title RootChainValidator
  */
