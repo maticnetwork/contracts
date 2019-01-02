@@ -7,7 +7,16 @@ import "./ChildToken.sol";
 
 
 contract ChildERC20 is ChildToken, ERC20, ERC20Detailed {
-
+  event LogTransfer(
+    address indexed token,
+    address indexed from,
+    address indexed to,
+    uint256 amountOrTokenId,
+    uint256 input1,
+    uint256 input2,
+    uint256 output1,
+    uint256 output2
+  );
   // constructor
   constructor (address _token, string _name, string _symbol, uint8 _decimals)
     public
@@ -75,8 +84,8 @@ contract ChildERC20 is ChildToken, ERC20, ERC20Detailed {
       value,
       input1,
       input2,
-      balanceOf(to),
-      balanceOf(msg.sender)
+      balanceOf(msg.sender),
+      balanceOf(to)
     );
 
     return result;
@@ -102,8 +111,8 @@ contract ChildERC20 is ChildToken, ERC20, ERC20Detailed {
       value,
       input1,
       input2,
-      balanceOf(to), // output2
-      balanceOf(from) // output1
+      balanceOf(from),
+      balanceOf(to)
     );
 
     return result;

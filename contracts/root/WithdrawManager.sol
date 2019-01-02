@@ -273,7 +273,6 @@ contract WithdrawManager is IManager, ExitManager {
       path.toRLPItem().toData().toRLPItem().toUint() * 100000 +
       oIndex
     );
-
     // add exit to queue
     _addExitToQueue(
       _exitObject,
@@ -322,22 +321,23 @@ contract WithdrawManager is IManager, ExitManager {
     address from = BytesLib.toAddress(topics[2].toData(), 12);
     address to = BytesLib.toAddress(topics[3].toData(), 12);
 
-    // set totalBalance and oIndex
-    if (from == sender) {
-      totalBalance = BytesLib.toUint(items[2].toData(), 128);
+    if (depositManager.isERC721(address(topics[1].toUint()))) {
+      require(to == sender, "Can't exit with transfered NFT");
+      totalBalance = BytesLib.toUint(items[2].toData(), 0);
       oIndex = 0;
-    } else if (to == sender) {
-      totalBalance = BytesLib.toUint(items[2].toData(), 96);
-      oIndex = 1;
+      return;
     }
-    // require(totalBalance > 0); // tokenId can be 0
-    // TODO: reafctor _processBurntReceipt, _processBurntTx and remove these comments
-    // if (depositManager.isERC721(rootToken)) {
-    //   require(oIndex == 1, "Can't exit with transfered NFT");
-    //   totalBalance = BytesLib.toUint(items[2].toData(), 64);
-    // }
-  }
 
+    // set totalBalance and oIndex
+    if (to == sender) {
+      totalBalance = BytesLib.toUint(items[2].toData(), 128);
+      oIndex = 1;
+    } else if (from == sender) {
+      totalBalance = BytesLib.toUint(items[2].toData(), 96);
+      oIndex = 0;
+    }
+    require(totalBalance > 0);
+  }
   // process withdraw tx
   function _processBurntTx(
     bytes txBytes,

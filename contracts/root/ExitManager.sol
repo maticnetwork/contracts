@@ -11,7 +11,6 @@ import { WETH } from "../token/WETH.sol";
 import { RootChainable } from "../mixin/RootChainable.sol";
 
 import { IRootChain } from "./IRootChain.sol";
-
 import { DepositManager } from "./DepositManager.sol";
 
 

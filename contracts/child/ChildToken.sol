@@ -21,18 +21,6 @@ contract ChildToken is Ownable {
     uint256 output1
   );
 
-  event LogTransfer(
-    address indexed token,
-    address indexed from,
-    address indexed to,
-    uint256 amountOrTokenId,
-    uint256 input1,
-    uint256 input2,
-    // reverse order of outputs for erc721 Proofs validation compatibilities
-    uint256 output2,
-    uint256 output1
-  );
-
   event Withdraw(
     address indexed token,
     address indexed from,
