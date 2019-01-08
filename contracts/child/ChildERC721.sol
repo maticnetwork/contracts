@@ -58,9 +58,6 @@ contract ChildERC721 is ChildToken, ERC721Full {
   }
 
   function transferFrom(address from, address to, uint256 tokenId) public {
-    uint256 input1 = balanceOf(from);
-    uint256 input2 = balanceOf(to);
-
     // actual transfer
     super.transferFrom(from, to, tokenId);
 
