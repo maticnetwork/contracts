@@ -110,6 +110,7 @@ contract('WithdrawManager', async function(accounts) {
         // child chain
         childChain = await ChildChain.new()
         const receipt = await childChain.addToken(
+          accounts[0],
           rootToken.address,
           'Token Test',
           'TEST',
@@ -379,6 +380,8 @@ contract('WithdrawManager', async function(accounts) {
         // child chain
         childChain = await ChildChain.new()
         const receipt = await childChain.addToken(
+          accounts[0],
+
           rootToken.address,
           'Token Test',
           'TEST',
@@ -492,7 +495,6 @@ contract('WithdrawManager', async function(accounts) {
           verifyReceiptProof(receiptProof),
           'Receipt proof must be valid'
         )
-
         // withdraw
         const exitReceipt = await withdrawManager.withdrawTokens(
           headerNumber, // header block
@@ -671,6 +673,7 @@ contract('WithdrawManager', async function(accounts) {
         // child chain
         childChain = await ChildChain.new()
         const receipt = await childChain.addToken(
+          accounts[0],
           rootToken.address,
           'Token Test',
           'TEST',
@@ -702,14 +705,9 @@ contract('WithdrawManager', async function(accounts) {
         await rootToken.approve(rootChain.address, tokenId, {
           from: owner
         })
-        await rootChain.depositERC721(
-          rootToken.address,
-          owner,
-          tokenId,
-          {
-            from: owner
-          }
-        )
+        await rootChain.depositERC721(rootToken.address, owner, tokenId, {
+          from: owner
+        })
         // deposit tokens
         await childChain.depositTokens(rootToken.address, owner, tokenId, 1)
       })

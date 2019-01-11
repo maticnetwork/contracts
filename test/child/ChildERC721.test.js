@@ -35,6 +35,7 @@ contract('ChildERC721', async function(accounts) {
     childChain = await ChildChain.new()
     // receipt
     const receipt = await childChain.addToken(
+      accounts[0],
       rootToken.address,
       'test token',
       'tst',

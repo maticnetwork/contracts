@@ -92,6 +92,7 @@ contract('ExitValidator', async function(accounts) {
         // child chain
         childChain = await ChildChain.new()
         const receipt = await childChain.addToken(
+          accounts[0],
           rootToken.address,
           'Token Test',
           'TEST',

@@ -34,6 +34,7 @@ contract('ChildChain', async function(accounts) {
 
   it('should allow only owner to add new token ', async function() {
     await childChainContract.addToken(
+      accounts[0],
       rootToken.address,
       'Token S',
       'STX',
@@ -51,6 +52,7 @@ contract('ChildChain', async function(accounts) {
 
   it('should allow owner to add new token ', async function() {
     const receipt = await childChainContract.addToken(
+      accounts[0],
       rootToken.address,
       'Token One',
       'OTX',
@@ -89,6 +91,7 @@ contract('ChildChain', async function(accounts) {
   it('should not allow to add new token again', async function() {
     // add token
     await childChainContract.addToken(
+      accounts[0],
       rootToken.address,
       'Token One',
       'OTX',
@@ -98,6 +101,7 @@ contract('ChildChain', async function(accounts) {
 
     // add again
     await childChainContract.addToken(
+      accounts[0],
       rootToken.address,
       'a',
       'b',

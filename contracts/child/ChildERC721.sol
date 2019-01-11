@@ -16,15 +16,15 @@ contract ChildERC721 is ChildToken, ERC721Full {
   );
 
   // constructor
-  constructor (address _token, string name, string symbol) ERC721Full(name, symbol)
+  constructor (address _owner, address _token, string name, string symbol) ERC721Full(name, symbol)
     public 
     {
-    require(_token != address(0));
-
+    require(_token != address(0x0) && _owner != address(0x0));
+    parentOwner = _owner;
     token = _token;
   }
 
-  function setParent(address _parent) public onlyOwner {
+  function setParent(address _parent) public isParentOwner {
     require(_parent != address(0x0));
     parent = _parent;
   }
