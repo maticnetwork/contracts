@@ -64,8 +64,8 @@ contract ChildERC721 is ChildToken, ERC721Full {
   }
 
   function transferFrom(address from, address to, uint256 tokenId) public {
-    if (!IParentToken(parent).beforeTransfer(msg.sender)) {
-      return false;
+    if (parent != address(0x0) && !IParentToken(parent).beforeTransfer(msg.sender)) {
+      return;
     }
     // actual transfer
     super.transferFrom(from, to, tokenId);
