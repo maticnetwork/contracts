@@ -16,7 +16,7 @@ chai
   .use(chaiBigNumber(web3.BigNumber))
   .should()
 
-contract('ChildERC20', async function(accounts) {
+contract('parentToken', async function(accounts) {
   let rootToken
   let childToken
   let childChain
@@ -56,7 +56,7 @@ contract('ChildERC20', async function(accounts) {
     await childToken.token().should.eventually.equal(rootToken.address)
   })
 
-  it('should allow to deposit', async function() {
+  it('should test for restricted transfer', async function() {
     await parentToken.updatePermission(owner)
     let receipt = await childChain.depositTokens(
       rootToken.address,
@@ -65,11 +65,12 @@ contract('ChildERC20', async function(accounts) {
       11
     )
     receipt.receipt.logs.should.have.lengthOf(3)
-  })
-
-  it('should not allow to withdraw more than amount', async function() {
-    let out = await childToken.transfer(accounts[1], web3.toWei(1))
-    console.log(out)
+    await childToken.transfer(accounts[1], web3.toWei(1))
+    await childToken.transfer(accounts[2], web3.toWei(1), {
+      from: accounts[3]
+    })
+    let balance = await childToken.balanceOf(accounts[2])
+    balance.should.be.bignumber.equal(0)
   })
 
   it('should check true (safety check)', async function() {
