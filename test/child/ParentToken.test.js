@@ -66,11 +66,15 @@ contract('parentToken', async function(accounts) {
     )
     receipt.receipt.logs.should.have.lengthOf(3)
     await childToken.transfer(accounts[1], web3.toWei(1))
-    await childToken.transfer(accounts[2], web3.toWei(1), {
-      from: accounts[3]
+    // this transfer will fail
+    await childToken.transfer(accounts[0], web3.toWei(1), {
+      from: accounts[1]
     })
-    let balance = await childToken.balanceOf(accounts[2])
-    balance.should.be.bignumber.equal(0)
+    let balance = await childToken.balanceOf(accounts[1])
+    balance.should.be.bignumber.equal(web3.toWei(1))
+
+    balance = await childToken.balanceOf(owner)
+    balance.should.be.bignumber.equal(web3.toWei(9))
   })
 
   it('should check true (safety check)', async function() {
