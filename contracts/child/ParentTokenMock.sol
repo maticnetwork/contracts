@@ -6,10 +6,10 @@ import "./IParentToken.sol";
 // demo token parent contract  
 
 
-contract ParentToken is IParentToken, Ownable {
+contract ParentTokenMock is IParentToken, Ownable {
   mapping (address => bool) isAllowed;
-  function beforeTransfer(address user) public returns(bool) {
-    return isAllowed[user];
+  function beforeTransfer(address sender, address to, uint256 value) public returns(bool) {
+    return isAllowed[sender];
   }
 
   function updatePermission(address user) public onlyOwner {

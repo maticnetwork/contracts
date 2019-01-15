@@ -5,7 +5,7 @@ import chaiBigNumber from 'chai-bignumber'
 import {
   ChildChain,
   ChildERC20,
-  ParentToken,
+  ParentTokenMock,
   RootToken
 } from '../helpers/contracts'
 import { linkLibs, ZeroAddress } from '../helpers/utils'
@@ -33,11 +33,11 @@ contract('parentToken', async function(accounts) {
     // root token / child chain
     rootToken = await RootToken.new('Test Token', 'TEST')
     childChain = await ChildChain.new()
-    parentToken = await ParentToken.new()
+    parentToken = await ParentTokenMock.new()
 
     // receipt
     const receipt = await childChain.addToken(
-      accounts[0],
+      owner,
       rootToken.address,
       'Token Test',
       'TEST',
@@ -57,23 +57,44 @@ contract('parentToken', async function(accounts) {
   })
 
   it('should test for restricted transfer', async function() {
-    await parentToken.updatePermission(owner)
+    await parentToken.updatePermission(accounts[1])
     let receipt = await childChain.depositTokens(
       rootToken.address,
-      owner,
+      accounts[1],
       amount,
       11
     )
     receipt.receipt.logs.should.have.lengthOf(3)
-    await childToken.transfer(accounts[1], web3.toWei(1))
-    // this transfer will fail
-    await childToken.transfer(accounts[0], web3.toWei(1), {
+    receipt = await childChain.depositTokens(
+      rootToken.address,
+      accounts[2],
+      amount,
+      12
+    )
+    await childToken.transfer(accounts[2], web3.toWei(1), {
       from: accounts[1]
     })
-    let balance = await childToken.balanceOf(accounts[1])
-    balance.should.be.bignumber.equal(web3.toWei(1))
+    // this transfer will fail
+    await childToken.transfer(accounts[3], web3.toWei(1), {
+      from: accounts[2]
+    })
+    let balance = await childToken.balanceOf(accounts[2])
+    balance.should.be.bignumber.equal(web3.toWei(11))
 
-    balance = await childToken.balanceOf(owner)
+    await parentToken.updatePermission(accounts[2])
+
+    // this transfer will not fail after adding permissions
+    await childToken.transfer(accounts[3], web3.toWei(5), {
+      from: accounts[2]
+    })
+
+    balance = await childToken.balanceOf(accounts[2])
+    balance.should.be.bignumber.equal(web3.toWei(6))
+
+    balance = await childToken.balanceOf(accounts[3])
+    balance.should.be.bignumber.equal(web3.toWei(5))
+
+    balance = await childToken.balanceOf(accounts[1])
     balance.should.be.bignumber.equal(web3.toWei(9))
   })
 

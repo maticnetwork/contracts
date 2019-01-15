@@ -3,5 +3,5 @@ pragma solidity ^0.4.24;
 
 
 interface IParentToken {
-  function beforeTransfer(address user) public returns(bool);
+  function beforeTransfer(address sender, address to, uint256 value) public returns(bool);
 }
