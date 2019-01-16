@@ -12,7 +12,7 @@ matrix:
 install:
   - sudo apt-get -qq update
   - sudo apt-get -y install libdigest-sha-perl
-  - bash <(curl https://get.parity.io -L) -r v2.1.1
+  - bash <(curl https://get.parity.io -L) -r v2.1.11
 before_script:
   - export PATH=/snap/bin:${PATH}
   - npm install
