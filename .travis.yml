@@ -11,6 +11,7 @@ matrix:
   fast_finish: true
 install:
   - sudo apt-get -qq update
+  - sudo apt-get -y install rhash
   - bash <(curl https://get.parity.io -L) -r v2.1.1
 before_script:
   - npm install
