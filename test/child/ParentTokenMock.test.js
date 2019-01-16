@@ -8,7 +8,7 @@ import {
   ParentTokenMock,
   RootToken
 } from '../helpers/contracts'
-import { linkLibs, ZeroAddress } from '../helpers/utils'
+import { linkLibs } from '../helpers/utils'
 
 // add chai pluggin
 chai
