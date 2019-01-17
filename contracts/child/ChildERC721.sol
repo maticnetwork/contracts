@@ -3,6 +3,7 @@ pragma solidity ^0.4.24;
 import { ERC721Full } from "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
 
 import "./ChildToken.sol";
+import "./IParentToken.sol";
 
 
 contract ChildERC721 is ChildToken, ERC721Full {
@@ -15,12 +16,17 @@ contract ChildERC721 is ChildToken, ERC721Full {
   );
 
   // constructor
-  constructor (address _token, string name, string symbol) ERC721Full(name, symbol)
+  constructor (address _owner, address _token, string name, string symbol) ERC721Full(name, symbol)
     public 
     {
-    require(_token != address(0));
-
+    require(_token != address(0x0) && _owner != address(0x0));
+    parentOwner = _owner;
     token = _token;
+  }
+
+  function setParent(address _parent) public isParentOwner {
+    require(_parent != address(0x0));
+    parent = _parent;
   }
 
   /**
@@ -58,9 +64,9 @@ contract ChildERC721 is ChildToken, ERC721Full {
   }
 
   function transferFrom(address from, address to, uint256 tokenId) public {
-    uint256 input1 = balanceOf(from);
-    uint256 input2 = balanceOf(to);
-
+    if (parent != address(0x0) && !IParentToken(parent).beforeTransfer(msg.sender, to, tokenId)) {
+      return;
+    }
     // actual transfer
     super.transferFrom(from, to, tokenId);
 

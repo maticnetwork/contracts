@@ -7,7 +7,7 @@
   "scripts": {
     "testrpc": "ganache-cli --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' --gasLimit 13000000",
     "truffle": "truffle",
-    "truffle:test": "truffle test",
+    "truffle:test": "truffle test test/root/*.js && truffle test test/lib/*.js && truffle test test/proofs/*.js && truffle test test/child/*.js",
     "truffle:compile": "truffle compile",
     "test:ci": "scripts/run-test.sh",
     "lint": "npm run lint:sol && npm run lint:js",

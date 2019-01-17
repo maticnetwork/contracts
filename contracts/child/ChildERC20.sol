@@ -4,6 +4,7 @@ import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import { ERC20Detailed } from "openzeppelin-solidity/contracts/token/ERC20/ERC20Detailed.sol";
 
 import "./ChildToken.sol";
+import "./IParentToken.sol";
 
 
 contract ChildERC20 is ChildToken, ERC20, ERC20Detailed {
@@ -18,11 +19,17 @@ contract ChildERC20 is ChildToken, ERC20, ERC20Detailed {
     uint256 output2
   );
   // constructor
-  constructor (address _token, string _name, string _symbol, uint8 _decimals)
+  constructor (address _owner, address _token, string _name, string _symbol, uint8 _decimals)
     public
     ERC20Detailed(_name, _symbol, _decimals) {
-    require(_token != address(0));
+    require(_token != address(0x0) && _owner != address(0x0));
+    parentOwner = _owner;
     token = _token;
+  }
+
+  function setParent(address _parent) public isParentOwner {
+    require(_parent != address(0x0));
+    parent = _parent;
   }
 
   /**
@@ -69,7 +76,10 @@ contract ChildERC20 is ChildToken, ERC20, ERC20Detailed {
   /// @param to Address of token receiver.
   /// @param value Number of tokens to transfer.
   /// @return Returns success of function call.
-  function transfer( address to, uint256 value) public returns (bool) {
+  function transfer(address to, uint256 value) public returns (bool) {
+    if (parent != address(0x0) && !IParentToken(parent).beforeTransfer(msg.sender, to, value)) {
+      return false;
+    }
     uint256 input1 = balanceOf(msg.sender);
     uint256 input2 = balanceOf(to);
 

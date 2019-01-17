@@ -66,6 +66,7 @@ contract('ERC20Validator', async function(accounts) {
       childChain = await ChildChain.new({ from: user, gas: 6000000 })
 
       let childTokenReceipt = await childChain.addToken(
+        accounts[0],
         rootToken.address,
         'Token Test',
         'TEST',

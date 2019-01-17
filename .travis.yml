@@ -1,4 +1,4 @@
-dist: trusty
+dist: xenial
 sudo: required
 group: beta
 language: node_js
@@ -11,9 +11,8 @@ matrix:
   fast_finish: true
 install:
   - sudo apt-get -qq update
-  - sudo apt-get --yes install snapd
-  - sudo snap install parity --stable
-  - snap list
+  - sudo apt-get -y install libdigest-sha-perl
+  - bash <(curl https://get.parity.io -L) -r v2.1.11
 before_script:
   - export PATH=/snap/bin:${PATH}
   - npm install

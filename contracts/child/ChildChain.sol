@@ -57,6 +57,7 @@ contract ChildChain is Ownable {
   }
 
   function addToken(
+    address _owner,
     address _rootToken,
     string _name,
     string _symbol,
@@ -68,10 +69,10 @@ contract ChildChain is Ownable {
 
     // create new token contract
     if (_isERC721) {
-      token = new ChildERC721(_rootToken, _name, _symbol);
+      token = new ChildERC721(_owner, _rootToken, _name, _symbol);
       isERC721[_rootToken] = true;
     } else {
-      token = new ChildERC20(_rootToken, _name, _symbol, _decimals);
+      token = new ChildERC20(_owner, _rootToken, _name, _symbol, _decimals);
     }
 
     // add mapping with root token

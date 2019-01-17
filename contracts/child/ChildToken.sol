@@ -9,6 +9,13 @@ contract ChildToken is Ownable {
 
   // ERC721 contract token address on root chain
   address public token;
+  address public parent;
+  address public parentOwner;
+
+  modifier isParentOwner() {
+    require(msg.sender == parentOwner);
+    _;
+  }
 
   //
   // Events
@@ -32,5 +39,7 @@ contract ChildToken is Ownable {
   function deposit(address user, uint256 amountOrTokenId) public onlyOwner;
 
   function withdraw(uint256 amountOrTokenId) public;
+
+  function setParent(address parent) public isParentOwner;
 
 }

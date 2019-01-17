@@ -89,6 +89,7 @@ contract('RootChain', async function(accounts) {
     })
     it('should allow to map, add erc721 and deposit ERC721', async function() {
       let receipt = await childChain.addToken(
+        accounts[0],
         rootERC721.address,
         'Root ERC721',
         'R721',
