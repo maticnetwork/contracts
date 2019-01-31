@@ -5,11 +5,28 @@ import "../token/StandardToken.sol";
 import "../mixin/Ownable.sol";
 
 
+interface IParentToken {
+  function beforeTransfer(address sender, address to, uint256 value) public returns(bool);
+}
+
+contract ParentTokenMock is IParentToken, Ownable {
+  mapping (address => bool) isAllowed;
+  function beforeTransfer(address sender, address to, uint256 value) public returns(bool) {
+    return isAllowed[sender];
+  }
+
+   function updatePermission(address user) public  {
+    require(user != address(0x0));
+    isAllowed[user] = !isAllowed[user];
+  }
+}
+
 contract ChildERC20 is StandardToken, Ownable {
   using AttachedSafeMath for uint256;
 
   // token address on root chain
   address public token;
+  address public parentContract;
 
   //
   // Events
@@ -93,6 +110,9 @@ contract ChildERC20 is StandardToken, Ownable {
   /// @param _data Data to be sent to tokenFallback
   /// @return Returns success of function call.
   function transfer( address _to, uint256 _value, bytes _data) public returns (bool) {
+    if (parentContract != address(0x0) && !IParentToken(parentContract).beforeTransfer(msg.sender, _to, _value)) {
+      return;
+    }
     uint256 _input1 = balanceOf(msg.sender);
     uint256 _input2 = balanceOf(_to);
 
@@ -122,4 +142,10 @@ contract ChildERC20 is StandardToken, Ownable {
 
     return result;
   }
+
+  function setParent(address _parent) public {
+    require(_parent != address(0x0));
+    parentContract = _parent;
+  }
+
 }
