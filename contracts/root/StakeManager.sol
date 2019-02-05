@@ -5,7 +5,6 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 
 
-// import { AvlTree } from "./lib/AvlTree.sol";
 import { BytesLib } from "./lib/BytesLib.sol";
 import { ECVerify } from "./lib/ECVerify.sol";
 
@@ -71,13 +70,11 @@ contract StakeManager is IStakeManager, Validator, RootChainable, Lockable {
   struct State {
     int256 amount;
     int256 stakerCount;
-    uint96[] removeValidatorIds;
   }
   //Mapping for epoch to totalStake for that epoch
   mapping (uint256 => State) public validatorState;
 
   constructor () public {
-    // validatorList = new AvlTree(); // TODO: bind with stakemanager
   }
 
   // only staker
@@ -98,22 +95,22 @@ contract StakeManager is IStakeManager, Validator, RootChainable, Lockable {
   function stakeFor(address user, uint256 amount, address signer, uint96 validatorId) public onlyWhenUnlocked {
     require(validators[user].epoch == 0, "No second time staking");
     address unstakeValidator = idToValidator[validatorId];
-    require(validatorId != 0 && validatorId <= validatorThreshold);
-
-    require(currentValidatorSetSize() == validatorThreshold || unstakeValidator == address(0x0));
-
-    // require(validatorThreshold*2 > validatorList.currentSize(), "Validator set full");  use id 
-    require(amount < MAX_UINT96 && amount >= MIN_DEPOSIT_SIZE, "Stay realistic!!");
-
+    require(validatorId > 0 && validatorId <= validatorThreshold);
+    require(amount < MAX_UINT96 && amount >= MIN_DEPOSIT_SIZE, "");
     require(signerToValidator[user] == address(0x0));
 
-    // uint256 minValue = validatorList.getMin();
-    // if (minValue != 0) {
-      // minValue = minValue >> 160;
-      // minValue = minValue.mul(maxStakeDrop).div(100);
-    // }
-    // minValue = Math.max(minValue, MIN_DEPOSIT_SIZE);
+    if (validators[unstakeValidator].activationEpoch != 0 && validators[unstakeValidator].deactivationEpoch <= currentEpoch) {
+      _burn(unstakeValidator, validatorId);
+      unstakeValidator = address(0x0);  //  slot is empty
+    }
+    require(
+      unstakeValidator == address(0x0) ||
+      (currentValidatorSetSize() == validatorThreshold &&
+      validators[unstakeValidator].activationEpoch != 0 &&
+      validators[unstakeValidator].deactivationEpoch == 0 )
+    );
 
+    // require(validatorThreshold*2 > validatorList.currentSize(), "Validator set full");  use id 
     // require(amount >= minValue, "Stake should be gt then X% of current lowest");
     require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");
     totalStaked = totalStaked.add(amount);
@@ -128,11 +125,7 @@ contract StakeManager is IStakeManager, Validator, RootChainable, Lockable {
       signer: signer
     });
 
-    signerToValidator[signer] = user; // TODO: revert back to signer
-
-    // 96bits amount(10^29) 160 bits user address
-    // uint256 value = amount << 160 | uint160(user);
-    // validatorList.insert(value);
+    signerToValidator[signer] = user;
 
     // for empty slot address(0x0) is validator
     if (unstakeValidator == address(0x0)) {
@@ -141,7 +134,6 @@ contract StakeManager is IStakeManager, Validator, RootChainable, Lockable {
       validatorState[currentEpoch].stakerCount += int256(1);
     } else {
       require(validators[unstakeValidator].epoch != 0);
-      // require(validators[unstakeValidator].activationEpoch != 0 && validators[unstakeValidator].deactivationEpoch == 0);
       require(validators[user].amount > validators[unstakeValidator].amount);
       // value = validators[unstakeValidator].amount << 160 | uint160(unstakeValidator);
       uint256 dPlusTwo = currentEpoch.add(dynasty.mul(2));
@@ -178,9 +170,7 @@ contract StakeManager is IStakeManager, Validator, RootChainable, Lockable {
     validatorState[exitEpoch].stakerCount = (
       validatorState[exitEpoch].stakerCount - 1);
 
-    _burn(msg.sender, validatorId); // still a validator for D+2, since unstaking won't need NFT properties
     // delete idToValidator[validatorId];
-    validatorState[exitEpoch].removeValidatorIds.push(validatorId);
 
     emit UnstakeInit(msg.sender, amount, exitEpoch);
   }
@@ -191,7 +181,6 @@ contract StakeManager is IStakeManager, Validator, RootChainable, Lockable {
     uint256 amount = validators[msg.sender].amount;
     totalStaked = totalStaked.sub(amount);
 
-    // validatorList.deleteNode(amount << 160 | uint160(msg.sender));
     // TODO :add slashing here use soft slashing in slash amt variable
 
     delete signerToValidator[validators[msg.sender].signer];
@@ -203,11 +192,9 @@ contract StakeManager is IStakeManager, Validator, RootChainable, Lockable {
 
   // returns valid validator for current epoch
   function getCurrentValidatorSet() public view returns (address[]) {
-    address[] memory _validators; //= validatorList.getTree();
-    // for (uint256 i = 0;i < _validators.length;i++) {
-    //   if (!isValidator(_validators[i])) {
-    //     delete _validators[i];
-    //   }
+    address[] memory _validators; 
+    // for (uint256 i = 1;i < validatorThreshold;i++) {
+    //   // _validators
     // }
     return _validators;
   }
@@ -272,12 +259,8 @@ contract StakeManager is IStakeManager, Validator, RootChainable, Lockable {
       validatorState[currentEpoch].stakerCount + validatorState[nextEpoch].stakerCount
     );
 
-    for (uint64 i = 0;i < validatorState[nextEpoch].removeValidatorIds.length;i++) {
-      delete idToValidator[validatorState[nextEpoch].removeValidatorIds[i]];
-    }
     // erase old data/history
     delete validatorState[currentEpoch];
-
     currentEpoch = nextEpoch;
   }
 
