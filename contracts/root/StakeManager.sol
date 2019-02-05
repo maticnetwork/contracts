@@ -36,18 +36,19 @@ contract StakeManager is IStakeManager, Validator, RootChainable, Lockable {
   event SignerChange(address indexed validator, address indexed newSigner, address indexed oldSigner);
 
   // genesis/governance variables
-  uint256 public dynasty = 2**13;  // unit: epoch
+  uint256 public DYNASTY = 2**13;  // unit: epoch
   uint256 public MIN_DEPOSIT_SIZE = (10**18);  // in ERC20 token
   uint256 public EPOCH_LENGTH = 256; // unit : block
-  uint256 public WITHDRAWAL_DELAY = dynasty.div(2); // unit: epoch
+  uint256 public WITHDRAWAL_DELAY = DYNASTY.div(2); // unit: epoch
+  uint256 public UNSTAKE_DELAY = DYNASTY.mul(2); // unit: epoch
+
 
   uint256 public validatorThreshold = 10; //128
   uint256 public maxStakeDrop = 95; // in percent 100-x, current is 5%
-  uint256 public minLockInPeriod = 2; // unit: dynasty
+  uint256 public minLockInPeriod = 2; // unit: DYNASTY
   uint256 public totalStaked = 0;
   uint256 public currentEpoch = 1;
-  // uint256 constant public UNSTAKE_DELAY = DYNASTY.mul(2); // unit: epoch
-
+  
 
   // AvlTree validatorList;
 
@@ -99,7 +100,7 @@ contract StakeManager is IStakeManager, Validator, RootChainable, Lockable {
     require(amount < MAX_UINT96 && amount >= MIN_DEPOSIT_SIZE, "");
     require(signerToValidator[user] == address(0x0));
 
-    if (validators[unstakeValidator].activationEpoch != 0 && validators[unstakeValidator].deactivationEpoch <= currentEpoch) {
+    if (validators[unstakeValidator].activationEpoch != 0 && validators[unstakeValidator].deactivationEpoch < currentEpoch) {
       _burn(unstakeValidator, validatorId);
       unstakeValidator = address(0x0);  //  slot is empty
     }
@@ -110,8 +111,6 @@ contract StakeManager is IStakeManager, Validator, RootChainable, Lockable {
       validators[unstakeValidator].deactivationEpoch == 0 )
     );
 
-    // require(validatorThreshold*2 > validatorList.currentSize(), "Validator set full");
-    // require(amount >= minValue, "Stake should be gt then X% of current lowest");
     require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");
     totalStaked = totalStaked.add(amount);
 
@@ -136,7 +135,7 @@ contract StakeManager is IStakeManager, Validator, RootChainable, Lockable {
       require(validators[unstakeValidator].epoch != 0);
       require(validators[user].amount > validators[unstakeValidator].amount);
       // value = validators[unstakeValidator].amount << 160 | uint160(unstakeValidator);
-      uint256 dPlusTwo = currentEpoch.add(dynasty.mul(2));
+      uint256 dPlusTwo = currentEpoch.add(DYNASTY.mul(2));
       validators[unstakeValidator].deactivationEpoch = dPlusTwo;
       validators[user].activationEpoch = dPlusTwo;
 
@@ -161,7 +160,7 @@ contract StakeManager is IStakeManager, Validator, RootChainable, Lockable {
     require(validators[msg.sender].activationEpoch > 0 && validators[msg.sender].deactivationEpoch == 0);
     uint256 amount = validators[msg.sender].amount;
 
-    uint256 exitEpoch = currentEpoch.add(dynasty.mul(2));
+    uint256 exitEpoch = currentEpoch.add(DYNASTY.mul(2));
     validators[msg.sender].deactivationEpoch = exitEpoch;
 
     //  update future
@@ -193,9 +192,17 @@ contract StakeManager is IStakeManager, Validator, RootChainable, Lockable {
   // returns valid validator for current epoch
   function getCurrentValidatorSet() public view returns (address[]) {
     address[] memory _validators; 
-    // for (uint256 i = 1;i < validatorThreshold;i++) {
-    //   // _validators
-    // }
+    address validator;
+    for (uint256 i = 1;i < validatorThreshold;i++) {
+      validator = idToValidator[i];
+      if (
+        validators[validator].activationEpoch != 0 &&
+        (validators[validator].deactivationEpoch >= currentEpoch) ||
+        validators[validator].deactivationEpoch == 0 ) {
+        _validators.push(validator);
+      }
+      // _validators
+    }
     return _validators;
   }
 
@@ -233,8 +240,10 @@ contract StakeManager is IStakeManager, Validator, RootChainable, Lockable {
 
   function updateDynastyValue(uint256 newDynasty) public onlyOwner {
     require(newDynasty > 0);
-    emit DynastyValueChange(newDynasty, dynasty);
-    dynasty = newDynasty;
+    emit DynastyValueChange(newDynasty, DYNASTY);
+    DYNASTY = newDynasty;
+    UNSTAKE_DELAY = DYNASTY.div(2);
+    WITHDRAWAL_DELAY = DYNASTY.mul(2);
   }
 
   function updateSigner(uint256 validatorId, address _signer) public onlyStaker(validatorId) {
