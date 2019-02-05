@@ -5,12 +5,12 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 
 
-import { BytesLib } from "./lib/BytesLib.sol";
-import { ECVerify } from "./lib/ECVerify.sol";
+import { BytesLib } from "../lib/BytesLib.sol";
+import { ECVerify } from "../lib/ECVerify.sol";
 
 
-import { Lockable } from "./mixin/Lockable.sol";
-import { RootChainable } from "./mixin/RootChainable.sol";
+import { Lockable } from "../mixin/Lockable.sol";
+import { RootChainable } from "../mixin/RootChainable.sol";
 
 import { Validator } from "./Validator.sol";
 import { IStakeManager } from "./IStakeManager.sol";
@@ -94,7 +94,7 @@ contract StakeManager is IStakeManager, Validator, RootChainable, Lockable {
 
     address unstakeValidator = idToValidator[validatorId];
 
-    if (validators[unstakeValidator].activationEpoch != 0 && validators[unstakeValidator].deactivationEpoch < currentEpoch) {
+    if (unstakeValidator != address(0x0) && !isValidator(unstakeValidator)) {
       _burn(unstakeValidator, validatorId);
       unstakeValidator = address(0x0);  //  slot is empty
     }
@@ -102,7 +102,7 @@ contract StakeManager is IStakeManager, Validator, RootChainable, Lockable {
       unstakeValidator == address(0x0) ||
       (currentValidatorSetSize() == validatorThreshold &&
       validators[unstakeValidator].activationEpoch != 0 &&
-      validators[unstakeValidator].deactivationEpoch == 0 )
+      validators[unstakeValidator].deactivationEpoch == 0)
     );
 
     require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");
@@ -166,7 +166,7 @@ contract StakeManager is IStakeManager, Validator, RootChainable, Lockable {
     emit UnstakeInit(msg.sender, amount, exitEpoch);
   }
 
-  function unstakeClaim(uint96 validatorId) public onlyStaker(validatorId) {
+  function unstakeClaim() public {
     // can only claim stake back after WITHDRAWAL_DELAY
     require(validators[msg.sender].deactivationEpoch.add(WITHDRAWAL_DELAY) <= currentEpoch);
     uint256 amount = validators[msg.sender].amount;
@@ -182,18 +182,15 @@ contract StakeManager is IStakeManager, Validator, RootChainable, Lockable {
   }
 
   // returns valid validator for current epoch
+  // TODO: for dethrone NFT it gives newer outputs, fix it
   function getCurrentValidatorSet() public view returns (address[]) {
-    address[] memory _validators; 
+    address[] memory _validators = new address[](validatorThreshold);
     address validator;
-    for (uint256 i = 1;i < validatorThreshold;i++) {
+    for (uint96 i = 1;i <= validatorThreshold;i++) {
       validator = idToValidator[i];
-      if (
-        validators[validator].activationEpoch != 0 &&
-        (validators[validator].deactivationEpoch >= currentEpoch) ||
-        validators[validator].deactivationEpoch == 0 ) {
-        _validators.push(validator);
+      if (isValidator(validator)) {
+        _validators[i-1] = validator;
       }
-      // _validators
     }
     return _validators;
   }
@@ -238,7 +235,7 @@ contract StakeManager is IStakeManager, Validator, RootChainable, Lockable {
     WITHDRAWAL_DELAY = DYNASTY.mul(2);
   }
 
-  function updateSigner(uint256 validatorId, address _signer) public onlyStaker(validatorId) {
+  function updateSigner(address _signer) public onlyStaker(validators[msg.sender].validatorId) {
     require(_signer != address(0x0) && signerToValidator[_signer] == address(0x0));
 
     // update signer event
@@ -283,7 +280,7 @@ contract StakeManager is IStakeManager, Validator, RootChainable, Lockable {
       (validators[user].activationEpoch != 0 &&
       validators[user].activationEpoch <= currentEpoch ) &&
       (validators[user].deactivationEpoch == 0 ||
-      validators[user].deactivationEpoch >= currentEpoch)
+      validators[user].deactivationEpoch > currentEpoch)
     );
   }
 

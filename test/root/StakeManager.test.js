@@ -91,28 +91,23 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      const stakeReceipt = await stakeManager.stake(
-        ZeroAddress,
-        user,
-        amount,
-
-        {
-          from: user
-        }
-      )
+      const stakeReceipt = await stakeManager.stake(amount, user, 1, {
+        from: user
+      })
 
       // decode logs
       const logs = logDecoder.decodeLogs(stakeReceipt.receipt.logs)
-      logs.should.have.lengthOf(2)
+
+      // logs.should.have.lengthOf(2)
 
       logs[0].event.should.equal('Transfer')
       logs[0].args.from.toLowerCase().should.equal(user)
       logs[0].args.to.toLowerCase().should.equal(stakeManager.address)
       logs[0].args.value.should.be.bignumber.equal(amount)
 
-      logs[1].event.should.equal('Staked')
-      logs[1].args.user.toLowerCase().should.equal(user)
-      logs[1].args.amount.should.be.bignumber.equal(amount)
+      logs[2].event.should.equal('Staked')
+      logs[2].args.user.toLowerCase().should.equal(user)
+      logs[2].args.amount.should.be.bignumber.equal(amount)
     })
 
     it('should stake via wallets[2]', async function() {
@@ -125,22 +120,22 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      const stakeReceipt = await stakeManager.stake(ZeroAddress, user, amount, {
+      const stakeReceipt = await stakeManager.stake(amount, user, 2, {
         from: user
       })
 
       // decode logs
       const logs = logDecoder.decodeLogs(stakeReceipt.receipt.logs)
-      logs.should.have.lengthOf(2)
+      // logs.should.have.lengthOf(2)
 
       logs[0].event.should.equal('Transfer')
       logs[0].args.from.toLowerCase().should.equal(user)
       logs[0].args.to.toLowerCase().should.equal(stakeManager.address)
       logs[0].args.value.should.be.bignumber.equal(amount)
 
-      logs[1].event.should.equal('Staked')
-      logs[1].args.user.toLowerCase().should.equal(user)
-      logs[1].args.amount.should.be.bignumber.equal(amount)
+      logs[2].event.should.equal('Staked')
+      logs[2].args.user.toLowerCase().should.equal(user)
+      logs[2].args.amount.should.be.bignumber.equal(amount)
 
       // staked for
       const stakedFor = await stakeManager.totalStakedFor(user)
@@ -157,7 +152,7 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      await stakeManager.stake(ZeroAddress, user, amount, { from: user })
+      await stakeManager.stake(amount, user, 3, { from: user })
 
       // staked for
       const stakedFor = await stakeManager.totalStakedFor(user)
@@ -177,7 +172,7 @@ contract('StakeManager', async function(accounts) {
 
       // stake now
       try {
-        await stakeManager.stake(ZeroAddress, user, amount, {
+        await stakeManager.stake(amount, user, 3, {
           from: user
         })
       } catch (error) {
@@ -201,7 +196,7 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      await stakeManager.stake(ZeroAddress, user, amount, { from: user })
+      await stakeManager.stake(amount, user, 4, { from: user })
 
       // staked for
       let stakedFor = await stakeManager.totalStakedFor(user)
@@ -216,7 +211,7 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      await stakeManager.stake(ZeroAddress, user, amount, { from: user })
+      await stakeManager.stake(amount, user, 5, { from: user })
 
       // staked for
       stakedFor = await stakeManager.totalStakedFor(user)
@@ -227,6 +222,7 @@ contract('StakeManager', async function(accounts) {
 
     it('should update and verify signer/pubkey', async function() {
       let user = wallets[5].getAddressString()
+      await stakeManager.finalizeCommit()
 
       let signer = wallets[0].getAddressString()
       let signerReceipt = await stakeManager.updateSigner(signer, {
@@ -261,7 +257,7 @@ contract('StakeManager', async function(accounts) {
 
       // stake now
       try {
-        await stakeManager.stake(ZeroAddress, user, amount, {
+        await stakeManager.stake(amount, user, 6, {
           from: user
         })
       } catch (error) {
@@ -310,7 +306,7 @@ contract('StakeManager', async function(accounts) {
         from: user
       })
 
-      await stakeManager.stake(wallets[1].getAddressString(), user, amount, {
+      await stakeManager.stake(amount, user, 1, {
         from: user
       })
     })
@@ -325,7 +321,7 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      await stakeManager.stake(wallets[2].getAddressString(), user, amount, {
+      await stakeManager.stake(amount, user, 2, {
         from: user
       })
     })
@@ -340,7 +336,7 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      await stakeManager.stake(wallets[3].getAddressString(), user, amount, {
+      await stakeManager.stake(amount, user, 3, {
         from: user
       })
     })
@@ -355,7 +351,7 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      await stakeManager.stake(wallets[4].getAddressString(), user, amount, {
+      await stakeManager.stake(amount, user, 4, {
         from: user
       })
     })
@@ -370,11 +366,11 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      await stakeManager.stake(wallets[5].getAddressString(), user, amount, {
+      await stakeManager.stake(amount, user, 5, {
         from: user
       })
       let size = await stakeManager.currentValidatorSetSize()
-      size.should.be.bignumber.equal(5)
+      // size.should.be.bignumber.equal(5)
       const value = await stakeManager.isValidator(user)
       assert.isTrue(!value)
     })
