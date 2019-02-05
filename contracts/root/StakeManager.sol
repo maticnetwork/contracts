@@ -110,7 +110,7 @@ contract StakeManager is IStakeManager, Validator, RootChainable, Lockable {
       validators[unstakeValidator].deactivationEpoch == 0 )
     );
 
-    // require(validatorThreshold*2 > validatorList.currentSize(), "Validator set full");  use id 
+    // require(validatorThreshold*2 > validatorList.currentSize(), "Validator set full");
     // require(amount >= minValue, "Stake should be gt then X% of current lowest");
     require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");
     totalStaked = totalStaked.add(amount);
