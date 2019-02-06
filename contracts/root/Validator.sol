@@ -1,8 +1,8 @@
 pragma solidity ^0.4.24;
 
-import { ERC721 } from "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
+import { ERC721Full } from "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
 
-contract Validator is ERC721 {
+contract Validator is ERC721Full {
 
   //
   // Storage
