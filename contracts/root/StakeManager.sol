@@ -65,7 +65,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   //Mapping for epoch to totalStake for that epoch
   mapping (uint256 => State) public validatorState;
 
-  constructor () ERC721Full("StakeManager", "SM") public {}
+  constructor () ERC721Full("Matic Validator", "MV") public {}
 
   // only staker
   modifier onlyStaker(uint256 validatorId) {
