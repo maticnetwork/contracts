@@ -218,7 +218,7 @@ contract('RootChain', async function(accounts) {
         // approve transfer
         await stakeToken.approve(stakeManager.address, amount, { from: user })
         // stake
-        await stakeManager.stake(ZeroAddress, user, amount, {
+        await stakeManager.stake(amount, user, {
           from: user
         })
       }

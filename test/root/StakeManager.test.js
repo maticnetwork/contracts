@@ -298,16 +298,8 @@ contract('StakeManager', async function(accounts) {
     it('should unstake via wallets[3] after 2 epoch', async function() {
       const user = wallets[3].getAddressString()
       const amount = web3.toWei(300)
-      let validators = await stakeManager.getCurrentValidatorSet()
-      console.log(validators)
       await stakeManager.finalizeCommit()
       await stakeManager.finalizeCommit()
-      const currentEpoch = await stakeManager.currentEpoch()
-      console.log(currentEpoch)
-      let size = await stakeManager.currentValidatorSetSize()
-      console.log(size)
-      validators = await stakeManager.getCurrentValidatorSet()
-      console.log(validators)
 
       const validatorId = await stakeManager.getValidatorId(user)
       // stake now
@@ -434,7 +426,6 @@ contract('StakeManager', async function(accounts) {
         utils.bufferToHex(utils.keccak256(voteData)),
         sigs
       )
-      console.log(result)
       // 2/3 majority vote
       assert.isTrue(result)
     })
