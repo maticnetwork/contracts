@@ -20,7 +20,6 @@ import { IStakeManager } from "./IStakeManager.sol";
 
 contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   using SafeMath for uint256;
-  using SafeMath for uint128;
   using ECVerify for bytes32;
 
   event ThresholdChange(uint256 newThreshold, uint256 oldThreshold);
@@ -43,7 +42,6 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
 
   uint256 public validatorThreshold = 10; //128
-  uint256 public maxStakeDrop = 95; // in percent 100-x, current is 5%
   uint256 public minLockInPeriod = 2; // unit: DYNASTY
   uint256 public totalStaked = 0;
   uint256 public currentEpoch = 1;
@@ -110,7 +108,6 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
     emit Staked(user, NFTCounter, validators[NFTCounter].activationEpoch, amount, totalStaked);
     NFTCounter = NFTCounter.add(1);
-
   }
 
   function unstake(uint256 validatorId) public onlyStaker(validatorId) {
@@ -126,7 +123,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     validatorState[exitEpoch].stakerCount = (
       validatorState[exitEpoch].stakerCount - 1);
 
-    emit UnstakeInit(validatorId, msg.sender, exitEpoch, amount);
+    emit UnstakeInit(validatorId, msg.sender, amount, exitEpoch);
   }
 
   function unstakeClaim(uint256 validatorId) public onlyStaker(validatorId) {
@@ -149,7 +146,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     uint256[] memory _validators = new uint256[](validatorThreshold);
     uint256 validator;
     uint256 k = 0;
-    for (uint96 i = 1;i <= totalSupply() ;i++) {
+    for (uint96 i = 0;i < totalSupply() ;i++) {
       validator = tokenByIndex(i);
       if (isValidator(validator)) {
         _validators[k++] = validator;
@@ -167,9 +164,15 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       );
   }
 
-  function totalStakedFor(uint256 validatorId) public view returns (uint256) {
-    require(validatorId != 0); // TODO: if remove condition then add require for empty
-    return validators[validatorId].amount;
+  function getValidatorId(address user) public view returns(uint256) {
+    return tokenOfOwnerByIndex(user, 0);
+  }
+
+  function totalStakedFor(address user) public view returns (uint256) {
+    if (user == address(0x0) || balanceOf(user) == 0) {
+      return 0;
+    }
+    return validators[tokenOfOwnerByIndex(user, 0)].amount;
   }
 
   function supportsHistory() public pure returns (bool) {
