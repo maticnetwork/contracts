@@ -6,10 +6,8 @@ import { ERC721Full } from "openzeppelin-solidity/contracts/token/ERC721/ERC721F
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 
-
 import { BytesLib } from "../lib/BytesLib.sol";
 import { ECVerify } from "../lib/ECVerify.sol";
-
 
 import { Lockable } from "../mixin/Lockable.sol";
 import { RootChainable } from "../mixin/RootChainable.sol";
@@ -40,7 +38,6 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   uint256 public WITHDRAWAL_DELAY = DYNASTY.div(2); // unit: epoch
   uint256 public UNSTAKE_DELAY = DYNASTY.mul(2); // unit: epoch
 
-
   uint256 public validatorThreshold = 10; //128
   uint256 public minLockInPeriod = 2; // unit: DYNASTY
   uint256 public totalStaked = 0;
@@ -63,11 +60,8 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
   // signer to Validator mapping
   mapping (address => uint256) public signerToValidator;
-
-  // uint256 => validator
+  // validator metadata
   mapping (uint256 => Validator) public validators;
-
-
   //Mapping for epoch to totalStake for that epoch
   mapping (uint256 => State) public validatorState;
 
@@ -214,7 +208,6 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   function finalizeCommit() public onlyRootChain {
     uint256 nextEpoch = currentEpoch.add(1);
     // update totalstake and validator count
-
     validatorState[nextEpoch].amount = (
       validatorState[currentEpoch].amount + validatorState[nextEpoch].amount
     );

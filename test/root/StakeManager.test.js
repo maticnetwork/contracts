@@ -98,7 +98,7 @@ contract('StakeManager', async function(accounts) {
       // decode logs
       const logs = logDecoder.decodeLogs(stakeReceipt.receipt.logs)
 
-      // logs.should.have.lengthOf(2)
+      logs.should.have.lengthOf(3)
 
       logs[0].event.should.equal('Transfer')
       logs[0].args.from.toLowerCase().should.equal(user)
@@ -126,7 +126,7 @@ contract('StakeManager', async function(accounts) {
 
       // decode logs
       const logs = logDecoder.decodeLogs(stakeReceipt.receipt.logs)
-      // logs.should.have.lengthOf(2)
+      logs.should.have.lengthOf(3)
 
       logs[0].event.should.equal('Transfer')
       logs[0].args.from.toLowerCase().should.equal(user)
@@ -156,8 +156,9 @@ contract('StakeManager', async function(accounts) {
       // staked for
       const stakedFor = await stakeManager.totalStakedFor(user)
       stakedFor.should.be.bignumber.equal(amount)
-      // const value = await stakeManager.isValidator(user)
-      // assert.isTrue(value)
+      const validatorId = await stakeManager.getValidatorId(user)
+      const value = await stakeManager.isValidator(validatorId)
+      assert.isTrue(value)
     })
 
     it('Duplicate: should stake via wallets[3] fail', async function() {
@@ -252,7 +253,6 @@ contract('StakeManager', async function(accounts) {
       const amount = web3.toWei(100)
 
       // approve tranfer
-
       await stakeToken.approve(stakeManager.address, amount, {
         from: user
       })
@@ -332,36 +332,7 @@ contract('StakeManager', async function(accounts) {
 
       const newThreshold = await stakeManager.validatorThreshold()
       newThreshold.should.be.bignumber.equal(6)
-
-      // const dynastyReceipt = await stakeManager.updateDynastyValue(2, {
-      //   from: owner
-      // })
-      // const logs1 = logDecoder.decodeLogs(dynastyReceipt.receipt.logs)
-      // logs1.should.have.lengthOf(1)
-      // logs1[0].event.should.equal('DynastyValueChange')
-      // logs1[0].args.newDynasty.should.be.bignumber.equal(2)
-      // logs1[0].args.oldDynasty.should.be.bignumber.equal(250)
     })
-
-    // it('should dethrone address via wallets[7] and fail', async function() {
-    //   const user = wallets[7].getAddressString()
-    //   const amount = web3.toWei(1)
-
-    //   // stake now
-    //   try {
-    //     await stakeManager.stake(ZeroAddress, user, amount, {
-    //       from: user
-    //     })
-    //   } catch (error) {
-    //     const invalidOpcode = error.message.search('revert') >= 0
-    //     assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
-    //     return
-    //   }
-    //   let validators = await stakeManager.getCurrentValidatorSet()
-    //   expect(validators).to.not.include.members([user])
-    //   validators = await stakeManager.getNextValidatorSet()
-    //   expect(validators).to.not.include.members([user])
-    // })
 
     it('should stake via wallets[6]', async function() {
       const user = wallets[6].getAddressString()
@@ -407,26 +378,6 @@ contract('StakeManager', async function(accounts) {
       await stakeManager.stake(amount, user, {
         from: user
       })
-    })
-
-    it('should fetch details', async function() {
-      let validators = await stakeManager.getCurrentValidatorSet()
-      console.log(validators)
-      const currentEpoch = await stakeManager.currentEpoch()
-      console.log(currentEpoch)
-      let size = await stakeManager.currentValidatorSetSize()
-      console.log(size)
-      for (let i = 0; i < 8; i++) {
-        let validatorId = 0
-        try {
-          validatorId = await stakeManager.getValidatorId(
-            wallets[i].getAddressString()
-          )
-        } catch (err) {}
-        const detail = await stakeManager.getStakerDetails(validatorId)
-        console.log(detail)
-        console.log('\n')
-      }
     })
 
     it('should verify unstaked amount', async function() {
