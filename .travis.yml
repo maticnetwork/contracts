@@ -11,7 +11,6 @@ matrix:
   fast_finish: true
 install:
   - sudo apt-get -qq update
-  - sudo apt-get install rhash
   - bash <(curl https://get.parity.io -L) -r v2.1.11
 before_script:
   - export PATH=/snap/bin:${PATH}
