@@ -45,12 +45,35 @@ module.exports = async function(deployer, network) {
     await stakeManager.changeRootChain(rootChain.address)
     await depositManager.changeRootChain(rootChain.address)
     await withdrawManager.changeRootChain(rootChain.address)
+    // proof validators
     await txValidator.changeRootChain(rootChain.address)
     await _ERC20Validator.changeRootChain(rootChain.address)
     await exitValidator.changeRootChain(rootChain.address)
     await nonceValidator.changeRootChain(rootChain.address)
     await _ERC721Validator.changeRootChain(rootChain.address)
     await depositValidator.changeRootChain(rootChain.address)
+
+    await txValidator.setDepositManager(depositManager.address)
+    await _ERC20Validator.setDepositManager(depositManager.address)
+    await exitValidator.setDepositManager(depositManager.address)
+    await nonceValidator.setDepositManager(depositManager.address)
+    await _ERC721Validator.setDepositManager(depositManager.address)
+    await depositValidator.setDepositManager(depositManager.address)
+
+    await txValidator.setWithdrawManager(withdrawManager.address)
+    await _ERC20Validator.setWithdrawManager(withdrawManager.address)
+    await exitValidator.setWithdrawManager(withdrawManager.address)
+    await nonceValidator.setWithdrawManager(withdrawManager.address)
+    await _ERC721Validator.setWithdrawManager(withdrawManager.address)
+    await depositValidator.setWithdrawManager(withdrawManager.address)
+
+    // await rootChain.setChildContract(childContract.address)
+    // await txValidator.setChildChainContract(childContract.address)
+    // await _ERC20Validator.setChildChainContract(childContract.address)
+    // await exitValidator.setChildChainContract(childContract.address)
+    // await nonceValidator.setChildChainContract(childContract.address)
+    // await _ERC721Validator.setChildChainContract(childContract.address)
+    // await depositValidator.setChildChainContract(childContract.address)
 
     await rootChain.setStakeManager(stakeManager.address)
 
@@ -59,8 +82,6 @@ module.exports = async function(deployer, network) {
 
     await rootChain.setExitNFTContract(exitNFT.address)
     await rootChain.setWETHToken(maticWETH.address)
-
-    // await rootChain.setChildContract(childContract.address)
 
     await withdrawManager.setDepositManager(depositManager.address)
     await rootChain.addProofValidator(txValidator.address)

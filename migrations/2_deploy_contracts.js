@@ -22,7 +22,7 @@ const RootChain = artifacts.require('./RootChain.sol')
 const DepositManager = artifacts.require('./DepositManager.sol')
 const WithdrawManager = artifacts.require('./WithdrawManager.sol')
 const RootToken = artifacts.require('./token/TestToken.sol')
-// const RootERC721 = artifacts.require('./token/RootERC721.sol')
+const RootERC721 = artifacts.require('./token/RootERC721.sol')
 const MaticWETH = artifacts.require('./token/MaticWETH.sol')
 const StakeManager = artifacts.require('./root/StakeManager.sol')
 const ExitNFT = artifacts.require('./token/ExitNFT.sol')
@@ -122,7 +122,7 @@ module.exports = async function(deployer, network) {
       NonceValidator,
       ERC721Validator
     ])
-
+    await deployer.deploy(RootERC721, 'Test ERC721', 'TERC721')
     await deployer.deploy(DepositManager)
     await deployer.deploy(WithdrawManager)
     await deployer.deploy(RootToken, 'Test token', 'TEST')
