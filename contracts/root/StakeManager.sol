@@ -27,7 +27,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   event UnstakeInit(uint256 indexed validatorId, address indexed user, uint256 indexed amount, uint256 deactivationEpoch);
 
   // signer changed
-  event SignerChange(address indexed validator, address indexed newSigner, address indexed oldSigner);
+  event SignerChange(uint256 indexed validatorId, address indexed newSigner, address indexed oldSigner);
 
   ERC20 public token;
 
@@ -198,7 +198,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     require(_signer != address(0x0) && signerToValidator[_signer] == 0);
 
     // update signer event
-    emit SignerChange(msg.sender, validators[validatorId].signer, _signer); // TODO: add validatorId in event 
+    emit SignerChange(validatorId, validators[validatorId].signer, _signer);
 
     delete signerToValidator[validators[validatorId].signer];
     signerToValidator[_signer] = validatorId;
