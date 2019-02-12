@@ -3,7 +3,7 @@ pragma solidity ^0.4.24;
 
 contract IManager {
   // chain identifier
-  bytes32 public constant chain = keccak256("heimdall-J47AXx");
+  bytes32 public constant chain = keccak256("heimdall-xOUIR0");
   // round type
   bytes32 public constant roundType = keccak256("vote");
   // vote type
