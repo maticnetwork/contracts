@@ -32,7 +32,7 @@ module.exports = {
         )
       },
       network_id: 3,
-      gas: 4000000
+      gas: 8000000
     },
     kovan: {
       provider: function() {
@@ -52,7 +52,7 @@ module.exports = {
         )
       },
       network_id: 1,
-      gas: 4000000
+      gas: 8000000
     },
     matic: {
       provider: function() {
