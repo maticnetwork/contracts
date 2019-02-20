@@ -12,7 +12,7 @@
   "RootERC721": "0x1cd3eeb76be4f6290ef3e48877c35822d7063d94",
   "DepositManager": "0xe5d6b6591f9be0adb7b2547c03bc080e6a7e1289",
   "WithdrawManager": "0xcb88ec0b9f0b5c62c4f29bf17891c2f98b5f2523",
-  "TestToken": "0x4f4b52339c88114dfbf40eeadb3f5de6e99aaa3f",
+  "TestToken": "0xab3cfd4abd9871e1357ae9bf9021c7054316a5ad",
   "StakeManager": "0x5935044c0baa0dc368d77318f9aed9ec75c26a05",
   "ExitNFT": "0xeff4ab8f2b62fe74005ad92398f0625ecd56d7b1",
   "RootChain": "0xf3269cfcd3afade2c131dbbefa73c551b6655352",
@@ -23,8 +23,8 @@
   "ExitValidator": "0xa818c5d54c1417a2b75c8058dd3e419d96740519",
   "NonceValidator": "0xf0a2595c1af8bbfc44bbddb374e2cf8338f9fd0d",
   "ERC721Validator": "0x46a824cea4f8ead14ed9ab282936f0d614222d99",
-  "ChildChain": "0x22be045bea6470c6fc6e4aba43c08fff7248be84",
-  "ChildToken": "0x743B985fC47B2e4B526c9F6e875662E53f377B58",
+  "ChildChain": "0x427fa678a3c66bc7b4848f68974164f7475993e3",
+  "ChildToken": "0x343461c74133E3fA476Dbbc614a87473270a226c",
   "WethChildToken": "0x4916C330302E8622D11aDfe1126904B2BCBE2Ef2",
   "ChildERC721": "0x045959287Bda8B19229E82365F104b1302479d7D"
 }
