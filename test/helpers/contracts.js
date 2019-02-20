@@ -20,7 +20,6 @@ export const RootERC721 = artifacts.require('./token/RootERC721.sol')
 export const MaticWETH = artifacts.require('./token/MaticWETH.sol')
 export const StakeManager = artifacts.require('./root/StakeManager.sol')
 export const ExitNFT = artifacts.require('./token/ExitNFT.sol')
-export const AvlTree = artifacts.require('./lib/AvlTree.sol')
 
 export const StakeManagerMock = artifacts.require(
   './mocks/StakeManagerMock.sol'
