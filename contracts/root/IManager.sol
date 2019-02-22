@@ -9,7 +9,7 @@ contract IManager {
   // vote type
   byte public constant voteType = 0x02;
   // network id
-  bytes public constant networkId = "\x0d";
+  bytes public constant networkId = hex"2323";
   // child block interval between checkpoint
   uint256 public constant CHILD_BLOCK_INTERVAL = 10000;
 
