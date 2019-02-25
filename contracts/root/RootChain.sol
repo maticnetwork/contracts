@@ -3,6 +3,8 @@ pragma solidity ^0.4.24;
 import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import { ERC721 } from "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 
+import { IERC721Receiver } from "openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol";
+
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
@@ -18,7 +20,7 @@ import { IRootChain } from "./IRootChain.sol";
 import { StakeManager } from "./StakeManager.sol";
 
 
-contract RootChain is Ownable, IRootChain {
+contract RootChain is Ownable, IRootChain, IERC721Receiver {
   using SafeMath for uint256;
   using RLP for bytes;
   using RLP for RLP.RLPItem;
@@ -286,6 +288,24 @@ contract RootChain is Ownable, IRootChain {
     // generate deposit block and udpate counter
     depositManager.createDepositBlock(_currentHeaderBlock, _token, _user, _tokenId);
   }
+  event yo(address, address,address);
+   //assemble the given address bytecode. If bytecode exists then the _addr is a contract.
+  function isContract(address _addr) internal view returns (bool) {
+    uint length;
+    assembly {
+      //retrieve the size of the code on target address, this needs assembly
+      length := extcodesize(_addr)
+    }
+    return (length > 0);
+  }
+  bytes4 private constant _ERC721_RECEIVED = 0x150b7a02;
+  
+  function onERC721Received(address operator, address from, uint256 tokenId, bytes data) public returns (bytes4) {
+    require(isContract(msg.sender));
+    depositManager.createDepositBlock(_currentHeaderBlock, msg.sender, from, _tokenId);
+    emit yo(operator, from, msg.sender);
+    return _ERC721_RECEIVED;
+  }
 
   // deposit tokens for another user
   function deposit(
@@ -299,6 +319,7 @@ contract RootChain is Ownable, IRootChain {
     // generate deposit block and udpate counter
     depositManager.createDepositBlock(_currentHeaderBlock, _token, _user, _amount);
   }
+  
   
   // transfer tokens to user
   function transferAmount(
