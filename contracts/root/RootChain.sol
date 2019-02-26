@@ -288,23 +288,11 @@ contract RootChain is Ownable, IRootChain, IERC721Receiver {
     // generate deposit block and udpate counter
     depositManager.createDepositBlock(_currentHeaderBlock, _token, _user, _tokenId);
   }
-  event yo(address, address,address);
-   //assemble the given address bytecode. If bytecode exists then the _addr is a contract.
-  function isContract(address _addr) internal view returns (bool) {
-    uint length;
-    assembly {
-      //retrieve the size of the code on target address, this needs assembly
-      length := extcodesize(_addr)
-    }
-    return (length > 0);
-  }
-  bytes4 private constant _ERC721_RECEIVED = 0x150b7a02;
-  
+
   function onERC721Received(address operator, address from, uint256 tokenId, bytes data) public returns (bytes4) {
-    require(isContract(msg.sender));
-    depositManager.createDepositBlock(_currentHeaderBlock, msg.sender, from, _tokenId);
-    emit yo(operator, from, msg.sender);
-    return _ERC721_RECEIVED;
+    //require(ownerOf(tokenId));
+    depositManager.createDepositBlock(_currentHeaderBlock, msg.sender, from, tokenId);
+    return 0x150b7a02;
   }
 
   // deposit tokens for another user
@@ -341,7 +329,7 @@ contract RootChain is Ownable, IRootChain, IERC721Receiver {
     }
     return true;
   }
-  
+
   /**
    * @dev Accept ERC223 compatible tokens
    * @param _user address The address that is transferring the tokens
