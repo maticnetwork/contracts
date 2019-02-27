@@ -2,8 +2,9 @@ import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import chaiBigNumber from 'chai-bignumber'
 
+import { generateFirstWallets, mnemonics } from '../helpers/wallets'
 import { ChildChain, ChildERC20, RootToken } from '../helpers/contracts'
-import { linkLibs, ZeroAddress } from '../helpers/utils'
+import { linkLibs, ZeroAddress, getSig } from '../helpers/utils'
 
 // add chai pluggin
 chai
@@ -11,6 +12,9 @@ chai
   .use(chaiBigNumber(web3.BigNumber))
   .should()
 
+const web3Child = new web3.constructor(
+  new web3.providers.HttpProvider('http://localhost:8545')
+)
 contract('ChildERC20', async function(accounts) {
   let rootToken
   let childToken
@@ -20,7 +24,7 @@ contract('ChildERC20', async function(accounts) {
 
   beforeEach(async function() {
     // link libs
-    await linkLibs()
+    await linkLibs(web3Child)
 
     owner = accounts[0]
 
@@ -82,6 +86,58 @@ contract('ChildERC20', async function(accounts) {
 
     const afterBalance = await childToken.balanceOf(owner)
     afterBalance.should.be.bignumber.equal(0)
+  })
+
+  it('should allow transfer using sig', async function() {
+    const wallets = generateFirstWallets(mnemonics, 10)
+    const address1 = wallets[0].getAddressString()
+    const address2 = wallets[1].getAddressString()
+    const privateKey1 = wallets[0].getPrivateKeyString()
+    const secret =
+      '0x468fc9c005382579139846222b7b0aebc9182ba073b2455938a86d9753bfb078'
+    const amount = 20
+    // const token = await ChildERC20.new()
+
+    // mint tokens
+    await childChain.depositTokens(rootToken.address, address1, amount, 1, {
+      from: owner
+    })
+
+    const beforeBalance = await childToken.balanceOf(address1)
+    assert.equal(beforeBalance.toNumber(), amount)
+
+    const obj1 = getSig({
+      pk: privateKey1,
+      spender: address2,
+      secret,
+      amount,
+      token: childToken.address
+    })
+
+    const from = await childToken.getAddressFromTransferSig(
+      obj1.sig,
+      obj1.amount,
+      obj1.secret,
+      address2
+    )
+
+    assert.equal(from, address1)
+    // transfer with sig
+    await childToken.transferWithSig(
+      obj1.sig,
+      obj1.amount,
+      obj1.secret,
+      address2,
+      {
+        from: accounts[1]
+      }
+    )
+
+    const afterBalance = await childToken.balanceOf(address1)
+    assert.equal(afterBalance.toNumber(), 0)
+
+    const afterBalance1 = await childToken.balanceOf(address2)
+    assert.equal(afterBalance1.toNumber(), amount)
   })
 
   it('should check true (safety check)', async function() {

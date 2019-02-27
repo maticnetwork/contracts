@@ -111,6 +111,32 @@ export function getSigs(wallets, votedata) {
     .filter(d => d)
 }
 
+export function getSig({ pk, spender, secret, token, amount }) {
+  const data = Buffer.concat([
+    utils.toBuffer(token),
+    utils.setLengthLeft(amount, 32),
+    utils.toBuffer(secret),
+    utils.toBuffer(spender)
+  ])
+
+  const dataHash = utils.keccak256(data)
+  const messageHash = utils.hashPersonalMessage(dataHash)
+  const sigObj = utils.ecsign(messageHash, utils.toBuffer(pk))
+  const sig = utils.toRpcSig(sigObj.v, sigObj.r, sigObj.s)
+
+  const obj = {
+    sig,
+    token,
+    amount,
+    spender,
+    secret: utils.bufferToHex(secret),
+    data: utils.bufferToHex(data),
+    dataHash: utils.bufferToHex(dataHash)
+  }
+
+  return obj
+}
+
 export function encodeSigs(sigs = []) {
   return Buffer.concat(sigs.map(s => utils.toBuffer(s)))
 }
