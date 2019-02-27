@@ -95,28 +95,34 @@ contract('ChildERC20', async function(accounts) {
     const privateKey1 = wallets[0].getPrivateKeyString()
     const secret =
       '0x468fc9c005382579139846222b7b0aebc9182ba073b2455938a86d9753bfb078'
-    const amount = 20
+    const amountOrTokenId = 20
     // const token = await ChildERC20.new()
 
     // mint tokens
-    await childChain.depositTokens(rootToken.address, address1, amount, 1, {
-      from: owner
-    })
+    await childChain.depositTokens(
+      rootToken.address,
+      address1,
+      amountOrTokenId,
+      1,
+      {
+        from: owner
+      }
+    )
 
     const beforeBalance = await childToken.balanceOf(address1)
-    assert.equal(beforeBalance.toNumber(), amount)
+    assert.equal(beforeBalance.toNumber(), amountOrTokenId)
 
     const obj1 = getSig({
       pk: privateKey1,
       spender: address2,
       secret,
-      amount,
+      amountOrTokenId,
       token: childToken.address
     })
 
     const from = await childToken.getAddressFromTransferSig(
       obj1.sig,
-      obj1.amount,
+      obj1.amountOrTokenId,
       obj1.secret,
       address2
     )
@@ -125,7 +131,7 @@ contract('ChildERC20', async function(accounts) {
     // transfer with sig
     await childToken.transferWithSig(
       obj1.sig,
-      obj1.amount,
+      obj1.amountOrTokenId,
       obj1.secret,
       address2,
       {
@@ -137,7 +143,7 @@ contract('ChildERC20', async function(accounts) {
     assert.equal(afterBalance.toNumber(), 0)
 
     const afterBalance1 = await childToken.balanceOf(address2)
-    assert.equal(afterBalance1.toNumber(), amount)
+    assert.equal(afterBalance1.toNumber(), amountOrTokenId)
   })
 
   it('should check true (safety check)', async function() {

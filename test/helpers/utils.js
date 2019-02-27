@@ -111,10 +111,10 @@ export function getSigs(wallets, votedata) {
     .filter(d => d)
 }
 
-export function getSig({ pk, spender, secret, token, amount }) {
+export function getSig({ pk, spender, secret, token, amountOrTokenId }) {
   const data = Buffer.concat([
     utils.toBuffer(token),
-    utils.setLengthLeft(amount, 32),
+    utils.setLengthLeft(amountOrTokenId, 32),
     utils.toBuffer(secret),
     utils.toBuffer(spender)
   ])
@@ -127,7 +127,7 @@ export function getSig({ pk, spender, secret, token, amount }) {
   const obj = {
     sig,
     token,
-    amount,
+    amountOrTokenId,
     spender,
     secret: utils.bufferToHex(secret),
     data: utils.bufferToHex(data),

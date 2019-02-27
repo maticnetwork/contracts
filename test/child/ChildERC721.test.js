@@ -117,15 +117,21 @@ contract('ChildERC721', async function(accounts) {
     const privateKey1 = wallets[0].getPrivateKeyString()
     const secret =
       '0x468fc9c005382579139846222b7b0aebc9182ba073b2455938a86d9753bfb078'
-    const tokenId = 20
+    const amountOrTokenId = 20
     // const token = await ChildERC20.new()
 
     // mint tokens
-    await childChain.depositTokens(rootToken.address, address1, tokenId, 1, {
-      from: owner
-    })
+    await childChain.depositTokens(
+      rootToken.address,
+      address1,
+      amountOrTokenId,
+      1,
+      {
+        from: owner
+      }
+    )
 
-    const beforeOwner = await childToken.ownerOf(tokenId)
+    const beforeOwner = await childToken.ownerOf(amountOrTokenId)
 
     assert.equal(beforeOwner, address1)
 
@@ -133,22 +139,21 @@ contract('ChildERC721', async function(accounts) {
       pk: privateKey1,
       spender: address2,
       secret,
-      tokenId,
+      amountOrTokenId,
       token: childToken.address
     })
-
     const from = await childToken.getAddressFromTransferSig(
       obj1.sig,
-      obj1.tokenId,
+      obj1.amountOrTokenId,
       obj1.secret,
       address2
     )
-
     assert.equal(from, address1)
+
     // transfer with sig
     await childToken.transferWithSig(
       obj1.sig,
-      obj1.tokenId,
+      obj1.amountOrTokenId,
       obj1.secret,
       address2,
       {
@@ -156,7 +161,7 @@ contract('ChildERC721', async function(accounts) {
       }
     )
 
-    const afterOwner = await childToken.ownerOf(tokenId)
+    const afterOwner = await childToken.ownerOf(amountOrTokenId)
     assert.equal(afterOwner, address2)
   })
 
