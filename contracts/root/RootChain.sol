@@ -290,7 +290,6 @@ contract RootChain is Ownable, IRootChain, IERC721Receiver {
   }
 
   function onERC721Received(address operator, address from, uint256 tokenId, bytes data) public returns (bytes4) {
-    //require(ownerOf(tokenId)== address(this));
     depositManager.createDepositBlock(_currentHeaderBlock, msg.sender, from, tokenId);
     return 0x150b7a02;
   }
