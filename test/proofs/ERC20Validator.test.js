@@ -18,21 +18,20 @@ import LogDecoder from '../helpers/log-decoder.js'
 
 import {
   RootToken,
+  ChildERC20,
+  ChildChain,
   WithdrawManagerMock,
   ERC20ValidatorMock,
   DepositManagerMock,
   RootChainMock
 } from '../helpers/contracts.js'
 
-let ChildChain = artifacts.require('../child/ChildChain.sol')
-let ChildToken = artifacts.require('../child/ChildERC20.sol')
-
 const web3Child = new web3.constructor(
   new web3.providers.HttpProvider('http://localhost:8546')
 )
 
 ChildChain.web3 = web3Child
-ChildToken.web3 = web3Child
+ChildERC20.web3 = web3Child
 
 const rlp = utils.rlp
 
@@ -76,7 +75,7 @@ contract('ERC20Validator', async function(accounts) {
           from: user
         }
       )
-      childToken = ChildToken.at(childTokenReceipt.logs[1].args.token)
+      childToken = ChildERC20.at(childTokenReceipt.logs[1].args.token)
 
       rootChain = await RootChainMock.new()
       depositManager = await DepositManagerMock.new({ from: owner })

@@ -21,18 +21,17 @@ import {
   WithdrawManagerMock,
   ERC721ValidatorMock,
   DepositManagerMock,
-  RootChainMock
+  RootChainMock,
+  ChildChain,
+  ChildERC721
 } from '../helpers/contracts.js'
-
-let ChildChain = artifacts.require('../child/ChildChain.sol')
-let ChildToken = artifacts.require('../child/ChildERC721.sol')
 
 const web3Child = new web3.constructor(
   new web3.providers.HttpProvider('http://localhost:8546')
 )
 
 ChildChain.web3 = web3Child
-ChildToken.web3 = web3Child
+ChildERC721.web3 = web3Child
 
 const rlp = utils.rlp
 
@@ -77,7 +76,7 @@ contract('ERC721Validator', async function(accounts) {
           from: user
         }
       )
-      childToken = ChildToken.at(childTokenReceipt.logs[1].args.token)
+      childToken = ChildERC721.at(childTokenReceipt.logs[1].args.token)
 
       rootChain = await RootChainMock.new()
       depositManager = await DepositManagerMock.new({ from: owner })
