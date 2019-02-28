@@ -51,7 +51,7 @@ contract('WithdrawManager', async function(accounts) {
 
     before(async function() {
       // link libs
-      await linkLibs()
+      await linkLibs(web3Child)
 
       // set amount
       amount = web3.toWei(1)
