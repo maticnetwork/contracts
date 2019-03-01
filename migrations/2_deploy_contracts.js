@@ -125,7 +125,7 @@ module.exports = async function(deployer, network) {
     await deployer.deploy(RootERC721, 'Test ERC721', 'TERC721')
     await deployer.deploy(DepositManager)
     await deployer.deploy(WithdrawManager)
-    await deployer.deploy(RootToken, 'Test token', 'TEST')
+    await deployer.deploy(RootToken, 'Matic Test', 'MTX')
     await deployer.deploy(StakeManager)
     await deployer.deploy(ExitNFT, 'EXIT NFT', 'ENFT')
     await deployer.deploy(RootChain)
