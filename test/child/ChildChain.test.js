@@ -13,6 +13,9 @@ chai
   .use(chaiBigNumber(web3.BigNumber))
   .should()
 
+const web3Child = new web3.constructor(
+  new web3.providers.HttpProvider('http://localhost:8545')
+)
 contract('ChildChain', async function(accounts) {
   let childChainContract
   let rootToken
@@ -20,7 +23,7 @@ contract('ChildChain', async function(accounts) {
 
   beforeEach(async function() {
     // link libs
-    await linkLibs()
+    await linkLibs(web3Child)
 
     // create child chain contract
     childChainContract = await ChildChain.new()

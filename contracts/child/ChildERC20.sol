@@ -101,6 +101,20 @@ contract ChildERC20 is ChildToken, ERC20, ERC20Detailed {
     return result;
   }
 
+  function transferWithSig(bytes memory sig, uint256 amount, bytes32 data, address to) public returns (address) {
+    require(amount > 0);
+    bytes32 dataHash = getTransferTypedHash(amount, data, msg.sender);
+
+    require(disabledHashes[dataHash] == false, "Sig deactivated");
+    disabledHashes[dataHash] = true;
+
+    // recover address and send tokens
+    address from = dataHash.ecrecovery(sig);
+    _transfer(from, to, amount);
+
+    return from;
+  }
+
   /// @dev Allows allowed third party to transfer tokens from one address to another. Returns success.
   /// @param from Address from where tokens are withdrawn.
   /// @param to Address to where tokens are sent.

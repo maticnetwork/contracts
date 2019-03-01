@@ -15,20 +15,20 @@ import {
   RootToken,
   RootChain,
   RootERC721,
-  RootChainMock,
-  ChildERC721
+  ChildChain,
+  ChildERC20,
+  ChildERC721,
+  RootChainMock
 } from '../helpers/contracts.js'
 import LogDecoder from '../helpers/log-decoder'
-
-let ChildChain = artifacts.require('./child/ChildChain.sol')
-let ChildToken = artifacts.require('./child/ChildERC20.sol')
 
 const web3Child = new web3.constructor(
   new web3.providers.HttpProvider('http://localhost:8546')
 )
 
 ChildChain.web3 = web3Child
-ChildToken.web3 = web3Child
+ChildERC20.web3 = web3Child
+ChildERC721.web3 = web3Child
 
 // add chai pluggin
 chai

@@ -7,7 +7,7 @@
   "scripts": {
     "testrpc": "ganache-cli --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' --gasLimit 13000000",
     "truffle": "truffle",
-    "truffle:test": "truffle test test/root/*.js && truffle test test/lib/*.js && truffle test test/proofs/*.js && truffle test test/child/*.js",
+    "truffle:test": "truffle test test/root/*.js && truffle test test/proofs/*.js && truffle test test/child/*.js",
     "truffle:compile": "truffle compile",
     "test:ci": "scripts/run-test.sh",
     "lint": "npm run lint:sol && npm run lint:js",
@@ -56,7 +56,8 @@
     "solium": "^1.1.8",
     "truffle": "4.1.14",
     "web3": "^1.0.0-beta.30",
-    "pre-commit": "^1.2.2"
+    "pre-commit": "^1.2.2",
+    "eth-sig-util": "^2.1.1"
   },
   "dependencies": {
     "eth-sig-util": "2.1.0",

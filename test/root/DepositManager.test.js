@@ -142,6 +142,29 @@ contract('DepositManager', async function(accounts) {
       contractBalance.should.be.bignumber.equal(amount)
     })
 
+    it('should allow anyone to deposit ERC721 token directly without approve', async function() {
+      let receipt = await depositManager.mapToken(
+        rootERC721.address,
+        childERC721.address,
+        true
+      )
+
+      const tokenID = web3.toWei(12)
+      await rootERC721.mint(tokenID, { from: owner })
+
+      receipt = await rootERC721.safeTransferFrom(
+        owner,
+        rootChain.address,
+        tokenID
+      )
+
+      // receipt.receipt.logs.should.have.length(2)
+      const contractBalance = await rootERC721.balanceOf(rootChain.address)
+      contractBalance.should.be.bignumber.equal(1)
+
+      const tokenOwner = await rootERC721.ownerOf(tokenID)
+      tokenOwner.should.equal(rootChain.address)
+    })
     it('should not allow to deposit if token is not mapped', async function() {
       const newToken = await RootToken.new('New root Token', 'ROOT2')
 

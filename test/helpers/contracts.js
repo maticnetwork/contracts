@@ -14,13 +14,13 @@ export const RootChain = artifacts.require('./RootChain.sol')
 export const ChildChain = artifacts.require('./child/ChildChain.sol')
 export const ChildERC20 = artifacts.require('./child/ChildERC20.sol')
 export const ChildERC721 = artifacts.require('./child/ChildERC721.sol')
+export const Marketplace = artifacts.require('./child/Marketplace.sol')
 export const ParentTokenMock = artifacts.require('./child/ParentTokenMock.sol')
 export const RootToken = artifacts.require('./token/TestToken.sol')
 export const RootERC721 = artifacts.require('./token/RootERC721.sol')
 export const MaticWETH = artifacts.require('./token/MaticWETH.sol')
 export const StakeManager = artifacts.require('./root/StakeManager.sol')
 export const ExitNFT = artifacts.require('./token/ExitNFT.sol')
-export const AvlTree = artifacts.require('./lib/AvlTree.sol')
 
 export const StakeManagerMock = artifacts.require(
   './mocks/StakeManagerMock.sol'
