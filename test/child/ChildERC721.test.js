@@ -142,13 +142,6 @@ contract('ChildERC721', async function(accounts) {
       amountOrTokenId,
       token: childToken.address
     })
-    const from = await childToken.getAddressFromTransferSig(
-      obj1.sig,
-      obj1.amountOrTokenId,
-      obj1.secret,
-      address2
-    )
-    assert.equal(from, address1)
 
     // transfer with sig
     await childToken.transferWithSig(

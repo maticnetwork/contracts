@@ -15,6 +15,7 @@ contract ChildToken is Ownable, IMarketplaceToken {
   address public token;
   address public parent;
   address public parentOwner;
+  bytes32 private TXDATAHASH = keccak256(abi.encodePacked("address token","address spender","uint256 amountOrTokenId","bytes32 data"));
 
   // transferwith sig check
   mapping(bytes32 => bool) public disabledHashes;
@@ -49,10 +50,8 @@ contract ChildToken is Ownable, IMarketplaceToken {
 
   function setParent(address parent) public isParentOwner;
 
-  function getAddressFromTransferSig(bytes memory sig, uint256 amount, bytes32 data, address spender) public view returns (address) {
-    bytes32 dataHash = keccak256(abi.encodePacked(address(this), amount, data, spender));
-    dataHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", dataHash));
-    return dataHash.ecrecovery(sig);
+  function getTransferTypedHash(uint256 amount, bytes32 data, address spender) public view returns (bytes32) {
+    return keccak256(abi.encodePacked(TXDATAHASH, keccak256(abi.encodePacked(address(this), spender, amount, data))));
   }
 
 }

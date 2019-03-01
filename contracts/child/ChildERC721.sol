@@ -81,11 +81,10 @@ contract ChildERC721 is ChildToken, ERC721 {
   }
 
   function transferWithSig(bytes memory sig, uint256 tokenId, bytes32 data, address to) public returns (address) {
-    bytes32 dataHash = keccak256(abi.encodePacked(address(this), tokenId, data, msg.sender));
+    bytes32 dataHash = getTransferTypedHash(tokenId, data, msg.sender);
     require(disabledHashes[dataHash] == false, "Sig deactivated");
     disabledHashes[dataHash] = true;
 
-    dataHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", dataHash));
     // recover address and send tokens
     address from = dataHash.ecrecovery(sig);
 

@@ -4,6 +4,7 @@ import utils from 'ethereumjs-util'
 import { Buffer } from 'safe-buffer'
 
 import * as contracts from './contracts'
+const sigUtils = require('eth-sig-util')
 
 const BN = utils.BN
 
@@ -110,28 +111,48 @@ export function getSigs(wallets, votedata) {
     })
     .filter(d => d)
 }
-
+function getTransferTypedData({ token, spender, amountOrTokenId, data }) {
+  return [
+    {
+      type: 'address',
+      name: 'token',
+      value: token
+    },
+    {
+      type: 'address',
+      name: 'spender',
+      value: spender
+    },
+    {
+      type: 'uint256',
+      name: 'amountOrTokenId',
+      value: amountOrTokenId
+    },
+    {
+      type: 'bytes32',
+      name: 'data',
+      value: data
+    }
+  ]
+}
 export function getSig({ pk, spender, secret, token, amountOrTokenId }) {
-  const data = Buffer.concat([
-    utils.toBuffer(token),
-    utils.setLengthLeft(amountOrTokenId, 32),
-    utils.toBuffer(secret),
-    utils.toBuffer(spender)
-  ])
+  const typedData = getTransferTypedData({
+    token: token,
+    amountOrTokenId: amountOrTokenId,
+    spender: spender,
+    data: secret
+  })
 
-  const dataHash = utils.keccak256(data)
-  const messageHash = utils.hashPersonalMessage(dataHash)
-  const sigObj = utils.ecsign(messageHash, utils.toBuffer(pk))
-  const sig = utils.toRpcSig(sigObj.v, sigObj.r, sigObj.s)
+  const sig = sigUtils.signTypedDataLegacy(utils.toBuffer(pk), {
+    data: typedData
+  })
 
   const obj = {
     sig,
     token,
     amountOrTokenId,
     spender,
-    secret: utils.bufferToHex(secret),
-    data: utils.bufferToHex(data),
-    dataHash: utils.bufferToHex(dataHash)
+    secret: utils.bufferToHex(secret)
   }
 
   return obj

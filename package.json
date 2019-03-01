@@ -56,7 +56,8 @@
     "solium": "^1.1.8",
     "truffle": "4.1.14",
     "web3": "^1.0.0-beta.30",
-    "pre-commit": "^1.2.2"
+    "pre-commit": "^1.2.2",
+    "eth-sig-util": "^2.1.1"
   },
   "dependencies": {
     "eth-sig-util": "2.1.0",
