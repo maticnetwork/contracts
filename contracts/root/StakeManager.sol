@@ -80,7 +80,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   function stakeFor(address user, uint256 amount, address signer) public onlyWhenUnlocked {
     require(currentValidatorSetSize() < validatorThreshold);
     require(balanceOf(user) == 0, "No second time staking");
-    require(amount > MIN_DEPOSIT_SIZE);
+    require(amount >= MIN_DEPOSIT_SIZE);
     require(signerToValidator[signer] == 0);
 
     require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");
