@@ -3,7 +3,6 @@ pragma solidity ^0.4.24;
 import { RootChainValidator } from "../mixin/RootChainValidator.sol";
 import { RootChain } from "../root/RootChain.sol";
 
-
 contract ExitValidator is RootChainValidator {
   // challenge exit
   function challengeExit(
@@ -20,9 +19,8 @@ contract ExitValidator is RootChainValidator {
 
     bytes txBytes,
     bytes txProof
-  ) public {
-    // validate exit id and get owner
-    address owner = validateExitId(exitId);
+  ) external {
+    validateExitId(exitId, txBytes);
 
     // validate tx
     require(
@@ -40,9 +38,6 @@ contract ExitValidator is RootChainValidator {
         txProof
       )
     );
-
-    // check if owner is same
-    require(getTxSender(txBytes) == owner);
 
     // check if tx happened after exit
     uint256 exitId2 = (
@@ -62,16 +57,11 @@ contract ExitValidator is RootChainValidator {
   // Internal methods
   //
 
-  function validateExitId(uint256 exitId) internal view returns (address) {
-    address owner;
-    uint256 amount;
-    bool burnt;
-    (owner,,amount, burnt) = withdrawManager.getExit(exitId);
-
-    // check if already burnt
-    require(burnt == false && amount > 0 && owner != address(0));
-
-    // return owner
-    return owner;
+  function validateExitId(uint256 exitId, bytes txBytes) internal view {
+    (address owner, ,uint256 amount, bool burnt) = withdrawManager.exits(exitId);
+    require(owner != address(0), 'Invalid exitId');
+    require(!burnt, 'Already burnt');
+    require(amount > 0, '<Insert indicative error msg>');
+    require(getTxSender(txBytes) == owner, 'Owner is not same');
   }
 }

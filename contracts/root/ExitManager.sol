@@ -72,24 +72,6 @@ contract ExitManager is RootChainable {
   //
 
   /**
-  * @dev Returns information about an exit.
-  * @param _utxoPos Position of the UTXO in the chain.
-  * @return A tuple representing the active exit for the given UTXO.
-  */
-  function getExit(uint256 _utxoPos)
-    public
-    view
-    returns (address, address, uint256, bool)
-  {
-    return (
-      exits[_utxoPos].owner,
-      exits[_utxoPos].token,
-      exits[_utxoPos].amountOrTokenId,
-      exits[_utxoPos].burnt
-    );
-  }
-
-  /**
   * @dev Determines the next exit to be processed.
   * @param _token Asset type to be exited.
   * @return A tuple of the position and time when this exit can be processed.
