@@ -81,6 +81,15 @@ contract ChildChain is Ownable {
     // broadcast new token's event
     emit NewToken(_rootToken, token, _decimals);
   }
+
+  function mapToken(address _rootToken, address _token,bool _isERC721) public {
+    // add mapping with root token
+    tokens[_rootToken] = _token;
+    isERC721[_rootToken] = _isERC721;
+
+    // broadcast new token's event
+    // emit NewToken(_rootToken, _token, childERC20s(_token).decimals);
+  }
  
   function depositTokens(
     address rootToken,
