@@ -27,7 +27,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   event UnstakeInit(uint256 indexed validatorId, address indexed user, uint256 indexed amount, uint256 deactivationEpoch);
 
   // signer changed
-  event SignerChange(uint256 indexed validatorId, address indexed newSigner, address indexed oldSigner);
+  event SignerChange(uint256 indexed validatorId, address indexed oldSigner, address indexed newSigner);
 
   ERC20 public token;
 
