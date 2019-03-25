@@ -14,7 +14,7 @@ module.exports = function() {
     const address = [
       '0x0cdf0edd304a8e1715d5043d0afe3d3322cc6e3b',
       '0xcd35d54eda5c9fd97768d16127f261c5d3f1aaeb',
-      '0x115b164bf089c9490c192cc0fa6962af9e5f1202',
+      '0xb3a26d246ecccb7430d6e05aadc3e7825dc4a94d',
       '0x308ce5531beecb238bad497f485560c06a9e499f'
     ]
     const amount = 2000000000000000000
