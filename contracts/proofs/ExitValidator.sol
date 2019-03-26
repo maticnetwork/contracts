@@ -19,7 +19,7 @@ contract ExitValidator is RootChainValidator {
 
     bytes txBytes,
     bytes txProof
-  ) external {
+  ) public {
     validateExitId(exitId, txBytes);
 
     // validate tx
