@@ -37,13 +37,17 @@ module.exports = async function(deployer, network) {
     const _ERC721Validator = await ERC721Validator.deployed()
     const depositValidator = await DepositValidator.deployed()
     const maticWETH = await MaticWETH.deployed()
+    const rootToken = await RootToken.deployed()
 
     const contractAddresses = {
-      MaticWETH: maticWETH.address
+      // @todo add all of the above
+      RootToken: rootToken.address
     }
-    fs.writeFileSync('./build/contractAddresses.json', JSON.stringify(contractAddresses))
+    fs.writeFileSync(
+      './build/contractAddresses.json',
+      JSON.stringify(contractAddresses, null, 4) // Indent 4 spaces
+    )
 
-    const rootToken = await RootToken.deployed()
     await stakeManager.setToken(rootToken.address)
 
     // set rootchain

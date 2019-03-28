@@ -19,7 +19,7 @@ module.exports = {
       port: 8546,
       network_id: '*' // match any network
     },
-    local: {
+    matic_dev: {
       host: 'localhost',
       port: 8540,
       network_id: '*' // match any network
