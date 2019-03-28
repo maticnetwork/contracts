@@ -1,3 +1,4 @@
+const fs = require('fs')
 /* global artifacts */
 
 //
@@ -36,6 +37,11 @@ module.exports = async function(deployer, network) {
     const _ERC721Validator = await ERC721Validator.deployed()
     const depositValidator = await DepositValidator.deployed()
     const maticWETH = await MaticWETH.deployed()
+
+    const contractAddresses = {
+      MaticWETH: maticWETH.address
+    }
+    fs.writeFileSync('./build/contractAddresses.json', JSON.stringify(contractAddresses))
 
     const rootToken = await RootToken.deployed()
     await stakeManager.setToken(rootToken.address)
