@@ -12,6 +12,7 @@
     "truffle:migrate:1": "truffle migrate --to 3",
     "truffle:migrate:2": "truffle migrate --network matic_dev --from 4 --to 4",
     "truffle:migrate:3": "truffle migrate --from 5 --to 5",
+    "truffle:migrate": "npm run truffle:migrate:1 && npm run truffle:migrate:2 && npm run truffle:migrate:3",
     "test:ci": "scripts/run-test.sh",
     "lint": "npm run lint:sol && npm run lint:js",
     "lint:js": "eslint test/**/*.js",
@@ -55,13 +56,14 @@
     "eslint-plugin-promise": "4.0.1",
     "eslint-plugin-standard": "4.0.0",
     "eth-gas-reporter": "0.1.12",
+    "eth-sig-util": "^2.1.1",
     "ethereumjs-wallet": "0.6.2",
     "ethers": "4.0.13",
+    "pre-commit": "^1.2.2",
     "safe-buffer": "5.1.2",
     "solium": "^1.1.8",
-    "truffle": "4.1.14",
-    "web3": "^1.0.0-beta.30",
-    "pre-commit": "^1.2.2"
+    "truffle": "^5.0.10",
+    "web3": "^1.0.0-beta.30"
   },
   "dependencies": {
     "eth-sig-util": "2.1.0",

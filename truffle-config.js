@@ -62,23 +62,17 @@ module.exports = {
       gas: 400000000
     }
   },
-  // compilers: {
-  //   solc: {
-  //     version: '0.4.24',
-  //     docker: true,
-  //     settings: {
-  //       optimizer: {
-  //         enabled: true,
-  //         runs: 200
-  //       },
-  //       evmVersion: 'byzantium'
-  //     }
-  //   }
-  // },
-  solc: {
-    optimizer: {
-      enabled: true,
-      runs: 200
+  compilers: {
+    solc: {
+      version: '0.4.24',
+      // docker: true,
+      settings: {
+        optimizer: {
+          enabled: true,
+          runs: 200
+        }
+        // evmVersion: 'byzantium'
+      }
     }
   },
   mocha: {
