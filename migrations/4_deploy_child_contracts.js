@@ -25,21 +25,22 @@ module.exports = async function(deployer, network, accounts) {
     console.log('childChain.address', childChain.address)
 
     // add matic WETH
-    const p = await childChain.addToken(
+    let p = await childChain.addToken(
       accounts[0],
       contractAddresses.MaticWETH,
+      // '0x421dc9053cb4b51a7ec07b60c2bbb3ec3cfe050b', - this is the testnetv2 MaticWETH address
       'Matic WETH',
       'MTX',
       18,
       false // _isERC721
     )
-    const evt = p.logs.find(log => {
+    let evt = p.logs.find(log => {
       return log.event === 'NewToken'
     })
     contractAddresses['ChildWeth'] = evt.args.token
 
     // add root token
-    const p = await childChain.addToken(
+    p = await childChain.addToken(
       accounts[0],
       contractAddresses.RootToken,
       'Token S',
@@ -47,7 +48,7 @@ module.exports = async function(deployer, network, accounts) {
       18,
       false // _isERC721
     )
-    const evt = p.logs.find(log => {
+    evt = p.logs.find(log => {
       return log.event === 'NewToken'
     })
     contractAddresses['ChildToken'] = evt.args.token
