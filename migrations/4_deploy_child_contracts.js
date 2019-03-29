@@ -22,13 +22,12 @@ module.exports = async function(deployer, network, accounts) {
     contractAddresses = JSON.parse(contractAddresses)
 
     const childChain = await ChildChain.deployed()
-    console.log('childChain.address', childChain.address)
 
     // add matic WETH
     let p = await childChain.addToken(
       accounts[0],
       contractAddresses.MaticWETH,
-      // '0x421dc9053cb4b51a7ec07b60c2bbb3ec3cfe050b', - this is the testnetv2 MaticWETH address
+      // '0x421dc9053cb4b51a7ec07b60c2bbb3ec3cfe050b', // - this is the testnetv2 MaticWETH address
       'Matic WETH',
       'MTX',
       18,
@@ -43,6 +42,7 @@ module.exports = async function(deployer, network, accounts) {
     p = await childChain.addToken(
       accounts[0],
       contractAddresses.RootToken,
+      // '0x6b0b0e265321e788af11b6f1235012ae7b5a6808', // - this is the testnetv2 TestToken address
       'Token S',
       'STX',
       18,
