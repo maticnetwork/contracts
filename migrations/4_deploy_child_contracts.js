@@ -24,6 +24,21 @@ module.exports = async function(deployer, network, accounts) {
     const childChain = await ChildChain.deployed()
     console.log('childChain.address', childChain.address)
 
+    // add matic WETH
+    const p = await childChain.addToken(
+      accounts[0],
+      contractAddresses.MaticWETH,
+      'Matic WETH',
+      'MTX',
+      18,
+      false // _isERC721
+    )
+    const evt = p.logs.find(log => {
+      return log.event === 'NewToken'
+    })
+    contractAddresses['ChildWeth'] = evt.args.token
+
+    // add root token
     const p = await childChain.addToken(
       accounts[0],
       contractAddresses.RootToken,
@@ -32,12 +47,11 @@ module.exports = async function(deployer, network, accounts) {
       18,
       false // _isERC721
     )
-
     const evt = p.logs.find(log => {
       return log.event === 'NewToken'
     })
-
     contractAddresses['ChildToken'] = evt.args.token
+
     fs.writeFileSync(
       './build/contractAddresses.json',
       JSON.stringify(contractAddresses, null, 4) // Indent 4 spaces
