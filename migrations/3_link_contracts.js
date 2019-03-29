@@ -41,7 +41,8 @@ module.exports = async function(deployer, network) {
 
     const contractAddresses = {
       // @todo add all of the above
-      RootToken: rootToken.address
+      RootToken: rootToken.address,
+      MaticWETH: maticWETH.address
     }
     fs.writeFileSync(
       './build/contractAddresses.json',
