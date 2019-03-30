@@ -17,9 +17,7 @@
     "lint": "npm run lint:sol && npm run lint:js",
     "lint:js": "eslint test/**/*.js",
     "lint:sol:fix": "solium -d contracts/ --fix",
-    "lint:sol": "solium -d contracts/",
-    "mainchain": "ganache-cli --port 8545 --networkId 4474 --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' --gasLimit 150000000",
-    "maticchain": "ganache-cli --port 8540 --networkId 13 --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' --gasLimit 150000000"
+    "lint:sol": "solium -d contracts/"
   },
   "pre-commit": [
     "lint:sol"

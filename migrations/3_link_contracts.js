@@ -1,3 +1,4 @@
+const fs = require('fs')
 /* global artifacts */
 
 //
