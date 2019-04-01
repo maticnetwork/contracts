@@ -14,14 +14,9 @@ module.exports = {
       port: 8545,
       network_id: '*' // match any network
     },
-    dev: {
-      host: 'localhost',
-      port: 8546,
-      network_id: '*' // match any network
-    },
     matic_dev: {
       host: 'localhost',
-      port: 8540,
+      port: 8546,
       network_id: '*' // match any network
     },
     ropsten: {
@@ -71,7 +66,7 @@ module.exports = {
           enabled: true,
           runs: 200
         }
-        // evmVersion: 'byzantium'
+      //   // evmVersion: 'byzantium'
       }
     }
   },
