@@ -14,14 +14,9 @@ module.exports = {
       port: 8545,
       network_id: '*' // match any network
     },
-    dev: {
+    matic_dev: {
       host: 'localhost',
       port: 8546,
-      network_id: '*' // match any network
-    },
-    local: {
-      host: 'localhost',
-      port: 8540,
       network_id: '*' // match any network
     },
     ropsten: {
@@ -65,13 +60,13 @@ module.exports = {
   // compilers: {
   //   solc: {
   //     version: '0.4.24',
-  //     docker: true,
+  //     // docker: true,
   //     settings: {
   //       optimizer: {
   //         enabled: true,
   //         runs: 200
-  //       },
-  //       evmVersion: 'byzantium'
+  //       }
+  //     //   // evmVersion: 'byzantium'
   //     }
   //   }
   // },
