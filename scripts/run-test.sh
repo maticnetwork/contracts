@@ -36,5 +36,4 @@ start_testrpc
 echo "Starting our own geth instance"
 start_blockchain
 
-npm run truffle:migrate "$@"
 npm run truffle:test "$@"

@@ -18,7 +18,7 @@ module.exports = async function(deployer, network, accounts) {
 
     await deployer.deploy(ChildChain)
 
-    let contractAddresses = fs.readFileSync('./build/contractAddresses.json').toString()
+    let contractAddresses = fs.readFileSync(`${process.cwd()}/contractAddresses.json`).toString()
     contractAddresses = JSON.parse(contractAddresses)
 
     const childChain = await ChildChain.deployed()
@@ -54,7 +54,7 @@ module.exports = async function(deployer, network, accounts) {
     contractAddresses['ChildToken'] = evt.args.token
 
     fs.writeFileSync(
-      './build/contractAddresses.json',
+      `${process.cwd()}/contractAddresses.json`,
       JSON.stringify(contractAddresses, null, 4) // Indent 4 spaces
     )
   })

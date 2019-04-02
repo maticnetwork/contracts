@@ -45,7 +45,7 @@ module.exports = async function(deployer, network) {
       MaticWETH: maticWETH.address
     }
     fs.writeFileSync(
-      './build/contractAddresses.json',
+      `${process.cwd()}/contractAddresses.json`,
       JSON.stringify(contractAddresses, null, 4) // Indent 4 spaces
     )
 
