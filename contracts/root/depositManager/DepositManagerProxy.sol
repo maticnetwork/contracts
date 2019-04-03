@@ -6,7 +6,7 @@ import { DelegateProxy } from '../../common/misc/DelegateProxy.sol';
 import { DepositManagerStorage } from './DepositManagerStorage.sol';
 
 contract DepositManagerProxy is DelegateProxy, DepositManagerStorage {
-  
+
   constructor(address _proxyTo, address _registry, address _rootChain)
     public
     DelegateProxy(_proxyTo)

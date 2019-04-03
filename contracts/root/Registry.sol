@@ -6,7 +6,7 @@ contract Registry is Ownable {
   mapping(bytes32 => address) contractMap;
 
   // @todo hardcode constants
-  bytes32 constant private WETH_TOKEN = keccak256('wethToken'); 
+  bytes32 constant private WETH_TOKEN = keccak256('wethToken');
 
   function updateContractMap(bytes32 _key, address _address)
     public
