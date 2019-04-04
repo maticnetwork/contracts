@@ -14,21 +14,6 @@ import { IManager } from "./IManager.sol";
 contract DepositManager is IManager, TokenManager, RootChainable {
   using SafeMath for uint256;
 
-  // deposit block
-  struct DepositBlock {
-    uint256 header;
-    address owner;
-    address token;
-    uint256 amountOrTokenId; // needs better name
-    uint256 createdAt;
-  }
-
-  // list of deposits
-  mapping(uint256 => DepositBlock) public deposits;
-
-  // current deposit count
-  uint256 public depositCount;
-
   //
   // Events
   //

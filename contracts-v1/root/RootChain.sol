@@ -111,7 +111,7 @@ contract RootChain is Ownable, IRootChain, IERC721Receiver {
 
     // extract end and assign to current child
     dataList = extradata.toRLPItem().toList();
-
+    
     // check proposer
     require(msg.sender == dataList[0].toAddress(), "Invalid proposer");
     uint256 start = currentChildBlock();

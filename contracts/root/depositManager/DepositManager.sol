@@ -18,7 +18,7 @@ contract DepositManager is DepositManagerStorage, IDepositManager {
     address wethToken = registry.getWethTokenAddress();
     WETH t = WETH(wethToken);
     t.deposit.value(msg.value)();
-    _createDepositBlock();
+    _createDepositBlock(msg.sender, wethToken, msg.value);
   }
 
   function depositERC20(address _token, uint256 _amount)
@@ -40,7 +40,7 @@ contract DepositManager is DepositManagerStorage, IDepositManager {
       ERC20(_token).transferFrom(msg.sender, address(this), _amount),
       TOKEN_TRANSFER_FAILED
     );
-    _createDepositBlock();
+    _createDepositBlock(_user, _token, _amount);
   }
 
   function depositERC721ForUser(address _token, address _user, uint256 _tokenId)
@@ -48,12 +48,12 @@ contract DepositManager is DepositManagerStorage, IDepositManager {
   {
     // @todo implement onERC721Received and use safeTransferFrom
     ERC721(_token).transferFrom(msg.sender, address(this), _tokenId);
-    _createDepositBlock();
+    _createDepositBlock(_user, _token, _tokenId);
   }
 
-  function _createDepositBlock()
+  function _createDepositBlock(address _user, address _token, uint256 amountOrNFTId)
     internal
   {
-    rootChain.createDepositBlock();
+    rootChain.createDepositBlock(_user, _token, amountOrNFTId);
   }
 }
