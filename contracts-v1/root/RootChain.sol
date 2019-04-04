@@ -97,69 +97,6 @@ contract RootChain is Ownable, IRootChain, IERC721Receiver {
   }
 
   //
-  // External functions
-  //
-
-  function submitHeaderBlock(bytes vote, bytes sigs, bytes extradata) external {
-    RLP.RLPItem[] memory dataList = vote.toRLPItem().toList();
-    require(keccak256(dataList[0].toData()) == chain, "Chain ID not same");
-    require(keccak256(dataList[1].toData()) == roundType, "Round type not same ");
-    require(dataList[4].toByte() == voteType, "Vote type not same");
-
-    // validate extra data using getSha256(extradata)
-    require(keccak256(dataList[5].toData()) == keccak256(bytes20(sha256(extradata))), "Extra data is invalid");
-
-    // extract end and assign to current child
-    dataList = extradata.toRLPItem().toList();
-    
-    // check proposer
-    require(msg.sender == dataList[0].toAddress(), "Invalid proposer");
-    uint256 start = currentChildBlock();
-    if (start > 0) {
-      start = start.add(1);
-    }
-    // Start on mainchain and matic chain must be same
-    require(start == dataList[1].toUint(), "Start block doesn't match");
-    uint256 end = dataList[2].toUint();
-    bytes32 root = dataList[3].toBytes32();
-
-    // Make sure we are adding blocks
-    require(end > start, "Not adding blocks");
-
-    // Make sure enough validators sign off on the proposed header root
-    require(stakeManager.checkSignatures(keccak256(vote), sigs), "Sigs are invalid");
-
-    // Add the header root
-    HeaderBlock memory headerBlock = HeaderBlock({
-      root: root,
-      start: start,
-      end: end,
-      createdAt: block.timestamp,
-      proposer: msg.sender
-    });
-    headerBlocks[_currentHeaderBlock] = headerBlock;
-
-    // emit new header block
-    emit NewHeaderBlock(
-      msg.sender,
-      _currentHeaderBlock,
-      headerBlock.start,
-      headerBlock.end,
-      root
-    );
-
-    // update current header block
-    _currentHeaderBlock = _currentHeaderBlock.add(CHILD_BLOCK_INTERVAL);
-
-    // finalize commit
-    depositManager.finalizeCommit(_currentHeaderBlock);
-    withdrawManager.finalizeCommit(_currentHeaderBlock);
-    stakeManager.finalizeCommit();
-
-    // TODO add rewards
-  }
-
-  //
   // Public functions
   //
 

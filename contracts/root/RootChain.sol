@@ -6,6 +6,7 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { IRootChain } from './IRootChain.sol';
 import { RootChainHeader, RootChainStorage } from './RootChainStorage.sol';
+import { IStakeManager } from './stakeManager/IStakeManager.sol';
 import { Registry } from './Registry.sol';
 
 contract RootChain is RootChainStorage, IRootChain {
@@ -31,47 +32,52 @@ contract RootChain is RootChainStorage, IRootChain {
     bytes calldata extradata)
     external
   {
-    require(
-      _checkSignatures(vote, sigs),
-      "INVALID_SIGS"
-    );
+    RLPReader.RLPItem[] memory dataList = vote.toRlpItem().toList();
+    require(keccak256(dataList[0].toBytes()) == CHAIN, "Chain ID not same");
+    require(keccak256(dataList[1].toBytes()) == ROUND_TYPE, "Round type not same ");
+    require(dataList[4].toUint() == VOTE_TYPE, "Vote type not same");
+
+    // validate hash of extradata was signed as part of the vote
+    require(keccak256(dataList[5].toBytes()) == keccak256(abi.encode(bytes20(sha256(extradata)))), "Extra data is invalid");
+
+    // check if it is better to keep it in local storage instead
+    IStakeManager stakeManager = IStakeManager(registry.getStakeManagerAddress());
+    stakeManager.checkSignatures(keccak256(vote), sigs);
 
     RootChainHeader.HeaderBlock memory headerBlock = _buildHeaderBlock(extradata);
     headerBlocks[_nextHeaderBlock] = headerBlock;
-    emit NewHeaderBlock(msg.sender, _nextHeaderBlock, headerBlock.start, headerBlock.end, headerBlock.root);
 
+    emit NewHeaderBlock(msg.sender, _nextHeaderBlock);
     _nextHeaderBlock = _nextHeaderBlock.add(MAX_DEPOSITS);
-    _depositCount = 0;
+    _blockDepositId = 1;
   }
 
-  function createDepositBlock(address _owner, address _token, uint256 amountOrNFTId)
+  function createDepositBlock(address _owner, address _token, uint256 _amountOrNFTId)
     external
     onlyDepositManager
   {
     require(
-      _depositCount < MAX_DEPOSITS,
+      // Only MAX_DEPOSITS per header block are allowed
+      _blockDepositId < MAX_DEPOSITS,
       "TOO_MANY_DEPOSITS"
     );
-    uint256 depositId = _nextHeaderBlock.sub(MAX_DEPOSITS).add(_depositCount).add(1);
-    deposits[depositId] = DepositBlock(_owner, _token, _nextHeaderBlock, amountOrNFTId, now);
-    _depositCount.add(1);
-  }
+    uint256 depositId = _nextHeaderBlock.sub(MAX_DEPOSITS).add(_blockDepositId);
+    deposits[depositId] = DepositBlock(_owner, _token, _nextHeaderBlock, _amountOrNFTId, now);
 
-  function _checkSignatures(bytes memory vote, bytes memory sigs)
-    private
-    returns(bool)
-  {
-    return true;
+    emit NewDepositBlock(depositId);
+    _blockDepositId.add(1);
   }
 
   function _buildHeaderBlock(bytes memory data)
     private
+    view
     returns(HeaderBlock memory headerBlock)
   {
     RLPReader.RLPItem[] memory dataList = data.toRlpItem().toList();
 
     // Is this required? Why does a proposer need to be the sender? Think validator relay networks
     // require(msg.sender == dataList[0].toAddress(), "Invalid proposer");
+    headerBlock.proposer = dataList[0].toAddress();
 
     uint256 nextChildBlock;
     /*

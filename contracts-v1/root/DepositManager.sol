@@ -14,25 +14,6 @@ import { IManager } from "./IManager.sol";
 contract DepositManager is IManager, TokenManager, RootChainable {
   using SafeMath for uint256;
 
-  //
-  // Events
-  //
-
-  event Deposit(address indexed _user, address indexed _token, uint256 _amountOrTokenId, uint256 _depositCount);
-
-  //
-  // Constructor
-  //
-
-  constructor() {
-    // reset deposit count
-    depositCount = 1;
-  }
-
-  //
-  // Public functions
-  //
-
   // set Exit NFT contract
   function setExitNFTContract(address _nftContract) public onlyRootChain {}
 
@@ -51,27 +32,6 @@ contract DepositManager is IManager, TokenManager, RootChainable {
     depositCount = 1;
   }
 
-  // Get next deposit block
-  function nextDepositBlock(uint256 currentHeaderBlock) public view returns (uint256) {
-    return currentHeaderBlock.sub(CHILD_BLOCK_INTERVAL).add(depositCount);
-  }
-
-  function depositBlock(uint256 _depositCount) public view returns (
-    uint256 _header,
-    address _owner,
-    address _token,
-    uint256 _amountOrTokenId,
-    uint256 _createdAt
-  ) {
-    DepositBlock memory _depositBlock = deposits[_depositCount];
-
-    _header = _depositBlock.header;
-    _owner = _depositBlock.owner;
-    _token = _depositBlock.token;
-    _amountOrTokenId = _depositBlock.amountOrTokenId;
-    _createdAt = _depositBlock.createdAt;
-  }
-
   // create deposit block and
   function createDepositBlock(
     uint256 _currentHeaderBlock,
@@ -87,25 +47,5 @@ contract DepositManager is IManager, TokenManager, RootChainable {
 
     // throws if token is not mapped
     require(_isTokenMapped(_token));
-
-    // Only allow up to CHILD_BLOCK_INTERVAL deposits per header block.
-    require(depositCount < CHILD_BLOCK_INTERVAL);
-
-    // get deposit id
-    uint256 _depositId = nextDepositBlock(_currentHeaderBlock);
-
-    // broadcast deposit event
-    emit Deposit(_user, _token, _amountOrTokenId, _depositId);
-
-    // add deposit into deposits
-    deposits[_depositId] = DepositBlock({
-      header: _currentHeaderBlock,
-      owner: _user,
-      token: _token,
-      amountOrTokenId: _amountOrTokenId,
-      createdAt: block.timestamp
-    });
-    // increase deposit counter
-    depositCount = depositCount.add(1);
   }
 }

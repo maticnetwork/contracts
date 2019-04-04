@@ -8,6 +8,7 @@ contract Registry is Ownable {
   // @todo hardcode constants
   bytes32 constant private WETH_TOKEN = keccak256('wethToken');
   bytes32 constant private DEPOSIT_MANAGER = keccak256('depositManager');
+  bytes32 constant private STAKE_MANAGER = keccak256('stakeManager');
 
   function updateContractMap(bytes32 _key, address _address)
     public
@@ -22,5 +23,9 @@ contract Registry is Ownable {
 
   function getDepositManagerAddress() public view returns(address) {
     return contractMap[DEPOSIT_MANAGER];
+  }
+
+  function getStakeManagerAddress() public view returns(address) {
+    return contractMap[STAKE_MANAGER];
   }
 }
