@@ -2,21 +2,22 @@ pragma solidity ^0.5.5;
 
 import { Registry } from './Registry.sol';
 
+
 contract RootChainHeader {
   event NewHeaderBlock(
     address indexed proposer,
-    uint256 indexed headerBlockId
-    // uint256 start,
-    // uint256 end,
-    // bytes32 root
+    uint256 indexed headerBlockId,
+    uint256 start,
+    uint256 end,
+    bytes32 root
   );
 
   event NewDepositBlock(
-    uint256 depositBlockId
-    // address indexed user,
-    // address indexed token,
-    // uint256 amountOrNFTId,
-    // uint256 headerBlockId
+    uint256 depositBlockId,
+    address indexed user,
+    address indexed token,
+    uint256 amountOrNFTId,
+    uint256 headerBlockId
   );
   
   struct HeaderBlock {
@@ -36,7 +37,8 @@ contract RootChainHeader {
   }
 }
 
-contract RootChainStorage is RootChainHeader /* is ProxyData */ {
+
+contract RootChainStorage is ProxyStorage, RootChainHeader {
   // @todo hardcode constants
   bytes32 public constant CHAIN = keccak256("test-chain-E5igIA");
   bytes32 public constant ROUND_TYPE = keccak256("vote");

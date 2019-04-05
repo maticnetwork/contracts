@@ -2,10 +2,10 @@ pragma solidity ^0.5.5;
 
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
-import { ProxyData } from './ProxyData.sol';
+import { ProxyStorage } from './ProxyStorage.sol';
 import { ERCProxy } from './ERCProxy.sol';
 
-contract DelegateProxy is ProxyData, Ownable, ERCProxy {
+contract DelegateProxy is ProxyStorage, Ownable, ERCProxy {
   constructor(address _proxyTo)
     public
     Ownable()

@@ -2,9 +2,9 @@ pragma solidity ^0.5.5;
 
 import { Registry } from '../Registry.sol';
 // import { RootChain } from '../RootChain.sol';
-import { ProxyData } from '../../common/misc/ProxyData.sol';
+import { ProxyStorage } from '../../common/misc/ProxyStorage.sol';
 
-contract WithdrawManagerStorage is ProxyData {
+contract WithdrawManagerStorage is ProxyStorage {
   /**
    * Hardcode constants to save gas
    * bytes4 constant internal WITHDRAW_SIGNATURE = keccak256('withdraw(uint256)')
