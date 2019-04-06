@@ -12,7 +12,7 @@ import { DepositManagerStorage } from './DepositManagerStorage.sol';
 
 contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiver {
 
-  // Todo: depositEtherForUSer ?
+  // @todo: write depositEtherForUser
   function depositEther()
     external
     payable
@@ -45,48 +45,13 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
     _createDepositBlock(_user, _token, _amount);
   }
 
-  function depositERC721ForUser(address _token, address _user, uint256 _tokenId)
-    public
-  {
-    ERC721(_token).transferFrom(msg.sender, address(this), _tokenId);
-    _createDepositBlock(_user, _token, _tokenId);
-  }
-
-  function _createDepositBlock(address _user, address _token, uint256 amountOrNFTId)
-    internal
-  {
-    rootChain.createDepositBlock(_user, _token, amountOrNFTId);
-  }
-
-  function tokenFallback(address _user, uint256 _amount, bytes memory _data) public {
-    address _token = msg.sender;
-    _createDepositBlock(_user, _token, _amount);
-  }
-
-  /**
-   * Note: the contract address is always the message sender.
-   * @param _operator The address which called `safeTransferFrom` function
-   * @param _from The address which previously owned the token
-   * @param _tokenId The NFT identifier which is being transferred
-   * @param _data Additional data with no specified format
-   * @return `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
-   * unless throwing
-   */
-  function onERC721Received(address operator, address from, uint256 tokenId, bytes memory data)
-    public
-    returns (bytes4)
-  {
-    _createDepositBlock(from, msg.sender, tokenId);
-    return 0x150b7a02;
-  }
-
   function transferAmount(address _token, address _user, uint256 _amountOrNFTId)
-  public
+  external
   /* onlyWithdrawManager */
   returns(bool) {
     address wethToken = registry.getWethTokenAddress();
 
-    // transfer to user TODO: use pull for transfer
+    // @todo use pull for transfer
     if (registry.isERC721(_token)) {
       ERC721(_token).transferFrom(address(this), _user, _amountOrNFTId);
     } else if (_token == wethToken) {
@@ -99,5 +64,45 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
       );
     }
     return true;
+  }
+
+  function depositERC721ForUser(address _token, address _user, uint256 _tokenId)
+    public
+  {
+    ERC721(_token).transferFrom(msg.sender, address(this), _tokenId);
+    _createDepositBlock(_user, _token, _tokenId);
+  }
+
+  /**
+   * @notice This will be invoked when someone calls safeTransferFrom and deposits tokens to this contract
+     without directly interacting with this contract
+   * Note: the contract address is always the message sender.
+   * @param _operator The address which called `safeTransferFrom` function
+   * @param _from The address which previously owned the token
+   * @param _tokenId The NFT identifier which is being transferred
+   * @param _data Additional data with no specified format
+   * @return `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
+   * unless throwing
+   */
+  function onERC721Received(address _operator, address _from, uint256 _tokenId, bytes memory _data)
+    public
+    returns (bytes4)
+  {
+    // the ERC721 contract address is the message sender
+    _createDepositBlock(_from, msg.sender /* token */, _tokenId);
+    return 0x150b7a02;
+  }
+
+  // See https://github.com/ethereum/EIPs/issues/223
+  function tokenFallback(address _user, uint256 _amount, bytes memory _data)
+  public
+  {
+    _createDepositBlock(_user, msg.sender /* token */, _amount);
+  }
+
+  function _createDepositBlock(address _user, address _token, uint256 amountOrNFTId)
+    internal
+  {
+    rootChain.createDepositBlock(_user, _token, amountOrNFTId);
   }
 }

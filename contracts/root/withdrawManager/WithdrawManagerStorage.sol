@@ -1,35 +1,16 @@
 pragma solidity ^0.5.2;
 
 import { Registry } from '../Registry.sol';
-// import { RootChain } from '../RootChain.sol';
 import { ProxyStorage } from '../../common/misc/ProxyStorage.sol';
 
 
-contract ExitManagerStorage {
-  // structure for plasma exit
+contract WithdrawManagerHeader {
   struct PlasmaExit {
     address owner;
     address token;
     uint256 amountOrTokenId;
     bool burnt;
   }
-
-  // all plasma exits
-  mapping (uint256 => PlasmaExit) public exits;
-
-  // mapping with token => (owner => exitId) keccak(token+owner) keccak(token+owner+tokenId)
-  mapping (bytes32 => uint256) public ownerExits;
-
-
-  // exit queue for each token
-  mapping (address => address) public exitsQueues;
-
-  // exit NFT contract
-  address public exitNFTContract;
-
-  //
-  // Events
-  //
 
   event Withdraw(
     address indexed user,
@@ -45,7 +26,7 @@ contract ExitManagerStorage {
   );
 }
 
-contract WithdrawManagerStorage is ProxyStorage, ExitManagerStorage {
+contract WithdrawManagerStorage is ProxyStorage, WithdrawManagerHeader {
   /**
    * Hardcode constants to save gas
    * bytes4 constant internal WITHDRAW_SIGNATURE = keccak256('withdraw(uint256)')
@@ -58,8 +39,13 @@ contract WithdrawManagerStorage is ProxyStorage, ExitManagerStorage {
   bytes4 constant internal TRANSFER_SIGNATURE_ERC721 = 0x23b872dd;
   bytes32 constant internal WITHDRAW_EVENT_SIGNATURE = 0xebff2602b3f468259e1e99f613fed6691f3a6526effe6ef3e768ba7ae7a36c4f;
 
-  bytes public constant networkId = "\x0d";
+  bytes constant public  networkId = "\x0d";
   
   Registry internal registry;
-  // RootChain internal rootChain;
+
+  mapping (uint256 => PlasmaExit) public exits;
+  // mapping with token => (owner => exitId) keccak(token+owner) keccak(token+owner+tokenId)
+  mapping (bytes32 => uint256) public ownerExits;
+  mapping (address => address) public exitsQueues;
+  address public exitNFTContract;
 }
