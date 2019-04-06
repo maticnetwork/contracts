@@ -5,7 +5,47 @@ import { Registry } from '../Registry.sol';
 import { ProxyStorage } from '../../common/misc/ProxyStorage.sol';
 
 
-contract WithdrawManagerStorage is ProxyStorage {
+contract ExitManagerStorage {
+  // structure for plasma exit
+  struct PlasmaExit {
+    address owner;
+    address token;
+    uint256 amountOrTokenId;
+    bool burnt;
+  }
+
+  // all plasma exits
+  mapping (uint256 => PlasmaExit) public exits;
+
+  // mapping with token => (owner => exitId) keccak(token+owner) keccak(token+owner+tokenId)
+  mapping (bytes32 => uint256) public ownerExits;
+
+
+  // exit queue for each token
+  mapping (address => address) public exitsQueues;
+
+  // exit NFT contract
+  address public exitNFTContract;
+
+  //
+  // Events
+  //
+
+  event Withdraw(
+    address indexed user,
+    address indexed token,
+    uint256 amount
+  );
+
+  event ExitStarted(
+    address indexed exitor,
+    uint256 indexed utxoPos,
+    address indexed token,
+    uint256 amount
+  );
+}
+
+contract WithdrawManagerStorage is ProxyStorage, ExitManagerStorage {
   /**
    * Hardcode constants to save gas
    * bytes4 constant internal WITHDRAW_SIGNATURE = keccak256('withdraw(uint256)')
