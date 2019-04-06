@@ -13,7 +13,7 @@ contract DelegateProxy is ERCProxy {
 
   function implementation() external view returns(address);
 
-  function delegatedFwd(address _dst, bytes _calldata) internal {
+  function delegatedFwd(address _dst, bytes memory _calldata) internal {
 
     // solium-disable-next-line security/no-inline-assembly
     assembly {

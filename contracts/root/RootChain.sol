@@ -47,7 +47,7 @@ contract RootChain is RootChainStorage, IRootChain {
     RootChainHeader.HeaderBlock memory headerBlock = _buildHeaderBlock(extradata);
     headerBlocks[_nextHeaderBlock] = headerBlock;
 
-    emit NewHeaderBlock(msg.sender, _nextHeaderBlock);
+    emit NewHeaderBlock(msg.sender, _nextHeaderBlock, headerBlock.start, headerBlock.end, headerBlock.root);
     _nextHeaderBlock = _nextHeaderBlock.add(MAX_DEPOSITS);
     _blockDepositId = 1;
   }
@@ -64,7 +64,7 @@ contract RootChain is RootChainStorage, IRootChain {
     uint256 depositId = _nextHeaderBlock.sub(MAX_DEPOSITS).add(_blockDepositId);
     deposits[depositId] = DepositBlock(_owner, _token, _nextHeaderBlock, _amountOrNFTId, now);
 
-    emit NewDepositBlock(depositId);
+    emit NewDepositBlock(_owner, _token, _amountOrNFTId, depositId);
     _blockDepositId.add(1);
   }
 

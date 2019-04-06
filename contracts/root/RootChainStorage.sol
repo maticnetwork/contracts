@@ -1,7 +1,7 @@
 pragma solidity ^0.5.2;
 
-import { Registry } from './Registry.sol';
-
+import { Registry } from "./Registry.sol";
+import { ProxyStorage } from "../common/misc/ProxyStorage.sol";
 
 contract RootChainHeader {
   event NewHeaderBlock(
@@ -13,11 +13,10 @@ contract RootChainHeader {
   );
 
   event NewDepositBlock(
-    uint256 depositBlockId,
     address indexed user,
     address indexed token,
     uint256 amountOrNFTId,
-    uint256 headerBlockId
+    uint256 depositBlockId
   );
   
   struct HeaderBlock {

@@ -1,5 +1,6 @@
 pragma solidity ^0.5.2;
-import { DelegateProxy } from "./DelegateProxy";
+import { DelegateProxy } from "./DelegateProxy.sol";
+import { ProxyStorage } from "./ProxyStorage.sol";
 
 
 contract Proxy is ProxyStorage, DelegateProxy {
@@ -16,7 +17,7 @@ contract Proxy is ProxyStorage, DelegateProxy {
     proxyOwner = msg.sender;
   }
 
-  function () public payable {
+  function () external payable {
     // require(currentContract != 0, "If app code has not been set yet, do not call");
     // Todo: filter out some calls or handle in the end fallback
     delegatedFwd(proxyTo, msg.data);

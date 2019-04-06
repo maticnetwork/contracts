@@ -48,7 +48,6 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
   function depositERC721ForUser(address _token, address _user, uint256 _tokenId)
     public
   {
-    // @todo implement onERC721Received and use safeTransferFrom
     ERC721(_token).transferFrom(msg.sender, address(this), _tokenId);
     _createDepositBlock(_user, _token, _tokenId);
   }
@@ -59,14 +58,26 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
     rootChain.createDepositBlock(_user, _token, amountOrNFTId);
   }
 
-  function tokenFallback(address _user, uint256 _amount, bytes _data) public {
+  function tokenFallback(address _user, uint256 _amount, bytes memory _data) public {
     address _token = msg.sender;
     _createDepositBlock(_user, _token, _amount);
   }
 
-  function onERC721Received(address operator, address from, uint256 tokenId, bytes data) public returns (bytes4) {
-    _createDepositBlock(msg.sender, from, tokenId);
-    return 0x150b7a02; //TODO: fix me
+  /**
+   * Note: the contract address is always the message sender.
+   * @param _operator The address which called `safeTransferFrom` function
+   * @param _from The address which previously owned the token
+   * @param _tokenId The NFT identifier which is being transferred
+   * @param _data Additional data with no specified format
+   * @return `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
+   * unless throwing
+   */
+  function onERC721Received(address operator, address from, uint256 tokenId, bytes memory data)
+    public
+    returns (bytes4)
+  {
+    _createDepositBlock(from, msg.sender, tokenId);
+    return 0x150b7a02;
   }
 
   function transferAmount(address _token, address _user, uint256 _amountOrNFTId)
@@ -83,7 +94,7 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
       t.withdraw(_amountOrNFTId, _user);
     } else {
       require(
-        ERC20(_token).transfer(_user, _amount),
+        ERC20(_token).transfer(_user, _amountOrNFTId),
         "TRANSFER_FAILED"
       );
     }

@@ -12,7 +12,6 @@ contract DepositManagerProxy is Proxy, DepositManagerStorage {
 
   constructor(address _proxyTo, address _registry, address _rootChain)
     public
-    Proxy(_proxyTo)
   {
     registry = Registry(_registry);
     rootChain = RootChain(_rootChain);

@@ -9,7 +9,6 @@ contract WithdrawManagerProxy is DelegateProxy, WithdrawManagerStorage {
 
   constructor(address _proxyTo, address _registry)
     public
-    DelegateProxy(_proxyTo)
   {
     registry = Registry(_registry);
     // rootChain = RootChain(_rootChain);
