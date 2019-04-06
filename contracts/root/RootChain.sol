@@ -1,4 +1,4 @@
-pragma solidity ^0.5.5;
+pragma solidity ^0.5.2;
 
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";

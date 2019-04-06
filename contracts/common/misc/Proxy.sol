@@ -1,4 +1,4 @@
-pragma solidity ^0.5.5;
+pragma solidity ^0.5.2;
 import { DelegateProxy } from "./DelegateProxy";
 
 

@@ -1,4 +1,4 @@
-pragma solidity ^0.5.5;
+pragma solidity ^0.5.2;
 
 import { ProxyStorage } from './ProxyStorage.sol';
 import { ERCProxy } from './ERCProxy.sol';
