@@ -1,17 +1,14 @@
-pragma solidity ^0.5.5;
+pragma solidity ^0.5.2;
 
 import { Registry } from '../Registry.sol';
-// import { RootChain } from '../RootChain.sol';
-import { DelegateProxy } from '../../common/misc/DelegateProxy.sol';
+import { Proxy } from '../../common/misc/Proxy.sol';
 import { WithdrawManagerStorage } from './WithdrawManagerStorage.sol';
 
-contract WithdrawManagerProxy is DelegateProxy, WithdrawManagerStorage {
-
+contract WithdrawManagerProxy is Proxy, WithdrawManagerStorage {
   constructor(address _proxyTo, address _registry)
     public
-    DelegateProxy(_proxyTo)
+    Proxy(_proxyTo)
   {
     registry = Registry(_registry);
-    // rootChain = RootChain(_rootChain);
   }
 }

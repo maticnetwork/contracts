@@ -2,7 +2,7 @@
  * SPDX-License-Identitifer:    MIT
  */
 
-pragma solidity ^0.5.5;
+pragma solidity ^0.5.2;
 
 // See https://github.com/ethereum/EIPs/blob/master/EIPS/eip-897.md
 

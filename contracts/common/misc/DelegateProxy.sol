@@ -1,44 +1,32 @@
-pragma solidity ^0.5.5;
+pragma solidity ^0.5.2;
 
-import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-
-import { ProxyData } from './ProxyData.sol';
+import { ProxyStorage } from './ProxyStorage.sol';
 import { ERCProxy } from './ERCProxy.sol';
 
-contract DelegateProxy is ProxyData, Ownable, ERCProxy {
-  constructor(address _proxyTo)
-    public
-    Ownable()
-  {
-    proxyTo = _proxyTo;
-  }
+
+contract DelegateProxy is ERCProxy {
 
   function proxyType() external pure returns (uint256 proxyTypeId) {
     // Upgradeable proxy
     proxyTypeId = 2;
   }
 
-  function implementation() external view returns (address codeAddr) {
-    codeAddr = proxyTo;
-  }
+  function implementation() external view returns(address);
 
-  function updateProxyTo(address _proxyTo)
-    public
-    onlyOwner
-  {
-    proxyTo = _proxyTo;
-  }
+  function delegatedFwd(address _dst, bytes memory _calldata) internal {
 
-  function() external payable
-  {
-    address addr = proxyTo;
+    // solium-disable-next-line security/no-inline-assembly
     assembly {
-      let freememstart := mload(0x40)
-      calldatacopy(freememstart, 0, calldatasize())
-      let success := delegatecall(not(0), addr, freememstart, calldatasize(), freememstart, 32)
-      switch success
-      case 0 { revert(freememstart, 32) }
-      default { return(freememstart, 32) }
+      let result := delegatecall(sub(gas, 10000), _dst, add(_calldata, 0x20), mload(_calldata), 0, 0)
+      let size := returndatasize
+
+      let ptr := mload(0x40)
+      returndatacopy(ptr, 0, size)
+
+      // revert instead of invalid() bc if the underlying call failed with invalid() it already wasted gas.
+      // if the call returned error data, forward it
+      switch result case 0 { revert(ptr, size) }
+      default { return(ptr, size) }
     }
   }
 }
