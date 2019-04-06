@@ -2,16 +2,9 @@ pragma solidity ^0.4.24;
 
 
 contract IManager {
-  // chain identifier
-  bytes32 public constant chain = keccak256("test-chain-E5igIA");
-  // round type
-  bytes32 public constant roundType = keccak256("vote");
-  // vote type
-  byte public constant voteType = 0x02;
+  
   // network id
   bytes public constant networkId = "\x0d";
-  // child block interval between checkpoint
-  uint256 public constant CHILD_BLOCK_INTERVAL = 10000;
 
   // set Exit NFT contract
   function setExitNFTContract(address _nftContract) public;

@@ -21,15 +21,6 @@ import { RootChainable } from "../mixin/RootChainable.sol";
 
 
 contract WithdrawManager is IManager, ExitManager {
- 
-  // 0x2e1a7d4d = sha3('withdraw(uint256)')
-  bytes4 constant private WITHDRAW_SIGNATURE = 0x2e1a7d4d;
-  // 0xa9059cbb = keccak256('transfer(address,uint256)')
-  bytes4 constant private TRANSFER_SIGNATURE = 0xa9059cbb;
-  // 0xa0cda4eb = keccak256('transferFrom(address,adress,uint256)')
-  bytes4 constant private TRANSFER_SIGNATURE_ERC721 = 0x23b872dd;
-  // keccak256('Withdraw(address,address,uint256,uint256,uint256)')
-  bytes32 constant private WITHDRAW_EVENT_SIGNATURE = 0xebff2602b3f468259e1e99f613fed6691f3a6526effe6ef3e768ba7ae7a36c4f;
 
   //
   // Storage
@@ -49,7 +40,7 @@ contract WithdrawManager is IManager, ExitManager {
   function setDepositManager(address _depositManager) public onlyOwner {
     depositManager = DepositManager(_depositManager);
   }
-  
+
   // set WETH token
   function setWETHToken(address _token) public onlyRootChain {
     _setWETHToken(_token);
@@ -337,88 +328,5 @@ contract WithdrawManager is IManager, ExitManager {
       oIndex = 0;
     }
     require(totalBalance > 0);
-  }
-  // process withdraw tx
-  function _processBurntTx(
-    bytes txBytes,
-    bytes path,
-    bytes txProof,
-    bytes32 txRoot,
-
-    address rootToken,
-    uint256 amountOrTokenId,
-
-    address sender
-  ) internal view {
-    // check tx
-    RLP.RLPItem[] memory txList = txBytes.toRLPItem().toList();
-    require(txList.length == 9);
-
-    // check mapped root<->child token
-    require(depositManager.tokens(rootToken) == txList[3].toAddress());
-
-    // Data check
-    require(txList[5].toData().length == 36);
-    // check withdraw data function signature
-    require(BytesLib.toBytes4(BytesLib.slice(txList[5].toData(), 0, 4)) == WITHDRAW_SIGNATURE);
-    // check amount
-    require(depositManager.isERC721(rootToken) || amountOrTokenId > 0);
-    require(amountOrTokenId == BytesLib.toUint(txList[5].toData(), 4));
-
-    // Make sure this tx is the value on the path via a MerklePatricia proof
-    require(MerklePatriciaProof.verify(txBytes, path, txProof, txRoot) == true);
-
-    // raw tx
-    bytes[] memory rawTx = new bytes[](9);
-    for (uint8 i = 0; i <= 5; i++) {
-      rawTx[i] = txList[i].toData();
-    }
-    rawTx[4] = hex"";
-    rawTx[6] = networkId;
-    rawTx[7] = hex"";
-    rawTx[8] = hex"";
-
-    // recover sender from v, r and s
-    require(
-      sender == ecrecover(
-        keccak256(RLPEncode.encodeList(rawTx)),
-        Common.getV(txList[6].toData(), Common.toUint8(networkId)),
-        txList[7].toBytes32(),
-        txList[8].toBytes32()
-      )
-    );
-  }
-
-  function _processBurntReceipt(
-    bytes receiptBytes,
-    bytes path,
-    bytes receiptProof,
-    bytes32 receiptRoot,
-    address sender
-  ) internal view returns (address rootToken, uint256 amountOrTokenId) {
-    // check receipt
-    RLP.RLPItem[] memory items = receiptBytes.toRLPItem().toList();
-    require(items.length == 4);
-
-    // [3][1] -> [child token address, [WITHDRAW_EVENT_SIGNATURE, root token address, sender], amount]
-    items = items[3].toList()[1].toList();
-    require(items.length == 3);
-    address childToken = items[0].toAddress(); // child token address
-    amountOrTokenId = BytesLib.toUint(items[2].toData(), 0); // amount
-
-    // [3][1][1] -> [WITHDRAW_EVENT_SIGNATURE, root token address, sender]
-    items = items[1].toList();
-    require(items.length == 3);
-    require(items[0].toBytes32() == WITHDRAW_EVENT_SIGNATURE); // check for withdraw event signature
-
-    // check if root token is mapped to child token
-    rootToken = BytesLib.toAddress(items[1].toData(), 12); // fetch root token address
-    require(depositManager.tokens(rootToken) == childToken);
-
-    // check if sender is valid
-    require(sender == BytesLib.toAddress(items[2].toData(), 12));
-
-    // Make sure this receipt is the value on the path via a MerklePatricia proof
-    require(MerklePatriciaProof.verify(receiptBytes, path, receiptProof, receiptRoot) == true);
   }
 }
