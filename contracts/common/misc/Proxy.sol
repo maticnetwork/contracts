@@ -4,16 +4,17 @@ import { DelegateProxy } from "./DelegateProxy";
 
 contract Proxy is ProxyStorage, DelegateProxy {
 
-  event Upgrade(address indexed newContract, bytes initializedWith);
+  event ProxyUpdated(address indexed _new, address indexed _old, address indexed _owner);
   event OwnerUpdate(address _prevOwner, address _newOwner);
+
+  modifier onlyProxyOwner() {
+    require(msg.sender == proxyOwner, "UNAUTHORIZED_USER");
+    _;
+  }
 
   constructor() public {
     proxyOwner = msg.sender;
   }
-
-  //
-  // Dispatch fallback
-  //
 
   function () public payable {
     // require(currentContract != 0, "If app code has not been set yet, do not call");
@@ -21,29 +22,27 @@ contract Proxy is ProxyStorage, DelegateProxy {
     delegatedFwd(proxyTo, msg.data);
   }
 
-  //
-  // Ownership
-  //
+  function isContract(address _target) internal view returns (bool) {
+    if (_target == address(0)) {
+      return false;
+    }
 
-  modifier onlyProxyOwner() {
-    require(msg.sender == proxyOwner, "Unauthorized user");
-    _;
+    uint256 size;
+    assembly { size := extcodesize(_target) }
+    return size > 0;
   }
 
   function transferOwnership(address _newOwner) public onlyProxyOwner {
-    require(_newOwner != address(0), "Empty address");
-    require(_newOwner != proxyOwner, "Already authorized");
+    require(_newOwner != address(0), "EMPTY_ADDRESS");
+    require(_newOwner != proxyOwner, "ALREADY_AUTHORIZED");
     proxyOwner = _newOwner;
   }
 
-  //
-  // Upgrade
-  //
-
-  function upgrade(address _proxyTo) public onlyProxyOwner {
+  function updateImplementation(address _proxyTo) public onlyProxyOwner {
     require(_proxyTo != address(0x0), "");
-    // require(isContract(_proxyTo));
+    require(isContract(_proxyTo));
+    emit ProxyUpdated(_proxyTo, proxyTo, proxyOwner);
     proxyTo = _proxyTo;
-    emit Upgrade(proxyTo);
   }
+
 }

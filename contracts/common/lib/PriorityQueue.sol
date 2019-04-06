@@ -12,23 +12,12 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 contract PriorityQueue is Ownable {
   using SafeMath for uint256;
 
-  /**
-   * Storage
-   */
   uint256[] heapList;
   uint256 public currentSize;
 
-  /**
-   * Constructor
-   */
   constructor() public {
     heapList = [0];
-    currentSize = 0;
   }
-
-  /**
-   * Internal functions
-   */
 
   /**
   * @dev Inserts an element into the priority queue.
@@ -63,10 +52,6 @@ contract PriorityQueue is Ownable {
     heapList.length = heapList.length.sub(1);
     return _splitElement(retVal);
   }
-
-  /*
-  * Private functions
-  */
 
   /**
   * @dev Determines the minimum child of a given node in the tree.

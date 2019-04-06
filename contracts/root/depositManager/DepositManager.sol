@@ -11,7 +11,6 @@ import { DepositManagerStorage } from './DepositManagerStorage.sol';
 
 
 contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiver {
-  string private constant TOKEN_TRANSFER_FAILED = 'Token transfer failed';
 
   // Todo: depositEtherForUSer ?
   function depositEther()
@@ -41,7 +40,7 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
   {
     require(
       ERC20(_token).transferFrom(msg.sender, address(this), _amount),
-      TOKEN_TRANSFER_FAILED
+      "TOKEN_TRANSFER_FAILED"
     );
     _createDepositBlock(_user, _token, _amount);
   }
@@ -62,32 +61,31 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
 
   function tokenFallback(address _user, uint256 _amount, bytes _data) public {
     address _token = msg.sender;
-
-    // create deposit block with token fallback
-    depositManager.createDepositBlock(_currentHeaderBlock, _token, _user, _amount);
+    _createDepositBlock(_user, _token, _amount);
   }
 
   function onERC721Received(address operator, address from, uint256 tokenId, bytes data) public returns (bytes4) {
-    depositManager.createDepositBlock(_currentHeaderBlock, msg.sender, from, tokenId);
-    return 0x150b7a02;
+    _createDepositBlock(msg.sender, from, tokenId);
+    return 0x150b7a02; //TODO: fix me
   }
-    // transfer tokens to user
-  function transferAmount(
-    address _token,
-    address _user,
-    uint256 _amount
-  ) public onlyWithdrawManager returns(bool)  {
 
-    address wethToken = depositManager.wethToken();
+  function transferAmount(address _token, address _user, uint256 _amountOrNFTId)
+  public
+  /* onlyWithdrawManager */
+  returns(bool) {
+    address wethToken = registry.getWethTokenAddress();
 
     // transfer to user TODO: use pull for transfer
-    if (depositManager.isERC721(_token)) {
-      ERC721(_token).transferFrom(address(this), _user, _amount);
+    if (registry.isERC721(_token)) {
+      ERC721(_token).transferFrom(address(this), _user, _amountOrNFTId);
     } else if (_token == wethToken) {
       WETH t = WETH(_token);
-      t.withdraw(_amount, _user);
+      t.withdraw(_amountOrNFTId, _user);
     } else {
-      require(ERC20(_token).transfer(_user, _amount));
+      require(
+        ERC20(_token).transfer(_user, _amount),
+        "TRANSFER_FAILED"
+      );
     }
     return true;
   }
