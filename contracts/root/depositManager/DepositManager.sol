@@ -4,7 +4,7 @@ import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import { ERC721 } from "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 
 import { IERC721Receiver } from "openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol";
-import { Registry } from '../Registry.sol';
+import { Registry } from '../../common/Registry.sol';
 import { WETH } from "../../common/tokens/WETH.sol";
 import { IDepositManager } from './IDepositManager.sol';
 import { DepositManagerStorage } from './DepositManagerStorage.sol';

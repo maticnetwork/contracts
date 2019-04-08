@@ -223,55 +223,6 @@ contract WithdrawManager is IManager, ExitManager {
   // Internal functions
   //
 
-  // withdraw
-  function _withdraw(
-    PlasmaExit _exitObject,
-
-    uint256 headerNumber,
-    bytes headerProof,
-    uint256 blockNumber,
-    uint256 blockTime,
-
-    bytes32 txRoot,
-    bytes32 receiptRoot,
-
-    bytes path,
-    uint8 oIndex
-  ) internal {
-    uint256 startBlock;
-    bytes32 headerRoot;
-
-    // get header block data
-    (headerRoot, startBlock,,) = IRootChain(rootChain).headerBlock(headerNumber);
-
-    // check block header
-    require(
-      keccak256(
-        blockNumber,
-        blockTime,
-        txRoot,
-        receiptRoot
-      ).checkMembership(
-        blockNumber - startBlock,
-        headerRoot,
-        headerProof
-      )
-    );
-
-    uint256 exitId = (
-      headerNumber * 1000000000000000000000000000000 +
-      blockNumber * 1000000000000 +
-      path.toRLPItem().toData().toRLPItem().toUint() * 100000 +
-      oIndex
-    );
-    // add exit to queue
-    _addExitToQueue(
-      _exitObject,
-      exitId,
-      blockTime
-    );
-  }
-
   // process withdraw transfer tx
   function _processWithdrawTransferTx(
     bytes txBytes

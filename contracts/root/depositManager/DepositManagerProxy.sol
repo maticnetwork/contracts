@@ -1,7 +1,7 @@
 pragma solidity ^0.5.2;
 
 
-import { Registry } from '../Registry.sol';
+import { Registry } from '../../common/Registry.sol';
 import { RootChain } from '../RootChain.sol';
 import { Proxy } from '../../common/misc/Proxy.sol';
 import { DepositManagerStorage } from './DepositManagerStorage.sol';

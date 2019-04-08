@@ -190,47 +190,4 @@ contract ExitManager is RootChainable {
       exitQueue.delMin();
     }
   }
-
-  /**
-  * @dev Adds an exit to the exit queue.
-  * @param _exitObject Exit plasma object
-  * @param _utxoPos Position of the UTXO in the child chain (blockNumber, txIndex, oIndex)
-  * @param _createdAt Time when the UTXO was created.
-  */
-  function _addExitToQueue(
-    PlasmaExit _exitObject,
-    uint256 _utxoPos,
-    uint256 _createdAt
-  ) internal {
-    // Check that we're exiting a known token.
-    require(exitsQueues[_exitObject.token] != address(0));
-    bytes32 key;
-    if (depositManager.isERC721(_exitObject.token)) {
-      key = keccak256(_exitObject.token, _exitObject.owner, _exitObject.amountOrTokenId);
-    } else {
-      // validate amount
-      require(_exitObject.amountOrTokenId > 0);
-      key = keccak256(_exitObject.token, _exitObject.owner);
-    }
-    // validate token exit
-    require(ownerExits[key] == 0);
-    // Calculate priority.
-    uint256 exitableAt = Math.max(_createdAt + 2 weeks, block.timestamp + 1 weeks);
-
-    // Check exit is valid and doesn't already exist.
-    require(exits[_utxoPos].token == address(0x0));
-
-    PriorityQueue queue = PriorityQueue(exitsQueues[_exitObject.token]);
-    queue.insert(exitableAt, _utxoPos);
-
-    // create NFT for exit UTXO
-    ExitNFT(exitNFTContract).mint(_exitObject.owner, _utxoPos);
-    exits[_utxoPos] = _exitObject;
-
-    // set current exit
-    ownerExits[key] = _utxoPos;
-
-    // emit exit started event
-    emit ExitStarted(_exitObject.owner, _utxoPos, _exitObject.token, _exitObject.amountOrTokenId);
-  }
 }

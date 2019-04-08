@@ -13,6 +13,7 @@
     "truffle:migrate:2": "truffle migrate --network matic_dev --from 4 --to 4",
     "truffle:migrate:3": "truffle migrate --from 5 --to 5",
     "truffle:migrate": "npm run truffle:migrate:1 && npm run truffle:migrate:2 && npm run truffle:migrate:3",
+    "truffle:migrate:test": "npm run truffle migrate",
     "test:ci": "scripts/run-test.sh",
     "lint": "npm run lint:sol && npm run lint:js",
     "lint:js": "eslint test/**/*.js",
@@ -61,7 +62,8 @@
     "safe-buffer": "5.1.2",
     "solium": "^1.1.8",
     "truffle": "^5.0.10",
-    "web3": "^1.0.0-beta.30"
+    "web3": "^1.0.0-beta.33",
+    "web3-eth-abi": "^1.0.0-beta.51"
   },
   "dependencies": {
     "eth-sig-util": "2.1.0",
