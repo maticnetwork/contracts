@@ -17,7 +17,7 @@ contract ExitNFT is ERC721 {
 
   constructor(address _registry, string memory _name, string memory _symbol)
     public
-    ERC721Full(_name, _symbol)
+    ERC721()
   {
     registry = Registry(_registry);
   }

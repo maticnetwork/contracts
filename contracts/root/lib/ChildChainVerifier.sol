@@ -17,7 +17,7 @@ library ChildChainVerifier {
     bytes memory receiptBytes, bytes memory path, bytes memory receiptProof,
     bytes32 receiptRoot, address sender)
     internal
-    view
+    pure
     returns (address rootToken, address childToken, uint256 amountOrTokenId)
   {
     RLPReader.RLPItem[] memory items = receiptBytes.toRlpItem().toList();
