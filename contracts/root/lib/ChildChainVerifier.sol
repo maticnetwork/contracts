@@ -13,7 +13,7 @@ library ChildChainVerifier {
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
 
-  function processBurntReceipt(
+  function processBurnReceipt(
     bytes memory receiptBytes, bytes memory path, bytes memory receiptProof,
     bytes32 receiptRoot, address sender)
     internal
@@ -51,7 +51,7 @@ library ChildChainVerifier {
     );
   }
 
-  function processBurntTx(
+  function processBurnTx(
     bytes memory txBytes, bytes memory path, bytes memory txProof, bytes32 txRoot,
     address rootToken, uint256 amountOrTokenId, address sender, address _registry,
     bytes memory networkId)
@@ -107,5 +107,62 @@ library ChildChainVerifier {
         bytes32(txList[8].toUint())
       )
     );
+  }
+
+  function processWithdrawTransferTx(bytes memory txBytes, address _registry)
+    internal
+    view
+    returns (address rootToken)
+  {
+    // check transaction
+    RLPReader.RLPItem[] memory items = txBytes.toRlpItem().toList();
+    require(items.length == 9);
+
+    // check rootToken is valid
+    Registry registry = Registry(_registry);
+    rootToken = registry.childToRootToken(items[3].toAddress());
+    require(rootToken != address(0));
+    // check if transaction is transfer tx
+    // <4 bytes transfer event,address (32 bytes),amountOrTokenId (32 bytes)>
+    bytes4 transferSIG = BytesLib.toBytes4(BytesLib.slice(items[5].toBytes(), 0, 4));
+    require(
+      // keccak256('transfer(address,uint256)') = 0xa9059cbb
+      transferSIG == 0xa9059cbb ||
+      // keccak256('transferFrom(address,adress,uint256)') = 0x23b872dd
+      (registry.isERC721(rootToken) && transferSIG == 0x23b872dd));
+  }
+
+  function processWithdrawTransferReceipt(bytes memory receiptBytes, address sender, address _registry)
+    internal
+    view
+    returns (uint256 totalBalance, uint8 oIndex)
+  {
+    RLPReader.RLPItem[] memory items = receiptBytes.toRlpItem().toList();
+    require(items.length == 4);
+
+    // retrieve LogTransfer event (UTXO <amount, input1, input2, output1, output2>)
+    items = items[3].toList()[1].toList();
+
+    // get topics
+    RLPReader.RLPItem[] memory topics = items[1].toList();
+
+    // get from/to addresses from topics
+    address from = BytesLib.toAddress(topics[2].toBytes(), 12);
+    address to = BytesLib.toAddress(topics[3].toBytes(), 12);
+
+    Registry registry = Registry(_registry);
+    if (registry.isERC721(address(topics[1].toUint()))) {
+      require(to == sender, "Can't exit with transfered NFT");
+      totalBalance = BytesLib.toUint(items[2].toBytes(), 0);
+      oIndex = 0;
+    } else if (to == sender) {
+      // set totalBalance and oIndex
+      totalBalance = BytesLib.toUint(items[2].toBytes(), 128);
+      oIndex = 1;
+    } else if (from == sender) {
+      totalBalance = BytesLib.toUint(items[2].toBytes(), 96);
+      oIndex = 0;
+    }
+    require(totalBalance > 0);
   }
 }

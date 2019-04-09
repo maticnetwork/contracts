@@ -12,6 +12,11 @@ import { DepositManagerStorage } from './DepositManagerStorage.sol';
 
 contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiver {
 
+  modifier isTokenMapped(address _token) {
+    require(registry.isTokenMapped(_token), "TOKEN_NOT_SUPPORTED");
+    _;
+  }
+
   // @todo: write depositEtherForUser
   function depositEther()
     external
@@ -37,6 +42,7 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
 
   function depositERC20ForUser(address _token, address _user, uint256 _amount)
     public
+    isTokenMapped(_token)
   {
     require(
       ERC20(_token).transferFrom(msg.sender, address(this), _amount),
@@ -68,6 +74,7 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
 
   function depositERC721ForUser(address _token, address _user, uint256 _tokenId)
     public
+    isTokenMapped(_token)
   {
     ERC721(_token).transferFrom(msg.sender, address(this), _tokenId);
     _createDepositBlock(_user, _token, _tokenId);
@@ -77,14 +84,14 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
    * @notice This will be invoked when someone calls safeTransferFrom and deposits tokens to this contract
      without directly interacting with this contract
    * Note: the contract address is always the message sender.
-   * @param _operator The address which called `safeTransferFrom` function
+   * _operator The address which called `safeTransferFrom` function
    * @param _from The address which previously owned the token
    * @param _tokenId The NFT identifier which is being transferred
-   * @param _data Additional data with no specified format
+   * _data Additional data with no specified format
    * @return `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
    * unless throwing
    */
-  function onERC721Received(address _operator, address _from, uint256 _tokenId, bytes memory _data)
+  function onERC721Received(address /* _operator */, address _from, uint256 _tokenId, bytes memory /* _data */)
     public
     returns (bytes4)
   {
@@ -94,7 +101,7 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
   }
 
   // See https://github.com/ethereum/EIPs/issues/223
-  function tokenFallback(address _user, uint256 _amount, bytes memory _data)
+  function tokenFallback(address _user, uint256 _amount, bytes memory /* _data */)
   public
   {
     _createDepositBlock(_user, msg.sender /* token */, _amount);

@@ -38,7 +38,7 @@ contract Registry is Ownable {
       "INVALID_TOKEN_ADDRESS"
     );
     require(
-      !_isTokenMapped(_rootToken),
+      !isTokenMapped(_rootToken),
       "TOKEN_ALREADY_MAPPED"
     );
     rootToChildToken[_rootToken] = _childToken;
@@ -63,7 +63,7 @@ contract Registry is Ownable {
     return contractMap[WITHDRAW_MANAGER];
   }
 
-  function _isTokenMapped(address _token) internal view returns (bool) {
+  function isTokenMapped(address _token) public view returns (bool) {
     return _token != address(0x0) && rootToChildToken[_token] != address(0x0);
   }
 }

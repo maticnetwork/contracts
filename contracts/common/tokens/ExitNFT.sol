@@ -1,13 +1,7 @@
 pragma solidity ^0.5.2;
 
-// import { ERC721 } from "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
-
 import { ERC721Full } from "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
 import { Registry } from '../Registry.sol';
-// import { ERC721Mintable } from "openzeppelin-solidity/contracts/token/ERC721/ERC721Mintable.sol";
-// import { ERC721Burnable } from "openzeppelin-solidity/contracts/token/ERC721/ERC721Burnable.sol";
-
-// import { RootChainable } from "../mixin/RootChainable.sol";
 
 
 contract ExitNFT is ERC721Full {
