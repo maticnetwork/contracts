@@ -38,7 +38,7 @@ contract RootChain is RootChainStorage, IRootChain {
     require(dataList[4].toUint() == VOTE_TYPE, "Vote type not same");
 
     // validate hash of extradata was signed as part of the vote
-    require(keccak256(dataList[5].toBytes()) == keccak256(abi.encode(bytes20(sha256(extradata)))), "Extra data is invalid");
+    require(keccak256(dataList[5].toBytes()) == keccak256(abi.encodePacked(bytes20(sha256(extradata)))), "Extra data is invalid");
 
     // check if it is better to keep it in local storage instead
     IStakeManager stakeManager = IStakeManager(registry.getStakeManagerAddress());

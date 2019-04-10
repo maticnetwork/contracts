@@ -1,11 +1,10 @@
 pragma solidity ^0.5.2;
 
-import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 import { BytesLib } from "../../common/lib/BytesLib.sol";
 import { Common } from "../../common/lib/Common.sol";
-import { RLPEncode } from "../../common/lib/RLPEncode.sol";
-import { Common } from "../../common/lib/Common.sol";
 import { MerklePatriciaProof } from "../../common/lib/MerklePatriciaProof.sol";
+import { RLPEncode } from "../../common/lib/RLPEncode.sol";
+import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 
 import { Registry } from "../../common/Registry.sol";
 

@@ -5,10 +5,10 @@ import { ERC721 } from "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol"
 import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 
-import { Merkle } from "../../common/lib/Merkle.sol";
-import { PriorityQueue } from "../../common/lib/PriorityQueue.sol";
 import { ChildChainVerifier } from "../lib/ChildChainVerifier.sol";
+import { Merkle } from "../../common/lib/Merkle.sol";
 import { MerklePatriciaProof } from "../../common/lib/MerklePatriciaProof.sol";
+import { PriorityQueue } from "../../common/lib/PriorityQueue.sol";
 
 import { ExitNFT } from "../../common/tokens/ExitNFT.sol";
 
@@ -17,7 +17,7 @@ import { IWithdrawManager } from "./IWithdrawManager.sol";
 import { WithdrawManagerStorage } from "./WithdrawManagerStorage.sol";
 import { RootChainHeader } from "../RootChainStorage.sol";
 
-contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
+contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
   using Merkle for bytes32;
@@ -38,21 +38,21 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
    */
   function withdrawBurntTokens(
     uint256 headerNumber,
-    bytes calldata withdrawBlockProof,
+    bytes memory withdrawBlockProof,
 
     uint256 withdrawBlockNumber,
     uint256 withdrawBlockTime,
     bytes32 withdrawBlockTxRoot,
     bytes32 withdrawBlockReceiptRoot,
-    bytes calldata path,
+    bytes memory path,
 
-    bytes calldata withdrawTx,
-    bytes calldata withdrawTxProof,
+    bytes memory withdrawTx,
+    bytes memory withdrawTxProof,
 
-    bytes calldata withdrawReceipt,
-    bytes calldata withdrawReceiptProof
-  ) external {
-    (address rootToken, uint256 receiptAmountOrNFTId) = ChildChainVerifier.processBurnReceipt(
+    bytes memory withdrawReceipt,
+    bytes memory withdrawReceiptProof
+  ) public {
+    (address rootToken,, uint256 receiptAmountOrNFTId) = ChildChainVerifier.processBurnReceipt(
       withdrawReceipt,
       path,
       withdrawReceiptProof,
@@ -110,20 +110,20 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
    */
   function withdrawTokens(
     uint256 headerNumber,
-    bytes calldata withdrawBlockProof,
+    bytes memory withdrawBlockProof,
 
     uint256 withdrawBlockNumber,
     uint256 withdrawBlockTime,
     bytes32 withdrawBlockTxRoot,
     bytes32 withdrawBlockReceiptRoot,
-    bytes calldata path,
+    bytes memory path,
 
-    bytes calldata transaction,
-    bytes calldata transactionProof,
+    bytes memory transaction,
+    bytes memory transactionProof,
 
-    bytes calldata receipt,
-    bytes calldata receiptProof
-  ) external {
+    bytes memory receipt,
+    bytes memory receiptProof
+  ) public {
     // Make sure this tx is the value on the path via a MerklePatricia proof
     require(MerklePatriciaProof.verify(transaction, path, transactionProof, withdrawBlockTxRoot));
 
