@@ -1,14 +1,14 @@
 pragma solidity ^0.5.2;
 
-import { Registry } from '../Registry.sol';
-import { ProxyStorage } from '../../common/misc/ProxyStorage.sol';
-
+import { Registry } from "../../common/Registry.sol";
+import { ProxyStorage } from "../../common/misc/ProxyStorage.sol";
+import { RootChain } from "../RootChain.sol";
 
 contract WithdrawManagerHeader {
   struct PlasmaExit {
     address owner;
     address token;
-    uint256 amountOrTokenId;
+    uint256 receiptAmountOrNFTId;
     bool burnt;
   }
 
@@ -27,21 +27,13 @@ contract WithdrawManagerHeader {
 }
 
 contract WithdrawManagerStorage is ProxyStorage, WithdrawManagerHeader {
-  /**
-   * Hardcode constants to save gas
-   * bytes4 constant internal WITHDRAW_SIGNATURE = keccak256('withdraw(uint256)')
-   * bytes4 constant internal TRANSFER_SIGNATURE = keccak256('transfer(address,uint256)')
-   * bytes4 constant internal TRANSFER_SIGNATURE = keccak256('transferFrom(address,adress,uint256)')
-   * bytes32 constant internal TRANSFER_SIGNATURE = keccak256('Withdraw(address,address,uint256,uint256,uint256)')
-   */
-  bytes4 constant internal WITHDRAW_SIGNATURE = 0x2e1a7d4d;
-  bytes4 constant internal TRANSFER_SIGNATURE = 0xa9059cbb;
-  bytes4 constant internal TRANSFER_SIGNATURE_ERC721 = 0x23b872dd;
-  bytes32 constant internal WITHDRAW_EVENT_SIGNATURE = 0xebff2602b3f468259e1e99f613fed6691f3a6526effe6ef3e768ba7ae7a36c4f;
+  uint256 constant internal HEADER_BLOCK_NUMBER_WEIGHT = 10 ** 30;
+  uint256 constant internal WITHDRAW_BLOCK_NUMBER_WEIGHT = 10 ** 12;
 
-  bytes constant public  networkId = "\x0d";
-  
+  bytes constant public networkId = "\x0d";
+
   Registry internal registry;
+  RootChain internal rootChain;
 
   mapping (uint256 => PlasmaExit) public exits;
   // mapping with token => (owner => exitId) keccak(token+owner) keccak(token+owner+tokenId)

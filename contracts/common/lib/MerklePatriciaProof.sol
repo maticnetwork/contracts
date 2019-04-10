@@ -22,7 +22,7 @@ library MerklePatriciaProof {
     bytes memory encodedPath,
     bytes memory rlpParentNodes,
     bytes32 root
-  ) public view returns (bool) {
+  ) public pure returns (bool) {
     RLPReader.RLPItem memory item = RLPReader.toRlpItem(rlpParentNodes);
     RLPReader.RLPItem[] memory parentNodes = RLPReader.toList(item);
 
@@ -89,7 +89,7 @@ library MerklePatriciaProof {
     bytes memory encodedPartialPath,
     bytes memory path,
     uint pathPtr
-  ) private view returns (uint) {
+  ) private pure returns (uint) {
     uint len;
     // encodedPartialPath has elements that are each two hex characters (1 byte), but partialPath
     // and slicedPath have elements that are each one hex character (1 nibble)
@@ -112,7 +112,7 @@ library MerklePatriciaProof {
   }
 
   // bytes b must be hp encoded
-  function _getNibbleArray(bytes memory b) private view returns (bytes memory) {
+  function _getNibbleArray(bytes memory b) private pure returns (bytes memory) {
     bytes memory nibbles;
     if (b.length > 0) {
       uint8 offset;

@@ -1,6 +1,6 @@
 pragma solidity ^0.5.2;
 
-import { Registry } from "./Registry.sol";
+import { Registry } from "../common/Registry.sol";
 import { ProxyStorage } from "../common/misc/ProxyStorage.sol";
 
 contract RootChainHeader {
@@ -18,7 +18,7 @@ contract RootChainHeader {
     uint256 amountOrNFTId,
     uint256 depositBlockId
   );
-  
+
   struct HeaderBlock {
     bytes32 root;
     uint256 start;

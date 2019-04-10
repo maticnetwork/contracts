@@ -2,23 +2,28 @@ pragma solidity ^0.5.2;
 
 import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import { ERC721 } from "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
+import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 
-import { BytesLib } from "../../common/lib/BytesLib.sol";
-// import { Common } from "../../common/lib/Common.sol";
+import { Merkle } from "../../common/lib/Merkle.sol";
+import { PriorityQueue } from "../../common/lib/PriorityQueue.sol";
+import { ChildChainVerifier } from "../lib/ChildChainVerifier.sol";
 import { MerklePatriciaProof } from "../../common/lib/MerklePatriciaProof.sol";
-import { WETH } from "../../common/tokens/WETH.sol";
 
-import { Registry } from '../Registry.sol';
-import { IWithdrawManager } from './IWithdrawManager.sol';
-import { WithdrawManagerStorage } from './WithdrawManagerStorage.sol';
+import { ExitNFT } from "../../common/tokens/ExitNFT.sol";
+
+import { Registry } from "../../common/Registry.sol";
+import { IWithdrawManager } from "./IWithdrawManager.sol";
+import { WithdrawManagerStorage } from "./WithdrawManagerStorage.sol";
+import { RootChainHeader } from "../RootChainStorage.sol";
 
 contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
+  using Merkle for bytes32;
 
   /**
-   * @dev Withdraw tokens that have been burnt on the child chain
+   * @notice Withdraw tokens that have been burnt on the child chain
    * @param headerNumber Header block number of which the burn tx was a part of
    * @param withdrawBlockProof Proof that the withdraw block header (in the child chain) is a leaf in the submitted merkle root
    * @param withdrawBlockNumber Withdraw block number of which the burn tx was a part of
@@ -47,142 +52,230 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     bytes calldata withdrawReceipt,
     bytes calldata withdrawReceiptProof
   ) external {
-    address rootToken;
-    uint256 receiptAmountOrTokenId;
-
-    (rootToken, receiptAmountOrTokenId) = _processBurntReceipt(
+    (address rootToken, uint256 receiptAmountOrNFTId) = ChildChainVerifier.processBurnReceipt(
       withdrawReceipt,
       path,
       withdrawReceiptProof,
       withdrawBlockReceiptRoot,
-      msg.sender
+      msg.sender,
+      registry
     );
 
-    _processBurntTx(
+    ChildChainVerifier.processBurnTx(
       withdrawTx,
       path,
       withdrawTxProof,
       withdrawBlockTxRoot,
       rootToken,
-      receiptAmountOrTokenId,
-      msg.sender
+      receiptAmountOrNFTId,
+      msg.sender,
+      address(registry), // remove,
+      networkId
     );
 
-    // // exit object
-    // PlasmaExit memory _exitObject = PlasmaExit({
-    //   owner: msg.sender,
-    //   token: rootToken,
-    //   amountOrTokenId: receiptAmountOrTokenId,
-    //   burnt: true
-    // });
+    PlasmaExit memory _exitObject = PlasmaExit({
+      owner: msg.sender,
+      token: rootToken,
+      receiptAmountOrNFTId: receiptAmountOrNFTId,
+      burnt: true
+    });
 
-    // // withdraw
-    // _withdraw(
-    //   _exitObject,
-
-    //   headerNumber,
-    //   withdrawBlockProof,
-
-    //   withdrawblockNumber,
-    //   withdrawblockTime,
-
-    //   withdrawblockTxRoot,
-    //   withdrawblockReceiptRoot,
-
-    //   path,
-    //   0
-    // );
+    _withdraw(
+      _exitObject,
+      headerNumber,
+      withdrawBlockProof,
+      withdrawBlockNumber,
+      withdrawBlockTime,
+      withdrawBlockTxRoot,
+      withdrawBlockReceiptRoot,
+      path,
+      0 // oIndex
+    );
   }
 
-  function _processBurntReceipt(
-    bytes memory receiptBytes, bytes memory path, bytes memory receiptProof, bytes32 receiptRoot, address sender)
-    internal
-    view
-    returns (address rootToken, uint256 amountOrTokenId)
-  {
-    RLPReader.RLPItem[] memory items = receiptBytes.toRlpItem().toList();
-    require(items.length == 4, "MALFORMED_RECEIPT");
-    // Do any other fields other than items[3] need to be checked?
+  /**
+   * @notice Exit from the last valid tx on the child chain.
+   * @notice This will be required to exit the child chain if the user is being griefed
+   * @param headerNumber Header block number of which the burn tx was a part of
+   * @param withdrawBlockProof Proof that the withdraw block header (in the child chain) is a leaf in the submitted merkle root
+   * @param withdrawBlockNumber Withdraw block number of which the burn tx was a part of
+   * @param withdrawBlockTime Withdraw block time
+   * @param withdrawBlockTxRoot Transactions root of withdraw block
+   * @param withdrawBlockReceiptRoot Receipts root of withdraw block
+   * @param path ???!
+   * @param transaction Transaction on the child chain to exit from
+   * @param transactionProof Merkle proof of the transaction to exit from
+   * @param receipt Receipt of the transaction being exited from
+   * @param receiptProof Merkle proof of the receipt
+   */
+  function withdrawTokens(
+    uint256 headerNumber,
+    bytes calldata withdrawBlockProof,
 
-    // [3][1] -> [childTokenAddress, [WITHDRAW_EVENT_SIGNATURE, rootTokenAddress, sender], amount]
-    items = items[3].toList()[1].toList();
-    require(items.length == 3, "MALFORMED_RECEIPT"); // find a better msg
-    address childToken = items[0].toAddress();
-    amountOrTokenId = items[2].toUint();
+    uint256 withdrawBlockNumber,
+    uint256 withdrawBlockTime,
+    bytes32 withdrawBlockTxRoot,
+    bytes32 withdrawBlockReceiptRoot,
+    bytes calldata path,
 
-    // [3][1][1] -> [WITHDRAW_EVENT_SIGNATURE, rootTokenAddress, sender]
-    items = items[1].toList();
-    require(items.length == 3, "MALFORMED_RECEIPT"); // find a better msg;
-    require(
-      bytes32(items[0].toUint()) == WITHDRAW_EVENT_SIGNATURE,
-      "WITHDRAW_EVENT_SIGNATURE_NOT_FOUND"
-    );
+    bytes calldata transaction,
+    bytes calldata transactionProof,
 
-    rootToken = BytesLib.toAddress(items[1].toBytes(), 12);
-    require(
-      registry.rootToChildToken(rootToken) == childToken,
-      "INVALID_ROOT_TO_CHILD_TOKEN_MAPPING"
-    );
-
-    // This check might be inconsequential. @todo check
-    require(sender == BytesLib.toAddress(items[2].toBytes(), 12));
+    bytes calldata receipt,
+    bytes calldata receiptProof
+  ) external {
+    // Make sure this tx is the value on the path via a MerklePatricia proof
+    require(MerklePatriciaProof.verify(transaction, path, transactionProof, withdrawBlockTxRoot));
 
     // Make sure this receipt is the value on the path via a MerklePatricia proof
-    require(
-      MerklePatriciaProof.verify(receiptBytes, path, receiptProof, receiptRoot),
-      "INVALID_RECEIPT_MERKLE_PROOF"
+    require(MerklePatriciaProof.verify(receipt, path, receiptProof, withdrawBlockReceiptRoot) == true);
+
+    uint256 amountOrNFTId;
+    uint8 oIndex;
+    (amountOrNFTId, oIndex) = ChildChainVerifier.processWithdrawTransferReceipt(receipt, msg.sender, address(registry));
+
+    PlasmaExit memory _exitObject = PlasmaExit({
+      owner: msg.sender,
+      token: ChildChainVerifier.processWithdrawTransferTx(transaction, address(registry)),
+      receiptAmountOrNFTId: amountOrNFTId,
+      burnt: false
+    });
+
+    _withdraw(
+      _exitObject,
+      headerNumber,
+      withdrawBlockProof,
+      withdrawBlockNumber,
+      withdrawBlockTime,
+      withdrawBlockTxRoot,
+      withdrawBlockReceiptRoot,
+      path,
+      oIndex
     );
   }
 
-  function _processBurntTx(
-    bytes memory txBytes, bytes memory path, bytes memory txProof, bytes32 txRoot,
-    address rootToken, uint256 amountOrTokenId, address sender)
-    internal
-    view
+  /**
+   * @dev Withdraw tokens deposited to root contracts directly
+   * @param _depositBlockId Deposit Block ID where the deposit was made
+   */
+  function withdrawDepositTokens(uint256 _depositBlockId)
+    external
   {
-    // check basic tx format
-    RLPReader.RLPItem[] memory txList = txBytes.toRlpItem().toList();
-    require(txList.length == 9, "MALFORMED_WITHDRAW_TX");
+    // validate deposit block
+    address _owner;
+    address _token;
+    uint256 _header;
+    uint256 _amountOrNFTId;
+    uint256 _createdAt;
 
-    // check mapped root<->child token
+    (_owner, _token, _header, _amountOrNFTId, _createdAt) = rootChain.deposits(_depositBlockId);
+    // @todo remove: require(_createdAt != 0, "INVALID_DEPOSIT_ID");
+
+    // following check also asserts the validity of _depositBlockId,
+    // for an invalid _depositBlockId, _owner == address(0)
+    require(_owner == msg.sender, "NOT_AUTHORIZED_FOR_WITHDRAW");
+
+    // deposit is deemed confirmed only if the subsequent headerBlock was submitted
+    uint256 createdAt;
+    (,,,createdAt,) = rootChain.headerBlocks(_header);
+    require(createdAt > 0, "DEPOSIT_NOT_CONFIRMED");
+
+    PlasmaExit memory _exitObject = PlasmaExit({
+      owner: msg.sender,
+      token: _token,
+      receiptAmountOrNFTId: _amountOrNFTId,
+      burnt: false
+    });
+
+    _addExitToQueue(
+      _exitObject,
+      _depositBlockId * HEADER_BLOCK_NUMBER_WEIGHT, // exit id
+      _createdAt
+    );
+  }
+
+  function createExitQueue(address _token)
+    external
+  {
+    require(msg.sender == address(registry), "UNAUTHORIZED_REGISTRY_ONLY");
+    exitsQueues[_token] = address(new PriorityQueue());
+  }
+
+  function _withdraw(
+    PlasmaExit memory exitObject,
+    uint256 headerNumber,
+    bytes memory withdrawBlockProof,
+    uint256 withdrawBlockNumber,
+    uint256 withdrawBlockTime,
+    bytes32 withdrawBlockTxRoot,
+    bytes32 withdrawBlockReceiptRoot,
+    bytes memory path,
+    uint8 oIndex)
+    internal
+  {
+    uint256 startBlock;
+    bytes32 headerRoot;
+
+    // @todo a function to return just root and startBlock might save gas
+    (headerRoot, startBlock,,,) = rootChain.headerBlocks(headerNumber);
+
     require(
-      registry.rootToChildToken(rootToken) == txList[3].toAddress(),
-      "INVALID_ROOT_TO_CHILD_TOKEN_MAPPING"
+      keccak256(abi.encodePacked(withdrawBlockNumber, withdrawBlockTime, withdrawBlockTxRoot, withdrawBlockReceiptRoot))
+        .checkMembership(withdrawBlockNumber - startBlock, headerRoot, withdrawBlockProof),
+      "WITHDRAW_BLOCK_NOT_A_PART_OF_SUBMITTED_HEADER"
     );
 
-    require(txList[5].toBytes().length == 36, "MALFORMED_WITHDRAW_TX");
-    // check withdraw function signature
-    require(
-      BytesLib.toBytes4(BytesLib.slice(txList[5].toBytes(), 0, 4)) == WITHDRAW_SIGNATURE,
-      "WITHDRAW_SIGNATURE_NOT_FOUND"
-    );
-    require(registry.isERC721(rootToken) || amountOrTokenId > 0);
-    require(amountOrTokenId == BytesLib.toUint(txList[5].toBytes(), 4));
-
-    // Make sure this tx is the value on the path via a MerklePatricia proof
-    require(
-      MerklePatriciaProof.verify(txBytes, path, txProof, txRoot),
-      "INVALID_TX_MERKLE_PROOF"
+    uint256 _exitId = (
+      headerNumber * HEADER_BLOCK_NUMBER_WEIGHT +
+      withdrawBlockNumber * WITHDRAW_BLOCK_NUMBER_WEIGHT +
+      path.toRlpItem().toBytes().toRlpItem().toUint() * 100000 +
+      oIndex
     );
 
-    // raw tx
-    bytes[] memory rawTx = new bytes[](9);
-    for (uint8 i = 0; i <= 5; i++) {
-      rawTx[i] = txList[i].toBytes();
+    _addExitToQueue(exitObject, _exitId, withdrawBlockTime);
+  }
+
+  /**
+  * @dev Adds an exit to the exit queue.
+  * @param _exitObject Exit plasma object
+  * @param _exitId Position of the UTXO in the child chain (withdrawBlockNumber, txIndex, oIndex)
+  * @param _createdAt Time when the UTXO was created.
+  */
+  function _addExitToQueue(
+    PlasmaExit memory _exitObject,
+    uint256 _exitId,
+    uint256 _createdAt
+  ) internal {
+    require(
+      exits[_exitId].token == address(0x0),
+      "EXIT_ALREADY_EXISTS"
+    );
+
+    bytes32 key;
+    if (registry.isERC721(_exitObject.token)) {
+      key = keccak256(abi.encodePacked(_exitObject.token, _exitObject.owner, _exitObject.receiptAmountOrNFTId));
+    } else {
+      // validate amount
+      require(_exitObject.receiptAmountOrNFTId > 0);
+      key = keccak256(abi.encodePacked(_exitObject.token, _exitObject.owner));
     }
-    rawTx[4] = hex"";
-    rawTx[6] = networkId;
-    rawTx[7] = hex"";
-    rawTx[8] = hex"";
+    // validate token exit
+    require(ownerExits[key] == 0);
 
-    // recover sender from v, r and s
-    // require(
-    //   sender == ecrecover(
-    //     keccak256(RLPEncode.encodeList(rawTx)),
-    //     Common.getV(txList[6].toBytes(), Common.toUint8(networkId)),
-    //     txList[7].toBytes32(),
-    //     txList[8].toBytes32()
-    //   )
-    // );
+    // Calculate priority.
+    uint256 exitableAt = Math.max(_createdAt + 2 weeks, block.timestamp + 1 weeks);
+
+    PriorityQueue queue = PriorityQueue(exitsQueues[_exitObject.token]);
+    queue.insert(exitableAt, _exitId);
+
+    // create NFT for exit UTXO
+    ExitNFT(exitNFTContract).mint(_exitObject.owner, _exitId);
+    exits[_exitId] = _exitObject;
+
+    // set current exit
+    ownerExits[key] = _exitId;
+
+    // emit exit started event
+    emit ExitStarted(_exitObject.owner, _exitId, _exitObject.token, _exitObject.receiptAmountOrNFTId);
   }
 }

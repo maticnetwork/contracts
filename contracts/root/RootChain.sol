@@ -7,7 +7,7 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { IRootChain } from './IRootChain.sol';
 import { RootChainHeader, RootChainStorage } from './RootChainStorage.sol';
 import { IStakeManager } from './stakeManager/IStakeManager.sol';
-import { Registry } from './Registry.sol';
+import { Registry } from '../common/Registry.sol';
 
 contract RootChain is RootChainStorage, IRootChain {
   using SafeMath for uint256;
