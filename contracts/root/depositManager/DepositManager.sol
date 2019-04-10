@@ -42,7 +42,6 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
 
   function depositERC20ForUser(address _token, address _user, uint256 _amount)
     public
-    isTokenMapped(_token)
   {
     require(
       ERC20(_token).transferFrom(msg.sender, address(this), _amount),
@@ -74,7 +73,6 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
 
   function depositERC721ForUser(address _token, address _user, uint256 _tokenId)
     public
-    isTokenMapped(_token)
   {
     ERC721(_token).transferFrom(msg.sender, address(this), _tokenId);
     _createDepositBlock(_user, _token, _tokenId);
@@ -109,6 +107,7 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
 
   function _createDepositBlock(address _user, address _token, uint256 amountOrNFTId)
     internal
+    isTokenMapped(_token)
   {
     rootChain.createDepositBlock(_user, _token, amountOrNFTId);
   }

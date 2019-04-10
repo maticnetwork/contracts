@@ -41,7 +41,6 @@ library ChildChainVerifier {
 
     rootToken = BytesLib.toAddress(items[1].toBytes(), 12);
     
-    // This check might be inconsequential. @todo check
     require(sender == BytesLib.toAddress(items[2].toBytes(), 12));
 
     // Make sure this receipt is the value on the path via a MerklePatricia proof
