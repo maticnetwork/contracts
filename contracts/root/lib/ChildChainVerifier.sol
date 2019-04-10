@@ -15,19 +15,21 @@ library ChildChainVerifier {
 
   function processBurnReceipt(
     bytes memory receiptBytes, bytes memory path, bytes memory receiptProof,
-    bytes32 receiptRoot, address sender)
+    bytes32 receiptRoot, address sender, Registry registry)
     internal
-    pure
-    returns (address rootToken, address childToken, uint256 amountOrTokenId)
+    view
+    returns (address rootToken, uint256 amountOrTokenId)
   {
     RLPReader.RLPItem[] memory items = receiptBytes.toRlpItem().toList();
     require(items.length == 4, "MALFORMED_RECEIPT");
-    // Do any other fields other than items[3] need to be checked?
 
     // [3][1] -> [childTokenAddress, [WITHDRAW_EVENT_SIGNATURE, rootTokenAddress, sender], amount]
     items = items[3].toList()[1].toList();
     require(items.length == 3, "MALFORMED_RECEIPT"); // find a better msg
-    childToken = items[0].toAddress();
+    require(
+      registry.rootToChildToken(rootToken) == items[0].toAddress(),
+      "INVALID_ROOT_TO_CHILD_TOKEN_MAPPING"
+    );
     amountOrTokenId = items[2].toUint();
 
     // [3][1][1] -> [WITHDRAW_EVENT_SIGNATURE, rootTokenAddress, sender]
@@ -39,6 +41,7 @@ library ChildChainVerifier {
       "WITHDRAW_EVENT_SIGNATURE_NOT_FOUND"
     );
 
+    // @todo check if it's possible to do items[1].toAddress() directly
     rootToken = BytesLib.toAddress(items[1].toBytes(), 12);
     
     require(sender == BytesLib.toAddress(items[2].toBytes(), 12));
@@ -134,7 +137,7 @@ library ChildChainVerifier {
   function processWithdrawTransferReceipt(bytes memory receiptBytes, address sender, address _registry)
     internal
     view
-    returns (uint256 totalBalance, uint8 oIndex)
+    returns (uint256 /* amountOrNftId */, uint8 /* oIndex */)
   {
     RLPReader.RLPItem[] memory items = receiptBytes.toRlpItem().toList();
     require(items.length == 4);
@@ -152,9 +155,13 @@ library ChildChainVerifier {
     Registry registry = Registry(_registry);
     if (registry.isERC721(address(topics[1].toUint()))) {
       require(to == sender, "Can't exit with transfered NFT");
-      totalBalance = BytesLib.toUint(items[2].toBytes(), 0);
-      oIndex = 0;
-    } else if (to == sender) {
+      uint256 nftId = BytesLib.toUint(items[2].toBytes(), 0);
+      return (nftId, 0 /* oIndex */);
+    }
+    
+    uint256 totalBalance;
+    uint8 oIndex;
+    if (to == sender) {
       // set totalBalance and oIndex
       totalBalance = BytesLib.toUint(items[2].toBytes(), 128);
       oIndex = 1;
@@ -163,5 +170,6 @@ library ChildChainVerifier {
       oIndex = 0;
     }
     require(totalBalance > 0);
+    return (totalBalance, oIndex);
   }
 }

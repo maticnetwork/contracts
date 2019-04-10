@@ -14,7 +14,7 @@ import { ExitNFT } from "../../common/tokens/ExitNFT.sol";
 
 import { Registry } from "../../common/Registry.sol";
 import { IWithdrawManager } from "./IWithdrawManager.sol";
-import { WithdrawManagerStorage, WithdrawManagerHeader } from "./WithdrawManagerStorage.sol";
+import { WithdrawManagerStorage } from "./WithdrawManagerStorage.sol";
 import { RootChainHeader } from "../RootChainStorage.sol";
 
 contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
@@ -52,17 +52,13 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     bytes calldata withdrawReceipt,
     bytes calldata withdrawReceiptProof
   ) external {
-    (address rootToken, address childToken, uint256 receiptAmountOrNFTId) = ChildChainVerifier.processBurnReceipt(
+    (address rootToken, uint256 receiptAmountOrNFTId) = ChildChainVerifier.processBurnReceipt(
       withdrawReceipt,
       path,
       withdrawReceiptProof,
       withdrawBlockReceiptRoot,
-      msg.sender
-    );
-
-    require(
-      registry.rootToChildToken(rootToken) == childToken,
-      "INVALID_ROOT_TO_CHILD_TOKEN_MAPPING"
+      msg.sender,
+      registry
     );
 
     ChildChainVerifier.processBurnTx(
@@ -77,7 +73,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       networkId
     );
 
-    WithdrawManagerHeader.PlasmaExit memory _exitObject = PlasmaExit({
+    PlasmaExit memory _exitObject = PlasmaExit({
       owner: msg.sender,
       token: rootToken,
       receiptAmountOrNFTId: receiptAmountOrNFTId,
@@ -138,7 +134,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     uint8 oIndex;
     (amountOrNFTId, oIndex) = ChildChainVerifier.processWithdrawTransferReceipt(receipt, msg.sender, address(registry));
 
-    WithdrawManagerHeader.PlasmaExit memory _exitObject = PlasmaExit({
+    PlasmaExit memory _exitObject = PlasmaExit({
       owner: msg.sender,
       token: ChildChainVerifier.processWithdrawTransferTx(transaction, address(registry)),
       receiptAmountOrNFTId: amountOrNFTId,
@@ -184,7 +180,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     (,,,createdAt,) = rootChain.headerBlocks(_header);
     require(createdAt > 0, "DEPOSIT_NOT_CONFIRMED");
 
-    WithdrawManagerHeader.PlasmaExit memory _exitObject = PlasmaExit({
+    PlasmaExit memory _exitObject = PlasmaExit({
       owner: msg.sender,
       token: _token,
       receiptAmountOrNFTId: _amountOrNFTId,
@@ -196,6 +192,18 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       _depositBlockId * HEADER_BLOCK_NUMBER_WEIGHT, // exit id
       _createdAt
     );
+  }
+
+  modifier onlyRegistry() {
+    require(msg.sender == address(registry), "UNAUTHORIZED_ONLY_REGISTRY");
+    _;
+  }
+
+  function createExitQueue(address _token)
+    external
+    onlyRegistry
+  {
+    exitsQueues[_token] = address(new PriorityQueue());
   }
 
   function _withdraw(
@@ -247,8 +255,6 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       exits[_exitId].token == address(0x0),
       "EXIT_ALREADY_EXISTS"
     );
-    // Check that we're exiting a known token.
-    require(exitsQueues[_exitObject.token] != address(0));
 
     bytes32 key;
     if (registry.isERC721(_exitObject.token)) {

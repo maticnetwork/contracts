@@ -12,6 +12,7 @@ contract Registry is Ownable {
   mapping(bytes32 => address) contractMap;
   mapping(address => address) public rootToChildToken;
   mapping(address => address) public childToRootToken;
+  // @todo we can think of one function from the registry which returns both (childToken,isERC721) if we are using it frequently together.
   mapping(address => bool) public isERC721;
 
   event TokenMapped(address indexed rootToken, address indexed childToken);
@@ -44,6 +45,7 @@ contract Registry is Ownable {
     rootToChildToken[_rootToken] = _childToken;
     childToRootToken[_childToken] = _rootToken;
     isERC721[_rootToken] = _isERC721;
+    address(getWithdrawManagerAddress()).call(abi.encodeWithSignature("createExitQueue(address)", _rootToken));
     emit TokenMapped(_rootToken, _childToken);
   }
 
