@@ -194,15 +194,10 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     );
   }
 
-  modifier onlyRegistry() {
-    require(msg.sender == address(registry), "UNAUTHORIZED_ONLY_REGISTRY");
-    _;
-  }
-
   function createExitQueue(address _token)
     external
-    onlyRegistry
   {
+    require(msg.sender == address(registry), "UNAUTHORIZED_REGISTRY_ONLY");
     exitsQueues[_token] = address(new PriorityQueue());
   }
 
