@@ -52,7 +52,7 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     bytes memory withdrawReceipt,
     bytes memory withdrawReceiptProof
   ) public {
-    (address rootToken,, uint256 receiptAmountOrNFTId) = ChildChainVerifier.processBurnReceipt(
+    (address rootToken, uint256 receiptAmountOrNFTId) = ChildChainVerifier.processBurnReceipt(
       withdrawReceipt,
       path,
       withdrawReceiptProof,
