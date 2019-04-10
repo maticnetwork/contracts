@@ -1,6 +1,7 @@
 pragma solidity ^0.5.2;
 
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import { WithdrawManager } from "../root/withdrawManager/WithdrawManager.sol";
 
 contract Registry is Ownable {
   // @todo hardcode constants
@@ -45,7 +46,7 @@ contract Registry is Ownable {
     rootToChildToken[_rootToken] = _childToken;
     childToRootToken[_childToken] = _rootToken;
     isERC721[_rootToken] = _isERC721;
-    address(getWithdrawManagerAddress()).call(abi.encodeWithSignature("createExitQueue(address)", _rootToken));
+    WithdrawManager(contractMap[WITHDRAW_MANAGER]).createExitQueue(_rootToken);
     emit TokenMapped(_rootToken, _childToken);
   }
 
