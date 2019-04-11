@@ -1,25 +1,24 @@
-/* global artifacts */
-//
-// lib/utils
-//
 const SafeMath = artifacts.require(
   'openzeppelin-solidity/contracts/math/SafeMath.sol'
 )
 
-const Math = artifacts.require('openzeppelin-solidity/contracts/math/Math.sol')
-const ECVerify = artifacts.require('./lib/ECVerify.sol')
+const RLPReader = artifacts.require(
+  'solidity-rlp/contracts/RLPReader.sol'
+)
+
+// const Math = artifacts.require('openzeppelin-solidity/contracts/math/Math.sol')
+// const ECVerify = artifacts.require('./lib/ECVerify.sol')
 const BytesLib = artifacts.require('./lib/BytesLib.sol')
-const RLP = artifacts.require('./lib/RLP.sol')
-const MerklePatriciaProof = artifacts.require('./lib/MerklePatriciaProof.sol')
-const Merkle = artifacts.require('./lib/Merkle.sol')
-const RLPEncode = artifacts.require('./lib/RLPEncode.sol')
-const Common = artifacts.require('./lib/Common.sol')
+const Common = artifacts.require('Common')
+const Merkle = artifacts.require('Merkle')
+const MerklePatriciaProof = artifacts.require('MerklePatriciaProof')
+const RLPEncode = artifacts.require('RLPEncode')
 
 //
 // Main contracts
 //
-const RootChain = artifacts.require('./RootChain.sol')
-const DepositManager = artifacts.require('./DepositManager.sol')
+const RootChain = artifacts.require('RootChain')
+const DepositManager = artifacts.require('.DepositManager.sol')
 const WithdrawManager = artifacts.require('./WithdrawManager.sol')
 const RootToken = artifacts.require('./token/TestToken.sol')
 const RootERC721 = artifacts.require('./token/RootERC721.sol')
