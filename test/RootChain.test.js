@@ -9,6 +9,7 @@ import deployer from './helpers/deployer.js'
 // import { linkLibs, encodeSigs, getSigs, ZeroAddress } from '../helpers/utils.js'
 import { encodeSigs, getSigs } from './helpers/utils.js'
 import { generateFirstWallets, mnemonics } from './helpers/wallets.js'
+// import * as contracts from './helpers/contracts'
 
 chai
   .use(chaiAsPromised)
@@ -18,6 +19,11 @@ chai
 contract("RootChain", async function(accounts) {
   let rootChain, wallets
   before(async function() {
+    const contracts = await deployer.freshDeploy()
+    rootChain = contracts.rootChain
+    // console.log('in rootChain', rootChain.address)
+    // console.log('header', await rootChain.headerBlocks(1000))
+
     const stakes = {
       1: web3.utils.toWei('101'),
       2: web3.utils.toWei('100'),
@@ -27,9 +33,7 @@ contract("RootChain", async function(accounts) {
     wallets = generateFirstWallets(mnemonics, Object.keys(stakes).length)
   })
 
-  beforeEach(async function() {
-    rootChain = await deployer.deployRootChain()
-  })
+  // beforeEach(async function() {})
 
   it("submitHeaderBlock", async function() {
     const proposer = accounts[0];
