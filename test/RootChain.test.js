@@ -3,13 +3,12 @@ import chaiAsPromised from 'chai-as-promised'
 import chaiBigNumber from 'chai-bignumber'
 import utils from 'ethereumjs-util'
 import encode from 'ethereumjs-abi'
-import BN from 'bn.js';
+import BN from 'bn.js'
 
-import { RootChain } from '../helpers/contracts.js';
-import deployer from '../helpers/deployer.js';
+import deployer from './helpers/deployer.js'
 // import { linkLibs, encodeSigs, getSigs, ZeroAddress } from '../helpers/utils.js'
-import { encodeSigs, getSigs } from '../helpers/utils.js'
-import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
+import { encodeSigs, getSigs } from './helpers/utils.js'
+import { generateFirstWallets, mnemonics } from './helpers/wallets.js'
 
 chai
   .use(chaiAsPromised)
