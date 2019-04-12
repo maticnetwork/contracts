@@ -49,6 +49,7 @@
     "chai": "4.2.0",
     "chai-as-promised": "^7.1.1",
     "chai-bignumber": "3.0.0",
+    "chai-bn": "^0.1.1",
     "eslint": "5.9.0",
     "eslint-config-standard": "12.0.0",
     "eslint-plugin-import": "2.14.0",

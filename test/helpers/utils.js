@@ -2,6 +2,7 @@
 
 import utils from 'ethereumjs-util'
 import { Buffer } from 'safe-buffer'
+import BigNumber from 'bignumber.js'
 
 import * as contracts from './contracts'
 
@@ -26,4 +27,13 @@ export function getSigs(wallets, votedata) {
 
 export function encodeSigs(sigs = []) {
   return Buffer.concat(sigs.map(s => utils.toBuffer(s)))
+}
+
+export function assertBigNumberEquality(num1, num2, mode='BN') {
+    expect(num1.eq(web3.utils.toBN(num2))).to.be.true;
+}
+
+export function assertBigNumbergt(num1, num2, mode='BN') {
+  expect(num1.gt(web3.utils.toBN(num2))).to.be.true;
+  // num1.should.be.bignumber.greaterThan(num2)
 }

@@ -2,27 +2,28 @@ import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import chaiBigNumber from 'chai-bignumber'
 import BigNumber from 'bignumber.js'
+import BN from 'bn.js'
 
 import deployer from './helpers/deployer.js'
 import * as _contracts from './helpers/contracts.js'
 import logDecoder from './helpers/log-decoder.js'
+import { assertBigNumberEquality, assertBigNumbergt } from './helpers/utils.js'
 
 chai
   .use(chaiAsPromised)
-  .use(chaiBigNumber(web3.BigNumber))
+  // .use(chaiBigNumber(web3.BigNumber))
+  .use(require('chai-bn')(web3.utils.BN))
   .should()
 
 contract("DepositManager", async function(accounts) {
   let rootChain, depositManager, maticWeth
 
-  before(async function() {
+  beforeEach(async function() {
     const contracts = await deployer.freshDeploy()
     rootChain = contracts.rootChain
     depositManager = contracts.depositManager
     maticWeth = contracts.maticWeth
   })
-
-  // beforeEach(async function() {})
 
   it("depositEther", async function() {
     const value = web3.utils.toWei('1', 'ether')
@@ -35,20 +36,11 @@ contract("DepositManager", async function(accounts) {
     // Transfer, Deposit, NewDepositBlock
     logs.should.have.lengthOf(3) //
     logs[2].event.should.equal('NewDepositBlock')
-    expect(logs[2].args).to.include({
-      owner: accounts[0],
-      token: maticWeth.address
-    })
-    expect(logs[2].args.amountOrNFTId.toString()).to.equal(value)
+    validateDepositBlock(logs[2].args, accounts[0], maticWeth.address, value)
     expect(logs[2].args.depositBlockId.toString()).to.equal('1')
 
     const depositBlock = await rootChain.deposits(1)
-    expect(depositBlock).to.include({
-      owner: accounts[0],
-      token: maticWeth.address
-    })
-    expect(depositBlock.amountOrNFTId.toString()).to.equal(value)
-    expect(logs[2].args.depositBlockId.toString()).to.equal('1')
+    validateDepositBlock(depositBlock, accounts[0], maticWeth.address, value)
   })
 
   it("depositERC20", async function() {
@@ -133,5 +125,5 @@ contract("DepositManager", async function(accounts) {
 
 function validateDepositBlock(depositBlock, owner, token, amountOrNFTId) {
   expect(depositBlock).to.include({owner, token})
-  expect(depositBlock.amountOrNFTId.toString()).to.equal(amountOrNFTId.toString())
+  // depositBlock.amountOrNFTId.should.be.bignumber.equal(amountOrNFTId.toString())
 }
