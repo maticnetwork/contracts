@@ -8,3 +8,5 @@ export const WithdrawManagerProxy = artifacts.require("WithdrawManagerProxy");
 
 // tokens
 export const MaticWETH = artifacts.require('MaticWETH')
+export const TestToken = artifacts.require('TestToken')
+export const RootERC721 = artifacts.require('RootERC721')

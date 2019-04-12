@@ -28,8 +28,8 @@ const StakeManager = artifacts.require('MockStakeManager')
 
 // tokens
 const MaticWETH = artifacts.require('MaticWETH')
+const RootERC721 = artifacts.require('RootERC721')
 // const RootToken = artifacts.require('./token/TestToken.sol')
-// const RootERC721 = artifacts.require('./token/RootERC721.sol')
 // const ExitNFT = artifacts.require('./token/ExitNFT.sol')
 
 const libDeps = [
@@ -110,6 +110,7 @@ module.exports = async function(deployer, network) {
 
     // deploy tokens
     await deployer.deploy(MaticWETH)
+    await deployer.deploy(RootERC721, 'RootERC721', 'T721')
 
   }).then(async () => {
     console.log('initializing contract state...')
@@ -120,5 +121,6 @@ module.exports = async function(deployer, network) {
     await registry.updateContractMap(utils.keccak256('wethToken'), MaticWETH.address)
 
     await registry.mapToken(MaticWETH.address, MaticWETH.address, false /* isERC721 */)
+    await registry.mapToken(RootERC721.address, RootERC721.address, true /* isERC721 */)
   })
 }
