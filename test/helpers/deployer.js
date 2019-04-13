@@ -3,7 +3,7 @@ import utils from 'ethereumjs-util'
 import * as contracts from "./contracts.js"
 
 class Deployer {
-  async freshDeploy() {
+  async freshDeploy(options) {
     this.registry = await contracts.Registry.new()
     this.rootChain = await contracts.RootChain.new(this.registry.address)
     this.stakeManager = await contracts.StakeManager.new()
@@ -31,13 +31,20 @@ class Deployer {
 
     await this.registry.mapToken(this.maticWeth.address, this.maticWeth.address, false /* isERC721 */)
     await this.registry.mapToken(this.rootERC721.address, this.rootERC721.address, true /* isERC721 */)
-    return {
+
+    const _contracts = {
       rootChain: this.rootChain,
       // for abi to be compatible
       depositManager: await contracts.DepositManager.at(this.depositManagerProxy.address),
+      withdrawManager: await contracts.WithdrawManager.at(this.withdrawManagerProxy.address),
       maticWeth: this.maticWeth,
       rootERC721: this.rootERC721
     }
+
+    if (options.deployTestErc20) {
+      _contracts.testToken = await this.deployTestErc20()
+    }
+    return _contracts
   }
 
   async deployTestErc20() {
@@ -50,6 +57,18 @@ class Deployer {
     this.rootERC721 = await contracts.RootERC721.new('RootERC721', 'T721')
     await this.registry.mapToken(this.rootERC721.address, this.rootERC721.address, true /* isERC721 */)
     return this.rootERC721
+  }
+
+  async initializeChildChain(owner) {
+    this.childChain = await contracts.ChildChain.new()
+    const tx = await this.childChain.addToken(owner, this.testToken.address, 'ChildToken', 'CTOK', 18, false /* isERC721 */)
+    const NewTokenEvent = tx.logs.find(log => log.event == 'NewToken')
+    // console.log(NewTokenEvent.args.token)
+    this.childToken = await contracts.ChildToken.at(NewTokenEvent.args.token)
+    return {
+      childChain: this.childChain,
+      childToken: this.childToken
+    }
   }
 }
 

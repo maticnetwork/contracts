@@ -10,3 +10,7 @@ export const WithdrawManagerProxy = artifacts.require("WithdrawManagerProxy");
 export const MaticWETH = artifacts.require('MaticWETH')
 export const TestToken = artifacts.require('TestToken')
 export const RootERC721 = artifacts.require('RootERC721')
+
+// child chain
+export const ChildChain = artifacts.require('ChildChain')
+export const ChildToken = artifacts.require('ChildToken')

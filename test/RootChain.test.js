@@ -1,11 +1,9 @@
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
-import utils from 'ethereumjs-util'
-import encode from 'ethereumjs-abi'
 import BN from 'bn.js'
 
 import deployer from './helpers/deployer.js'
-import { encodeSigs, getSigs, assertBigNumberEquality, assertBigNumbergt } from './helpers/utils.js'
+import { assertBigNumberEquality, assertBigNumbergt, buildSubmitHeaderBlockPaylod } from './helpers/utils.js'
 import { generateFirstWallets, mnemonics } from './helpers/wallets.js'
 
 chai
@@ -34,7 +32,7 @@ contract("RootChain", async function(accounts) {
   it("submitHeaderBlock", async function() {
     const {vote, sigs, extraData, root} = buildSubmitHeaderBlockPaylod(accounts[0], 0, 22, wallets)
     const result = await rootChain.submitHeaderBlock(vote, sigs, extraData)
-    const logs = result.logs;
+    const logs = result.logs
     logs.should.have.lengthOf(1)
     logs[0].event.should.equal('NewHeaderBlock')
     expect(logs[0].args).to.include({
@@ -61,10 +59,10 @@ contract("RootChain", async function(accounts) {
 
     block = await rootChain.headerBlocks('20000')
     assertBigNumbergt(block.createdAt, '0')
-    
+
     block = await rootChain.headerBlocks('30000')
     assertBigNumbergt(block.createdAt, '0')
-    
+
     block = await rootChain.headerBlocks('40000')
     assertBigNumberEquality(block.createdAt, '0');
   })
@@ -78,22 +76,3 @@ contract("RootChain", async function(accounts) {
     }
   })
 })
-
-function buildSubmitHeaderBlockPaylod(proposer, start, end, wallets) {
-    const root = utils.keccak256(encode(start, end)) // dummy root
-    // [proposer, start, end, root]
-    const extraData = utils.bufferToHex(utils.rlp.encode([proposer, start, end, root]))
-    const vote = utils.bufferToHex(
-      // [chain, roundType, height, round, voteType, keccak256(bytes20(sha256(extraData)))]
-      utils.rlp.encode([
-        'test-chain-E5igIA', 'vote', 0, 0, 2,
-        utils.bufferToHex(utils.sha256(extraData)).slice(0, 42)
-      ])
-    )
-    const validators = [wallets[1], wallets[2], wallets[3]]
-
-    const sigs = utils.bufferToHex(
-      encodeSigs(getSigs(validators, utils.keccak256(vote)))
-    )
-    return {vote, sigs, extraData, root}
-}
