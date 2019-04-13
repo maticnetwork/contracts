@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.2;
 
 import { ERC721Full } from "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
 
@@ -16,7 +16,7 @@ contract ChildERC721 is ChildToken, ERC721Full {
   );
 
   // constructor
-  constructor (address _owner, address _token, string name, string symbol) ERC721Full(name, symbol)
+  constructor (address _owner, address _token, string memory name, string memory symbol) ERC721Full(name, symbol)
     public 
     {
     require(_token != address(0x0) && _owner != address(0x0));

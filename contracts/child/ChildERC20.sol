@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.2;
 
 import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import { ERC20Detailed } from "openzeppelin-solidity/contracts/token/ERC20/ERC20Detailed.sol";
@@ -19,7 +19,7 @@ contract ChildERC20 is ChildToken, ERC20, ERC20Detailed {
     uint256 output2
   );
   // constructor
-  constructor (address _owner, address _token, string _name, string _symbol, uint8 _decimals)
+  constructor (address _owner, address _token, string memory _name, string memory _symbol, uint8 _decimals)
     public
     ERC20Detailed(_name, _symbol, _decimals) {
     require(_token != address(0x0) && _owner != address(0x0));

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.2;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
@@ -36,10 +36,10 @@ contract ChildToken is Ownable {
     uint256 output1
   );
 
-  function deposit(address user, uint256 amountOrTokenId) public onlyOwner;
+  function deposit(address user, uint256 amountOrTokenId) public;
 
   function withdraw(uint256 amountOrTokenId) public;
 
-  function setParent(address parent) public isParentOwner;
+  function setParent(address _parent) public;
 
 }
