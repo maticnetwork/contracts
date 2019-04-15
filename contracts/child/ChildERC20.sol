@@ -4,10 +4,11 @@ import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import { ERC20Detailed } from "openzeppelin-solidity/contracts/token/ERC20/ERC20Detailed.sol";
 
 import "./ChildToken.sol";
-import "./IParentToken.sol";
+import "./misc/IParentToken.sol";
+import "./misc/LibTokenTransferOrder.sol";
 
 
-contract ChildERC20 is ChildToken, ERC20, ERC20Detailed {
+contract ChildERC20 is ChildToken, ERC20, LibTokenTransferOrder, ERC20Detailed {
   event LogTransfer(
     address indexed token,
     address indexed from,
@@ -99,6 +100,26 @@ contract ChildERC20 is ChildToken, ERC20, ERC20Detailed {
     );
 
     return result;
+  }
+
+  function transferWithSig(bytes memory sig, uint256 amount, bytes32 data, uint256 expiration, address to) public returns (address) {
+    require(amount > 0);
+    require(expiration == 0 || block.number <= expiration, "Signature is expired");
+
+    bytes32 dataHash = getTokenTransferOrderHash(
+      msg.sender,
+      amount,
+      data,
+      expiration
+    );
+    require(disabledHashes[dataHash] == false, "Sig deactivated");
+    disabledHashes[dataHash] = true;
+
+    // recover address and send tokens
+    address from = dataHash.ecrecovery(sig);
+    _transfer(from, to, amount);
+
+    return from;
   }
 
   /// @dev Allows allowed third party to transfer tokens from one address to another. Returns success.
