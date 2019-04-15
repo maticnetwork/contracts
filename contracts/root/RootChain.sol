@@ -94,7 +94,7 @@ contract RootChain is RootChainStorage, IRootChain {
     headerBlock.start = nextChildBlock;
     headerBlock.end = dataList[2].toUint();
     require(
-      headerBlock.end > headerBlock.start,
+      headerBlock.end >= headerBlock.start,
       "NOT_ADDING_BLOCKS"
     );
 

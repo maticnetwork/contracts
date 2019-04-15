@@ -61,36 +61,36 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
       registry
     );
 
-    ChildChainVerifier.processBurnTx(
-      withdrawTx,
-      path,
-      withdrawTxProof,
-      withdrawBlockTxRoot,
-      rootToken,
-      receiptAmountOrNFTId,
-      msg.sender,
-      address(registry), // remove,
-      networkId
-    );
+    // ChildChainVerifier.processBurnTx(
+    //   withdrawTx,
+    //   path,
+    //   withdrawTxProof,
+    //   withdrawBlockTxRoot,
+    //   rootToken,
+    //   receiptAmountOrNFTId,
+    //   msg.sender,
+    //   address(registry), // remove,
+    //   networkId
+    // );
 
-    PlasmaExit memory _exitObject = PlasmaExit({
-      owner: msg.sender,
-      token: rootToken,
-      receiptAmountOrNFTId: receiptAmountOrNFTId,
-      burnt: true
-    });
+    // PlasmaExit memory _exitObject = PlasmaExit({
+    //   owner: msg.sender,
+    //   token: rootToken,
+    //   receiptAmountOrNFTId: receiptAmountOrNFTId,
+    //   burnt: true
+    // });
 
-    _withdraw(
-      _exitObject,
-      headerNumber,
-      withdrawBlockProof,
-      withdrawBlockNumber,
-      withdrawBlockTime,
-      withdrawBlockTxRoot,
-      withdrawBlockReceiptRoot,
-      path,
-      0 // oIndex
-    );
+    // _withdraw(
+    //   _exitObject,
+    //   headerNumber,
+    //   withdrawBlockProof,
+    //   withdrawBlockNumber,
+    //   withdrawBlockTime,
+    //   withdrawBlockTxRoot,
+    //   withdrawBlockReceiptRoot,
+    //   path,
+    //   0 // oIndex
+    // );
   }
 
   /**

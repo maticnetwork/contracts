@@ -3,8 +3,9 @@
 import utils from 'ethereumjs-util'
 import { Buffer } from 'safe-buffer'
 import BigNumber from 'bignumber.js'
+import encode from 'ethereumjs-abi'
 
-import { generateFirstWallets, mnemonics } from 'wallets.js'
+import { generateFirstWallets, mnemonics } from './wallets.js'
 
 const BN = utils.BN
 

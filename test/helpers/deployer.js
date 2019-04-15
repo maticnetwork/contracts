@@ -3,7 +3,7 @@ import utils from 'ethereumjs-util'
 import * as contracts from "./contracts.js"
 
 class Deployer {
-  async freshDeploy(options) {
+  async freshDeploy(options = {}) {
     this.registry = await contracts.Registry.new()
     this.rootChain = await contracts.RootChain.new(this.registry.address)
     this.stakeManager = await contracts.StakeManager.new()
@@ -32,7 +32,7 @@ class Deployer {
     await this.registry.mapToken(this.maticWeth.address, this.maticWeth.address, false /* isERC721 */)
     await this.registry.mapToken(this.rootERC721.address, this.rootERC721.address, true /* isERC721 */)
 
-    const _contracts = {
+    let _contracts = {
       rootChain: this.rootChain,
       // for abi to be compatible
       depositManager: await contracts.DepositManager.at(this.depositManagerProxy.address),
@@ -47,10 +47,12 @@ class Deployer {
     return _contracts
   }
 
-  async deployTestErc20() {
-    this.testToken = await contracts.TestToken.new('TestToken', 'TST')
-    await this.registry.mapToken(this.testToken.address, this.testToken.address, false /* isERC721 */)
-    return this.testToken
+  async deployTestErc20(options = {mapToken: true}) {
+    const testToken = await contracts.TestToken.new('TestToken', 'TST')
+    if (options.mapToken) {
+      await this.registry.mapToken(testToken.address, options.childTokenAdress || testToken.address, false /* isERC721 */)
+    }
+    return testToken
   }
 
   async deployTestErc721() {
@@ -61,13 +63,17 @@ class Deployer {
 
   async initializeChildChain(owner) {
     this.childChain = await contracts.ChildChain.new()
-    const tx = await this.childChain.addToken(owner, this.testToken.address, 'ChildToken', 'CTOK', 18, false /* isERC721 */)
+    const rootERC20 = await this.deployTestErc20({ mapToken: false })
+    const tx = await this.childChain.addToken(owner, rootERC20.address, 'ChildToken', 'CTOK', 18, false /* isERC721 */)
     const NewTokenEvent = tx.logs.find(log => log.event == 'NewToken')
     // console.log(NewTokenEvent.args.token)
-    this.childToken = await contracts.ChildToken.at(NewTokenEvent.args.token)
+    const childToken = await contracts.ChildToken.at(NewTokenEvent.args.token)
+    console.log('here')
+    await this.registry.mapToken(rootERC20.address, childToken.address, false /* isERC721 */)
     return {
       childChain: this.childChain,
-      childToken: this.childToken
+      rootERC20,
+      childToken
     }
   }
 }
