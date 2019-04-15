@@ -20,6 +20,10 @@ import { getHeaders, getBlockHeader } from './helpers/blocks'
 import MerkleTree from './helpers/merkle-tree'
 
 const rlp = utils.rlp
+const web3Child = new web3.constructor(
+  new web3.providers.HttpProvider('http://localhost:8546')
+)
+
 chai
   .use(chaiAsPromised)
   .use(chaiBigNumber(web3.BigNumber))
@@ -37,34 +41,59 @@ contract('WithdrawManager', async function(accounts) {
     const user = accounts[0]
     const amount = new BigNumber('10').pow(new BigNumber('18'))
     await deposit(contracts.depositManager, childContracts.childChain, childContracts.rootERC20, user, amount)
+    const m = await contracts.registry.rootToChildToken(childContracts.rootERC20.address)
+    console.log('childContracts.rootERC20.address', childContracts.rootERC20.address, 'rootToChildToken', m)
+    const ml = await contracts.registry.rootToChildToken(childContracts.rootERC20.address.toLowerCase())
+    console.log('childContracts.rootERC20.address.toLowerCase()', childContracts.rootERC20.address.toLowerCase(), 'rootToChildToken', ml)
 
     const { receipt } = await childContracts.childToken.withdraw(amount)
-    console.log('childToken.withdraw', receipt)
-    const withdrawTx = await web3.eth.getTransaction(receipt.transactionHash)
-    // console.log('withdrawTx', withdrawTx)
-    const withdrawReceipt = await web3.eth.getTransactionReceipt(receipt.transactionHash)
-    const withdrawBlock = await web3.eth.getBlock(receipt.blockHash)
+    const withdrawTx = await web3Child.eth.getTransaction(receipt.transactionHash)
+    const withdrawReceipt = await web3Child.eth.getTransactionReceipt(receipt.transactionHash)
+    // let items = rlp.decode(getReceiptBytes(withdrawReceipt))
+    // console.log('childToken', items[3][1][0].toString('hex'))
+    // console.log(items[3][1][1].map(i => i.toString('hex')))
+    // console.log('amount', items[3][1][2].toString('hex'))
+    // throw new Error()
+    // console.log('getReceiptBytes', rlp.decode(
+    //   getReceiptBytes(withdrawReceipt)).map(e => {
+    //     if (typeof e == )
+    //     e.toString()
+    //   })
+    // )
+    const withdrawBlock = await web3Child.eth.getBlock(receipt.blockHash)
 
-    let payload = buildSubmitHeaderBlockPaylod(accounts[0], 0, withdrawTx.blockNumber-1)
-    await contracts.rootChain.submitHeaderBlock(payload.vote, payload.sigs, payload.extraData)
-    const { vote, sigs, extraData } = buildSubmitHeaderBlockPaylod(accounts[0], withdrawTx.blockNumber, withdrawTx.blockNumber)
-    const submitHeaderBlock = await contracts.rootChain.submitHeaderBlock(vote, sigs, extraData)
-    // console.log(submitHeaderBlock)
-
-    const txProof = await getTxProof(withdrawTx, withdrawBlock, web3)
-    const receiptProof = await getReceiptProof(withdrawReceipt, withdrawBlock, web3)
-
-    const NewHeaderBlockEvent = submitHeaderBlock.logs.find(log => log.event == 'NewHeaderBlock')
-
-    const headerNumber = NewHeaderBlockEvent.args.headerBlockId
-
-    const headers = await getHeaders(withdrawTx.blockNumber - 1, withdrawTx.blockNumber, web3)
-    const tree = new MerkleTree(headers)
     const blockHeader = getBlockHeader(withdrawBlock)
+    const headers = [blockHeader]
+    const tree = new MerkleTree(headers)
+    const root = utils.bufferToHex(tree.getRoot())
+    const start = withdrawTx.blockNumber
+    const end = withdrawTx.blockNumber
     const withdrawBlockProof = await tree.getProof(blockHeader)
-    // console.log('withdrawTx2', withdrawTx)
-    getReceiptBytes(withdrawReceipt)
-    const burnWithdrawReceipt = await contracts.withdrawManager.withdrawBurntTokens(
+    tree
+      .verify(
+        blockHeader,
+        withdrawBlock.number - start,
+        tree.getRoot(),
+        withdrawBlockProof
+      )
+      .should.equal(true)
+    const payload = buildSubmitHeaderBlockPaylod(accounts[0], 0, start - 1)
+    await contracts.rootChain.submitHeaderBlock(payload.vote, payload.sigs, payload.extraData)
+
+    const { vote, sigs, extraData } = buildSubmitHeaderBlockPaylod(accounts[0], start, end, root)
+    const submitHeaderBlock = await contracts.rootChain.submitHeaderBlock(vote, sigs, extraData)
+    const NewHeaderBlockEvent = submitHeaderBlock.logs.find(log => log.event == 'NewHeaderBlock')
+    const headerNumber = NewHeaderBlockEvent.args.headerBlockId
+    console.log('headerNumber', headerNumber.toString())
+
+    const txProof = await getTxProof(withdrawTx, withdrawBlock, web3Child)
+    assert.isTrue(verifyTxProof(txProof), 'Tx proof must be valid')
+    const receiptProof = await getReceiptProof(withdrawReceipt, withdrawBlock, web3Child)
+    assert.isTrue(
+      verifyReceiptProof(receiptProof),
+      'Receipt proof must be valid'
+    )
+    const burnWithdrawTx = await contracts.withdrawManager.withdrawBurntTokens(
       headerNumber,
       utils.bufferToHex(Buffer.concat(withdrawBlockProof)),
       withdrawBlock.number,
@@ -80,7 +109,8 @@ contract('WithdrawManager', async function(accounts) {
         from: user
       }
     )
-    console.log(burnWithdrawReceipt)
+    // const logs = logDecoder.decodeLogs(burnWithdrawTx.receipt.rawLogs)
+    console.log('burnWithdrawReceipt', burnWithdrawTx)
   })
 
   it('withdrawTokens');

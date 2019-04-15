@@ -39,8 +39,8 @@ export function assertBigNumbergt(num1, num2, mode='BN') {
   // num1.should.be.bignumber.greaterThan(num2)
 }
 
-export function buildSubmitHeaderBlockPaylod(proposer, start, end, wallets) {
-  const root = utils.keccak256(encode(start, end)) // dummy root
+export function buildSubmitHeaderBlockPaylod(proposer, start, end, root, wallets) {
+  if (!root) root = utils.keccak256(encode(start, end)) // dummy root
   // [proposer, start, end, root]
   const extraData = utils.bufferToHex(utils.rlp.encode([proposer, start, end, root]))
   const vote = utils.bufferToHex(

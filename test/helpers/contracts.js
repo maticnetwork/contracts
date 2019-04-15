@@ -13,4 +13,4 @@ export const RootERC721 = artifacts.require('RootERC721')
 
 // child chain
 export const ChildChain = artifacts.require('ChildChain')
-export const ChildToken = artifacts.require('ChildToken')
+export const ChildERC20 = artifacts.require('ChildERC20')

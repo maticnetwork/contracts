@@ -40,7 +40,7 @@ export class LogDecoder {
   }
 }
 
-const abis = Object.keys(contracts).map(c => {
+const abis = Object.keys(contracts).slice(0, 10).map(c => {
   return contracts[c]._json.abi
 })
 const logDecoder = new LogDecoder(abis)

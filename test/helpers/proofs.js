@@ -54,8 +54,9 @@ export async function getTxProof(tx, block, _web3 = web3) {
   const txTrie = new Trie()
   console.log('block.transactions', block.transactions)
   for (let i = 0; i < block.transactions.length; i++) {
+    // const siblingTx = block.transactions[i]
     const siblingTx = await _web3.eth.getTransaction(block.transactions[i])
-    console.log('siblingTx', siblingTx)
+    // console.log('siblingTx', siblingTx)
     // const siblingTx = block.transactions[i]
     const path = rlp.encode(siblingTx.transactionIndex)
     const rawSignedSiblingTx = getTxBytes(siblingTx)
@@ -166,7 +167,7 @@ export function getReceiptBytes(receipt) {
   return rlp.encode([
     utils.toBuffer(
       receipt.status !== undefined && receipt.status != null
-        ? receipt.status.toString() // status if available
+        ? receipt.status ? 1 : 0
         : receipt.root
     ),
     utils.toBuffer(receipt.cumulativeGasUsed),
