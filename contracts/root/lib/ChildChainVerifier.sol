@@ -12,14 +12,12 @@ library ChildChainVerifier {
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
 
-  event YOYO(address rootToken, address childToken);
-  event YOYO2(address rootToken, address childToken);
 
   function processBurnReceipt(
     bytes memory receiptBytes, bytes memory path, bytes memory receiptProof,
     bytes32 receiptRoot, address sender, Registry registry)
     internal
-    // view
+    view
     returns (address rootToken, uint256 amountOrTokenId)
   {
     RLPReader.RLPItem[] memory items = receiptBytes.toRlpItem().toList();
@@ -29,11 +27,7 @@ library ChildChainVerifier {
     items = items[3].toList()[1].toList();
     require(items.length == 3, "MALFORMED_RECEIPT");
 
-    // address childToken = items[0].toAddress();
-    // address childToken = BytesLib.toAddress(items[0].toUint(), 0);
-    address childToken = address(items[0].toUint());
-    emit YOYO(address(0x0), childToken);
-    // amountOrTokenId = BytesLib.toUint(items[2], 0);
+    address childToken = address(items[0].toUint()); // amount
     amountOrTokenId = BytesLib.toUint(items[2].toBytes(), 0); // amount
 
     // [3][1][1] -> [WITHDRAW_EVENT_SIGNATURE, rootTokenAddress, sender]
@@ -47,7 +41,6 @@ library ChildChainVerifier {
 
     // // @todo check if it's possible to do items[1].toAddress() directly
     rootToken = BytesLib.toAddress(items[1].toBytes(), 12);
-    // emit YOYO(rootToken, childToken);
     require(
       registry.rootToChildToken(rootToken) == childToken,
       "INVALID_ROOT_TO_CHILD_TOKEN_MAPPING"
@@ -76,10 +69,10 @@ library ChildChainVerifier {
     // @todo check if these checks are required at all. It might be possible to remove registry requirements
     Registry registry = Registry(_registry);
     // check mapped root<->child token
-    // require(
-    //   registry.rootToChildToken(rootToken) == txList[3].toAddress(),
-    //   "INVALID_ROOT_TO_CHILD_TOKEN_MAPPING"
-    // );
+    require(
+      registry.rootToChildToken(rootToken) == address(txList[3].toUint()),
+      "INVALID_ROOT_TO_CHILD_TOKEN_MAPPING"
+    );
 
     require(txList[5].toBytes().length == 36, "MALFORMED_WITHDRAW_TX");
     // check withdraw function signature
@@ -89,34 +82,32 @@ library ChildChainVerifier {
       "WITHDRAW_SIGNATURE_NOT_FOUND"
     );
 
-    require(registry.isERC721(rootToken) || amountOrTokenId > 0);
-    require(amountOrTokenId == BytesLib.toUint(txList[5].toBytes(), 4));
+    require(registry.isERC721(rootToken) || amountOrTokenId > 0, "NOT_ERC_AND_ZERO_amountOrTokenId");
+    require(amountOrTokenId == BytesLib.toUint(txList[5].toBytes(), 4), "amountOrTokenId_MISMATCH");
 
     // Make sure this tx is the value on the path via a MerklePatricia proof
-    // @todo This might be possible to remove
     require(
       MerklePatriciaProof.verify(txBytes, path, txProof, txRoot),
       "INVALID_TX_MERKLE_PROOF"
     );
 
-    // raw tx
     bytes[] memory rawTx = new bytes[](9);
     for (uint8 i = 0; i <= 5; i++) {
       rawTx[i] = txList[i].toBytes();
     }
     rawTx[4] = hex"";
-    rawTx[6] = networkId;
+    rawTx[6] = hex"0d"; // networkId
     rawTx[7] = hex"";
     rawTx[8] = hex"";
 
-    // recover sender from v, r and s
     require(
       sender == ecrecover(
         keccak256(RLPEncode.encodeList(rawTx)),
         Common.getV(txList[6].toBytes(), Common.toUint8(networkId)),
         bytes32(txList[7].toUint()),
         bytes32(txList[8].toUint())
-      )
+      ),
+      "TRANSACTION_SENDER_MISMATCH"
     );
   }
 

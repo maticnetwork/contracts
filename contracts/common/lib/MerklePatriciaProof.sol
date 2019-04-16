@@ -22,7 +22,7 @@ library MerklePatriciaProof {
     bytes memory encodedPath,
     bytes memory rlpParentNodes,
     bytes32 root
-  ) public pure returns (bool) {
+  ) internal pure returns (bool) {
     RLPReader.RLPItem memory item = RLPReader.toRlpItem(rlpParentNodes);
     RLPReader.RLPItem[] memory parentNodes = RLPReader.toList(item);
 
@@ -42,8 +42,9 @@ library MerklePatriciaProof {
         return false;
       }
 
-      currentNode = RLPReader.toBytes(parentNodes[i]);
+      currentNode = RLPReader.toRlpBytes(parentNodes[i]);
       if (nodeKey != keccak256(currentNode)) {
+        // emit DE(nodeKey, )
         return false;
       }
       currentNodeList = RLPReader.toList(parentNodes[i]);

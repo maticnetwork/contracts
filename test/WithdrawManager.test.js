@@ -15,9 +15,10 @@ import {
   getReceiptProof,
   verifyReceiptProof
 } from './helpers/proofs'
-import { buildSubmitHeaderBlockPaylod } from './helpers/utils.js'
-import { getHeaders, getBlockHeader } from './helpers/blocks'
+import { buildSubmitHeaderBlockPaylod, assertBigNumberEquality } from './helpers/utils.js'
+import { getBlockHeader } from './helpers/blocks'
 import MerkleTree from './helpers/merkle-tree'
+
 
 const rlp = utils.rlp
 const web3Child = new web3.constructor(
@@ -37,31 +38,16 @@ contract('WithdrawManager', async function(accounts) {
     childContracts = await deployer.initializeChildChain(accounts[0])
   })
 
-  it.only('withdrawBurntTokens', async function() {
+  it('withdrawBurntTokens', async function() {
     const user = accounts[0]
     const amount = new BigNumber('10').pow(new BigNumber('18'))
     await deposit(contracts.depositManager, childContracts.childChain, childContracts.rootERC20, user, amount)
-    const m = await contracts.registry.rootToChildToken(childContracts.rootERC20.address)
-    console.log('childContracts.rootERC20.address', childContracts.rootERC20.address, 'rootToChildToken', m)
-    const ml = await contracts.registry.rootToChildToken(childContracts.rootERC20.address.toLowerCase())
-    console.log('childContracts.rootERC20.address.toLowerCase()', childContracts.rootERC20.address.toLowerCase(), 'rootToChildToken', ml)
 
     const { receipt } = await childContracts.childToken.withdraw(amount)
     const withdrawTx = await web3Child.eth.getTransaction(receipt.transactionHash)
     const withdrawReceipt = await web3Child.eth.getTransactionReceipt(receipt.transactionHash)
-    // let items = rlp.decode(getReceiptBytes(withdrawReceipt))
-    // console.log('childToken', items[3][1][0].toString('hex'))
-    // console.log(items[3][1][1].map(i => i.toString('hex')))
-    // console.log('amount', items[3][1][2].toString('hex'))
-    // throw new Error()
-    // console.log('getReceiptBytes', rlp.decode(
-    //   getReceiptBytes(withdrawReceipt)).map(e => {
-    //     if (typeof e == )
-    //     e.toString()
-    //   })
-    // )
-    const withdrawBlock = await web3Child.eth.getBlock(receipt.blockHash)
 
+    const withdrawBlock = await web3Child.eth.getBlock(receipt.blockHash)
     const blockHeader = getBlockHeader(withdrawBlock)
     const headers = [blockHeader]
     const tree = new MerkleTree(headers)
@@ -84,7 +70,6 @@ contract('WithdrawManager', async function(accounts) {
     const submitHeaderBlock = await contracts.rootChain.submitHeaderBlock(vote, sigs, extraData)
     const NewHeaderBlockEvent = submitHeaderBlock.logs.find(log => log.event == 'NewHeaderBlock')
     const headerNumber = NewHeaderBlockEvent.args.headerBlockId
-    console.log('headerNumber', headerNumber.toString())
 
     const txProof = await getTxProof(withdrawTx, withdrawBlock, web3Child)
     assert.isTrue(verifyTxProof(txProof), 'Tx proof must be valid')
@@ -93,6 +78,7 @@ contract('WithdrawManager', async function(accounts) {
       verifyReceiptProof(receiptProof),
       'Receipt proof must be valid'
     )
+
     const burnWithdrawTx = await contracts.withdrawManager.withdrawBurntTokens(
       headerNumber,
       utils.bufferToHex(Buffer.concat(withdrawBlockProof)),
@@ -110,7 +96,14 @@ contract('WithdrawManager', async function(accounts) {
       }
     )
     // const logs = logDecoder.decodeLogs(burnWithdrawTx.receipt.rawLogs)
-    console.log('burnWithdrawReceipt', burnWithdrawTx)
+    // console.log('burnWithdrawReceipt', burnWithdrawTx)
+    const log = burnWithdrawTx.logs[0]
+    log.event.should.equal('ExitStarted')
+    expect(log.args).to.include({
+      exitor: accounts[0],
+      token: childContracts.rootERC20.address
+    })
+    assertBigNumberEquality(log.args.amount, amount)
   })
 
   it('withdrawTokens');

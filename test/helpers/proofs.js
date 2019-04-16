@@ -17,7 +17,6 @@ function getRawHeader(_block) {
 
 // squanch transaction
 export function squanchTx(tx) {
-  // console.log('tx', tx)
   tx.gasPrice = '0x' + parseInt(tx.gasPrice).toString(16)
   tx.value = '0x' + parseInt(tx.value).toString(16) || '0'
   tx.gas = '0x' + parseInt(tx.gas).toString(16)
@@ -44,7 +43,6 @@ function nibblesToTraverse(encodedPartialPath, path, pathPtr) {
 }
 
 export function getTxBytes(tx) {
-  // console.log('tx', tx)
   const txObj = new EthereumTx(squanchTx(tx))
   return txObj.serialize()
 }
@@ -52,12 +50,8 @@ export function getTxBytes(tx) {
 // build
 export async function getTxProof(tx, block, _web3 = web3) {
   const txTrie = new Trie()
-  console.log('block.transactions', block.transactions)
   for (let i = 0; i < block.transactions.length; i++) {
-    // const siblingTx = block.transactions[i]
     const siblingTx = await _web3.eth.getTransaction(block.transactions[i])
-    // console.log('siblingTx', siblingTx)
-    // const siblingTx = block.transactions[i]
     const path = rlp.encode(siblingTx.transactionIndex)
     const rawSignedSiblingTx = getTxBytes(siblingTx)
     await new Promise((resolve, reject) => {
@@ -162,8 +156,6 @@ export function verifyTxProof(proof) {
 }
 
 export function getReceiptBytes(receipt) {
-  console.log('getReceiptBytes', receipt)
-  // raw receipt = rlp.encode([status or root, cumulativeGasUsed, logsBloom, logs])
   return rlp.encode([
     utils.toBuffer(
       receipt.status !== undefined && receipt.status != null
@@ -186,8 +178,6 @@ export function getReceiptBytes(receipt) {
 }
 
 export async function getReceiptProof(receipt, block, web3) {
-  console.log('receipt', receipt)
-  console.log('block', block)
   const receiptsTrie = new Trie()
   const receiptPromises = []
   block.transactions.forEach(tx => {
@@ -195,10 +185,8 @@ export async function getReceiptProof(receipt, block, web3) {
   })
 
   const receipts = await Promise.all(receiptPromises)
-  console.log('receipts', receipts)
   for (let i = 0; i < receipts.length; i++) {
     const siblingReceipt = receipts[i]
-    console.log('siblingReceipt', siblingReceipt)
     const path = rlp.encode(siblingReceipt.transactionIndex)
     const rawReceipt = getReceiptBytes(siblingReceipt)
     await new Promise((resolve, reject) => {

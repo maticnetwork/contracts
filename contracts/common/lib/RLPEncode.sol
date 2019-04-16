@@ -10,14 +10,21 @@ import "./BytesLib.sol";
 library RLPEncode {
 
   // Encode an item (bytes memory)
-  function encodeItem(bytes memory self) internal pure returns (bytes memory) {
+  function encodeItem(bytes memory self) public pure returns (bytes memory) {
     bytes memory encoded;
-    if (self.length == 1 && uint(bytes32(self[0] & 0xFF)) < 0x80) {
+    if (self.length == 1 && uint8(self[0] & 0xFF) < 0x80) {
       encoded = new bytes(1);
       encoded = self;
     } else {
       encoded = BytesLib.concat(encodeLength(self.length, 128), self);
 		}
+    return encoded;
+  }
+
+  function encodeItem2(bytes memory self) public pure returns (bytes memory) {
+    bytes memory encoded;
+    encoded = new bytes(1);
+    encoded = self;
     return encoded;
   }
 

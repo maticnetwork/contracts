@@ -12,7 +12,7 @@
     "truffle:migrate:1": "truffle migrate --to 2",
     "truffle:migrate:2": "truffle migrate --network matic_dev --from 3 --to 3",
     "truffle:migrate:3": "truffle migrate --from 5 --to 5",
-    "truffle:migrate": "npm run truffle:migrate:1 && npm run truffle:migrate:2 && npm run truffle:migrate:3",
+    "truffle:migrate": "npm run truffle:migrate:1 && npm run truffle:migrate:2",
     "truffle:migrate:test": "npm run truffle migrate",
     "test:ci": "scripts/run-test.sh",
     "lint": "npm run lint:sol && npm run lint:js",

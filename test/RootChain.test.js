@@ -30,7 +30,7 @@ contract("RootChain", async function(accounts) {
   })
 
   it("submitHeaderBlock", async function() {
-    const {vote, sigs, extraData, root} = buildSubmitHeaderBlockPaylod(accounts[0], 0, 22, wallets)
+    const {vote, sigs, extraData, root} = buildSubmitHeaderBlockPaylod(accounts[0], 0, 22, '' /* root */, wallets)
     const result = await rootChain.submitHeaderBlock(vote, sigs, extraData)
     const logs = result.logs
     logs.should.have.lengthOf(1)
@@ -45,13 +45,13 @@ contract("RootChain", async function(accounts) {
   })
 
   it("submit multiple headerBlocks", async function() {
-    let payload = buildSubmitHeaderBlockPaylod(accounts[0], 0, 4, wallets)
+    let payload = buildSubmitHeaderBlockPaylod(accounts[0], 0, 4, '', wallets)
     await rootChain.submitHeaderBlock(payload.vote, payload.sigs, payload.extraData)
 
-    payload = buildSubmitHeaderBlockPaylod(accounts[0], 5, 9, wallets)
+    payload = buildSubmitHeaderBlockPaylod(accounts[0], 5, 9, '', wallets)
     await rootChain.submitHeaderBlock(payload.vote, payload.sigs, payload.extraData)
 
-    payload = buildSubmitHeaderBlockPaylod(accounts[0], 10, 14, wallets)
+    payload = buildSubmitHeaderBlockPaylod(accounts[0], 10, 14, '', wallets)
     await rootChain.submitHeaderBlock(payload.vote, payload.sigs, payload.extraData)
 
     let block = await rootChain.headerBlocks('10000')

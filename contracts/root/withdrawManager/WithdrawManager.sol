@@ -10,7 +10,7 @@ import { Merkle } from "../../common/lib/Merkle.sol";
 import { MerklePatriciaProof } from "../../common/lib/MerklePatriciaProof.sol";
 import { PriorityQueue } from "../../common/lib/PriorityQueue.sol";
 
-import { ExitNFT } from "../../common/tokens/ExitNFT.sol";
+// import { ExitNFT } from "../../common/tokens/ExitNFT.sol";
 
 import { Registry } from "../../common/Registry.sol";
 import { IWithdrawManager } from "./IWithdrawManager.sol";
@@ -52,7 +52,7 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     bytes memory withdrawReceipt,
     bytes memory withdrawReceiptProof
   ) public {
-    (address rootToken, uint256 receiptAmountOrNFTId) = ChildChainVerifier.processBurnReceipt(
+    (address rootToken, uint256 amountOrNFTId) = ChildChainVerifier.processBurnReceipt(
       withdrawReceipt,
       path,
       withdrawReceiptProof,
@@ -61,36 +61,36 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
       registry
     );
 
-    // ChildChainVerifier.processBurnTx(
-    //   withdrawTx,
-    //   path,
-    //   withdrawTxProof,
-    //   withdrawBlockTxRoot,
-    //   rootToken,
-    //   receiptAmountOrNFTId,
-    //   msg.sender,
-    //   address(registry), // remove,
-    //   networkId
-    // );
+    ChildChainVerifier.processBurnTx(
+      withdrawTx,
+      path,
+      withdrawTxProof,
+      withdrawBlockTxRoot,
+      rootToken,
+      amountOrNFTId,
+      msg.sender,
+      address(registry),
+      networkId
+    );
 
-    // PlasmaExit memory _exitObject = PlasmaExit({
-    //   owner: msg.sender,
-    //   token: rootToken,
-    //   receiptAmountOrNFTId: receiptAmountOrNFTId,
-    //   burnt: true
-    // });
+    PlasmaExit memory _exitObject = PlasmaExit({
+      owner: msg.sender,
+      token: rootToken,
+      receiptAmountOrNFTId: amountOrNFTId,
+      burnt: true
+    });
 
-    // _withdraw(
-    //   _exitObject,
-    //   headerNumber,
-    //   withdrawBlockProof,
-    //   withdrawBlockNumber,
-    //   withdrawBlockTime,
-    //   withdrawBlockTxRoot,
-    //   withdrawBlockReceiptRoot,
-    //   path,
-    //   0 // oIndex
-    // );
+    _withdraw(
+      _exitObject,
+      headerNumber,
+      withdrawBlockProof,
+      withdrawBlockNumber,
+      withdrawBlockTime,
+      withdrawBlockTxRoot,
+      withdrawBlockReceiptRoot,
+      path,
+      0 // oIndex
+    );
   }
 
   /**
@@ -256,11 +256,11 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
       key = keccak256(abi.encodePacked(_exitObject.token, _exitObject.owner, _exitObject.receiptAmountOrNFTId));
     } else {
       // validate amount
-      require(_exitObject.receiptAmountOrNFTId > 0);
+      require(_exitObject.receiptAmountOrNFTId > 0, "CANNOT_EXIT_ZERO_AMOUNTS");
       key = keccak256(abi.encodePacked(_exitObject.token, _exitObject.owner));
     }
     // validate token exit
-    require(ownerExits[key] == 0);
+    require(ownerExits[key] == 0, "EXIT_ALREADY_IN_PROGRESS");
 
     // Calculate priority.
     uint256 exitableAt = Math.max(_createdAt + 2 weeks, block.timestamp + 1 weeks);
@@ -269,7 +269,8 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     queue.insert(exitableAt, _exitId);
 
     // create NFT for exit UTXO
-    ExitNFT(exitNFTContract).mint(_exitObject.owner, _exitId);
+    // @todo
+    // ExitNFT(exitNFTContract).mint(_exitObject.owner, _exitId);
     exits[_exitId] = _exitObject;
 
     // set current exit

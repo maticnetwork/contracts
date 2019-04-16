@@ -9,7 +9,6 @@ const RLPReader = artifacts.require(
 )
 
 // const Math = artifacts.require('openzeppelin-solidity/contracts/math/Math.sol')
-// const ECVerify = artifacts.require('./lib/ECVerify.sol')
 const BytesLib = artifacts.require('BytesLib')
 const ChildChainVerifier = artifacts.require('ChildChainVerifier')
 const Common = artifacts.require('Common')
@@ -109,18 +108,18 @@ module.exports = async function(deployer, network) {
     await deployer.deploy(WithdrawManagerProxy, WithdrawManager.address, Registry.address, RootChain.address)
 
     // deploy tokens
-    // await deployer.deploy(MaticWETH)
-    // await deployer.deploy(RootERC721, 'RootERC721', 'T721')
+    await deployer.deploy(MaticWETH)
+    await deployer.deploy(RootERC721, 'RootERC721', 'T721')
 
   }).then(async () => {
-    // console.log('initializing contract state...')
-    // const registry = await Registry.deployed()
-    // await registry.updateContractMap(utils.keccak256('depositManager'), DepositManagerProxy.address)
-    // await registry.updateContractMap(utils.keccak256('withdrawManager'), WithdrawManagerProxy.address)
-    // await registry.updateContractMap(utils.keccak256('stakeManager'), StakeManager.address)
-    // await registry.updateContractMap(utils.keccak256('wethToken'), MaticWETH.address)
+    console.log('initializing contract state...')
+    const registry = await Registry.deployed()
+    await registry.updateContractMap(utils.keccak256('depositManager'), DepositManagerProxy.address)
+    await registry.updateContractMap(utils.keccak256('withdrawManager'), WithdrawManagerProxy.address)
+    await registry.updateContractMap(utils.keccak256('stakeManager'), StakeManager.address)
+    await registry.updateContractMap(utils.keccak256('wethToken'), MaticWETH.address)
 
-    // await registry.mapToken(MaticWETH.address, MaticWETH.address, false /* isERC721 */)
-    // await registry.mapToken(RootERC721.address, RootERC721.address, true /* isERC721 */)
+    await registry.mapToken(MaticWETH.address, MaticWETH.address, false /* isERC721 */)
+    await registry.mapToken(RootERC721.address, RootERC721.address, true /* isERC721 */)
   })
 }
