@@ -36,7 +36,7 @@ contract('WithdrawManager', async function(accounts) {
     childContracts = await deployer.initializeChildChain(accounts[0])
   })
 
-  it.only('withdrawBurntTokens', async function() {
+  it('withdrawBurntTokens', async function() {
     const user = accounts[0]
     await deposit(contracts.depositManager, childContracts.childChain, childContracts.rootERC20, user, amount)
 

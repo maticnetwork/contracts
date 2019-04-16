@@ -16,7 +16,7 @@ library ChildChainVerifier {
   function processBurnReceipt(
     bytes memory receiptBytes, bytes memory path, bytes memory receiptProof,
     bytes32 receiptRoot, address sender, Registry registry)
-    public
+    internal
     view
     returns (address rootToken, uint256 amountOrTokenId)
   {
@@ -59,7 +59,7 @@ library ChildChainVerifier {
     bytes memory txBytes, bytes memory path, bytes memory txProof, bytes32 txRoot,
     address rootToken, uint256 amountOrTokenId, address sender, address _registry,
     bytes memory networkId)
-    public
+    internal
     view
   {
     // check basic tx format
@@ -112,7 +112,7 @@ library ChildChainVerifier {
   }
 
   function processWithdrawTransferTx(bytes memory txBytes, address _registry)
-    public
+    internal
     view
     returns (address rootToken)
   {
@@ -135,7 +135,7 @@ library ChildChainVerifier {
   }
 
   function processWithdrawTransferReceipt(bytes memory receiptBytes, address sender, address _registry)
-    public
+    internal
     view
     returns (uint256 /* amountOrNftId */, uint8 /* oIndex */)
   {
