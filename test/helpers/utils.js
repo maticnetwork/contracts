@@ -2,7 +2,6 @@
 
 import utils from 'ethereumjs-util'
 import { Buffer } from 'safe-buffer'
-import BigNumber from 'bignumber.js'
 import encode from 'ethereumjs-abi'
 
 import { generateFirstWallets, mnemonics } from './wallets.js'
@@ -30,11 +29,13 @@ export function encodeSigs(sigs = []) {
   return Buffer.concat(sigs.map(s => utils.toBuffer(s)))
 }
 
-export function assertBigNumberEquality(num1, num2, mode='BN') {
-    expect(num1.eq(web3.utils.toBN(num2))).to.be.true;
+export function assertBigNumberEquality(num1, num2) {
+  if (!BN.isBN(num1)) num1 = web3.utils.toBN(num1.toString())
+  if (!BN.isBN(num2)) num2 = web3.utils.toBN(num2)
+  expect(num1.eq(num2)).to.be.true
 }
 
-export function assertBigNumbergt(num1, num2, mode='BN') {
+export function assertBigNumbergt(num1, num2) {
   expect(num1.gt(web3.utils.toBN(num2))).to.be.true;
   // num1.should.be.bignumber.greaterThan(num2)
 }

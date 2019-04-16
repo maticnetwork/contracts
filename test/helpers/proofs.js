@@ -48,10 +48,10 @@ export function getTxBytes(tx) {
 }
 
 // build
-export async function getTxProof(tx, block, _web3 = web3) {
+export async function getTxProof(tx, block) {
   const txTrie = new Trie()
   for (let i = 0; i < block.transactions.length; i++) {
-    const siblingTx = await _web3.eth.getTransaction(block.transactions[i])
+    const siblingTx = block.transactions[i]
     const path = rlp.encode(siblingTx.transactionIndex)
     const rawSignedSiblingTx = getTxBytes(siblingTx)
     await new Promise((resolve, reject) => {
@@ -181,7 +181,7 @@ export async function getReceiptProof(receipt, block, web3) {
   const receiptsTrie = new Trie()
   const receiptPromises = []
   block.transactions.forEach(tx => {
-    receiptPromises.push(web3.eth.getTransactionReceipt(tx))
+    receiptPromises.push(web3.eth.getTransactionReceipt(tx.hash))
   })
 
   const receipts = await Promise.all(receiptPromises)

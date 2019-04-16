@@ -1,7 +1,5 @@
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
-import chaiBigNumber from 'chai-bignumber'
-import BigNumber from 'bignumber.js'
 
 import deployer from './helpers/deployer.js'
 import logDecoder from './helpers/log-decoder.js'
@@ -27,27 +25,26 @@ const web3Child = new web3.constructor(
 
 chai
   .use(chaiAsPromised)
-  .use(chaiBigNumber(web3.BigNumber))
   .should()
 
 contract('WithdrawManager', async function(accounts) {
   let contracts, childContracts
+  const amount = web3.utils.toBN('10').pow(web3.utils.toBN('18'))
 
   beforeEach(async function() {
     contracts = await deployer.freshDeploy()
     childContracts = await deployer.initializeChildChain(accounts[0])
   })
 
-  it('withdrawBurntTokens', async function() {
+  it.only('withdrawBurntTokens', async function() {
     const user = accounts[0]
-    const amount = new BigNumber('10').pow(new BigNumber('18'))
     await deposit(contracts.depositManager, childContracts.childChain, childContracts.rootERC20, user, amount)
 
     const { receipt } = await childContracts.childToken.withdraw(amount)
     const withdrawTx = await web3Child.eth.getTransaction(receipt.transactionHash)
     const withdrawReceipt = await web3Child.eth.getTransactionReceipt(receipt.transactionHash)
 
-    const withdrawBlock = await web3Child.eth.getBlock(receipt.blockHash)
+    const withdrawBlock = await web3Child.eth.getBlock(receipt.blockHash, true /* returnTransactionObjects */)
     const blockHeader = getBlockHeader(withdrawBlock)
     const headers = [blockHeader]
     const tree = new MerkleTree(headers)
@@ -71,7 +68,7 @@ contract('WithdrawManager', async function(accounts) {
     const NewHeaderBlockEvent = submitHeaderBlock.logs.find(log => log.event == 'NewHeaderBlock')
     const headerNumber = NewHeaderBlockEvent.args.headerBlockId
 
-    const txProof = await getTxProof(withdrawTx, withdrawBlock, web3Child)
+    const txProof = await getTxProof(withdrawTx, withdrawBlock)
     assert.isTrue(verifyTxProof(txProof), 'Tx proof must be valid')
     const receiptProof = await getReceiptProof(withdrawReceipt, withdrawBlock, web3Child)
     assert.isTrue(
