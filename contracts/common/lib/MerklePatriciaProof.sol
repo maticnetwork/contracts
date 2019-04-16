@@ -44,7 +44,6 @@ library MerklePatriciaProof {
 
       currentNode = RLPReader.toRlpBytes(parentNodes[i]);
       if (nodeKey != keccak256(currentNode)) {
-        // emit DE(nodeKey, )
         return false;
       }
       currentNodeList = RLPReader.toList(parentNodes[i]);

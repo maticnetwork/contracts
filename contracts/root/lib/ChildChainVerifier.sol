@@ -23,7 +23,7 @@ library ChildChainVerifier {
     RLPReader.RLPItem[] memory items = receiptBytes.toRlpItem().toList();
     require(items.length == 4, "MALFORMED_RECEIPT");
 
-    // // [3][1] -> [childTokenAddress, [WITHDRAW_EVENT_SIGNATURE, rootTokenAddress, sender], amount]
+    // [3][1] -> [childTokenAddress, [WITHDRAW_EVENT_SIGNATURE, rootTokenAddress, sender], amount]
     items = items[3].toList()[1].toList();
     require(items.length == 3, "MALFORMED_RECEIPT");
 
@@ -39,7 +39,7 @@ library ChildChainVerifier {
       "WITHDRAW_EVENT_SIGNATURE_NOT_FOUND"
     );
 
-    // // @todo check if it's possible to do items[1].toAddress() directly
+    // @todo check if it's possible to do items[1].toAddress() directly
     rootToken = BytesLib.toAddress(items[1].toBytes(), 12);
     require(
       registry.rootToChildToken(rootToken) == childToken,
@@ -96,7 +96,7 @@ library ChildChainVerifier {
       rawTx[i] = txList[i].toBytes();
     }
     rawTx[4] = hex"";
-    rawTx[6] = hex"0d"; // networkId
+    rawTx[6] = networkId;
     rawTx[7] = hex"";
     rawTx[8] = hex"";
 

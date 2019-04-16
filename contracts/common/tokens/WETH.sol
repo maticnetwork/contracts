@@ -10,5 +10,5 @@ contract WETH is ERC20 {
 
   function withdraw(uint256 wad) public;
 
-  function withdraw(uint256 wad, address user) public;
+  function withdraw(uint256 wad, address payable user) public;
 }

@@ -50,7 +50,7 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
     _createDepositBlock(_user, _token, _amount);
   }
 
-  function transferAmount(address _token, address _user, uint256 _amountOrNFTId)
+  function transferAmount(address _token, address payable _user, uint256 _amountOrNFTId)
   external
   /* onlyWithdrawManager */
   returns(bool) {
