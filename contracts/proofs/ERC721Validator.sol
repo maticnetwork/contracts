@@ -50,23 +50,23 @@ contract ERC721Validator is RootChainValidator {
     require(
       validateTxReceiptExistence(
         txData[0].toUint(), // headerNumber
-        txData[1].toData(), // headerProof,
+        txData[1].toBytes(), // headerProof,
 
         txData[2].toUint(), // blockNumber,
         txData[3].toUint(), // blockTime,
 
         bytes32(txData[4].toUint()), // txRoot,
         bytes32(txData[5].toUint()), // receiptRoot,
-        txData[6].toData(), // path,
+        txData[6].toBytes(), // path,
 
-        txData[7].toData(), // txBytes,
-        txData[8].toData(), // txProof
+        txData[7].toBytes(), // txBytes,
+        txData[8].toBytes(), // txProof
 
-        txData[9].toData(), // receiptBytes,
-        txData[10].toData() // receiptProof
+        txData[9].toBytes(), // receiptBytes,
+        txData[10].toBytes() // receiptProof
       )
     );
-    return _validateTransferTx(txData[7].toData(), txData[9].toData());
+    return _validateTransferTx(txData[7].toBytes(), txData[9].toBytes());
   }
   
   function _validateTransferTx(
@@ -83,7 +83,7 @@ contract ERC721Validator is RootChainValidator {
 
     // check if transaction is transfer tx
     // <4 bytes transfer event,address (32 bytes),address (32 bytes), tokenId (32 bytes)>
-    bytes memory dataField = items[5].toData();
+    bytes memory dataField = items[5].toBytes();
     require(BytesLib.toBytes4(BytesLib.slice(dataField, 0, 4)) == TRANSFER_SIGNATURE);
 
     // if data field is not 100(4+32+32+32) bytes, return
@@ -174,7 +174,7 @@ contract ERC721Validator is RootChainValidator {
       bytes32(topics[0].toUint()) == LOG_TRANSFER_EVENT_SIGNATURE &&
       address(topics[2].toUint()) == from &&
       address(topics[3].toUint()) == to &&
-      BytesLib.toUint(items[2].toData(),0) == tokenId
+      BytesLib.toUint(items[2].toBytes(),0) == tokenId
     ) {
       return true;
     }

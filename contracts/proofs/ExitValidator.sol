@@ -53,7 +53,7 @@ contract ExitValidator is RootChainValidator {
     uint256 exitId2 = (
       headerNumber * 1000000000000000000000000000000 +
       blockNumber * 1000000000000 +
-      path.toRLPItem().toData().toRLPItem().toUint() * 100000
+      path.toRlpItem().toBytes().toRlpItem().toUint() * 100000
     );
 
     // check if second transaction is after exiting tx

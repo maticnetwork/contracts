@@ -24,49 +24,49 @@ contract NonceValidator is RootChainValidator {
     require(keccak256(tx1) != keccak256(tx2));
 
     // validate first transaction
-    RLPReader.RLPItem[] memory txData = tx1.toRLPItem().toList();
+    RLPReader.RLPItem[] memory txData = tx1.toRlpItem().toList();
     require(
       validateTxExistence(
         txData[0].toUint(), // headerNumber
-        txData[1].toData(), // headerProof,
+        txData[1].toBytes(), // headerProof,
 
         txData[2].toUint(), // blockNumber,
         txData[3].toUint(), // blockTime,
 
         bytes32(txData[4].toUint()), // txRoot,
         bytes32(txData[5].toUint()), // receiptRoot,
-        txData[6].toData(), // path,
+        txData[6].toBytes(), // path,
 
-        txData[7].toData(), // txBytes,
-        txData[8].toData() // txProof
+        txData[7].toBytes(), // txBytes,
+        txData[8].toBytes() // txProof
       )
     );
 
-    address sender = getTxSender(txData[7].toData());
+    address sender = getTxSender(txData[7].toBytes());
     uint256 nonce = txData[7].toList()[0].toUint(); // fetch nonce
     uint256 txIndex = txData[2].toUint().mul(10000000).add(getPathInt(txData[6])); // blockNumber * 10000000 + tx index in block
 
     // validate second transaction
-    txData = tx2.toRLPItem().toList();
+    txData = tx2.toRlpItem().toList();
     require(
       validateTxExistence(
         txData[0].toUint(), // headerNumber
-        txData[1].toData(), // headerProof,
+        txData[1].toBytes(), // headerProof,
 
         txData[2].toUint(), // blockNumber,
         txData[3].toUint(), // blockTime,
 
         bytes32(txData[4].toUint()), // txRoot,
         bytes32(txData[5].toUint()), // receiptRoot,
-        txData[6].toData(), // path,
+        txData[6].toBytes(), // path,
 
-        txData[7].toData(), // txBytes,
-        txData[8].toData() // txProof
+        txData[7].toBytes(), // txBytes,
+        txData[8].toBytes() // txProof
       )
     );
 
     // check if sender is the same in both transactions
-    require(getTxSender(txData[7].toData()) == sender);
+    require(getTxSender(txData[7].toBytes()) == sender);
     // make sure tx2 is included after tx1
     require (
       txData[2].toUint().mul(10000000).add(getPathInt(txData[6])) > txIndex
@@ -83,6 +83,6 @@ contract NonceValidator is RootChainValidator {
   }
 
   function getPathInt(RLPReader.RLPItem memory path) internal view returns (uint256) {
-    return path.toData().toRLPItem().toData().toRLPItem().toUint();
+    return path.toBytes().toRlpItem().toBytes().toRlpItem().toUint();
   }
 }

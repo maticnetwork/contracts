@@ -237,7 +237,7 @@ contract DepositValidator is RootChainValidator {
     if (
       topics.length == 1 &&
       items[0].toAddress() == childToken &&
-      topics[0].toBytes32() == DEPOSIT_EVENT_SIGNATURE &&
+      bytes32(topics[0].toUint()) == DEPOSIT_EVENT_SIGNATURE &&
       BytesLib.toUint(items[2].toBytes(), 0) == amount &&
       BytesLib.toUint(items[2].toBytes(), 32).add(amount) == BytesLib.toUint(items[2].toBytes(), 64)
     ) {
@@ -262,7 +262,7 @@ contract DepositValidator is RootChainValidator {
     if (
       topics.length == 4 &&
       items[0].toAddress() == childChainContract &&
-      topics[0].toBytes32() == TOKEN_DEPOSITED_EVENT_SIGNATURE &&
+      bytes32(topics[0].toUint()) == TOKEN_DEPOSITED_EVENT_SIGNATURE &&
       BytesLib.toAddress(topics[1].toBytes(), 12) == rootToken &&
       BytesLib.toAddress(topics[2].toBytes(), 12) == childToken &&
       BytesLib.toAddress(topics[3].toBytes(), 12) == depositor &&
