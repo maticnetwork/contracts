@@ -1,28 +1,30 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.2;
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
-import { RLP } from "../lib/RLP.sol";
+import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
+import { Registry } from "../common/Registry.sol";
 
-import { RootChainValidator } from "../mixin/RootChainValidator.sol";
+import { RootChainValidator } from "../common/mixin/RootChainValidator.sol";
 import { IRootChain } from "../root/IRootChain.sol";
 
 
 contract NonceValidator is RootChainValidator {
   using SafeMath for uint256;
-  using RLP for bytes;
-  using RLP for RLP.RLPItem;
-  using RLP for RLP.Iterator;
+  using RLPReader for bytes;
+  using RLPReader for RLPReader.RLPItem;
+
+  constructor(Registry _registry, IRootChain _rootChain) RootChainValidator (_registry, _rootChain) public {}
 
   function validateMisMatchedNonce(
-    bytes tx1,
-    bytes tx2
+    bytes memory tx1,
+    bytes memory tx2
   ) public {
     // check if both transactions are not same
     require(keccak256(tx1) != keccak256(tx2));
 
     // validate first transaction
-    RLP.RLPItem[] memory txData = tx1.toRLPItem().toList();
+    RLPReader.RLPItem[] memory txData = tx1.toRLPItem().toList();
     require(
       validateTxExistence(
         txData[0].toUint(), // headerNumber
@@ -31,8 +33,8 @@ contract NonceValidator is RootChainValidator {
         txData[2].toUint(), // blockNumber,
         txData[3].toUint(), // blockTime,
 
-        txData[4].toBytes32(), // txRoot,
-        txData[5].toBytes32(), // receiptRoot,
+        bytes32(txData[4].toUint()), // txRoot,
+        bytes32(txData[5].toUint()), // receiptRoot,
         txData[6].toData(), // path,
 
         txData[7].toData(), // txBytes,
@@ -54,8 +56,8 @@ contract NonceValidator is RootChainValidator {
         txData[2].toUint(), // blockNumber,
         txData[3].toUint(), // blockTime,
 
-        txData[4].toBytes32(), // txRoot,
-        txData[5].toBytes32(), // receiptRoot,
+        bytes32(txData[4].toUint()), // txRoot,
+        bytes32(txData[5].toUint()), // receiptRoot,
         txData[6].toData(), // path,
 
         txData[7].toData(), // txBytes,
@@ -80,7 +82,7 @@ contract NonceValidator is RootChainValidator {
     revert("Invalid nonce challenge");
   }
 
-  function getPathInt(RLP.RLPItem path) internal view returns (uint256) {
+  function getPathInt(RLPReader.RLPItem memory path) internal view returns (uint256) {
     return path.toData().toRLPItem().toData().toRLPItem().toUint();
   }
 }
