@@ -10,7 +10,7 @@ import { Merkle } from "../../common/lib/Merkle.sol";
 import { MerklePatriciaProof } from "../../common/lib/MerklePatriciaProof.sol";
 import { PriorityQueue } from "../../common/lib/PriorityQueue.sol";
 
-// import { ExitNFT } from "../../common/tokens/ExitNFT.sol";
+import { ExitNFT } from "./ExitNFT.sol";
 
 import { Registry } from "../../common/Registry.sol";
 import { IWithdrawManager } from "./IWithdrawManager.sol";
@@ -270,7 +270,7 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
 
     // create NFT for exit UTXO
     // @todo
-    // ExitNFT(exitNFTContract).mint(_exitObject.owner, _exitId);
+    ExitNFT(exitNFTContract).mint(_exitObject.owner, _exitId);
     exits[_exitId] = _exitObject;
 
     // set current exit
