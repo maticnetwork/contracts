@@ -5,10 +5,11 @@ import { WithdrawManager } from "../root/withdrawManager/WithdrawManager.sol";
 
 contract Registry is Ownable {
   // @todo hardcode constants
-  bytes32 constant private WETH_TOKEN = keccak256('wethToken');
-  bytes32 constant private DEPOSIT_MANAGER = keccak256('depositManager');
-  bytes32 constant private STAKE_MANAGER = keccak256('stakeManager');
-  bytes32 constant private WITHDRAW_MANAGER = keccak256('withdrawManager');
+  bytes32 constant private WETH_TOKEN = keccak256("wethToken");
+  bytes32 constant private DEPOSIT_MANAGER = keccak256("depositManager");
+  bytes32 constant private STAKE_MANAGER = keccak256("stakeManager");
+  bytes32 constant private WITHDRAW_MANAGER = keccak256("withdrawManager");
+  bytes32 constant private CHILD_CHAIN_CONTRACT = keccak256("childChainContract");
 
   mapping(bytes32 => address) contractMap;
   mapping(address => address) public rootToChildToken;
@@ -64,6 +65,10 @@ contract Registry is Ownable {
 
   function getWithdrawManagerAddress() public view returns(address) {
     return contractMap[WITHDRAW_MANAGER];
+  }
+
+  function getChildChainContract() public view returns(address) {
+    return contractMap[CHILD_CHAIN_CONTRACT];
   }
 
   function isTokenMapped(address _token) public view returns (bool) {
