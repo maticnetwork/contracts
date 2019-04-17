@@ -1,17 +1,17 @@
 pragma solidity ^0.5.2;
 
-import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 import { BytesLib } from "../../common/lib/BytesLib.sol";
 import { Common } from "../../common/lib/Common.sol";
-import { RLPEncode } from "../../common/lib/RLPEncode.sol";
-import { Common } from "../../common/lib/Common.sol";
 import { MerklePatriciaProof } from "../../common/lib/MerklePatriciaProof.sol";
+import { RLPEncode } from "../../common/lib/RLPEncode.sol";
+import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 
 import { Registry } from "../../common/Registry.sol";
 
 library ChildChainVerifier {
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
+
 
   function processBurnReceipt(
     bytes memory receiptBytes, bytes memory path, bytes memory receiptProof,
@@ -25,12 +25,10 @@ library ChildChainVerifier {
 
     // [3][1] -> [childTokenAddress, [WITHDRAW_EVENT_SIGNATURE, rootTokenAddress, sender], amount]
     items = items[3].toList()[1].toList();
-    require(items.length == 3, "MALFORMED_RECEIPT"); // find a better msg
-    require(
-      registry.rootToChildToken(rootToken) == items[0].toAddress(),
-      "INVALID_ROOT_TO_CHILD_TOKEN_MAPPING"
-    );
-    amountOrTokenId = items[2].toUint();
+    require(items.length == 3, "MALFORMED_RECEIPT");
+
+    address childToken = address(items[0].toUint()); // amount
+    amountOrTokenId = BytesLib.toUint(items[2].toBytes(), 0); // amount
 
     // [3][1][1] -> [WITHDRAW_EVENT_SIGNATURE, rootTokenAddress, sender]
     items = items[1].toList();
@@ -43,8 +41,12 @@ library ChildChainVerifier {
 
     // @todo check if it's possible to do items[1].toAddress() directly
     rootToken = BytesLib.toAddress(items[1].toBytes(), 12);
-    
-    require(sender == BytesLib.toAddress(items[2].toBytes(), 12));
+    require(
+      registry.rootToChildToken(rootToken) == childToken,
+      "INVALID_ROOT_TO_CHILD_TOKEN_MAPPING"
+    );
+
+    require(sender == BytesLib.toAddress(items[2].toBytes(), 12), "WRONG_SENDER");
 
     // Make sure this receipt is the value on the path via a MerklePatricia proof
     require(
@@ -68,7 +70,7 @@ library ChildChainVerifier {
     Registry registry = Registry(_registry);
     // check mapped root<->child token
     require(
-      registry.rootToChildToken(rootToken) == txList[3].toAddress(),
+      registry.rootToChildToken(rootToken) == address(txList[3].toUint()),
       "INVALID_ROOT_TO_CHILD_TOKEN_MAPPING"
     );
 
@@ -80,17 +82,15 @@ library ChildChainVerifier {
       "WITHDRAW_SIGNATURE_NOT_FOUND"
     );
 
-    require(registry.isERC721(rootToken) || amountOrTokenId > 0);
-    require(amountOrTokenId == BytesLib.toUint(txList[5].toBytes(), 4));
+    require(registry.isERC721(rootToken) || amountOrTokenId > 0, "NOT_ERC_AND_ZERO_amountOrTokenId");
+    require(amountOrTokenId == BytesLib.toUint(txList[5].toBytes(), 4), "amountOrTokenId_MISMATCH");
 
     // Make sure this tx is the value on the path via a MerklePatricia proof
-    // @todo This might be possible to remove
     require(
       MerklePatriciaProof.verify(txBytes, path, txProof, txRoot),
       "INVALID_TX_MERKLE_PROOF"
     );
 
-    // raw tx
     bytes[] memory rawTx = new bytes[](9);
     for (uint8 i = 0; i <= 5; i++) {
       rawTx[i] = txList[i].toBytes();
@@ -100,14 +100,14 @@ library ChildChainVerifier {
     rawTx[7] = hex"";
     rawTx[8] = hex"";
 
-    // recover sender from v, r and s
     require(
       sender == ecrecover(
         keccak256(RLPEncode.encodeList(rawTx)),
         Common.getV(txList[6].toBytes(), Common.toUint8(networkId)),
         bytes32(txList[7].toUint()),
         bytes32(txList[8].toUint())
-      )
+      ),
+      "TRANSACTION_SENDER_MISMATCH"
     );
   }
 
@@ -158,7 +158,7 @@ library ChildChainVerifier {
       uint256 nftId = BytesLib.toUint(items[2].toBytes(), 0);
       return (nftId, 0 /* oIndex */);
     }
-    
+
     uint256 totalBalance;
     uint8 oIndex;
     if (to == sender) {

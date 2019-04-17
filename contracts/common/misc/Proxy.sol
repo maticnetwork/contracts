@@ -18,6 +18,14 @@ contract Proxy is ProxyStorage, DelegateProxy {
     updateImplementation(_proxyTo);
   }
 
+  function implementation()
+    external
+    view
+    returns(address)
+  {
+    return proxyTo;
+  }
+
   function transferOwnership(address _newOwner)
    external
    onlyOwner {

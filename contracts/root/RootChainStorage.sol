@@ -13,7 +13,7 @@ contract RootChainHeader {
   );
 
   event NewDepositBlock(
-    address indexed user,
+    address indexed owner,
     address indexed token,
     uint256 amountOrNFTId,
     uint256 depositBlockId
