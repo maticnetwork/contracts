@@ -16,6 +16,7 @@ import { Registry } from "../../common/Registry.sol";
 import { IWithdrawManager } from "./IWithdrawManager.sol";
 import { WithdrawManagerStorage } from "./WithdrawManagerStorage.sol";
 import { RootChainHeader } from "../RootChainStorage.sol";
+import { IDepositManager } from "../depositManager/IDepositManager.sol";
 
 contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
   using RLPReader for bytes;
@@ -278,5 +279,97 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
 
     // emit exit started event
     emit ExitStarted(_exitObject.owner, _exitId, _exitObject.token, _exitObject.receiptAmountOrNFTId);
+  }
+   // delete exit
+  function _deleteExit(uint256 exitId) internal {
+    ExitNFT exitNFT = ExitNFT(exitNFTContract);
+    address owner = exitNFT.ownerOf(exitId);
+    exitNFT.burn(owner, exitId);
+  }
+
+  /**
+  * @dev Processes any exits that have completed the exit period.
+  */
+  function _processExits(address _token) external {
+    uint256 exitableAt;
+    uint256 utxoPos;
+
+    // retrieve priority queue
+    PriorityQueue exitQueue = PriorityQueue(exitsQueues[_token]);
+
+    // Iterate while the queue is not empty.
+    while (exitQueue.currentSize() > 0) {
+      (exitableAt, utxoPos) = getNextExit(_token);
+
+      // Check if this exit has finished its challenge period.
+      if (exitableAt > block.timestamp) {
+        return;
+      }
+
+      // get withdraw block
+      PlasmaExit memory currentExit = exits[utxoPos];
+
+      // process if NFT exists
+      // If an exit was successfully challenged, owner would be address(0).
+      address exitOwner = ExitNFT(exitNFTContract).ownerOf(utxoPos);
+      if (exitOwner != address(0)) {
+        // burn NFT first
+        ExitNFT(exitNFTContract).burn(exitOwner, utxoPos);
+
+        // delete current exit if exit was "burnt"
+        if (currentExit.burnt) {
+          delete ownerExits[keccak256(_token, currentExit.owner)];
+        }
+
+        IDepositManager(registry.getDepositManagerAddress()).transferAmount(_token, exitOwner, currentExit.receiptAmountOrNFTId);
+
+        // broadcast withdraw events
+        emit Withdraw(exitOwner, _token, currentExit.receiptAmountOrNFTId);
+
+        // Delete owner but keep amount to prevent another exit from the same UTXO.
+        // delete exits[utxoPos].owner;
+      }
+
+      // exit queue
+      exitQueue.delMin();
+    }
+  }
+    // Exit NFT
+  function setExitNFTContract(address _nftContract) external onlyOwner {
+    require(_nftContract != address(0));
+    exitNFTContract = _nftContract;
+  }
+
+  function getExit(uint256 _utxoPos)
+    external
+    view
+    returns (address, address, uint256, bool)
+  {
+    return (
+      exits[_utxoPos].owner,
+      exits[_utxoPos].token,
+      exits[_utxoPos].receiptAmountOrNFTId,
+      exits[_utxoPos].burnt
+    );
+  }
+
+  /**
+  * @dev Determines the next exit to be processed.
+  * @param _token Asset type to be exited.
+  * @return A tuple of the position and time when this exit can be processed.
+  */
+  function getNextExit(address _token)
+    public
+    view
+    returns (uint256, uint256)
+  {
+    return PriorityQueue(exitsQueues[_token]).getMin();
+  }
+
+  function getExitId(address _token, address _owner, uint256 _tokenId) public view returns (uint256) {
+    if (depositManager.isERC721(_token)) {
+      return ownerExits[keccak256(_token, _owner, _tokenId)];
+    }
+    return ownerExits[keccak256(_token, _owner)];
   }
 }
