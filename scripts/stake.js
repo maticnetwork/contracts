@@ -1,7 +1,5 @@
 /* global artifacts */
 
-const contracts = require('./contracts.json')
-
 // const RootToken = artifacts.require('./token/TestToken.sol')
 const StakeManager = artifacts.require('./root/StakeManager.sol')
 const addressRegExp = /0x[0-9a-fA-F]{40}/m
@@ -9,7 +7,8 @@ const addressRegExp = /0x[0-9a-fA-F]{40}/m
 module.exports = function() {
   async function stake() {
     console.log('******* Staking Validators ********')
-    const stakeManager = await StakeManager.at(contracts.StakeManager)
+    let stakeManager = await artifacts.require('./root/StakeManager.sol').deployed()
+   
     // const rootToken = await RootToken.at(contracts.TestToken)
     const matched = process.argv[4].match(addressRegExp)
     var address = []

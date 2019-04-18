@@ -36,7 +36,7 @@ contract TokenManager {
    */
   function _mapToken(address _rootToken, address _childToken, bool _isERC721) internal {
     // throw if token is already mapped
-    require(!_isTokenMapped(_rootToken));
+    // require(!_isTokenMapped(_rootToken)); // Temp commented for experimental purpose
 
     // map token
     tokens[_rootToken] = _childToken;
