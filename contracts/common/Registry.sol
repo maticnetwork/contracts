@@ -51,13 +51,6 @@ contract Registry is Ownable {
     emit TokenMapped(_rootToken, _childToken);
   }
 
-  function setWETHToken(address _wethToken) external onlyOwner {
-    require(_wethToken != address(0));
-
-    contractMap[WETH_TOKEN] = _wethToken;
-    WithdrawManager(contractMap[WITHDRAW_MANAGER]).createExitQueue(_wethToken);
-  }
-
   function getWethTokenAddress() public view returns(address) {
     return contractMap[WETH_TOKEN];
   }
