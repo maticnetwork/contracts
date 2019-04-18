@@ -7,7 +7,7 @@ const StakeManager = artifacts.require('./root/StakeManager.sol')
 
 module.exports = function() {
   async function stake() {
-    console.log('----')
+    console.log('******* Staking Validators ********')
     const stakeManager = await StakeManager.at(contracts.StakeManager)
     const rootToken = await RootToken.at(contracts.TestToken)
 
