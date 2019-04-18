@@ -1,8 +1,9 @@
 pragma solidity ^0.5.2;
 
-import { Registry } from "../../common/Registry.sol";
 import { ProxyStorage } from "../../common/misc/ProxyStorage.sol";
+import { Registry } from "../../common/Registry.sol";
 import { RootChain } from "../RootChain.sol";
+
 
 contract WithdrawManagerHeader {
   struct PlasmaExit {
@@ -25,6 +26,7 @@ contract WithdrawManagerHeader {
     uint256 amount
   );
 }
+
 
 contract WithdrawManagerStorage is ProxyStorage, WithdrawManagerHeader {
   uint256 constant internal HEADER_BLOCK_NUMBER_WEIGHT = 10 ** 30;

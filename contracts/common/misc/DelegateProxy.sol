@@ -1,7 +1,7 @@
 pragma solidity ^0.5.2;
 
-import { ProxyStorage } from './ProxyStorage.sol';
-import { ERCProxy } from './ERCProxy.sol';
+import { ProxyStorage } from "./ProxyStorage.sol";
+import { ERCProxy } from "./ERCProxy.sol";
 
 
 contract DelegateProxy is ERCProxy {

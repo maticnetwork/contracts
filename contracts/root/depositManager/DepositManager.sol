@@ -1,14 +1,14 @@
 pragma solidity ^0.5.2;
 
+import { IERC721Receiver } from "openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol";
 import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import { ERC721 } from "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 
-import { IERC721Receiver } from "openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol";
-improt { ContractReceiver } from "./ContractReceiver.sol";
-import { Registry } from '../../common/Registry.sol';
+import { ContractReceiver } from "./ContractReceiver.sol";
+import { Registry } from "../../common/Registry.sol";
 import { WETH } from "../../common/tokens/WETH.sol";
-import { IDepositManager } from './IDepositManager.sol';
-import { DepositManagerStorage } from './DepositManagerStorage.sol';
+import { IDepositManager } from "./IDepositManager.sol";
+import { DepositManagerStorage } from "./DepositManagerStorage.sol";
 
 
 contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiver, ContractReceiver {

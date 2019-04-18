@@ -12,11 +12,12 @@ import { PriorityQueue } from "../../common/lib/PriorityQueue.sol";
 
 import { ExitNFT } from "./ExitNFT.sol";
 
-import { Registry } from "../../common/Registry.sol";
 import { IWithdrawManager } from "./IWithdrawManager.sol";
-import { WithdrawManagerStorage } from "./WithdrawManagerStorage.sol";
-import { RootChainHeader } from "../RootChainStorage.sol";
 import { IDepositManager } from "../depositManager/IDepositManager.sol";
+import { RootChainHeader } from "../RootChainStorage.sol";
+import { Registry } from "../../common/Registry.sol";
+import { WithdrawManagerStorage } from "./WithdrawManagerStorage.sol";
+
 
 contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
   using RLPReader for bytes;
@@ -280,16 +281,13 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     // emit exit started event
     emit ExitStarted(_exitObject.owner, _exitId, _exitObject.token, _exitObject.receiptAmountOrNFTId);
   }
-   // delete exit
-  function _deleteExit(uint256 exitId) internal {
+
+  function deleteExit(uint256 exitId) external {
     ExitNFT exitNFT = ExitNFT(exitNFTContract);
     address owner = exitNFT.ownerOf(exitId);
     exitNFT.burn(owner, exitId);
   }
 
-  /**
-  * @dev Processes any exits that have completed the exit period.
-  */
   function _processExits(address _token) external {
     uint256 exitableAt;
     uint256 utxoPos;
