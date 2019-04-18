@@ -4,13 +4,14 @@ import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import { ERC721 } from "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 
 import { IERC721Receiver } from "openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol";
+improt { ContractReceiver } from "./ContractReceiver.sol";
 import { Registry } from '../../common/Registry.sol';
 import { WETH } from "../../common/tokens/WETH.sol";
 import { IDepositManager } from './IDepositManager.sol';
 import { DepositManagerStorage } from './DepositManagerStorage.sol';
 
 
-contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiver {
+contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiver, ContractReceiver {
 
   modifier isTokenMapped(address _token) {
     require(registry.isTokenMapped(_token), "TOKEN_NOT_SUPPORTED");
