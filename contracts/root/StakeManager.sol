@@ -1,10 +1,10 @@
 pragma solidity ^0.4.24;
 
-import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import { ERC20 } from "../../node_modules/openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 
-import { ERC721Full } from "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
-import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
+import { ERC721Full } from "../../node_modules/openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
+import { SafeMath } from "../../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
+import { Math } from "../../node_modules/openzeppelin-solidity/contracts/math/Math.sol";
 
 import { BytesLib } from "../lib/BytesLib.sol";
 import { ECVerify } from "../lib/ECVerify.sol";
@@ -27,9 +27,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   event UnstakeInit(uint256 indexed validatorId, address indexed user, uint256 indexed amount, uint256 deactivationEpoch);
 
   // signer changed
-  event SignerChange(uint256 indexed validatorId, address indexed newSigner, address indexed oldSigner);
-
-  ERC20 public token;
+  event SignerChange(uint256 indexed validatorId, address indexed oldSigner, address indexed newSigner);
 
   // genesis/governance variables
   uint256 public DYNASTY = 2**13;  // unit: epoch
@@ -79,11 +77,9 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
   function stakeFor(address user, uint256 amount, address signer) public onlyWhenUnlocked {
     require(currentValidatorSetSize() < validatorThreshold);
-    require(balanceOf(user) == 0, "No second time staking");
-    require(amount >= MIN_DEPOSIT_SIZE);
     require(signerToValidator[signer] == 0);
 
-    require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");
+    // require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");
     totalStaked = totalStaked.add(amount);
 
     validators[NFTCounter] = Validator({
@@ -131,7 +127,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     delete signerToValidator[validators[validatorId].signer];
     // delete validators[validatorId];
 
-    require(token.transfer(msg.sender, amount + validators[validatorId].reward));
+    // require(token.transfer(msg.sender, amount + validators[validatorId].reward));
     emit Unstaked(msg.sender, validatorId, amount, totalStaked);
   }
 
@@ -173,11 +169,6 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     return false;
   }
   
-  // set staking Token
-  function setToken(address _token) public onlyOwner {
-    require(_token != address(0x0));
-    token = ERC20(_token);
-  }
 
   // Change the number of validators required to allow a passed header root
   function updateValidatorThreshold(uint256 newThreshold) public onlyOwner {
@@ -241,7 +232,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       validators[validatorId].deactivationEpoch > currentEpoch)
     );
   }
-
+    event sigsevent(address,bytes,uint256,uint256);
   function checkSignatures (
     bytes32 voteHash,
     bytes sigs
@@ -267,6 +258,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
         break;
       }
     }
+    emit sigsevent(signer,sigElement,stakePower,currentValidatorSetTotalStake().mul(2).div(3).add(1));
     return stakePower >= currentValidatorSetTotalStake().mul(2).div(3).add(1);
   }
 

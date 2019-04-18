@@ -1,12 +1,10 @@
 pragma solidity ^0.4.24;
 
-import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
-import { ERC721 } from "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
+import { ERC20 } from "../../node_modules/openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import { ERC721 } from "../../node_modules/openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 
-import { IERC721Receiver } from "openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol";
-
-import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import { Ownable } from "../../node_modules/openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import { SafeMath } from "../../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { WETH } from "../token/WETH.sol";
 import { PriorityQueue } from "../lib/PriorityQueue.sol";
@@ -20,11 +18,11 @@ import { IRootChain } from "./IRootChain.sol";
 import { StakeManager } from "./StakeManager.sol";
 
 
-contract RootChain is Ownable, IRootChain, IERC721Receiver {
+contract RootChain is Ownable, IRootChain {
   using SafeMath for uint256;
   using RLP for bytes;
   using RLP for RLP.RLPItem;
-  using RLP for RLP.Iterator;
+  using RLP for RLP.Iterator; 
 
   mapping(address => bool) public proofValidatorContracts;
 
@@ -36,7 +34,6 @@ contract RootChain is Ownable, IRootChain, IERC721Receiver {
 
   // current header block number
   uint256 private _currentHeaderBlock;
-
 
   // stake interface
   StakeManager public stakeManager;
@@ -99,8 +96,7 @@ contract RootChain is Ownable, IRootChain, IERC721Receiver {
   //
   // External functions
   //
-
-  function submitHeaderBlock(bytes vote, bytes sigs, bytes extradata) external {
+ function submitHeaderBlock(bytes vote, bytes sigs, bytes extradata) external {
     RLP.RLPItem[] memory dataList = vote.toRLPItem().toList();
     require(keccak256(dataList[0].toData()) == chain, "Chain ID not same");
     require(keccak256(dataList[1].toData()) == roundType, "Round type not same ");
@@ -112,7 +108,7 @@ contract RootChain is Ownable, IRootChain, IERC721Receiver {
     // extract end and assign to current child
     dataList = extradata.toRLPItem().toList();
 
-    // check proposer
+    // // check proposer
     require(msg.sender == dataList[0].toAddress(), "Invalid proposer");
     uint256 start = currentChildBlock();
     if (start > 0) {
@@ -126,34 +122,34 @@ contract RootChain is Ownable, IRootChain, IERC721Receiver {
     // Make sure we are adding blocks
     require(end > start, "Not adding blocks");
 
-    // Make sure enough validators sign off on the proposed header root
+    // // Make sure enough validators sign off on the proposed header root
     require(stakeManager.checkSignatures(keccak256(vote), sigs), "Sigs are invalid");
 
-    // Add the header root
+    // // Add the header root
     HeaderBlock memory headerBlock = HeaderBlock({
       root: root,
       start: start,
       end: end,
-      createdAt: block.timestamp,
+      createdAt: block.number,
       proposer: msg.sender
     });
     headerBlocks[_currentHeaderBlock] = headerBlock;
 
-    // emit new header block
+    // // emit new header block
     emit NewHeaderBlock(
-      msg.sender,
+      dataList[0].toAddress(),
       _currentHeaderBlock,
       headerBlock.start,
       headerBlock.end,
       root
     );
 
-    // update current header block
+    // // update current header block
     _currentHeaderBlock = _currentHeaderBlock.add(CHILD_BLOCK_INTERVAL);
 
-    // finalize commit
-    depositManager.finalizeCommit(_currentHeaderBlock);
-    withdrawManager.finalizeCommit(_currentHeaderBlock);
+    // // finalize commit
+    // depositManager.finalizeCommit(_currentHeaderBlock);
+    // withdrawManager.finalizeCommit(_currentHeaderBlock);
     stakeManager.finalizeCommit();
 
     // TODO add rewards
@@ -289,11 +285,6 @@ contract RootChain is Ownable, IRootChain, IERC721Receiver {
     depositManager.createDepositBlock(_currentHeaderBlock, _token, _user, _tokenId);
   }
 
-  function onERC721Received(address operator, address from, uint256 tokenId, bytes data) public returns (bytes4) {
-    depositManager.createDepositBlock(_currentHeaderBlock, msg.sender, from, tokenId);
-    return 0x150b7a02;
-  }
-
   // deposit tokens for another user
   function deposit(
     address _token,
@@ -306,7 +297,6 @@ contract RootChain is Ownable, IRootChain, IERC721Receiver {
     // generate deposit block and udpate counter
     depositManager.createDepositBlock(_currentHeaderBlock, _token, _user, _amount);
   }
-  
   
   // transfer tokens to user
   function transferAmount(
@@ -328,7 +318,7 @@ contract RootChain is Ownable, IRootChain, IERC721Receiver {
     }
     return true;
   }
-
+  
   /**
    * @dev Accept ERC223 compatible tokens
    * @param _user address The address that is transferring the tokens
