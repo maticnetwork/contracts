@@ -4,7 +4,7 @@ import { ERC20 } from "../../node_modules/openzeppelin-solidity/contracts/token/
 
 import { ERC721Full } from "../../node_modules/openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
 import { SafeMath } from "../../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
-import { Math } from "../../node_modules/openzeppelin-solidity/contracts/math/Math.sol";
+// import { Math } from "../../node_modules/openzeppelin-solidity/contracts/math/Math.sol";
 
 import { BytesLib } from "../lib/BytesLib.sol";
 import { ECVerify } from "../lib/ECVerify.sol";
@@ -16,7 +16,7 @@ import { Validator } from "./Validator.sol";
 import { IStakeManager } from "./IStakeManager.sol";
 
 
-contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
+contract StakeManager is  IStakeManager, RootChainable, Lockable, ERC721Full {
   using SafeMath for uint256;
   using ECVerify for bytes32;
 
@@ -33,8 +33,8 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   uint256 public DYNASTY = 2**13;  // unit: epoch
   uint256 public MIN_DEPOSIT_SIZE = (10**18);  // in ERC20 token
   uint256 public EPOCH_LENGTH = 256; // unit : block
-  uint256 public WITHDRAWAL_DELAY = DYNASTY.div(2); // unit: epoch
-  uint256 public UNSTAKE_DELAY = DYNASTY.mul(2); // unit: epoch
+  uint256 public WITHDRAWAL_DELAY = 0; // unit: epoch
+  uint256 public UNSTAKE_DELAY = 0; // unit: epoch
 
   uint256 public validatorThreshold = 10; //128
   uint256 public minLockInPeriod = 2; // unit: DYNASTY

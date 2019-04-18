@@ -4,7 +4,7 @@ require('babel-polyfill')
 var HDWalletProvider = require('truffle-hdwallet-provider')
 const MNEMONIC =
   'clock radar mass judge dismiss just intact mind resemble fringe diary casino'
-const API_KEY = ''
+const API_KEY = '7ac4e37ff3594447a70fb67bdd01b01b'
 module.exports = {
   // See <http://truffleframework.com/docs/advanced/configuration>
   // to customize your Truffle configuration!
