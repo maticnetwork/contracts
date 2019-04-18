@@ -309,14 +309,14 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
 
       // process if NFT exists
       // If an exit was successfully challenged, owner would be address(0).
-      address exitOwner = ExitNFT(exitNFTContract).ownerOf(utxoPos);
+      address payable exitOwner = address(uint160(ExitNFT(exitNFTContract).ownerOf(utxoPos)));
       if (exitOwner != address(0)) {
         // burn NFT first
         ExitNFT(exitNFTContract).burn(exitOwner, utxoPos);
 
         // delete current exit if exit was "burnt"
         if (currentExit.burnt) {
-          delete ownerExits[keccak256(_token, currentExit.owner)];
+          delete ownerExits[keccak256(abi.encodePacked(_token, currentExit.owner))];
         }
 
         IDepositManager(registry.getDepositManagerAddress()).transferAmount(_token, exitOwner, currentExit.receiptAmountOrNFTId);
@@ -333,7 +333,7 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     }
   }
     // Exit NFT
-  function setExitNFTContract(address _nftContract) external onlyOwner {
+  function setExitNFTContract(address _nftContract) external /* onlyOwner */ {
     require(_nftContract != address(0));
     exitNFTContract = _nftContract;
   }
@@ -365,9 +365,9 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
   }
 
   function getExitId(address _token, address _owner, uint256 _tokenId) public view returns (uint256) {
-    if (depositManager.isERC721(_token)) {
-      return ownerExits[keccak256(_token, _owner, _tokenId)];
+    if (registry.isERC721(_token)) {
+      return ownerExits[keccak256(abi.encodePacked(_token, _owner, _tokenId))];
     }
-    return ownerExits[keccak256(_token, _owner)];
+    return ownerExits[keccak256(abi.encodePacked(_token, _owner))];
   }
 }

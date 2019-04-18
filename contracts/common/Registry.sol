@@ -3,6 +3,7 @@ pragma solidity ^0.5.2;
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { WithdrawManager } from "../root/withdrawManager/WithdrawManager.sol";
 
+
 contract Registry is Ownable {
   // @todo hardcode constants
   bytes32 constant private WETH_TOKEN = keccak256("wethToken");
