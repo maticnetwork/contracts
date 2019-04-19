@@ -34,6 +34,10 @@ contract RootChainHeader {
     uint256 amountOrNFTId;
     uint256 createdAt;
   }
+  // event ChildChainChanged(address indexed previousChildChain, address indexed newChildChain);
+  // event ProofValidatorAdded(address indexed validator, address indexed from);
+  // event ProofValidatorRemoved(address indexed validator, address indexed from);
+  
 }
 
 
@@ -47,6 +51,7 @@ contract RootChainStorage is ProxyStorage, RootChainHeader {
   uint256 internal _nextHeaderBlock = MAX_DEPOSITS;
   uint256 internal _blockDepositId = 1;
 
+  mapping(address => bool) public proofValidatorContracts;
   mapping(uint256 => HeaderBlock) public headerBlocks;
   mapping(uint256 => DepositBlock) public deposits;
 

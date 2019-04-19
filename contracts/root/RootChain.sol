@@ -21,6 +21,11 @@ contract RootChain is RootChainStorage, IRootChain {
     );
     _;
   }
+  modifier isProofValidator(address _address) {
+    require(proofValidatorContracts[_address] == true);
+    _;
+  }
+
 
   constructor (address _registry) public {
     registry = Registry(_registry);
@@ -82,6 +87,14 @@ contract RootChain is RootChainStorage, IRootChain {
     _createdAt = _headerBlock.createdAt;
   }
 
+  /**  function currentChildBlock() public view returns(uint256) {
+    if (_currentHeaderBlock != CHILD_BLOCK_INTERVAL) {
+      return headerBlocks[_currentHeaderBlock.sub(CHILD_BLOCK_INTERVAL)].end;
+    }
+
+    return 0;
+  } */
+
   function _buildHeaderBlock(bytes memory data)
     private
     view
@@ -116,5 +129,18 @@ contract RootChain is RootChainStorage, IRootChain {
     headerBlock.root = bytes32(dataList[3].toUintStrict());
     headerBlock.createdAt = now;
     headerBlock.proposer = msg.sender;
+  }
+  //   emit ChildChainChanged(childChainContract, newChildChain);
+
+  function addProofValidator(address _validator) public /* onlyOwner */  {
+    require(_validator != address(0) && proofValidatorContracts[_validator] != true);
+    emit ProofValidatorAdded(_validator, msg.sender);
+    proofValidatorContracts[_validator] = true;
+  }
+
+  function removeProofValidator(address _validator) public /* onlyOwner */ {
+    require(proofValidatorContracts[_validator] == true);
+    emit ProofValidatorRemoved(_validator, msg.sender);
+    delete proofValidatorContracts[_validator];
   }
 }

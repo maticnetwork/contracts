@@ -18,6 +18,12 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
     _;
   }
 
+  // deposit ETH by sending to this contract
+  // TODO:order me correctly
+  function () public payable {
+    depositEthers();
+  }
+
   // @todo: write depositEtherForUser
   function depositEther()
     external

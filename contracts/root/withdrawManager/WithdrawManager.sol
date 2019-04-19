@@ -282,11 +282,12 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     emit ExitStarted(_exitObject.owner, _exitId, _exitObject.token, _exitObject.receiptAmountOrNFTId);
   }
 
-  function deleteExit(uint256 exitId) external {
+  function deleteExit(uint256 exitId) external {  //isProofValidator rootchain
     ExitNFT exitNFT = ExitNFT(exitNFTContract);
     address owner = exitNFT.ownerOf(exitId);
     exitNFT.burn(owner, exitId);
   }
+
 
   function _processExits(address _token) external {
     uint256 exitableAt;
