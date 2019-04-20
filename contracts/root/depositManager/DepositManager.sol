@@ -4,7 +4,7 @@ import { IERC721Receiver } from "openzeppelin-solidity/contracts/token/ERC721/IE
 import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import { ERC721 } from "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 
-import { ContractReceiver } from "./ContractReceiver.sol";
+import { ContractReceiver } from "../../common/misc/ContractReceiver.sol";
 import { Registry } from "../../common/Registry.sol";
 import { WETH } from "../../common/tokens/WETH.sol";
 import { IDepositManager } from "./IDepositManager.sol";
@@ -19,20 +19,29 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
   }
 
   // deposit ETH by sending to this contract
-  // TODO:order me correctly
-  function () public payable {
-    depositEthers();
+  function () external payable {
+    depositEther();
   }
 
-  // @todo: write depositEtherForUser
-  function depositEther()
-    external
-    payable
-  {
+  function transferAmount(address _token, address payable _user, uint256 _amountOrNFTId)
+  external
+  /* onlyWithdrawManager */
+  returns(bool) {
     address wethToken = registry.getWethTokenAddress();
-    WETH t = WETH(wethToken);
-    t.deposit.value(msg.value)();
-    _createDepositBlock(msg.sender, wethToken, msg.value);
+
+    // @todo use pull for transfer
+    if (registry.isERC721(_token)) {
+      ERC721(_token).transferFrom(address(this), _user, _amountOrNFTId);
+    } else if (_token == wethToken) {
+      WETH t = WETH(_token);
+      t.withdraw(_amountOrNFTId, _user);
+    } else {
+      require(
+        ERC20(_token).transfer(_user, _amountOrNFTId),
+        "TRANSFER_FAILED"
+      );
+    }
+    return true;
   }
 
   function depositERC20(address _token, uint256 _amount)
@@ -57,25 +66,15 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
     _createDepositBlock(_user, _token, _amount);
   }
 
-  function transferAmount(address _token, address payable _user, uint256 _amountOrNFTId)
-  external
-  /* onlyWithdrawManager */
-  returns(bool) {
+  // @todo: write depositEtherForUser
+  function depositEther()
+    public
+    payable
+  {
     address wethToken = registry.getWethTokenAddress();
-
-    // @todo use pull for transfer
-    if (registry.isERC721(_token)) {
-      ERC721(_token).transferFrom(address(this), _user, _amountOrNFTId);
-    } else if (_token == wethToken) {
-      WETH t = WETH(_token);
-      t.withdraw(_amountOrNFTId, _user);
-    } else {
-      require(
-        ERC20(_token).transfer(_user, _amountOrNFTId),
-        "TRANSFER_FAILED"
-      );
-    }
-    return true;
+    WETH t = WETH(wethToken);
+    t.deposit.value(msg.value)();
+    _createDepositBlock(msg.sender, wethToken, msg.value);
   }
 
   function depositERC721ForUser(address _token, address _user, uint256 _tokenId)
