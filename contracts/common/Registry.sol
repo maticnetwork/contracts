@@ -19,11 +19,17 @@ contract Registry is Ownable {
   mapping(address => bool) public isERC721;
 
   event TokenMapped(address indexed rootToken, address indexed childToken);
+  event ContractMapUpdated(
+   bytes32 indexed key,
+   address indexed previousContract,
+   address indexed newContract
+  );
 
   function updateContractMap(bytes32 _key, address _address)
     external
     onlyOwner
   {
+    emit ContractMapUpdated(_key, contractMap[_key], _address);
     contractMap[_key] = _address;
   }
 

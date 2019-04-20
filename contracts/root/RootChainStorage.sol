@@ -4,6 +4,8 @@ import { Registry } from "../common/Registry.sol";
 import { ProxyStorage } from "../common/misc/ProxyStorage.sol";
 
 contract RootChainHeader {
+  event ProofValidatorAdded(address indexed validator, address indexed from);
+  event ProofValidatorRemoved(address indexed validator, address indexed from);
   event NewHeaderBlock(
     address indexed proposer,
     uint256 indexed headerBlockId,
@@ -34,10 +36,6 @@ contract RootChainHeader {
     uint256 amountOrNFTId;
     uint256 createdAt;
   }
-  // event ChildChainChanged(address indexed previousChildChain, address indexed newChildChain);
-  // event ProofValidatorAdded(address indexed validator, address indexed from);
-  // event ProofValidatorRemoved(address indexed validator, address indexed from);
-  
 }
 
 
