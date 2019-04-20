@@ -5,17 +5,18 @@ import { ProxyStorage } from "./ProxyStorage.sol";
 
 contract Proxy is ProxyStorage, DelegateProxy {
 
-  event ProxyUpdated(address indexed _new, address indexed _old, address indexed _owner);
+  event ProxyUpdated(address indexed _new, address indexed _old);
   event OwnerUpdate(address _prevOwner, address _newOwner);
 
-  modifier onlyOwner() {
-    require(msg.sender == proxyOwner, "UNAUTHORIZED_USER");
-    _;
-  }
 
   constructor(address _proxyTo) public {
-    proxyOwner = msg.sender;
     updateImplementation(_proxyTo);
+  }
+
+  function () external payable {
+    // require(currentContract != 0, "If app code has not been set yet, do not call");
+    // Todo: filter out some calls or handle in the end fallback
+    delegatedFwd(proxyTo, msg.data);
   }
 
   function implementation()
@@ -26,28 +27,14 @@ contract Proxy is ProxyStorage, DelegateProxy {
     return proxyTo;
   }
 
-  function transferOwnership(address _newOwner)
-   external
-   onlyOwner {
-    require(_newOwner != address(0), "EMPTY_ADDRESS");
-    require(_newOwner != proxyOwner, "ALREADY_AUTHORIZED");
-    proxyOwner = _newOwner;
-  }
-
   function updateImplementation(address _newProxyTo)
   public
   onlyOwner
   {
     require(_newProxyTo != address(0x0), "INVALID_PROXY_ADDRESS");
     require(isContract(_newProxyTo), "DESTINATION_ADDRESS_IS_NOT_A_CONTRACT");
-    emit ProxyUpdated(_newProxyTo, proxyTo, proxyOwner);
+    emit ProxyUpdated(_newProxyTo, proxyTo);
     proxyTo = _newProxyTo;
-  }
-
-  function () external payable {
-    // require(currentContract != 0, "If app code has not been set yet, do not call");
-    // Todo: filter out some calls or handle in the end fallback
-    delegatedFwd(proxyTo, msg.data);
   }
 
   function isContract(address _target)
