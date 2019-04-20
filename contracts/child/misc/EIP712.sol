@@ -12,7 +12,8 @@ contract LibEIP712Domain {
   bytes32 public EIP712_DOMAIN_HASH;
 
   constructor () public {
-    EIP712_DOMAIN_HASH = keccak256(abi.encode(
+    EIP712_DOMAIN_HASH = keccak256(
+      abi.encodePacked(
       EIP712_DOMAIN_SCHEMA_HASH,
       keccak256(bytes(EIP712_DOMAIN_NAME)),
       keccak256(bytes(EIP712_DOMAIN_VERSION)),

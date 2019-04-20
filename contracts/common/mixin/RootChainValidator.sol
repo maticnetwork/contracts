@@ -186,7 +186,7 @@ contract RootChainValidator is RootChainable, Lockable {
     }
 
     rawTx[4] = hex"";
-    rawTx[6] = IWithdrawManager(registry.getWithdrawManagerAddress()).networkId(); // temp fix me 
+    rawTx[6] = registry.networkId();
     rawTx[7] = hex"";
     rawTx[8] = hex"";
 

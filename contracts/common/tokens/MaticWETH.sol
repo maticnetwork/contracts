@@ -21,7 +21,7 @@ contract MaticWETH is WETH {
   }
 
   function withdraw(uint wad, address payable user) public {
-    require(balanceOf(msg.sender)>= wad);
+    require(balanceOf(msg.sender) >= wad);
     user.transfer(wad);
     _burn(msg.sender, wad);
     emit Withdrawal(user, wad);
