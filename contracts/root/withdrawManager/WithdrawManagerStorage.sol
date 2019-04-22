@@ -32,7 +32,7 @@ contract WithdrawManagerStorage is ProxyStorage, WithdrawManagerHeader {
   uint256 constant internal HEADER_BLOCK_NUMBER_WEIGHT = 10 ** 30;
   uint256 constant internal WITHDRAW_BLOCK_NUMBER_WEIGHT = 10 ** 12;
 
-  bytes1 constant public networkId = "\x0d";
+  bytes constant public networkId = "\x0d";
 
   Registry internal registry;
   RootChain internal rootChain;

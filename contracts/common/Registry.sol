@@ -11,7 +11,7 @@ contract Registry is Ownable {
   bytes32 constant private STAKE_MANAGER = keccak256("stakeManager");
   bytes32 constant private WITHDRAW_MANAGER = keccak256("withdrawManager");
   bytes32 constant private CHILD_CHAIN_CONTRACT = keccak256("childChainContract");
-  bytes1 constant public networkId = "\x0d";
+  bytes constant public networkId = "\x0d";
 
   mapping(bytes32 => address) contractMap;
   mapping(address => address) public rootToChildToken;
