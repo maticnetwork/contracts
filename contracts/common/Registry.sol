@@ -16,10 +16,13 @@ contract Registry is Ownable {
   mapping(bytes32 => address) contractMap;
   mapping(address => address) public rootToChildToken;
   mapping(address => address) public childToRootToken;
+  mapping(address => bool) public proofValidatorContracts;
   // @todo we can think of one function from the registry which returns both (childToken,isERC721) if we are using it frequently together.
   mapping(address => bool) public isERC721;
 
   event TokenMapped(address indexed rootToken, address indexed childToken);
+  event ProofValidatorAdded(address indexed validator, address indexed from);
+  event ProofValidatorRemoved(address indexed validator, address indexed from);
   event ContractMapUpdated(
    bytes32 indexed key,
    address indexed previousContract,
@@ -57,6 +60,18 @@ contract Registry is Ownable {
     isERC721[_rootToken] = _isERC721;
     WithdrawManager(contractMap[WITHDRAW_MANAGER]).createExitQueue(_rootToken);
     emit TokenMapped(_rootToken, _childToken);
+  }
+
+  function addProofValidator(address _validator) public onlyOwner {
+    require(_validator != address(0) && proofValidatorContracts[_validator] != true);
+    emit ProofValidatorAdded(_validator, msg.sender);
+    proofValidatorContracts[_validator] = true;
+  }
+
+  function removeProofValidator(address _validator) public onlyOwner {
+    require(proofValidatorContracts[_validator] == true);
+    emit ProofValidatorRemoved(_validator, msg.sender);
+    delete proofValidatorContracts[_validator];
   }
 
   function getWethTokenAddress() public view returns(address) {

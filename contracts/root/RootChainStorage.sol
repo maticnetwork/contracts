@@ -5,8 +5,6 @@ import { ProxyStorage } from "../common/misc/ProxyStorage.sol";
 
 
 contract RootChainHeader {
-  event ProofValidatorAdded(address indexed validator, address indexed from);
-  event ProofValidatorRemoved(address indexed validator, address indexed from);
   event NewHeaderBlock(
     address indexed proposer,
     uint256 indexed headerBlockId,
@@ -50,7 +48,6 @@ contract RootChainStorage is ProxyStorage, RootChainHeader {
   uint256 internal _nextHeaderBlock = MAX_DEPOSITS;
   uint256 internal _blockDepositId = 1;
 
-  mapping(address => bool) public proofValidatorContracts;
   mapping(uint256 => HeaderBlock) public headerBlocks;
   mapping(uint256 => DepositBlock) public deposits;
 

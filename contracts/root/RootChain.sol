@@ -22,7 +22,7 @@ contract RootChain is RootChainStorage {
     _;
   }
   modifier isProofValidator(address _address) {
-    require(proofValidatorContracts[_address] == true);
+    require(registry.proofValidatorContracts(_address));
     _;
   }
 
@@ -73,6 +73,10 @@ contract RootChain is RootChainStorage {
     _blockDepositId.add(1);
   }
 
+  function slash() external isProofValidator {
+    //TODO: future implementation
+  }
+
   function _buildHeaderBlock(bytes memory data)
     private
     view
@@ -109,15 +113,4 @@ contract RootChain is RootChainStorage {
     headerBlock.proposer = msg.sender;
   }
 
-  function addProofValidator(address _validator) public /* onlyOwner */  {
-    require(_validator != address(0) && proofValidatorContracts[_validator] != true);
-    emit ProofValidatorAdded(_validator, msg.sender);
-    proofValidatorContracts[_validator] = true;
-  }
-
-  function removeProofValidator(address _validator) public /* onlyOwner */ {
-    require(proofValidatorContracts[_validator] == true);
-    emit ProofValidatorRemoved(_validator, msg.sender);
-    delete proofValidatorContracts[_validator];
-  }
 }
