@@ -4,13 +4,12 @@ import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
-import { IRootChain } from "./IRootChain.sol";
 import { RootChainHeader, RootChainStorage } from "./RootChainStorage.sol";
 import { IStakeManager } from "./stakeManager/IStakeManager.sol";
 import { Registry } from "../common/Registry.sol";
 
 
-contract RootChain is RootChainStorage, IRootChain {
+contract RootChain is RootChainStorage {
   using SafeMath for uint256;
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;

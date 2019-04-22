@@ -48,7 +48,7 @@ contract RootChainValidator is RootChainable, Lockable {
     // fetch header block
     bytes32 headerRoot;
     uint256 start;
-    (headerRoot, start,,) = rootChain.getHeaderBlock(headerNumber);
+    (headerRoot, start,,) = rootChain.headerBlocks(headerNumber);
 
     // check if tx's block is included in header and tx is in block
     return keccak256(abi.encodePacked(blockNumber, blockTime, txRoot, receiptRoot))
