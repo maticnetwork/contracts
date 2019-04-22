@@ -74,28 +74,6 @@ contract RootChain is RootChainStorage, IRootChain {
     _blockDepositId.add(1);
   }
 
-  function getHeaderBlock(uint256 _headerNumber) external view returns (
-    bytes32 _root,
-    uint256 _start,
-    uint256 _end,
-    uint256 _createdAt
-  ) {
-    HeaderBlock memory _headerBlock = headerBlocks[_headerNumber];
-
-    _root = _headerBlock.root;
-    _start = _headerBlock.start;
-    _end = _headerBlock.end;
-    _createdAt = _headerBlock.createdAt;
-  }
-
-  /**  function currentChildBlock() public view returns(uint256) {
-    if (_currentHeaderBlock != CHILD_BLOCK_INTERVAL) {
-      return headerBlocks[_currentHeaderBlock.sub(CHILD_BLOCK_INTERVAL)].end;
-    }
-
-    return 0;
-  } */
-
   function _buildHeaderBlock(bytes memory data)
     private
     view
@@ -131,7 +109,6 @@ contract RootChain is RootChainStorage, IRootChain {
     headerBlock.createdAt = now;
     headerBlock.proposer = msg.sender;
   }
-  //   emit ChildChainChanged(childChainContract, newChildChain);
 
   function addProofValidator(address _validator) public /* onlyOwner */  {
     require(_validator != address(0) && proofValidatorContracts[_validator] != true);

@@ -339,19 +339,6 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     exitNFTContract = _nftContract;
   }
 
-  function getExit(uint256 _utxoPos)
-    external
-    view
-    returns (address, address, uint256, bool)
-  {
-    return (
-      exits[_utxoPos].owner,
-      exits[_utxoPos].token,
-      exits[_utxoPos].receiptAmountOrNFTId,
-      exits[_utxoPos].burnt
-    );
-  }
-
   /**
   * @dev Determines the next exit to be processed.
   * @param _token Asset type to be exited.
