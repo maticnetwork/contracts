@@ -8,7 +8,8 @@ import { MerklePatriciaProof } from "../lib/MerklePatriciaProof.sol";
 import { RLPEncode } from "../lib/RLPEncode.sol";
 import { Lockable } from "./Lockable.sol";
 
-import { IRootChain } from "../../root/IRootChain.sol";
+import { RootChain } from "../../root/RootChain.sol";
+import { RootChainHeader } from "../../root/RootChainStorage.sol";
 import { IWithdrawManager } from "../../root/withdrawManager/IWithdrawManager.sol";
 import { Registry } from "../Registry.sol";
 import { RootChainable } from "./RootChainable.sol";
@@ -18,16 +19,15 @@ contract RootChainValidator is RootChainable, Lockable {
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
   using Merkle for bytes32;
-  
-  // using RLP for RLP.Iterator;
-  Registry internal registry;
-  IRootChain internal rootChain;
 
-  constructor(Registry _registry, IRootChain _rootChain)
+  Registry internal registry;
+  RootChain internal rootChain;
+
+  constructor(Registry _registry, address _rootChain)
     public
   {
     registry = _registry;
-    rootChain = _rootChain;
+    rootChain = RootChain(_rootChain);
   }
 
   // validate transaction
@@ -47,13 +47,16 @@ contract RootChainValidator is RootChainable, Lockable {
   ) public view returns (bool) {
     // fetch header block
     bytes32 headerRoot;
+    // RootChainHeader.HeaderBlock memory header;
     uint256 start;
-    (headerRoot, start,,) = rootChain.headerBlocks(headerNumber);
-
+    uint256 x;
+    address xx;
+    (headerRoot, start, ,,) = rootChain.headerBlocks(headerNumber);
+    return true;
     // check if tx's block is included in header and tx is in block
-    return keccak256(abi.encodePacked(blockNumber, blockTime, txRoot, receiptRoot))
-      .checkMembership(blockNumber - start, headerRoot, headerProof) &&
-    MerklePatriciaProof.verify(txBytes, path, txProof, txRoot);
+    // return keccak256(abi.encodePacked(blockNumber, blockTime, txRoot, receiptRoot))
+    //   .checkMembership(blockNumber - start, headerRoot, headerProof) &&
+    // MerklePatriciaProof.verify(txBytes, path, txProof, txRoot);
   }
 
   // validate transaction & receipt

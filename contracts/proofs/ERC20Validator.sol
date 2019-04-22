@@ -5,7 +5,6 @@ import { BytesLib } from "../common/lib/BytesLib.sol";
 import { Registry } from "../common/Registry.sol";
 
 import { RootChainValidator } from "../common/mixin/RootChainValidator.sol";
-import { IRootChain } from "../root/IRootChain.sol";
 
 
 contract ERC20Validator is RootChainValidator {
@@ -29,7 +28,7 @@ contract ERC20Validator is RootChainValidator {
   // keccak256('LogTransfer(address,address,address,uint256,uint256,uint256,uint256,uint256)')
   bytes32 constant public LOG_TRANSFER_EVENT_SIGNATURE = 0xe6497e3ee548a3372136af2fcb0696db31fc6cf20260707645068bd3fe97f3c4;
 
-  constructor(Registry _registry, IRootChain _rootChain) RootChainValidator (_registry, _rootChain) public {}
+  constructor(Registry _registry, address _rootChain) RootChainValidator (_registry, _rootChain) public {}
 
   // validate ERC20 TX
   function validateTransferTx(
@@ -40,7 +39,7 @@ contract ERC20Validator is RootChainValidator {
 
     // validate ERC20 transfer tx
     if (!_validateTransferTx(txData)) {
-      IRootChain(rootChain).slash();
+      rootChain.slash();
     }
   }
 

@@ -14,7 +14,7 @@ contract NonceValidator is RootChainValidator {
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
 
-  constructor(Registry _registry, IRootChain _rootChain) RootChainValidator (_registry, _rootChain) public {}
+  constructor(Registry _registry, address _rootChain) RootChainValidator (_registry, _rootChain) public {}
 
   function validateMisMatchedNonce(
     bytes memory tx1,
@@ -74,7 +74,7 @@ contract NonceValidator is RootChainValidator {
 
     // check if both nonce values are same or nonce2 < nonce1, just call slasher
     if (txData[7].toList()[0].toUint() <= nonce) {
-      IRootChain(rootChain).slash();
+      rootChain.slash();
       return;
     }
 

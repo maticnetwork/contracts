@@ -1,14 +1,13 @@
 pragma solidity ^0.5.2;
 
 import { RootChainValidator } from "../common/mixin/RootChainValidator.sol";
-import { IWithdrawManager } from "../root/withdrawManager/IWithdrawManager.sol";
-import { IRootChain } from "../root/IRootChain.sol";
+import { WithdrawManager } from "../root/withdrawManager/WithdrawManager.sol";
 import { Registry } from "../common/Registry.sol";
 
 
 contract ExitValidator is RootChainValidator {
 
-  constructor(Registry _registry, IRootChain _rootChain) RootChainValidator (_registry, _rootChain) public {}
+  constructor(Registry _registry, address _rootChain) RootChainValidator (_registry, _rootChain) public {}
 
   // challenge exit
   function challengeExit(
@@ -60,7 +59,7 @@ contract ExitValidator is RootChainValidator {
     require(exitId2 > exitId);
 
     // burn nft without transferring money
-    IRootChain(rootChain).deleteExit(exitId);
+    WithdrawManager(registry.getWithdrawManagerAddress()).deleteExit(exitId);
   }
 
   //
@@ -71,7 +70,7 @@ contract ExitValidator is RootChainValidator {
     address owner;
     uint256 amount;
     bool burnt;
-    (owner,,amount, burnt) = IWithdrawManager(registry.getWithdrawManagerAddress()).exits(exitId);
+    (owner,,amount, burnt) = WithdrawManager(registry.getWithdrawManagerAddress()).exits(exitId);
 
     // check if already burnt
     require(burnt == false && amount > 0 && owner != address(0));

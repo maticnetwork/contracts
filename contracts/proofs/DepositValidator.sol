@@ -8,7 +8,6 @@ import { BytesLib } from "../common/lib/BytesLib.sol";
 import { Registry } from "../common/Registry.sol";
 
 import { RootChainValidator } from "../common/mixin/RootChainValidator.sol";
-import { IRootChain } from "../root/IRootChain.sol";
 
 
 contract DepositValidator is RootChainValidator {
@@ -22,7 +21,7 @@ contract DepositValidator is RootChainValidator {
   bytes32 constant public DEPOSIT_EVENT_SIGNATURE = 0x4e2ca0515ed1aef1395f66b5303bb5d6f1bf9d61a353fa53f73f8ac9973fa9f6;
   address private childChainContract;
 
-  constructor(Registry _registry, IRootChain _rootChain)
+  constructor(Registry _registry, address _rootChain)
     RootChainValidator (_registry, _rootChain)
     public
   {
@@ -58,7 +57,7 @@ contract DepositValidator is RootChainValidator {
 
     // actual validation
     if (!_validateDepositTx(txData[7].toBytes(), txData[9].toBytes())) {
-      IRootChain(rootChain).slash();
+      rootChain.slash();
     }
   }
 
@@ -133,7 +132,7 @@ contract DepositValidator is RootChainValidator {
 
     // check if both depositCounts are same
     if (BytesLib.toUint(dataField, 100) == depositCount1) {
-      IRootChain(rootChain).slash();
+      rootChain.slash();
       return;
     }
 
@@ -210,7 +209,7 @@ contract DepositValidator is RootChainValidator {
     uint256 _amount;
 
     // fetch deposit block
-    (,_rootToken, _depositor, _amount,) = IRootChain(rootChain).depositBlock(depositCount);
+    (_rootToken, _depositor, _amount,,) = rootChain.deposits(depositCount);
 
     if (
       _rootToken == rootToken &&

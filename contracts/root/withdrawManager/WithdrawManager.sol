@@ -24,6 +24,11 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
   using RLPReader for RLPReader.RLPItem;
   using Merkle for bytes32;
 
+  modifier isProofValidator() {
+    require(registry.proofValidatorContracts(msg.sender));
+    _;
+  }
+
   /**
    * @notice Withdraw tokens that have been burnt on the child chain
    * @param headerNumber Header block number of which the burn tx was a part of
@@ -282,12 +287,11 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     emit ExitStarted(_exitObject.owner, _exitId, _exitObject.token, _exitObject.receiptAmountOrNFTId);
   }
 
-  function deleteExit(uint256 exitId) external {  //isProofValidator rootchain
+  function deleteExit(uint256 exitId) external isProofValidator {
     ExitNFT exitNFT = ExitNFT(exitNFTContract);
     address owner = exitNFT.ownerOf(exitId);
     exitNFT.burn(owner, exitId);
   }
-
 
   function _processExits(address _token) external {
     uint256 exitableAt;
@@ -298,7 +302,7 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
 
     // Iterate while the queue is not empty.
     while (exitQueue.currentSize() > 0) {
-      (exitableAt, utxoPos) = getNextExit(_token);
+      (exitableAt, utxoPos) = exitQueue.getMin();
 
       // Check if this exit has finished its challenge period.
       if (exitableAt > block.timestamp) {
@@ -333,23 +337,11 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
       exitQueue.delMin();
     }
   }
+
     // Exit NFT
-  function setExitNFTContract(address _nftContract) external /* onlyOwner */ {
+  function setExitNFTContract(address _nftContract) external onlyOwner {
     require(_nftContract != address(0));
     exitNFTContract = _nftContract;
-  }
-
-  /**
-  * @dev Determines the next exit to be processed.
-  * @param _token Asset type to be exited.
-  * @return A tuple of the position and time when this exit can be processed.
-  */
-  function getNextExit(address _token)
-    public
-    view
-    returns (uint256, uint256)
-  {
-    return PriorityQueue(exitsQueues[_token]).getMin();
   }
 
   function getExitId(address _token, address _owner, uint256 _tokenId) public view returns (uint256) {

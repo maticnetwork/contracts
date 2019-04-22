@@ -21,11 +21,11 @@ contract RootChain is RootChainStorage {
     );
     _;
   }
-  modifier isProofValidator(address _address) {
-    require(registry.proofValidatorContracts(_address));
+
+  modifier isProofValidator() {
+    require(registry.proofValidatorContracts(msg.sender));
     _;
   }
-
 
   constructor (address _registry) public {
     registry = Registry(_registry);

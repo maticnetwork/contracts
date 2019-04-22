@@ -10,7 +10,7 @@ import { IRootChain } from "../root/IRootChain.sol";
 contract TxValidator is RootChainValidator {
   using Merkle for bytes32;
 
-  constructor(Registry _registry, IRootChain _rootChain) RootChainValidator (_registry, _rootChain) public {}
+  constructor(Registry _registry, address _rootChain) RootChainValidator (_registry, _rootChain) public {}
 
   // validate tx and slash
   function validateTxAndSlash(
@@ -48,7 +48,7 @@ contract TxValidator is RootChainValidator {
       )
     ) {
       // slash if tx is not valid
-      IRootChain(rootChain).slash();
+      rootChain.slash();
       return;
     }
 
