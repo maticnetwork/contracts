@@ -25,7 +25,9 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
   using Merkle for bytes32;
 
   modifier isProofValidator() {
-    require(registry.proofValidatorContracts(msg.sender));
+    require(
+      registry.proofValidatorContracts(msg.sender),
+      "UNAUTHORIZED_PROOF_VALIDATOR_CONTRACT");
     _;
   }
 
@@ -77,7 +79,7 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
       amountOrNFTId,
       msg.sender,
       address(registry),
-      networkId
+      registry.networkId()
     );
 
     PlasmaExit memory _exitObject = PlasmaExit({

@@ -1,7 +1,6 @@
 pragma solidity ^0.5.2;
 
 interface IRootChain {
-  function depositBlock(uint256) external view returns(uint256, address, address, uint256, uint256);
   function slash() external;
   function submitHeaderBlock(bytes calldata vote, bytes calldata sigs, bytes calldata extradata) external;
   function createDepositBlock(address owner, address token, uint256 amountOrNFTId) external;

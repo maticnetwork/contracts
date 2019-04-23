@@ -47,16 +47,12 @@ contract RootChainValidator is RootChainable, Lockable {
   ) public view returns (bool) {
     // fetch header block
     bytes32 headerRoot;
-    // RootChainHeader.HeaderBlock memory header;
     uint256 start;
-    uint256 x;
-    address xx;
     (headerRoot, start, ,,) = rootChain.headerBlocks(headerNumber);
-    return true;
     // check if tx's block is included in header and tx is in block
-    // return keccak256(abi.encodePacked(blockNumber, blockTime, txRoot, receiptRoot))
-    //   .checkMembership(blockNumber - start, headerRoot, headerProof) &&
-    // MerklePatriciaProof.verify(txBytes, path, txProof, txRoot);
+    return keccak256(abi.encodePacked(blockNumber, blockTime, txRoot, receiptRoot))
+      .checkMembership(blockNumber - start, headerRoot, headerProof) &&
+    MerklePatriciaProof.verify(txBytes, path, txProof, txRoot);
   }
 
   // validate transaction & receipt
@@ -137,7 +133,7 @@ contract RootChainValidator is RootChainable, Lockable {
       return false;
     }
 
-    RLPReader.RLPItem memory rlpItem = txBytes.toRlpItem();//.toList();
+    RLPReader.RLPItem memory rlpItem = txBytes.toRlpItem();
     if (!rlpItem.isList() || rlpItem.toList().length != 9) {
       return false;
     }

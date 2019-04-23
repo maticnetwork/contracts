@@ -23,7 +23,9 @@ contract RootChain is RootChainStorage {
   }
 
   modifier isProofValidator() {
-    require(registry.proofValidatorContracts(msg.sender));
+    require(
+      registry.proofValidatorContracts(msg.sender),
+      "UNAUTHORIZED_PROOF_VALIDATOR_CONTRACT");
     _;
   }
 

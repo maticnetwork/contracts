@@ -8,5 +8,4 @@ contract IWithdrawManager {
   function withdrawDepositTokens() external;
   function withdrawBurntTokens() public;
   function withdrawTokens() public;
-  function networkId() public view returns(bytes memory);
 }
