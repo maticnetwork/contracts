@@ -1,8 +1,8 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.2;
 
 import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 
-import "./ContractReceiver.sol";
+import "../misc/ContractReceiver.sol";
 
 
 /// @title Standard token contract - Standard token implementation.

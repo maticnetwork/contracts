@@ -10,17 +10,26 @@ import { Merkle } from "../../common/lib/Merkle.sol";
 import { MerklePatriciaProof } from "../../common/lib/MerklePatriciaProof.sol";
 import { PriorityQueue } from "../../common/lib/PriorityQueue.sol";
 
-// import { ExitNFT } from "../../common/tokens/ExitNFT.sol";
+import { ExitNFT } from "./ExitNFT.sol";
 
-import { Registry } from "../../common/Registry.sol";
 import { IWithdrawManager } from "./IWithdrawManager.sol";
-import { WithdrawManagerStorage } from "./WithdrawManagerStorage.sol";
+import { IDepositManager } from "../depositManager/IDepositManager.sol";
 import { RootChainHeader } from "../RootChainStorage.sol";
+import { Registry } from "../../common/Registry.sol";
+import { WithdrawManagerStorage } from "./WithdrawManagerStorage.sol";
+
 
 contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
   using Merkle for bytes32;
+
+  modifier isProofValidator() {
+    require(
+      registry.proofValidatorContracts(msg.sender),
+      "UNAUTHORIZED_PROOF_VALIDATOR_CONTRACT");
+    _;
+  }
 
   /**
    * @notice Withdraw tokens that have been burnt on the child chain
@@ -70,7 +79,7 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
       amountOrNFTId,
       msg.sender,
       address(registry),
-      networkId
+      registry.networkId()
     );
 
     PlasmaExit memory _exitObject = PlasmaExit({
@@ -270,7 +279,7 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
 
     // create NFT for exit UTXO
     // @todo
-    // ExitNFT(exitNFTContract).mint(_exitObject.owner, _exitId);
+    ExitNFT(exitNFTContract).mint(_exitObject.owner, _exitId);
     exits[_exitId] = _exitObject;
 
     // set current exit
@@ -278,5 +287,69 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
 
     // emit exit started event
     emit ExitStarted(_exitObject.owner, _exitId, _exitObject.token, _exitObject.receiptAmountOrNFTId);
+  }
+
+  function deleteExit(uint256 exitId) external isProofValidator {
+    ExitNFT exitNFT = ExitNFT(exitNFTContract);
+    address owner = exitNFT.ownerOf(exitId);
+    exitNFT.burn(owner, exitId);
+  }
+
+  function _processExits(address _token) external {
+    uint256 exitableAt;
+    uint256 utxoPos;
+
+    // retrieve priority queue
+    PriorityQueue exitQueue = PriorityQueue(exitsQueues[_token]);
+
+    // Iterate while the queue is not empty.
+    while (exitQueue.currentSize() > 0) {
+      (exitableAt, utxoPos) = exitQueue.getMin();
+
+      // Check if this exit has finished its challenge period.
+      if (exitableAt > block.timestamp) {
+        return;
+      }
+
+      // get withdraw block
+      PlasmaExit memory currentExit = exits[utxoPos];
+
+      // process if NFT exists
+      // If an exit was successfully challenged, owner would be address(0).
+      address payable exitOwner = address(uint160(ExitNFT(exitNFTContract).ownerOf(utxoPos)));
+      if (exitOwner != address(0)) {
+        // burn NFT first
+        ExitNFT(exitNFTContract).burn(exitOwner, utxoPos);
+
+        // delete current exit if exit was "burnt"
+        if (currentExit.burnt) {
+          delete ownerExits[keccak256(abi.encodePacked(_token, currentExit.owner))];
+        }
+
+        IDepositManager(registry.getDepositManagerAddress()).transferAmount(_token, exitOwner, currentExit.receiptAmountOrNFTId);
+
+        // broadcast withdraw events
+        emit Withdraw(exitOwner, _token, currentExit.receiptAmountOrNFTId);
+
+        // Delete owner but keep amount to prevent another exit from the same UTXO.
+        // delete exits[utxoPos].owner;
+      }
+
+      // exit queue
+      exitQueue.delMin();
+    }
+  }
+
+    // Exit NFT
+  function setExitNFTContract(address _nftContract) external onlyOwner {
+    require(_nftContract != address(0));
+    exitNFTContract = _nftContract;
+  }
+
+  function getExitId(address _token, address _owner, uint256 _tokenId) public view returns (uint256) {
+    if (registry.isERC721(_token)) {
+      return ownerExits[keccak256(abi.encodePacked(_token, _owner, _tokenId))];
+    }
+    return ownerExits[keccak256(abi.encodePacked(_token, _owner))];
   }
 }

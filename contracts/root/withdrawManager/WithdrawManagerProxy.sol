@@ -5,6 +5,7 @@ import { Proxy } from "../../common/misc/Proxy.sol";
 import { WithdrawManagerStorage } from "./WithdrawManagerStorage.sol";
 import { RootChain } from "../RootChain.sol";
 
+
 contract WithdrawManagerProxy is Proxy, WithdrawManagerStorage {
   constructor(address _proxyTo, address _registry, address _rootChain)
     public

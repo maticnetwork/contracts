@@ -1,16 +1,15 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.2;
 
-import { RLP } from "../lib/RLP.sol";
-import { BytesLib } from "../lib/BytesLib.sol";
+import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
+import { BytesLib } from "../common/lib/BytesLib.sol";
+import { Registry } from "../common/Registry.sol";
 
-import { RootChainValidator } from "../mixin/RootChainValidator.sol";
-import { IRootChain } from "../root/IRootChain.sol";
+import { RootChainValidator } from "../common/mixin/RootChainValidator.sol";
 
 
 contract ERC721Validator is RootChainValidator {
-  using RLP for bytes;
-  using RLP for RLP.RLPItem;
-  using RLP for RLP.Iterator;
+  using RLPReader for bytes;
+  using RLPReader for RLPReader.RLPItem;
 
   // 0xa0cda4eb = keccak256('transferFrom(address,adress,uint256)')
   bytes4 public TRANSFER_SIGNATURE = 0x23b872dd;
@@ -28,60 +27,62 @@ contract ERC721Validator is RootChainValidator {
   // keccak256('LogTransfer(address,address,address,uint256)') ERC721 log transfer
   bytes32 public LOG_TRANSFER_EVENT_SIGNATURE = 0x6eabe333476233fd382224f233210cb808a7bc4c4de64f9d76628bf63c677b1a;
 
+  constructor(Registry _registry, address _rootChain) RootChainValidator (_registry, _rootChain) public {}
+
   // validate ERC20 TX
   function validateTransferTx(
-    bytes transferTx
+    bytes memory transferTx
   ) public {
     // validate transfer tx
-    RLP.RLPItem[] memory txData = transferTx.toRLPItem().toList();
+    RLPReader.RLPItem[] memory txData = transferTx.toRlpItem().toList();
 
     // validate ERC20 transfer tx
     if (!_validateTransferTx(txData)) {
-      IRootChain(rootChain).slash();
+      rootChain.slash();
     }
   }
 
   function _validateTransferTx(
-    RLP.RLPItem[] memory txData
+    RLPReader.RLPItem[] memory txData
   ) internal returns (bool) {
     // validate tx receipt existence
     require(
       validateTxReceiptExistence(
         txData[0].toUint(), // headerNumber
-        txData[1].toData(), // headerProof,
+        txData[1].toBytes(), // headerProof,
 
         txData[2].toUint(), // blockNumber,
         txData[3].toUint(), // blockTime,
 
-        txData[4].toBytes32(), // txRoot,
-        txData[5].toBytes32(), // receiptRoot,
-        txData[6].toData(), // path,
+        bytes32(txData[4].toUint()), // txRoot,
+        bytes32(txData[5].toUint()), // receiptRoot,
+        txData[6].toBytes(), // path,
 
-        txData[7].toData(), // txBytes,
-        txData[8].toData(), // txProof
+        txData[7].toBytes(), // txBytes,
+        txData[8].toBytes(), // txProof
 
-        txData[9].toData(), // receiptBytes,
-        txData[10].toData() // receiptProof
+        txData[9].toBytes(), // receiptBytes,
+        txData[10].toBytes() // receiptProof
       )
     );
-    return _validateTransferTx(txData[7].toData(), txData[9].toData());
+    return _validateTransferTx(txData[7].toBytes(), txData[9].toBytes());
   }
   
   function _validateTransferTx(
-    bytes txData,
-    bytes receiptData
+    bytes memory txData,
+    bytes memory receiptData
   ) internal returns (bool) {
     // check transaction
-    RLP.RLPItem[] memory items = txData.toRLPItem().toList();
+    RLPReader.RLPItem[] memory items = txData.toRlpItem().toList();
     require(items.length == 9);
 
     // check if child token is mapped with root tokens
     address childToken = items[3].toAddress();
-    require(depositManager.reverseTokens(childToken) != address(0));
+    require(registry.childToRootToken(childToken) != address(0));
 
     // check if transaction is transfer tx
     // <4 bytes transfer event,address (32 bytes),address (32 bytes), tokenId (32 bytes)>
-    bytes memory dataField = items[5].toData();
+    bytes memory dataField = items[5].toBytes();
     require(BytesLib.toBytes4(BytesLib.slice(dataField, 0, 4)) == TRANSFER_SIGNATURE);
 
     // if data field is not 100(4+32+32+32) bytes, return
@@ -102,7 +103,7 @@ contract ERC721Validator is RootChainValidator {
           [child token address, [LOG_TRANSFER_EVENT_SIGNATURE,token,from,to], <tokenId>]
         ]
     */
-    items = receiptData.toRLPItem().toList();
+    items = receiptData.toRlpItem().toList();
     if (
       items.length == 4 &&
       items[3].toList().length == 2 &&
@@ -132,18 +133,18 @@ contract ERC721Validator is RootChainValidator {
     address from,
     address to,
     uint256 tokenId,
-    RLP.RLPItem[] items // [child token address, [TRANSFER_EVENT_SIGNATURE, from, to, tokenId], <>]
+    RLPReader.RLPItem[] memory items // [child token address, [TRANSFER_EVENT_SIGNATURE, from, to, tokenId], <>]
   ) internal view returns (bool) {
     if (items.length != 3) {
       return false;
     }
-    RLP.RLPItem[] memory topics = items[1].toList();
+    RLPReader.RLPItem[] memory topics = items[1].toList();
 
 
     if (
       topics.length == 4 &&
       items[0].toAddress() == childToken  &&
-      topics[0].toBytes32() == TRANSFER_EVENT_SIGNATURE  &&
+      bytes32(topics[0].toUint()) == TRANSFER_EVENT_SIGNATURE  &&
       address(topics[1].toUint())==from &&
       address(topics[2].toUint())==to &&
       topics[3].toUint() == tokenId
@@ -159,20 +160,20 @@ contract ERC721Validator is RootChainValidator {
     address from,
     address to,
     uint256 tokenId,
-    RLP.RLPItem[] items // [child token address, [LOG_TRANSFER_EVENT_SIGNATURE,token,from,to], <tokenId>]
+    RLPReader.RLPItem[] memory items // [child token address, [LOG_TRANSFER_EVENT_SIGNATURE,token,from,to], <tokenId>]
   ) internal view returns (bool) {
     if (items.length != 3) {
       return false;
     }
 
-    RLP.RLPItem[] memory topics = items[1].toList();
+    RLPReader.RLPItem[] memory topics = items[1].toList();
     if (
       topics.length == 4 &&
       items[0].toAddress() == childToken &&
-      topics[0].toBytes32() == LOG_TRANSFER_EVENT_SIGNATURE &&
+      bytes32(topics[0].toUint()) == LOG_TRANSFER_EVENT_SIGNATURE &&
       address(topics[2].toUint()) == from &&
       address(topics[3].toUint()) == to &&
-      BytesLib.toUint(items[2].toData(),0) == tokenId
+      BytesLib.toUint(items[2].toBytes(),0) == tokenId
     ) {
       return true;
     }

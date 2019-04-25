@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.2;
 
 import { ERC20Mintable } from "openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol";
 
@@ -9,7 +9,7 @@ contract TestToken is ERC20Mintable {
   string public symbol;
   uint8 public decimals = 18;
 
-  constructor (string _name, string _symbol) public {
+  constructor (string memory _name, string memory  _symbol) public {
     name = _name;
     symbol = _symbol;
 
@@ -17,7 +17,7 @@ contract TestToken is ERC20Mintable {
     mint(msg.sender, value);
   }
 
-  function () public payable {
+  function () external payable {
     mint(msg.sender, msg.value);
   }
 }

@@ -1,19 +1,17 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.2;
 
 import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
-
 import { ERC721Full } from "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
-import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
+import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
-import { BytesLib } from "../lib/BytesLib.sol";
-import { ECVerify } from "../lib/ECVerify.sol";
+import { BytesLib } from "../../common/lib/BytesLib.sol";
+import { ECVerify } from "../../common/lib/ECVerify.sol";
+import { Lockable } from "../../common/mixin/Lockable.sol";
+import { RootChainable } from "../../common/mixin/RootChainable.sol";
 
-import { Lockable } from "../mixin/Lockable.sol";
-import { RootChainable } from "../mixin/RootChainable.sol";
-
-import { Validator } from "./Validator.sol";
 import { IStakeManager } from "./IStakeManager.sol";
+import { Validator } from "./Validator.sol";
 
 
 contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
@@ -136,7 +134,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   }
 
   // returns valid validator for current epoch
-  function getCurrentValidatorSet() public view returns (uint256[]) {
+  function getCurrentValidatorSet() public view returns (uint256[] memory) {
     uint256[] memory _validators = new uint256[](validatorThreshold);
     uint256 validator;
     uint256 k = 0;
@@ -244,7 +242,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
   function checkSignatures (
     bytes32 voteHash,
-    bytes sigs
+    bytes memory sigs
   ) public view onlyRootChain returns (bool)  {
     // total voting power
     uint256 stakePower = 0;

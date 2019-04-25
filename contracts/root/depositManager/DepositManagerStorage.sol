@@ -1,8 +1,8 @@
 pragma solidity ^0.5.2;
 
-import { Registry } from '../../common/Registry.sol';
-import { RootChain } from '../RootChain.sol';
-import { ProxyStorage } from '../../common/misc/ProxyStorage.sol';
+import { Registry } from "../../common/Registry.sol";
+import { RootChain } from "../RootChain.sol";
+import { ProxyStorage } from "../../common/misc/ProxyStorage.sol";
 
 
 contract DepositManagerStorage is ProxyStorage {
