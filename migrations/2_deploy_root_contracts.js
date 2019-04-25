@@ -4,9 +4,7 @@ const SafeMath = artifacts.require(
   'openzeppelin-solidity/contracts/math/SafeMath.sol'
 )
 
-const RLPReader = artifacts.require(
-  'solidity-rlp/contracts/RLPReader.sol'
-)
+const RLPReader = artifacts.require('solidity-rlp/contracts/RLPReader.sol')
 
 // const Math = artifacts.require('openzeppelin-solidity/contracts/math/Math.sol')
 const BytesLib = artifacts.require('BytesLib')
@@ -29,97 +27,116 @@ const StakeManager = artifacts.require('MockStakeManager')
 const MaticWETH = artifacts.require('MaticWETH')
 const RootERC721 = artifacts.require('RootERC721')
 // const RootToken = artifacts.require('./token/TestToken.sol')
-// const ExitNFT = artifacts.require('./token/ExitNFT.sol')
+const ExitNFT = artifacts.require('ExitNFT.sol')
 
 const libDeps = [
   {
     lib: BytesLib,
-    contracts: [
-      WithdrawManager
-    ]
+    contracts: [WithdrawManager]
   },
   {
     lib: ChildChainVerifier,
-    contracts: [
-      WithdrawManager
-    ]
+    contracts: [WithdrawManager]
   },
   {
     lib: Common,
-    contracts: [
-      WithdrawManager
-    ]
+    contracts: [WithdrawManager]
   },
   {
     lib: Merkle,
-    contracts: [
-      WithdrawManager
-    ]
+    contracts: [WithdrawManager]
   },
   {
     lib: MerklePatriciaProof,
-    contracts: [
-      WithdrawManager
-    ]
+    contracts: [WithdrawManager]
   },
   {
     lib: PriorityQueue,
-    contracts: [
-      WithdrawManager
-    ]
+    contracts: [WithdrawManager]
   },
   {
     lib: RLPEncode,
-    contracts: [
-      WithdrawManager
-    ]
+    contracts: [WithdrawManager]
   },
   {
     lib: RLPReader,
-    contracts: [
-      RootChain
-    ]
+    contracts: [RootChain]
   },
   {
     lib: SafeMath,
-    contracts: [
-      RootChain
-    ]
+    contracts: [RootChain]
   }
 ]
 
 module.exports = async function(deployer, network) {
-  deployer.then(async() => {
-    console.log('linking libs...')
-    libDeps.forEach(async e => {
-      await deployer.deploy(e.lib)
-      await deployer.link(e.lib, e.contracts)
+  deployer
+    .then(async() => {
+      console.log('linking libs...')
+      libDeps.forEach(async e => {
+        await deployer.deploy(e.lib)
+        await deployer.link(e.lib, e.contracts)
+      })
+
+      console.log('deploying contracts...')
+      await deployer.deploy(Registry)
+      await deployer.deploy(RootChain, Registry.address)
+      await deployer.deploy(StakeManager)
+
+      await deployer.deploy(DepositManager)
+      await deployer.deploy(
+        DepositManagerProxy,
+        DepositManager.address,
+        Registry.address,
+        RootChain.address
+      )
+
+      await deployer.deploy(WithdrawManager)
+      await deployer.deploy(
+        WithdrawManagerProxy,
+        WithdrawManager.address,
+        Registry.address,
+        RootChain.address
+      )
+
+      // deploy tokens
+      await deployer.deploy(ExitNFT, Registry.address, 'ExitNFT', 'ENFT')
+      await deployer.deploy(MaticWETH)
+      await deployer.deploy(RootERC721, 'RootERC721', 'T721')
     })
+    .then(async() => {
+      console.log('initializing contract state...')
+      const registry = await Registry.deployed()
+      // await WithdrawManager.at(WithdrawManagerProxy.address)
+      const _withdrawManager = await WithdrawManager.at(
+        WithdrawManagerProxy.address
+      )
+      await registry.updateContractMap(
+        utils.keccak256('depositManager'),
+        DepositManagerProxy.address
+      )
+      await registry.updateContractMap(
+        utils.keccak256('withdrawManager'),
+        WithdrawManagerProxy.address
+      )
+      await registry.updateContractMap(
+        utils.keccak256('stakeManager'),
+        StakeManager.address
+      )
+      await registry.updateContractMap(
+        utils.keccak256('wethToken'),
+        MaticWETH.address
+      )
+      await _withdrawManager.setExitNFTContract(ExitNFT.address)
 
-    console.log('deploying contracts...')
-    await deployer.deploy(Registry)
-    await deployer.deploy(RootChain, Registry.address)
-    await deployer.deploy(StakeManager)
-
-    await deployer.deploy(DepositManager)
-    await deployer.deploy(DepositManagerProxy, DepositManager.address, Registry.address, RootChain.address)
-
-    await deployer.deploy(WithdrawManager)
-    await deployer.deploy(WithdrawManagerProxy, WithdrawManager.address, Registry.address, RootChain.address)
-
-    // deploy tokens
-    await deployer.deploy(MaticWETH)
-    await deployer.deploy(RootERC721, 'RootERC721', 'T721')
-
-  }).then(async () => {
-    console.log('initializing contract state...')
-    const registry = await Registry.deployed()
-    await registry.updateContractMap(utils.keccak256('depositManager'), DepositManagerProxy.address)
-    await registry.updateContractMap(utils.keccak256('withdrawManager'), WithdrawManagerProxy.address)
-    await registry.updateContractMap(utils.keccak256('stakeManager'), StakeManager.address)
-    await registry.updateContractMap(utils.keccak256('wethToken'), MaticWETH.address)
-
-    await registry.mapToken(MaticWETH.address, MaticWETH.address, false /* isERC721 */)
-    await registry.mapToken(RootERC721.address, RootERC721.address, true /* isERC721 */)
-  })
+      await registry.mapToken(
+        MaticWETH.address,
+        MaticWETH.address,
+        false /* isERC721 */
+      )
+      await registry.mapToken(
+        RootERC721.address,
+        RootERC721.address,
+        true /* isERC721 */
+      )
+    })
 }
