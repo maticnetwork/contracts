@@ -10,6 +10,7 @@ const RLPReader = artifacts.require('solidity-rlp/contracts/RLPReader.sol')
 const BytesLib = artifacts.require('BytesLib')
 const ChildChainVerifier = artifacts.require('ChildChainVerifier')
 const Common = artifacts.require('Common')
+const ECVerify = artifacts.require('ECVerify')
 const Merkle = artifacts.require('Merkle')
 const MerklePatriciaProof = artifacts.require('MerklePatriciaProof')
 const PriorityQueue = artifacts.require('PriorityQueue')
@@ -21,7 +22,7 @@ const DepositManager = artifacts.require('DepositManager')
 const DepositManagerProxy = artifacts.require('DepositManagerProxy')
 const WithdrawManager = artifacts.require('WithdrawManager')
 const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
-const StakeManager = artifacts.require('MockStakeManager')
+const StakeManager = artifacts.require('StakeManager')
 
 // tokens
 const MaticWETH = artifacts.require('MaticWETH')
@@ -41,6 +42,10 @@ const libDeps = [
   {
     lib: Common,
     contracts: [WithdrawManager]
+  },
+  {
+    lib: ECVerify,
+    contracts: [StakeManager]
   },
   {
     lib: Merkle,

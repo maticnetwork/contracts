@@ -12,8 +12,6 @@ library RLPEncode {
   // Encode an item (bytes memory)
   function encodeItem(bytes memory self) internal pure returns (bytes memory) {
     bytes memory encoded;
-    // changing from uint8(bytes32(self[0] & 0xFF)) to uint8(self[0] & 0xFF).
-    // cast to bytes32 pads with 0s at the end instead pf prefixing and that was a source of error. @todo dig deeper
     if (self.length == 1 && uint8(self[0] & 0xFF) < 0x80) {
       encoded = new bytes(1);
       encoded = self;
@@ -51,7 +49,7 @@ library RLPEncode {
   function encodeLength(uint256 L, uint256 offset) internal pure returns (bytes memory) {
     if (L < 56) {
       bytes memory prefix = new bytes(1);
-      prefix[0] = byte(uint8((L + offset)));
+      prefix[0] = byte(uint8(L + offset));
       return prefix;
     } else {
       // lenLen is the length of the hex representation of the data length

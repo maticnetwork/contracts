@@ -170,7 +170,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   function supportsHistory() public pure returns (bool) {
     return false;
   }
-  
+
   // set staking Token
   function setToken(address _token) public onlyOwner {
     require(_token != address(0x0));
@@ -240,10 +240,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     );
   }
 
-  function checkSignatures (
-    bytes32 voteHash,
-    bytes memory sigs
-  ) public view onlyRootChain returns (bool)  {
+  function checkSignatures(bytes32 voteHash, bytes memory sigs) public view returns (bool)  {
     // total voting power
     uint256 stakePower = 0;
     uint256 validatorId;
@@ -260,7 +257,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
         signer > lastAdd
       ) {
         lastAdd = signer;
-        stakePower = stakePower.add(validators[validatorId].amount); 
+        stakePower = stakePower.add(validators[validatorId].amount);
       } else {
         break;
       }

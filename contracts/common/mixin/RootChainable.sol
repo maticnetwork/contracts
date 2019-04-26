@@ -7,7 +7,7 @@ import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
  */
 contract RootChainable is Ownable {
   address public rootChain;
-  
+
   // Rootchain changed
   event RootChainChanged(
     address indexed previousRootChain,
