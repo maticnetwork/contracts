@@ -1,9 +1,9 @@
-import utils from 'ethereumjs-util'
-import { Buffer } from 'safe-buffer'
+const utils = require('ethereumjs-util')
+const Buffer = require('safe-buffer').Buffer
 
 const sha3 = utils.keccak256
 
-export default class MerkleTree {
+class MerkleTree {
   constructor(leaves = []) {
     if (leaves.length < 1) {
       throw new Error('Atleast 1 leaf needed')
@@ -103,3 +103,5 @@ export default class MerkleTree {
     return Buffer.compare(hash, root) === 0
   }
 }
+
+module.exports = MerkleTree

@@ -1,8 +1,7 @@
-import Trie from 'merkle-patricia-tree'
-import utils from 'ethereumjs-util'
-import EthereumTx from 'ethereumjs-tx'
-import EthereumBlock from 'ethereumjs-block/from-rpc'
-
+const Trie = require('merkle-patricia-tree')
+const utils = require('ethereumjs-util')
+const EthereumTx = require('ethereumjs-tx')
+const EthereumBlock = require('ethereumjs-block/from-rpc')
 const rlp = utils.rlp
 
 // raw header
@@ -16,7 +15,7 @@ function getRawHeader(_block) {
 }
 
 // squanch transaction
-export function squanchTx(tx) {
+function squanchTx(tx) {
   tx.gasPrice = '0x' + parseInt(tx.gasPrice).toString(16)
   tx.value = '0x' + parseInt(tx.value).toString(16) || '0'
   tx.gas = '0x' + parseInt(tx.gas).toString(16)
@@ -42,13 +41,13 @@ function nibblesToTraverse(encodedPartialPath, path, pathPtr) {
   }
 }
 
-export function getTxBytes(tx) {
+function getTxBytes(tx) {
   const txObj = new EthereumTx(squanchTx(tx))
   return txObj.serialize()
 }
 
 // build
-export async function getTxProof(tx, block) {
+async function getTxProof(tx, block) {
   const txTrie = new Trie()
   for (let i = 0; i < block.transactions.length; i++) {
     const siblingTx = block.transactions[i]
@@ -91,7 +90,7 @@ export async function getTxProof(tx, block) {
   })
 }
 
-export function verifyTxProof(proof) {
+function verifyTxProof(proof) {
   const path = proof.path.toString('hex')
   const value = proof.value
   const parentNodes = proof.parentNodes
@@ -155,7 +154,7 @@ export function verifyTxProof(proof) {
   return false
 }
 
-export function getReceiptBytes(receipt) {
+function getReceiptBytes(receipt) {
   return rlp.encode([
     utils.toBuffer(
       receipt.status !== undefined && receipt.status != null
@@ -177,14 +176,14 @@ export function getReceiptBytes(receipt) {
   ])
 }
 
-export async function getReceiptProof(receipt, block, web3) {
+async function getReceiptProof(receipt, block, receipts) {
   const receiptsTrie = new Trie()
   const receiptPromises = []
-  block.transactions.forEach(tx => {
-    receiptPromises.push(web3.eth.getTransactionReceipt(tx.hash))
-  })
+  // block.transactions.forEach(tx => {
+  //   receiptPromises.push(web3.eth.getTransactionReceipt(tx.hash))
+  // })
 
-  const receipts = await Promise.all(receiptPromises)
+  // const receipts = await Promise.all(receiptPromises)
   for (let i = 0; i < receipts.length; i++) {
     const siblingReceipt = receipts[i]
     const path = rlp.encode(siblingReceipt.transactionIndex)
@@ -226,6 +225,8 @@ export async function getReceiptProof(receipt, block, web3) {
   })
 }
 
-export function verifyReceiptProof(proof) {
+function verifyReceiptProof(proof) {
   return verifyTxProof(proof, true)
 }
+
+module.exports = { squanchTx, getTxBytes, getTxProof, verifyTxProof, getReceiptBytes, getReceiptProof, verifyReceiptProof }

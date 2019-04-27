@@ -1,10 +1,10 @@
-import utils from 'ethereumjs-util'
-import { Buffer } from 'safe-buffer'
+const utils = require('ethereumjs-util')
+const Buffer = require('safe-buffer').Buffer
 
 const sha3 = utils.keccak256
 const BN = utils.BN
 
-export async function getHeaders(start, end, web3) {
+async function getHeaders(start, end, web3) {
   if (start >= end) {
     return []
   }
@@ -28,10 +28,12 @@ export async function getHeaders(start, end, web3) {
   return result.map(getBlockHeader)
 }
 
-export function getBlockHeader(block) {
+function getBlockHeader(block) {
   const n = new BN(block.number).toArrayLike(Buffer, 'be', 32)
   const ts = new BN(block.timestamp).toArrayLike(Buffer, 'be', 32)
   const txRoot = utils.toBuffer(block.transactionsRoot)
   const receiptsRoot = utils.toBuffer(block.receiptsRoot)
   return sha3(Buffer.concat([n, ts, txRoot, receiptsRoot]))
 }
+
+module.exports = { getBlockHeader, getHeaders }
