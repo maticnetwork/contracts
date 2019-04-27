@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.2;
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
@@ -59,8 +59,8 @@ contract ChildChain is Ownable {
   function addToken(
     address _owner,
     address _rootToken,
-    string _name,
-    string _symbol,
+    string memory _name,
+    string memory _symbol,
     uint8 _decimals,
     bool _isERC721
   ) public onlyOwner returns (address token) {
@@ -69,10 +69,10 @@ contract ChildChain is Ownable {
 
     // create new token contract
     if (_isERC721) {
-      token = new ChildERC721(_owner, _rootToken, _name, _symbol);
+      token = address(new ChildERC721(_owner, _rootToken, _name, _symbol));
       isERC721[_rootToken] = true;
     } else {
-      token = new ChildERC20(_owner, _rootToken, _name, _symbol, _decimals);
+      token = address(new ChildERC20(_owner, _rootToken, _name, _symbol, _decimals));
     }
 
     // add mapping with root token

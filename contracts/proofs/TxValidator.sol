@@ -1,35 +1,34 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.2;
 
-import { RLP } from "../lib/RLP.sol";
-import { Merkle } from "../lib/Merkle.sol";
-import { RootChainValidator } from "../mixin/RootChainValidator.sol";
+import { Merkle } from "../common/lib/Merkle.sol";
+import { RootChainValidator } from "../common/mixin/RootChainValidator.sol";
+import { Registry } from "../common/Registry.sol";
 
 import { IRootChain } from "../root/IRootChain.sol";
 
 
 contract TxValidator is RootChainValidator {
   using Merkle for bytes32;
-  using RLP for bytes;
-  using RLP for RLP.RLPItem;
-  using RLP for RLP.Iterator;
+
+  constructor(Registry _registry, address _rootChain) RootChainValidator (_registry, _rootChain) public {}
 
   // validate tx and slash
   function validateTxAndSlash(
     uint256 headerNumber,
-    bytes headerProof,
+    bytes memory headerProof,
 
     uint256 blockNumber,
     uint256 blockTime,
 
     bytes32 txRoot,
     bytes32 receiptRoot,
-    bytes path,
+    bytes memory path,
 
-    bytes txBytes,
-    bytes txProof,
+    bytes memory txBytes,
+    bytes memory txProof,
 
-    bytes receiptBytes,
-    bytes receiptProof
+    bytes memory receiptBytes,
+    bytes memory receiptProof
   ) public
   {
     // validate tx
@@ -49,7 +48,7 @@ contract TxValidator is RootChainValidator {
       )
     ) {
       // slash if tx is not valid
-      IRootChain(rootChain).slash();
+      rootChain.slash();
       return;
     }
 

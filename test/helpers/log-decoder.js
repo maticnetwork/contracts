@@ -1,6 +1,7 @@
 import { ethers } from 'ethers'
+import * as contracts from './contracts.js'
 
-export default class LogDecoder {
+export class LogDecoder {
   constructor(abis = []) {
     this._methodIDs = {}
     this._interfaces = []
@@ -38,3 +39,9 @@ export default class LogDecoder {
     })
   }
 }
+
+const abis = Object.keys(contracts).slice(0, -2 /* dont load child contracts */).map(c => {
+  return contracts[c]._json.abi
+})
+const logDecoder = new LogDecoder(abis)
+export default logDecoder

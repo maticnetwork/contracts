@@ -156,11 +156,10 @@ export function verifyTxProof(proof) {
 }
 
 export function getReceiptBytes(receipt) {
-  // raw receipt = rlp.encode([status or root, cumulativeGasUsed, logsBloom, logs])
   return rlp.encode([
     utils.toBuffer(
       receipt.status !== undefined && receipt.status != null
-        ? receipt.status // status if available
+        ? receipt.status ? 1 : 0
         : receipt.root
     ),
     utils.toBuffer(receipt.cumulativeGasUsed),

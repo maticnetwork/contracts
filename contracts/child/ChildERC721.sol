@@ -1,12 +1,13 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.2;
 
 import { ERC721Full } from "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
 
 import "./ChildToken.sol";
-import "./IParentToken.sol";
+import "./misc/IParentToken.sol";
+import "./misc/LibTokenTransferOrder.sol";
 
 
-contract ChildERC721 is ChildToken, ERC721Full {
+contract ChildERC721 is ChildToken, LibTokenTransferOrder, ERC721Full {
 
   event LogTransfer(
     address indexed token,
@@ -16,7 +17,7 @@ contract ChildERC721 is ChildToken, ERC721Full {
   );
 
   // constructor
-  constructor (address _owner, address _token, string name, string symbol) ERC721Full(name, symbol)
+  constructor (address _owner, address _token, string memory name, string memory symbol) ERC721Full(name, symbol)
     public 
     {
     require(_token != address(0x0) && _owner != address(0x0));
@@ -78,5 +79,27 @@ contract ChildERC721 is ChildToken, ERC721Full {
       tokenId
     );
   }
-  
+
+  function transferWithSig(bytes memory sig, uint256 tokenId, bytes32 data, uint256 expiration, address to) public returns (address) {
+    require(expiration == 0 || block.number <= expiration, "Signature is expired");
+
+    bytes32 dataHash = getTokenTransferOrderHash(
+      msg.sender,
+      tokenId,
+      data,
+      expiration
+    );
+    require(disabledHashes[dataHash] == false, "Sig deactivated");
+    disabledHashes[dataHash] = true;
+
+    // recover address and send tokens
+    address from = dataHash.ecrecovery(sig);
+
+    // safeTransferFrom
+    _transferFrom(from, to, tokenId);
+    require(_checkOnERC721Received(from, to, tokenId, ""));
+
+    return from;
+  }
+
 }

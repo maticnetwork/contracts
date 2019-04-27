@@ -1,25 +1,29 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.2;
 
-import { RootChainValidator } from "../mixin/RootChainValidator.sol";
-import { RootChain } from "../root/RootChain.sol";
+import { RootChainValidator } from "../common/mixin/RootChainValidator.sol";
+import { WithdrawManager } from "../root/withdrawManager/WithdrawManager.sol";
+import { Registry } from "../common/Registry.sol";
 
 
 contract ExitValidator is RootChainValidator {
+
+  constructor(Registry _registry, address _rootChain) RootChainValidator (_registry, _rootChain) public {}
+
   // challenge exit
   function challengeExit(
     uint256 exitId,
 
     uint256 headerNumber,
-    bytes headerProof,
+    bytes memory headerProof,
 
     uint256 blockNumber,
     uint256 blockTime,
     bytes32 txRoot,
     bytes32 receiptRoot,
-    bytes path,
+    bytes memory path,
 
-    bytes txBytes,
-    bytes txProof
+    bytes memory txBytes,
+    bytes memory txProof
   ) public {
     // validate exit id and get owner
     address owner = validateExitId(exitId);
@@ -48,14 +52,14 @@ contract ExitValidator is RootChainValidator {
     uint256 exitId2 = (
       headerNumber * 1000000000000000000000000000000 +
       blockNumber * 1000000000000 +
-      path.toRLPItem().toData().toRLPItem().toUint() * 100000
+      path.toRlpItem().toBytes().toRlpItem().toUint() * 100000
     );
 
     // check if second transaction is after exiting tx
     require(exitId2 > exitId);
 
     // burn nft without transferring money
-    RootChain(rootChain).deleteExit(exitId);
+    WithdrawManager(registry.getWithdrawManagerAddress()).deleteExit(exitId);
   }
 
   //
@@ -66,7 +70,7 @@ contract ExitValidator is RootChainValidator {
     address owner;
     uint256 amount;
     bool burnt;
-    (owner,,amount, burnt) = withdrawManager.getExit(exitId);
+    (owner,,amount, burnt) = WithdrawManager(registry.getWithdrawManagerAddress()).exits(exitId);
 
     // check if already burnt
     require(burnt == false && amount > 0 && owner != address(0));
