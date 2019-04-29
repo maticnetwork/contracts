@@ -303,7 +303,7 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     PriorityQueue exitQueue = PriorityQueue(exitsQueues[_token]);
 
     // Iterate while the queue is not empty.
-    while (exitQueue.currentSize() > 0) {
+    while (exitQueue.currentSize() > 0 && gasleft() > gasLimit ) {
       (exitableAt, utxoPos) = exitQueue.getMin();
 
       // Check if this exit has finished its challenge period.
@@ -326,7 +326,25 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
           delete ownerExits[keccak256(abi.encodePacked(_token, currentExit.owner))];
         }
 
-        IDepositManager(registry.getDepositManagerAddress()).transferAmount(_token, exitOwner, currentExit.receiptAmountOrNFTId);
+        // IDepositManager(registry.getDepositManagerAddress()).transferAmount(_token, exitOwner, currentExit.receiptAmountOrNFTId);
+        address depositManager = registry.getDepositManagerAddress();
+        uint256 amount = currentExit.receiptAmountOrNFTId;
+        assembly {
+          let ptr := mload(0x60)
+
+          // keccak256('transferAmount(address,address,uint256)') &
+          // 0xFFFFFFFF00000000000000000000000000000000000000000000000000000000
+          mstore(ptr, 0x01f4747100000000000000000000000000000000000000000000000000000000)
+          mstore(add(ptr, 4), add(_token,0))
+          mstore(add(ptr, 36), add(exitOwner,0))
+          mstore(add(ptr, 68), add(amount,0)) // TODO: read directly from struct
+
+          let result := call(gasLimit, depositManager, 0, ptr, 100, ptr, 32)
+
+          if eq(result, 0) {
+              revert(0,0)
+            }
+        }
 
         // broadcast withdraw events
         emit Withdraw(exitOwner, _token, currentExit.receiptAmountOrNFTId);
