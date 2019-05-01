@@ -295,7 +295,7 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     exitNFT.burn(owner, exitId);
   }
 
-  function _processExits(address _token) external {
+  function processExits(address _token) external {
     uint256 exitableAt;
     uint256 utxoPos;
 
@@ -326,22 +326,20 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
           delete ownerExits[keccak256(abi.encodePacked(_token, currentExit.owner))];
         }
 
-        // IDepositManager(registry.getDepositManagerAddress()).transferAmount(_token, exitOwner, currentExit.receiptAmountOrNFTId);
-        address depositManager = registry.getDepositManagerAddress();
+        address depositManager = registry.getDepositManagerAddress(); // TODO: make assembly call and reuse memPtr
         uint256 amount = currentExit.receiptAmountOrNFTId;
+        uint256 _gas = gasLimit; // can't read gloablvars in asm
         assembly {
-          let ptr := mload(0x60)
-
-          // keccak256('transferAmount(address,address,uint256)') &
-          // 0xFFFFFFFF00000000000000000000000000000000000000000000000000000000
+          let ptr := mload(64)
+          // keccak256('transferAmount(address,address,uint256)') & 0xFFFFFFFF00000000000000000000000000000000000000000000000000000000
           mstore(ptr, 0x01f4747100000000000000000000000000000000000000000000000000000000)
-          mstore(add(ptr, 4), add(_token,0))
-          mstore(add(ptr, 36), add(exitOwner,0))
-          mstore(add(ptr, 68), add(amount,0)) // TODO: read directly from struct
+          mstore(add(ptr, 4), and(_token, 0xffffffffffffffffffffffffffffffffffffffff)) // zero-out the unused bytes
+          mstore(add(ptr, 36), and(exitOwner,0xffffffffffffffffffffffffffffffffffffffff))
+          mstore(add(ptr, 68), amount) // TODO: read directly from struct
 
-          let result := call(gasLimit, depositManager, 0, ptr, 100, ptr, 32)
+          let result := call(_gas, depositManager, 0, ptr, 100, ptr, 32)
 
-          if eq(result, 0) {
+          if eq(result, 0) { // if false revert
               revert(0,0)
             }
         }
