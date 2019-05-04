@@ -328,18 +328,18 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
 
         address depositManager = registry.getDepositManagerAddress(); // TODO: make assembly call and reuse memPtr
         uint256 amount = currentExit.receiptAmountOrNFTId;
-        uint256 _gas = gasLimit.sub(52000); // sub fixed processExit cost , ::=> can't read gloablvars in asm
+        uint256 _gas = gasLimit - 52000; // sub fixed processExit cost , ::=> can't read global vars in asm
         assembly {
           let ptr := mload(64)
           // keccak256('transferAmount(address,address,uint256)') & 0xFFFFFFFF00000000000000000000000000000000000000000000000000000000
           mstore(ptr, 0x01f4747100000000000000000000000000000000000000000000000000000000)
-          mstore(add(ptr, 4), and(_token, 0xffffffffffffffffffffffffffffffffffffffff)) // zero-out the unused bytes
-          mstore(add(ptr, 36), and(exitOwner,0xffffffffffffffffffffffffffffffffffffffff))
+          mstore(add(ptr, 4), _token)
+          mstore(add(ptr, 36), exitOwner)
           mstore(add(ptr, 68), amount) // TODO: read directly from struct
           let ret := add(ptr,100)
           let result := call(_gas, depositManager, 0, ptr, 100, ret, 32) // returns 1 if success
-
-          if eq(and(result,mload(ret)), 0) { // if false=>  revert & return bool
+          // revert if => result is 0 or return value is false
+          if eq(and(result,mload(ret)), 0) {
               revert(0,0)
             }
         }
