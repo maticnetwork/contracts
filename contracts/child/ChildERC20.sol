@@ -78,10 +78,10 @@ contract ChildERC20 is ChildToken, ERC20, LibTokenTransferOrder, ERC20Detailed {
   /// @param value Number of tokens to transfer.
   /// @return Returns success of function call.
   function transfer(address to, uint256 value) public returns (bool) {
-    _transferFrom(msg.sender, to, value);
-    if (parent != address(0x0) && !IParentToken(parent).afterTransfer(msg.sender, to, value)) {
+    if (parent != address(0x0) && !IParentToken(parent).beforeTransfer(msg.sender, to, value)) {
       return false;
     }
+    _transferFrom(msg.sender, to, value);
     return true; // to be compliant with the standard ERC20.transfer function interface
   }
 

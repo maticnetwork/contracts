@@ -22,9 +22,6 @@ contract ChildToken is Ownable {
     _;
   }
 
-  //
-  // Events
-  //
   event Deposit(
     address indexed token,
     address indexed from,

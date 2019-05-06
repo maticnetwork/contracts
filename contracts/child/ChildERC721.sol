@@ -65,19 +65,10 @@ contract ChildERC721 is ChildToken, LibTokenTransferOrder, ERC721Full {
   }
 
   function transferFrom(address from, address to, uint256 tokenId) public {
-    if (parent != address(0x0) && !IParentToken(parent).afterTransfer(msg.sender, to, tokenId)) {
+    if (parent != address(0x0) && !IParentToken(parent).beforeTransfer(msg.sender, to, tokenId)) {
       return;
     }
-    // actual transfer
-    super.transferFrom(from, to, tokenId);
-
-    // log balance
-    emit LogTransfer(
-      token,
-      from,
-      to,
-      tokenId
-    );
+    _transferFrom(from, to, tokenId);
   }
 
   function transferWithSig(bytes memory sig, uint256 tokenId, bytes32 data, uint256 expiration, address to) public returns (address) {
@@ -95,11 +86,20 @@ contract ChildERC721 is ChildToken, LibTokenTransferOrder, ERC721Full {
     // recover address and send tokens
     address from = dataHash.ecrecovery(sig);
 
-    // safeTransferFrom
     _transferFrom(from, to, tokenId);
     require(_checkOnERC721Received(from, to, tokenId, ""));
 
     return from;
+  }
+
+  function _transferFrom(address from, address to, uint256 tokenId) internal {
+    super._transferFrom(from, to, tokenId);
+    emit LogTransfer(
+      token,
+      from,
+      to,
+      tokenId
+    );
   }
 
 }
