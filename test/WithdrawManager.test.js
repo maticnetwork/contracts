@@ -17,6 +17,8 @@ import {
   buildSubmitHeaderBlockPaylod,
   assertBigNumberEquality
 } from './helpers/utils.js'
+import { increaseBlockTime, mineOneBlock } from './helpers/chain'
+
 import { getBlockHeader } from './helpers/blocks'
 import MerkleTree from './helpers/merkle-tree'
 
@@ -132,8 +134,25 @@ contract('WithdrawManager', async function(accounts) {
       token: childContracts.rootERC20.address
     })
     assertBigNumberEquality(log.args.amount, amount)
-  })
+    // ExitNFT
+    const utxoPos = log.args.utxoPos
+    const owner_ = await contracts.exitNFT.ownerOf(utxoPos)
+    owner_.should.equal(log.args.exitor)
+    // test processExit quque
+    let beforeBalance = await childContracts.rootERC20.balanceOf(owner_)
+    beforeBalance = beforeBalance.add(amount)
+    const seconds = 1209600
+    await increaseBlockTime(seconds)
+    await mineOneBlock()
 
+    let result = await contracts.withdrawManager.processExits(log.args.token)
+    const exitLog = result.logs[0]
+    exitLog.event.should.equal('Withdraw')
+    assertBigNumberEquality(exitLog.args.amount, amount)
+
+    const afterBalance = await childContracts.rootERC20.balanceOf(owner_)
+    assertBigNumberEquality(afterBalance, beforeBalance)
+  })
   it('withdrawTokens')
   it('withdrawDepositTokens')
 })

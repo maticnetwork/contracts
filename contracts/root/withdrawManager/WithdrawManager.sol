@@ -295,7 +295,7 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     exitNFT.burn(owner, exitId);
   }
 
-  function _processExits(address _token) external {
+  function processExits(address _token) external {
     uint256 exitableAt;
     uint256 utxoPos;
 
@@ -303,7 +303,7 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     PriorityQueue exitQueue = PriorityQueue(exitsQueues[_token]);
 
     // Iterate while the queue is not empty.
-    while (exitQueue.currentSize() > 0) {
+    while (exitQueue.currentSize() > 0 && gasleft() > gasLimit ) {
       (exitableAt, utxoPos) = exitQueue.getMin();
 
       // Check if this exit has finished its challenge period.
@@ -326,7 +326,23 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
           delete ownerExits[keccak256(abi.encodePacked(_token, currentExit.owner))];
         }
 
-        IDepositManager(registry.getDepositManagerAddress()).transferAmount(_token, exitOwner, currentExit.receiptAmountOrNFTId);
+        address depositManager = registry.getDepositManagerAddress(); // TODO: make assembly call and reuse memPtr
+        uint256 amount = currentExit.receiptAmountOrNFTId;
+        uint256 _gas = gasLimit - 52000; // sub fixed processExit cost , ::=> can't read global vars in asm
+        assembly {
+          let ptr := mload(64)
+          // keccak256('transferAmount(address,address,uint256)') & 0xFFFFFFFF00000000000000000000000000000000000000000000000000000000
+          mstore(ptr, 0x01f4747100000000000000000000000000000000000000000000000000000000)
+          mstore(add(ptr, 4), _token)
+          mstore(add(ptr, 36), exitOwner)
+          mstore(add(ptr, 68), amount) // TODO: read directly from struct
+          let ret := add(ptr,100)
+          let result := call(_gas, depositManager, 0, ptr, 100, ret, 32) // returns 1 if success
+          // revert if => result is 0 or return value is false
+          if eq(and(result,mload(ret)), 0) {
+              revert(0,0)
+            }
+        }
 
         // broadcast withdraw events
         emit Withdraw(exitOwner, _token, currentExit.receiptAmountOrNFTId);

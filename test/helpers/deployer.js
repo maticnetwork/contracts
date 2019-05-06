@@ -15,7 +15,7 @@ class Deployer {
     this.registry = await contracts.Registry.new()
     this.rootChain = await contracts.RootChain.new(this.registry.address)
     this.stakeManager = await contracts.StakeManager.new()
-    const ExitNFT = await contracts.ExitNFT.new(
+    this.exitNFT = await contracts.ExitNFT.new(
       this.registry.address,
       'ExitNFT',
       'ENFT'
@@ -40,7 +40,7 @@ class Deployer {
     const _withdrawManager = await contracts.WithdrawManager.at(
       this.withdrawManagerProxy.address
     )
-    await _withdrawManager.setExitNFTContract(ExitNFT.address)
+    await _withdrawManager.setExitNFTContract(this.exitNFT.address)
     this.maticWeth = await contracts.MaticWETH.new()
     this.rootERC721 = await contracts.RootERC721.new('RootERC721', 'T721')
 
@@ -83,7 +83,8 @@ class Deployer {
       ),
       withdrawManager: _withdrawManager,
       maticWeth: this.maticWeth,
-      rootERC721: this.rootERC721
+      rootERC721: this.rootERC721,
+      exitNFT: this.exitNFT
     }
 
     if (options.deployTestErc20) {
