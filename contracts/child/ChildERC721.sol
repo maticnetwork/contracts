@@ -18,7 +18,7 @@ contract ChildERC721 is ChildToken, LibTokenTransferOrder, ERC721Full {
 
   // constructor
   constructor (address _owner, address _token, string memory name, string memory symbol) ERC721Full(name, symbol)
-    public 
+    public
     {
     require(_token != address(0x0) && _owner != address(0x0));
     parentOwner = _owner;
@@ -65,7 +65,7 @@ contract ChildERC721 is ChildToken, LibTokenTransferOrder, ERC721Full {
   }
 
   function transferFrom(address from, address to, uint256 tokenId) public {
-    if (parent != address(0x0) && !IParentToken(parent).beforeTransfer(msg.sender, to, tokenId)) {
+    if (parent != address(0x0) && !IParentToken(parent).afterTransfer(msg.sender, to, tokenId)) {
       return;
     }
     // actual transfer
