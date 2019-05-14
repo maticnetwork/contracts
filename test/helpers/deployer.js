@@ -1,6 +1,6 @@
 import utils from 'ethereumjs-util'
 
-import * as contracts from './contracts.js'
+import * as contracts from './artifacts.js'
 
 const web3Child = new web3.constructor(
   new web3.providers.HttpProvider('http://localhost:8546')

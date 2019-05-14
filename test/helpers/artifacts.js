@@ -6,6 +6,8 @@ export const DepositManagerProxy = artifacts.require('DepositManagerProxy')
 export const WithdrawManager = artifacts.require('WithdrawManager')
 export const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
 
+export const ChildChainVerifier = artifacts.require('ChildChainVerifier')
+
 // tokens
 export const MaticWETH = artifacts.require('MaticWETH')
 export const TestToken = artifacts.require('TestToken')
