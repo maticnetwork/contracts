@@ -11,7 +11,68 @@ import { Registry } from "../../common/Registry.sol";
 library ChildChainVerifier {
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
+  event Duint(uint256 a);
 
+  function processReferenceTx(
+    bytes memory receipt,
+    bytes memory receiptProof,
+    bytes32 receiptsRoot,
+
+    // bytes memory transaction,
+    // bytes memory txProof,
+    // bytes32 txRoot,
+
+    bytes memory path,
+    uint8 logIndex,
+    address participant)
+    public
+    view
+    returns(address childToken, address rootToken, uint256 closingBalance)
+    // returns(address childToken, address rootToken, uint256 closingBalance, uint256 exitId)
+  {
+    require(
+      MerklePatriciaProof.verify(receipt, path, receiptProof, receiptsRoot),
+      "INVALID_RECEIPT_MERKLE_PROOF"
+    );
+    require(
+      MerklePatriciaProof.verify(transaction, path, txProof, txRoot),
+      "INVALID_RECEIPT_MERKLE_PROOF"
+    );
+    RLPReader.RLPItem[] memory inputItems = receipt.toRlpItem().toList();
+    inputItems = inputItems[3].toList()[logIndex].toList(); // select log based on given logIndex
+    childToken = RLPReader.toAddress(inputItems[0]); // "address" (contract address that emitted the log) field in the receipt
+    bytes memory inputData = inputItems[2].toBytes();
+    inputItems = inputItems[1].toList(); // topics
+    // now, inputItems[i] refers to i-th (0-based) topic in the topics array
+    rootToken = address(RLPReader.toUint(inputItems[1]));
+    // rootToken = inputItems[1].toAddress // investigate why this reverts
+    bytes32 eventSignature = bytes32(inputItems[0].toUint());
+
+    // event Deposit(address indexed token, address indexed from, uint256 amountOrTokenId, uint256 input1, uint256 output1);
+    if (
+      eventSignature == 0x4e2ca0515ed1aef1395f66b5303bb5d6f1bf9d61a353fa53f73f8ac9973fa9f6
+      // event Withdraw(address indexed token, address indexed from, uint256 amountOrTokenId, uint256 input1, uint256 output1)
+      || eventSignature == 0xebff2602b3f468259e1e99f613fed6691f3a6526effe6ef3e768ba7ae7a36c4f) {
+      require(
+        participant == address(inputItems[2].toUint()), // from
+        "Withdrawer and referenced tx do not match"
+      );
+      closingBalance = BytesLib.toUint(inputData, 64); // output1
+    } else if (eventSignature == 0xe6497e3ee548a3372136af2fcb0696db31fc6cf20260707645068bd3fe97f3c4) {
+      // event LogTransfer(
+      //   address indexed token, address indexed from, address indexed to,
+      //   uint256 amountOrTokenId, uint256 input1, uint256 input2, uint256 output1, uint256 output2)
+      if (participant == address(inputItems[2].toUint())) { // A. Exitor transferred tokens
+        closingBalance = BytesLib.toUint(inputData, 96); // output1
+      } else if (participant == address(inputItems[2].toUint())) { // B. Exitor received tokens
+        closingBalance = BytesLib.toUint(inputData, 128); // output2
+      } else {
+        revert("tx / log doesnt concern the participant");
+      }
+    } else {
+      revert("Exit type not supported");
+    }
+  }
 
   function processBurnReceipt(
     bytes memory receiptBytes, bytes memory path, bytes memory receiptProof,

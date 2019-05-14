@@ -177,14 +177,16 @@ export function getReceiptBytes(receipt) {
   ])
 }
 
-export async function getReceiptProof(receipt, block, web3) {
+export async function getReceiptProof(receipt, block, web3, receipts) {
   const receiptsTrie = new Trie()
   const receiptPromises = []
-  block.transactions.forEach(tx => {
-    receiptPromises.push(web3.eth.getTransactionReceipt(tx.hash))
-  })
+  if (!receipts) {
+    block.transactions.forEach(tx => {
+      receiptPromises.push(web3.eth.getTransactionReceipt(tx.hash))
+    })
+    receipts = await Promise.all(receiptPromises)
+  }
 
-  const receipts = await Promise.all(receiptPromises)
   for (let i = 0; i < receipts.length; i++) {
     const siblingReceipt = receipts[i]
     const path = rlp.encode(siblingReceipt.transactionIndex)

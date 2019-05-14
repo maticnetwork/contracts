@@ -1,5 +1,5 @@
 import { ethers } from 'ethers'
-import * as contracts from './contracts.js'
+import * as contracts from './artifacts.js'
 
 export class LogDecoder {
   constructor(abis = []) {
