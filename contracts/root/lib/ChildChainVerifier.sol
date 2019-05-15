@@ -11,7 +11,6 @@ import { Registry } from "../../common/Registry.sol";
 library ChildChainVerifier {
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
-  event Duint(uint256 a);
 
   function processReferenceTx(
     bytes memory receipt,
@@ -27,21 +26,21 @@ library ChildChainVerifier {
     address participant)
     public
     view
-    returns(address childToken, address rootToken, uint256 closingBalance)
-    // returns(address childToken, address rootToken, uint256 closingBalance, uint256 exitId)
+    returns(address childToken, address rootToken, uint256 closingBalance, uint256 exitId)
   {
     require(
       MerklePatriciaProof.verify(receipt, path, receiptProof, receiptsRoot),
       "INVALID_RECEIPT_MERKLE_PROOF"
     );
-    require(
-      MerklePatriciaProof.verify(transaction, path, txProof, txRoot),
-      "INVALID_RECEIPT_MERKLE_PROOF"
-    );
+    // require(
+    //   MerklePatriciaProof.verify(transaction, path, txProof, txRoot),
+    //   "INVALID_TX_MERKLE_PROOF"
+    // );
     RLPReader.RLPItem[] memory inputItems = receipt.toRlpItem().toList();
     inputItems = inputItems[3].toList()[logIndex].toList(); // select log based on given logIndex
     childToken = RLPReader.toAddress(inputItems[0]); // "address" (contract address that emitted the log) field in the receipt
     bytes memory inputData = inputItems[2].toBytes();
+    // inputData = inputItems[2].toBytes();
     inputItems = inputItems[1].toList(); // topics
     // now, inputItems[i] refers to i-th (0-based) topic in the topics array
     rootToken = address(RLPReader.toUint(inputItems[1]));
@@ -62,9 +61,9 @@ library ChildChainVerifier {
       // event LogTransfer(
       //   address indexed token, address indexed from, address indexed to,
       //   uint256 amountOrTokenId, uint256 input1, uint256 input2, uint256 output1, uint256 output2)
-      if (participant == address(inputItems[2].toUint())) { // A. Exitor transferred tokens
+      if (participant == address(inputItems[2].toUint())) { // A. Participant transferred tokens
         closingBalance = BytesLib.toUint(inputData, 96); // output1
-      } else if (participant == address(inputItems[2].toUint())) { // B. Exitor received tokens
+      } else if (participant == address(inputItems[3].toUint())) { // B. Participant received tokens
         closingBalance = BytesLib.toUint(inputData, 128); // output2
       } else {
         revert("tx / log doesnt concern the participant");
