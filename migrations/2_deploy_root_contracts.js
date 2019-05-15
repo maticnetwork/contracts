@@ -11,6 +11,7 @@ const BytesLib = artifacts.require('BytesLib')
 const ChildChainVerifier = artifacts.require('ChildChainVerifier')
 const Common = artifacts.require('Common')
 const ECVerify = artifacts.require('ECVerify')
+const ExitTxValidator = artifacts.require('ExitTxValidator')
 const Merkle = artifacts.require('Merkle')
 const MerklePatriciaProof = artifacts.require('MerklePatriciaProof')
 const PriorityQueue = artifacts.require('PriorityQueue')
@@ -41,11 +42,18 @@ const libDeps = [
   },
   {
     lib: Common,
-    contracts: [WithdrawManager]
+    contracts: [
+      WithdrawManager,
+      ExitTxValidator
+    ]
   },
   {
     lib: ECVerify,
     contracts: [StakeManager]
+  },
+  {
+    lib: ExitTxValidator,
+    contracts: [WithdrawManager]
   },
   {
     lib: Merkle,
