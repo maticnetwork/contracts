@@ -48,7 +48,7 @@ contract ChildToken is Ownable, IMarketplaceToken {
 
   function withdraw(uint256 amountOrTokenId) public;
 
-  function setParent(address parent) public isParentOwner;
+  function setParent(address _parent) public isParentOwner;
 
   function getTransferTypedHash(uint256 amount, bytes32 data, address spender) public view returns (bytes32) {
     return keccak256(abi.encodePacked(TXDATAHASH, keccak256(abi.encodePacked(address(this), spender, amount, data))));

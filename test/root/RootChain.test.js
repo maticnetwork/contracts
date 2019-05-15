@@ -245,7 +245,7 @@ contract('RootChain', async function(accounts) {
       const extraData = utils.bufferToHex(
         utils.rlp.encode([owner, 0, 22, utils.keccak256(encode(0, 22))])
       )
-      const chain = 'test-chain-E5igIA'
+      const chain = 'heimdall-93rQwK'
 
       const roundType = 'vote'
       const voteType = await rootChain.voteType()

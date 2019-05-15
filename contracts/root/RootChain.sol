@@ -94,7 +94,7 @@ contract RootChain is Ownable, IRootChain, IERC721Receiver {
   // deposit ETH by sending to this contract
   function () public payable {
     depositEthers();
-  }
+  } // disable Deposit Ethers
 
   //
   // External functions
@@ -264,8 +264,10 @@ contract RootChain is Ownable, IRootChain, IERC721Receiver {
 
   // deposit ethers
   function depositEthers() public payable {
+    require(false);   //TODO: don't let depositEthers 
     // retrieve ether amount
     uint256 _amount = msg.value;
+
     // get weth token
     address wethToken = depositManager.wethToken();
 
@@ -306,8 +308,7 @@ contract RootChain is Ownable, IRootChain, IERC721Receiver {
     // generate deposit block and udpate counter
     depositManager.createDepositBlock(_currentHeaderBlock, _token, _user, _amount);
   }
-  
-  
+
   // transfer tokens to user
   function transferAmount(
     address _token,

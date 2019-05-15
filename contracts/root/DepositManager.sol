@@ -98,7 +98,11 @@ contract DepositManager is IManager, TokenManager, RootChainable {
     require(Common.isContract(_user) == false);
 
     // throw if amount is zero if !NFT
-    require(isERC721[_token] || _amountOrTokenId > 0); 
+    require(isERC721[_token] || _amountOrTokenId > 0);
+
+    // if (!isERC721[_token]) {
+    //   require(_amountOrTokenId <= (10*10**(ERC20(_token).decimals())), "Max deposit of 10 tokens is allowed");
+    // }
 
     // throws if token is not mapped
     require(_isTokenMapped(_token));
