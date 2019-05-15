@@ -7,6 +7,7 @@ export const WithdrawManager = artifacts.require('WithdrawManager')
 export const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
 
 export const ChildChainVerifier = artifacts.require('ChildChainVerifier')
+export const ExitTxValidator = artifacts.require('ExitTxValidator')
 
 // tokens
 export const MaticWETH = artifacts.require('MaticWETH')
