@@ -1,6 +1,8 @@
 pragma solidity ^0.4.24;
 
 import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import { ERC20Detailed } from "openzeppelin-solidity/contracts/token/ERC20/ERC20Detailed.sol";
+
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { Common } from "../lib/Common.sol";
@@ -101,7 +103,7 @@ contract DepositManager is IManager, TokenManager, RootChainable {
     require(isERC721[_token] || _amountOrTokenId > 0);
 
     if (!isERC721[_token]) {
-      require(_amountOrTokenId <= (10*10**18), "Max deposit of 10 tokens is allowed");
+      require(_amountOrTokenId <= (10*10**ERC20Detailed(_token).decimals()), "Max deposit of 10 tokens is allowed");
     }
 
     // throws if token is not mapped
