@@ -82,7 +82,7 @@ contract ChildChain is Ownable {
     emit NewToken(_rootToken, token, _decimals);
   }
 
-  function mapToken(address _rootToken, address _token,bool _isERC721) public {
+  function mapToken(address _rootToken, address _token,bool _isERC721) public onlyOwner {
     // add mapping with root token
     tokens[_rootToken] = _token;
     isERC721[_rootToken] = _isERC721;
@@ -90,7 +90,7 @@ contract ChildChain is Ownable {
     // broadcast new token's event
     // emit NewToken(_rootToken, _token, childERC20s(_token).decimals);
   }
- 
+
   function depositTokens(
     address rootToken,
     address user,
@@ -108,7 +108,7 @@ contract ChildChain is Ownable {
 
     // check if child token is mapped
     require(childToken != address(0x0));
-    
+
     ChildToken obj;
 
     if (isERC721[rootToken]) {
@@ -141,7 +141,7 @@ contract ChildChain is Ownable {
 
     // check if child token is mapped
     require(childToken != address(0x0));
-    
+
     ChildToken obj;
 
     if (isERC721[rootToken]) {

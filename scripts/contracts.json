@@ -21,6 +21,6 @@
   "NonceValidator": "0x5d7a45e0f4b7e1bb4d677a1285ce81d0702a0229",
   "ERC721Validator": "0xc48a5df1573a9caa152ba2cbf32adc9b743ea73a",
   "DepositValidator": "0x25ed134e0b88be9f7fb19ecf3bf2cf4de09369a6",
-  "ChildChain": "0x30109c2472442c357ebbbcee308df98b821c614f",
-  "ChildToken": "0xB2BdC6F8Fb9A39943D5c883046f78d45839219B3"
+  "ChildChain": "0x168ea52f1fafe28d584f94357383d4f6fa8a749a",
+  "ChildToken": "0xf2207Fd02b3f77B0D755534B7D7a0b9905F0e065"
 }
