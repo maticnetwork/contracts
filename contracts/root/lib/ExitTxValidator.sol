@@ -1,8 +1,8 @@
 pragma solidity ^0.5.2;
 
-import { BytesLib } from "../common/lib/BytesLib.sol";
-import { Common } from "../common/lib/Common.sol";
-import { RLPEncode } from "../common/lib/RLPEncode.sol";
+import { BytesLib } from "../../common/lib/BytesLib.sol";
+import { Common } from "../../common/lib/Common.sol";
+import { RLPEncode } from "../../common/lib/RLPEncode.sol";
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 
 library ExitTxValidator {
@@ -26,6 +26,8 @@ library ExitTxValidator {
       require(txData.length == 36, "Invalid tx");
       exitAmount = BytesLib.toUint(txData, 4);
       burnt = true;
+    } else {
+      revert("Exit tx type not supported");
     }
   }
 
