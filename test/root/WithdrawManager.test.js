@@ -1,8 +1,8 @@
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 
-import deployer from './helpers/deployer.js'
-import logDecoder from './helpers/log-decoder.js'
+import deployer from '../helpers/deployer.js'
+import logDecoder from '../helpers/log-decoder.js'
 import utils from 'ethereumjs-util'
 
 import {
@@ -12,30 +12,58 @@ import {
   getReceiptBytes,
   getReceiptProof,
   verifyReceiptProof
-} from './helpers/proofs'
+} from '../helpers/proofs'
 import {
   buildSubmitHeaderBlockPaylod,
   assertBigNumberEquality
-} from './helpers/utils.js'
-import { increaseBlockTime, mineOneBlock } from './helpers/chain'
+} from '../helpers/utils.js'
+import { increaseBlockTime, mineOneBlock } from '../helpers/chain'
 
-import { getBlockHeader } from './helpers/blocks'
-import MerkleTree from './helpers/merkle-tree'
+import { WithdrawManager } from '../helpers/artifacts'
+import { getBlockHeader } from '../helpers/blocks'
+import MerkleTree from '../helpers/merkle-tree'
+
+import burn from '../mockResponses/burn'
+import incomingTransfer from '../mockResponses/incomingTransfer'
+import { build, buildInFlight } from '../mockResponses/utils'
 
 const rlp = utils.rlp
-const web3Child = new web3.constructor(
-  new web3.providers.HttpProvider('http://localhost:8546')
-)
+// const web3Child = new web3.constructor(
+//   new web3.providers.HttpProvider('http://localhost:8546')
+// )
 
 chai.use(chaiAsPromised).should()
 
 contract('WithdrawManager', async function(accounts) {
-  let contracts, childContracts
+  let contracts, childContracts, instance
   const amount = web3.utils.toBN('10').pow(web3.utils.toBN('18'))
 
   beforeEach(async function() {
-    contracts = await deployer.freshDeploy()
-    childContracts = await deployer.initializeChildChain(accounts[0])
+    instance = await WithdrawManager.deployed()
+    // contracts = await deployer.freshDeploy()
+    // childContracts = await deployer.initializeChildChain(accounts[0])
+  })
+
+  it.only('startExit', async function() {
+    const input = await build(incomingTransfer)
+    const exitTx = await buildInFlight(burn)
+    const res = await instance.startExit(
+      0, // headerNumber
+      utils.bufferToHex(input.receiptsRoot),
+      utils.bufferToHex(input.receipt),
+      utils.bufferToHex(rlp.encode(input.receiptParentNodes)),
+
+      // utils.bufferToHex(input.tx),
+      // utils.bufferToHex(rlp.encode(input.txParentNodes)),
+      // utils.bufferToHex(input.transactionsRoot),
+
+      utils.bufferToHex(rlp.encode(input.path)),
+      1, // logIndex
+      utils.bufferToHex(exitTx)
+      // '0x96C42C56fdb78294F96B0cFa33c92bed7D75F96a'
+      // '0x' + incomingTransfer.receipt.logs[1].topics[3].slice(26) // recipient address
+    )
+    console.log(res)
   })
 
   it('withdrawBurntTokens', async function() {

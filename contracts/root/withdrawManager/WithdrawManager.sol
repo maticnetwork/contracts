@@ -6,6 +6,7 @@ import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 
 import { ChildChainVerifier } from "../lib/ChildChainVerifier.sol";
+import { ExitTxValidator } from "../lib/ExitTxValidator.sol";
 import { Merkle } from "../../common/lib/Merkle.sol";
 import { MerklePatriciaProof } from "../../common/lib/MerklePatriciaProof.sol";
 import { PriorityQueue } from "../../common/lib/PriorityQueue.sol";
@@ -32,74 +33,62 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
   }
 
   /**
-   * @notice Withdraw tokens that have been burnt on the child chain
+   * @notice Start an exit from the side chain
    * @param headerNumber Header block number of which the burn tx was a part of
-   * @param withdrawBlockProof Proof that the withdraw block header (in the child chain) is a leaf in the submitted merkle root
-   * @param withdrawBlockNumber Withdraw block number of which the burn tx was a part of
-   * @param withdrawBlockTime Withdraw block time
-   * @param withdrawBlockTxRoot Transactions root of withdraw block
-   * @param withdrawBlockReceiptRoot Receipts root of withdraw block
-   * @param path ???!
-   * @param withdrawTx Withdraw transaction
-   * @param withdrawTxProof Merkle proof of the withdraw transaction
-   * @param withdrawReceipt Withdraw receipt
-   * @param withdrawReceiptProof Merkle proof of the withdraw receipt
+   * blockProof Proof that the withdraw block header (in the child chain) is a leaf in the submitted merkle root
+   * blockNumber Withdraw block number of which the burn tx was a part of
+   * blockTime Withdraw block time
+   * @param blockReceiptsRoot Receipts root of withdraw block
+   * @param receipt Receipt of the reference transaction
+   * @param receiptProof Merkle proof of the reference receipt
+   * @param branchMask Merkle proof branchMask for the receipt
+   * @param logIndex Log Index to read from the receipt
+   * @param exitTx Raw exit transaction
    */
-  function withdrawBurntTokens(
+  function startExit(
     uint256 headerNumber,
-    bytes memory withdrawBlockProof,
-
-    uint256 withdrawBlockNumber,
-    uint256 withdrawBlockTime,
-    bytes32 withdrawBlockTxRoot,
-    bytes32 withdrawBlockReceiptRoot,
-    bytes memory path,
-
-    bytes memory withdrawTx,
-    bytes memory withdrawTxProof,
-
-    bytes memory withdrawReceipt,
-    bytes memory withdrawReceiptProof
+    // bytes memory blockProof,
+    // uint256 blockNumber,
+    // uint256 blockTime,
+    // bytes32 blockTxRoot,
+    bytes32 blockReceiptsRoot,
+    bytes memory receipt,
+    bytes memory receiptProof,
+    bytes memory branchMask,
+    uint8 logIndex,
+    bytes memory exitTx
   ) public {
-    (address rootToken, uint256 amountOrNFTId) = ChildChainVerifier.processBurnReceipt(
-      withdrawReceipt,
-      path,
-      withdrawReceiptProof,
-      withdrawBlockReceiptRoot,
-      msg.sender,
-      registry
+    (address childToken, address rootToken, uint256 closingBalance, uint256 exitId) =
+    ChildChainVerifier.processReferenceTx(
+      receipt,
+      receiptProof,
+      blockReceiptsRoot,
+      branchMask,
+      logIndex,
+      msg.sender
     );
-
-    ChildChainVerifier.processBurnTx(
-      withdrawTx,
-      path,
-      withdrawTxProof,
-      withdrawBlockTxRoot,
-      rootToken,
-      amountOrNFTId,
-      msg.sender,
-      address(registry),
-      registry.networkId()
-    );
+    (address token, uint256 exitAmount, bool burnt) = ExitTxValidator.processExitTx(exitTx, msg.sender);
+    require(childToken == token, "Input and exit tx do not correspond to the same token");
+    require(closingBalance >= exitAmount, "Burnt more tokens than referenced");
 
     PlasmaExit memory _exitObject = PlasmaExit({
       owner: msg.sender,
       token: rootToken,
-      receiptAmountOrNFTId: amountOrNFTId,
+      receiptAmountOrNFTId: exitAmount,
       burnt: true
     });
 
-    _withdraw(
-      _exitObject,
-      headerNumber,
-      withdrawBlockProof,
-      withdrawBlockNumber,
-      withdrawBlockTime,
-      withdrawBlockTxRoot,
-      withdrawBlockReceiptRoot,
-      path,
-      0 // oIndex
-    );
+    // _withdraw(
+    //   _exitObject,
+    //   headerNumber,
+    //   withdrawBlockProof,
+    //   blockNumber,
+    //   blockTime,
+    //   blockTxRoot,
+    //   blockReceiptsRoot,
+    //   branchMask,
+    //   0 // oIndex
+    // );
   }
 
   /**
