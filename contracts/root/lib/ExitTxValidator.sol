@@ -11,22 +11,25 @@ library ExitTxValidator {
   bytes constant public networkId = "\x0d";
 
   // 0x2e1a7d4d = keccak256('withdraw(uint256)').slice(0, 4)
-  bytes4 WITHDRAW_FUNC_SIG = 0x2e1a7d4d;
+  bytes4 constant WITHDRAW_FUNC_SIG = 0x2e1a7d4d;
 
   /**
    * @notice Process the transaction to start a MoreVP style exit from
    * @param exitTx Signed exit transaction
-   * @param exitor
+   * @param exitor Need I say more?
    */
-  function processExitTx(bytes memory exitTx, address exitor)
+  function processExitTx(bytes memory exitTx, address childToken, address exitor)
     public
     view
-    returns(address token, uint256 exitAmount, bool burnt)
+    returns(uint256 exitAmount, bool burnt)
   {
     RLPReader.RLPItem[] memory txList = exitTx.toRlpItem().toList();
     require(txList.length == 9, "MALFORMED_WITHDRAW_TX");
     require(exitor == getAddressFromTx(txList), "TRANSACTION_SENDER_MISMATCH");
-    token = RLPReader.toAddress(txList[3]); // corresponds to "to" field in tx
+    require(
+      childToken == RLPReader.toAddress(txList[3]), // corresponds to "to" field in tx)
+      "Reference and exit tx do not correspond to the same token"
+    );
     bytes memory txData = RLPReader.toBytes(txList[5]);
     bytes4 funcSig = BytesLib.toBytes4(BytesLib.slice(txData, 0, 4));
     if (funcSig == WITHDRAW_FUNC_SIG) {

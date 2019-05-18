@@ -1,7 +1,5 @@
 import MerkleTree from '../helpers/merkle-tree'
 
-const utils = require('ethereumjs-util')
-
 const Proofs = require('../helpers/proofs')
 const getBlockHeader = require('../helpers/blocks').getBlockHeader
 
@@ -25,18 +23,12 @@ export async function build(event) {
     path: receiptProof.path,
     number: event.receipt.blockNumber,
     timestamp: event.block.timestamp,
-    // transactionsRoot: event.block.transactionsRoot,
     transactionsRoot: Buffer.from(event.block.transactionsRoot.slice(2), 'hex'),
     receiptsRoot: Buffer.from(event.block.receiptsRoot.slice(2), 'hex'),
     proof: await tree.getProof(blockHeader)
   }
-  // return {
-  //   input: utils.rlp.encode(t),
-  //   options: { root: tree.getRoot(), start: event.receipt.blockNumber }
-  // }
 }
 
-export function buildInFlight(event) {
-  // no receipt, no block
-  return Proofs.getTxBytes(event.tx)
+export function buildInFlight(tx) {
+  return Proofs.getTxBytes(tx)
 }

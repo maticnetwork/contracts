@@ -26,20 +26,18 @@ library ChildChainVerifier {
    * @param participant Either of exitor or a counterparty depending on the type of exit
    */
   function processReferenceTx(
+    bytes32 receiptsRoot,
     bytes memory receipt,
     bytes memory receiptProof,
-    bytes32 receiptsRoot,
-
     // bytes memory transaction,
     // bytes memory txProof,
     // bytes32 txRoot,
-
     bytes memory branchMask,
     uint8 logIndex,
     address participant)
     public
     view
-    returns(address childToken, address rootToken, uint256 closingBalance, uint256 exitId)
+    returns(address childToken, address rootToken, uint256 closingBalance)
   {
     require(
       MerklePatriciaProof.verify(receipt, branchMask, receiptProof, receiptsRoot),

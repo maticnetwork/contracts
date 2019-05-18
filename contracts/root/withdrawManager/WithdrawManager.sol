@@ -33,62 +33,134 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
   }
 
   /**
-   * @notice Start an exit from the side chain
-   * @param headerNumber Header block number of which the burn tx was a part of
-   * blockProof Proof that the withdraw block header (in the child chain) is a leaf in the submitted merkle root
-   * blockNumber Withdraw block number of which the burn tx was a part of
-   * blockTime Withdraw block time
-   * @param blockReceiptsRoot Receipts root of withdraw block
-   * @param receipt Receipt of the reference transaction
-   * @param receiptProof Merkle proof of the reference receipt
-   * @param branchMask Merkle proof branchMask for the receipt
+   * @notice Start an exit from the side chain by referencing the preceding (reference) transaction
+   * @param referenceData RLP encoded data of the reference tx that encodes the following fields:
+   * headerNumber Header block number of which the reference tx was a part of
+   * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
+   * blockNumber Block number of which the reference tx is a part of
+   * blockTime Reference tx block time
+   * blocktxRoot Transactions root of block
+   * blockReceiptsRoot Receipts root of block
+   * receipt Receipt of the reference transaction
+   * receiptProof Merkle proof of the reference receipt
+   * branchMask Merkle proof branchMask for the receipt
    * @param logIndex Log Index to read from the receipt
-   * @param exitTx Raw exit transaction
+   * @param exitTx Signed exit transaction
    */
   function startExit(
-    uint256 headerNumber,
-    // bytes memory blockProof,
-    // uint256 blockNumber,
-    // uint256 blockTime,
-    // bytes32 blockTxRoot,
-    bytes32 blockReceiptsRoot,
-    bytes memory receipt,
-    bytes memory receiptProof,
-    bytes memory branchMask,
+    bytes memory referenceData,
     uint8 logIndex,
-    bytes memory exitTx
-  ) public {
-    (address childToken, address rootToken, uint256 closingBalance, uint256 exitId) =
+    bytes memory exitTx)
+    public
+  {
+    RLPReader.RLPItem[] memory referenceTxData = referenceData.toRlpItem().toList();
+    (address childToken, address rootToken, uint256 closingBalance) =
     ChildChainVerifier.processReferenceTx(
-      receipt,
-      receiptProof,
-      blockReceiptsRoot,
-      branchMask,
+      bytes32(referenceTxData[5].toUint()), // blockReceiptsRoot,
+      referenceTxData[6].toBytes(), // receipt
+      referenceTxData[7].toBytes(), // receiptProof
+      referenceTxData[8].toBytes(), // branchMask,
       logIndex,
       msg.sender
     );
-    (address token, uint256 exitAmount, bool burnt) = ExitTxValidator.processExitTx(exitTx, msg.sender);
-    require(childToken == token, "Input and exit tx do not correspond to the same token");
+    require(
+      registry.rootToChildToken(rootToken) == childToken,
+      "INVALID_ROOT_TO_CHILD_TOKEN_MAPPING"
+    );
+
+    // validate exitTx
+    (uint256 exitAmount, bool burnt) = ExitTxValidator.processExitTx(exitTx, childToken, msg.sender);
     require(closingBalance >= exitAmount, "Burnt more tokens than referenced");
 
     PlasmaExit memory _exitObject = PlasmaExit({
       owner: msg.sender,
       token: rootToken,
       receiptAmountOrNFTId: exitAmount,
+      burnt: burnt
+    });
+
+    _withdraw(
+      _exitObject,
+      referenceTxData[0].toUint(), // headerNumber
+      referenceTxData[1].toBytes(), // blockProof,
+      referenceTxData[2].toUint(), // blockNumber,
+      referenceTxData[3].toUint(), // blockTime,
+      bytes32(referenceTxData[4].toUint()), // txRoot,
+      bytes32(referenceTxData[5].toUint()), // receiptRoot,
+      referenceTxData[8].toBytes(), // branchMask
+      0 // dummy oIndex
+    );
+  }
+
+  /**
+   * @notice Withdraw tokens that have been burnt on the child chain
+   * @param headerNumber Header block number of which the burn tx was a part of
+   * @param withdrawBlockProof Proof that the withdraw block header (in the child chain) is a leaf in the submitted merkle root
+   * @param withdrawBlockNumber Withdraw block number of which the burn tx was a part of
+   * @param withdrawBlockTime Withdraw block time
+   * @param withdrawBlockTxRoot Transactions root of withdraw block
+   * @param withdrawBlockReceiptRoot Receipts root of withdraw block
+   * @param path ???!
+   * @param withdrawTx Withdraw transaction
+   * @param withdrawTxProof Merkle proof of the withdraw transaction
+   * @param withdrawReceipt Withdraw receipt
+   * @param withdrawReceiptProof Merkle proof of the withdraw receipt
+   */
+  function withdrawBurntTokens(
+    uint256 headerNumber,
+    bytes memory withdrawBlockProof,
+
+    uint256 withdrawBlockNumber,
+    uint256 withdrawBlockTime,
+    bytes32 withdrawBlockTxRoot,
+    bytes32 withdrawBlockReceiptRoot,
+    bytes memory path,
+
+    bytes memory withdrawTx,
+    bytes memory withdrawTxProof,
+
+    bytes memory withdrawReceipt,
+    bytes memory withdrawReceiptProof
+  ) public {
+    (address rootToken, uint256 amountOrNFTId) = ChildChainVerifier.processBurnReceipt(
+      withdrawReceipt,
+      path,
+      withdrawReceiptProof,
+      withdrawBlockReceiptRoot,
+      msg.sender,
+      registry
+    );
+
+    ChildChainVerifier.processBurnTx(
+      withdrawTx,
+      path,
+      withdrawTxProof,
+      withdrawBlockTxRoot,
+      rootToken,
+      amountOrNFTId,
+      msg.sender,
+      address(registry),
+      registry.networkId()
+    );
+
+    PlasmaExit memory _exitObject = PlasmaExit({
+      owner: msg.sender,
+      token: rootToken,
+      receiptAmountOrNFTId: amountOrNFTId,
       burnt: true
     });
 
-    // _withdraw(
-    //   _exitObject,
-    //   headerNumber,
-    //   withdrawBlockProof,
-    //   blockNumber,
-    //   blockTime,
-    //   blockTxRoot,
-    //   blockReceiptsRoot,
-    //   branchMask,
-    //   0 // oIndex
-    // );
+    _withdraw(
+      _exitObject,
+      headerNumber,
+      withdrawBlockProof,
+      withdrawBlockNumber,
+      withdrawBlockTime,
+      withdrawBlockTxRoot,
+      withdrawBlockReceiptRoot,
+      path,
+      0 // oIndex
+    );
   }
 
   /**
@@ -226,8 +298,8 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     uint256 _exitId = (
       headerNumber * HEADER_BLOCK_NUMBER_WEIGHT +
       withdrawBlockNumber * WITHDRAW_BLOCK_NUMBER_WEIGHT +
-      path.toRlpItem().toBytes().toRlpItem().toUint() * 100000 +
-      oIndex
+      path.toRlpItem().toBytes().toRlpItem().toUint() * 100000
+      // + oIndex
     );
 
     _addExitToQueue(exitObject, _exitId, withdrawBlockTime);
