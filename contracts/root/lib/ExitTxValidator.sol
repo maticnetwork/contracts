@@ -10,6 +10,14 @@ library ExitTxValidator {
   using RLPReader for RLPReader.RLPItem;
   bytes constant public networkId = "\x0d";
 
+  // 0x2e1a7d4d = keccak256('withdraw(uint256)').slice(0, 4)
+  bytes4 WITHDRAW_FUNC_SIG = 0x2e1a7d4d;
+
+  /**
+   * @notice Process the transaction to start a MoreVP style exit from
+   * @param exitTx Signed exit transaction
+   * @param exitor
+   */
   function processExitTx(bytes memory exitTx, address exitor)
     public
     view
@@ -21,9 +29,8 @@ library ExitTxValidator {
     token = RLPReader.toAddress(txList[3]); // corresponds to "to" field in tx
     bytes memory txData = RLPReader.toBytes(txList[5]);
     bytes4 funcSig = BytesLib.toBytes4(BytesLib.slice(txData, 0, 4));
-    // 0x2e1a7d4d = keccak256('withdraw(uint256)').slice(0, 4)
-    if (funcSig == 0x2e1a7d4d) {
-      require(txData.length == 36, "Invalid tx");
+    if (funcSig == WITHDRAW_FUNC_SIG) {
+      require(txData.length == 36, "Invalid tx"); // 4 bytes for funcSig and a single bytes32 parameter
       exitAmount = BytesLib.toUint(txData, 4);
       burnt = true;
     } else {
