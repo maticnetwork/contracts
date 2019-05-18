@@ -81,7 +81,9 @@ class Deployer {
       depositManager: await contracts.DepositManager.at(
         this.depositManagerProxy.address
       ),
-      withdrawManager: _withdrawManager,
+      withdrawManager: await contracts.WithdrawManager.at(
+        this.withdrawManagerProxy.address
+      ),
       maticWeth: this.maticWeth,
       rootERC721: this.rootERC721,
       exitNFT: this.exitNFT
