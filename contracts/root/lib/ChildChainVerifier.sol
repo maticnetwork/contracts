@@ -12,6 +12,19 @@ library ChildChainVerifier {
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
 
+  bytes32 constant DEPOSIT_EVENT_SIG = 0x4e2ca0515ed1aef1395f66b5303bb5d6f1bf9d61a353fa53f73f8ac9973fa9f6;
+  bytes32 constant WITHDRAW_EVENT_SIG = 0xebff2602b3f468259e1e99f613fed6691f3a6526effe6ef3e768ba7ae7a36c4f;
+  bytes32 constant LOG_TRANSFER_EVENT_SIG = 0xe6497e3ee548a3372136af2fcb0696db31fc6cf20260707645068bd3fe97f3c4;
+
+  /**
+   * @notice Process the reference tx to start a MoreVP style exit
+   * @param receipt Receipt of the reference transaction
+   * @param receiptProof Merkle proof of the reference receipt
+   * @param receiptsRoot Receipts root of withdraw block
+   * @param branchMask Merkle proof branchMask for the receipt
+   * @param logIndex Log Index to read from the receipt
+   * @param participant Either of exitor or a counterparty depending on the type of exit
+   */
   function processReferenceTx(
     bytes memory receipt,
     bytes memory receiptProof,
@@ -21,7 +34,7 @@ library ChildChainVerifier {
     // bytes memory txProof,
     // bytes32 txRoot,
 
-    bytes memory path,
+    bytes memory branchMask,
     uint8 logIndex,
     address participant)
     public
@@ -29,42 +42,39 @@ library ChildChainVerifier {
     returns(address childToken, address rootToken, uint256 closingBalance, uint256 exitId)
   {
     require(
-      MerklePatriciaProof.verify(receipt, path, receiptProof, receiptsRoot),
+      MerklePatriciaProof.verify(receipt, branchMask, receiptProof, receiptsRoot),
       "INVALID_RECEIPT_MERKLE_PROOF"
     );
     // require(
-    //   MerklePatriciaProof.verify(transaction, path, txProof, txRoot),
+    //   MerklePatriciaProof.verify(transaction, branchMask, txProof, txRoot),
     //   "INVALID_TX_MERKLE_PROOF"
     // );
     RLPReader.RLPItem[] memory inputItems = receipt.toRlpItem().toList();
     inputItems = inputItems[3].toList()[logIndex].toList(); // select log based on given logIndex
     childToken = RLPReader.toAddress(inputItems[0]); // "address" (contract address that emitted the log) field in the receipt
-    bytes memory inputData = inputItems[2].toBytes();
-    // inputData = inputItems[2].toBytes();
+    bytes memory logData = inputItems[2].toBytes();
     inputItems = inputItems[1].toList(); // topics
     // now, inputItems[i] refers to i-th (0-based) topic in the topics array
-    rootToken = address(RLPReader.toUint(inputItems[1]));
-    // rootToken = inputItems[1].toAddress // investigate why this reverts
     bytes32 eventSignature = bytes32(inputItems[0].toUint());
+    rootToken = address(RLPReader.toUint(inputItems[1]));
+    // rootToken = address(RLPReader.toaddress(inputItems[1])); // investigate why this reverts
 
-    // event Deposit(address indexed token, address indexed from, uint256 amountOrTokenId, uint256 input1, uint256 output1);
-    if (
-      eventSignature == 0x4e2ca0515ed1aef1395f66b5303bb5d6f1bf9d61a353fa53f73f8ac9973fa9f6
+    if (eventSignature == DEPOSIT_EVENT_SIG || eventSignature == WITHDRAW_EVENT_SIG) {
+      // event Deposit(address indexed token, address indexed from, uint256 amountOrTokenId, uint256 input1, uint256 output1)
       // event Withdraw(address indexed token, address indexed from, uint256 amountOrTokenId, uint256 input1, uint256 output1)
-      || eventSignature == 0xebff2602b3f468259e1e99f613fed6691f3a6526effe6ef3e768ba7ae7a36c4f) {
       require(
         participant == address(inputItems[2].toUint()), // from
         "Withdrawer and referenced tx do not match"
       );
-      closingBalance = BytesLib.toUint(inputData, 64); // output1
-    } else if (eventSignature == 0xe6497e3ee548a3372136af2fcb0696db31fc6cf20260707645068bd3fe97f3c4) {
+      closingBalance = BytesLib.toUint(logData, 64); // output1
+    } else if (eventSignature == LOG_TRANSFER_EVENT_SIG) {
       // event LogTransfer(
       //   address indexed token, address indexed from, address indexed to,
       //   uint256 amountOrTokenId, uint256 input1, uint256 input2, uint256 output1, uint256 output2)
       if (participant == address(inputItems[2].toUint())) { // A. Participant transferred tokens
-        closingBalance = BytesLib.toUint(inputData, 96); // output1
+        closingBalance = BytesLib.toUint(logData, 96); // output1
       } else if (participant == address(inputItems[3].toUint())) { // B. Participant received tokens
-        closingBalance = BytesLib.toUint(inputData, 128); // output2
+        closingBalance = BytesLib.toUint(logData, 128); // output2
       } else {
         revert("tx / log doesnt concern the participant");
       }
@@ -74,7 +84,7 @@ library ChildChainVerifier {
   }
 
   function processBurnReceipt(
-    bytes memory receiptBytes, bytes memory path, bytes memory receiptProof,
+    bytes memory receiptBytes, bytes memory branchMask, bytes memory receiptProof,
     bytes32 receiptRoot, address sender, Registry registry)
     internal
     view
@@ -108,15 +118,15 @@ library ChildChainVerifier {
 
     require(sender == BytesLib.toAddress(items[2].toBytes(), 12), "WRONG_SENDER");
 
-    // Make sure this receipt is the value on the path via a MerklePatricia proof
+    // Make sure this receipt is the value on the branchMask via a MerklePatricia proof
     require(
-      MerklePatriciaProof.verify(receiptBytes, path, receiptProof, receiptRoot),
+      MerklePatriciaProof.verify(receiptBytes, branchMask, receiptProof, receiptRoot),
       "INVALID_RECEIPT_MERKLE_PROOF"
     );
   }
 
   function processBurnTx(
-    bytes memory txBytes, bytes memory path, bytes memory txProof, bytes32 txRoot,
+    bytes memory txBytes, bytes memory branchMask, bytes memory txProof, bytes32 txRoot,
     address rootToken, uint256 amountOrTokenId, address sender, address _registry,
     bytes memory networkId)
     internal
@@ -145,9 +155,9 @@ library ChildChainVerifier {
     require(registry.isERC721(rootToken) || amountOrTokenId > 0, "NOT_ERC_AND_ZERO_amountOrTokenId");
     require(amountOrTokenId == BytesLib.toUint(txList[5].toBytes(), 4), "amountOrTokenId_MISMATCH");
 
-    // Make sure this tx is the value on the path via a MerklePatricia proof
+    // Make sure this tx is the value on the branchMask via a MerklePatricia proof
     require(
-      MerklePatriciaProof.verify(txBytes, path, txProof, txRoot),
+      MerklePatriciaProof.verify(txBytes, branchMask, txProof, txRoot),
       "INVALID_TX_MERKLE_PROOF"
     );
 
