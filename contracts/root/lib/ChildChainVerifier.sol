@@ -33,11 +33,12 @@ library ChildChainVerifier {
     // bytes memory txProof,
     // bytes32 txRoot,
     bytes memory branchMask,
-    uint8 logIndex,
-    address participant)
+    uint256 logIndex,
+    address participant,
+    address registry)
     public
     view
-    returns(address childToken, address rootToken, uint256 closingBalance)
+    returns(address childToken, address rootToken, uint256 closingBalanceOrTokenId, bool isErc721)
   {
     require(
       MerklePatriciaProof.verify(receipt, branchMask, receiptProof, receiptsRoot),
@@ -53,10 +54,29 @@ library ChildChainVerifier {
     bytes memory logData = inputItems[2].toBytes();
     inputItems = inputItems[1].toList(); // topics
     // now, inputItems[i] refers to i-th (0-based) topic in the topics array
-    bytes32 eventSignature = bytes32(inputItems[0].toUint());
+    // inputItems[0] is the event signature
     rootToken = address(RLPReader.toUint(inputItems[1]));
     // rootToken = address(RLPReader.toaddress(inputItems[1])); // investigate why this reverts
 
+    isErc721 = Registry(registry).isERC721(rootToken);
+    if (isErc721) {
+      processErc721(inputItems, participant);
+      // tokenId is the first param in logData in all 3 of Deposit, Withdraw and LogTransfer
+      closingBalanceOrTokenId = BytesLib.toUint(logData, 0);
+    } else {
+      closingBalanceOrTokenId = processErc20(inputItems, logData, participant);
+    }
+  }
+
+  function processErc20(
+    RLPReader.RLPItem[] memory inputItems,
+    bytes memory logData,
+    address participant)
+    internal
+    view
+    returns (uint256 closingBalance)
+  {
+    bytes32 eventSignature = bytes32(inputItems[0].toUint());
     if (eventSignature == DEPOSIT_EVENT_SIG || eventSignature == WITHDRAW_EVENT_SIG) {
       // event Deposit(address indexed token, address indexed from, uint256 amountOrTokenId, uint256 input1, uint256 output1)
       // event Withdraw(address indexed token, address indexed from, uint256 amountOrTokenId, uint256 input1, uint256 output1)
@@ -66,7 +86,7 @@ library ChildChainVerifier {
       );
       closingBalance = BytesLib.toUint(logData, 64); // output1
     } else if (eventSignature == LOG_TRANSFER_EVENT_SIG) {
-      // event LogTransfer(
+      // event LogTransfer( ERC20
       //   address indexed token, address indexed from, address indexed to,
       //   uint256 amountOrTokenId, uint256 input1, uint256 input2, uint256 output1, uint256 output2)
       if (participant == address(inputItems[2].toUint())) { // A. Participant transferred tokens
@@ -79,6 +99,32 @@ library ChildChainVerifier {
     } else {
       revert("Exit type not supported");
     }
+  }
+
+  function processErc721(
+    RLPReader.RLPItem[] memory inputItems,
+    address participant)
+    internal
+    view
+  {
+    bytes32 eventSignature = bytes32(inputItems[0].toUint());
+    address _participant;
+    if (eventSignature == DEPOSIT_EVENT_SIG) {
+      // event Deposit(address indexed token, address indexed from, uint256 amountOrTokenId, uint256 input1, uint256 output1)
+      _participant = address(inputItems[2].toUint()); // from
+    } else if (eventSignature == LOG_TRANSFER_EVENT_SIG) {
+      // event LogTransfer(
+      //   address indexed token, address indexed from, address indexed to,
+      //   uint256 amountOrTokenId);
+      // Only makes sense to reference an incoming transfer, unlike erc20 where outgoing transfer also makes sense
+      _participant = address(inputItems[3].toUint()); // to
+    } else {
+      revert("Exit type not supported");
+    }
+    require(
+      participant == _participant,
+      "tx / log doesnt concern the participant"
+    );
   }
 
   function processBurnReceipt(
