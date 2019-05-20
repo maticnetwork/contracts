@@ -21,7 +21,7 @@ library ExitTxValidator {
   function processExitTx(bytes memory exitTx, address childToken, address exitor)
     public
     view
-    returns(uint256 exitAmount, bool burnt)
+    returns(uint256 exitAmountOrTokenId, bool burnt)
   {
     RLPReader.RLPItem[] memory txList = exitTx.toRlpItem().toList();
     require(txList.length == 9, "MALFORMED_WITHDRAW_TX");
@@ -34,7 +34,7 @@ library ExitTxValidator {
     bytes4 funcSig = BytesLib.toBytes4(BytesLib.slice(txData, 0, 4));
     if (funcSig == WITHDRAW_FUNC_SIG) {
       require(txData.length == 36, "Invalid tx"); // 4 bytes for funcSig and a single bytes32 parameter
-      exitAmount = BytesLib.toUint(txData, 4);
+      exitAmountOrTokenId = BytesLib.toUint(txData, 4);
       burnt = true;
     } else {
       revert("Exit tx type not supported");

@@ -44,8 +44,8 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
    * receipt Receipt of the reference transaction
    * receiptProof Merkle proof of the reference receipt
    * branchMask Merkle proof branchMask for the receipt
-   * @param logIndex Log Index to read from the receipt
-   * @param exitTx Signed exit transaction
+   * logIndex Log Index to read from the receipt
+   * exitTx Signed exit transaction
    */
   function startExit(
     bytes memory referenceData,
@@ -54,14 +54,16 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     public
   {
     RLPReader.RLPItem[] memory referenceTxData = referenceData.toRlpItem().toList();
-    (address childToken, address rootToken, uint256 closingBalance) =
+    // (address childToken, address rootToken, uint256 closingBalanceOrTokenId, bool isErc721) =
+    (address childToken, address rootToken, uint256 closingBalanceOrTokenId, /* bool isErc721 gives stack too deep */) =
     ChildChainVerifier.processReferenceTx(
       bytes32(referenceTxData[5].toUint()), // blockReceiptsRoot,
       referenceTxData[6].toBytes(), // receipt
       referenceTxData[7].toBytes(), // receiptProof
-      referenceTxData[8].toBytes(), // branchMask,
-      logIndex,
-      msg.sender
+      referenceTxData[8].toBytes(), // branchMask
+      referenceTxData[9].toUint(), // logIndex
+      msg.sender,
+      address(registry)
     );
     require(
       registry.rootToChildToken(rootToken) == childToken,
@@ -69,13 +71,19 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     );
 
     // validate exitTx
-    (uint256 exitAmount, bool burnt) = ExitTxValidator.processExitTx(exitTx, childToken, msg.sender);
-    require(closingBalance >= exitAmount, "Burnt more tokens than referenced");
+    (uint256 exitAmountOrTokenId, bool burnt) = ExitTxValidator.processExitTx(referenceTxData[10].toBytes(), childToken, msg.sender);
+    // gives stack too deep, fix later
+    // if (isErc721) {
+    if (registry.isERC721(rootToken)) {
+      require(closingBalanceOrTokenId == exitAmountOrTokenId, "Burnt token is different from the one referenced");
+    } else {
+      require(closingBalanceOrTokenId >= exitAmountOrTokenId, "Burnt more tokens than referenced");
+    }
 
     PlasmaExit memory _exitObject = PlasmaExit({
       owner: msg.sender,
       token: rootToken,
-      receiptAmountOrNFTId: exitAmount,
+      receiptAmountOrNFTId: exitAmountOrTokenId,
       burnt: burnt
     });
 
