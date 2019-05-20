@@ -15,6 +15,7 @@ library ChildChainVerifier {
   bytes32 constant DEPOSIT_EVENT_SIG = 0x4e2ca0515ed1aef1395f66b5303bb5d6f1bf9d61a353fa53f73f8ac9973fa9f6;
   bytes32 constant WITHDRAW_EVENT_SIG = 0xebff2602b3f468259e1e99f613fed6691f3a6526effe6ef3e768ba7ae7a36c4f;
   bytes32 constant LOG_TRANSFER_EVENT_SIG = 0xe6497e3ee548a3372136af2fcb0696db31fc6cf20260707645068bd3fe97f3c4;
+  bytes32 constant E721_LOG_TRANSFER_EVENT_SIG = 0x6eabe333476233fd382224f233210cb808a7bc4c4de64f9d76628bf63c677b1a;
 
   /**
    * @notice Process the reference tx to start a MoreVP style exit
@@ -112,7 +113,7 @@ library ChildChainVerifier {
     if (eventSignature == DEPOSIT_EVENT_SIG) {
       // event Deposit(address indexed token, address indexed from, uint256 amountOrTokenId, uint256 input1, uint256 output1)
       _participant = address(inputItems[2].toUint()); // from
-    } else if (eventSignature == LOG_TRANSFER_EVENT_SIG) {
+    } else if (eventSignature == E721_LOG_TRANSFER_EVENT_SIG) {
       // event LogTransfer(
       //   address indexed token, address indexed from, address indexed to,
       //   uint256 amountOrTokenId);
