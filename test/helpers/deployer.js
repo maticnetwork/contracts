@@ -9,6 +9,7 @@ class Deployer {
   constructor() {
     contracts.ChildChain.web3 = web3Child
     contracts.ChildERC20.web3 = web3Child
+    contracts.ChildERC721.web3 = web3Child
   }
 
   async freshDeploy(options = {}) {
@@ -41,8 +42,8 @@ class Deployer {
       this.withdrawManagerProxy.address
     )
     await _withdrawManager.setExitNFTContract(this.exitNFT.address)
-    this.maticWeth = await contracts.MaticWETH.new()
-    this.rootERC721 = await contracts.RootERC721.new('RootERC721', 'T721')
+    // this.maticWeth = await contracts.MaticWETH.new()
+    // this.rootERC721 = await contracts.RootERC721.new('RootERC721', 'T721')
 
     await Promise.all([
       this.registry.updateContractMap(
@@ -56,23 +57,23 @@ class Deployer {
       this.registry.updateContractMap(
         utils.keccak256('stakeManager'),
         this.stakeManager.address
-      ),
-      this.registry.updateContractMap(
-        utils.keccak256('wethToken'),
-        this.maticWeth.address
       )
+      // this.registry.updateContractMap(
+      //   utils.keccak256('wethToken'),
+      //   this.maticWeth.address
+      // )
     ])
 
-    await this.mapToken(
-      this.maticWeth.address,
-      this.maticWeth.address,
-      false /* isERC721 */
-    )
-    await this.mapToken(
-      this.rootERC721.address,
-      this.rootERC721.address,
-      true /* isERC721 */
-    )
+    // await this.mapToken(
+    //   this.maticWeth.address,
+    //   this.maticWeth.address,
+    //   false /* isERC721 */
+    // )
+    // await this.mapToken(
+    //   this.rootERC721.address,
+    //   this.rootERC721.address,
+    //   true /* isERC721 */
+    // )
 
     let _contracts = {
       registry: this.registry,
@@ -84,8 +85,8 @@ class Deployer {
       withdrawManager: await contracts.WithdrawManager.at(
         this.withdrawManagerProxy.address
       ),
-      maticWeth: this.maticWeth,
-      rootERC721: this.rootERC721,
+      // maticWeth: this.maticWeth,
+      // rootERC721: this.rootERC721,
       exitNFT: this.exitNFT
     }
 
@@ -108,14 +109,16 @@ class Deployer {
     return testToken
   }
 
-  async deployTestErc721() {
-    this.rootERC721 = await contracts.RootERC721.new('RootERC721', 'T721')
-    await this.mapToken(
-      this.rootERC721.address,
-      this.rootERC721.address,
-      true /* isERC721 */
-    )
-    return this.rootERC721
+  async deployTestErc721(options = { mapToken: true }) {
+    const testToken = await contracts.RootERC721.new('RootERC721', 'T721')
+    if (options.mapToken) {
+      await this.mapToken(
+        this.rootERC721.address,
+        options.childTokenAdress || this.rootERC721.address,
+        true /* isERC721 */
+      )
+    }
+    return testToken
   }
 
   async mapToken(rootTokenAddress, childTokenAddress, isERC721 = false) {
@@ -126,29 +129,50 @@ class Deployer {
     )
   }
 
-  async initializeChildChain(owner) {
+  async initializeChildChain(owner, options = {}) {
     this.childChain = await contracts.ChildChain.new()
-    const rootERC20 = await this.deployTestErc20({ mapToken: false })
-    const tx = await this.childChain.addToken(
-      owner,
-      rootERC20.address,
-      'ChildToken',
-      'CTOK',
-      18,
-      false /* isERC721 */
-    )
-    const NewTokenEvent = tx.logs.find(log => log.event == 'NewToken')
-    const childToken = await contracts.ChildERC20.at(NewTokenEvent.args.token)
-    await this.mapToken(
-      rootERC20.address,
-      childToken.address,
-      false /* isERC721 */
-    )
-    return {
-      childChain: this.childChain,
-      rootERC20,
-      childToken
+    let res = { childChain: this.childChain }
+    if (options.erc20) {
+      const rootERC20 = await this.deployTestErc20({ mapToken: false })
+      const tx = await this.childChain.addToken(
+        owner,
+        rootERC20.address,
+        'ChildToken',
+        'CTOK',
+        18,
+        false /* isERC721 */
+      )
+      const NewTokenEvent = tx.logs.find(log => log.event === 'NewToken')
+      const childToken = await contracts.ChildERC20.at(NewTokenEvent.args.token)
+      await this.mapToken(
+        rootERC20.address,
+        childToken.address,
+        false /* isERC721 */
+      )
+      res.rootERC20 = rootERC20
+      res.childToken = childToken // rename to childErc20
     }
+    if (options.erc721) {
+      const rootERC721 = await this.deployTestErc721({ mapToken: false })
+      const tx = await this.childChain.addToken(
+        owner,
+        rootERC721.address,
+        'ChildERC721',
+        'C721',
+        18,
+        true /* isERC721 */
+      )
+      const NewTokenEvent = tx.logs.find(log => log.event === 'NewToken')
+      const childErc721 = await contracts.ChildERC721.at(NewTokenEvent.args.token)
+      await this.mapToken(
+        rootERC721.address,
+        childErc721.address,
+        true /* isERC721 */
+      )
+      res.rootERC721 = rootERC721
+      res.childErc721 = childErc721
+    }
+    return res
   }
 }
 
