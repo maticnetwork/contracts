@@ -54,14 +54,15 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     public
   {
     RLPReader.RLPItem[] memory referenceTxData = referenceData.toRlpItem().toList();
-    (address childToken, address rootToken, uint256 closingBalance) =
+    (address childToken, address rootToken, uint256 closingBalanceOrTokenId, /* bool isErc721 gives stack too deep */) =
     ChildChainVerifier.processReferenceTx(
       bytes32(referenceTxData[5].toUint()), // blockReceiptsRoot,
       referenceTxData[6].toBytes(), // receipt
       referenceTxData[7].toBytes(), // receiptProof
-      referenceTxData[8].toBytes(), // branchMask,
+      referenceTxData[8].toBytes(), // branchMask
       logIndex,
-      msg.sender
+      msg.sender,
+      address(registry)
     );
     require(
       registry.rootToChildToken(rootToken) == childToken,
@@ -69,13 +70,19 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     );
 
     // validate exitTx
-    (uint256 exitAmount, bool burnt) = ExitTxValidator.processExitTx(exitTx, childToken, msg.sender);
-    require(closingBalance >= exitAmount, "Burnt more tokens than referenced");
+    (uint256 exitAmountOrTokenId, bool burnt) = ExitTxValidator.processExitTx(exitTx, childToken, msg.sender);
+    // gives stack too deep, fix later
+    // if (isErc721) {
+    if (registry.isERC721(rootToken)) {
+      require(closingBalanceOrTokenId == exitAmountOrTokenId, "Burnt token is different from the one referenced");
+    } else {
+      require(closingBalanceOrTokenId >= exitAmountOrTokenId, "Burnt more tokens than referenced");
+    }
 
     PlasmaExit memory _exitObject = PlasmaExit({
       owner: msg.sender,
       token: rootToken,
-      receiptAmountOrNFTId: exitAmount,
+      receiptAmountOrNFTId: exitAmountOrTokenId,
       burnt: burnt
     });
 
