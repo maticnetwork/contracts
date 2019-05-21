@@ -12,33 +12,79 @@ library ExitTxValidator {
 
   // 0x2e1a7d4d = keccak256('withdraw(uint256)').slice(0, 4)
   bytes4 constant WITHDRAW_FUNC_SIG = 0x2e1a7d4d;
+  // 0xa9059cbb = keccak256('transfer(address,uint256)').slice(0, 4)
+  bytes4 constant TRANSFER_FUNC_SIG = 0xa9059cbb;
 
   /**
    * @notice Process the transaction to start a MoreVP style exit from
    * @param exitTx Signed exit transaction
-   * @param exitor Need I say more?
+   * exitor Need I say more?
    */
-  function processExitTx(bytes memory exitTx, address childToken, address exitor)
+  function processExitTx(bytes memory exitTx)
     public
     view
-    returns(uint256 exitAmountOrTokenId, bool burnt)
+    returns(uint256 exitAmountOrTokenId, address childToken, address participant, bool burnt)
   {
     RLPReader.RLPItem[] memory txList = exitTx.toRlpItem().toList();
     require(txList.length == 9, "MALFORMED_WITHDRAW_TX");
-    require(exitor == getAddressFromTx(txList), "TRANSACTION_SENDER_MISMATCH");
-    require(
-      childToken == RLPReader.toAddress(txList[3]), // corresponds to "to" field in tx)
-      "Reference and exit tx do not correspond to the same token"
-    );
-    bytes memory txData = RLPReader.toBytes(txList[5]);
+    childToken = RLPReader.toAddress(txList[3]); // corresponds to "to" field in tx
+    participant = getAddressFromTx(txList);
+    if (participant == msg.sender) { // exit tx is signed by exitor himself
+      (exitAmountOrTokenId, burnt) = processExitTxSender(RLPReader.toBytes(txList[5]));
+    } else {
+      exitAmountOrTokenId = processExitTxCounterparty(RLPReader.toBytes(txList[5]));
+    }
+  }
+
+  function processExitTxSender(bytes memory txData)
+    internal
+    view
+    returns (uint256 exitAmountOrTokenId, bool burnt)
+  {
     bytes4 funcSig = BytesLib.toBytes4(BytesLib.slice(txData, 0, 4));
     if (funcSig == WITHDRAW_FUNC_SIG) {
       require(txData.length == 36, "Invalid tx"); // 4 bytes for funcSig and a single bytes32 parameter
       exitAmountOrTokenId = BytesLib.toUint(txData, 4);
       burnt = true;
+    } else if (funcSig == TRANSFER_FUNC_SIG) {
+      require(txData.length == 68, "Invalid tx"); // 4 bytes for funcSig and a 2 bytes32 parameters (to, value)
+      exitAmountOrTokenId = BytesLib.toUint(txData, 4);
     } else {
       revert("Exit tx type not supported");
     }
+  }
+
+  function processExitTxCounterparty(bytes memory txData)
+    internal
+    view
+    returns (uint256 exitAmountOrTokenId)
+  {
+    require(txData.length == 68, "Invalid tx"); // 4 bytes for funcSig and a 2 bytes32 parameters (to, value)
+    bytes4 funcSig = BytesLib.toBytes4(BytesLib.slice(txData, 0, 4));
+    require(funcSig == TRANSFER_FUNC_SIG, "Only supports exiting from transfer txs");
+    require(
+      msg.sender == address(BytesLib.toUint(txData, 4)), // to
+      "Exit tx doesnt concern the exitor"
+    );
+    exitAmountOrTokenId = BytesLib.toUint(txData, 36); // value
+  }
+
+  /**
+   * @notice Process the transaction signed by the counterparty to start a MoreVP style exit from
+   * @param exitTx Signed exit transaction
+   * @param counterparty Need I say more?
+   */
+  function processExitTxCounterparty(bytes memory exitTx, address counterparty)
+    public
+    view
+    returns(uint256 exitAmountOrTokenId, address childToken)
+  {
+    RLPReader.RLPItem[] memory txList = exitTx.toRlpItem().toList();
+    require(txList.length == 9, "MALFORMED_WITHDRAW_TX");
+    require(counterparty == getAddressFromTx(txList), "TRANSACTION_SENDER_MISMATCH");
+    childToken = RLPReader.toAddress(txList[3]); // corresponds to "to" field in tx
+    bytes memory txData = RLPReader.toBytes(txList[5]);
+
   }
 
   function getAddressFromTx(RLPReader.RLPItem[] memory txList)

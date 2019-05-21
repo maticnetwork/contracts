@@ -36,10 +36,12 @@ library ChildChainVerifier {
     bytes memory branchMask,
     uint256 logIndex,
     address participant,
+    address childToken,
+    uint256 exitAmountOrTokenId,
     address registry)
     public
     view
-    returns(address childToken, address rootToken, uint256 closingBalanceOrTokenId, bool isErc721)
+    returns(address rootToken)
   {
     require(
       MerklePatriciaProof.verify(receipt, branchMask, receiptProof, receiptsRoot),
@@ -51,7 +53,10 @@ library ChildChainVerifier {
     // );
     RLPReader.RLPItem[] memory inputItems = receipt.toRlpItem().toList();
     inputItems = inputItems[3].toList()[logIndex].toList(); // select log based on given logIndex
-    childToken = RLPReader.toAddress(inputItems[0]); // "address" (contract address that emitted the log) field in the receipt
+    require(
+      childToken == RLPReader.toAddress(inputItems[0]), // "address" (contract address that emitted the log) field in the receipt
+      "Reference and exit tx do not correspond to the same token"
+    );
     bytes memory logData = inputItems[2].toBytes();
     inputItems = inputItems[1].toList(); // topics
     // now, inputItems[i] refers to i-th (0-based) topic in the topics array
@@ -59,13 +64,23 @@ library ChildChainVerifier {
     rootToken = address(RLPReader.toUint(inputItems[1]));
     // rootToken = address(RLPReader.toaddress(inputItems[1])); // investigate why this reverts
 
-    isErc721 = Registry(registry).isERC721(rootToken);
-    if (isErc721) {
+    Registry _registry = Registry(registry);
+    require(
+      _registry.rootToChildToken(rootToken) == childToken,
+      "INVALID_ROOT_TO_CHILD_TOKEN_MAPPING"
+    );
+    if (_registry.isERC721(rootToken)) {
       processErc721(inputItems, participant);
       // tokenId is the first param in logData in all 3 of Deposit, Withdraw and LogTransfer
-      closingBalanceOrTokenId = BytesLib.toUint(logData, 0);
+      require(
+        exitAmountOrTokenId == BytesLib.toUint(logData, 0),
+        "TokenId being exited with is different from the one referenced"
+      );
     } else {
-      closingBalanceOrTokenId = processErc20(inputItems, logData, participant);
+      require(
+        processErc20(inputItems, logData, participant) >= exitAmountOrTokenId,
+        "Exiting with more tokens than referenced"
+      );
     }
   }
 
