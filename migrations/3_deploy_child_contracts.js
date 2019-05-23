@@ -9,7 +9,6 @@ const ECVerify = artifacts.require('ECVerify')
 
 module.exports = async function(deployer, network, accounts) {
   deployer.then(async() => {
-    console.log(`network: ${network}`)
     await deployer.deploy(SafeMath)
     await deployer.link(SafeMath, ChildChain)
 

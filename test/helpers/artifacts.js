@@ -8,6 +8,8 @@ export const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
 
 export const ChildChainVerifier = artifacts.require('ChildChainVerifier')
 export const ExitTxValidator = artifacts.require('ExitTxValidator')
+export const ERC20Predicate = artifacts.require('ERC20Predicate')
+export const ERC721Predicate = artifacts.require('ERC721Predicate')
 
 // tokens
 export const MaticWETH = artifacts.require('MaticWETH')
