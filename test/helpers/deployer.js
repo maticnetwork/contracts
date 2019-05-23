@@ -74,7 +74,11 @@ class Deployer {
     //   this.rootERC721.address,
     //   true /* isERC721 */
     // )
-
+    const ERC20Predicate = await contracts.ERC20Predicate.new()
+    await this.registry.addProofValidator(ERC20Predicate.address)
+    const ERC721Predicate = await contracts.ERC721Predicate.new()
+    await this.registry.addProofValidator(ERC721Predicate.address)
+    
     let _contracts = {
       registry: this.registry,
       rootChain: this.rootChain,
@@ -85,6 +89,8 @@ class Deployer {
       withdrawManager: await contracts.WithdrawManager.at(
         this.withdrawManagerProxy.address
       ),
+      ERC20Predicate,
+      ERC721Predicate,
       // maticWeth: this.maticWeth,
       // rootERC721: this.rootERC721,
       exitNFT: this.exitNFT

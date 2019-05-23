@@ -18,7 +18,7 @@ import { IDepositManager } from "../depositManager/IDepositManager.sol";
 import { RootChainHeader } from "../RootChainStorage.sol";
 import { Registry } from "../../common/Registry.sol";
 import { WithdrawManagerStorage } from "./WithdrawManagerStorage.sol";
-
+import { IPredicate } from "../lib/IPredicate.sol";
 
 contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
   using RLPReader for bytes;
@@ -34,7 +34,8 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
 
   /**
    * @notice Start an exit from the side chain by referencing the preceding (reference) transaction
-   * @param referenceData RLP encoded data of the reference tx that encodes the following fields:
+   * @param predicate Predicate contract address
+   * @param data RLP encoded data of the reference tx that encodes the following fields:
    * headerNumber Header block number of which the reference tx was a part of
    * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
    * blockNumber Block number of which the reference tx is a part of
@@ -44,34 +45,22 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
    * receipt Receipt of the reference transaction
    * receiptProof Merkle proof of the reference receipt
    * branchMask Merkle proof branchMask for the receipt
-   * @param logIndex Log Index to read from the receipt
-   * @param exitTx Signed exit transaction
+   * logIndex Log Index to read from the receipt
+   * exitTx Signed exit transaction
    */
-  function startExit(
-    bytes memory referenceData,
-    uint8 logIndex,
-    bytes memory exitTx)
+  function startExit(address predicate, bytes memory data)
     public
   {
-    RLPReader.RLPItem[] memory referenceTxData = referenceData.toRlpItem().toList();
-
-    // validate exitTx
-    (uint256 exitAmountOrTokenId, address childToken, address participant, bool burnt) =
-      ExitTxValidator.processExitTx(exitTx);
-
-    // process the receipt of the referenced tx
-    (address rootToken,) = ChildChainVerifier.processReferenceTx(
-      bytes32(referenceTxData[5].toUint()), // blockReceiptsRoot,
-      referenceTxData[6].toBytes(), // receipt
-      referenceTxData[7].toBytes(), // receiptProof
-      referenceTxData[8].toBytes(), // branchMask
-      logIndex,
-      participant,
-      childToken,
-      exitAmountOrTokenId,
-      address(registry)
+    RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
+    require(
+      MerklePatriciaProof.verify(referenceTxData[6].toBytes(), referenceTxData[8].toBytes(), referenceTxData[7].toBytes(), bytes32(referenceTxData[5].toUint())),
+      "INVALID_RECEIPT_MERKLE_PROOF"
     );
-
+    require(
+      registry.proofValidatorContracts(predicate),
+      "UNAUTHORIZED_PROOF_VALIDATOR_CONTRACT"
+    );
+    (address rootToken, uint256 exitAmountOrTokenId, bool burnt) = IPredicate(predicate).startExit(data, address(registry));
     PlasmaExit memory _exitObject = PlasmaExit({
       owner: msg.sender,
       token: rootToken,

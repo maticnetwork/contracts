@@ -24,6 +24,8 @@ const DepositManagerProxy = artifacts.require('DepositManagerProxy')
 const WithdrawManager = artifacts.require('WithdrawManager')
 const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
 const StakeManager = artifacts.require('StakeManager')
+const ERC20Predicate = artifacts.require('ERC20Predicate')
+const ERC721Predicate = artifacts.require('ERC721Predicate')
 
 // tokens
 const MaticWETH = artifacts.require('MaticWETH')
@@ -34,7 +36,11 @@ const ExitNFT = artifacts.require('ExitNFT.sol')
 const libDeps = [
   {
     lib: BytesLib,
-    contracts: [WithdrawManager]
+    contracts: [
+      WithdrawManager,
+      ERC20Predicate,
+      ERC721Predicate
+    ]
   },
   {
     lib: ChildChainVerifier,
@@ -44,7 +50,9 @@ const libDeps = [
     lib: Common,
     contracts: [
       WithdrawManager,
-      ExitTxValidator
+      ExitTxValidator,
+      ERC20Predicate,
+      ERC721Predicate
     ]
   },
   {
@@ -57,11 +65,11 @@ const libDeps = [
   },
   {
     lib: Merkle,
-    contracts: [WithdrawManager]
+    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate]
   },
   {
     lib: MerklePatriciaProof,
-    contracts: [WithdrawManager]
+    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate]
   },
   {
     lib: PriorityQueue,
@@ -69,11 +77,11 @@ const libDeps = [
   },
   {
     lib: RLPEncode,
-    contracts: [WithdrawManager]
+    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate]
   },
   {
     lib: RLPReader,
-    contracts: [RootChain]
+    contracts: [RootChain, ERC20Predicate, ERC721Predicate]
   },
   {
     lib: SafeMath,
@@ -114,10 +122,15 @@ module.exports = async function(deployer, network) {
         RootChain.address
       )
 
-      // deploy tokens
-      await deployer.deploy(ExitNFT, Registry.address, 'ExitNFT', 'ENFT')
-      await deployer.deploy(MaticWETH)
-      await deployer.deploy(RootERC721, 'RootERC721', 'T721')
+      await Promise.all([
+        deployer.deploy(ERC20Predicate),
+        deployer.deploy(ERC721Predicate),
+
+        // deploy tokens
+        deployer.deploy(ExitNFT, Registry.address, 'ExitNFT', 'ENFT'),
+        deployer.deploy(MaticWETH),
+        deployer.deploy(RootERC721, 'RootERC721', 'T721')
+      ])
     })
     .then(async() => {
       console.log('initializing contract state...')
