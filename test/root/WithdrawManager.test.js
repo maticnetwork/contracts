@@ -60,57 +60,47 @@ contract('WithdrawManager', async function(accounts) {
         )
 
         const { receipt } = await childContracts.childErc721.transferFrom(other, user, tokenId, { from: other })
-        const event = {
-          tx: await web3Child.eth.getTransaction(receipt.transactionHash),
-          receipt: await web3Child.eth.getTransactionReceipt(receipt.transactionHash),
-          block: await web3Child.eth.getBlock(receipt.blockHash, true /* returnTransactionObjects */)
-        }
-
-        const blockHeader = getBlockHeader(event.block)
-        const headers = [blockHeader]
-        const tree = new MerkleTree(headers)
-        const root = utils.bufferToHex(tree.getRoot())
-        const start = event.tx.blockNumber
-        const end = event.tx.blockNumber
-        const blockProof = await tree.getProof(blockHeader)
-        tree
-          .verify(blockHeader, event.block.number - start, tree.getRoot(), blockProof)
-          .should.equal(true)
-        const payload = buildSubmitHeaderBlockPaylod(accounts[0], 0, start - 1)
-        await contracts.rootChain.submitHeaderBlock(payload.vote, payload.sigs, payload.extraData)
-
-        const { vote, sigs, extraData } = buildSubmitHeaderBlockPaylod(accounts[0], start, end, root)
-        const submitHeaderBlock = await contracts.rootChain.submitHeaderBlock(vote, sigs, extraData)
-        const NewHeaderBlockEvent = submitHeaderBlock.logs.find(log => log.event === 'NewHeaderBlock')
-        const headerNumber = NewHeaderBlockEvent.args.headerBlockId
-
-        const txProof = await getTxProof(event.tx, event.block)
-        assert.isTrue(verifyTxProof(txProof), 'Tx proof must be valid (failed in js)')
-        const receiptProof = await getReceiptProof(event.receipt, event.block, web3Child)
-        assert.isTrue(verifyReceiptProof(receiptProof), 'Receipt proof must be valid (failed in js)')
+        const { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts)
 
         const { receipt: r } = await childContracts.childErc721.withdraw(tokenId)
         let exitTx = await web3Child.eth.getTransaction(r.transactionHash)
-        const reference = await build(event)
         exitTx = await buildInFlight(exitTx)
 
-        const block = event.block
-        const startExitTx = await contracts.withdrawManager.startExit(
-          utils.bufferToHex(
-            rlp.encode([
-              headerNumber,
-              utils.bufferToHex(Buffer.concat(blockProof)),
-              block.number,
-              block.timestamp,
-              utils.bufferToHex(reference.transactionsRoot),
-              utils.bufferToHex(reference.receiptsRoot),
-              utils.bufferToHex(reference.receipt),
-              utils.bufferToHex(rlp.encode(reference.receiptParentNodes)),
-              utils.bufferToHex(rlp.encode(reference.path)) // branch mask
-            ])
-          ),
-          1, // logIndex
-          utils.bufferToHex(exitTx)
+        const startExitTx = await startExit(
+          headerNumber, blockProof, block.number, block.timestamp,
+          reference, 1, /* logIndex */ exitTx, contracts.withdrawManager
+        )
+        // console.log(startExitTx)
+        const log = startExitTx.logs[0]
+        log.event.should.equal('ExitStarted')
+        expect(log.args).to.include({
+          exitor: user,
+          token: childContracts.rootERC721.address
+        })
+        assertBigNumberEquality(log.args.amount, tokenId)
+      })
+
+      it.only('reference: counterparty balance (Transfer) - exitTx: incomingTransfer', async function() {
+        await depositErc721(
+          contracts.depositManager,
+          childContracts.childChain,
+          childContracts.rootERC721,
+          user,
+          tokenId
+        )
+
+        // proof of counterparty's balance
+        const { receipt } = await childContracts.childErc721.transferFrom(user, other, tokenId)
+        const { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts)
+
+        // treating this as in-flight incomingTransfer
+        const { receipt: r } = await childContracts.childErc721.transferFrom(other, user, tokenId, { from: other })
+        let exitTx = await web3Child.eth.getTransaction(r.transactionHash)
+        exitTx = await buildInFlight(exitTx)
+
+        const startExitTx = await startExit(
+          headerNumber, blockProof, block.number, block.timestamp,
+          reference, 1, /* logIndex */ exitTx, contracts.withdrawManager
         )
         // console.log(startExitTx)
         const log = startExitTx.logs[0]
@@ -246,6 +236,89 @@ contract('WithdrawManager', async function(accounts) {
         exitTx = await buildInFlight(exitTx)
 
         const block = event.block
+        const startExitTx = await contracts.withdrawManager.startExit(
+          utils.bufferToHex(
+            rlp.encode([
+              headerNumber,
+              utils.bufferToHex(Buffer.concat(blockProof)),
+              block.number,
+              block.timestamp,
+              utils.bufferToHex(reference.transactionsRoot),
+              utils.bufferToHex(reference.receiptsRoot),
+              utils.bufferToHex(reference.receipt),
+              utils.bufferToHex(rlp.encode(reference.receiptParentNodes)),
+              utils.bufferToHex(rlp.encode(reference.path)) // branch mask
+            ])
+          ),
+          1, // logIndex
+          utils.bufferToHex(exitTx)
+        )
+        // console.log(startExitTx)
+        const log = startExitTx.logs[0]
+        log.event.should.equal('ExitStarted')
+        expect(log.args).to.include({
+          exitor: user,
+          token: childContracts.rootERC20.address
+        })
+        assertBigNumberEquality(log.args.amount, halfAmount)
+      })
+
+      it('reference: counterparty balance (Deposit) - exitTx: incomingTransfer', async function() {
+        // Reference the counterparty's deposit which is the proof of counterparty's balance
+        const { receipt } = await childContracts.childChain.depositTokens(childContracts.rootERC20.address, other, amount, '1' /* mock depositBlockId */)
+        const { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts)
+
+        // Treating this tx as an in-flight incoming transfer
+        const { receipt: r } = await childContracts.childToken.transfer(user, halfAmount, { from: other })
+        let exitTx = await web3Child.eth.getTransaction(r.transactionHash)
+        exitTx = await buildInFlight(exitTx)
+
+        // const block = event.block
+        const startExitTx = await contracts.withdrawManager.startExit(
+          utils.bufferToHex(
+            rlp.encode([
+              headerNumber,
+              utils.bufferToHex(Buffer.concat(blockProof)),
+              block.number,
+              block.timestamp,
+              utils.bufferToHex(reference.transactionsRoot),
+              utils.bufferToHex(reference.receiptsRoot),
+              utils.bufferToHex(reference.receipt),
+              utils.bufferToHex(rlp.encode(reference.receiptParentNodes)),
+              utils.bufferToHex(rlp.encode(reference.path)) // branch mask
+            ])
+          ),
+          1, // logIndex
+          utils.bufferToHex(exitTx)
+        )
+        // console.log(startExitTx)
+        const log = startExitTx.logs[0]
+        log.event.should.equal('ExitStarted')
+        expect(log.args).to.include({
+          exitor: user,
+          token: childContracts.rootERC20.address
+        })
+        assertBigNumberEquality(log.args.amount, halfAmount)
+      })
+
+      it('reference: counterparty balance (Transfer) - exitTx: incomingTransfer', async function() {
+        await deposit(
+          contracts.depositManager,
+          childContracts.childChain,
+          childContracts.rootERC20,
+          user,
+          amount
+        )
+
+        // We will reference the following tx which is a proof of counterparty's balance
+        const { receipt } = await childContracts.childToken.transfer(other, amount)
+        const { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts)
+
+        // Treating this tx as an in-flight incoming transfer
+        const { receipt: r } = await childContracts.childToken.transfer(user, halfAmount, { from: other })
+        let exitTx = await web3Child.eth.getTransaction(r.transactionHash)
+        exitTx = await buildInFlight(exitTx)
+
         const startExitTx = await contracts.withdrawManager.startExit(
           utils.bufferToHex(
             rlp.encode([
@@ -429,5 +502,57 @@ async function depositErc721(depositManager, childChain, rootERC721, user, token
     tokenId,
     '1' // mock
     // NewDepositBlockEvent.args.depositBlockId
+  )
+}
+
+async function init(rootChain, receipt, accounts) {
+  const event = {
+    tx: await web3Child.eth.getTransaction(receipt.transactionHash),
+    receipt: await web3Child.eth.getTransactionReceipt(receipt.transactionHash),
+    block: await web3Child.eth.getBlock(receipt.blockHash, true /* returnTransactionObjects */)
+  }
+
+  const blockHeader = getBlockHeader(event.block)
+  const headers = [blockHeader]
+  const tree = new MerkleTree(headers)
+  const root = utils.bufferToHex(tree.getRoot())
+  const start = event.tx.blockNumber
+  const end = event.tx.blockNumber
+  const blockProof = await tree.getProof(blockHeader)
+  tree
+    .verify(blockHeader, event.block.number - start, tree.getRoot(), blockProof)
+    .should.equal(true)
+  const payload = buildSubmitHeaderBlockPaylod(accounts[0], 0, start - 1)
+  await rootChain.submitHeaderBlock(payload.vote, payload.sigs, payload.extraData)
+
+  const { vote, sigs, extraData } = buildSubmitHeaderBlockPaylod(accounts[0], start, end, root)
+  const submitHeaderBlock = await rootChain.submitHeaderBlock(vote, sigs, extraData)
+
+  const txProof = await getTxProof(event.tx, event.block)
+  assert.isTrue(verifyTxProof(txProof), 'Tx proof must be valid (failed in js)')
+  const receiptProof = await getReceiptProof(event.receipt, event.block, web3Child)
+  assert.isTrue(verifyReceiptProof(receiptProof), 'Receipt proof must be valid (failed in js)')
+
+  const NewHeaderBlockEvent = submitHeaderBlock.logs.find(log => log.event === 'NewHeaderBlock')
+  return { block: event.block, blockProof, headerNumber: NewHeaderBlockEvent.args.headerBlockId, reference: await build(event) }
+}
+
+function startExit(headerNumber, blockProof, blockNumber, blockTimestamp, reference, logIndex, exitTx, withdrawManager) {
+  return withdrawManager.startExit(
+    utils.bufferToHex(
+      rlp.encode([
+        headerNumber,
+        utils.bufferToHex(Buffer.concat(blockProof)),
+        blockNumber,
+        blockTimestamp,
+        utils.bufferToHex(reference.transactionsRoot),
+        utils.bufferToHex(reference.receiptsRoot),
+        utils.bufferToHex(reference.receipt),
+        utils.bufferToHex(rlp.encode(reference.receiptParentNodes)),
+        utils.bufferToHex(rlp.encode(reference.path)) // branch mask
+      ])
+    ),
+    logIndex,
+    utils.bufferToHex(exitTx)
   )
 }

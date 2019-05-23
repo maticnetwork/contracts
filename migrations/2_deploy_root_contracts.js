@@ -103,6 +103,9 @@ module.exports = async function(deployer, network) {
         RootChain.address
       )
 
+      await deployer.deploy(ExitTxValidator)
+      await deployer.link(ExitTxValidator, [WithdrawManager])
+
       await deployer.deploy(WithdrawManager)
       await deployer.deploy(
         WithdrawManagerProxy,

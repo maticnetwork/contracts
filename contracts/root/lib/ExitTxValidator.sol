@@ -69,24 +69,6 @@ library ExitTxValidator {
     exitAmountOrTokenId = BytesLib.toUint(txData, 36); // value
   }
 
-  /**
-   * @notice Process the transaction signed by the counterparty to start a MoreVP style exit from
-   * @param exitTx Signed exit transaction
-   * @param counterparty Need I say more?
-   */
-  function processExitTxCounterparty(bytes memory exitTx, address counterparty)
-    public
-    view
-    returns(uint256 exitAmountOrTokenId, address childToken)
-  {
-    RLPReader.RLPItem[] memory txList = exitTx.toRlpItem().toList();
-    require(txList.length == 9, "MALFORMED_WITHDRAW_TX");
-    require(counterparty == getAddressFromTx(txList), "TRANSACTION_SENDER_MISMATCH");
-    childToken = RLPReader.toAddress(txList[3]); // corresponds to "to" field in tx
-    bytes memory txData = RLPReader.toBytes(txList[5]);
-
-  }
-
   function getAddressFromTx(RLPReader.RLPItem[] memory txList)
     internal
     view
