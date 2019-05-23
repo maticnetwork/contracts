@@ -60,7 +60,7 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
       ExitTxValidator.processExitTx(exitTx);
 
     // process the receipt of the referenced tx
-    (address rootToken) = ChildChainVerifier.processReferenceTx(
+    (address rootToken,) = ChildChainVerifier.processReferenceTx(
       bytes32(referenceTxData[5].toUint()), // blockReceiptsRoot,
       referenceTxData[6].toBytes(), // receipt
       referenceTxData[7].toBytes(), // receiptProof

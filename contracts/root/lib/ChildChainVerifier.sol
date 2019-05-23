@@ -41,7 +41,7 @@ library ChildChainVerifier {
     address registry)
     public
     view
-    returns(address rootToken)
+    returns(address rootToken, uint256 p)
   {
     require(
       MerklePatriciaProof.verify(receipt, branchMask, receiptProof, receiptsRoot),
@@ -77,6 +77,7 @@ library ChildChainVerifier {
         "TokenId being exited with is different from the one referenced"
       );
     } else {
+      // p = processErc20(inputItems, logData, participant);
       require(
         processErc20(inputItems, logData, participant) >= exitAmountOrTokenId,
         "Exiting with more tokens than referenced"
@@ -102,7 +103,7 @@ library ChildChainVerifier {
       );
       closingBalance = BytesLib.toUint(logData, 64); // output1
     } else if (eventSignature == LOG_TRANSFER_EVENT_SIG) {
-      // event LogTransfer( ERC20
+      // event LogTransfer(
       //   address indexed token, address indexed from, address indexed to,
       //   uint256 amountOrTokenId, uint256 input1, uint256 input2, uint256 output1, uint256 output2)
       if (participant == address(inputItems[2].toUint())) { // A. Participant transferred tokens
