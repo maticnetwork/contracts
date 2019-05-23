@@ -6,6 +6,7 @@ import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 
 import { ChildChainVerifier } from "../lib/ChildChainVerifier.sol";
+import { ExitTxValidator } from "../lib/ExitTxValidator.sol";
 import { Merkle } from "../../common/lib/Merkle.sol";
 import { MerklePatriciaProof } from "../../common/lib/MerklePatriciaProof.sol";
 import { PriorityQueue } from "../../common/lib/PriorityQueue.sol";
@@ -29,6 +30,73 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
       registry.proofValidatorContracts(msg.sender),
       "UNAUTHORIZED_PROOF_VALIDATOR_CONTRACT");
     _;
+  }
+
+  /**
+   * @notice Start an exit from the side chain by referencing the preceding (reference) transaction
+   * @param referenceData RLP encoded data of the reference tx that encodes the following fields:
+   * headerNumber Header block number of which the reference tx was a part of
+   * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
+   * blockNumber Block number of which the reference tx is a part of
+   * blockTime Reference tx block time
+   * blocktxRoot Transactions root of block
+   * blockReceiptsRoot Receipts root of block
+   * receipt Receipt of the reference transaction
+   * receiptProof Merkle proof of the reference receipt
+   * branchMask Merkle proof branchMask for the receipt
+   * @param logIndex Log Index to read from the receipt
+   * @param exitTx Signed exit transaction
+   */
+  function startExit(
+    bytes memory referenceData,
+    uint8 logIndex,
+    bytes memory exitTx)
+    public
+  {
+    RLPReader.RLPItem[] memory referenceTxData = referenceData.toRlpItem().toList();
+    (address childToken, address rootToken, uint256 closingBalanceOrTokenId, /* bool isErc721 gives stack too deep */) =
+    ChildChainVerifier.processReferenceTx(
+      bytes32(referenceTxData[5].toUint()), // blockReceiptsRoot,
+      referenceTxData[6].toBytes(), // receipt
+      referenceTxData[7].toBytes(), // receiptProof
+      referenceTxData[8].toBytes(), // branchMask
+      logIndex,
+      msg.sender,
+      address(registry)
+    );
+    require(
+      registry.rootToChildToken(rootToken) == childToken,
+      "INVALID_ROOT_TO_CHILD_TOKEN_MAPPING"
+    );
+
+    // validate exitTx
+    (uint256 exitAmountOrTokenId, bool burnt) = ExitTxValidator.processExitTx(exitTx, childToken, msg.sender);
+    // gives stack too deep, fix later
+    // if (isErc721) {
+    if (registry.isERC721(rootToken)) {
+      require(closingBalanceOrTokenId == exitAmountOrTokenId, "Burnt token is different from the one referenced");
+    } else {
+      require(closingBalanceOrTokenId >= exitAmountOrTokenId, "Burnt more tokens than referenced");
+    }
+
+    PlasmaExit memory _exitObject = PlasmaExit({
+      owner: msg.sender,
+      token: rootToken,
+      receiptAmountOrNFTId: exitAmountOrTokenId,
+      burnt: burnt
+    });
+
+    _withdraw(
+      _exitObject,
+      referenceTxData[0].toUint(), // headerNumber
+      referenceTxData[1].toBytes(), // blockProof,
+      referenceTxData[2].toUint(), // blockNumber,
+      referenceTxData[3].toUint(), // blockTime,
+      bytes32(referenceTxData[4].toUint()), // txRoot,
+      bytes32(referenceTxData[5].toUint()), // receiptRoot,
+      referenceTxData[8].toBytes(), // branchMask
+      0 // dummy oIndex
+    );
   }
 
   /**
@@ -237,8 +305,8 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     uint256 _exitId = (
       headerNumber * HEADER_BLOCK_NUMBER_WEIGHT +
       withdrawBlockNumber * WITHDRAW_BLOCK_NUMBER_WEIGHT +
-      path.toRlpItem().toBytes().toRlpItem().toUint() * 100000 +
-      oIndex
+      path.toRlpItem().toBytes().toRlpItem().toUint() * 100000
+      // + oIndex
     );
 
     _addExitToQueue(exitObject, _exitId, withdrawBlockTime);
