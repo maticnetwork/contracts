@@ -5,27 +5,17 @@ import { Common } from "../../common/lib/Common.sol";
 // import { MerklePatriciaProof } from "../../common/lib/MerklePatriciaProof.sol";
 import { RLPEncode } from "../../common/lib/RLPEncode.sol";
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
+import { WithdrawManager } from "../withdrawManager/WithdrawManager.sol";
 
 contract IPredicate {
   using RLPReader for RLPReader.RLPItem;
+  WithdrawManager internal withdrawManager;
 
-  function startExit(bytes memory data, address registry)
-    public
-    returns (address rootToken, uint256 exitAmountOrTokenId, bool burnt);
+  constructor(address _withdrawManager) public {
+    withdrawManager = WithdrawManager(_withdrawManager);
+  }
 
-  // function merklePatriciaVerify(
-  //   bytes memory receipt,
-  //   bytes memory branchMask,
-  //   bytes memory receiptProof,
-  //   bytes32 receiptsRoot)
-  //   internal
-  //   view
-  // {
-  //   require(
-  //     MerklePatriciaProof.verify(receipt, branchMask, receiptProof, receiptsRoot),
-  //     "INVALID_RECEIPT_MERKLE_PROOF"
-  //   );
-  // }
+  function startExit(bytes memory data) public;
 
   function getAddressFromTx(RLPReader.RLPItem[] memory txList, bytes memory networkId)
     internal

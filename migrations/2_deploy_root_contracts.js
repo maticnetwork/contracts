@@ -11,7 +11,7 @@ const BytesLib = artifacts.require('BytesLib')
 const ChildChainVerifier = artifacts.require('ChildChainVerifier')
 const Common = artifacts.require('Common')
 const ECVerify = artifacts.require('ECVerify')
-const ExitTxValidator = artifacts.require('ExitTxValidator')
+// const ExitTxValidator = artifacts.require('ExitTxValidator')
 const Merkle = artifacts.require('Merkle')
 const MerklePatriciaProof = artifacts.require('MerklePatriciaProof')
 const PriorityQueue = artifacts.require('PriorityQueue')
@@ -50,7 +50,7 @@ const libDeps = [
     lib: Common,
     contracts: [
       WithdrawManager,
-      ExitTxValidator,
+      // ExitTxValidator,
       ERC20Predicate,
       ERC721Predicate
     ]
@@ -59,10 +59,10 @@ const libDeps = [
     lib: ECVerify,
     contracts: [StakeManager]
   },
-  {
-    lib: ExitTxValidator,
-    contracts: [WithdrawManager]
-  },
+  // {
+  //   lib: ExitTxValidator,
+  //   contracts: [WithdrawManager]
+  // },
   {
     lib: Merkle,
     contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate]
@@ -111,8 +111,8 @@ module.exports = async function(deployer, network) {
         RootChain.address
       )
 
-      await deployer.deploy(ExitTxValidator)
-      await deployer.link(ExitTxValidator, [WithdrawManager])
+      // await deployer.deploy(ExitTxValidator)
+      // await deployer.link(ExitTxValidator, [WithdrawManager])
 
       await deployer.deploy(WithdrawManager)
       await deployer.deploy(
@@ -123,8 +123,8 @@ module.exports = async function(deployer, network) {
       )
 
       await Promise.all([
-        deployer.deploy(ERC20Predicate),
-        deployer.deploy(ERC721Predicate),
+        deployer.deploy(ERC20Predicate, WithdrawManagerProxy.address),
+        deployer.deploy(ERC721Predicate, WithdrawManagerProxy.address),
 
         // deploy tokens
         deployer.deploy(ExitNFT, Registry.address, 'ExitNFT', 'ENFT'),

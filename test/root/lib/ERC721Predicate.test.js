@@ -62,12 +62,10 @@ contract('ERC721Predicate', async function(accounts) {
       let exitTx = await web3Child.eth.getTransaction(r.transactionHash)
       exitTx = await buildInFlight(exitTx)
 
-      const startExitTx = await startExit(
-        headerNumber, blockProof, block.number, block.timestamp,
-        reference, 1, /* logIndex */ exitTx, contracts.withdrawManager
-      )
-      // console.log(startExitTx)
-      const log = startExitTx.logs[0]
+      const startExitTx = await startExit(headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
+      const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+      // console.log(startExitTx, logs)
+      const log = logs[1]
       log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
         exitor: user,
@@ -94,12 +92,10 @@ contract('ERC721Predicate', async function(accounts) {
       let exitTx = await web3Child.eth.getTransaction(r.transactionHash)
       exitTx = await buildInFlight(exitTx)
 
-      const startExitTx = await startExit(
-        headerNumber, blockProof, block.number, block.timestamp,
-        reference, 1, /* logIndex */ exitTx, contracts.withdrawManager
-      )
-      // console.log(startExitTx)
-      const log = startExitTx.logs[0]
+      const startExitTx = await startExit(headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
+      const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+      // console.log(startExitTx, logs)
+      const log = logs[1]
       log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
         exitor: user,
@@ -160,9 +156,8 @@ async function init(rootChain, receipt, accounts) {
   return { block: event.block, blockProof, headerNumber: NewHeaderBlockEvent.args.headerBlockId, reference: await build(event) }
 }
 
-function startExit(headerNumber, blockProof, blockNumber, blockTimestamp, reference, logIndex, exitTx, ERC721Predicate, registry) {
-  return contracts.withdrawManager.startExit2(
-    contracts.ERC721Predicate.address,
+function startExit(headerNumber, blockProof, blockNumber, blockTimestamp, reference, logIndex, exitTx) {
+  return contracts.ERC721Predicate.startExit(
     utils.bufferToHex(
       rlp.encode([
         headerNumber,

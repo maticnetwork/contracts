@@ -6,6 +6,7 @@ import { RLPEncode } from "../../common/lib/RLPEncode.sol";
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 import { IPredicate } from "./IPredicate.sol";
 import { Registry } from "../../common/Registry.sol";
+// import { WithdrawManager } from "../withdrawManager/WithdrawManager.sol";
 
 contract ERC20Predicate is IPredicate {
   using RLPReader for bytes;
@@ -20,26 +21,48 @@ contract ERC20Predicate is IPredicate {
   bytes4 constant TRANSFER_FUNC_SIG = 0xa9059cbb;
   bytes constant public networkId = "\x0d";
 
-  function startExit(bytes memory data, address registry)
+  constructor(address _withdrawManager) public IPredicate(_withdrawManager) {}
+
+  /**
+   * @notice Start an exit from the side chain by referencing the preceding (reference) transaction
+   * @param data RLP encoded data of the reference tx that encodes the following fields:
+   * headerNumber Header block number of which the reference tx was a part of
+   * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
+   * blockNumber Block number of which the reference tx is a part of
+   * blockTime Reference tx block time
+   * blocktxRoot Transactions root of block
+   * blockReceiptsRoot Receipts root of block
+   * receipt Receipt of the reference transaction
+   * receiptProof Merkle proof of the reference receipt
+   * branchMask Merkle proof branchMask for the receipt
+   * logIndex Log Index to read from the receipt
+   * exitTx Signed exit transaction
+   */
+  function startExit(bytes memory data)
     public
-    returns (address rootToken, uint256 exitAmountOrTokenId, bool burnt)
   {
     RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
+    uint256 age = withdrawManager.verifyInclusion(data);
     // validate exitTx
+    uint256 exitAmountOrTokenId;
     address childToken;
     address participant;
+    bool burnt;
     (exitAmountOrTokenId, childToken, participant, burnt) = processExitTx(referenceTxData[10].toBytes());
 
     // process the receipt of the referenced tx
-    (rootToken) = processReferenceTx(
+    address rootToken;
+    uint256 oIndex;
+    (rootToken, oIndex) = processReferenceTx(
       referenceTxData[6].toBytes(), // receipt
       referenceTxData[9].toUint(), // logIndex
       participant,
       childToken,
-      exitAmountOrTokenId,
-      address(registry)
+      exitAmountOrTokenId
     );
+    withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, exitAmountOrTokenId, burnt, age + oIndex);
   }
+
   /**
    * @notice Process the reference tx to start a MoreVP style exit
    * @param receipt Receipt of the reference transaction
@@ -51,11 +74,10 @@ contract ERC20Predicate is IPredicate {
     uint256 logIndex,
     address participant,
     address childToken,
-    uint256 exitAmountOrTokenId,
-    address registry)
+    uint256 exitAmountOrTokenId)
     public
     view
-    returns(address rootToken)
+    returns(address rootToken, uint256 oIndex)
   {
     RLPReader.RLPItem[] memory inputItems = receipt.toRlpItem().toList();
     inputItems = inputItems[3].toList()[logIndex].toList(); // select log based on given logIndex
@@ -69,18 +91,11 @@ contract ERC20Predicate is IPredicate {
     // inputItems[0] is the event signature
     rootToken = address(RLPReader.toUint(inputItems[1]));
     // rootToken = address(RLPReader.toaddress(inputItems[1])); // investigate why this reverts
-
-    Registry _registry = Registry(registry);
+    uint256 closingBalance;
+    (closingBalance, oIndex) = processErc20(inputItems, logData, participant);
+    oIndex += logIndex; // safeMath
     require(
-      _registry.rootToChildToken(rootToken) == childToken,
-      "INVALID_ROOT_TO_CHILD_TOKEN_MAPPING"
-    );
-    require(
-      _registry.isERC721(rootToken) == false,
-      "NOT_ERC20"
-    );
-    require(
-      processErc20(inputItems, logData, participant) >= exitAmountOrTokenId,
+      closingBalance >= exitAmountOrTokenId,
       "Exiting with more tokens than referenced"
     );
   }
@@ -91,7 +106,7 @@ contract ERC20Predicate is IPredicate {
     address participant)
     internal
     view
-    returns (uint256 closingBalance)
+    returns (uint256 closingBalance, uint256 oIndex)
   {
     bytes32 eventSignature = bytes32(inputItems[0].toUint());
     if (eventSignature == DEPOSIT_EVENT_SIG || eventSignature == WITHDRAW_EVENT_SIG) {
@@ -110,6 +125,7 @@ contract ERC20Predicate is IPredicate {
         closingBalance = BytesLib.toUint(logData, 96); // output1
       } else if (participant == address(inputItems[3].toUint())) { // B. Participant received tokens
         closingBalance = BytesLib.toUint(logData, 128); // output2
+        oIndex = 1;
       } else {
         revert("tx / log doesnt concern the participant");
       }
