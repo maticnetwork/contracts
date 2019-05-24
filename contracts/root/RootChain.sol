@@ -119,7 +119,7 @@ contract RootChain is Ownable, IRootChain, IERC721Receiver {
       start = start.add(1);
     }
     // Start on mainchain and matic chain must be same
-    require(start <= dataList[1].toUint(), "Start block doesn't match");
+    require(start == dataList[1].toUint(), "Start block doesn't match");
     uint256 end = dataList[2].toUint();
     bytes32 root = dataList[3].toBytes32();
 
