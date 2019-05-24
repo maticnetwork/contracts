@@ -31,7 +31,7 @@ contract ERC20Predicate is IPredicate {
     (exitAmountOrTokenId, childToken, participant, burnt) = processExitTx(referenceTxData[10].toBytes());
 
     // process the receipt of the referenced tx
-    (rootToken,) = processReferenceTx(
+    (rootToken) = processReferenceTx(
       referenceTxData[6].toBytes(), // receipt
       referenceTxData[9].toUint(), // logIndex
       participant,
@@ -55,7 +55,7 @@ contract ERC20Predicate is IPredicate {
     address registry)
     public
     view
-    returns(address rootToken, uint256 p)
+    returns(address rootToken)
   {
     RLPReader.RLPItem[] memory inputItems = receipt.toRlpItem().toList();
     inputItems = inputItems[3].toList()[logIndex].toList(); // select log based on given logIndex
@@ -79,7 +79,6 @@ contract ERC20Predicate is IPredicate {
       _registry.isERC721(rootToken) == false,
       "NOT_ERC20"
     );
-    // p = processErc20(inputItems, logData, participant);
     require(
       processErc20(inputItems, logData, participant) >= exitAmountOrTokenId,
       "Exiting with more tokens than referenced"
@@ -122,7 +121,6 @@ contract ERC20Predicate is IPredicate {
   /**
    * @notice Process the transaction to start a MoreVP style exit from
    * @param exitTx Signed exit transaction
-   * exitor Need I say more?
    */
   function processExitTx(bytes memory exitTx)
     public
