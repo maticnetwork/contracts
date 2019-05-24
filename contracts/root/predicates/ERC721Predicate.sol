@@ -6,6 +6,7 @@ import { RLPEncode } from "../../common/lib/RLPEncode.sol";
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 import { IPredicate } from "./IPredicate.sol";
 import { Registry } from "../../common/Registry.sol";
+// import { WithdrawManager } from "../withdrawManager/WithdrawManager.sol";
 
 contract ERC721Predicate is IPredicate {
   using RLPReader for bytes;
@@ -20,25 +21,31 @@ contract ERC721Predicate is IPredicate {
   bytes4 constant TRANSFER_FROM_FUNC_SIG = 0x23b872dd;
   bytes constant public networkId = "\x0d";
 
-  function startExit(bytes memory data, address registry)
+  constructor(address _withdrawManager) public IPredicate(_withdrawManager) {}
+
+  function startExit(bytes memory data)
     public
-    returns (address rootToken, uint256 tokenId, bool burnt)
   {
     RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
+    uint256 age = withdrawManager.verifyInclusion(data);
     // validate exitTx
+    uint256 tokenId;
     address childToken;
     address participant;
+    bool burnt;
     (tokenId, childToken, participant, burnt) = processExitTx(referenceTxData[10].toBytes());
 
     // process the receipt of the referenced tx
-    (rootToken,) = processReferenceTx(
+    address rootToken;
+    uint256 oIndex;
+    (rootToken) = processReferenceTx(
       referenceTxData[6].toBytes(), // receipt
       referenceTxData[9].toUint(), // logIndex
       participant,
       childToken,
-      tokenId,
-      address(registry)
+      tokenId
     );
+    withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, tokenId, burnt, age);
   }
   /**
    * @notice Process the reference tx to start a MoreVP style exit
@@ -51,11 +58,10 @@ contract ERC721Predicate is IPredicate {
     uint256 logIndex,
     address participant,
     address childToken,
-    uint256 tokenId,
-    address registry)
+    uint256 tokenId)
     public
     view
-    returns(address rootToken, uint256 p)
+    returns(address rootToken)
   {
     RLPReader.RLPItem[] memory inputItems = receipt.toRlpItem().toList();
     inputItems = inputItems[3].toList()[logIndex].toList(); // select log based on given logIndex
@@ -70,15 +76,6 @@ contract ERC721Predicate is IPredicate {
     rootToken = address(RLPReader.toUint(inputItems[1]));
     // rootToken = address(RLPReader.toaddress(inputItems[1])); // investigate why this reverts
 
-    Registry _registry = Registry(registry);
-    require(
-      _registry.rootToChildToken(rootToken) == childToken,
-      "INVALID_ROOT_TO_CHILD_TOKEN_MAPPING"
-    );
-    require(
-      _registry.isERC721(rootToken) == true,
-      "NOT_ERC721"
-    );
     processErc721(inputItems, participant);
     // tokenId is the first param in logData in all 3 of Deposit, Withdraw and LogTransfer
     require(

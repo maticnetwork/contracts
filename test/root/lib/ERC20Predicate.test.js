@@ -57,60 +57,16 @@ contract('ERC20Predicate', async function(accounts) {
       )
 
       const { receipt } = await childContracts.childToken.transfer(user, amount, { from: other })
-      const event = {
-        tx: await web3Child.eth.getTransaction(receipt.transactionHash),
-        receipt: await web3Child.eth.getTransactionReceipt(receipt.transactionHash),
-        block: await web3Child.eth.getBlock(receipt.blockHash, true /* returnTransactionObjects */)
-      }
-
-      const blockHeader = getBlockHeader(event.block)
-      const headers = [blockHeader]
-      const tree = new MerkleTree(headers)
-      const root = utils.bufferToHex(tree.getRoot())
-      const start = event.tx.blockNumber
-      const end = event.tx.blockNumber
-      const blockProof = await tree.getProof(blockHeader)
-      tree
-        .verify(blockHeader, event.block.number - start, tree.getRoot(), blockProof)
-        .should.equal(true)
-      const payload = buildSubmitHeaderBlockPaylod(accounts[0], 0, start - 1)
-      await contracts.rootChain.submitHeaderBlock(payload.vote, payload.sigs, payload.extraData)
-
-      const { vote, sigs, extraData } = buildSubmitHeaderBlockPaylod(accounts[0], start, end, root)
-      const submitHeaderBlock = await contracts.rootChain.submitHeaderBlock(vote, sigs, extraData)
-      const NewHeaderBlockEvent = submitHeaderBlock.logs.find(log => log.event === 'NewHeaderBlock')
-      const headerNumber = NewHeaderBlockEvent.args.headerBlockId
-
-      const txProof = await getTxProof(event.tx, event.block)
-      assert.isTrue(verifyTxProof(txProof), 'Tx proof must be valid (failed in js)')
-      const receiptProof = await getReceiptProof(event.receipt, event.block, web3Child)
-      assert.isTrue(verifyReceiptProof(receiptProof), 'Receipt proof must be valid (failed in js)')
+      const { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts)
 
       const { receipt: r } = await childContracts.childToken.withdraw(amount)
       let exitTx = await web3Child.eth.getTransaction(r.transactionHash)
-      const reference = await build(event)
       exitTx = await buildInFlight(exitTx)
 
-      const block = event.block
-      const startExitTx = await contracts.withdrawManager.startExit(
-        utils.bufferToHex(
-          rlp.encode([
-            headerNumber,
-            utils.bufferToHex(Buffer.concat(blockProof)),
-            block.number,
-            block.timestamp,
-            utils.bufferToHex(reference.transactionsRoot),
-            utils.bufferToHex(reference.receiptsRoot),
-            utils.bufferToHex(reference.receipt),
-            utils.bufferToHex(rlp.encode(reference.receiptParentNodes)),
-            utils.bufferToHex(rlp.encode(reference.path)) // branch mask
-          ])
-        ),
-        1, // logIndex
-        utils.bufferToHex(exitTx)
-      )
-      // console.log(startExitTx)
-      const log = startExitTx.logs[0]
+      const startExitTx = await startExit(headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
+      const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+      // console.log(startExitTx, logs)
+      const log = logs[1]
       log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
         exitor: user,
@@ -129,60 +85,16 @@ contract('ERC20Predicate', async function(accounts) {
       )
 
       const { receipt } = await childContracts.childToken.transfer(other, halfAmount)
-      const event = {
-        tx: await web3Child.eth.getTransaction(receipt.transactionHash),
-        receipt: await web3Child.eth.getTransactionReceipt(receipt.transactionHash),
-        block: await web3Child.eth.getBlock(receipt.blockHash, true /* returnTransactionObjects */)
-      }
-
-      const blockHeader = getBlockHeader(event.block)
-      const headers = [blockHeader]
-      const tree = new MerkleTree(headers)
-      const root = utils.bufferToHex(tree.getRoot())
-      const start = event.tx.blockNumber
-      const end = event.tx.blockNumber
-      const blockProof = await tree.getProof(blockHeader)
-      tree
-        .verify(blockHeader, event.block.number - start, tree.getRoot(), blockProof)
-        .should.equal(true)
-      const payload = buildSubmitHeaderBlockPaylod(accounts[0], 0, start - 1)
-      await contracts.rootChain.submitHeaderBlock(payload.vote, payload.sigs, payload.extraData)
-
-      const { vote, sigs, extraData } = buildSubmitHeaderBlockPaylod(accounts[0], start, end, root)
-      const submitHeaderBlock = await contracts.rootChain.submitHeaderBlock(vote, sigs, extraData)
-      const NewHeaderBlockEvent = submitHeaderBlock.logs.find(log => log.event === 'NewHeaderBlock')
-      const headerNumber = NewHeaderBlockEvent.args.headerBlockId
-
-      const txProof = await getTxProof(event.tx, event.block)
-      assert.isTrue(verifyTxProof(txProof), 'Tx proof must be valid (failed in js)')
-      const receiptProof = await getReceiptProof(event.receipt, event.block, web3Child)
-      assert.isTrue(verifyReceiptProof(receiptProof), 'Receipt proof must be valid (failed in js)')
+      const { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts)
 
       const { receipt: r } = await childContracts.childToken.withdraw(halfAmount)
       let exitTx = await web3Child.eth.getTransaction(r.transactionHash)
-      const reference = await build(event)
       exitTx = await buildInFlight(exitTx)
 
-      const block = event.block
-      const startExitTx = await contracts.withdrawManager.startExit(
-        utils.bufferToHex(
-          rlp.encode([
-            headerNumber,
-            utils.bufferToHex(Buffer.concat(blockProof)),
-            block.number,
-            block.timestamp,
-            utils.bufferToHex(reference.transactionsRoot),
-            utils.bufferToHex(reference.receiptsRoot),
-            utils.bufferToHex(reference.receipt),
-            utils.bufferToHex(rlp.encode(reference.receiptParentNodes)),
-            utils.bufferToHex(rlp.encode(reference.path)) // branch mask
-          ])
-        ),
-        1, // logIndex
-        utils.bufferToHex(exitTx)
-      )
-      // console.log(startExitTx)
-      const log = startExitTx.logs[0]
+      const startExitTx = await startExit(headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
+      const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+      // console.log(startExitTx, logs)
+      const log = logs[1]
       log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
         exitor: user,
@@ -201,12 +113,10 @@ contract('ERC20Predicate', async function(accounts) {
       let exitTx = await web3Child.eth.getTransaction(r.transactionHash)
       exitTx = await buildInFlight(exitTx)
 
-      const startExitTx = await startExit(
-        headerNumber, blockProof, block.number, block.timestamp,
-        reference, 1, /* logIndex */ exitTx, contracts.ERC20Predicate, contracts.registry.address
-      )
-      // console.log(startExitTx)
-      const log = startExitTx.logs[0]
+      const startExitTx = await startExit(headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
+      const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+      // console.log(startExitTx, logs)
+      const log = logs[1]
       log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
         exitor: user,
@@ -233,25 +143,10 @@ contract('ERC20Predicate', async function(accounts) {
       let exitTx = await web3Child.eth.getTransaction(r.transactionHash)
       exitTx = await buildInFlight(exitTx)
 
-      const startExitTx = await contracts.withdrawManager.startExit(
-        utils.bufferToHex(
-          rlp.encode([
-            headerNumber,
-            utils.bufferToHex(Buffer.concat(blockProof)),
-            block.number,
-            block.timestamp,
-            utils.bufferToHex(reference.transactionsRoot),
-            utils.bufferToHex(reference.receiptsRoot),
-            utils.bufferToHex(reference.receipt),
-            utils.bufferToHex(rlp.encode(reference.receiptParentNodes)),
-            utils.bufferToHex(rlp.encode(reference.path)) // branch mask
-          ])
-        ),
-        1, // logIndex
-        utils.bufferToHex(exitTx)
-      )
-      // console.log(startExitTx)
-      const log = startExitTx.logs[0]
+      const startExitTx = await startExit(headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
+      const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+      // console.log(startExitTx, logs)
+      const log = logs[1]
       log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
         exitor: user,
@@ -314,9 +209,8 @@ async function init(rootChain, receipt, accounts) {
   return { block: event.block, blockProof, headerNumber: NewHeaderBlockEvent.args.headerBlockId, reference: await build(event) }
 }
 
-function startExit(headerNumber, blockProof, blockNumber, blockTimestamp, reference, logIndex, exitTx, ERC20Predicate, registry) {
-  return contracts.withdrawManager.startExit2(
-    contracts.ERC20Predicate.address,
+function startExit(headerNumber, blockProof, blockNumber, blockTimestamp, reference, logIndex, exitTx) {
+  return contracts.ERC20Predicate.startExit(
     utils.bufferToHex(
       rlp.encode([
         headerNumber,

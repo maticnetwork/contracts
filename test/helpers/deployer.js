@@ -74,11 +74,11 @@ class Deployer {
     //   this.rootERC721.address,
     //   true /* isERC721 */
     // )
-    const ERC20Predicate = await contracts.ERC20Predicate.new()
+    const ERC20Predicate = await contracts.ERC20Predicate.new(this.withdrawManagerProxy.address)
     await this.registry.addProofValidator(ERC20Predicate.address)
-    const ERC721Predicate = await contracts.ERC721Predicate.new()
+    const ERC721Predicate = await contracts.ERC721Predicate.new(this.withdrawManagerProxy.address)
     await this.registry.addProofValidator(ERC721Predicate.address)
-    
+
     let _contracts = {
       registry: this.registry,
       rootChain: this.rootChain,
