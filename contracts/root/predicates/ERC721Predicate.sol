@@ -64,6 +64,7 @@ contract ERC721Predicate is IPredicate {
     returns(address rootToken)
   {
     RLPReader.RLPItem[] memory inputItems = receipt.toRlpItem().toList();
+    require(logIndex < 10, "Supporting a max of 10 logs");
     inputItems = inputItems[3].toList()[logIndex].toList(); // select log based on given logIndex
     require(
       childToken == RLPReader.toAddress(inputItems[0]), // "address" (contract address that emitted the log) field in the receipt

@@ -68,7 +68,7 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     age = (
       headerNumber * HEADER_BLOCK_NUMBER_WEIGHT +
       blockNumber * WITHDRAW_BLOCK_NUMBER_WEIGHT +
-      branchMask.toRlpItem().toBytes().toRlpItem().toUint() * 100000
+      branchMask.toRlpItem().toBytes().toRlpItem().toUint() * BRANCH_MASK_WEIGHT
     );
   }
 

@@ -80,6 +80,7 @@ contract ERC20Predicate is IPredicate {
     returns(address rootToken, uint256 oIndex)
   {
     RLPReader.RLPItem[] memory inputItems = receipt.toRlpItem().toList();
+    require(logIndex < MAX_LOGS, "Supporting a max of 10 logs");
     inputItems = inputItems[3].toList()[logIndex].toList(); // select log based on given logIndex
     require(
       childToken == RLPReader.toAddress(inputItems[0]), // "address" (contract address that emitted the log) field in the receipt
@@ -93,7 +94,8 @@ contract ERC20Predicate is IPredicate {
     // rootToken = address(RLPReader.toaddress(inputItems[1])); // investigate why this reverts
     uint256 closingBalance;
     (closingBalance, oIndex) = processErc20(inputItems, logData, participant);
-    oIndex += logIndex; // safeMath
+    // @todo use safeMath
+    oIndex += (logIndex * MAX_LOGS);
     require(
       closingBalance >= exitAmountOrTokenId,
       "Exiting with more tokens than referenced"

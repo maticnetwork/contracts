@@ -9,6 +9,8 @@ import { WithdrawManager } from "../withdrawManager/WithdrawManager.sol";
 
 contract IPredicate {
   using RLPReader for RLPReader.RLPItem;
+  
+  uint256 constant internal MAX_LOGS = 10;
   WithdrawManager internal withdrawManager;
 
   constructor(address _withdrawManager) public {
