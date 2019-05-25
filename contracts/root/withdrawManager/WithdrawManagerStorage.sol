@@ -6,11 +6,17 @@ import { RootChain } from "../RootChain.sol";
 
 
 contract WithdrawManagerHeader {
+  struct Input {
+    address signer;
+  }
+
   struct PlasmaExit {
     address owner;
     address token;
     uint256 receiptAmountOrNFTId;
     bool burnt;
+    // Mapping from age of input to Input
+    mapping(uint256 => Input) inputs;
   }
 
   event Withdraw(
