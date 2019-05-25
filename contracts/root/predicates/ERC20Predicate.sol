@@ -6,7 +6,8 @@ import { RLPEncode } from "../../common/lib/RLPEncode.sol";
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 import { IPredicate } from "./IPredicate.sol";
 import { Registry } from "../../common/Registry.sol";
-// import { WithdrawManager } from "../withdrawManager/WithdrawManager.sol";
+import { WithdrawManagerHeader } from "../withdrawManager/WithdrawManagerStorage.sol";
+import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 
 contract ERC20Predicate is IPredicate {
   using RLPReader for bytes;
@@ -25,7 +26,7 @@ contract ERC20Predicate is IPredicate {
 
   /**
    * @notice Start an exit from the side chain by referencing the preceding (reference) transaction
-   * @param data RLP encoded data of the reference tx that encodes the following fields:
+   * @param data RLP encoded data of the reference tx(s) that encodes the following fields for each tx
    * headerNumber Header block number of which the reference tx was a part of
    * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
    * blockNumber Block number of which the reference tx is a part of
@@ -36,31 +37,49 @@ contract ERC20Predicate is IPredicate {
    * receiptProof Merkle proof of the reference receipt
    * branchMask Merkle proof branchMask for the receipt
    * logIndex Log Index to read from the receipt
-   * exitTx Signed exit transaction
+   * @param exitTx Signed exit transaction
    */
-  function startExit(bytes memory data)
+  function startExit(bytes memory data, bytes memory exitTx)
     public
   {
     RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
-    uint256 age = withdrawManager.verifyInclusion(data);
-    // validate exitTx
-    uint256 exitAmountOrTokenId;
-    address childToken;
-    address participant;
-    bool burnt;
-    (exitAmountOrTokenId, childToken, participant, burnt) = processExitTx(referenceTxData[10].toBytes());
+    uint256 age = withdrawManager.verifyInclusion(data, 0);
+    // validate exitTx - This may be an in-flight tx, so inclusion will not be checked
+    (uint256 exitAmount, address childToken, address participant, bool burnt) = processExitTx(exitTx);
 
     // process the receipt of the referenced tx
-    address rootToken;
-    uint256 oIndex;
-    (rootToken, oIndex) = processReferenceTx(
+    (address rootToken, uint256 closingBalance, uint256 oIndex) = processReferenceTx(
       referenceTxData[6].toBytes(), // receipt
       referenceTxData[9].toUint(), // logIndex
-      participant,
-      childToken,
-      exitAmountOrTokenId
+      participant, // to verify that the balance of the signer of the exit tx is being referenced here
+      childToken);
+
+    // The closing balance of the exitTx should be <= the referenced balance
+    require(
+      closingBalance >= exitAmount,
+      "Exiting with more tokens than referenced"
     );
-    withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, exitAmountOrTokenId, burnt, age + oIndex);
+    age += oIndex;
+    if (referenceTxData.length > 10) {
+      // It means the exitor sent along another input UTXO to the exit tx.
+      // This will be used to exit with the pre-existing balance on the chain along with the couterparty signed exit tx
+      uint256 age2 = withdrawManager.verifyInclusion(data, 10 /* offset */);
+      address _rootToken;
+      (_rootToken, closingBalance, oIndex) = processReferenceTx(
+        referenceTxData[16].toBytes(), // receipt
+        referenceTxData[19].toUint(), // logIndex
+        msg.sender, // participant
+        childToken);
+      require(rootToken == _rootToken, "root tokens in the referenced txs do not match");
+      age2 += oIndex;
+      uint256 priority = Math.max(age, age2);
+      withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, closingBalance, burnt, priority);
+      withdrawManager.addInput(priority, age, participant);
+      withdrawManager.addInput(priority, age2, msg.sender);
+    } else {
+      withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, closingBalance, burnt, age);
+      withdrawManager.addInput(age, age, participant);
+    }
   }
 
   /**
@@ -73,15 +92,16 @@ contract ERC20Predicate is IPredicate {
     bytes memory receipt,
     uint256 logIndex,
     address participant,
-    address childToken,
-    uint256 exitAmountOrTokenId)
+    address childToken)
+    // uint256 exitAmount
     public
     view
-    returns(address rootToken, uint256 oIndex)
+    returns(address rootToken, uint256 closingBalance, uint256 oIndex)
   {
     RLPReader.RLPItem[] memory inputItems = receipt.toRlpItem().toList();
     require(logIndex < MAX_LOGS, "Supporting a max of 10 logs");
     inputItems = inputItems[3].toList()[logIndex].toList(); // select log based on given logIndex
+    // childToken = RLPReader.toAddress(inputItems[0]); // "address" (contract address that emitted the log) field in the receipt
     require(
       childToken == RLPReader.toAddress(inputItems[0]), // "address" (contract address that emitted the log) field in the receipt
       "Reference and exit tx do not correspond to the same token"
@@ -92,14 +112,14 @@ contract ERC20Predicate is IPredicate {
     // inputItems[0] is the event signature
     rootToken = address(RLPReader.toUint(inputItems[1]));
     // rootToken = address(RLPReader.toaddress(inputItems[1])); // investigate why this reverts
-    uint256 closingBalance;
+    // uint256 closingBalance;
     (closingBalance, oIndex) = processErc20(inputItems, logData, participant);
     // @todo use safeMath
     oIndex += (logIndex * MAX_LOGS);
-    require(
-      closingBalance >= exitAmountOrTokenId,
-      "Exiting with more tokens than referenced"
-    );
+    // require(
+    //   closingBalance >= exitAmount,
+    //   "Exiting with more tokens than referenced"
+    // );
   }
 
   function processErc20(
@@ -143,33 +163,33 @@ contract ERC20Predicate is IPredicate {
   function processExitTx(bytes memory exitTx)
     public
     view
-    returns(uint256 exitAmountOrTokenId, address childToken, address participant, bool burnt)
+    returns(uint256 exitAmount, address childToken, address participant, bool burnt)
   {
     RLPReader.RLPItem[] memory txList = exitTx.toRlpItem().toList();
     require(txList.length == 9, "MALFORMED_WITHDRAW_TX");
     childToken = RLPReader.toAddress(txList[3]); // corresponds to "to" field in tx
     participant = getAddressFromTx(txList, networkId);
     // if (participant == msg.sender) { // exit tx is signed by exitor himself
-    if (participant == tx.origin) { // exit tx is signed by exitor himself
-      (exitAmountOrTokenId, burnt) = processExitTxSender(RLPReader.toBytes(txList[5]));
+    if (participant == msg.sender) { // exit tx is signed by exitor himself
+      (exitAmount, burnt) = processExitTxSender(RLPReader.toBytes(txList[5]));
     } else {
-      exitAmountOrTokenId = processExitTxCounterparty(RLPReader.toBytes(txList[5]));
+      exitAmount = processExitTxCounterparty(RLPReader.toBytes(txList[5]));
     }
   }
 
   function processExitTxSender(bytes memory txData)
     internal
     view
-    returns (uint256 exitAmountOrTokenId, bool burnt)
+    returns (uint256 exitAmount, bool burnt)
   {
     bytes4 funcSig = BytesLib.toBytes4(BytesLib.slice(txData, 0, 4));
     if (funcSig == WITHDRAW_FUNC_SIG) {
       require(txData.length == 36, "Invalid tx"); // 4 bytes for funcSig and a single bytes32 parameter
-      exitAmountOrTokenId = BytesLib.toUint(txData, 4);
+      exitAmount = BytesLib.toUint(txData, 4);
       burnt = true;
     } else if (funcSig == TRANSFER_FUNC_SIG) {
       require(txData.length == 68, "Invalid tx"); // 4 bytes for funcSig and a 2 bytes32 parameters (to, value)
-      exitAmountOrTokenId = BytesLib.toUint(txData, 4);
+      exitAmount = BytesLib.toUint(txData, 4);
     } else {
       revert("Exit tx type not supported");
     }
@@ -178,16 +198,16 @@ contract ERC20Predicate is IPredicate {
   function processExitTxCounterparty(bytes memory txData)
     internal
     view
-    returns (uint256 exitAmountOrTokenId)
+    returns (uint256 exitAmount)
   {
     require(txData.length == 68, "Invalid tx"); // 4 bytes for funcSig and a 2 bytes32 parameters (to, value)
     bytes4 funcSig = BytesLib.toBytes4(BytesLib.slice(txData, 0, 4));
     require(funcSig == TRANSFER_FUNC_SIG, "Only supports exiting from transfer txs");
     require(
       // msg.sender == address(BytesLib.toUint(txData, 4)), // to
-      tx.origin == address(BytesLib.toUint(txData, 4)), // to
+      msg.sender == address(BytesLib.toUint(txData, 4)), // to
       "Exit tx doesnt concern the exitor"
     );
-    exitAmountOrTokenId = BytesLib.toUint(txData, 36); // value
+    exitAmount = BytesLib.toUint(txData, 36); // value
   }
 }

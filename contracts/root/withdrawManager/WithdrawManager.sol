@@ -32,19 +32,19 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     _;
   }
 
-  function verifyInclusion(bytes memory data)
+  function verifyInclusion(bytes memory data, uint8 offset)
     public
     returns (uint256 age)
   {
     RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
-    uint256 headerNumber = referenceTxData[0].toUint();
-    bytes memory branchMask = referenceTxData[8].toBytes();
+    uint256 headerNumber = referenceTxData[offset].toUint();
+    bytes memory branchMask = referenceTxData[offset + 8].toBytes();
     require(
       MerklePatriciaProof.verify(
-        referenceTxData[6].toBytes(), // receipt
+        referenceTxData[offset + 6].toBytes(), // receipt
         branchMask,
-        referenceTxData[7].toBytes(), // receiptProof
-        bytes32(referenceTxData[5].toUint()) // receiptsRoot
+        referenceTxData[offset + 7].toBytes(), // receiptProof
+        bytes32(referenceTxData[offset + 5].toUint()) // receiptsRoot
       ),
       "INVALID_RECEIPT_MERKLE_PROOF"
     );
@@ -54,14 +54,14 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     // @todo a function to return just root and startBlock might save gas
     (headerRoot, startBlock,,,) = rootChain.headerBlocks(headerNumber);
 
-    uint256 blockNumber = referenceTxData[2].toUint();
+    uint256 blockNumber = referenceTxData[offset + 2].toUint();
     require(
       keccak256(abi.encodePacked(
         blockNumber,
-        referenceTxData[3].toUint(), // blockTime
-        bytes32(referenceTxData[4].toUint()), // txRoot
-        bytes32(referenceTxData[5].toUint()) // receiptRoot
-      )).checkMembership(blockNumber - startBlock, headerRoot, referenceTxData[1].toBytes() /* blockProof */),
+        referenceTxData[offset + 3].toUint(), // blockTime
+        bytes32(referenceTxData[offset + 4].toUint()), // txRoot
+        bytes32(referenceTxData[offset + 5].toUint()) // receiptRoot
+      )).checkMembership(blockNumber - startBlock, headerRoot, referenceTxData[offset + 1].toBytes() /* blockProof */),
       "WITHDRAW_BLOCK_NOT_A_PART_OF_SUBMITTED_HEADER"
     );
 
@@ -80,13 +80,22 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     exitsQueues[_token] = address(new PriorityQueue());
   }
 
+  function addInput(uint256 exitId, uint256 age, address signer) public {
+    PlasmaExit storage exitObject = exits[exitId];
+    require(
+      exitObject.token != address(0x0),
+      "EXIT_DOES_NOT_EXIST"
+    );
+    exitObject.inputs[age] = Input(signer);
+  }
+
   function addExitToQueue(
     address exitor,
     address childToken,
     address rootToken,
     uint256 exitAmountOrTokenId,
     bool burnt,
-    uint256 _exitId)
+    uint256 priority)
     public
     isProofValidator
   {
@@ -94,18 +103,14 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
       registry.rootToChildToken(rootToken) == childToken,
       "INVALID_ROOT_TO_CHILD_TOKEN_MAPPING"
     );
-    PlasmaExit memory _exitObject = PlasmaExit({
-      owner: exitor,
-      token: rootToken,
-      receiptAmountOrNFTId: exitAmountOrTokenId,
-      burnt: burnt
-    });
+    exits[priority] = PlasmaExit(exitor, rootToken, exitAmountOrTokenId, burnt);
+    PlasmaExit storage _exitObject = exits[priority];
     // require(
     //   _registry.isERC721(rootToken) == false,
     //   "NOT_ERC20"
     // );
     require(
-      exits[_exitId].token == address(0x0),
+      exits[priority].token == address(0x0),
       "EXIT_ALREADY_EXISTS"
     );
 
@@ -124,18 +129,18 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     uint256 exitableAt = Math.max(now + 2 weeks, block.timestamp + 1 weeks);
 
     PriorityQueue queue = PriorityQueue(exitsQueues[_exitObject.token]);
-    queue.insert(exitableAt, _exitId);
+    queue.insert(exitableAt, priority);
 
     // create NFT for exit UTXO
     // @todo
-    ExitNFT(exitNFTContract).mint(_exitObject.owner, _exitId);
-    exits[_exitId] = _exitObject;
+    ExitNFT(exitNFTContract).mint(_exitObject.owner, priority);
+    exits[priority] = _exitObject;
 
     // set current exit
-    ownerExits[key] = _exitId;
+    ownerExits[key] = priority;
 
     // emit exit started event
-    emit ExitStarted(_exitObject.owner, _exitId, _exitObject.token, _exitObject.receiptAmountOrNFTId);
+    emit ExitStarted(_exitObject.owner, priority, _exitObject.token, _exitObject.receiptAmountOrNFTId);
   }
 
   function deleteExit(uint256 exitId) external isProofValidator {

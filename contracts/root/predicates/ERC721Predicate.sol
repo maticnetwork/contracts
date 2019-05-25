@@ -27,7 +27,7 @@ contract ERC721Predicate is IPredicate {
     public
   {
     RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
-    uint256 age = withdrawManager.verifyInclusion(data);
+    uint256 age = withdrawManager.verifyInclusion(data, 0);
     // validate exitTx
     uint256 tokenId;
     address childToken;
