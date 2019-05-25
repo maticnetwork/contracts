@@ -103,8 +103,6 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
       registry.rootToChildToken(rootToken) == childToken,
       "INVALID_ROOT_TO_CHILD_TOKEN_MAPPING"
     );
-    exits[priority] = PlasmaExit(exitor, rootToken, exitAmountOrTokenId, burnt);
-    PlasmaExit storage _exitObject = exits[priority];
     // require(
     //   _registry.isERC721(rootToken) == false,
     //   "NOT_ERC20"
@@ -113,6 +111,8 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
       exits[priority].token == address(0x0),
       "EXIT_ALREADY_EXISTS"
     );
+    exits[priority] = PlasmaExit(exitor, rootToken, exitAmountOrTokenId, burnt);
+    PlasmaExit storage _exitObject = exits[priority];
 
     bytes32 key;
     if (registry.isERC721(_exitObject.token)) {

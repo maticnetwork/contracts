@@ -23,7 +23,7 @@ contract ERC721Predicate is IPredicate {
 
   constructor(address _withdrawManager) public IPredicate(_withdrawManager) {}
 
-  function startExit(bytes memory data)
+  function startExit(bytes memory data, bytes memory exitTx)
     public
   {
     RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
@@ -33,7 +33,7 @@ contract ERC721Predicate is IPredicate {
     address childToken;
     address participant;
     bool burnt;
-    (tokenId, childToken, participant, burnt) = processExitTx(referenceTxData[10].toBytes());
+    (tokenId, childToken, participant, burnt) = processExitTx(exitTx);
 
     // process the receipt of the referenced tx
     address rootToken;

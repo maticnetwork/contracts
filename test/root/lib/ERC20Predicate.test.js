@@ -222,10 +222,10 @@ function startExit(headerNumber, blockProof, blockNumber, blockTimestamp, refere
         utils.bufferToHex(reference.receipt),
         utils.bufferToHex(rlp.encode(reference.receiptParentNodes)),
         utils.bufferToHex(rlp.encode(reference.path)), // branch mask,
-        logIndex,
-        utils.bufferToHex(exitTx)
+        logIndex
       ])
-    )
+    ),
+    utils.bufferToHex(exitTx)
     // registry
   )
 }
