@@ -11,7 +11,7 @@ const BytesLib = artifacts.require('BytesLib')
 const ChildChainVerifier = artifacts.require('ChildChainVerifier')
 const Common = artifacts.require('Common')
 const ECVerify = artifacts.require('ECVerify')
-const ExitTxValidator = artifacts.require('ExitTxValidator')
+// const ExitTxValidator = artifacts.require('ExitTxValidator')
 const Merkle = artifacts.require('Merkle')
 const MerklePatriciaProof = artifacts.require('MerklePatriciaProof')
 const PriorityQueue = artifacts.require('PriorityQueue')
@@ -24,6 +24,8 @@ const DepositManagerProxy = artifacts.require('DepositManagerProxy')
 const WithdrawManager = artifacts.require('WithdrawManager')
 const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
 const StakeManager = artifacts.require('StakeManager')
+const ERC20Predicate = artifacts.require('ERC20Predicate')
+const ERC721Predicate = artifacts.require('ERC721Predicate')
 
 // tokens
 const MaticWETH = artifacts.require('MaticWETH')
@@ -34,7 +36,11 @@ const ExitNFT = artifacts.require('ExitNFT.sol')
 const libDeps = [
   {
     lib: BytesLib,
-    contracts: [WithdrawManager]
+    contracts: [
+      WithdrawManager,
+      ERC20Predicate,
+      ERC721Predicate
+    ]
   },
   {
     lib: ChildChainVerifier,
@@ -44,24 +50,26 @@ const libDeps = [
     lib: Common,
     contracts: [
       WithdrawManager,
-      ExitTxValidator
+      // ExitTxValidator,
+      ERC20Predicate,
+      ERC721Predicate
     ]
   },
   {
     lib: ECVerify,
     contracts: [StakeManager]
   },
-  {
-    lib: ExitTxValidator,
-    contracts: [WithdrawManager]
-  },
+  // {
+  //   lib: ExitTxValidator,
+  //   contracts: [WithdrawManager]
+  // },
   {
     lib: Merkle,
-    contracts: [WithdrawManager]
+    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate]
   },
   {
     lib: MerklePatriciaProof,
-    contracts: [WithdrawManager]
+    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate]
   },
   {
     lib: PriorityQueue,
@@ -69,11 +77,11 @@ const libDeps = [
   },
   {
     lib: RLPEncode,
-    contracts: [WithdrawManager]
+    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate]
   },
   {
     lib: RLPReader,
-    contracts: [RootChain]
+    contracts: [RootChain, ERC20Predicate, ERC721Predicate]
   },
   {
     lib: SafeMath,
@@ -103,6 +111,9 @@ module.exports = async function(deployer, network) {
         RootChain.address
       )
 
+      // await deployer.deploy(ExitTxValidator)
+      // await deployer.link(ExitTxValidator, [WithdrawManager])
+
       await deployer.deploy(WithdrawManager)
       await deployer.deploy(
         WithdrawManagerProxy,
@@ -111,10 +122,15 @@ module.exports = async function(deployer, network) {
         RootChain.address
       )
 
-      // deploy tokens
-      await deployer.deploy(ExitNFT, Registry.address, 'ExitNFT', 'ENFT')
-      await deployer.deploy(MaticWETH)
-      await deployer.deploy(RootERC721, 'RootERC721', 'T721')
+      await Promise.all([
+        deployer.deploy(ERC20Predicate, WithdrawManagerProxy.address),
+        deployer.deploy(ERC721Predicate, WithdrawManagerProxy.address),
+
+        // deploy tokens
+        deployer.deploy(ExitNFT, Registry.address, 'ExitNFT', 'ENFT'),
+        deployer.deploy(MaticWETH),
+        deployer.deploy(RootERC721, 'RootERC721', 'T721')
+      ])
     })
     .then(async() => {
       console.log('initializing contract state...')
