@@ -73,11 +73,11 @@ contract ERC20Predicate is IPredicate {
       require(rootToken == _rootToken, "root tokens in the referenced txs do not match");
       age2 += oIndex;
       uint256 priority = Math.max(age, age2);
-      withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, closingBalance, burnt, priority);
+      withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, exitAmount + closingBalance, burnt, priority);
       withdrawManager.addInput(priority, age, participant);
       withdrawManager.addInput(priority, age2, msg.sender);
     } else {
-      withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, closingBalance, burnt, age);
+      withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, exitAmount, burnt, age);
       withdrawManager.addInput(age, age, participant);
     }
   }

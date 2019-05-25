@@ -9,7 +9,7 @@ import { WithdrawManager } from "../withdrawManager/WithdrawManager.sol";
 
 contract IPredicate {
   using RLPReader for RLPReader.RLPItem;
-  
+
   uint256 constant internal MAX_LOGS = 10;
   WithdrawManager internal withdrawManager;
 
@@ -17,7 +17,7 @@ contract IPredicate {
     withdrawManager = WithdrawManager(_withdrawManager);
   }
 
-  function startExit(bytes memory data) public;
+  function startExit(bytes memory data, bytes memory exitTx) public;
 
   function getAddressFromTx(RLPReader.RLPItem[] memory txList, bytes memory networkId)
     internal
