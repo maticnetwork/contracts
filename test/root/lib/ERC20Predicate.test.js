@@ -23,21 +23,17 @@ import MerkleTree from '../../helpers/merkle-tree'
 
 import { build, buildInFlight } from '../../mockResponses/utils'
 
-// import { WithdrawManager } from '../helpers/artifacts'
-// import burn from '../mockResponses/burn'
-// import incomingTransfer from '../mockResponses/incomingTransfer'
-
 const rlp = utils.rlp
 const web3Child = new web3.constructor(
   new web3.providers.HttpProvider('http://localhost:8546')
 )
 
 chai.use(chaiAsPromised).should()
-let contracts, childContracts
+let contracts, childContracts, start
 
 contract('ERC20Predicate', async function(accounts) {
-  const amount = web3.utils.toBN('10') //.pow(web3.utils.toBN('18'))
-  const halfAmount = web3.utils.toBN('5') //.pow(web3.utils.toBN('18'))
+  const amount = web3.utils.toBN('10')
+  const halfAmount = web3.utils.toBN('5')
   const user = accounts[0]
   const other = accounts[1]
 
@@ -45,7 +41,10 @@ contract('ERC20Predicate', async function(accounts) {
     beforeEach(async function() {
       contracts = await deployer.freshDeploy()
       childContracts = await deployer.initializeChildChain(accounts[0], { erc20: true })
+      start = 0
     })
+
+    it('reference: deposit - exitTx: fullBurn')
 
     it('reference: incomingTransfer - exitTx: fullBurn', async function() {
       await deposit(
@@ -155,7 +154,103 @@ contract('ERC20Predicate', async function(accounts) {
       assertBigNumberEquality(log.args.amount, halfAmount)
     })
 
-    it('reference: deposit - exitTx: fullBurn');
+    it('reference: own balance (Deposit) and counterparty balance (Deposit) - exitTx: incomingTransfer', async function() {
+      const inputs = []
+      // Will reference user's pre-existing balance on the side-chain, currently this needs to given as the 2nd input so will process this later
+      let { receipt } = await childContracts.childChain.depositTokens(childContracts.rootERC20.address, user, halfAmount, '1' /* mock depositBlockId */)
+      let { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts)
+      inputs.push({ headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 })
+
+      // We will reference the following tx (Deposit) which is a proof of counterparty's balance
+      const { receipt: d } = await childContracts.childChain.depositTokens(childContracts.rootERC20.address, other, halfAmount, '2' /* mock depositBlockId */)
+      const i = await init(contracts.rootChain, d, accounts)
+      inputs.unshift({ headerNumber: i.headerNumber, blockProof: i.blockProof, blockNumber: i.block.number, blockTimestamp: i.block.timestamp, reference: i.reference, logIndex: 1 })
+
+      // Treating this tx as an in-flight incoming transfer
+      const { receipt: r } = await childContracts.childToken.transfer(user, halfAmount, { from: other })
+      let exitTx = await web3Child.eth.getTransaction(r.transactionHash)
+      exitTx = await buildInFlight(exitTx)
+
+      const startExitTx = await startExitNew(inputs, exitTx)
+      const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+      // console.log(startExitTx, logs)
+      let log = logs[1]
+      log.event.should.equal('ExitStarted')
+      expect(log.args).to.include({
+        exitor: user,
+        token: childContracts.rootERC20.address
+      })
+      assertBigNumberEquality(log.args.amount, amount)
+      const exitId = log.args.exitId
+
+      log = logs[2]
+      log.event.should.equal('ExitUpdated')
+      expect(log.args).to.include({
+        signer: other
+      })
+      assertBigNumberEquality(log.args.exitId, exitId)
+
+      log = logs[3]
+      log.event.should.equal('ExitUpdated')
+      expect(log.args).to.include({
+        signer: user
+      })
+      assertBigNumberEquality(log.args.exitId, exitId)
+    })
+
+    it('reference: own balance (outgoingTransfer) and counterparty balance (incomingTransfer) - exitTx: incomingTransfer', async function() {
+      // This test case tests an interesting case.
+      // 1. I deposit x tokens.
+      await childContracts.childChain.depositTokens(childContracts.rootERC20.address, user, amount, '1' /* mock depositBlockId */)
+
+      // 2. I transfer x/2 tokens to a user. Calling this tx A.
+      const { receipt } = await childContracts.childToken.transfer(other, halfAmount)
+      const { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts)
+      const inputs = []
+      // We add an input which is the proof of counterparty's balance (x/2 amount)
+      inputs.push({ headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 })
+
+      // 3. The user transfers x/2 tokens back to me but this tx goes in-flight
+      const { receipt: r } = await childContracts.childToken.transfer(user, halfAmount, { from: other })
+
+      let exitTx = await web3Child.eth.getTransaction(r.transactionHash)
+      exitTx = await buildInFlight(exitTx)
+
+      // 4. Now I would like to exit with x/2 (received) + x/2 (pre-existing balance) tokens
+      // What's interesting here is that tx A acts as proof-of-balance for both the counterparty and the user, so add the same input again
+      inputs.push({ headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 })
+
+      const startExitTx = await startExitNew(inputs, exitTx)
+      const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+      let log = logs[1]
+      log.event.should.equal('ExitStarted')
+      expect(log.args).to.include({
+        exitor: user,
+        token: childContracts.rootERC20.address
+      })
+      assertBigNumberEquality(log.args.amount, amount) // Exit starts with x tokens in total
+      const exitId = log.args.exitId
+
+      log = logs[2]
+      log.event.should.equal('ExitUpdated')
+      expect(log.args).to.include({
+        signer: other
+      })
+      assertBigNumberEquality(log.args.exitId, exitId)
+      const age = log.args.age
+
+      log = logs[3]
+      log.event.should.equal('ExitUpdated')
+      expect(log.args).to.include({
+        signer: user
+      })
+      assertBigNumberEquality(log.args.exitId, exitId)
+      assertBigNumberEquality(
+        // Referenced inputs are adjacent UTXOs in the same LogTransfer log in a particular tx
+        web3.utils.toBN(log.args.age).add(web3.utils.toBN(1)),
+        age
+      )
+    })
   })
 })
 
@@ -188,15 +283,12 @@ async function init(rootChain, receipt, accounts) {
   const headers = [blockHeader]
   const tree = new MerkleTree(headers)
   const root = utils.bufferToHex(tree.getRoot())
-  const start = event.tx.blockNumber
   const end = event.tx.blockNumber
   const blockProof = await tree.getProof(blockHeader)
+  start = Math.min(start, end)
   tree
     .verify(blockHeader, event.block.number - start, tree.getRoot(), blockProof)
     .should.equal(true)
-  const payload = buildSubmitHeaderBlockPaylod(accounts[0], 0, start - 1)
-  await rootChain.submitHeaderBlock(payload.vote, payload.sigs, payload.extraData)
-
   const { vote, sigs, extraData } = buildSubmitHeaderBlockPaylod(accounts[0], start, end, root)
   const submitHeaderBlock = await rootChain.submitHeaderBlock(vote, sigs, extraData)
 
@@ -206,6 +298,7 @@ async function init(rootChain, receipt, accounts) {
   assert.isTrue(verifyReceiptProof(receiptProof), 'Receipt proof must be valid (failed in js)')
 
   const NewHeaderBlockEvent = submitHeaderBlock.logs.find(log => log.event === 'NewHeaderBlock')
+  start = end + 1
   return { block: event.block, blockProof, headerNumber: NewHeaderBlockEvent.args.headerBlockId, reference: await build(event) }
 }
 
@@ -226,6 +319,33 @@ function startExit(headerNumber, blockProof, blockNumber, blockTimestamp, refere
       ])
     ),
     utils.bufferToHex(exitTx)
-    // registry
   )
+}
+
+function startExitNew(inputs, exitTx) {
+  let _inputs = []
+  inputs.forEach(input => {
+    _inputs = _inputs.concat(buildReferenceTxPayload(input))
+  })
+
+  return contracts.ERC20Predicate.startExit(
+    utils.bufferToHex(rlp.encode(_inputs)),
+    utils.bufferToHex(exitTx)
+  )
+}
+
+function buildReferenceTxPayload(input) {
+  const { headerNumber, blockProof, blockNumber, blockTimestamp, reference, logIndex } = input
+  return [
+    headerNumber,
+    utils.bufferToHex(Buffer.concat(blockProof)),
+    blockNumber,
+    blockTimestamp,
+    utils.bufferToHex(reference.transactionsRoot),
+    utils.bufferToHex(reference.receiptsRoot),
+    utils.bufferToHex(reference.receipt),
+    utils.bufferToHex(rlp.encode(reference.receiptParentNodes)),
+    utils.bufferToHex(rlp.encode(reference.path)), // branch mask,
+    logIndex
+  ]
 }

@@ -447,8 +447,8 @@ contract('WithdrawManager', async function(accounts) {
     })
     assertBigNumberEquality(log.args.amount, amount)
     // ExitNFT
-    const utxoPos = log.args.utxoPos
-    const owner_ = await contracts.exitNFT.ownerOf(utxoPos)
+    const exitId = log.args.exitId
+    const owner_ = await contracts.exitNFT.ownerOf(exitId)
     owner_.should.equal(log.args.exitor)
     // test processExit quque
     let beforeBalance = await childContracts.rootERC20.balanceOf(owner_)

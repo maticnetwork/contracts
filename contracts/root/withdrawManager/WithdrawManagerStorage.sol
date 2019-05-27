@@ -27,9 +27,15 @@ contract WithdrawManagerHeader {
 
   event ExitStarted(
     address indexed exitor,
-    uint256 indexed utxoPos,
+    uint256 indexed exitId,
     address indexed token,
     uint256 amount
+  );
+
+  event ExitUpdated(
+    uint256 indexed exitId,
+    uint256 indexed age,
+    address signer
   );
 }
 
