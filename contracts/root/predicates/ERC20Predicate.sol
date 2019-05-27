@@ -93,7 +93,6 @@ contract ERC20Predicate is IPredicate {
     uint256 logIndex,
     address participant,
     address childToken)
-    // uint256 exitAmount
     public
     view
     returns(address rootToken, uint256 closingBalance, uint256 oIndex)
@@ -101,7 +100,6 @@ contract ERC20Predicate is IPredicate {
     RLPReader.RLPItem[] memory inputItems = receipt.toRlpItem().toList();
     require(logIndex < MAX_LOGS, "Supporting a max of 10 logs");
     inputItems = inputItems[3].toList()[logIndex].toList(); // select log based on given logIndex
-    // childToken = RLPReader.toAddress(inputItems[0]); // "address" (contract address that emitted the log) field in the receipt
     require(
       childToken == RLPReader.toAddress(inputItems[0]), // "address" (contract address that emitted the log) field in the receipt
       "Reference and exit tx do not correspond to the same token"
@@ -111,15 +109,9 @@ contract ERC20Predicate is IPredicate {
     // now, inputItems[i] refers to i-th (0-based) topic in the topics array
     // inputItems[0] is the event signature
     rootToken = address(RLPReader.toUint(inputItems[1]));
-    // rootToken = address(RLPReader.toaddress(inputItems[1])); // investigate why this reverts
-    // uint256 closingBalance;
+    // rootToken = RLPReader.toAddress(inputItems[1]); // investigate why this reverts
     (closingBalance, oIndex) = processErc20(inputItems, logData, participant);
-    // @todo use safeMath
-    oIndex += (logIndex * MAX_LOGS);
-    // require(
-    //   closingBalance >= exitAmount,
-    //   "Exiting with more tokens than referenced"
-    // );
+    oIndex += (logIndex * MAX_LOGS); // @todo use safeMath
   }
 
   function processErc20(
@@ -204,7 +196,6 @@ contract ERC20Predicate is IPredicate {
     bytes4 funcSig = BytesLib.toBytes4(BytesLib.slice(txData, 0, 4));
     require(funcSig == TRANSFER_FUNC_SIG, "Only supports exiting from transfer txs");
     require(
-      // msg.sender == address(BytesLib.toUint(txData, 4)), // to
       msg.sender == address(BytesLib.toUint(txData, 4)), // to
       "Exit tx doesnt concern the exitor"
     );

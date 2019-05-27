@@ -87,6 +87,7 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
       "EXIT_DOES_NOT_EXIST"
     );
     exitObject.inputs[age] = Input(signer);
+    emit ExitUpdated(exitId, age, signer);
   }
 
   function addExitToQueue(
@@ -151,14 +152,14 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
 
   function processExits(address _token) external {
     uint256 exitableAt;
-    uint256 utxoPos;
+    uint256 exitId;
 
     // retrieve priority queue
     PriorityQueue exitQueue = PriorityQueue(exitsQueues[_token]);
 
     // Iterate while the queue is not empty.
     while (exitQueue.currentSize() > 0 && gasleft() > gasLimit ) {
-      (exitableAt, utxoPos) = exitQueue.getMin();
+      (exitableAt, exitId) = exitQueue.getMin();
 
       // Check if this exit has finished its challenge period.
       if (exitableAt > block.timestamp) {
@@ -166,14 +167,14 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
       }
 
       // get withdraw block
-      PlasmaExit memory currentExit = exits[utxoPos];
+      PlasmaExit memory currentExit = exits[exitId];
 
       // process if NFT exists
       // If an exit was successfully challenged, owner would be address(0).
-      address payable exitOwner = address(uint160(ExitNFT(exitNFTContract).ownerOf(utxoPos)));
+      address payable exitOwner = address(uint160(ExitNFT(exitNFTContract).ownerOf(exitId)));
       if (exitOwner != address(0)) {
         // burn NFT first
-        ExitNFT(exitNFTContract).burn(exitOwner, utxoPos);
+        ExitNFT(exitNFTContract).burn(exitOwner, exitId);
 
         // delete current exit if exit was "burnt"
         if (currentExit.burnt) {
@@ -202,7 +203,7 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
         emit Withdraw(exitOwner, _token, currentExit.receiptAmountOrNFTId);
 
         // Delete owner but keep amount to prevent another exit from the same UTXO.
-        // delete exits[utxoPos].owner;
+        // delete exits[exitId].owner;
       }
 
       // exit queue
