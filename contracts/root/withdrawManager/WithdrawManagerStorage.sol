@@ -4,7 +4,6 @@ import { ProxyStorage } from "../../common/misc/ProxyStorage.sol";
 import { Registry } from "../../common/Registry.sol";
 import { RootChain } from "../RootChain.sol";
 
-
 contract WithdrawManagerHeader {
   struct Input {
     address signer;
@@ -16,6 +15,7 @@ contract WithdrawManagerHeader {
     uint256 receiptAmountOrNFTId;
     bytes32 txHash;
     bool burnt;
+    address predicate;
     // Mapping from age of input to Input
     mapping(uint256 => Input) inputs;
   }
