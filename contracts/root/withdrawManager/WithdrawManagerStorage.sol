@@ -14,6 +14,7 @@ contract WithdrawManagerHeader {
     address owner;
     address token;
     uint256 receiptAmountOrNFTId;
+    bytes32 txHash;
     bool burnt;
     // Mapping from age of input to Input
     mapping(uint256 => Input) inputs;

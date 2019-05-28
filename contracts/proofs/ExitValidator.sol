@@ -70,7 +70,7 @@ contract ExitValidator is RootChainValidator {
     address owner;
     uint256 amount;
     bool burnt;
-    (owner,,amount, burnt) = WithdrawManager(registry.getWithdrawManagerAddress()).exits(exitId);
+    (owner,,amount,,burnt) = WithdrawManager(registry.getWithdrawManagerAddress()).exits(exitId);
 
     // check if already burnt
     require(burnt == false && amount > 0 && owner != address(0));

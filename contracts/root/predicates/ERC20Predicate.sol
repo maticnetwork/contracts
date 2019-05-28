@@ -37,47 +37,53 @@ contract ERC20Predicate is IPredicate {
    * receiptProof Merkle proof of the reference receipt
    * branchMask Merkle proof branchMask for the receipt
    * logIndex Log Index to read from the receipt
-   * @param exitTx Signed exit transaction
+   * exitTx Signed exit transaction
    */
-  function startExit(bytes memory data, bytes memory exitTx)
-    public
+  function startExit(bytes calldata data, bytes calldata exitTx)
+    external
   {
     RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
     uint256 age = withdrawManager.verifyInclusion(data, 0);
     // validate exitTx - This may be an in-flight tx, so inclusion will not be checked
-    (uint256 exitAmount, address childToken, address participant, bool burnt) = processExitTx(exitTx);
+    (uint256 exitAmount, address childToken, address participant, bytes32 txHash, bool burnt) = processExitTx(exitTx);
+    // (uint256 exitAmount, address childToken, address participant, bytes32 txHash, bool burnt) = processExitTx(referenceTxData[referenceTxData.length-1].toBytes());
 
     // process the receipt of the referenced tx
-    (address rootToken, uint256 closingBalance, uint256 oIndex) = processReferenceTx(
+    address rootToken;
+    uint256 closingBalance;
+    (rootToken, closingBalance, age) = processReferenceTx(
       referenceTxData[6].toBytes(), // receipt
       referenceTxData[9].toUint(), // logIndex
       participant, // to verify that the balance of the signer of the exit tx is being referenced here
-      childToken);
+      childToken,
+      age);
 
     // The closing balance of the exitTx should be <= the referenced balance
     require(
       closingBalance >= exitAmount,
       "Exiting with more tokens than referenced"
     );
-    age += oIndex;
+    // age += oIndex;
+    return;
     if (referenceTxData.length > 10) {
       // It means the exitor sent along another input UTXO to the exit tx.
       // This will be used to exit with the pre-existing balance on the chain along with the couterparty signed exit tx
       uint256 age2 = withdrawManager.verifyInclusion(data, 10 /* offset */);
       address _rootToken;
-      (_rootToken, closingBalance, oIndex) = processReferenceTx(
+      (_rootToken, closingBalance, age2) = processReferenceTx(
+      // (, closingBalance, age2) = processReferenceTx(
         referenceTxData[16].toBytes(), // receipt
         referenceTxData[19].toUint(), // logIndex
         msg.sender, // participant
-        childToken);
-      require(rootToken == _rootToken, "root tokens in the referenced txs do not match");
-      age2 += oIndex;
+        childToken,age2);
+      require(rootToken == _rootToken, "root tokens in the referenced txs do not match"); // might not require this check
+      // age2 += oIndex;
       uint256 priority = Math.max(age, age2);
-      withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, exitAmount + closingBalance, burnt, priority);
+      withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, exitAmount + closingBalance, txHash, burnt, priority);
       withdrawManager.addInput(priority, age, participant);
       withdrawManager.addInput(priority, age2, msg.sender);
     } else {
-      withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, exitAmount, burnt, age);
+      withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, exitAmount, txHash, burnt, age);
       withdrawManager.addInput(age, age, participant);
     }
   }
@@ -92,10 +98,11 @@ contract ERC20Predicate is IPredicate {
     bytes memory receipt,
     uint256 logIndex,
     address participant,
-    address childToken)
+    address childToken,
+    uint256 _age)
     public
     view
-    returns(address rootToken, uint256 closingBalance, uint256 oIndex)
+    returns(address rootToken, uint256 closingBalance, uint256 age)
   {
     RLPReader.RLPItem[] memory inputItems = receipt.toRlpItem().toList();
     require(logIndex < MAX_LOGS, "Supporting a max of 10 logs");
@@ -110,8 +117,8 @@ contract ERC20Predicate is IPredicate {
     // inputItems[0] is the event signature
     rootToken = address(RLPReader.toUint(inputItems[1]));
     // rootToken = RLPReader.toAddress(inputItems[1]); // investigate why this reverts
-    (closingBalance, oIndex) = processErc20(inputItems, logData, participant);
-    oIndex += (logIndex * MAX_LOGS); // @todo use safeMath
+    (closingBalance, age) = processErc20(inputItems, logData, participant);
+    age = _age + age + (logIndex * MAX_LOGS); // @todo use safeMath
   }
 
   function processErc20(
@@ -155,12 +162,12 @@ contract ERC20Predicate is IPredicate {
   function processExitTx(bytes memory exitTx)
     public
     view
-    returns(uint256 exitAmount, address childToken, address participant, bool burnt)
+    returns(uint256 exitAmount, address childToken, address participant, bytes32 txHash, bool burnt)
   {
     RLPReader.RLPItem[] memory txList = exitTx.toRlpItem().toList();
     require(txList.length == 9, "MALFORMED_WITHDRAW_TX");
     childToken = RLPReader.toAddress(txList[3]); // corresponds to "to" field in tx
-    participant = getAddressFromTx(txList, networkId);
+    (participant, txHash) = getAddressFromTx(txList, networkId);
     // if (participant == msg.sender) { // exit tx is signed by exitor himself
     if (participant == msg.sender) { // exit tx is signed by exitor himself
       (exitAmount, burnt) = processExitTxSender(RLPReader.toBytes(txList[5]));
