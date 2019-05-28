@@ -18,7 +18,7 @@ import { IDepositManager } from "../depositManager/IDepositManager.sol";
 import { RootChainHeader } from "../RootChainStorage.sol";
 import { Registry } from "../../common/Registry.sol";
 import { WithdrawManagerStorage } from "./WithdrawManagerStorage.sol";
-// import { IPredicate } from "../lib/IPredicate.sol";
+import { IPredicate } from "../predicates/IPredicate.sol";
 
 contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
   using RLPReader for bytes;
@@ -72,7 +72,6 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     );
   }
 
-
   function createExitQueue(address _token)
     external
   {
@@ -113,7 +112,7 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
       exits[priority].token == address(0x0),
       "EXIT_ALREADY_EXISTS"
     );
-    exits[priority] = PlasmaExit(exitor, rootToken, exitAmountOrTokenId, txHash, burnt);
+    exits[priority] = PlasmaExit(exitor, rootToken, exitAmountOrTokenId, txHash, burnt, msg.sender /* predicate */);
     PlasmaExit storage _exitObject = exits[priority];
 
     bytes32 key;
@@ -145,7 +144,28 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     emit ExitStarted(_exitObject.owner, priority, _exitObject.token, _exitObject.receiptAmountOrNFTId);
   }
 
-  function deleteExit(uint256 exitId) external isProofValidator {
+  function challengeExit(uint256 exitId, uint256 inputId, bytes calldata data)
+    external
+  {
+    PlasmaExit storage exit = exits[exitId];
+    require(
+      exit.token != address(0x0) && exit.inputs[inputId].signer != address(0x0),
+      "Invalid exit or input id"
+    );
+    // IPredicate(exit.predicate).verifyDeprecation(exit, inputId, data, registry);
+    bool isChallengeValid = IPredicate(exit.predicate).verifyDeprecation(
+      registry.rootToChildToken(exit.token),
+      inputId, // age
+      exit.inputs[inputId].signer,
+      exit.txHash,
+      data
+    );
+    if (isChallengeValid) {
+      deleteExit(exitId);
+    }
+  }
+
+  function deleteExit(uint256 exitId) internal {
     ExitNFT exitNFT = ExitNFT(exitNFTContract);
     address owner = exitNFT.ownerOf(exitId);
     exitNFT.burn(owner, exitId);

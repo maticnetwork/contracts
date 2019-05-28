@@ -6,6 +6,8 @@ import { Common } from "../../common/lib/Common.sol";
 import { RLPEncode } from "../../common/lib/RLPEncode.sol";
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 import { WithdrawManager } from "../withdrawManager/WithdrawManager.sol";
+import { WithdrawManagerHeader } from "../withdrawManager/WithdrawManagerStorage.sol";
+import { Registry } from "../../common/Registry.sol";
 
 contract IPredicate {
   using RLPReader for RLPReader.RLPItem;
@@ -19,6 +21,14 @@ contract IPredicate {
 
   // function startExit(bytes memory data) public;
   function startExit(bytes calldata data, bytes calldata exitTx) external;
+  function verifyDeprecation(
+    address childToken,
+    uint256 age,
+    address signer,
+    bytes32 txHash,
+    bytes calldata data)
+    external
+    returns (bool);
 
   function getAddressFromTx(RLPReader.RLPItem[] memory txList, bytes memory networkId)
     internal
