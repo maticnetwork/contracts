@@ -23,17 +23,20 @@ contract ERC721Predicate is IPredicate {
 
   constructor(address _withdrawManager) public IPredicate(_withdrawManager) {}
 
-  function startExit(bytes memory data, bytes memory exitTx)
-    public
+  function startExit(bytes calldata data, bytes calldata exitTx)
+  // function startExit(bytes memory data)
+    external
   {
     RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
+    // bytes memory exitTx = referenceTxData[10].toBytes();
     uint256 age = withdrawManager.verifyInclusion(data, 0);
     // validate exitTx
     uint256 tokenId;
     address childToken;
     address participant;
+    bytes32 txHash;
     bool burnt;
-    (tokenId, childToken, participant, burnt) = processExitTx(exitTx);
+    (tokenId, childToken, participant, txHash, burnt) = processExitTx(exitTx);
 
     // process the receipt of the referenced tx
     address rootToken;
@@ -45,7 +48,7 @@ contract ERC721Predicate is IPredicate {
       childToken,
       tokenId
     );
-    withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, tokenId, burnt, age);
+    withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, tokenId, txHash, burnt, age);
   }
   /**
    * @notice Process the reference tx to start a MoreVP style exit
@@ -118,12 +121,12 @@ contract ERC721Predicate is IPredicate {
   function processExitTx(bytes memory exitTx)
     public
     view
-    returns(uint256 tokenId, address childToken, address participant, bool burnt)
+    returns(uint256 tokenId, address childToken, address participant, bytes32 txHash, bool burnt)
   {
     RLPReader.RLPItem[] memory txList = exitTx.toRlpItem().toList();
     require(txList.length == 9, "MALFORMED_WITHDRAW_TX");
     childToken = RLPReader.toAddress(txList[3]); // corresponds to "to" field in tx
-    participant = getAddressFromTx(txList, networkId);
+    (participant, txHash) = getAddressFromTx(txList, networkId);
     // if (participant == msg.sender) { // exit tx is signed by exitor himself
     if (participant == tx.origin) { // exit tx is signed by exitor himself
       (tokenId, burnt) = processExitTxSender(RLPReader.toBytes(txList[5]));

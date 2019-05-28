@@ -95,6 +95,7 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     address childToken,
     address rootToken,
     uint256 exitAmountOrTokenId,
+    bytes32 txHash,
     bool burnt,
     uint256 priority)
     public
@@ -112,7 +113,7 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
       exits[priority].token == address(0x0),
       "EXIT_ALREADY_EXISTS"
     );
-    exits[priority] = PlasmaExit(exitor, rootToken, exitAmountOrTokenId, burnt);
+    exits[priority] = PlasmaExit(exitor, rootToken, exitAmountOrTokenId, txHash, burnt);
     PlasmaExit storage _exitObject = exits[priority];
 
     bytes32 key;
