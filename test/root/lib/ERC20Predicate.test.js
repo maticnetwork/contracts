@@ -102,6 +102,28 @@ contract('ERC20Predicate', async function(accounts) {
       assertBigNumberEquality(log.args.amount, halfAmount)
     })
 
+    it('reference: deposit - exitTx: outgoingTransfer', async function() {
+      // Reference the counterparty's deposit which is the proof of counterparty's balance
+      const { receipt } = await childContracts.childChain.depositTokens(childContracts.rootERC20.address, user, amount, '1' /* mock depositBlockId */)
+      const { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts)
+      // Treating this tx as an in-flight incoming transfer
+      const { receipt: r } = await childContracts.childToken.transfer(other, halfAmount)
+      let exitTx = await web3Child.eth.getTransaction(r.transactionHash)
+      exitTx = await buildInFlight(exitTx)
+
+      const startExitTx = await startExit(headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
+      // console.log('startExitTx', startExitTx.closingBalance.toNumber())
+      const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+      // console.log(startExitTx, logs)
+      const log = logs[1]
+      log.event.should.equal('ExitStarted')
+      expect(log.args).to.include({
+        exitor: user,
+        token: childContracts.rootERC20.address
+      })
+      assertBigNumberEquality(log.args.amount, halfAmount)
+    })
+
     it('reference: counterparty balance (Deposit) - exitTx: incomingTransfer', async function() {
       // Reference the counterparty's deposit which is the proof of counterparty's balance
       const { receipt } = await childContracts.childChain.depositTokens(childContracts.rootERC20.address, other, amount, '1' /* mock depositBlockId */)
@@ -252,6 +274,69 @@ contract('ERC20Predicate', async function(accounts) {
       )
     })
   })
+
+  describe('verifyDeprecation', async function() {
+    beforeEach(async function() {
+      contracts = await deployer.freshDeploy()
+      childContracts = await deployer.initializeChildChain(accounts[0], { erc20: true })
+      start = 0
+    })
+
+    it('reference: Deposit - challenge: spend - exit: Burn', async function() {
+      const inputs = []
+      let { receipt } = await childContracts.childChain.depositTokens(childContracts.rootERC20.address, user, amount, '1' /* mock depositBlockId */)
+      let { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts)
+      inputs.push({ headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 })
+      let { receipt: i } = await childContracts.childToken.transfer(other, halfAmount)
+      i = await init(contracts.rootChain, i, accounts)
+      const challengeData = buildChallengeData({ headerNumber: i.headerNumber, blockProof: i.blockProof, blockNumber: i.block.number, blockTimestamp: i.block.timestamp, reference: i.reference, logIndex: 1 })
+
+      let { receipt: w } = await childContracts.childToken.transfer(other, halfAmount) // to make it evm compatible but still challengeable bcoz we are referencing an older input
+      let exitTx = await web3Child.eth.getTransaction(w.transactionHash)
+      exitTx = await buildInFlight(exitTx)
+      const startExitTx = await startExitNew(inputs, exitTx)
+      const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+      // console.log(startExitTx, logs)
+      let log = logs[1]
+      log.event.should.equal('ExitStarted')
+      expect(log.args).to.include({
+        exitor: user,
+        token: childContracts.rootERC20.address
+      })
+      assertBigNumberEquality(log.args.amount, halfAmount)
+
+      log = logs[2]
+      const exit = await contracts.withdrawManager.exits(log.args.exitId._hex)
+      // console.log(exit)
+      const verifyDeprecationTx = await verifyDeprecation(childContracts.childToken.address, log.args.age._hex, log.args.signer, exit.txHash, challengeData)
+    })
+
+    it('should not be able to challenge with the in-flight tx from which the exit was started', async function() {
+      const inputs = []
+      let { receipt } = await childContracts.childChain.depositTokens(childContracts.rootERC20.address, user, amount, '1' /* mock depositBlockId */)
+      let { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts)
+      inputs.push({ headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 })
+
+      let { receipt: i } = await childContracts.childToken.transfer(other, halfAmount) // to make it evm compatible but still challengeable bcoz we are referencing an older input
+      let exitTx = await web3Child.eth.getTransaction(i.transactionHash)
+      exitTx = await buildInFlight(exitTx)
+      const startExitTx = await startExitNew(inputs, exitTx)
+      const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+
+      i = await init(contracts.rootChain, i, accounts)
+      const challengeData = buildChallengeData({ headerNumber: i.headerNumber, blockProof: i.blockProof, blockNumber: i.block.number, blockTimestamp: i.block.timestamp, reference: i.reference, logIndex: 1 })
+
+      let log = logs[2]
+      const exit = await contracts.withdrawManager.exits(log.args.exitId._hex)
+      // console.log(exit)
+      try {
+        await verifyDeprecation(childContracts.childToken.address, log.args.age._hex, log.args.signer, exit.txHash, challengeData)
+        assert.fail()
+      } catch (e) {
+        expect(e.toString()).to.include('Cannot challenge with the exit tx')
+      }
+    })
+  })
 })
 
 async function deposit(depositManager, childChain, rootERC20, user, amount) {
@@ -334,6 +419,10 @@ function startExitNew(inputs, exitTx) {
   )
 }
 
+function verifyDeprecation(childToken, age, signer, txHash, data) {
+  return contracts.ERC20Predicate.verifyDeprecation(childToken, age, signer, txHash, data)
+}
+
 function buildReferenceTxPayload(input) {
   const { headerNumber, blockProof, blockNumber, blockTimestamp, reference, logIndex } = input
   return [
@@ -348,4 +437,15 @@ function buildReferenceTxPayload(input) {
     utils.bufferToHex(rlp.encode(reference.path)), // branch mask,
     logIndex
   ]
+}
+
+function buildChallengeData(input) {
+  const data = buildReferenceTxPayload(input)
+  const { reference } = input
+  return utils.bufferToHex(rlp.encode(
+    data.concat([
+      utils.bufferToHex(reference.tx),
+      utils.bufferToHex(rlp.encode(reference.txParentNodes))
+    ])
+  ))
 }
