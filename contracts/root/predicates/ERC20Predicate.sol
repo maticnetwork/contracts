@@ -43,10 +43,9 @@ contract ERC20Predicate is IPredicate {
     external
   {
     RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
-    uint256 age = withdrawManager.verifyInclusion(data, 0);
+    uint256 age = withdrawManager.verifyInclusion(data, 0 /* offset */, false /* verifyTxInclusion */);
     // validate exitTx - This may be an in-flight tx, so inclusion will not be checked
     (uint256 exitAmount, address childToken, address participant, bytes32 txHash, bool burnt) = processExitTx(exitTx);
-    // (uint256 exitAmount, address childToken, address participant, bytes32 txHash, bool burnt) = processExitTx(referenceTxData[referenceTxData.length-1].toBytes());
 
     // process the receipt of the referenced tx
     address rootToken;
@@ -64,14 +63,12 @@ contract ERC20Predicate is IPredicate {
       closingBalance >= exitAmount,
       "Exiting with more tokens than referenced"
     );
-    // age += oIndex;
     if (referenceTxData.length > 10) {
       // It means the exitor sent along another input UTXO to the exit tx.
       // This will be used to exit with the pre-existing balance on the chain along with the couterparty signed exit tx
-      uint256 age2 = withdrawManager.verifyInclusion(data, 10 /* offset */);
+      uint256 age2 = withdrawManager.verifyInclusion(data, 10 /* offset */, false /* verifyTxInclusion */);
       address _rootToken;
       (_rootToken, closingBalance, age2) = processReferenceTx(
-      // (, closingBalance, age2) = processReferenceTx(
         referenceTxData[16].toBytes(), // receipt
         referenceTxData[19].toUint(), // logIndex
         msg.sender, // participant
@@ -79,7 +76,6 @@ contract ERC20Predicate is IPredicate {
         age2,
         false /* isChallenge */);
       require(rootToken == _rootToken, "root tokens in the referenced txs do not match"); // might not require this check
-      // age2 += oIndex;
       uint256 priority = Math.max(age, age2);
       withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, exitAmount + closingBalance, txHash, burnt, priority);
       withdrawManager.addInput(priority, age, participant);
@@ -92,7 +88,11 @@ contract ERC20Predicate is IPredicate {
 
   /**
    * @notice Start an exit from the side chain by referencing the preceding (reference) transaction
-   * @param data RLP encoded data of the reference tx(s) that encodes the following fields for each tx
+   * @param childToken Token contract on the side chain
+   * @param age Age of the reference tx provided during exit
+   * @param signer Signer of the exit tx
+   * @param txHash Hash of the exit tx
+   * @param data RLP encoded data of the challenge reference tx that encodes the following fields
    * headerNumber Header block number of which the reference tx was a part of
    * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
    * blockNumber Block number of which the reference tx is a part of
@@ -103,8 +103,8 @@ contract ERC20Predicate is IPredicate {
    * receiptProof Merkle proof of the reference receipt
    * branchMask Merkle proof branchMask for the receipt
    * logIndex Log Index to read from the receipt
-   * tx Reference transaction
-   * txProof Merkle proof of the reference tx
+   * tx Challenge transaction
+   * txProof Merkle proof of the challenge tx
    */
   function verifyDeprecation(
     address childToken,
@@ -129,23 +129,16 @@ contract ERC20Predicate is IPredicate {
       txHash != _txHash,
       "Cannot challenge with the exit tx"
     );
-    uint256 _age = withdrawManager.verifyInclusion(data, 0);
-    // address rootToken;
-    // uint256 closingBalance;
-    (,,_age) = processReferenceTx(
+
+    uint256 ageOfChallengeTx = withdrawManager.verifyInclusion(data, 0, true /* verifyTxInclusion */);
+    (,,ageOfChallengeTx) = processReferenceTx(
       referenceTxData[6].toBytes(), // receipt
       referenceTxData[9].toUint(), // logIndex
       signer,
       childToken,
       _age,
       true /* isChallenge */);
-    referenceTxData[6] = referenceTxData[10];
-    referenceTxData[7] = referenceTxData[11];
-    require(
-      _age == withdrawManager.verifyInclusion(data, 0),
-      "Receipt and tx are not complementary"
-    );
-    return _age > age;
+    return ageOfChallengeTx > age;
   }
 
   /**
@@ -276,7 +269,7 @@ contract ERC20Predicate is IPredicate {
       burnt = true;
     } else if (funcSig == TRANSFER_FUNC_SIG) {
       require(txData.length == 68, "Invalid tx"); // 4 bytes for funcSig and a 2 bytes32 parameters (to, value)
-      exitAmount = BytesLib.toUint(txData, 4);
+      exitAmount = BytesLib.toUint(txData, 36);
     } else {
       revert("Exit tx type not supported");
     }

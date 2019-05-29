@@ -32,7 +32,7 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     _;
   }
 
-  function verifyInclusion(bytes memory data, uint8 offset)
+  function verifyInclusion(bytes memory data, uint8 offset, bool verifyTxInclusion)
     public
     returns (uint256 age)
   {
@@ -48,6 +48,18 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
       ),
       "INVALID_RECEIPT_MERKLE_PROOF"
     );
+
+    if(verifyTxInclusion) {
+      require(
+        MerklePatriciaProof.verify(
+          referenceTxData[offset + 10].toBytes(), // tx
+          branchMask,
+          referenceTxData[offset + 11].toBytes(), // txProof
+          bytes32(referenceTxData[offset + 4].toUint()) // txRoot
+        ),
+        "INVALID_TX_MERKLE_PROOF"
+      );
+    }
 
     uint256 startBlock;
     bytes32 headerRoot;
@@ -162,6 +174,7 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     );
     if (isChallengeValid) {
       deleteExit(exitId);
+      emit ExitCancelled(exitId);
     }
   }
 

@@ -38,6 +38,8 @@ contract WithdrawManagerHeader {
     uint256 indexed age,
     address signer
   );
+
+  event ExitCancelled(uint256 indexed exitId);
 }
 
 contract WithdrawManagerStorage is ProxyStorage, WithdrawManagerHeader {
