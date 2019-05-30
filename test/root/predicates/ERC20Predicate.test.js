@@ -6,10 +6,8 @@ import logDecoder from '../../helpers/log-decoder.js'
 import utils from 'ethereumjs-util'
 
 import {
-  getTxBytes,
   getTxProof,
   verifyTxProof,
-  getReceiptBytes,
   getReceiptProof,
   verifyReceiptProof
 } from '../../helpers/proofs'
@@ -23,6 +21,7 @@ import MerkleTree from '../../helpers/merkle-tree'
 
 import { build, buildInFlight } from '../../mockResponses/utils'
 
+const crypto = require('crypto')
 const rlp = utils.rlp
 const web3Child = new web3.constructor(
   new web3.providers.HttpProvider('http://localhost:8546')
@@ -37,11 +36,19 @@ contract('ERC20Predicate', async function(accounts) {
   const user = accounts[0]
   const other = accounts[1]
 
+  before(async function() {
+    contracts = await deployer.freshDeploy()
+    childContracts = await deployer.initializeChildChain(accounts[0])
+  })
+
   describe('startExit', async function() {
     beforeEach(async function() {
-      contracts = await deployer.freshDeploy()
-      childContracts = await deployer.initializeChildChain(accounts[0], { erc20: true })
-      start = 0
+      contracts.withdrawManager = await deployer.deployWithdrawManager()
+      contracts.ERC20Predicate = await deployer.deployErc20Predicate()
+      const { rootERC20, childToken } = await deployer.deployChildErc20(accounts[0])
+      childContracts.rootERC20 = rootERC20
+      childContracts.childToken = childToken
+      // start = 0
     })
 
     it('reference: deposit - exitTx: fullBurn')
@@ -54,10 +61,8 @@ contract('ERC20Predicate', async function(accounts) {
         other,
         amount
       )
-
       const { receipt } = await childContracts.childToken.transfer(user, amount, { from: other })
       const { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts)
-
       const { receipt: r } = await childContracts.childToken.withdraw(amount)
       let exitTx = await web3Child.eth.getTransaction(r.transactionHash)
       exitTx = await buildInFlight(exitTx)
@@ -104,7 +109,13 @@ contract('ERC20Predicate', async function(accounts) {
 
     it('reference: deposit - exitTx: outgoingTransfer', async function() {
       // Reference the counterparty's deposit which is the proof of counterparty's balance
-      const { receipt } = await childContracts.childChain.depositTokens(childContracts.rootERC20.address, user, amount, '1' /* mock depositBlockId */)
+      const { receipt } = await deposit(
+        contracts.depositManager,
+        childContracts.childChain,
+        childContracts.rootERC20,
+        user,
+        amount
+      )
       const { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts)
       // Treating this tx as an in-flight incoming transfer
       const { receipt: r } = await childContracts.childToken.transfer(other, halfAmount)
@@ -126,7 +137,13 @@ contract('ERC20Predicate', async function(accounts) {
 
     it('reference: counterparty balance (Deposit) - exitTx: incomingTransfer', async function() {
       // Reference the counterparty's deposit which is the proof of counterparty's balance
-      const { receipt } = await childContracts.childChain.depositTokens(childContracts.rootERC20.address, other, amount, '1' /* mock depositBlockId */)
+      const { receipt } = await deposit(
+        contracts.depositManager,
+        childContracts.childChain,
+        childContracts.rootERC20,
+        other,
+        amount
+      )
       const { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts)
 
       // Treating this tx as an in-flight incoming transfer
@@ -177,9 +194,15 @@ contract('ERC20Predicate', async function(accounts) {
     })
 
     it('reference: own balance (Deposit) and counterparty balance (Deposit) - exitTx: incomingTransfer', async function() {
-      const inputs = []
       // Will reference user's pre-existing balance on the side-chain, currently this needs to given as the 2nd input so will process this later
-      let { receipt } = await childContracts.childChain.depositTokens(childContracts.rootERC20.address, user, halfAmount, '1' /* mock depositBlockId */)
+      const { receipt } = await deposit(
+        contracts.depositManager,
+        childContracts.childChain,
+        childContracts.rootERC20,
+        user,
+        halfAmount
+      )
+      const inputs = []
       let { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts)
       inputs.push({ headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 })
 
@@ -223,10 +246,16 @@ contract('ERC20Predicate', async function(accounts) {
     it('reference: own balance (outgoingTransfer) and counterparty balance (incomingTransfer) - exitTx: incomingTransfer', async function() {
       // This test case tests an interesting case.
       // 1. I deposit x tokens.
-      await childContracts.childChain.depositTokens(childContracts.rootERC20.address, user, amount, '1' /* mock depositBlockId */)
+      await deposit(
+        contracts.depositManager,
+        childContracts.childChain,
+        childContracts.rootERC20,
+        user,
+        amount
+      )
 
       // 2. I transfer x/2 tokens to a user. Calling this tx A.
-      const { receipt } = await childContracts.childToken.transfer(other, halfAmount)
+      let { receipt } = await childContracts.childToken.transfer(other, halfAmount)
       const { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts)
       const inputs = []
       // We add an input which is the proof of counterparty's balance (x/2 amount)
@@ -277,14 +306,23 @@ contract('ERC20Predicate', async function(accounts) {
 
   describe('verifyDeprecation', async function() {
     beforeEach(async function() {
-      contracts = await deployer.freshDeploy()
-      childContracts = await deployer.initializeChildChain(accounts[0], { erc20: true })
-      start = 0
+      contracts.withdrawManager = await deployer.deployWithdrawManager()
+      contracts.ERC20Predicate = await deployer.deployErc20Predicate()
+      const { rootERC20, childToken } = await deployer.deployChildErc20(accounts[0])
+      childContracts.rootERC20 = rootERC20
+      childContracts.childToken = childToken
+      // start = 0
     })
 
     it('reference: Deposit - challenge: spend - exit: Burn', async function() {
       const inputs = []
-      let { receipt } = await childContracts.childChain.depositTokens(childContracts.rootERC20.address, user, amount, '1' /* mock depositBlockId */)
+      const { receipt } = await deposit(
+        contracts.depositManager,
+        childContracts.childChain,
+        childContracts.rootERC20,
+        user,
+        amount
+      )
       let { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts)
       inputs.push({ headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 })
       let { receipt: i } = await childContracts.childToken.transfer(other, halfAmount)
@@ -306,14 +344,25 @@ contract('ERC20Predicate', async function(accounts) {
       assertBigNumberEquality(log.args.amount, halfAmount)
 
       log = logs[2]
-      const exit = await contracts.withdrawManager.exits(log.args.exitId._hex)
+      // const exit = await contracts.withdrawManager.exits(log.args.exitId._hex)
       // console.log(exit)
-      const verifyDeprecationTx = await verifyDeprecation(childContracts.childToken.address, log.args.age._hex, log.args.signer, exit.txHash, challengeData)
+
+      const verifyDeprecationTx = await verifyDeprecation(
+        log.args.exitId._hex, log.args.age._hex, challengeData,
+        { childToken: childContracts.childToken.address, age: log.args.age._hex, signer: log.args.signer }
+      )
+      // console.log('verifyDeprecationTx', verifyDeprecationTx)
     })
 
     it('should not be able to challenge with the in-flight tx from which the exit was started', async function() {
+      const { receipt } = await deposit(
+        contracts.depositManager,
+        childContracts.childChain,
+        childContracts.rootERC20,
+        user,
+        amount
+      )
       const inputs = []
-      let { receipt } = await childContracts.childChain.depositTokens(childContracts.rootERC20.address, user, amount, '1' /* mock depositBlockId */)
       let { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts)
       inputs.push({ headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 })
 
@@ -326,11 +375,13 @@ contract('ERC20Predicate', async function(accounts) {
       i = await init(contracts.rootChain, i, accounts)
       const challengeData = buildChallengeData({ headerNumber: i.headerNumber, blockProof: i.blockProof, blockNumber: i.block.number, blockTimestamp: i.block.timestamp, reference: i.reference, logIndex: 1 })
 
-      let log = logs[2]
-      const exit = await contracts.withdrawManager.exits(log.args.exitId._hex)
-      // console.log(exit)
+      let log = logs[2] // 'ExitUpdated'
       try {
-        await verifyDeprecation(childContracts.childToken.address, log.args.age._hex, log.args.signer, exit.txHash, challengeData)
+        // await verifyDeprecation(exit, childContracts.childToken.address, log.args.age._hex, log.args.signer, exit.txHash, challengeData)
+        await verifyDeprecation(
+          log.args.exitId._hex, log.args.age._hex, challengeData,
+          { childToken: childContracts.childToken.address, age: log.args.age._hex, signer: log.args.signer }
+        )
         assert.fail()
       } catch (e) {
         expect(e.toString()).to.include('Cannot challenge with the exit tx')
@@ -339,22 +390,22 @@ contract('ERC20Predicate', async function(accounts) {
   })
 })
 
-async function deposit(depositManager, childChain, rootERC20, user, amount) {
-  // await rootERC20.approve(depositManager.address, amount)
-  // const result = await depositManager.depositERC20ForUser(
-  //   rootERC20.address,
-  //   user,
-  //   amount
-  // )
-  // const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
-  // const NewDepositBlockEvent = logs.find(log => log.event === 'NewDepositBlock')
-  await childChain.depositTokens(
-    rootERC20.address,
-    user,
-    amount,
-    '1' // mock
-    // NewDepositBlockEvent.args.depositBlockId
-  )
+async function deposit(depositManager, childChain, rootERC20, user, amount, options = { rootDeposit: false }) {
+  let depositBlockId
+  if (options.rootDeposit) {
+    await rootERC20.approve(depositManager.address, amount)
+    const result = await depositManager.depositERC20ForUser(
+      rootERC20.address,
+      user,
+      amount
+    )
+    const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
+    const NewDepositBlockEvent = logs.find(log => log.event === 'NewDepositBlock')
+    depositBlockId = NewDepositBlockEvent.args.depositBlockId
+  } else {
+    depositBlockId = '0x' + crypto.randomBytes(32).toString('hex')
+  }
+  return childChain.depositTokens(rootERC20.address, user, amount, depositBlockId)
 }
 
 async function init(rootChain, receipt, accounts) {
@@ -419,8 +470,20 @@ function startExitNew(inputs, exitTx) {
   )
 }
 
-function verifyDeprecation(childToken, age, signer, txHash, data) {
-  return contracts.ERC20Predicate.verifyDeprecation(childToken, age, signer, txHash, data)
+async function verifyDeprecation(exitId, inputId, challengeData, options) {
+  const exit = await contracts.withdrawManager.exits(exitId)
+  // console.log('exit', exit, exit.receiptAmountOrNFTId.toString(16))
+  const exitData = web3.eth.abi.encodeParameters(
+    ['address', 'address', 'uint256', 'bytes32', 'bool'],
+    [exit.owner, options.childToken, exit.receiptAmountOrNFTId.toString(16), exit.txHash, exit.burnt]
+  )
+  // console.log('exitData', exitData)
+  const inputUtxoData = web3.eth.abi.encodeParameters(
+    ['uint256', 'address'],
+    [options.age, options.signer]
+  )
+  // console.log('inputUtxoData', inputUtxoData)
+  return contracts.ERC20Predicate.verifyDeprecation(exitData, inputUtxoData, challengeData)
 }
 
 function buildReferenceTxPayload(input) {

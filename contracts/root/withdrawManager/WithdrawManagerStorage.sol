@@ -4,7 +4,7 @@ import { ProxyStorage } from "../../common/misc/ProxyStorage.sol";
 import { Registry } from "../../common/Registry.sol";
 import { RootChain } from "../RootChain.sol";
 
-contract WithdrawManagerHeader {
+contract ExitsDataStructure {
   struct Input {
     address signer;
   }
@@ -19,7 +19,9 @@ contract WithdrawManagerHeader {
     // Mapping from age of input to Input
     mapping(uint256 => Input) inputs;
   }
+}
 
+contract WithdrawManagerHeader is ExitsDataStructure {
   event Withdraw(
     address indexed user,
     address indexed token,
