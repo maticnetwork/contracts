@@ -156,26 +156,41 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     emit ExitStarted(_exitObject.owner, priority, _exitObject.token, _exitObject.receiptAmountOrNFTId);
   }
 
-  function challengeExit(uint256 exitId, uint256 inputId, bytes calldata data)
+  function challengeExit(uint256 exitId, uint256 inputId, bytes calldata challengeData)
     external
   {
     PlasmaExit storage exit = exits[exitId];
+    Input storage input = exit.inputs[inputId];
     require(
-      exit.token != address(0x0) && exit.inputs[inputId].signer != address(0x0),
+      exit.token != address(0x0) && input.signer != address(0x0),
       "Invalid exit or input id"
     );
     // IPredicate(exit.predicate).verifyDeprecation(exit, inputId, data, registry);
     bool isChallengeValid = IPredicate(exit.predicate).verifyDeprecation(
-      registry.rootToChildToken(exit.token),
-      inputId, // age
-      exit.inputs[inputId].signer,
-      exit.txHash,
-      data
+      encodeExit(exit),
+      encodeInputUtxo(inputId, input),
+      challengeData
     );
     if (isChallengeValid) {
       deleteExit(exitId);
       emit ExitCancelled(exitId);
     }
+  }
+
+  function encodeExit(PlasmaExit storage exit)
+    internal
+    view
+    returns (bytes memory)
+  {
+    return abi.encode(exit.owner, registry.rootToChildToken(exit.token), exit.receiptAmountOrNFTId, exit.txHash, exit.burnt);
+  }
+
+  function encodeInputUtxo(uint256 age, Input storage input)
+    internal
+    view
+    returns (bytes memory)
+  {
+    return abi.encode(age, input.signer);
   }
 
   function deleteExit(uint256 exitId) internal {

@@ -24,21 +24,6 @@ contract ERC20Predicate is IPredicate {
 
   constructor(address _withdrawManager) public IPredicate(_withdrawManager) {}
 
-  /**
-   * @notice Start an exit from the side chain by referencing the preceding (reference) transaction
-   * @param data RLP encoded data of the reference tx(s) that encodes the following fields for each tx
-   * headerNumber Header block number of which the reference tx was a part of
-   * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
-   * blockNumber Block number of which the reference tx is a part of
-   * blockTime Reference tx block time
-   * blocktxRoot Transactions root of block
-   * blockReceiptsRoot Receipts root of block
-   * receipt Receipt of the reference transaction
-   * receiptProof Merkle proof of the reference receipt
-   * branchMask Merkle proof branchMask for the receipt
-   * logIndex Log Index to read from the receipt
-   * @param exitTx Signed exit transaction
-   */
   function startExit(bytes calldata data, bytes calldata exitTx)
     external
   {
@@ -86,57 +71,34 @@ contract ERC20Predicate is IPredicate {
     }
   }
 
-  /**
-   * @notice Start an exit from the side chain by referencing the preceding (reference) transaction
-   * @param childToken Token contract on the side chain
-   * @param age Age of the reference tx provided during exit
-   * @param signer Signer of the exit tx
-   * @param txHash Hash of the exit tx
-   * @param data RLP encoded data of the challenge reference tx that encodes the following fields
-   * headerNumber Header block number of which the reference tx was a part of
-   * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
-   * blockNumber Block number of which the reference tx is a part of
-   * blockTime Reference tx block time
-   * blocktxRoot Transactions root of block
-   * blockReceiptsRoot Receipts root of block
-   * receipt Receipt of the reference transaction
-   * receiptProof Merkle proof of the reference receipt
-   * branchMask Merkle proof branchMask for the receipt
-   * logIndex Log Index to read from the receipt
-   * tx Challenge transaction
-   * txProof Merkle proof of the challenge tx
-   */
-  function verifyDeprecation(
-    address childToken,
-    uint256 age,
-    address signer,
-    bytes32 txHash,
-    bytes calldata data)
+  function verifyDeprecation(bytes calldata exit, bytes calldata inputUtxo, bytes calldata challengeData)
     external
     returns (bool)
   {
-    RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
-    (, address _childToken, address participant, bytes32 _txHash,) = processExitTx(referenceTxData[10].toBytes());
+    PlasmaExit memory _exit = decodeExit(exit);
+    (uint256 age, address signer) = encodeInputUtxo(inputUtxo);
+    RLPReader.RLPItem[] memory referenceTxData = challengeData.toRlpItem().toList();
+
+    (, address childToken, address participant, bytes32 txHash,) = processExitTx(referenceTxData[10].toBytes());
     require(
       participant == signer,
-      "Exit tx not signed by the party who signed the input UTXO to the exit"
+      "Challenge tx not signed by the party who signed the input UTXO to the exit"
     );
     require(
-      _childToken == childToken,
-      "Exit tx token doesnt match with exit9"
+      _exit.token == childToken,
+      "Challenge tx token doesnt match with exit token"
     );
     require(
-      txHash != _txHash,
+      _exit.txHash != txHash,
       "Cannot challenge with the exit tx"
     );
-
-    uint256 ageOfChallengeTx = withdrawManager.verifyInclusion(data, 0, true /* verifyTxInclusion */);
+    uint256 ageOfChallengeTx = withdrawManager.verifyInclusion(challengeData, 0, true /* verifyTxInclusion */);
     (,,ageOfChallengeTx) = processReferenceTx(
       referenceTxData[6].toBytes(), // receipt
       referenceTxData[9].toUint(), // logIndex
       signer,
       childToken,
-      _age,
+      ageOfChallengeTx,
       true /* isChallenge */);
     return ageOfChallengeTx > age;
   }
