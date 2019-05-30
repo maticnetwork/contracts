@@ -24,12 +24,11 @@ contract ERC721Predicate is IPredicate {
   constructor(address _withdrawManager) public IPredicate(_withdrawManager) {}
 
   function startExit(bytes calldata data, bytes calldata exitTx)
-  // function startExit(bytes memory data)
     external
   {
     RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
     // bytes memory exitTx = referenceTxData[10].toBytes();
-    uint256 age = withdrawManager.verifyInclusion(data, 0);
+    uint256 age = withdrawManager.verifyInclusion(data, 0 /* offset */, false /* verifyTxInclusion */);
     // validate exitTx
     uint256 tokenId;
     address childToken;
@@ -50,6 +49,42 @@ contract ERC721Predicate is IPredicate {
     );
     withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, tokenId, txHash, burnt, age);
   }
+
+  function verifyDeprecation(bytes calldata exit, bytes calldata inputUtxo, bytes calldata challengeData)
+    external
+    returns (bool)
+  {
+    PlasmaExit memory _exit = decodeExit(exit);
+    (uint256 age, address signer) = encodeInputUtxo(inputUtxo);
+    RLPReader.RLPItem[] memory referenceTxData = challengeData.toRlpItem().toList();
+
+    (uint256 tokenId, address childToken, address participant, bytes32 txHash,) = processExitTx(referenceTxData[10].toBytes());
+    require(
+      participant == signer,
+      "Challenge tx not signed by the party who signed the input UTXO to the exit"
+    );
+    require(
+      _exit.token == childToken,
+      "Challenge tx token doesnt match with exit token"
+    );
+    require(
+      _exit.txHash != txHash,
+      "Cannot challenge with the exit tx"
+    );
+    require(
+      _exit.receiptAmountOrNFTId == tokenId,
+      "tokenId doesn't match"
+    );
+    uint256 ageOfChallengeTx = withdrawManager.verifyInclusion(challengeData, 0, true /* verifyTxInclusion */);
+    processReferenceTx(
+      referenceTxData[6].toBytes(), // receipt
+      referenceTxData[9].toUint(), // logIndex
+      signer,
+      childToken,
+      tokenId);
+    return ageOfChallengeTx > age;
+  }
+
   /**
    * @notice Process the reference tx to start a MoreVP style exit
    * @param receipt Receipt of the reference transaction
@@ -62,7 +97,7 @@ contract ERC721Predicate is IPredicate {
     address participant,
     address childToken,
     uint256 tokenId)
-    public
+    internal
     view
     returns(address rootToken)
   {
@@ -84,7 +119,7 @@ contract ERC721Predicate is IPredicate {
     // tokenId is the first param in logData in all 3 of Deposit, Withdraw and LogTransfer
     require(
       tokenId == BytesLib.toUint(logData, 0),
-      "TokenId being exited with is different from the one referenced"
+      "TokenId in the tx and logData do not match"
     );
   }
 
@@ -119,7 +154,7 @@ contract ERC721Predicate is IPredicate {
    * @param exitTx Signed exit transaction
    */
   function processExitTx(bytes memory exitTx)
-    public
+    internal
     view
     returns(uint256 tokenId, address childToken, address participant, bytes32 txHash, bool burnt)
   {
@@ -127,8 +162,7 @@ contract ERC721Predicate is IPredicate {
     require(txList.length == 9, "MALFORMED_WITHDRAW_TX");
     childToken = RLPReader.toAddress(txList[3]); // corresponds to "to" field in tx
     (participant, txHash) = getAddressFromTx(txList, networkId);
-    // if (participant == msg.sender) { // exit tx is signed by exitor himself
-    if (participant == tx.origin) { // exit tx is signed by exitor himself
+    if (participant == msg.sender) { // exit tx is signed by exitor himself
       (tokenId, burnt) = processExitTxSender(RLPReader.toBytes(txList[5]));
     } else {
       tokenId = processExitTxCounterparty(RLPReader.toBytes(txList[5]));
@@ -162,8 +196,7 @@ contract ERC721Predicate is IPredicate {
     bytes4 funcSig = BytesLib.toBytes4(BytesLib.slice(txData, 0, 4));
     require(funcSig == TRANSFER_FROM_FUNC_SIG, "Only supports exiting from transfer txs");
     require(
-      // msg.sender == address(BytesLib.toUint(txData, 4)), // to
-      tx.origin == address(BytesLib.toUint(txData, 36)), // to
+      msg.sender == address(BytesLib.toUint(txData, 36)), // to
       "Exit tx doesnt concern the exitor"
     );
     tokenId = BytesLib.toUint(txData, 68); // NFT ID
