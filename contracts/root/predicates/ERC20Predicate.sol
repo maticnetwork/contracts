@@ -2,14 +2,14 @@ pragma solidity ^0.5.2;
 
 import { BytesLib } from "../../common/lib/BytesLib.sol";
 import { Common } from "../../common/lib/Common.sol";
+import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 import { RLPEncode } from "../../common/lib/RLPEncode.sol";
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
-import { IPredicate } from "./IPredicate.sol";
-import { Registry } from "../../common/Registry.sol";
-import { WithdrawManagerHeader } from "../withdrawManager/WithdrawManagerStorage.sol";
-import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 
-contract ERC20Predicate is IPredicate {
+import { IErcPredicate } from "./IPredicate.sol";
+import { WithdrawManagerHeader } from "../withdrawManager/WithdrawManagerStorage.sol";
+
+contract ERC20Predicate is IErcPredicate {
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
 
@@ -22,7 +22,37 @@ contract ERC20Predicate is IPredicate {
   bytes4 constant TRANSFER_FUNC_SIG = 0xa9059cbb;
   bytes constant public networkId = "\x0d";
 
-  constructor(address _withdrawManager) public IPredicate(_withdrawManager) {}
+  constructor(address _withdrawManager) public IErcPredicate(_withdrawManager) {}
+
+  function startExitWithBurntTokens(bytes calldata data)
+    external
+  {
+    RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
+    bytes memory receipt = referenceTxData[6].toBytes();
+    RLPReader.RLPItem[] memory inputItems = receipt.toRlpItem().toList();
+    uint256 age = withdrawManager.verifyInclusion(data, 0 /* offset */, false /* verifyTxInclusion */);
+    uint256 logIndex = referenceTxData[9].toUint();
+    require(logIndex < MAX_LOGS, "Supporting a max of 10 logs");
+    inputItems = inputItems[3].toList()[logIndex].toList(); // select log based on given logIndex
+
+    // "address" (contract address that emitted the log) field in the receipt
+    address childToken = RLPReader.toAddress(inputItems[0]);
+    bytes memory logData = inputItems[2].toBytes();
+    inputItems = inputItems[1].toList(); // topics
+    // now, inputItems[i] refers to i-th (0-based) topic in the topics array
+    // event Withdraw(address indexed token, address indexed from, uint256 amountOrTokenId, uint256 input1, uint256 output1)
+    require(
+      bytes32(inputItems[0].toUint()) == WITHDRAW_EVENT_SIG,
+      "Not a withdraw event signature"
+    );
+    address rootToken = address(RLPReader.toUint(inputItems[1]));
+    require(
+      msg.sender == address(inputItems[2].toUint()), // from
+      "Withdrawer and burn exit tx do not match"
+    );
+    uint256 exitAmount = BytesLib.toUint(logData, 0); // amountOrTokenId
+    withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, exitAmount, bytes32(0x0), true /* burnt */, age);
+  }
 
   function startExit(bytes calldata data, bytes calldata exitTx)
     external
@@ -116,8 +146,8 @@ contract ERC20Predicate is IPredicate {
     address childToken,
     uint256 _age,
     bool isChallenge)
-    public
-    view
+    internal
+    pure
     returns(address rootToken, uint256 closingBalance, uint256 age)
   {
     RLPReader.RLPItem[] memory inputItems = receipt.toRlpItem().toList();
@@ -134,16 +164,15 @@ contract ERC20Predicate is IPredicate {
     rootToken = address(RLPReader.toUint(inputItems[1]));
     // rootToken = RLPReader.toAddress(inputItems[1]); // investigate why this reverts
     if (isChallenge) {
-      processChallenge(inputItems, logData, participant);
+      processChallenge(inputItems, participant);
     } else {
-      (closingBalance, age) = processErc20(inputItems, logData, participant);
+      (closingBalance, age) = processStateUpdate(inputItems, logData, participant);
     }
     age = _age + age + (logIndex * MAX_LOGS); // @todo use safeMath
   }
 
   function processChallenge(
     RLPReader.RLPItem[] memory inputItems,
-    bytes memory logData,
     address participant)
     internal
     pure
@@ -164,12 +193,12 @@ contract ERC20Predicate is IPredicate {
     // oIndex is always 0 for the 2 scenarios above, hence not returning it
   }
 
-  function processErc20(
+  function processStateUpdate(
     RLPReader.RLPItem[] memory inputItems,
     bytes memory logData,
     address participant)
     internal
-    view
+    pure
     returns (uint256 closingBalance, uint256 oIndex)
   {
     bytes32 eventSignature = bytes32(inputItems[0].toUint());
@@ -221,7 +250,7 @@ contract ERC20Predicate is IPredicate {
 
   function processExitTxSender(bytes memory txData)
     internal
-    view
+    pure
     returns (uint256 exitAmount, bool burnt)
   {
     bytes4 funcSig = BytesLib.toBytes4(BytesLib.slice(txData, 0, 4));

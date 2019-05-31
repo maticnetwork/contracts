@@ -3,7 +3,7 @@ import chaiAsPromised from 'chai-as-promised'
 
 import deployer from '../../helpers/deployer.js'
 import logDecoder from '../../helpers/log-decoder.js'
-import utils from 'ethereumjs-util'
+import ethUtils from 'ethereumjs-util'
 
 import {
   getTxBytes,
@@ -13,43 +13,74 @@ import {
   getReceiptProof,
   verifyReceiptProof
 } from '../../helpers/proofs'
-import {
-  buildSubmitHeaderBlockPaylod,
-  assertBigNumberEquality
-} from '../../helpers/utils.js'
 
 import { getBlockHeader } from '../../helpers/blocks'
 import MerkleTree from '../../helpers/merkle-tree'
 
 import { build, buildInFlight } from '../../mockResponses/utils'
 
-// import { WithdrawManager } from '../helpers/artifacts'
-// import burn from '../mockResponses/burn'
-// import incomingTransfer from '../mockResponses/incomingTransfer'
-
-const rlp = utils.rlp
-const web3Child = new web3.constructor(
-  new web3.providers.HttpProvider('http://localhost:8546')
-)
+const utils = require('../../helpers/utils')
+const web3Child = utils.web3Child
 
 chai.use(chaiAsPromised).should()
-let contracts, childContracts, start
+let contracts, childContracts
+let start = 0
 
 contract('ERC721Predicate', async function(accounts) {
   const tokenId = '0x117'
   const user = accounts[0]
   const other = accounts[1]
 
+  before(async function() {
+    contracts = await deployer.freshDeploy()
+    childContracts = await deployer.initializeChildChain(accounts[0])
+  })
+
+  describe('startExitWithBurntTokens', async function() {
+    beforeEach(async function() {
+      contracts.ERC721Predicate = await deployer.deployErc721Predicate()
+      const { rootERC721, childErc721 } = await deployer.deployChildErc721(accounts[0])
+      childContracts.rootERC721 = rootERC721
+      childContracts.childErc721 = childErc721
+    })
+
+    it('Valid exit with burnt tokens', async function() {
+      await utils.deposit(
+        contracts.depositManager,
+        childContracts.childChain,
+        childContracts.rootERC721,
+        user,
+        tokenId
+      )
+      const { receipt } = await childContracts.childErc721.withdraw(tokenId)
+      let { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts, start)
+      const startExitTx = await utils.startExitWithBurntTokens(
+        contracts.ERC721Predicate,
+        { headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1}
+      )
+      const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+      // console.log(startExitTx, logs)
+      const log = logs[1]
+      log.event.should.equal('ExitStarted')
+      expect(log.args).to.include({
+        exitor: user,
+        token: childContracts.rootERC721.address,
+        burnt: true
+      })
+      utils.assertBigNumberEquality(log.args.amount, tokenId)
+    })
+  })
+
   describe('startExit', async function() {
     beforeEach(async function() {
-      contracts = await deployer.freshDeploy()
       contracts.ERC721Predicate = await deployer.deployErc721Predicate()
-      childContracts = await deployer.initializeChildChain(accounts[0], { erc721: true })
-      start = 0
+      const { rootERC721, childErc721 } = await deployer.deployChildErc721(accounts[0])
+      childContracts.rootERC721 = rootERC721
+      childContracts.childErc721 = childErc721
     })
 
     it('reference: incomingTransfer - exitTx: burn', async function() {
-      await depositErc721(
+      await utils.deposit(
         contracts.depositManager,
         childContracts.childChain,
         childContracts.rootERC721,
@@ -64,7 +95,7 @@ contract('ERC721Predicate', async function(accounts) {
       let exitTx = await web3Child.eth.getTransaction(r.transactionHash)
       exitTx = await buildInFlight(exitTx)
 
-      const startExitTx = await startExit(headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
+      const startExitTx = await utils.startExit(contracts.ERC721Predicate, headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       // console.log(startExitTx, logs)
       const log = logs[1]
@@ -73,7 +104,7 @@ contract('ERC721Predicate', async function(accounts) {
         exitor: user,
         token: childContracts.rootERC721.address
       })
-      assertBigNumberEquality(log.args.amount, tokenId)
+      utils.assertBigNumberEquality(log.args.amount, tokenId)
     })
 
     it('reference: Deposit - exitTx: burn', async function() {
@@ -84,7 +115,7 @@ contract('ERC721Predicate', async function(accounts) {
       let exitTx = await web3Child.eth.getTransaction(r.transactionHash)
       exitTx = await buildInFlight(exitTx)
 
-      const startExitTx = await startExit(headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
+      const startExitTx = await utils.startExit(contracts.ERC721Predicate, headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       // console.log(startExitTx, logs)
       const log = logs[1]
@@ -93,11 +124,11 @@ contract('ERC721Predicate', async function(accounts) {
         exitor: user,
         token: childContracts.rootERC721.address
       })
-      assertBigNumberEquality(log.args.amount, tokenId)
+      utils.assertBigNumberEquality(log.args.amount, tokenId)
     })
 
     it('reference: counterparty balance (Transfer) - exitTx: incomingTransfer', async function() {
-      await depositErc721(
+      await utils.deposit(
         contracts.depositManager,
         childContracts.childChain,
         childContracts.rootERC721,
@@ -114,7 +145,7 @@ contract('ERC721Predicate', async function(accounts) {
       let exitTx = await web3Child.eth.getTransaction(r.transactionHash)
       exitTx = await buildInFlight(exitTx)
 
-      const startExitTx = await startExit(headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
+      const startExitTx = await utils.startExit(contracts.ERC721Predicate, headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       // console.log(startExitTx, logs)
       const log = logs[1]
@@ -123,7 +154,7 @@ contract('ERC721Predicate', async function(accounts) {
         exitor: user,
         token: childContracts.rootERC721.address
       })
-      assertBigNumberEquality(log.args.amount, tokenId)
+      utils.assertBigNumberEquality(log.args.amount, tokenId)
     })
   })
 
@@ -131,24 +162,6 @@ contract('ERC721Predicate', async function(accounts) {
     it('write test')
   })
 })
-
-async function depositErc721(depositManager, childChain, rootERC721, user, tokenId) {
-  // await rootERC721.approve(depositManager.address, tokenId)
-  // const result = await depositManager.depositERC721ForUser(
-  //   rootERC721.address,
-  //   user,
-  //   tokenId
-  // )
-  // const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
-  // const NewDepositBlockEvent = logs.find(log => log.event === 'NewDepositBlock')
-  await childChain.depositTokens(
-    rootERC721.address,
-    user,
-    tokenId,
-    '1' // mock
-    // NewDepositBlockEvent.args.depositBlockId
-  )
-}
 
 async function init(rootChain, receipt, accounts) {
   const event = {
@@ -160,14 +173,14 @@ async function init(rootChain, receipt, accounts) {
   const blockHeader = getBlockHeader(event.block)
   const headers = [blockHeader]
   const tree = new MerkleTree(headers)
-  const root = utils.bufferToHex(tree.getRoot())
+  const root = ethUtils.bufferToHex(tree.getRoot())
   const end = event.tx.blockNumber
   const blockProof = await tree.getProof(blockHeader)
   start = Math.min(start, end)
   tree
     .verify(blockHeader, event.block.number - start, tree.getRoot(), blockProof)
     .should.equal(true)
-  const { vote, sigs, extraData } = buildSubmitHeaderBlockPaylod(accounts[0], start, end, root)
+  const { vote, sigs, extraData } = utils.buildSubmitHeaderBlockPaylod(accounts[0], start, end, root)
   const submitHeaderBlock = await rootChain.submitHeaderBlock(vote, sigs, extraData)
 
   const txProof = await getTxProof(event.tx, event.block)
@@ -178,24 +191,4 @@ async function init(rootChain, receipt, accounts) {
   const NewHeaderBlockEvent = submitHeaderBlock.logs.find(log => log.event === 'NewHeaderBlock')
   start = end + 1
   return { block: event.block, blockProof, headerNumber: NewHeaderBlockEvent.args.headerBlockId, reference: await build(event) }
-}
-
-function startExit(headerNumber, blockProof, blockNumber, blockTimestamp, reference, logIndex, exitTx) {
-  return contracts.ERC721Predicate.startExit(
-    utils.bufferToHex(
-      rlp.encode([
-        headerNumber,
-        utils.bufferToHex(Buffer.concat(blockProof)),
-        blockNumber,
-        blockTimestamp,
-        utils.bufferToHex(reference.transactionsRoot),
-        utils.bufferToHex(reference.receiptsRoot),
-        utils.bufferToHex(reference.receipt),
-        utils.bufferToHex(rlp.encode(reference.receiptParentNodes)),
-        utils.bufferToHex(rlp.encode(reference.path)), // branch mask,
-        logIndex
-      ])
-    ),
-    utils.bufferToHex(exitTx)
-  )
 }

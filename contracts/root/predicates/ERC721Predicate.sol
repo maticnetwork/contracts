@@ -4,16 +4,16 @@ import { BytesLib } from "../../common/lib/BytesLib.sol";
 import { Common } from "../../common/lib/Common.sol";
 import { RLPEncode } from "../../common/lib/RLPEncode.sol";
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
-import { IPredicate } from "./IPredicate.sol";
+import { IErcPredicate } from "./IPredicate.sol";
 import { Registry } from "../../common/Registry.sol";
 // import { WithdrawManager } from "../withdrawManager/WithdrawManager.sol";
 
-contract ERC721Predicate is IPredicate {
+contract ERC721Predicate is IErcPredicate {
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
 
   bytes32 constant DEPOSIT_EVENT_SIG = 0x4e2ca0515ed1aef1395f66b5303bb5d6f1bf9d61a353fa53f73f8ac9973fa9f6;
-  // bytes32 constant WITHDRAW_EVENT_SIG = 0xebff2602b3f468259e1e99f613fed6691f3a6526effe6ef3e768ba7ae7a36c4f;
+  bytes32 constant WITHDRAW_EVENT_SIG = 0xebff2602b3f468259e1e99f613fed6691f3a6526effe6ef3e768ba7ae7a36c4f;
   bytes32 constant E721_LOG_TRANSFER_EVENT_SIG = 0x6eabe333476233fd382224f233210cb808a7bc4c4de64f9d76628bf63c677b1a;
   // 0x2e1a7d4d = keccak256('withdraw(uint256)').slice(0, 4)
   bytes4 constant WITHDRAW_FUNC_SIG = 0x2e1a7d4d;
@@ -21,7 +21,37 @@ contract ERC721Predicate is IPredicate {
   bytes4 constant TRANSFER_FROM_FUNC_SIG = 0x23b872dd;
   bytes constant public networkId = "\x0d";
 
-  constructor(address _withdrawManager) public IPredicate(_withdrawManager) {}
+  constructor(address _withdrawManager) public IErcPredicate(_withdrawManager) {}
+
+  function startExitWithBurntTokens(bytes calldata data)
+    external
+  {
+    RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
+    bytes memory receipt = referenceTxData[6].toBytes();
+    RLPReader.RLPItem[] memory inputItems = receipt.toRlpItem().toList();
+    uint256 age = withdrawManager.verifyInclusion(data, 0 /* offset */, false /* verifyTxInclusion */);
+    uint256 logIndex = referenceTxData[9].toUint();
+    require(logIndex < MAX_LOGS, "Supporting a max of 10 logs");
+    inputItems = inputItems[3].toList()[logIndex].toList(); // select log based on given logIndex
+
+    // "address" (contract address that emitted the log) field in the receipt
+    address childToken = RLPReader.toAddress(inputItems[0]);
+    bytes memory logData = inputItems[2].toBytes();
+    inputItems = inputItems[1].toList(); // topics
+    // now, inputItems[i] refers to i-th (0-based) topic in the topics array
+    // event Withdraw(address indexed token, address indexed from, uint256 amountOrTokenId, uint256 input1, uint256 output1)
+    require(
+      bytes32(inputItems[0].toUint()) == WITHDRAW_EVENT_SIG,
+      "Not a withdraw event signature"
+    );
+    address rootToken = address(RLPReader.toUint(inputItems[1]));
+    require(
+      msg.sender == address(inputItems[2].toUint()), // from
+      "Withdrawer and burn exit tx do not match"
+    );
+    uint256 exitAmount = BytesLib.toUint(logData, 0); // amountOrTokenId
+    withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, exitAmount, bytes32(0x0), true /* burnt */, age);
+  }
 
   function startExit(bytes calldata data, bytes calldata exitTx)
     external
@@ -98,7 +128,7 @@ contract ERC721Predicate is IPredicate {
     address childToken,
     uint256 tokenId)
     internal
-    view
+    pure
     returns(address rootToken)
   {
     RLPReader.RLPItem[] memory inputItems = receipt.toRlpItem().toList();
@@ -127,7 +157,7 @@ contract ERC721Predicate is IPredicate {
     RLPReader.RLPItem[] memory inputItems,
     address participant)
     internal
-    view
+    pure
   {
     bytes32 eventSignature = bytes32(inputItems[0].toUint());
     address _participant;
@@ -171,7 +201,7 @@ contract ERC721Predicate is IPredicate {
 
   function processExitTxSender(bytes memory txData)
     internal
-    view
+    pure
     returns (uint256 tokenId, bool burnt)
   {
     bytes4 funcSig = BytesLib.toBytes4(BytesLib.slice(txData, 0, 4));

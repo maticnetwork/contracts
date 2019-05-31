@@ -32,7 +32,8 @@ contract WithdrawManagerHeader is ExitsDataStructure {
     address indexed exitor,
     uint256 indexed exitId,
     address indexed token,
-    uint256 amount
+    uint256 amount,
+    bool burnt
   );
 
   event ExitUpdated(

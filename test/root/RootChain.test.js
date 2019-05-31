@@ -1,9 +1,9 @@
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 
-import deployer from './helpers/deployer.js'
-import { assertBigNumberEquality, assertBigNumbergt, buildSubmitHeaderBlockPaylod } from './helpers/utils.js'
-import { generateFirstWallets, mnemonics } from './helpers/wallets.js'
+import deployer from '../helpers/deployer.js'
+import { assertBigNumberEquality, assertBigNumbergt, buildSubmitHeaderBlockPaylod } from '../helpers/utils.js'
+import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
 
 chai
   .use(chaiAsPromised)

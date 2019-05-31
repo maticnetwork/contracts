@@ -3,7 +3,6 @@ pragma solidity ^0.5.2;
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { WithdrawManager } from "../root/withdrawManager/WithdrawManager.sol";
 
-
 contract Registry is Ownable {
   // @todo hardcode constants
   bytes32 constant private WETH_TOKEN = keccak256("wethToken");
@@ -16,9 +15,15 @@ contract Registry is Ownable {
   mapping(bytes32 => address) contractMap;
   mapping(address => address) public rootToChildToken;
   mapping(address => address) public childToRootToken;
-  mapping(address => bool) public proofValidatorContracts;
   // @todo we can think of one function from the registry which returns both (childToken,isERC721) if we are using it frequently together.
+  mapping(address => bool) public proofValidatorContracts;
   mapping(address => bool) public isERC721;
+
+  enum Type { Invalid, ERC20, ERC721 }
+  struct Predicate {
+    Type _type;
+  }
+  mapping(address => Predicate) public predicates;
 
   event TokenMapped(address indexed rootToken, address indexed childToken);
   event ProofValidatorAdded(address indexed validator, address indexed from);
@@ -66,6 +71,17 @@ contract Registry is Ownable {
     require(_validator != address(0) && proofValidatorContracts[_validator] != true);
     emit ProofValidatorAdded(_validator, msg.sender);
     proofValidatorContracts[_validator] = true;
+  }
+
+  function whitelistPredicate(address predicate, uint8 _type) public onlyOwner {
+    require(predicates[predicate]._type == Type.Invalid, "Predicate already added");
+    predicates[predicate] = Predicate(Type.Invalid);
+    if (_type == 1) {
+      predicates[predicate]._type = Type.ERC20;
+    } else if (_type == 2) {
+      predicates[predicate]._type = Type.ERC721;
+    }
+    // @todo emit event
   }
 
   function removeProofValidator(address _validator) public onlyOwner {

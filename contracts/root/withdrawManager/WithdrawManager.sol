@@ -5,35 +5,25 @@ import { ERC721 } from "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol"
 import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 
-import { ChildChainVerifier } from "../lib/ChildChainVerifier.sol";
-// import { ExitTxValidator } from "../lib/ExitTxValidator.sol";
 import { Merkle } from "../../common/lib/Merkle.sol";
 import { MerklePatriciaProof } from "../../common/lib/MerklePatriciaProof.sol";
 import { PriorityQueue } from "../../common/lib/PriorityQueue.sol";
 
 import { ExitNFT } from "./ExitNFT.sol";
-
-import { IWithdrawManager } from "./IWithdrawManager.sol";
 import { IDepositManager } from "../depositManager/IDepositManager.sol";
+import { IPredicate } from "../predicates/IPredicate.sol";
+import { IWithdrawManager } from "./IWithdrawManager.sol";
 import { RootChainHeader } from "../RootChainStorage.sol";
 import { Registry } from "../../common/Registry.sol";
 import { WithdrawManagerStorage } from "./WithdrawManagerStorage.sol";
-import { IPredicate } from "../predicates/IPredicate.sol";
 
-contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
+contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
   using Merkle for bytes32;
 
-  modifier isProofValidator() {
-    require(
-      registry.proofValidatorContracts(msg.sender),
-      "UNAUTHORIZED_PROOF_VALIDATOR_CONTRACT");
-    _;
-  }
-
-  function verifyInclusion(bytes memory data, uint8 offset, bool verifyTxInclusion)
-    public
+  function verifyInclusion(bytes calldata data, uint8 offset, bool verifyTxInclusion)
+    external
     returns (uint256 age)
   {
     RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
@@ -84,21 +74,29 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     );
   }
 
-  function createExitQueue(address _token)
+  function createExitQueue(address token)
     external
   {
     require(msg.sender == address(registry), "UNAUTHORIZED_REGISTRY_ONLY");
-    exitsQueues[_token] = address(new PriorityQueue());
+    exitsQueues[token] = address(new PriorityQueue());
   }
 
-  function addInput(uint256 exitId, uint256 age, address signer) public {
-    PlasmaExit storage exitObject = exits[exitId];
-    require(
-      exitObject.token != address(0x0),
-      "EXIT_DOES_NOT_EXIST"
-    );
-    exitObject.inputs[age] = Input(signer);
-    emit ExitUpdated(exitId, age, signer);
+  modifier isPredicateAuthorized(address rootToken) {
+    (Registry.Type _type) = registry.predicates(msg.sender);
+    if (_type == Registry.Type.ERC20) {
+      require(
+        registry.isERC721(rootToken) == false,
+        "Predicate supports only ERC20 tokens"
+      );
+    } else if (_type == Registry.Type.ERC721) {
+      require(
+        registry.isERC721(rootToken) == true,
+        "Predicate supports only ERC721 tokens"
+      );
+    } else {
+      revert("PREDICATE_NOT_AUTHORIZED");
+    }
+    _;
   }
 
   function addExitToQueue(
@@ -109,17 +107,13 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     bytes32 txHash,
     bool burnt,
     uint256 priority)
-    public
-    isProofValidator
+    external
+    isPredicateAuthorized(rootToken)
   {
     require(
       registry.rootToChildToken(rootToken) == childToken,
       "INVALID_ROOT_TO_CHILD_TOKEN_MAPPING"
     );
-    // require(
-    //   _registry.isERC721(rootToken) == false,
-    //   "NOT_ERC20"
-    // );
     require(
       exits[priority].token == address(0x0),
       "EXIT_ALREADY_EXISTS"
@@ -153,7 +147,17 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     ownerExits[key] = priority;
 
     // emit exit started event
-    emit ExitStarted(_exitObject.owner, priority, _exitObject.token, _exitObject.receiptAmountOrNFTId);
+    emit ExitStarted(exitor, priority, rootToken, exitAmountOrTokenId, burnt);
+  }
+
+  function addInput(uint256 exitId, uint256 age, address signer) external {
+    PlasmaExit storage exitObject = exits[exitId];
+    require(
+      exitObject.token != address(0x0),
+      "EXIT_DOES_NOT_EXIST"
+    );
+    exitObject.inputs[age] = Input(signer);
+    emit ExitUpdated(exitId, age, signer);
   }
 
   function challengeExit(uint256 exitId, uint256 inputId, bytes calldata challengeData)
@@ -165,7 +169,6 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
       exit.token != address(0x0) && input.signer != address(0x0),
       "Invalid exit or input id"
     );
-    // IPredicate(exit.predicate).verifyDeprecation(exit, inputId, data, registry);
     bool isChallengeValid = IPredicate(exit.predicate).verifyDeprecation(
       encodeExit(exit),
       encodeInputUtxo(inputId, input),
@@ -193,7 +196,9 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     return abi.encode(age, input.signer);
   }
 
-  function deleteExit(uint256 exitId) internal {
+  function deleteExit(uint256 exitId)
+    internal
+  {
     ExitNFT exitNFT = ExitNFT(exitNFTContract);
     address owner = exitNFT.ownerOf(exitId);
     exitNFT.burn(owner, exitId);
@@ -260,16 +265,11 @@ contract WithdrawManager is WithdrawManagerStorage /* , IWithdrawManager */ {
     }
   }
 
-    // Exit NFT
-  function setExitNFTContract(address _nftContract) external onlyOwner {
+  function setExitNFTContract(address _nftContract)
+    external
+    onlyOwner
+  {
     require(_nftContract != address(0));
     exitNFTContract = _nftContract;
-  }
-
-  function getExitId(address _token, address _owner, uint256 _tokenId) public view returns (uint256) {
-    if (registry.isERC721(_token)) {
-      return ownerExits[keccak256(abi.encodePacked(_token, _owner, _tokenId))];
-    }
-    return ownerExits[keccak256(abi.encodePacked(_token, _owner))];
   }
 }

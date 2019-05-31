@@ -1,9 +1,9 @@
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 
-import deployer from './helpers/deployer.js'
-import logDecoder from './helpers/log-decoder.js'
-import { assertBigNumberEquality } from './helpers/utils.js'
+import deployer from '../helpers/deployer.js'
+import logDecoder from '../helpers/log-decoder.js'
+import { assertBigNumberEquality } from '../helpers/utils.js'
 
 chai
   .use(chaiAsPromised)
@@ -14,7 +14,7 @@ contract("DepositManager", async function(accounts) {
   const amount = web3.utils.toBN('10').pow(web3.utils.toBN('18'))
 
   beforeEach(async function() {
-    const contracts = await deployer.freshDeploy()
+    const contracts = await deployer.freshDeploy({ maticWeth: true })
     rootChain = contracts.rootChain
     depositManager = contracts.depositManager
     maticWeth = contracts.maticWeth

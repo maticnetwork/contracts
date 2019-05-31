@@ -22,13 +22,6 @@ contract RootChain is RootChainStorage {
     _;
   }
 
-  modifier isProofValidator() {
-    require(
-      registry.proofValidatorContracts(msg.sender),
-      "UNAUTHORIZED_PROOF_VALIDATOR_CONTRACT");
-    _;
-  }
-
   constructor (address _registry) public {
     registry = Registry(_registry);
   }
@@ -75,7 +68,7 @@ contract RootChain is RootChainStorage {
     _blockDepositId.add(1);
   }
 
-  function slash() external isProofValidator {
+  function slash() external {
     //TODO: future implementation
   }
 
