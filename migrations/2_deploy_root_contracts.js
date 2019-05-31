@@ -8,7 +8,6 @@ const RLPReader = artifacts.require('solidity-rlp/contracts/RLPReader.sol')
 
 // const Math = artifacts.require('openzeppelin-solidity/contracts/math/Math.sol')
 const BytesLib = artifacts.require('BytesLib')
-const ChildChainVerifier = artifacts.require('ChildChainVerifier')
 const Common = artifacts.require('Common')
 const ECVerify = artifacts.require('ECVerify')
 const Merkle = artifacts.require('Merkle')
@@ -40,10 +39,6 @@ const libDeps = [
       ERC20Predicate,
       ERC721Predicate
     ]
-  },
-  {
-    lib: ChildChainVerifier,
-    contracts: [WithdrawManager]
   },
   {
     lib: Common,
