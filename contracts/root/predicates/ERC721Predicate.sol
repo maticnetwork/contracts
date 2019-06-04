@@ -6,7 +6,6 @@ import { RLPEncode } from "../../common/lib/RLPEncode.sol";
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 import { IErcPredicate } from "./IPredicate.sol";
 import { Registry } from "../../common/Registry.sol";
-// import { WithdrawManager } from "../withdrawManager/WithdrawManager.sol";
 
 contract ERC721Predicate is IErcPredicate {
   using RLPReader for bytes;
@@ -19,7 +18,6 @@ contract ERC721Predicate is IErcPredicate {
   bytes4 constant WITHDRAW_FUNC_SIG = 0x2e1a7d4d;
   // 0x23b872dd = keccak256('transferFrom(address,address,uint256)').slice(0, 4)
   bytes4 constant TRANSFER_FROM_FUNC_SIG = 0x23b872dd;
-  bytes constant public networkId = "\x0d";
 
   constructor(address _withdrawManager) public IErcPredicate(_withdrawManager) {}
 
@@ -191,7 +189,7 @@ contract ERC721Predicate is IErcPredicate {
     RLPReader.RLPItem[] memory txList = exitTx.toRlpItem().toList();
     require(txList.length == 9, "MALFORMED_WITHDRAW_TX");
     childToken = RLPReader.toAddress(txList[3]); // corresponds to "to" field in tx
-    (participant, txHash) = getAddressFromTx(txList, networkId);
+    (participant, txHash) = getAddressFromTx(txList, withdrawManager.networkId());
     if (participant == msg.sender) { // exit tx is signed by exitor himself
       (tokenId, burnt) = processExitTxSender(RLPReader.toBytes(txList[5]));
     } else {

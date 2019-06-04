@@ -2,7 +2,6 @@ pragma solidity ^0.5.2;
 
 import { BytesLib } from "../../common/lib/BytesLib.sol";
 import { Common } from "../../common/lib/Common.sol";
-// import { MerklePatriciaProof } from "../../common/lib/MerklePatriciaProof.sol";
 import { RLPEncode } from "../../common/lib/RLPEncode.sol";
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 import { IWithdrawManager } from "../withdrawManager/IWithdrawManager.sol";

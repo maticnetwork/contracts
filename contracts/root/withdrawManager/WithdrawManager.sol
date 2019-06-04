@@ -22,6 +22,13 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
   using RLPReader for RLPReader.RLPItem;
   using Merkle for bytes32;
 
+  function createExitQueue(address token)
+    external
+  {
+    require(msg.sender == address(registry), "UNAUTHORIZED_REGISTRY_ONLY");
+    exitsQueues[token] = address(new PriorityQueue());
+  }
+
   function verifyInclusion(bytes calldata data, uint8 offset, bool verifyTxInclusion)
     external
     returns (uint256 age)
@@ -72,13 +79,6 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       blockNumber * WITHDRAW_BLOCK_NUMBER_WEIGHT +
       branchMask.toRlpItem().toBytes().toRlpItem().toUint() * BRANCH_MASK_WEIGHT
     );
-  }
-
-  function createExitQueue(address token)
-    external
-  {
-    require(msg.sender == address(registry), "UNAUTHORIZED_REGISTRY_ONLY");
-    exitsQueues[token] = address(new PriorityQueue());
   }
 
   modifier isPredicateAuthorized(address rootToken) {
@@ -150,11 +150,16 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     emit ExitStarted(exitor, priority, rootToken, exitAmountOrTokenId, burnt);
   }
 
-  function addInput(uint256 exitId, uint256 age, address signer) external {
+  function addInput(uint256 exitId, uint256 age, address signer)
+    external
+  {
     PlasmaExit storage exitObject = exits[exitId];
+    // Checks both that
+    // 1. Exit at the particular exitId exists
+    // 2. Only the predicate that started the exit is authorized to addInput 
     require(
-      exitObject.token != address(0x0),
-      "EXIT_DOES_NOT_EXIST"
+      exitObject.predicate == msg.sender,
+      "EXIT_DOES_NOT_EXIST OR NOT_AUTHORIZED"
     );
     exitObject.inputs[age] = Input(signer);
     emit ExitUpdated(exitId, age, signer);

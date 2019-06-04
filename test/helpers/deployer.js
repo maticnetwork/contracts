@@ -96,13 +96,13 @@ class Deployer {
 
   async deployErc20Predicate() {
     const ERC20Predicate = await contracts.ERC20Predicate.new(this.withdrawManagerProxy.address)
-    await this.registry.whitelistPredicate(ERC20Predicate.address, 1 /* Type.ERC20 */)
+    await this.registry.addPredicate(ERC20Predicate.address, 1 /* Type.ERC20 */)
     return ERC20Predicate
   }
 
   async deployErc721Predicate() {
     const ERC721Predicate = await contracts.ERC721Predicate.new(this.withdrawManagerProxy.address)
-    await this.registry.whitelistPredicate(ERC721Predicate.address, 2 /* Type.ERC721 */)
+    await this.registry.addPredicate(ERC721Predicate.address, 2 /* Type.ERC721 */)
     return ERC721Predicate
   }
 

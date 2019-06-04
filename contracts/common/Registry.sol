@@ -19,7 +19,7 @@ contract Registry is Ownable {
   mapping(address => bool) public proofValidatorContracts;
   mapping(address => bool) public isERC721;
 
-  enum Type { Invalid, ERC20, ERC721 }
+  enum Type { Invalid, ERC20, ERC721, Custom }
   struct Predicate {
     Type _type;
   }
@@ -28,6 +28,8 @@ contract Registry is Ownable {
   event TokenMapped(address indexed rootToken, address indexed childToken);
   event ProofValidatorAdded(address indexed validator, address indexed from);
   event ProofValidatorRemoved(address indexed validator, address indexed from);
+  event PredicateAdded(address indexed predicate, address indexed from);
+  event PredicateRemoved(address indexed predicate, address indexed from);
   event ContractMapUpdated(
    bytes32 indexed key,
    address indexed previousContract,
@@ -73,15 +75,17 @@ contract Registry is Ownable {
     proofValidatorContracts[_validator] = true;
   }
 
-  function whitelistPredicate(address predicate, uint8 _type) public onlyOwner {
-    require(predicates[predicate]._type == Type.Invalid, "Predicate already added");
-    predicates[predicate] = Predicate(Type.Invalid);
-    if (_type == 1) {
-      predicates[predicate]._type = Type.ERC20;
-    } else if (_type == 2) {
-      predicates[predicate]._type = Type.ERC721;
-    }
-    // @todo emit event
+  function addPredicate(address predicate, Type _type) public onlyOwner
+  {
+    require(predicates[predicate]._type == Type.Invalid, "Predicate already added");	
+    predicates[predicate]._type = _type;
+    emit PredicateAdded(predicate, msg.sender);
+  }
+
+  function removePredicate(address predicate) public onlyOwner
+  {
+    delete predicates[predicate];
+    emit PredicateRemoved(predicate, msg.sender);
   }
 
   function removeProofValidator(address _validator) public onlyOwner {
