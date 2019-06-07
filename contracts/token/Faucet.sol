@@ -16,7 +16,7 @@ contract Faucet {
     function () external payable {
     }
 
-    function transfer(address receiver) public {
+    function getTokens(address receiver) public {
         require(timeLock[receiver] < now);
 
         timeLock[receiver] = now + 24 hours;
@@ -39,7 +39,7 @@ contract FaucetERC20 is Ownable {
       token = ERC20(_token);
     }
 
-    function transfer(address receiver) public {
+    function getTokens(address receiver) public {
         require(timeLock[receiver] < now);
 
         timeLock[receiver] = now + 24 hours;
