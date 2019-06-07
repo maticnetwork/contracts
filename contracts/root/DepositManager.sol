@@ -103,7 +103,7 @@ contract DepositManager is IManager, TokenManager, RootChainable {
     require(isERC721[_token] || _amountOrTokenId > 0);
 
     if (!isERC721[_token]) {
-      require(_amountOrTokenId <= (10*10**ERC20Detailed(_token).decimals()), "Max deposit of 10 tokens is allowed");
+      require(_amountOrTokenId <= (10*10**uint256(ERC20Detailed(_token).decimals())), "Max deposit of 10 tokens is allowed");
     }
 
     // throws if token is not mapped
