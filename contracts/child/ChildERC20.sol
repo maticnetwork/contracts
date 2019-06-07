@@ -9,17 +9,34 @@ import "./misc/LibTokenTransferOrder.sol";
 
 
 contract ChildERC20 is ChildToken, ERC20, LibTokenTransferOrder, ERC20Detailed {
+  
+  event Deposit(
+    address indexed token,
+    address indexed from,
+    uint256 amount,
+    uint256 input1,
+    uint256 output1
+  );
+
+  event Withdraw(
+    address indexed token,
+    address indexed from,
+    uint256 amount,
+    uint256 input1,
+    uint256 output1
+  );
+
   event LogTransfer(
     address indexed token,
     address indexed from,
     address indexed to,
-    uint256 amountOrTokenId,
+    uint256 amount,
     uint256 input1,
     uint256 input2,
     uint256 output1,
     uint256 output2
   );
-  // constructor
+
   constructor (address _owner, address _token, string memory _name, string memory _symbol, uint8 _decimals)
     public
     ERC20Detailed(_name, _symbol, _decimals) {
@@ -101,7 +118,6 @@ contract ChildERC20 is ChildToken, ERC20, LibTokenTransferOrder, ERC20Detailed {
     // recover address and send tokens
     address from = dataHash.ecrecovery(sig);
     _transferFrom(from, to, amount);
-
     return from;
   }
 
