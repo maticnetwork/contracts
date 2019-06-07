@@ -4,8 +4,8 @@ pragma solidity ^0.4.24;
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
-contract Faucet {
-    uint public amount;
+contract Faucet is Ownable{
+    uint256 public amount;
 
     mapping (address => uint256) public timeLock;
 
@@ -14,6 +14,10 @@ contract Faucet {
     }
 
     function () external payable {
+    }
+
+    function setAmount(uint256 _amount) public onlyOwner {
+      amount = _amount;
     }
 
     function getTokens(address receiver) public {
@@ -27,7 +31,7 @@ contract Faucet {
 
 /// ERC20 Token Faucet
 contract FaucetERC20 is Ownable {
-    uint public amount;
+    uint256 public amount;
     ERC20 public token;
     mapping (address => uint256) public timeLock;
 
@@ -37,6 +41,10 @@ contract FaucetERC20 is Ownable {
 
     function setToken(address _token) public onlyOwner {
       token = ERC20(_token);
+    }
+
+    function setAmount(uint256 _amount) public onlyOwner {
+      amount = _amount;
     }
 
     function getTokens(address receiver) public {
