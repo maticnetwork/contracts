@@ -9,17 +9,34 @@ import "./misc/LibTokenTransferOrder.sol";
 
 
 contract ChildERC20 is ChildToken, ERC20, LibTokenTransferOrder, ERC20Detailed {
+  
+  event Deposit(
+    address indexed token,
+    address indexed from,
+    uint256 amount,
+    uint256 input1,
+    uint256 output1
+  );
+
+  event Withdraw(
+    address indexed token,
+    address indexed from,
+    uint256 amount,
+    uint256 input1,
+    uint256 output1
+  );
+
   event LogTransfer(
     address indexed token,
     address indexed from,
     address indexed to,
-    uint256 amountOrTokenId,
+    uint256 amount,
     uint256 input1,
     uint256 input2,
     uint256 output1,
     uint256 output2
   );
-  // constructor
+
   constructor (address _owner, address _token, string memory _name, string memory _symbol, uint8 _decimals)
     public
     ERC20Detailed(_name, _symbol, _decimals) {
@@ -81,25 +98,8 @@ contract ChildERC20 is ChildToken, ERC20, LibTokenTransferOrder, ERC20Detailed {
     if (parent != address(0x0) && !IParentToken(parent).beforeTransfer(msg.sender, to, value)) {
       return false;
     }
-    uint256 input1 = balanceOf(msg.sender);
-    uint256 input2 = balanceOf(to);
-
-    // actual transfer
-    bool result = super.transfer(to, value);
-
-    // log balance
-    emit LogTransfer(
-      token,
-      msg.sender,
-      to,
-      value,
-      input1,
-      input2,
-      balanceOf(msg.sender),
-      balanceOf(to)
-    );
-
-    return result;
+    _transferFrom(msg.sender, to, value);
+    return true; // to be compliant with the standard ERC20.transfer function interface
   }
 
   function transferWithSig(bytes memory sig, uint256 amount, bytes32 data, uint256 expiration, address to) public returns (address) {
@@ -117,24 +117,18 @@ contract ChildERC20 is ChildToken, ERC20, LibTokenTransferOrder, ERC20Detailed {
 
     // recover address and send tokens
     address from = dataHash.ecrecovery(sig);
-    _transfer(from, to, amount);
-
+    _transferFrom(from, to, amount);
     return from;
   }
 
-  /// @dev Allows allowed third party to transfer tokens from one address to another. Returns success.
   /// @param from Address from where tokens are withdrawn.
   /// @param to Address to where tokens are sent.
   /// @param value Number of tokens to transfer.
   /// @return Returns success of function call.
-  function transferFrom(address from, address to, uint256 value) public returns (bool) {
+  function _transferFrom(address from, address to, uint256 value) internal {
     uint256 input1 = balanceOf(from);
     uint256 input2 = balanceOf(to);
-
-    // actual transfer
-    bool result = super.transferFrom(from, to, value);
-
-    // log balance
+    _transfer(from, to, value);
     emit LogTransfer(
       token,
       from,
@@ -145,7 +139,5 @@ contract ChildERC20 is ChildToken, ERC20, LibTokenTransferOrder, ERC20Detailed {
       balanceOf(from),
       balanceOf(to)
     );
-
-    return result;
   }
 }

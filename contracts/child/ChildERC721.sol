@@ -9,17 +9,29 @@ import "./misc/LibTokenTransferOrder.sol";
 
 contract ChildERC721 is ChildToken, LibTokenTransferOrder, ERC721Full {
 
+  event Deposit(
+    address indexed token,
+    address indexed from,
+    uint256 tokenId
+  );
+
+  event Withdraw(
+    address indexed token,
+    address indexed from,
+    uint256 tokenId
+  );
+
   event LogTransfer(
     address indexed token,
     address indexed from,
     address indexed to,
-    uint256 amountOrTokenId
+    uint256 tokenId
   );
 
-  // constructor
-  constructor (address _owner, address _token, string memory name, string memory symbol) ERC721Full(name, symbol)
-    public 
-    {
+  constructor (address _owner, address _token, string memory name, string memory symbol)
+    public
+    ERC721Full(name, symbol)
+  {
     require(_token != address(0x0) && _owner != address(0x0));
     parentOwner = _owner;
     token = _token;
@@ -31,53 +43,34 @@ contract ChildERC721 is ChildToken, LibTokenTransferOrder, ERC721Full {
   }
 
   /**
-   * Deposit tokens
-   *
-   * @param user address for address
-   * @param tokenId token balance
+   * @notice Deposit tokens
+   * @param user address for deposit
+   * @param tokenId tokenId to mint to user's account
    */
   function deposit(address user, uint256 tokenId) public onlyOwner {
-    // check for amount and user
     require(user != address(0x0));
-    uint256 input = balanceOf(user);
-
     _mint(user, tokenId);
-
-    // deposit event
-    emit Deposit(token, user, tokenId, input, balanceOf(user));
+    emit Deposit(token, user, tokenId);
   }
 
   /**
-   * Withdraw tokens
-   *
-   * @param tokenId tokens
+   * @notice Withdraw tokens
+   * @param tokenId tokenId of the token to be withdrawn
    */
   function withdraw(uint256 tokenId) public {
     require(ownerOf(tokenId) == msg.sender);
-
-    address user = msg.sender;
-    uint256 input1 = balanceOf(user);
-
-    _burn(user, tokenId);
-
-    // withdraw event
-    emit Withdraw(token, user, tokenId, input1, balanceOf(user));
+    _burn(msg.sender, tokenId);
+    emit Withdraw(token, msg.sender, tokenId);
   }
 
+  /**
+   * @dev Overriding the inherited method so that it emits LogTransfer
+   */
   function transferFrom(address from, address to, uint256 tokenId) public {
     if (parent != address(0x0) && !IParentToken(parent).beforeTransfer(msg.sender, to, tokenId)) {
       return;
     }
-    // actual transfer
-    super.transferFrom(from, to, tokenId);
-
-    // log balance
-    emit LogTransfer(
-      token,
-      from,
-      to,
-      tokenId
-    );
+    _transferFrom(from, to, tokenId);
   }
 
   function transferWithSig(bytes memory sig, uint256 tokenId, bytes32 data, uint256 expiration, address to) public returns (address) {
@@ -95,11 +88,19 @@ contract ChildERC721 is ChildToken, LibTokenTransferOrder, ERC721Full {
     // recover address and send tokens
     address from = dataHash.ecrecovery(sig);
 
-    // safeTransferFrom
     _transferFrom(from, to, tokenId);
     require(_checkOnERC721Received(from, to, tokenId, ""));
 
     return from;
   }
 
+  function _transferFrom(address from, address to, uint256 tokenId) internal {
+    super._transferFrom(from, to, tokenId);
+    emit LogTransfer(
+      token,
+      from,
+      to,
+      tokenId
+    );
+  }
 }

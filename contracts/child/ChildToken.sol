@@ -22,25 +22,6 @@ contract ChildToken is Ownable {
     _;
   }
 
-  //
-  // Events
-  //
-  event Deposit(
-    address indexed token,
-    address indexed from,
-    uint256 amountOrTokenId,
-    uint256 input1,
-    uint256 output1
-  );
-
-  event Withdraw(
-    address indexed token,
-    address indexed from,
-    uint256 amountOrTokenId,
-    uint256 input1,
-    uint256 output1
-  );
-
   function deposit(address user, uint256 amountOrTokenId) public;
 
   function withdraw(uint256 amountOrTokenId) public;
