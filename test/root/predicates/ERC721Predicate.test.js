@@ -56,7 +56,7 @@ contract('ERC721Predicate', async function(accounts) {
       let { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts, start)
       const startExitTx = await utils.startExitWithBurntTokens(
         contracts.ERC721Predicate,
-        { headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1}
+        { headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 }
       )
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       // console.log(startExitTx, logs)

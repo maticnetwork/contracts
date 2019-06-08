@@ -11,12 +11,15 @@ contract ERC721Predicate is IErcPredicate {
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
 
-  bytes32 constant DEPOSIT_EVENT_SIG = 0x4e2ca0515ed1aef1395f66b5303bb5d6f1bf9d61a353fa53f73f8ac9973fa9f6;
-  bytes32 constant WITHDRAW_EVENT_SIG = 0xebff2602b3f468259e1e99f613fed6691f3a6526effe6ef3e768ba7ae7a36c4f;
+  // keccak256('Deposit(address,address,uint256)')
+  bytes32 constant DEPOSIT_EVENT_SIG = 0x5548c837ab068cf56a2c2479df0882a4922fd203edb7517321831d95078c5f62;
+  // keccak256('Withdraw(address,address,uint256)')
+  bytes32 constant WITHDRAW_EVENT_SIG = 0x9b1bfa7fa9ee420a16e124f794c35ac9f90472acc99140eb2f6447c714cad8eb;
+  // keccak256('LogTransfer(address,address,address,uint256)')
   bytes32 constant E721_LOG_TRANSFER_EVENT_SIG = 0x6eabe333476233fd382224f233210cb808a7bc4c4de64f9d76628bf63c677b1a;
-  // 0x2e1a7d4d = keccak256('withdraw(uint256)').slice(0, 4)
+  // keccak256('withdraw(uint256)').slice(0, 4)
   bytes4 constant WITHDRAW_FUNC_SIG = 0x2e1a7d4d;
-  // 0x23b872dd = keccak256('transferFrom(address,address,uint256)').slice(0, 4)
+  // keccak256('transferFrom(address,address,uint256)').slice(0, 4)
   bytes4 constant TRANSFER_FROM_FUNC_SIG = 0x23b872dd;
 
   constructor(address _withdrawManager) public IErcPredicate(_withdrawManager) {}
