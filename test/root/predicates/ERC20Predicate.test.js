@@ -447,3 +447,4 @@ async function init(rootChain, receipt, accounts, _) {
   start = end + 1
   return { block: event.block, blockProof, headerNumber: NewHeaderBlockEvent.args.headerBlockId, reference: await build(event) }
 }
+

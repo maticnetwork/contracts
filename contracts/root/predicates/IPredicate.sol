@@ -49,6 +49,22 @@ interface IPredicate {
 }
 
 contract IErcPredicate is IPredicate, ExitsDataStructure {
+
+  struct ExitTxData {
+    uint256 exitAmount;
+    bytes32 txHash;
+    address childToken;
+    address signer;
+    bool burnt;
+  }
+
+  struct ReferenceTxData {
+    uint256 closingBalance;
+    uint256 age;
+    address childToken;
+    address rootToken;
+  }
+
   using RLPReader for RLPReader.RLPItem;
 
   uint256 constant internal MAX_LOGS = 10;

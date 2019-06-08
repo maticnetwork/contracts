@@ -56,48 +56,58 @@ contract ERC20Predicate is IErcPredicate {
   function startExit(bytes calldata data, bytes calldata exitTx)
     external
   {
-    RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
+    RLPReader.RLPItem[] memory referenceTx = data.toRlpItem().toList();
     uint256 age = withdrawManager.verifyInclusion(data, 0 /* offset */, false /* verifyTxInclusion */);
+
     // validate exitTx - This may be an in-flight tx, so inclusion will not be checked
-    (uint256 exitAmount, address childToken, address participant, bytes32 txHash, bool burnt) = processExitTx(exitTx);
+    ExitTxData memory exitTxData = processExitTx(exitTx);
 
     // process the receipt of the referenced tx
-    address rootToken;
-    uint256 closingBalance;
-    (rootToken, closingBalance, age) = processReferenceTx(
-      referenceTxData[6].toBytes(), // receipt
-      referenceTxData[9].toUint(), // logIndex
-      participant, // to verify that the balance of the signer of the exit tx is being referenced here
-      childToken,
-      age,
-      false /* isChallenge */);
-
-    // The closing balance of the exitTx should be <= the referenced balance
-    require(
-      closingBalance >= exitAmount,
-      "Exiting with more tokens than referenced"
+    ReferenceTxData memory referenceTxData = processReferenceTx(
+      referenceTx[6].toBytes(), // receipt
+      referenceTx[9].toUint(), // logIndex
+      exitTxData.signer,
+      false /* isChallenge */
     );
-    if (referenceTxData.length > 10) {
-      // It means the exitor sent along another input UTXO to the exit tx.
-      // This will be used to exit with the pre-existing balance on the chain along with the couterparty signed exit tx
-      uint256 age2 = withdrawManager.verifyInclusion(data, 10 /* offset */, false /* verifyTxInclusion */);
-      address _rootToken;
-      (_rootToken, closingBalance, age2) = processReferenceTx(
-        referenceTxData[16].toBytes(), // receipt
-        referenceTxData[19].toUint(), // logIndex
-        msg.sender, // participant
-        childToken,
-        age2,
-        false /* isChallenge */);
-      require(rootToken == _rootToken, "root tokens in the referenced txs do not match"); // might not require this check
-      uint256 priority = Math.max(age, age2);
-      withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, exitAmount + closingBalance, txHash, burnt, priority);
-      withdrawManager.addInput(priority, age, participant);
-      withdrawManager.addInput(priority, age2, msg.sender);
-    } else {
-      withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, exitAmount, txHash, burnt, age);
-      withdrawManager.addInput(age, age, participant);
+    require(
+      exitTxData.childToken == referenceTxData.childToken,
+      "Reference and exit tx do not correspond to the same child token"
+    );
+    validateSequential(exitTxData, referenceTxData);
+    age += referenceTxData.age; // @todo use SafeMath
+
+    if (referenceTx.length <= 10) {
+      withdrawManager.addExitToQueue(
+        msg.sender, referenceTxData.childToken, referenceTxData.rootToken,
+        exitTxData.exitAmount, exitTxData.txHash, exitTxData.burnt, age /* priority */);
+      withdrawManager.addInput(age /* exitId or priority */, age /* age of input */, exitTxData.signer);
+      return;
     }
+
+    // referenceTx.length > 10 means the exitor sent along another input UTXO to the exit tx
+    // This will be used to exit with the pre-existing balance on the chain along with the couterparty signed exit tx
+    uint256 otherReferenceTxAge = withdrawManager.verifyInclusion(data, 10 /* offset */, false /* verifyTxInclusion */);
+    ReferenceTxData memory _referenceTxData = processReferenceTx(
+      referenceTx[16].toBytes(), // receipt
+      referenceTx[19].toUint(), // logIndex
+      msg.sender, // participant
+      false /* isChallenge */
+    );
+    require(
+      _referenceTxData.childToken == referenceTxData.childToken,
+      "child tokens in the referenced txs do not match"
+    );
+    require(
+      _referenceTxData.rootToken == referenceTxData.rootToken,
+      "root tokens in the referenced txs do not match"
+    );
+    otherReferenceTxAge += _referenceTxData.age;
+    uint256 priority = Math.max(age, otherReferenceTxAge);
+    withdrawManager.addExitToQueue(
+      msg.sender, referenceTxData.childToken, referenceTxData.rootToken,
+      exitTxData.exitAmount + _referenceTxData.closingBalance, exitTxData.txHash, exitTxData.burnt, priority);
+    withdrawManager.addInput(priority, age, exitTxData.signer);
+    withdrawManager.addInput(priority, otherReferenceTxAge, msg.sender);
   }
 
   function verifyDeprecation(bytes calldata exit, bytes calldata inputUtxo, bytes calldata challengeData)
@@ -106,29 +116,31 @@ contract ERC20Predicate is IErcPredicate {
   {
     PlasmaExit memory _exit = decodeExit(exit);
     (uint256 age, address signer) = encodeInputUtxo(inputUtxo);
-    RLPReader.RLPItem[] memory referenceTxData = challengeData.toRlpItem().toList();
-
-    (, address childToken, address participant, bytes32 txHash,) = processExitTx(referenceTxData[10].toBytes());
+    RLPReader.RLPItem[] memory _challengeData = challengeData.toRlpItem().toList();
+    ExitTxData memory exitTxData = processExitTx(_challengeData[10].toBytes());
     require(
-      participant == signer,
+      signer == exitTxData.signer,
       "Challenge tx not signed by the party who signed the input UTXO to the exit"
     );
     require(
-      _exit.token == childToken,
+      _exit.token == exitTxData.childToken,
       "Challenge tx token doesnt match with exit token"
     );
     require(
-      _exit.txHash != txHash,
+      _exit.txHash != exitTxData.txHash,
       "Cannot challenge with the exit tx"
     );
     uint256 ageOfChallengeTx = withdrawManager.verifyInclusion(challengeData, 0, true /* verifyTxInclusion */);
-    (,,ageOfChallengeTx) = processReferenceTx(
-      referenceTxData[6].toBytes(), // receipt
-      referenceTxData[9].toUint(), // logIndex
+    ReferenceTxData memory referenceTxData = processReferenceTx(
+      _challengeData[6].toBytes(), // receipt
+      _challengeData[9].toUint(), // logIndex
       signer,
-      childToken,
-      ageOfChallengeTx,
       true /* isChallenge */);
+    require(
+      exitTxData.childToken == referenceTxData.childToken,
+      "Tx and receipt do not correspond to the same child token"
+    );
+    ageOfChallengeTx += referenceTxData.age; // @todo SafeMath
     return ageOfChallengeTx > age;
   }
 
@@ -142,32 +154,38 @@ contract ERC20Predicate is IErcPredicate {
     bytes memory receipt,
     uint256 logIndex,
     address participant,
-    address childToken,
-    uint256 _age,
     bool isChallenge)
     internal
     pure
-    returns(address rootToken, uint256 closingBalance, uint256 age)
+    returns(ReferenceTxData memory data)
   {
     RLPReader.RLPItem[] memory inputItems = receipt.toRlpItem().toList();
     require(logIndex < MAX_LOGS, "Supporting a max of 10 logs");
     inputItems = inputItems[3].toList()[logIndex].toList(); // select log based on given logIndex
-    require(
-      childToken == RLPReader.toAddress(inputItems[0]), // "address" (contract address that emitted the log) field in the receipt
-      "Reference and exit tx do not correspond to the same token"
-    );
+    data.childToken = RLPReader.toAddress(inputItems[0]); // "address" (contract address that emitted the log) field in the receipt
     bytes memory logData = inputItems[2].toBytes();
     inputItems = inputItems[1].toList(); // topics
     // now, inputItems[i] refers to i-th (0-based) topic in the topics array
     // inputItems[0] is the event signature
-    rootToken = address(RLPReader.toUint(inputItems[1]));
+    data.rootToken = address(RLPReader.toUint(inputItems[1]));
     // rootToken = RLPReader.toAddress(inputItems[1]); // investigate why this reverts
     if (isChallenge) {
       processChallenge(inputItems, participant);
     } else {
-      (closingBalance, age) = processStateUpdate(inputItems, logData, participant);
+      (data.closingBalance, data.age) = processStateUpdate(inputItems, logData, participant);
     }
-    age = _age + age + (logIndex * MAX_LOGS); // @todo use safeMath
+    data.age += (logIndex * MAX_LOGS); // @todo use safeMath
+  }
+
+  function validateSequential(ExitTxData memory exitTxData, ReferenceTxData memory referenceTxData)
+    internal
+  {
+    // The closing balance of the referenced tx should be >= exit amount in exitTx
+    require(
+      referenceTxData.closingBalance >= exitTxData.exitAmount,
+      "Exiting with more tokens than referenced"
+    );
+    // @todo Check exitTxData.nonce > referenceTxData.nonce. The issue is that the referenceTx receipt doesn't contain the nonce
   }
 
   function processChallenge(
@@ -231,19 +249,18 @@ contract ERC20Predicate is IErcPredicate {
    * @param exitTx Signed exit transaction
    */
   function processExitTx(bytes memory exitTx)
-    public
+    internal
     view
-    returns(uint256 exitAmount, address childToken, address participant, bytes32 txHash, bool burnt)
+    returns(ExitTxData memory txData)
   {
     RLPReader.RLPItem[] memory txList = exitTx.toRlpItem().toList();
     require(txList.length == 9, "MALFORMED_WITHDRAW_TX");
-    childToken = RLPReader.toAddress(txList[3]); // corresponds to "to" field in tx
-    (participant, txHash) = getAddressFromTx(txList, withdrawManager.networkId());
-    // if (participant == msg.sender) { // exit tx is signed by exitor himself
-    if (participant == msg.sender) { // exit tx is signed by exitor himself
-      (exitAmount, burnt) = processExitTxSender(RLPReader.toBytes(txList[5]));
+    txData.childToken = RLPReader.toAddress(txList[3]); // corresponds to "to" field in tx
+    (txData.signer, txData.txHash) = getAddressFromTx(txList, withdrawManager.networkId());
+    if (txData.signer == msg.sender) { // exit tx is signed by exitor himself
+      (txData.exitAmount, txData.burnt) = processExitTxSender(RLPReader.toBytes(txList[5]));
     } else {
-      exitAmount = processExitTxCounterparty(RLPReader.toBytes(txList[5]));
+      txData.exitAmount = processExitTxCounterparty(RLPReader.toBytes(txList[5]));
     }
   }
 
