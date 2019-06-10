@@ -26,6 +26,10 @@ contract Faucet is Ownable{
         timeLock[receiver] = now + 24 hours;
         receiver.transfer(amount);
     }
+
+    function withdrawAmount(uint256 _amount) public onlyOwner {
+      msg.sender.transfer(amount);
+    }
 }
 
 
@@ -52,5 +56,9 @@ contract FaucetERC20 is Ownable {
 
         timeLock[receiver] = now + 24 hours;
         token.transfer(receiver, amount);
+    }
+
+    function withdrawAmount(uint256 _amount) public onlyOwner {
+      token.transfer(msg.sender, _amount);
     }
 }
