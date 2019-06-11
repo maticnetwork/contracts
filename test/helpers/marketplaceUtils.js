@@ -1,0 +1,102 @@
+const ethUtils = require('ethereumjs-util')
+const sigUtils = require('eth-sig-util')
+
+export function getSig({
+  privateKey,
+  spender,
+  orderId,
+  expiration,
+
+  token1,
+  amount1,
+  token2,
+  amount2
+}) {
+  const orderData = Buffer.concat([
+    ethUtils.toBuffer(orderId),
+    ethUtils.toBuffer(token2),
+    ethUtils.setLengthLeft(amount2, 32),
+    ethUtils.setLengthLeft(expiration, 32)
+  ])
+  const orderDataHash = ethUtils.keccak256(orderData)
+  console.log('orderDataHash',orderDataHash)
+  const obj = getTransferSig({
+    privateKey: privateKey,
+    spender: spender,
+    data: orderDataHash,
+    tokenIdOrAmount: amount1,
+    tokenAddress: token1,
+    expiration: expiration
+  })
+
+  return obj
+}
+
+function getTransferSig({
+  privateKey,
+  spender,
+  data,
+  tokenAddress,
+  tokenIdOrAmount,
+  expiration
+}) {
+  const typedData = getTransferTypedData({
+    tokenAddress,
+    tokenIdOrAmount,
+    spender,
+    data,
+    expiration
+  })
+
+  const sig = sigUtils.signTypedData(ethUtils.toBuffer(privateKey), {
+    data: typedData
+  })
+
+  const obj = {
+    sig,
+    tokenAddress,
+    tokenIdOrAmount,
+    spender,
+    expiration,
+    data: ethUtils.toBuffer(data)
+  }
+  return obj
+}
+
+function getTransferTypedData({
+  tokenAddress,
+  spender,
+  tokenIdOrAmount,
+  data,
+  expiration
+}) {
+  return {
+    types: {
+      EIP712Domain: [
+        { name: "name", type: "string" },
+        { name: "version", type: "string" },
+        { name: "chainId", type: "uint256" },
+        { name: "contract", type: "address" }
+      ],
+      TokenTransferOrder: [
+        { name: "spender", type: "address" },
+        { name: "tokenIdOrAmount", type: "uint256" },
+        { name: "data", type: "bytes32" },
+        { name: "expiration", type: "uint256" }
+      ]
+    },
+    domain: {
+      name: "Matic Network",
+      version: "1",
+      chainId: 13,
+      contract: tokenAddress
+    },
+    primaryType: "TokenTransferOrder",
+    message: {
+      spender,
+      tokenIdOrAmount,
+      data,
+      expiration
+    }
+  }
+}

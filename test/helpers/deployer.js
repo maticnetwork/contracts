@@ -3,13 +3,14 @@ import utils from 'ethereumjs-util'
 import * as contracts from './artifacts.js'
 
 const web3Child = new web3.constructor(
-  new web3.providers.HttpProvider('http://localhost:8546')
+  new web3.providers.HttpProvider('http://localhost:8545')
 )
 class Deployer {
   constructor() {
     contracts.ChildChain.web3 = web3Child
     contracts.ChildERC20.web3 = web3Child
     contracts.ChildERC721.web3 = web3Child
+    contracts.Marketplace.web3 = web3Child
   }
 
   async freshDeploy(options = {}) {
@@ -139,7 +140,7 @@ class Deployer {
     )
   }
 
-  async deployChildErc20(owner) {
+  async deployChildErc20(owner, options = { mapToken: true }) {
     const rootERC20 = await this.deployTestErc20({ mapToken: false })
     const tx = await this.childChain.addToken(
       owner,
@@ -151,15 +152,11 @@ class Deployer {
     )
     const NewTokenEvent = tx.logs.find(log => log.event === 'NewToken')
     const childToken = await contracts.ChildERC20.at(NewTokenEvent.args.token)
-    await this.mapToken(
-      rootERC20.address,
-      childToken.address,
-      false /* isERC721 */
-    )
+    if (options.mapToken) await this.mapToken(rootERC20.address, childToken.address, false /* isERC721 */)
     return { rootERC20, childToken }
   }
 
-  async deployChildErc721(owner) {
+  async deployChildErc721(owner, options = { mapToken: true }) {
     const rootERC721 = await this.deployTestErc721({ mapToken: false })
       const tx = await this.childChain.addToken(
         owner,
@@ -171,11 +168,7 @@ class Deployer {
       )
       const NewTokenEvent = tx.logs.find(log => log.event === 'NewToken')
       const childErc721 = await contracts.ChildERC721.at(NewTokenEvent.args.token)
-      await this.mapToken(
-        rootERC721.address,
-        childErc721.address,
-        true /* isERC721 */
-      )
+      if (options.mapToken) await this.mapToken(rootERC721.address, childErc721.address, true /* isERC721 */)
       return { rootERC721, childErc721 }
   }
 
@@ -193,6 +186,14 @@ class Deployer {
       res.childErc721 = childErc721
     }
     return res
+  }
+
+  async deployMarketplace(owner) {
+    return {
+      erc20: await this.deployChildErc20(owner, { mapToken: false }),
+      erc20_1: await this.deployChildErc20(owner, { mapToken: false }),
+      marketplace: await contracts.Marketplace.new()
+    }
   }
 }
 

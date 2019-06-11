@@ -177,6 +177,22 @@ contract ERC20Predicate is IErcPredicate {
     data.age += (logIndex * MAX_LOGS); // @todo use safeMath
   }
 
+  function processReceipt(
+    bytes calldata receipt,
+    uint256 logIndex,
+    address participant)
+    external
+    returns(bytes memory)
+  {
+    ReferenceTxData memory _reference = processReferenceTx(
+      receipt,
+      logIndex,
+      participant,
+      false /* isChallenge */
+    );
+    return abi.encode(_reference.closingBalance, _reference.age, _reference.childToken, _reference.rootToken);
+  }
+
   function validateSequential(ExitTxData memory exitTxData, ReferenceTxData memory referenceTxData)
     internal
   {
