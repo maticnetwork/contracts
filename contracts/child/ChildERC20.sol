@@ -102,8 +102,7 @@ contract ChildERC20 is ChildToken, ERC20, LibTokenTransferOrder, ERC20Detailed {
     return true; // to be compliant with the standard ERC20.transfer function interface
   }
 
-  function transferWithSig(bytes memory sig, uint256 amount, bytes32 data, uint256 expiration, address to) public returns (address, bytes32) {
-  // function transferWithSig(bytes memory sig, uint256 amount, bytes32 data, uint256 expiration, address to) public {
+  function transferWithSig(bytes calldata sig, uint256 amount, bytes32 data, uint256 expiration, address to) external returns (address from) {
     require(amount > 0);
     require(expiration == 0 || block.number <= expiration, "Signature is expired");
 
@@ -117,49 +116,9 @@ contract ChildERC20 is ChildToken, ERC20, LibTokenTransferOrder, ERC20Detailed {
     disabledHashes[dataHash] = true;
 
     // recover address and send tokens
-    address from = ecrecovery(dataHash, sig);
-    // address from = dataHash.ecrecovery(sig);
-    // return address(0x0);
-    // _transferFrom(from, to, amount);
-    return (from, dataHash);
-  }
-
-  function ecrecovery(
-    bytes32 hash,
-    bytes memory sig
-  // ) public pure {
-  ) public pure returns (address) {
-    bytes32 r;
-    bytes32 s;
-    uint8 v;
-
-    if (sig.length != 65) {
-      return address(0x0);
-    }
-
-    assembly {
-      r := mload(add(sig, 32))
-      s := mload(add(sig, 64))
-      v := and(mload(add(sig, 65)), 255)
-    }
-
-    // https://github.com/ethereum/go-ethereum/issues/2053
-    if (v < 27) {
-      v += 27;
-    }
-
-    if (v != 27 && v != 28) {
-      return address(0x0);
-    }
-
-    // get address out of hash and signature
-    // address result = address(0x0);
-    address result = ecrecover(hash, v, r, s);
-
-    // ecrecover returns zero on error
-    // require(result != address(0x0));
-
-    return result;
+    from = dataHash.ecrecovery(sig);
+    _transferFrom(from, to, amount);
+    return from;
   }
 
   /// @param from Address from where tokens are withdrawn.

@@ -15,12 +15,10 @@ export function getSig({
   const orderData = Buffer.concat([
     ethUtils.toBuffer(orderId),
     ethUtils.toBuffer(token2),
-    ethUtils.setLengthLeft(amount2, 32),
-    ethUtils.setLengthLeft(expiration, 32)
+    ethUtils.setLengthLeft(amount2, 32)
   ])
   const orderDataHash = ethUtils.keccak256(orderData)
-  console.log('orderDataHash',orderDataHash)
-  const obj = getTransferSig({
+  return getTransferSig({
     privateKey: privateKey,
     spender: spender,
     data: orderDataHash,
@@ -28,8 +26,6 @@ export function getSig({
     tokenAddress: token1,
     expiration: expiration
   })
-
-  return obj
 }
 
 function getTransferSig({
@@ -47,12 +43,10 @@ function getTransferSig({
     data,
     expiration
   })
-
   const sig = sigUtils.signTypedData(ethUtils.toBuffer(privateKey), {
     data: typedData
   })
-
-  const obj = {
+  return {
     sig,
     tokenAddress,
     tokenIdOrAmount,
@@ -60,7 +54,6 @@ function getTransferSig({
     expiration,
     data: ethUtils.toBuffer(data)
   }
-  return obj
 }
 
 function getTransferTypedData({

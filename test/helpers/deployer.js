@@ -1,4 +1,4 @@
-import utils from 'ethereumjs-util'
+const utils = require('ethereumjs-util')
 
 import * as contracts from './artifacts.js'
 
@@ -189,11 +189,7 @@ class Deployer {
   }
 
   async deployMarketplace(owner) {
-    return {
-      erc20: await this.deployChildErc20(owner, { mapToken: false }),
-      erc20_1: await this.deployChildErc20(owner, { mapToken: false }),
-      marketplace: await contracts.Marketplace.new()
-    }
+    return await contracts.Marketplace.new()
   }
 }
 
