@@ -3,7 +3,6 @@ pragma solidity ^0.5.2;
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { WithdrawManager } from "../root/withdrawManager/WithdrawManager.sol";
 
-
 contract Registry is Ownable {
   // @todo hardcode constants
   bytes32 constant private WETH_TOKEN = keccak256("wethToken");
@@ -16,13 +15,21 @@ contract Registry is Ownable {
   mapping(bytes32 => address) contractMap;
   mapping(address => address) public rootToChildToken;
   mapping(address => address) public childToRootToken;
-  mapping(address => bool) public proofValidatorContracts;
   // @todo we can think of one function from the registry which returns both (childToken,isERC721) if we are using it frequently together.
+  mapping(address => bool) public proofValidatorContracts;
   mapping(address => bool) public isERC721;
+
+  enum Type { Invalid, ERC20, ERC721, Custom }
+  struct Predicate {
+    Type _type;
+  }
+  mapping(address => Predicate) public predicates;
 
   event TokenMapped(address indexed rootToken, address indexed childToken);
   event ProofValidatorAdded(address indexed validator, address indexed from);
   event ProofValidatorRemoved(address indexed validator, address indexed from);
+  event PredicateAdded(address indexed predicate, address indexed from);
+  event PredicateRemoved(address indexed predicate, address indexed from);
   event ContractMapUpdated(
    bytes32 indexed key,
    address indexed previousContract,
@@ -66,6 +73,19 @@ contract Registry is Ownable {
     require(_validator != address(0) && proofValidatorContracts[_validator] != true);
     emit ProofValidatorAdded(_validator, msg.sender);
     proofValidatorContracts[_validator] = true;
+  }
+
+  function addPredicate(address predicate, Type _type) public onlyOwner
+  {
+    require(predicates[predicate]._type == Type.Invalid, "Predicate already added");	
+    predicates[predicate]._type = _type;
+    emit PredicateAdded(predicate, msg.sender);
+  }
+
+  function removePredicate(address predicate) public onlyOwner
+  {
+    delete predicates[predicate];
+    emit PredicateRemoved(predicate, msg.sender);
   }
 
   function removeProofValidator(address _validator) public onlyOwner {
