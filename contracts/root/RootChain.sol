@@ -20,7 +20,7 @@ import { StakeManager } from "./StakeManager.sol";
 
 contract RootChain is Ownable, IRootChain {
   using SafeMath for uint256;
-  using RLP for bytes;
+  using RLP for bytes;  
   using RLP for RLP.RLPItem;
   using RLP for RLP.Iterator; 
 
@@ -99,11 +99,10 @@ contract RootChain is Ownable, IRootChain {
  function submitHeaderBlock(bytes vote, bytes sigs, bytes extradata) external {
     RLP.RLPItem[] memory dataList = vote.toRLPItem().toList();
     require(keccak256(dataList[0].toData()) == chain, "Chain ID not same");
-    require(keccak256(dataList[1].toData()) == roundType, "Round type not same ");
-    require(dataList[4].toByte() == voteType, "Vote type not same");
+    require(keccak256(dataList[1].toData()) == keccak256(voteType), "Vote type not same ");
 
     // validate extra data using getSha256(extradata)
-    require(keccak256(dataList[5].toData()) == keccak256(bytes20(sha256(extradata))), "Extra data is invalid");
+    require(keccak256(dataList[4].toData()) == keccak256(sha256(extradata)), "Extra data is invalid");
 
     // extract end and assign to current child
     dataList = extradata.toRLPItem().toList();
@@ -150,7 +149,7 @@ contract RootChain is Ownable, IRootChain {
     // // finalize commit
     // depositManager.finalizeCommit(_currentHeaderBlock);
     // withdrawManager.finalizeCommit(_currentHeaderBlock);
-    stakeManager.finalizeCommit();
+    // stakeManager.finalizeCommit();
 
     // TODO add rewards
   }
@@ -234,7 +233,7 @@ contract RootChain is Ownable, IRootChain {
     uint256,
     address,
     address,
-    uint256,
+    uint256,    
     uint256
   ) {
     return depositManager.depositBlock(_depositCount);
@@ -340,3 +339,4 @@ contract RootChain is Ownable, IRootChain {
     // TODO pass block/proposer
   }
 }
+

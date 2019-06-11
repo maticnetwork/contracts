@@ -4,11 +4,9 @@ pragma solidity ^0.4.24;
 contract IManager {
   // chain identifier
   bytes32 public constant chain = keccak256("heimdall-xOUIR0");
-  // round type
-  bytes32 public constant roundType = keccak256("vote");
   // vote type
   byte public constant voteType = 0x02;
-  // network id
+  // network id 
   bytes public constant networkId = hex"2323";
   // child block interval between checkpoint
   uint256 public constant CHILD_BLOCK_INTERVAL = 10000;

@@ -25,6 +25,7 @@ contract StakeManager is  IStakeManager, RootChainable, Lockable, ERC721Full {
 
   // optional event to ack unstaking
   event UnstakeInit(uint256 indexed validatorId, address indexed user, uint256 indexed amount, uint256 deactivationEpoch);
+  event UpdatedPower(uint256 indexed validatorId,uint256 indexed amount);
 
   // signer changed
   event SignerChange(uint256 indexed validatorId, address indexed oldSigner, address indexed newSigner);
@@ -260,6 +261,9 @@ contract StakeManager is  IStakeManager, RootChainable, Lockable, ERC721Full {
     }
     emit sigsevent(signer,sigElement,stakePower,currentValidatorSetTotalStake().mul(2).div(3).add(1));
     return stakePower >= currentValidatorSetTotalStake().mul(2).div(3).add(1);
+  }
+  function slash(uint256 valID,uint256 amount){
+      emit UpdatedPower(valID,validators[valID].amount+amount);
   }
 
 }
