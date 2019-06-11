@@ -156,7 +156,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     PlasmaExit storage exitObject = exits[exitId];
     // Checks both that
     // 1. Exit at the particular exitId exists
-    // 2. Only the predicate that started the exit is authorized to addInput 
+    // 2. Only the predicate that started the exit is authorized to addInput
     require(
       exitObject.predicate == msg.sender,
       "EXIT_DOES_NOT_EXIST OR NOT_AUTHORIZED"
@@ -174,15 +174,16 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       exit.token != address(0x0) && input.signer != address(0x0),
       "Invalid exit or input id"
     );
-    bool isChallengeValid = IPredicate(exit.predicate).verifyDeprecation(
-      encodeExit(exit),
-      encodeInputUtxo(inputId, input),
-      challengeData
+    require(
+      IPredicate(exit.predicate).verifyDeprecation(
+        encodeExit(exit),
+        encodeInputUtxo(inputId, input),
+        challengeData
+      ),
+      "Challenge failed"
     );
-    if (isChallengeValid) {
-      deleteExit(exitId);
-      emit ExitCancelled(exitId);
-    }
+    deleteExit(exitId);
+    emit ExitCancelled(exitId);
   }
 
   function encodeExit(PlasmaExit storage exit)

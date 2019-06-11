@@ -29,9 +29,9 @@ contract ERC20Predicate is IErcPredicate {
     RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
     bytes memory receipt = referenceTxData[6].toBytes();
     RLPReader.RLPItem[] memory inputItems = receipt.toRlpItem().toList();
-    uint256 age = withdrawManager.verifyInclusion(data, 0 /* offset */, false /* verifyTxInclusion */);
     uint256 logIndex = referenceTxData[9].toUint();
     require(logIndex < MAX_LOGS, "Supporting a max of 10 logs");
+    uint256 age = withdrawManager.verifyInclusion(data, 0 /* offset */, false /* verifyTxInclusion */);
     inputItems = inputItems[3].toList()[logIndex].toList(); // select log based on given logIndex
 
     // "address" (contract address that emitted the log) field in the receipt
@@ -159,8 +159,8 @@ contract ERC20Predicate is IErcPredicate {
     pure
     returns(ReferenceTxData memory data)
   {
-    RLPReader.RLPItem[] memory inputItems = receipt.toRlpItem().toList();
     require(logIndex < MAX_LOGS, "Supporting a max of 10 logs");
+    RLPReader.RLPItem[] memory inputItems = receipt.toRlpItem().toList();
     inputItems = inputItems[3].toList()[logIndex].toList(); // select log based on given logIndex
     data.childToken = RLPReader.toAddress(inputItems[0]); // "address" (contract address that emitted the log) field in the receipt
     bytes memory logData = inputItems[2].toBytes();
@@ -292,7 +292,7 @@ contract ERC20Predicate is IErcPredicate {
     require(funcSig == TRANSFER_FUNC_SIG, "Only supports exiting from transfer txs");
     require(
       msg.sender == address(BytesLib.toUint(txData, 4)), // to
-      "Exit tx doesnt concern the exitor"
+      "Exitor should be the receiver in the exit tx"
     );
     exitAmount = BytesLib.toUint(txData, 36); // value
   }
