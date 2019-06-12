@@ -20,7 +20,7 @@ contract Marketplace {
     bytes memory data2,
     bytes32 orderId,
     uint256 expiration,
-    address address2 // address of second participant
+    address taker
   ) public {
     Order memory order1 = decode(data1);
     Order memory order2 = decode(data2);
@@ -31,7 +31,7 @@ contract Marketplace {
       order1.tokenIdOrAmount,
       keccak256(abi.encodePacked(orderId, order2.token, order2.tokenIdOrAmount)),
       expiration,
-      address2
+      taker
     );
 
     // Transferring token2 from tradeParticipant2 to tradeParticipant1
@@ -42,6 +42,6 @@ contract Marketplace {
       expiration,
       tradeParticipant1
     );
-    require(address2 == tradeParticipant2, "Orders are not complimentary");
+    require(taker == tradeParticipant2, "Orders are not complimentary");
   }
 }
