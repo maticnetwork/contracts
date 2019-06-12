@@ -1,10 +1,8 @@
 import utils from 'ethereumjs-util'
 
-import * as contracts from './artifacts.js'
+import * as contracts from './artifacts'
+import { web3Child } from './utils'
 
-const web3Child = new web3.constructor(
-  new web3.providers.HttpProvider('http://localhost:8546')
-)
 class Deployer {
   constructor() {
     contracts.ChildChain.web3 = web3Child
@@ -105,6 +103,13 @@ class Deployer {
     const ERC721Predicate = await contracts.ERC721Predicate.new(this.withdrawManagerProxy.address)
     await this.registry.addPredicate(ERC721Predicate.address, 2 /* Type.ERC721 */)
     return ERC721Predicate
+  }
+
+  async deployMarketplacePredicate() {
+    const MarketplacePredicate = await contracts.MarketplacePredicate.new()
+    // const MarketplacePredicate = await contracts.MarketplacePredicate.new(this.withdrawManagerProxy.address)
+    // await this.registry.addPredicate(MarketplacePredicate.address, 2 /* Type.ERC721 */)
+    return MarketplacePredicate
   }
 
   async deployTestErc20(options = { mapToken: true }) {
