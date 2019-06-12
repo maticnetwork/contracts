@@ -36,7 +36,7 @@ contract("Marketplace", async function(accounts) {
     childContracts = await deployer.initializeChildChain(accounts[0])
   })
 
-  it('executeOrder - ERC20', async function() {
+  it.only('executeOrder - ERC20', async function() {
     const erc20 = await deployer.deployChildErc20(accounts[0], { mapToken: false })
     const token1 = erc20.childToken
     const otherErc20 = await deployer.deployChildErc20(accounts[0], { mapToken: false })
@@ -74,21 +74,23 @@ contract("Marketplace", async function(accounts) {
       token1: token2.address,
       amount1: amount2
     })
-
-    const { receipt } = await marketplace.executeOrder(
-      token1.address,
-      obj1.sig,
-      amount1,
-
-      token2.address,
-      obj2.sig,
-      amount2,
-
+    console.log(
+      token1.address, obj1.sig, amount1,
+      token2.address, obj2.sig, amount2,
+      encode(token1.address, obj1.sig, amount1),
+      encode(token2.address, obj2.sig, amount2),
       orderId,
       expiration,
       address2
     )
-
+    const { receipt } = await marketplace.executeOrder(
+      encode(token1.address, obj1.sig, amount1),
+      encode(token2.address, obj2.sig, amount2),
+      orderId,
+      expiration,
+      address2
+    )
+    await utils.writeToFile('marketplace-executeOrder-E20-E20.js', receipt)
     const parsedLogs = logDecoder.decodeLogs(receipt.rawLogs)
     // console.log(parsedLogs)
     assert.equal(parsedLogs[0].event, "Transfer")
@@ -142,19 +144,13 @@ contract("Marketplace", async function(accounts) {
     })
 
     const { receipt } = await marketplace.executeOrder(
-      token1.address,
-      obj1.sig,
-      amount1,
-
-      token2.address,
-      obj2.sig,
-      tokenId,
-
+      encode(token1.address, obj1.sig, amount1),
+      encode(token2.address, obj2.sig, tokenId),
       orderId,
       expiration,
       address2
     )
-
+    await utils.writeToFile('marketplace-executeOrder-E20-E721.js', receipt)
     const parsedLogs = logDecoder.decodeLogs(receipt.rawLogs)
     // console.log(parsedLogs)
     assert.equal(parsedLogs[0].event, "Transfer")
@@ -167,3 +163,19 @@ contract("Marketplace", async function(accounts) {
     assert.equal((await token1.balanceOf(address2)).toNumber(), amount1)
   })
 })
+
+function encode(token, sig, tokenIdOrAmount) {
+  return web3.eth.abi.encodeParameters(
+    ['address', 'bytes', 'uint256'],
+    [token, sig, '0x' + tokenIdOrAmount.toString(16)]
+  )
+}
+
+function decode(token, sig, tokenIdOrAmount) {
+  return web3.eth.abi.decodeParameters(
+    ['address', 'bytes', 'uint256'],
+    [token, sig, '0x' + tokenIdOrAmount.toString(16)]
+  )
+}
+
+

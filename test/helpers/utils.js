@@ -3,6 +3,8 @@
 import utils from 'ethereumjs-util'
 import { Buffer } from 'safe-buffer'
 import encode from 'ethereumjs-abi'
+import fs from 'fs'
+import path from 'path'
 
 import { generateFirstWallets, mnemonics } from './wallets.js'
 import {
@@ -184,4 +186,16 @@ export function buildChallengeData(input) {
       utils.bufferToHex(rlp.encode(reference.txParentNodes))
     ])
   ))
+}
+
+export async function writeToFile(file, receipt) {
+  const r = {
+    tx: await web3Child.eth.getTransaction(receipt.transactionHash),
+    receipt: await web3Child.eth.getTransactionReceipt(receipt.transactionHash),
+    block: await web3Child.eth.getBlock(receipt.blockHash, true /* returnTransactionObjects */)
+  }
+  return fs.writeFileSync(
+    path.join(__dirname, '..', 'mockResponses', file),
+    `module.exports = ${JSON.stringify(r, null, 2)}`
+  )
 }

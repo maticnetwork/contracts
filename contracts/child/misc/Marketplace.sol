@@ -5,34 +5,40 @@ interface MarketplaceToken {
 }
 
 contract Marketplace {
+  struct Order {
+    address token;
+    bytes sig;
+    uint256 tokenIdOrAmount;
+  }
+
+  function decode(bytes memory data) internal returns(Order memory order) {
+    (order.token, order.sig, order.tokenIdOrAmount) = abi.decode(data, (address, bytes, uint256));
+  }
+
   function executeOrder(
-    address token1,
-    bytes memory sig1,
-    uint256 tokenIdOrAmount1,
-
-    address token2,
-    bytes memory sig2,
-    uint256 tokenIdOrAmount2,
-
+    bytes memory data1,
+    bytes memory data2,
     bytes32 orderId,
     uint256 expiration,
     address address2 // address of second participant
   ) public {
+    Order memory order1 = decode(data1);
+    Order memory order2 = decode(data2);
 
-    // Transferring token1 tokens from tradeParticipant1 to address2
-    address tradeParticipant1 = MarketplaceToken(token1).transferWithSig(
-      sig1,
-      tokenIdOrAmount1,
-      keccak256(abi.encodePacked(orderId, token2, tokenIdOrAmount2)),
+    // Transferring order1.token tokens from tradeParticipant1 to address2
+    address tradeParticipant1 = MarketplaceToken(order1.token).transferWithSig(
+      order1.sig,
+      order1.tokenIdOrAmount,
+      keccak256(abi.encodePacked(orderId, order2.token, order2.tokenIdOrAmount)),
       expiration,
       address2
     );
 
     // Transferring token2 from tradeParticipant2 to tradeParticipant1
-    address tradeParticipant2 = MarketplaceToken(token2).transferWithSig(
-      sig2,
-      tokenIdOrAmount2,
-      keccak256(abi.encodePacked(orderId, token1, tokenIdOrAmount1)),
+    address tradeParticipant2 = MarketplaceToken(order2.token).transferWithSig(
+      order2.sig,
+      order2.tokenIdOrAmount,
+      keccak256(abi.encodePacked(orderId, order1.token, order1.tokenIdOrAmount)),
       expiration,
       tradeParticipant1
     );
