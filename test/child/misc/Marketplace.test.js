@@ -102,7 +102,7 @@ contract("Marketplace", async function(accounts) {
     assert.equal((await token2.balanceOf(address2)).toNumber(), 0)
   })
 
-  it.only('executeOrder - ERC20/721', async function() {
+  it('executeOrder - ERC20/721', async function() {
     const erc20 = await deployer.deployChildErc20(accounts[0], { mapToken: false })
     const token1 = erc20.childToken
     const erc721 = await deployer.deployChildErc721(accounts[0], { mapToken: false })

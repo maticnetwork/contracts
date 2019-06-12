@@ -73,8 +73,6 @@ contract ChildERC721 is ChildToken, LibTokenTransferOrder, ERC721Full {
     _transferFrom(from, to, tokenId);
   }
 
-  event DEBUG(address indexed a);
-
   function transferWithSig(bytes calldata sig, uint256 tokenId, bytes32 data, uint256 expiration, address to) external returns (address) {
     require(expiration == 0 || block.number <= expiration, "Signature is expired");
 
@@ -88,8 +86,7 @@ contract ChildERC721 is ChildToken, LibTokenTransferOrder, ERC721Full {
     disabledHashes[dataHash] = true;
 
     // recover address and send tokens
-    address from = dataHash.ecrecovery(sig);
-    // emit DEBUG(from);
+    address from = ecrecovery(dataHash, sig);
     _transferFrom(from, to, tokenId);
     require(
       _checkOnERC721Received(from, to, tokenId, ""),

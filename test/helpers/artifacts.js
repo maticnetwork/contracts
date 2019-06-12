@@ -14,7 +14,6 @@ export const MaticWETH = artifacts.require('MaticWETH')
 export const TestToken = artifacts.require('TestToken')
 export const RootERC721 = artifacts.require('RootERC721')
 export const ExitNFT = artifacts.require('ExitNFT.sol')
-export const LibTokenTransferOrder = artifacts.require('LibTokenTransferOrder')
 
 // child chain
 export const Marketplace = artifacts.require('Marketplace')

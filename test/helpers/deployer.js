@@ -1,9 +1,9 @@
-const utils = require('ethereumjs-util')
+import utils from 'ethereumjs-util'
 
 import * as contracts from './artifacts.js'
 
 const web3Child = new web3.constructor(
-  new web3.providers.HttpProvider('http://localhost:8545')
+  new web3.providers.HttpProvider('http://localhost:8546')
 )
 class Deployer {
   constructor() {
@@ -158,18 +158,18 @@ class Deployer {
 
   async deployChildErc721(owner, options = { mapToken: true }) {
     const rootERC721 = await this.deployTestErc721({ mapToken: false })
-      const tx = await this.childChain.addToken(
-        owner,
-        rootERC721.address,
-        'ChildERC721',
-        'C721',
-        18,
-        true /* isERC721 */
-      )
-      const NewTokenEvent = tx.logs.find(log => log.event === 'NewToken')
-      const childErc721 = await contracts.ChildERC721.at(NewTokenEvent.args.token)
-      if (options.mapToken) await this.mapToken(rootERC721.address, childErc721.address, true /* isERC721 */)
-      return { rootERC721, childErc721 }
+    const tx = await this.childChain.addToken(
+      owner,
+      rootERC721.address,
+      'ChildERC721',
+      'C721',
+      18,
+      true /* isERC721 */
+    )
+    const NewTokenEvent = tx.logs.find(log => log.event === 'NewToken')
+    const childErc721 = await contracts.ChildERC721.at(NewTokenEvent.args.token)
+    if (options.mapToken) await this.mapToken(rootERC721.address, childErc721.address, true /* isERC721 */)
+    return { rootERC721, childErc721 }
   }
 
   async initializeChildChain(owner, options = {}) {
@@ -189,7 +189,7 @@ class Deployer {
   }
 
   async deployMarketplace(owner) {
-    return await contracts.Marketplace.new()
+    return contracts.Marketplace.new()
   }
 }
 

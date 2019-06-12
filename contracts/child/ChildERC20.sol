@@ -7,7 +7,6 @@ import "./ChildToken.sol";
 import "./misc/IParentToken.sol";
 import "./misc/LibTokenTransferOrder.sol";
 
-
 contract ChildERC20 is ChildToken, ERC20, LibTokenTransferOrder, ERC20Detailed {
 
   event Deposit(
@@ -115,10 +114,8 @@ contract ChildERC20 is ChildToken, ERC20, LibTokenTransferOrder, ERC20Detailed {
     require(disabledHashes[dataHash] == false, "Sig deactivated");
     disabledHashes[dataHash] = true;
 
-    // recover address and send tokens
-    from = dataHash.ecrecovery(sig);
+    from = ecrecovery(dataHash, sig);
     _transferFrom(from, to, amount);
-    return from;
   }
 
   /// @param from Address from where tokens are withdrawn.
