@@ -28,17 +28,18 @@ module.exports = {
       provider: function() {
         return new HDWalletProvider(
           MNEMONIC,
-          `https://ropsten.infura.io/${API_KEY}`
+          `https://ropsten.infura.io/v3/${API_KEY}`
         )
       },
       network_id: 3,
-      gas: 8000000
+      gas: 8000000,
+      gasPrice: 100000000000
     },
     kovan: {
       provider: function() {
         return new HDWalletProvider(
           MNEMONIC,
-          `https://kovan.infura.io/${API_KEY}`
+          `https://kovan.infura.io/v3/${API_KEY}`
         )
       },
       network_id: 42,
@@ -48,18 +49,22 @@ module.exports = {
       provider: function() {
         return new HDWalletProvider(
           MNEMONIC,
-          `https://mainnet.infura.io/${API_KEY}`
+          `https://mainnet.infura.io/v3/${API_KEY}`
         )
       },
       network_id: 1,
-      gas: 8000000
+      gas: 8000000,
+      gasPrice: 25000000000
     },
     matic: {
       provider: function() {
-        return new HDWalletProvider(MNEMONIC, `https://testnet.matic.network`)
+        return new HDWalletProvider(
+          MNEMONIC,
+          `https://alpha.ethereum.matic.network`
+        )
       },
-      network_id: 13,
-      gas: 400000000
+      network_id: 4626,
+      gas: 8000000
     }
   },
   // compilers: {
