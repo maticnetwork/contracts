@@ -7,31 +7,21 @@ import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 import { RLPEncode } from "../../common/lib/RLPEncode.sol";
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 
-import { IErcPredicate } from "./IPredicate.sol";
+import { IErcPredicate, PredicateUtils } from "./IPredicate.sol";
+// import { DataStructures, MarketplacePredicateLib } from "./MarketplacePredicateLib.sol";
 import { ERC20Predicate } from "./ERC20Predicate.sol";
-import { WithdrawManagerHeader } from "../withdrawManager/WithdrawManagerStorage.sol";
+import { IWithdrawManager } from "../withdrawManager/IWithdrawManager.sol";
 
-contract MarketplacePredicate /* is IErcPredicate */ {
+contract MarketplacePredicate is PredicateUtils /* is DataStructures /* is IErcPredicate */ {
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
 
   // 0xe660b9e4 = keccak256('executeOrder(bytes,bytes,bytes32,uint256,address)').slice(0, 4)
   bytes4 constant EXECUTE_ORDER_FUNC_SIG = 0xe660b9e4;
 
+  IWithdrawManager internal withdrawManager;
   ERC20Predicate erc20Predicate;
 
-  // constructor(address _withdrawManager, address _erc20Predicate)
-  //   IErcPredicate(withdrawManager)
-  //   public
-  // {
-  //   erc20Predicate = ERC20Predicate(_erc20Predicate);
-  // }
-
-  constructor()
-    public
-  {
-  }
-  
   struct ExecuteOrderData {
     bytes data1;
     bytes data2;
@@ -53,15 +43,89 @@ contract MarketplacePredicate /* is IErcPredicate */ {
     address token1;
     address token2;
     address counterParty;
+    bytes32 txHash;
+  }
+
+  struct ReferenceTxData {
+    uint256 closingBalance;
+    uint256 age;
+    address childToken;
+    address rootToken;
+  }
+
+  constructor(address _withdrawManager, address _erc20Predicate)
+    public
+  {
+    erc20Predicate = ERC20Predicate(_erc20Predicate);
+    withdrawManager = IWithdrawManager(_withdrawManager);
   }
 
   function startExit(bytes calldata data, bytes calldata exitTx)
     external
   {
-    ExitTxData memory exitTxData = processExitTx(exitTx);
+    ExitTxData memory exitTxData = processExitTx(exitTx, withdrawManager.networkId());
+    RLPReader.RLPItem[] memory referenceTx = data.toRlpItem().toList();
+    ReferenceTxData memory reference1 = processPreState(referenceTx, 0, msg.sender);
+    require(
+      reference1.childToken == exitTxData.token1,
+      "Child tokens do not match"
+    );
+    require(
+      reference1.closingBalance >= exitTxData.amount1,
+      "Exiting with more tokens than referenced"
+    );
+    // uint256 age = withdrawManager.verifyInclusion(data, 0, false /* verifyTxInclusion */);
+    uint256 age;
+    reference1.age += age; // @todo use SafeMath
+    ReferenceTxData memory reference2 = processPreState(referenceTx, 10, exitTxData.counterParty);
+    require(
+      reference2.childToken == exitTxData.token2,
+      "Child tokens do not match"
+    );
+    require(
+      reference2.closingBalance >= exitTxData.amount2,
+      "Exiting with more tokens than referenced"
+    );
+    // age = withdrawManager.verifyInclusion(data, 10, false /* verifyTxInclusion */);
+    reference2.age += age; // @todo use SafeMath
+    uint256 priority = Math.max(reference1.age, reference1.age);
+    address exitChildToken = address(RLPReader.toUint(referenceTx[20]));
+    if (exitChildToken == reference1.childToken) {
+      withdrawManager.addExitToQueue(
+        msg.sender, exitChildToken, reference1.rootToken,
+        reference1.closingBalance - exitTxData.amount1,
+        exitTxData.txHash, false /* burnt */,
+        priority
+      );
+    } else if (exitChildToken == reference2.childToken) {
+      withdrawManager.addExitToQueue(
+        msg.sender, exitChildToken, reference2.rootToken,
+        exitTxData.amount2,
+        exitTxData.txHash, false /* burnt */,
+        priority
+      );
+    }
+    withdrawManager.addInput(priority /* exitId */, reference1.age /* age of input */, msg.sender /* signer */);
+    withdrawManager.addInput(priority /* exitId */, reference2.age /* age of input */, exitTxData.counterParty /* signer */);
   }
 
-  function processExitTx(bytes memory exitTx)
+  function processPreState(
+    RLPReader.RLPItem[] memory referenceTx,
+    uint8 offset,
+    address participant)
+    internal
+    view
+    returns(ReferenceTxData memory _referenceTx)
+  {
+    bytes memory preState = erc20Predicate.interpetStateUpdate(abi.encode(
+      referenceTx[offset + 6].toBytes(), // receipt
+      referenceTx[offset + 9].toUint(), // logIndex
+      participant
+    ));
+    (_referenceTx.closingBalance, _referenceTx.age, _referenceTx.childToken, _referenceTx.rootToken) = abi.decode(preState, (uint256, uint256, address,address));
+  }
+
+  function processExitTx(bytes memory exitTx, bytes memory networkId)
     internal
     view
     returns(ExitTxData memory txData)
@@ -69,15 +133,16 @@ contract MarketplacePredicate /* is IErcPredicate */ {
     RLPReader.RLPItem[] memory txList = exitTx.toRlpItem().toList();
     require(txList.length == 9, "MALFORMED_WITHDRAW_TX");
     address marketplaceContract = RLPReader.toAddress(txList[3]); // "to" field in tx
-    // required? (txData.signer, txData.txHash) = getAddressFromTx(txList, withdrawManager.networkId());
     (bytes4 funcSig, ExecuteOrderData memory executeOrder) = decodeExecuteOrder(RLPReader.toBytes(txList[5]));
     require(
       funcSig == EXECUTE_ORDER_FUNC_SIG,
       "Not executeOrder transaction"
     );
-    return verifySignatures(executeOrder, marketplaceContract);
+    txData = verifySignatures(executeOrder, marketplaceContract);
+    (, txData.txHash) = getAddressFromTx(txList, networkId);
   }
 
+  event DEBUG(address indexed token, address indexed from, bytes32 indexed dataHash, address sender, uint256 amount, bytes32 data, uint256 expiration);
   function verifySignatures(
     ExecuteOrderData memory executeOrder,
     address marketplaceContract)
@@ -98,7 +163,7 @@ contract MarketplacePredicate /* is IErcPredicate */ {
     );
     // Cannot check for deactivated sigs here on the root chain
     address tradeParticipant1 = ECVerify.ecrecovery(dataHash, order1.sig);
-
+    // emit DEBUG(order1.token, tradeParticipant1, dataHash, marketplaceContract, order1.amount, keccak256(abi.encodePacked(executeOrder.orderId, order2.token, order2.amount)), executeOrder.expiration);
     require(order2.amount > 0);
     // require(expiration == 0 || block.number <= expiration, "Signature is expired");
     dataHash = getTokenTransferOrderHash(
@@ -112,10 +177,10 @@ contract MarketplacePredicate /* is IErcPredicate */ {
     address tradeParticipant2 = ECVerify.ecrecovery(dataHash, order2.sig);
     require(executeOrder.taker == tradeParticipant2, "Orders are not complimentary");
     if (tradeParticipant1 == msg.sender) {
-      return ExitTxData(order1.amount, order2.amount, order1.token, order2.token, tradeParticipant2);
+      return ExitTxData(order1.amount, order2.amount, order1.token, order2.token, tradeParticipant2, bytes32(0));
     }
     else if (tradeParticipant2 == msg.sender) {
-      return ExitTxData(order2.amount, order1.amount, order2.token, order1.token, tradeParticipant1);
+      return ExitTxData(order2.amount, order1.amount, order2.token, order1.token, tradeParticipant1, bytes32(0));
     }
     revert("Provided tx doesnt concern the exitor (msg.sender)");
   }
@@ -153,12 +218,13 @@ contract MarketplacePredicate /* is IErcPredicate */ {
     orderHash = hashEIP712Message(token, hashTokenTransferOrder(spender, amount, data, expiration));
   }
 
+  event HTTO(bytes32 indexed result, address spender, uint256 amount, bytes32 data, uint256 expiration);
   function hashTokenTransferOrder(address spender, uint256 amount, bytes32 data, uint256 expiration)
     internal
     pure
     returns (bytes32 result)
   {
-    string memory EIP712_TOKEN_TRANSFER_ORDER_SCHEMA = "TokenTransferOrder(address spender,uint256 amount,bytes32 data,uint256 expiration)";
+    string memory EIP712_TOKEN_TRANSFER_ORDER_SCHEMA = "TokenTransferOrder(address spender,uint256 tokenIdOrAmount,bytes32 data,uint256 expiration)";
     bytes32 EIP712_TOKEN_TRANSFER_ORDER_SCHEMA_HASH = keccak256(abi.encodePacked(EIP712_TOKEN_TRANSFER_ORDER_SCHEMA));
     bytes32 schemaHash = EIP712_TOKEN_TRANSFER_ORDER_SCHEMA_HASH;
     assembly {
@@ -172,6 +238,7 @@ contract MarketplacePredicate /* is IErcPredicate */ {
       // Compute hash
       result := keccak256(memPtr, 160)
     }
+    // emit HTTO(result, spender, amount, data, expiration);
   }
 
   function hashEIP712Message(address token, bytes32 hashStruct)
