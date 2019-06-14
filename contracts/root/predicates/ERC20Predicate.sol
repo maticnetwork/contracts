@@ -144,6 +144,27 @@ contract ERC20Predicate is IErcPredicate {
     return ageOfChallengeTx > age;
   }
 
+  function interpetStateUpdate(bytes calldata state)
+    external
+    pure
+    returns(bytes memory)
+  {
+    (bytes memory receipt, uint256 logIndex, address participant) = abi.decode(state, (bytes, uint256, address));
+    require(logIndex < MAX_LOGS, "Supporting a max of 10 logs");
+    RLPReader.RLPItem[] memory inputItems = receipt.toRlpItem().toList();
+    inputItems = inputItems[3].toList()[logIndex].toList(); // select log based on given logIndex
+    ReferenceTxData memory data;
+    data.childToken = RLPReader.toAddress(inputItems[0]); // "address" (contract address that emitted the log) field in the receipt
+    bytes memory logData = inputItems[2].toBytes();
+    inputItems = inputItems[1].toList(); // topics
+    // now, inputItems[i] refers to i-th (0-based) topic in the topics array
+    // inputItems[0] is the event signature
+    data.rootToken = address(RLPReader.toUint(inputItems[1]));
+    (data.closingBalance, data.age) = processStateUpdate(inputItems, logData, participant);
+    data.age += (logIndex * MAX_LOGS); // @todo use safeMath
+    return abi.encode(data.closingBalance, data.age, data.childToken, data.rootToken);
+  }
+
   /**
    * @notice Process the reference tx to start a MoreVP style exit
    * @param receipt Receipt of the reference transaction
@@ -179,6 +200,7 @@ contract ERC20Predicate is IErcPredicate {
 
   function validateSequential(ExitTxData memory exitTxData, ReferenceTxData memory referenceTxData)
     internal
+    pure
   {
     // The closing balance of the referenced tx should be >= exit amount in exitTx
     require(
