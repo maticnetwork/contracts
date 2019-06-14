@@ -24,6 +24,8 @@ const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
 const StakeManager = artifacts.require('StakeManager')
 const ERC20Predicate = artifacts.require('ERC20Predicate')
 const ERC721Predicate = artifacts.require('ERC721Predicate')
+const MarketplacePredicate = artifacts.require('MarketplacePredicate')
+const MarketplacePredicateTest = artifacts.require('MarketplacePredicateTest')
 
 // tokens
 const MaticWETH = artifacts.require('MaticWETH')
@@ -45,12 +47,14 @@ const libDeps = [
     contracts: [
       WithdrawManager,
       ERC20Predicate,
-      ERC721Predicate
+      ERC721Predicate,
+      MarketplacePredicate,
+      MarketplacePredicateTest
     ]
   },
   {
     lib: ECVerify,
-    contracts: [StakeManager]
+    contracts: [StakeManager, MarketplacePredicate, MarketplacePredicateTest]
   },
   {
     lib: Merkle,
@@ -66,11 +70,11 @@ const libDeps = [
   },
   {
     lib: RLPEncode,
-    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate]
+    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate, MarketplacePredicate, MarketplacePredicateTest]
   },
   {
     lib: RLPReader,
-    contracts: [RootChain, ERC20Predicate, ERC721Predicate]
+    contracts: [RootChain, ERC20Predicate, ERC721Predicate, MarketplacePredicate, MarketplacePredicateTest]
   },
   {
     lib: SafeMath,
@@ -116,6 +120,10 @@ module.exports = async function(deployer, network) {
         deployer.deploy(ExitNFT, Registry.address, 'ExitNFT', 'ENFT'),
         deployer.deploy(MaticWETH),
         deployer.deploy(RootERC721, 'RootERC721', 'T721')
+      ])
+      await Promise.all([
+        deployer.deploy(MarketplacePredicate, WithdrawManagerProxy.address, ERC20Predicate.address),
+        deployer.deploy(MarketplacePredicateTest, ERC20Predicate.address)
       ])
     })
     .then(async() => {

@@ -116,7 +116,10 @@ contract ERC721Predicate is IErcPredicate {
     return ageOfChallengeTx > age;
   }
 
-  function interpetStateUpdate(bytes calldata data) external pure returns (bytes memory);
+  function interpretStateUpdate(bytes calldata data)
+    external
+    pure
+    returns (bytes memory b) {}
 
   /**
    * @notice Process the reference tx to start a MoreVP style exit

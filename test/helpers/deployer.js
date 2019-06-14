@@ -106,9 +106,11 @@ class Deployer {
   }
 
   async deployMarketplacePredicate() {
-    const MarketplacePredicate = await contracts.MarketplacePredicate.new()
-    // const MarketplacePredicate = await contracts.MarketplacePredicate.new(this.withdrawManagerProxy.address)
-    // await this.registry.addPredicate(MarketplacePredicate.address, 2 /* Type.ERC721 */)
+    const MarketplacePredicate = await contracts.MarketplacePredicate.new(
+      this.withdrawManagerProxy.address,
+      (await this.deployErc20Predicate()).address
+    )
+    await this.registry.addPredicate(MarketplacePredicate.address, 3 /* Type.Custom */)
     return MarketplacePredicate
   }
 

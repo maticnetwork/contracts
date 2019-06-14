@@ -144,7 +144,7 @@ contract ERC20Predicate is IErcPredicate {
     return ageOfChallengeTx > age;
   }
 
-  function interpetStateUpdate(bytes calldata state)
+  function interpretStateUpdate(bytes calldata state)
     external
     pure
     returns(bytes memory)

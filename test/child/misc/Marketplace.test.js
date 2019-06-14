@@ -42,8 +42,8 @@ contract("Marketplace", async function(accounts) {
     const otherErc20 = await deployer.deployChildErc20(accounts[0], { mapToken: false })
     const token2 = otherErc20.childToken
 
-    await utils.deposit(null, childContracts.childChain, erc20.rootERC20, address1, amount1)
-    await utils.deposit(null, childContracts.childChain, otherErc20.rootERC20, address2, amount2)
+    await utils.deposit(null, childContracts.childChain, erc20.rootERC20, address1, amount1, { writeToFile: 'marketplace/address1Deposit.js' })
+    await utils.deposit(null, childContracts.childChain, otherErc20.rootERC20, address2, amount2, { writeToFile: 'marketplace/address2Deposit.js' })
     assert.equal((await token1.balanceOf(address1)).toNumber(), amount1)
     assert.equal((await token2.balanceOf(address2)).toNumber(), amount2)
 
@@ -74,15 +74,15 @@ contract("Marketplace", async function(accounts) {
       token1: token2.address,
       amount1: amount2
     })
-    console.log(
-      token1.address, obj1.sig, amount1,
-      token2.address, obj2.sig, amount2,
-      encode(token1.address, obj1.sig, amount1),
-      encode(token2.address, obj2.sig, amount2),
-      orderId,
-      expiration,
-      address2
-    )
+    // console.log(
+    //   token1.address, obj1.sig, amount1,
+    //   token2.address, obj2.sig, amount2,
+    //   encode(token1.address, obj1.sig, amount1),
+    //   encode(token2.address, obj2.sig, amount2),
+    //   orderId,
+    //   expiration,
+    //   address2
+    // )
     const { receipt } = await marketplace.executeOrder(
       encode(token1.address, obj1.sig, amount1),
       encode(token2.address, obj2.sig, amount2),
@@ -90,9 +90,9 @@ contract("Marketplace", async function(accounts) {
       expiration,
       address2
     )
-    await utils.writeToFile('marketplace-executeOrder-E20-E20.js', receipt)
+    await utils.writeToFile('marketplace/executeOrder-E20-E20.js', receipt)
     const parsedLogs = logDecoder.decodeLogs(receipt.rawLogs)
-    // console.log(parsedLogs)
+    console.log(parsedLogs)
     assert.equal(parsedLogs[0].event, "Transfer")
     assert.equal(parsedLogs[1].event, "LogTransfer")
     assert.equal(parsedLogs[2].event, "Transfer")
@@ -150,7 +150,7 @@ contract("Marketplace", async function(accounts) {
       expiration,
       address2
     )
-    await utils.writeToFile('marketplace-executeOrder-E20-E721.js', receipt)
+    await utils.writeToFile('marketplace/executeOrder-E20-E721.js', receipt)
     const parsedLogs = logDecoder.decodeLogs(receipt.rawLogs)
     // console.log(parsedLogs)
     assert.equal(parsedLogs[0].event, "Transfer")

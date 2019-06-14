@@ -9,6 +9,7 @@ export const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
 export const ERC20Predicate = artifacts.require('ERC20Predicate')
 export const ERC721Predicate = artifacts.require('ERC721Predicate')
 export const MarketplacePredicate = artifacts.require('MarketplacePredicate')
+export const MarketplacePredicateTest = artifacts.require('MarketplacePredicateTest')
 
 // tokens
 export const MaticWETH = artifacts.require('MaticWETH')

@@ -47,7 +47,7 @@ interface IPredicate {
    */
   function verifyDeprecation(bytes calldata exit, bytes calldata inputUtxo, bytes calldata challengeData) external returns (bool);
 
-  function interpetStateUpdate(bytes calldata data) external pure returns (bytes memory);
+  function interpretStateUpdate(bytes calldata data) external pure returns (bytes memory);
 }
 
 contract PredicateUtils {

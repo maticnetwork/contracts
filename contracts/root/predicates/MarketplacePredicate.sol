@@ -117,7 +117,7 @@ contract MarketplacePredicate is PredicateUtils /* is DataStructures /* is IErcP
     view
     returns(ReferenceTxData memory _referenceTx)
   {
-    bytes memory preState = erc20Predicate.interpetStateUpdate(abi.encode(
+    bytes memory preState = erc20Predicate.interpretStateUpdate(abi.encode(
       referenceTx[offset + 6].toBytes(), // receipt
       referenceTx[offset + 9].toUint(), // logIndex
       participant

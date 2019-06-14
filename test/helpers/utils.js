@@ -105,7 +105,11 @@ export async function deposit(depositManager, childChain, rootContract, user, am
   } else {
     depositBlockId = '0x' + crypto.randomBytes(32).toString('hex')
   }
-  return childChain.depositTokens(rootContract.address, user, amount, depositBlockId)
+  const deposit = await childChain.depositTokens(rootContract.address, user, amount, depositBlockId)
+  if (options.writeToFile) {
+    await writeToFile(options.writeToFile, deposit.receipt);
+  }
+  return deposit
 }
 
 export function startExit(predicate, headerNumber, blockProof, blockNumber, blockTimestamp, reference, logIndex, exitTx) {
@@ -139,6 +143,18 @@ export function startExitNew(predicate, inputs, exitTx) {
   inputs.forEach(input => {
     _inputs = _inputs.concat(buildReferenceTxPayload(input))
   })
+  return predicate.startExit(
+    utils.bufferToHex(rlp.encode(_inputs)),
+    utils.bufferToHex(exitTx)
+  )
+}
+
+export function startExitForMarketplacePredicate(predicate, inputs, exitToken, exitTx) {
+  let _inputs = []
+  inputs.forEach(input => {
+    _inputs = _inputs.concat(buildReferenceTxPayload(input))
+  })
+  _inputs.push(exitToken)
   return predicate.startExit(
     utils.bufferToHex(rlp.encode(_inputs)),
     utils.bufferToHex(exitTx)
