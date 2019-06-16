@@ -15,10 +15,10 @@ module.exports = function() {
       address.push(process.argv[4])
     } else {
       address = [
-        '0x0cdf0edd304a8e1715d5043d0afe3d3322cc6e3b',
-        '0xcd35d54eda5c9fd97768d16127f261c5d3f1aaeb',
-        '0x115b164bf089c9490c192cc0fa6962af9e5f1202',
-        '0x308ce5531beecb238bad497f485560c06a9e499f'
+        '0x282cB80896f96DdA150CAe6C59C59a312Ff04A9c',
+        '0x76aaFf9dd11B1022E87ebDb2d4A6279468A7b0ee',
+        '0x08E53565E527Ad85C464dA5dE1dA76f6c8De73bd',
+        '0x33cB15388765E9a93B4283b79dCC7047877AfeA6'
       ]
     }
 
