@@ -9,54 +9,88 @@ import { buildInFlight } from '../../mockResponses/utils'
 import * as artifacts from '../../helpers/artifacts'
 
 const utils = require('../../helpers/utils')
-const deposit1 = require('../../mockResponses/marketplace/address1Deposit')
-const deposit2 = require('../../mockResponses/marketplace/address2Deposit')
+const deposit1 = require('../../mockResponses/marketplace/erc20_20_Deposit_1')
+const deposit2 = require('../../mockResponses/marketplace/erc20_20_Deposit_2')
 const executeOrder = require('../../mockResponses/marketplace/executeOrder-E20-E20')
+
+const erc20_721_Deposit_1 = require('../../mockResponses/marketplace/erc20_721_Deposit_1')
+const erc20_721_Deposit_2 = require('../../mockResponses/marketplace/erc20_721_Deposit_2')
+const executeOrder_E20_E721 = require('../../mockResponses/marketplace/executeOrder-E20-E721')
 
 chai
   .use(chaiAsPromised)
   .should()
 
 contract("MarketplacePredicate (from mocked responses)", async function(accounts) {
-  let predicate, erc20Predicate
+  let predicate, erc20Predicate, erc721Predicate
 
   before(async function() {
+    erc721Predicate = await artifacts.ERC721Predicate.deployed()
     erc20Predicate = await artifacts.ERC20Predicate.deployed()
     predicate = await artifacts.MarketplacePredicateTest.deployed()
   })
 
-  it('processPreState', async function() {
+  it('processPreState (Erc20)', async function() {
+    let event = deposit1
     let processPreState = await predicate.processPreStateTest(
       erc20Predicate.address,
-      ethUtils.bufferToHex(ethUtils.rlp.encode(dummyReferenceData(deposit1, 1))),
+      ethUtils.bufferToHex(ethUtils.rlp.encode(dummyReferenceData(event, 1))),
       '0x9fb29aac15b9a4b7f17c3385939b007540f4d791'
     )
     // console.log('processPreState', processPreState)
-    const ans = processPreState.slice(2)
-    const input = deposit1.receipt.logs[1]
+    let ans = processPreState.slice(2)
+    let input = event.receipt.logs[1]
     assert.equal(parseInt(ans.slice(0, 64), 16), parseInt(input.data.slice(-64), 16))
     assert.equal(parseInt(ans.slice(64, 128), 16), 1 * 10 /* logIndex * MAX_LOGS */)
     assert.equal(ans.slice(128, 192).slice(24).toLowerCase(), input.address.slice(2).toLowerCase())
     assert.equal(ans.slice(192, 256).slice(24).toLowerCase(), input.topics[1].slice(26).toLowerCase())
-  })
 
-  it('processPreState counterparty', async function() {
-    const event = deposit2
-    const processPreState = await predicate.processPreStateTest(
+    event = deposit2
+    processPreState = await predicate.processPreStateTest(
       erc20Predicate.address,
       ethUtils.bufferToHex(ethUtils.rlp.encode(dummyReferenceData(event, 1))),
       '0x96c42c56fdb78294f96b0cfa33c92bed7d75f96a'
     )
     // console.log('processPreState', processPreState)
-    const ans = processPreState.slice(2)
-    const input = event.receipt.logs[1]
+    ans = processPreState.slice(2)
+    input = event.receipt.logs[1]
     assert.equal(parseInt(ans.slice(0, 64), 16), parseInt(input.data.slice(-64), 16))
     assert.equal(parseInt(ans.slice(64, 128), 16), 1 * 10 /* logIndex * MAX_LOGS */)
     assert.equal(ans.slice(128, 192).slice(24).toLowerCase(), input.address.slice(2).toLowerCase())
     assert.equal(ans.slice(192, 256).slice(24).toLowerCase(), input.topics[1].slice(26).toLowerCase())
   })
 
-  it.only('processExitTx', async function() {
+  it('processPreState (Erc721)', async function() {
+    let event = erc20_721_Deposit_1
+    let processPreState = await predicate.processPreStateTest(
+      erc20Predicate.address,
+      ethUtils.bufferToHex(ethUtils.rlp.encode(dummyReferenceData(event, 1))),
+      '0x9fb29aac15b9a4b7f17c3385939b007540f4d791'
+    )
+    // console.log('processPreState', processPreState)
+    let ans = processPreState.slice(2)
+    let input = event.receipt.logs[1]
+    assert.equal(parseInt(ans.slice(0, 64), 16), parseInt(input.data.slice(-64), 16))
+    assert.equal(parseInt(ans.slice(64, 128), 16), 1 * 10 /* logIndex * MAX_LOGS */)
+    assert.equal(ans.slice(128, 192).slice(24).toLowerCase(), input.address.slice(2).toLowerCase())
+    assert.equal(ans.slice(192, 256).slice(24).toLowerCase(), input.topics[1].slice(26).toLowerCase())
+
+    event = erc20_721_Deposit_2
+    processPreState = await predicate.processPreStateTest(
+      erc721Predicate.address,
+      ethUtils.bufferToHex(ethUtils.rlp.encode(dummyReferenceData(event, 1))),
+      '0x96c42c56fdb78294f96b0cfa33c92bed7d75f96a'
+    )
+    // console.log('processPreState', processPreState)
+    ans = processPreState.slice(2)
+    input = event.receipt.logs[1]
+    assert.equal(parseInt(ans.slice(0, 64), 16), parseInt(input.data.slice(-64), 16))
+    assert.equal(parseInt(ans.slice(64, 128), 16), 1 * 10 /* logIndex * MAX_LOGS */)
+    assert.equal(ans.slice(128, 192).slice(24).toLowerCase(), input.address.slice(2).toLowerCase())
+    assert.equal(ans.slice(192, 256).slice(24).toLowerCase(), input.topics[1].slice(26).toLowerCase())
+  })
+
+  it('processExitTx', async function() {
     const startExit = await predicate.processExitTx(ethUtils.bufferToHex(buildInFlight(executeOrder.tx)))
     // console.log('startExit', startExit)
     const ans = startExit.slice(2)

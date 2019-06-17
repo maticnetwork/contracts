@@ -70,30 +70,15 @@ contract MarketplacePredicate is PredicateUtils {
       "Not a valid predicate"
     );
     ReferenceTxData memory reference1 = processPreState(predicate, preState, msg.sender);
-    require(
-      reference1.childToken == exitTxData.token1,
-      "Child tokens do not match"
-    );
-    require(
-      reference1.closingBalance >= exitTxData.amount1,
-      "Exiting with more tokens than referenced"
-    );
+    validateTokenBalance(reference1.childToken, exitTxData.token1, reference1.closingBalance, exitTxData.amount1);
     (predicate, preState) = abi.decode(referenceTx[1].toBytes(), (address, bytes));
     require(
       uint8(registry.predicates(predicate)) != 0,
       "Not a valid predicate"
     );
     ReferenceTxData memory reference2 = processPreState(predicate, preState, exitTxData.counterParty);
-    // ReferenceTxData memory reference2 = processPreState(referenceTx, 10, exitTxData.counterParty);
-    require(
-      reference2.childToken == exitTxData.token2,
-      "Child tokens do not match"
-    );
-    require(
-      reference2.closingBalance >= exitTxData.amount2,
-      "Exiting with more tokens than referenced"
-    );
-    uint256 priority = Math.max(reference1.age, reference1.age);
+    validateTokenBalance(reference2.childToken, exitTxData.token2, reference2.closingBalance, exitTxData.amount2);
+    uint256 priority = Math.max(reference1.age, reference2.age);
     address exitChildToken = address(RLPReader.toUint(referenceTx[2]));
     if (exitChildToken == reference1.childToken) {
       withdrawManager.addExitToQueue(
@@ -112,6 +97,30 @@ contract MarketplacePredicate is PredicateUtils {
     }
     withdrawManager.addInput(priority /* exitId */, reference1.age /* age of input */, msg.sender /* signer */);
     withdrawManager.addInput(priority /* exitId */, reference2.age /* age of input */, exitTxData.counterParty /* signer */);
+  }
+
+  function validateTokenBalance(
+    address childToken,
+    address _childToken,
+    uint256 closingBalance,
+    uint256 amount)
+    internal
+  {
+    require(
+      childToken == _childToken,
+      "Child tokens do not match"
+    );
+    if (registry.isChildTokenErc721(childToken)) {
+      require(
+        closingBalance == amount,
+        "Same erc721 token was not referenced"
+      );
+    } else {
+      require(
+        closingBalance >= amount,
+        "Exiting with more tokens than referenced"
+      );
+    }
   }
 
   function processPreState(

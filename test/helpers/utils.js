@@ -7,15 +7,6 @@ import fs from 'fs'
 import path from 'path'
 
 import { generateFirstWallets, mnemonics } from './wallets.js'
-import {
-  getTxProof,
-  verifyTxProof,
-  getReceiptProof,
-  verifyReceiptProof
-} from './proofs'
-import { getBlockHeader } from './blocks'
-import MerkleTree from './merkle-tree'
-import { build, buildInFlight } from '../mockResponses/utils'
 
 const crypto = require('crypto')
 const BN = utils.BN

@@ -47,12 +47,12 @@ interface IPredicate {
    */
   function verifyDeprecation(bytes calldata exit, bytes calldata inputUtxo, bytes calldata challengeData) external returns (bool);
 
-  function interpretStateUpdate(bytes calldata data) external view returns (bytes memory);
+  function interpretStateUpdate(bytes calldata state) external view returns (bytes memory);
 }
 
 contract PredicateUtils {
   using RLPReader for RLPReader.RLPItem;
-  
+
   function getAddressFromTx(RLPReader.RLPItem[] memory txList, bytes memory networkId)
     internal
     pure
