@@ -7,33 +7,30 @@ import { ERC20Predicate } from "../root/predicates/ERC20Predicate.sol";
 
 contract MarketplacePredicateTest is MarketplacePredicate {
 
-  constructor(address _erc20Predicate)
-    MarketplacePredicate(address(0x0), _erc20Predicate)
-    public
-  {
-    erc20Predicate = ERC20Predicate(_erc20Predicate);
-  }
+  constructor()
+    MarketplacePredicate(address(0x0), address(0x0))
+    public {}
 
-  event DEBUG(bytes b);
-  function processPreState(
+  function processPreStateTest(
+    address predicate,
     bytes memory data,
     address participant)
     public
+    view
     returns(bytes memory b)
   {
-    RLPReader.RLPItem[] memory referenceTx = data.toRlpItem().toList();
-    ReferenceTxData memory _referenceTx = super.processPreState(referenceTx, 0, participant);
+    ReferenceTxData memory _referenceTx = super.processPreState(predicate, data, participant);
     b = abi.encode(_referenceTx.closingBalance, _referenceTx.age, _referenceTx.childToken, _referenceTx.rootToken);
-    emit DEBUG(b);
   }
 
   function processExitTx(bytes memory exitTx)
     public
+    view
     returns(bytes memory b)
   {
     ExitTxData memory txData = super.processExitTx(exitTx, "\x0d");
     b = abi.encode(txData.amount1, txData.amount2, txData.token1, txData.token2, txData.counterParty);
-    emit DEBUG(b);
+    // emit DEBUG(b);
   }
 
   function decodeExitTx(bytes memory exitTx)

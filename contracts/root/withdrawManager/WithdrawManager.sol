@@ -31,6 +31,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
 
   function verifyInclusion(bytes calldata data, uint8 offset, bool verifyTxInclusion)
     external
+    view
     returns (uint256 age)
   {
     RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();

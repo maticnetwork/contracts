@@ -118,7 +118,7 @@ contract ERC721Predicate is IErcPredicate {
 
   function interpretStateUpdate(bytes calldata data)
     external
-    pure
+    view
     returns (bytes memory b) {}
 
   /**

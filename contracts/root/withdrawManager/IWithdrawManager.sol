@@ -2,7 +2,7 @@ pragma solidity ^0.5.2;
 
 contract IWithdrawManager {
   function createExitQueue(address token) external;
-  function verifyInclusion(bytes calldata data, uint8 offset, bool verifyTxInclusion) external returns (uint256 age);
+  function verifyInclusion(bytes calldata data, uint8 offset, bool verifyTxInclusion) external view returns (uint256 age);
   function addExitToQueue(
     address exitor,
     address childToken,

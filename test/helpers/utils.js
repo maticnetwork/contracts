@@ -152,7 +152,12 @@ export function startExitNew(predicate, inputs, exitTx) {
 export function startExitForMarketplacePredicate(predicate, inputs, exitToken, exitTx) {
   let _inputs = []
   inputs.forEach(input => {
-    _inputs = _inputs.concat(buildReferenceTxPayload(input))
+    _inputs.push(
+      web3.eth.abi.encodeParameters(
+        ['address', 'bytes'],
+        [input.predicate, rlp.encode(buildReferenceTxPayload(input))]
+      )
+    )
   })
   _inputs.push(exitToken)
   return predicate.startExit(
@@ -178,19 +183,23 @@ export async function verifyDeprecation(withdrawManager, predicate, exitId, inpu
 }
 
 export function buildReferenceTxPayload(input) {
-  const { headerNumber, blockProof, blockNumber, blockTimestamp, reference, logIndex } = input
-  return [
-    headerNumber,
-    utils.bufferToHex(Buffer.concat(blockProof)),
-    blockNumber,
-    blockTimestamp,
-    utils.bufferToHex(reference.transactionsRoot),
-    utils.bufferToHex(reference.receiptsRoot),
-    utils.bufferToHex(reference.receipt),
-    utils.bufferToHex(rlp.encode(reference.receiptParentNodes)),
-    utils.bufferToHex(rlp.encode(reference.path)), // branch mask,
-    logIndex
-  ]
+  const res = []
+  const { headerNumber, blockProof, blockNumber, blockTimestamp, reference, logIndex, predicate } = input
+  // if (predicate) res.push(predicate)
+  return res.concat(
+    [
+      headerNumber,
+      utils.bufferToHex(Buffer.concat(blockProof)),
+      blockNumber,
+      blockTimestamp,
+      utils.bufferToHex(reference.transactionsRoot),
+      utils.bufferToHex(reference.receiptsRoot),
+      utils.bufferToHex(reference.receipt),
+      utils.bufferToHex(rlp.encode(reference.receiptParentNodes)),
+      utils.bufferToHex(rlp.encode(reference.path)), // branch mask,
+      logIndex
+    ]
+  )
 }
 
 export function buildChallengeData(input) {

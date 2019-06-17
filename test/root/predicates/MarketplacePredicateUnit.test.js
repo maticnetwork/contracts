@@ -5,7 +5,7 @@ import ethUtils from 'ethereumjs-util'
 import deployer from '../../helpers/deployer.js'
 import logDecoder from '../../helpers/log-decoder.js'
 import { getReceiptBytes } from '../../helpers/proofs'
-import { build, buildInFlight } from '../../mockResponses/utils'
+import { buildInFlight } from '../../mockResponses/utils'
 import * as artifacts from '../../helpers/artifacts'
 
 const utils = require('../../helpers/utils')
@@ -17,21 +17,22 @@ chai
   .use(chaiAsPromised)
   .should()
 
-let start = 0
 contract("MarketplacePredicate (from mocked responses)", async function(accounts) {
-  let contracts, childContracts, marketplace, predicate
+  let predicate, erc20Predicate
 
   before(async function() {
+    erc20Predicate = await artifacts.ERC20Predicate.deployed()
     predicate = await artifacts.MarketplacePredicateTest.deployed()
   })
 
   it('processPreState', async function() {
-    const processPreState = await predicate.processPreState(
+    let processPreState = await predicate.processPreStateTest(
+      erc20Predicate.address,
       ethUtils.bufferToHex(ethUtils.rlp.encode(dummyReferenceData(deposit1, 1))),
       '0x9fb29aac15b9a4b7f17c3385939b007540f4d791'
     )
     // console.log('processPreState', processPreState)
-    const ans = processPreState.receipt.logs[0].args.b.slice(2)
+    const ans = processPreState.slice(2)
     const input = deposit1.receipt.logs[1]
     assert.equal(parseInt(ans.slice(0, 64), 16), parseInt(input.data.slice(-64), 16))
     assert.equal(parseInt(ans.slice(64, 128), 16), 1 * 10 /* logIndex * MAX_LOGS */)
@@ -41,12 +42,13 @@ contract("MarketplacePredicate (from mocked responses)", async function(accounts
 
   it('processPreState counterparty', async function() {
     const event = deposit2
-    const processPreState = await predicate.processPreState(
+    const processPreState = await predicate.processPreStateTest(
+      erc20Predicate.address,
       ethUtils.bufferToHex(ethUtils.rlp.encode(dummyReferenceData(event, 1))),
       '0x96c42c56fdb78294f96b0cfa33c92bed7d75f96a'
     )
     // console.log('processPreState', processPreState)
-    const ans = processPreState.receipt.logs[0].args.b.slice(2)
+    const ans = processPreState.slice(2)
     const input = event.receipt.logs[1]
     assert.equal(parseInt(ans.slice(0, 64), 16), parseInt(input.data.slice(-64), 16))
     assert.equal(parseInt(ans.slice(64, 128), 16), 1 * 10 /* logIndex * MAX_LOGS */)
@@ -54,10 +56,10 @@ contract("MarketplacePredicate (from mocked responses)", async function(accounts
     assert.equal(ans.slice(192, 256).slice(24).toLowerCase(), input.topics[1].slice(26).toLowerCase())
   })
 
-  it('processExitTx', async function() {
-    const startExit = await predicate.processExitTx(buildInFlight(executeOrder.tx))
+  it.only('processExitTx', async function() {
+    const startExit = await predicate.processExitTx(ethUtils.bufferToHex(buildInFlight(executeOrder.tx)))
     // console.log('startExit', startExit)
-    const ans = startExit.receipt.logs[0].args.b.slice(2)
+    const ans = startExit.slice(2)
     const input = parseRawTxData(Buffer.from(executeOrder.tx.input.slice(2), 'hex'))
     assert.equal(parseInt(ans.slice(0, 64), 16), parseInt(input.data1.tokenIdOrAmount))
     assert.equal(parseInt(ans.slice(64, 128), 16), parseInt(input.data2.tokenIdOrAmount))
@@ -72,7 +74,7 @@ function parseRawTxData(input) {
     funcSig: input.slice(0, 4),
     orderId: input.slice(68, 100),
     expiration: input.slice(100, 132),
-    taker: input.slice(132, 164),
+    taker: input.slice(132, 164)
   }
   let length = parseInt(input.slice(164, 196).toString('hex'), 16)
   res.data1 = decode(input.slice(196, 196 + length))

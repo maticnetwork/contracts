@@ -123,7 +123,7 @@ module.exports = async function(deployer, network) {
       ])
       await Promise.all([
         deployer.deploy(MarketplacePredicate, WithdrawManagerProxy.address, ERC20Predicate.address),
-        deployer.deploy(MarketplacePredicateTest, ERC20Predicate.address)
+        deployer.deploy(MarketplacePredicateTest)
       ])
     })
     .then(async() => {

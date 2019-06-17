@@ -7,12 +7,11 @@ import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 import { RLPEncode } from "../../common/lib/RLPEncode.sol";
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 
-import { IErcPredicate, PredicateUtils } from "./IPredicate.sol";
-// import { DataStructures, MarketplacePredicateLib } from "./MarketplacePredicateLib.sol";
-import { ERC20Predicate } from "./ERC20Predicate.sol";
+import { IPredicate, PredicateUtils } from "./IPredicate.sol";
+import { Registry } from "../../common/Registry.sol";
 import { IWithdrawManager } from "../withdrawManager/IWithdrawManager.sol";
 
-contract MarketplacePredicate is PredicateUtils /* is DataStructures /* is IErcPredicate */ {
+contract MarketplacePredicate is PredicateUtils {
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
 
@@ -20,7 +19,7 @@ contract MarketplacePredicate is PredicateUtils /* is DataStructures /* is IErcP
   bytes4 constant EXECUTE_ORDER_FUNC_SIG = 0xe660b9e4;
 
   IWithdrawManager internal withdrawManager;
-  ERC20Predicate erc20Predicate;
+  Registry internal registry;
 
   struct ExecuteOrderData {
     bytes data1;
@@ -53,11 +52,11 @@ contract MarketplacePredicate is PredicateUtils /* is DataStructures /* is IErcP
     address rootToken;
   }
 
-  constructor(address _withdrawManager, address _erc20Predicate)
+  constructor(address _withdrawManager, address _registry)
     public
   {
-    erc20Predicate = ERC20Predicate(_erc20Predicate);
     withdrawManager = IWithdrawManager(_withdrawManager);
+    registry = Registry(_registry);
   }
 
   function startExit(bytes calldata data, bytes calldata exitTx)
@@ -65,7 +64,12 @@ contract MarketplacePredicate is PredicateUtils /* is DataStructures /* is IErcP
   {
     ExitTxData memory exitTxData = processExitTx(exitTx, withdrawManager.networkId());
     RLPReader.RLPItem[] memory referenceTx = data.toRlpItem().toList();
-    ReferenceTxData memory reference1 = processPreState(referenceTx, 0, msg.sender);
+    (address predicate, bytes memory preState) = abi.decode(referenceTx[0].toBytes(), (address, bytes));
+    require(
+      uint8(registry.predicates(predicate)) != 0,
+      "Not a valid predicate"
+    );
+    ReferenceTxData memory reference1 = processPreState(predicate, preState, msg.sender);
     require(
       reference1.childToken == exitTxData.token1,
       "Child tokens do not match"
@@ -74,10 +78,13 @@ contract MarketplacePredicate is PredicateUtils /* is DataStructures /* is IErcP
       reference1.closingBalance >= exitTxData.amount1,
       "Exiting with more tokens than referenced"
     );
-    // uint256 age = withdrawManager.verifyInclusion(data, 0, false /* verifyTxInclusion */);
-    uint256 age;
-    reference1.age += age; // @todo use SafeMath
-    ReferenceTxData memory reference2 = processPreState(referenceTx, 10, exitTxData.counterParty);
+    (predicate, preState) = abi.decode(referenceTx[1].toBytes(), (address, bytes));
+    require(
+      uint8(registry.predicates(predicate)) != 0,
+      "Not a valid predicate"
+    );
+    ReferenceTxData memory reference2 = processPreState(predicate, preState, exitTxData.counterParty);
+    // ReferenceTxData memory reference2 = processPreState(referenceTx, 10, exitTxData.counterParty);
     require(
       reference2.childToken == exitTxData.token2,
       "Child tokens do not match"
@@ -86,10 +93,8 @@ contract MarketplacePredicate is PredicateUtils /* is DataStructures /* is IErcP
       reference2.closingBalance >= exitTxData.amount2,
       "Exiting with more tokens than referenced"
     );
-    // age = withdrawManager.verifyInclusion(data, 10, false /* verifyTxInclusion */);
-    reference2.age += age; // @todo use SafeMath
     uint256 priority = Math.max(reference1.age, reference1.age);
-    address exitChildToken = address(RLPReader.toUint(referenceTx[20]));
+    address exitChildToken = address(RLPReader.toUint(referenceTx[2]));
     if (exitChildToken == reference1.childToken) {
       withdrawManager.addExitToQueue(
         msg.sender, exitChildToken, reference1.rootToken,
@@ -110,19 +115,15 @@ contract MarketplacePredicate is PredicateUtils /* is DataStructures /* is IErcP
   }
 
   function processPreState(
-    RLPReader.RLPItem[] memory referenceTx,
-    uint8 offset,
+    address predicate,
+    bytes memory preState,
     address participant)
     internal
     view
     returns(ReferenceTxData memory _referenceTx)
   {
-    bytes memory preState = erc20Predicate.interpretStateUpdate(abi.encode(
-      referenceTx[offset + 6].toBytes(), // receipt
-      referenceTx[offset + 9].toUint(), // logIndex
-      participant
-    ));
-    (_referenceTx.closingBalance, _referenceTx.age, _referenceTx.childToken, _referenceTx.rootToken) = abi.decode(preState, (uint256, uint256, address,address));
+    bytes memory _preState = IPredicate(predicate).interpretStateUpdate(abi.encode(preState, participant));
+    (_referenceTx.closingBalance, _referenceTx.age, _referenceTx.childToken, _referenceTx.rootToken) = abi.decode(_preState, (uint256, uint256, address,address));
   }
 
   function processExitTx(bytes memory exitTx, bytes memory networkId)

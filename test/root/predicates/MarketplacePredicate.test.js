@@ -23,7 +23,7 @@ chai
 
 let start = 0
 contract("MarketplacePredicate", async function(accounts) {
-  let contracts, childContracts, marketplace, predicate
+  let contracts, childContracts, marketplace, predicate, erc20Predicate
   const amount1 = web3.utils.toBN('10')
   const amount2 = web3.utils.toBN('5')
   const tokenId = web3.utils.toBN('789')
@@ -41,6 +41,7 @@ contract("MarketplacePredicate", async function(accounts) {
 
   before(async function() {
     contracts = await deployer.freshDeploy()
+    erc20Predicate = await deployer.deployErc20Predicate()
     childContracts = await deployer.initializeChildChain(accounts[0])
     marketplace = await deployer.deployMarketplace()
   })
@@ -61,11 +62,11 @@ contract("MarketplacePredicate", async function(accounts) {
     const depositAmount = amount1.add(web3.utils.toBN('3'))
     const { receipt } = await utils.deposit(null, childContracts.childChain, erc20.rootERC20, address1, depositAmount)
     let { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts)
-    inputs.push({ headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 })
+    inputs.push({ predicate: erc20Predicate.address, headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 })
 
     let { receipt: d } = await utils.deposit(null, childContracts.childChain, otherErc20.rootERC20, address2, amount2)
     const i = await init(contracts.rootChain, d, accounts)
-    inputs.push({ headerNumber: i.headerNumber, blockProof: i.blockProof, blockNumber: i.block.number, blockTimestamp: i.block.timestamp, reference: i.reference, logIndex: 1 })
+    inputs.push({ predicate: erc20Predicate.address, headerNumber: i.headerNumber, blockProof: i.blockProof, blockNumber: i.block.number, blockTimestamp: i.block.timestamp, reference: i.reference, logIndex: 1 })
 
     assert.equal((await token1.balanceOf(address1)).toNumber(), depositAmount)
     assert.equal((await token2.balanceOf(address2)).toNumber(), amount2)
