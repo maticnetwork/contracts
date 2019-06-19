@@ -2,13 +2,10 @@ import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import ethUtils from 'ethereumjs-util'
 
-import deployer from '../../helpers/deployer.js'
-import logDecoder from '../../helpers/log-decoder.js'
 import { getReceiptBytes } from '../../helpers/proofs'
 import { buildInFlight } from '../../mockResponses/utils'
 import * as artifacts from '../../helpers/artifacts'
 
-const utils = require('../../helpers/utils')
 const deposit1 = require('../../mockResponses/marketplace/erc20_20_Deposit_1')
 const deposit2 = require('../../mockResponses/marketplace/erc20_20_Deposit_2')
 const executeOrder = require('../../mockResponses/marketplace/executeOrder-E20-E20')
@@ -17,11 +14,14 @@ const erc20_721_Deposit_1 = require('../../mockResponses/marketplace/erc20_721_D
 const erc20_721_Deposit_2 = require('../../mockResponses/marketplace/erc20_721_Deposit_2')
 const executeOrder_E20_E721 = require('../../mockResponses/marketplace/executeOrder-E20-E721')
 
+const incomingTransfer = require('../../mockResponses/incomingTransfer')
+
+
 chai
   .use(chaiAsPromised)
   .should()
 
-contract("MarketplacePredicate (from mocked responses)", async function(accounts) {
+contract('MarketplacePredicate (from mocked responses)', async function(accounts) {
   let predicate, erc20Predicate, erc721Predicate
 
   before(async function() {
@@ -30,7 +30,7 @@ contract("MarketplacePredicate (from mocked responses)", async function(accounts
     predicate = await artifacts.MarketplacePredicateTest.deployed()
   })
 
-  it('processPreState (Erc20)', async function() {
+  it('processPreState (Erc20 Deposit)', async function() {
     let event = deposit1
     let processPreState = await predicate.processPreStateTest(
       erc20Predicate.address,
@@ -60,7 +60,39 @@ contract("MarketplacePredicate (from mocked responses)", async function(accounts
     assert.equal(ans.slice(192, 256).slice(24).toLowerCase(), input.topics[1].slice(26).toLowerCase())
   })
 
-  it('processPreState (Erc721)', async function() {
+  it('processPreState (Erc20 outgoingTransfer)', async function() {
+    let event = incomingTransfer
+    let processPreState = await predicate.processPreStateTest(
+      erc20Predicate.address,
+      ethUtils.bufferToHex(ethUtils.rlp.encode(dummyReferenceData(event, 1))),
+      '0x96c42c56fdb78294f96b0cfa33c92bed7d75f96a'
+    )
+    // console.log('processPreState', processPreState)
+    let ans = processPreState.slice(2)
+    let input = event.receipt.logs[1]
+    assert.equal(parseInt(ans.slice(0, 64), 16), parseInt(input.data.slice(-128, -64) /* output1 */, 16))
+    assert.equal(parseInt(ans.slice(64, 128), 16), 1 * 10 /* logIndex * MAX_LOGS */)
+    assert.equal(ans.slice(128, 192).slice(24).toLowerCase(), input.address.slice(2).toLowerCase())
+    assert.equal(ans.slice(192, 256).slice(24).toLowerCase(), input.topics[1].slice(26).toLowerCase())
+  })
+
+  it('processPreState (Erc20 incomingTransfer)', async function() {
+    let event = incomingTransfer
+    let processPreState = await predicate.processPreStateTest(
+      erc20Predicate.address,
+      ethUtils.bufferToHex(ethUtils.rlp.encode(dummyReferenceData(event, 1))),
+      '0x9fb29aac15b9a4b7f17c3385939b007540f4d791'
+    )
+    // console.log('processPreState', processPreState)
+    let ans = processPreState.slice(2)
+    let input = event.receipt.logs[1]
+    assert.equal(parseInt(ans.slice(0, 64), 16), parseInt(input.data.slice(-64) /* output2 */, 16))
+    assert.equal(parseInt(ans.slice(64, 128), 16), 1 * 10 + 1 /* logIndex * MAX_LOGS + oIndex */)
+    assert.equal(ans.slice(128, 192).slice(24).toLowerCase(), input.address.slice(2).toLowerCase())
+    assert.equal(ans.slice(192, 256).slice(24).toLowerCase(), input.topics[1].slice(26).toLowerCase())
+  })
+
+  it('processPreState (Erc721 Deposit)', async function() {
     let event = erc20_721_Deposit_1
     let processPreState = await predicate.processPreStateTest(
       erc20Predicate.address,
@@ -90,11 +122,24 @@ contract("MarketplacePredicate (from mocked responses)", async function(accounts
     assert.equal(ans.slice(192, 256).slice(24).toLowerCase(), input.topics[1].slice(26).toLowerCase())
   })
 
-  it('processExitTx', async function() {
+  it('processExitTx (20/20)', async function() {
     const startExit = await predicate.processExitTx(ethUtils.bufferToHex(buildInFlight(executeOrder.tx)))
     // console.log('startExit', startExit)
     const ans = startExit.slice(2)
     const input = parseRawTxData(Buffer.from(executeOrder.tx.input.slice(2), 'hex'))
+    assert.equal(parseInt(ans.slice(0, 64), 16), parseInt(input.data1.tokenIdOrAmount))
+    assert.equal(parseInt(ans.slice(64, 128), 16), parseInt(input.data2.tokenIdOrAmount))
+    assert.equal(ans.slice(128, 192).slice(24).toLowerCase(), input.data1.token.slice(2).toLowerCase())
+    assert.equal(ans.slice(192, 256).slice(24).toLowerCase(), input.data2.token.slice(2).toLowerCase())
+    assert.equal(ans.slice(256).toLowerCase(), input.taker.toString('hex').toLowerCase())
+  })
+
+  it('processExitTx (20/721)', async function() {
+    const event = executeOrder_E20_E721
+    const startExit = await predicate.processExitTx(ethUtils.bufferToHex(buildInFlight(event.tx)))
+    // console.log('startExit', startExit)
+    const ans = startExit.slice(2)
+    const input = parseRawTxData(Buffer.from(event.tx.input.slice(2), 'hex'))
     assert.equal(parseInt(ans.slice(0, 64), 16), parseInt(input.data1.tokenIdOrAmount))
     assert.equal(parseInt(ans.slice(64, 128), 16), parseInt(input.data2.tokenIdOrAmount))
     assert.equal(ans.slice(128, 192).slice(24).toLowerCase(), input.data1.token.slice(2).toLowerCase())

@@ -18,10 +18,12 @@ import { build, buildInFlight } from '../../mockResponses/utils'
 
 const crypto = require('crypto')
 const utils = require('../../helpers/utils')
+const executeOrder = require('../../mockResponses/marketplace/executeOrder-E20-E20')
 
 chai
   .use(chaiAsPromised)
   .should()
+const rlp = ethUtils.rlp
 
 contract('MarketplacePredicate', async function(accounts) {
   let contracts, childContracts, marketplace, predicate, erc20Predicate, erc721Predicate
@@ -109,7 +111,7 @@ contract('MarketplacePredicate', async function(accounts) {
     )
     let exitTx = await utils.web3Child.eth.getTransaction(r.transactionHash)
     exitTx = await buildInFlight(exitTx)
-    const startExitTx = await utils.startExitForMarketplacePredicate(predicate, inputs, token1.address, buildInFlight(exitTx))
+    const startExitTx = await utils.startExitForMarketplacePredicate(predicate, inputs, token1.address, exitTx)
     const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
     // console.log('startExit', startExitTx, logs)
     let log = logs[1]
@@ -185,7 +187,7 @@ contract('MarketplacePredicate', async function(accounts) {
     )
     let exitTx = await utils.web3Child.eth.getTransaction(r.transactionHash)
     exitTx = await buildInFlight(exitTx)
-    const startExitTx = await utils.startExitForMarketplacePredicate(predicate, inputs, token1.address, buildInFlight(exitTx))
+    const startExitTx = await utils.startExitForMarketplacePredicate(predicate, inputs, token1.address, exitTx)
     const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
     // console.log('startExit', startExitTx, logs)
     let log = logs[1]
@@ -205,6 +207,151 @@ contract('MarketplacePredicate', async function(accounts) {
     log.event.should.equal('ExitUpdated')
     assert.equal(log.args.signer.toLowerCase(), address2.toLowerCase())
     utils.assertBigNumberEquality(log.args.exitId, exitId)
+  })
+
+  it('startExit fails if some other token is referenced', async function() {
+    const erc20 = await deployer.deployChildErc20(accounts[0])
+    const token1 = erc20.childToken
+    const erc721 = await deployer.deployChildErc721(accounts[0])
+    const token2 = erc721.childErc721
+
+    const inputs = []
+    // deposit more tokens than spending, otherwise CANNOT_EXIT_ZERO_AMOUNTS
+    const depositAmount = amount1.add(web3.utils.toBN('3'))
+    await utils.deposit(null, childContracts.childChain, erc20.rootERC20, address1, depositAmount)
+
+    // Use erc20 in the marketplace tx but reference some other token deposit
+    const otherErc20 = await deployer.deployChildErc20(accounts[0])
+    // const token3 = otherErc20.childToken
+    const { receipt } = await utils.deposit(null, childContracts.childChain, otherErc20.rootERC20, address1, depositAmount)
+    let { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts)
+    inputs.push({ predicate: erc20Predicate.address, headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 })
+
+    let { receipt: d } = await utils.deposit(null, childContracts.childChain, erc721.rootERC721, address2, tokenId)
+    const i = await init(contracts.rootChain, d, accounts)
+    inputs.push({ predicate: erc721Predicate.address, headerNumber: i.headerNumber, blockProof: i.blockProof, blockNumber: i.block.number, blockTimestamp: i.block.timestamp, reference: i.reference, logIndex: 1 })
+
+    assert.equal((await token1.balanceOf(address1)).toNumber(), depositAmount)
+    assert.equal((await token2.ownerOf(tokenId)).toLowerCase(), address2.toLowerCase())
+
+    const orderId = '0x' + crypto.randomBytes(32).toString('hex')
+    // get expiration in future in 10 blocks
+    const expiration = 0 // (await web3.eth.getBlockNumber()) + 10
+    const obj1 = getSig({
+      privateKey: privateKey1,
+      spender: marketplace.address,
+      orderId: orderId,
+      expiration: expiration,
+
+      token1: token1.address,
+      amount1: amount1,
+      token2: token2.address,
+      amount2: tokenId
+    })
+    const obj2 = getSig({
+      privateKey: privateKey2,
+      spender: marketplace.address,
+      orderId: orderId,
+      expiration: expiration,
+
+      token2: token1.address,
+      amount2: amount1,
+      token1: token2.address,
+      amount1: tokenId
+    })
+    const { receipt: r } = await marketplace.executeOrder(
+      encode(token1.address, obj1.sig, amount1),
+      encode(token2.address, obj2.sig, tokenId),
+      orderId,
+      expiration,
+      address2
+    )
+    let exitTx = await utils.web3Child.eth.getTransaction(r.transactionHash)
+    exitTx = await buildInFlight(exitTx)
+    try {
+      await utils.startExitForMarketplacePredicate(predicate, inputs, token1.address, exitTx)
+      assert.fail(1, 2, 'Expected to fail')
+    } catch (e) {
+      assert.equal(e.reason, 'Child tokens do not match')
+    }
+  })
+
+  it('startExit fails if inputs are given in an incorrect order', async function() {
+    const erc20 = await deployer.deployChildErc20(accounts[0])
+    const token1 = erc20.childToken
+    const erc721 = await deployer.deployChildErc721(accounts[0])
+    const token2 = erc721.childErc721
+
+    const inputs = []
+    // Provide the counterparty's deposit as the first input
+    let { receipt: d } = await utils.deposit(null, childContracts.childChain, erc721.rootERC721, address2, tokenId)
+    const i = await init(contracts.rootChain, d, accounts)
+    inputs.push({ predicate: erc721Predicate.address, headerNumber: i.headerNumber, blockProof: i.blockProof, blockNumber: i.block.number, blockTimestamp: i.block.timestamp, reference: i.reference, logIndex: 1 })
+
+    // deposit more tokens than spending, otherwise CANNOT_EXIT_ZERO_AMOUNTS
+    const depositAmount = amount1.add(web3.utils.toBN('3'))
+    const { receipt } = await utils.deposit(null, childContracts.childChain, erc20.rootERC20, address1, depositAmount)
+    let { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts)
+    inputs.push({ predicate: erc20Predicate.address, headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 })
+
+    const orderId = '0x' + crypto.randomBytes(32).toString('hex')
+    // get expiration in future in 10 blocks
+    const expiration = 0 // (await web3.eth.getBlockNumber()) + 10
+    const obj1 = getSig({
+      privateKey: privateKey1,
+      spender: marketplace.address,
+      orderId: orderId,
+      expiration: expiration,
+
+      token1: token1.address,
+      amount1: amount1,
+      token2: token2.address,
+      amount2: tokenId
+    })
+    const obj2 = getSig({
+      privateKey: privateKey2,
+      spender: marketplace.address,
+      orderId: orderId,
+      expiration: expiration,
+
+      token2: token1.address,
+      amount2: amount1,
+      token1: token2.address,
+      amount1: tokenId
+    })
+    const { receipt: r } = await marketplace.executeOrder(
+      encode(token1.address, obj1.sig, amount1),
+      encode(token2.address, obj2.sig, tokenId),
+      orderId,
+      expiration,
+      address2
+    )
+    let exitTx = await utils.web3Child.eth.getTransaction(r.transactionHash)
+    exitTx = await buildInFlight(exitTx)
+    try {
+      await utils.startExitForMarketplacePredicate(predicate, inputs, token1.address, exitTx)
+      assert.fail(1, 2, 'Expected to fail')
+    } catch (e) {
+      assert.equal(e.reason, 'tx / log doesnt concern the participant')
+    }
+  })
+
+  it('startExit fails if Not a valid predicate', async function() {
+    const inputs = [
+      web3.eth.abi.encodeParameters(
+        ['address', 'bytes'],
+        ['0xc46EB8c1ea86bC8c24f26D9FdF9B76B300FFFE43', rlp.encode(ethUtils.bufferToHex(Buffer.from('dummy')))]
+      )
+    ]
+    try {
+      await predicate.startExit(
+        ethUtils.bufferToHex(rlp.encode(inputs)),
+        buildInFlight(executeOrder.tx)
+      )
+      assert.fail(1, 2, 'Expected to fail')
+    } catch (e) {
+      assert.equal(e.reason, 'Not a valid predicate')
+    }
   })
 })
 
