@@ -1,27 +1,38 @@
 [parity]
 chain = "poa-spec.json"
 base_path = "data"
+keys_path = "keys"
 
 [network]
 port = 30300
 
 [rpc]
 port = 8546
-cors = []
+interface = "all"
+cors = ["all"]
+hosts = ["all"]
 apis = ["web3", "eth", "net", "personal", "parity", "parity_set", "traces", "rpc", "parity_accounts"]
+
+[websockets]
+port = 8541
+interface = "all"
+hosts = ["all"]
+apis = ["web3", "eth", "pubsub", "net", "parity", "parity_pubsub", "traces", "rpc", "shh", "shh_pubsub"]
 
 [ui]
 port = 8180
 
-[websockets]
-port = 8541
-
-[account]
-unlock = ["0x9fb29aac15b9a4b7f17c3385939b007540f4d791","0x96c42c56fdb78294f96b0cfa33c92bed7d75f96a","0xacf8eccdca12a0eb6ae4fb1431e26c44e66decdb"]
-password = ["node.password", "node.password", "node.password"]
+#[websockets]
+#port = 8541
 
 [mining]
-engine_signer = "0x9fb29aac15b9a4b7f17c3385939b007540f4d791"
+engine_signer = "0xf0ebfbd01347aaca487358132394a4b87945b553" # validator
+usd_per_tx = "0"
 reseal_on_txs = "none"
+force_sealing = true
 reseal_min_period = 1000
 reseal_max_period = 60000
+
+[account]
+unlock = ["0xf0ebfbd01347aaca487358132394a4b87945b553", "0x9fb29aac15b9a4b7f17c3385939b007540f4d791", "0x96c42c56fdb78294f96b0cfa33c92bed7d75f96a"]
+password = ["node.password"]
