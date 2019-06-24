@@ -12,6 +12,7 @@ import { RootChainable } from "../../common/mixin/RootChainable.sol";
 
 import { IStakeManager } from "./IStakeManager.sol";
 import { Validator } from "./Validator.sol";
+import { ValidatorContract } from "./Validator.sol";
 
 
 contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
@@ -49,6 +50,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     uint256 activationEpoch;
     uint256 deactivationEpoch;
     address signer;
+    address contractAddress;
   }
 
   struct State {
@@ -71,11 +73,11 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     _;
   }
 
-  function stake(uint256 amount, address signer) public {
-    stakeFor(msg.sender, amount, signer);
+  function stake(uint256 amount, address signer, bool isContract) public {
+    stakeFor(msg.sender, amount, signer, isContract);
   }
 
-  function stakeFor(address user, uint256 amount, address signer) public onlyWhenUnlocked {
+  function stakeFor(address user, uint256 amount, address signer, bool isContract) public onlyWhenUnlocked {
     require(currentValidatorSetSize() < validatorThreshold);
     require(balanceOf(user) == 0, "No second time staking");
     require(amount > MIN_DEPOSIT_SIZE);
@@ -83,6 +85,10 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
     require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");
     totalStaked = totalStaked.add(amount);
+    address _contract;
+    if (isContract) {
+      _contract = address(new ValidatorContract(user));
+    }
 
     validators[NFTCounter] = Validator({
       reward: 0,
@@ -90,10 +96,12 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       amount: amount,
       activationEpoch: currentEpoch,
       deactivationEpoch: 0,
-      signer: signer
+      signer: signer,
+      contractAddress: _contract
     });
 
-    _mint(user, NFTCounter);
+    _mint(validator, NFTCounter);
+
     signerToValidator[signer] = NFTCounter;
     validatorState[currentEpoch].amount += int256(amount);
     validatorState[currentEpoch].stakerCount += int256(1);
@@ -104,6 +112,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
   function unstake(uint256 validatorId) public onlyStaker(validatorId) {
     require(validators[validatorId].activationEpoch > 0 && validators[validatorId].deactivationEpoch == 0);
+    require(true, "unbond all delegators");
     uint256 amount = validators[validatorId].amount;
 
     uint256 exitEpoch = currentEpoch.add(UNSTAKE_DELAY);
