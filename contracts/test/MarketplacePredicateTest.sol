@@ -19,7 +19,7 @@ contract MarketplacePredicateTest is MarketplacePredicate {
     view
     returns(bytes memory b)
   {
-    ReferenceTxData memory _referenceTx = super.processPreState(predicate, data, participant);
+    ReferenceTxData memory _referenceTx = super.processPreState(predicate, data, participant, false);
     b = abi.encode(_referenceTx.closingBalance, _referenceTx.age, _referenceTx.childToken, _referenceTx.rootToken);
   }
 
@@ -30,7 +30,6 @@ contract MarketplacePredicateTest is MarketplacePredicate {
   {
     ExitTxData memory txData = super.processExitTx(exitTx, "\x0d");
     b = abi.encode(txData.amount1, txData.amount2, txData.token1, txData.token2, txData.counterParty);
-    // emit DEBUG(b);
   }
 
   function decodeExitTx(bytes memory exitTx)

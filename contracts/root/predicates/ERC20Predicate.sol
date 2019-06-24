@@ -149,9 +149,7 @@ contract ERC20Predicate is IErcPredicate {
     view
     returns(bytes memory)
   {
-    (bytes memory _data, address participant) = abi.decode(state, (bytes, address));
-    // uint256 age = withdrawManager.verifyInclusion(_data, 0, false /* verifyTxInclusion */);
-    uint256 age;
+    (bytes memory _data, address participant, bool verifyInclusion) = abi.decode(state, (bytes, address, bool));
     RLPReader.RLPItem[] memory referenceTx = _data.toRlpItem().toList();
     bytes memory receipt = referenceTx[6].toBytes();
     uint256 logIndex = referenceTx[9].toUint();
@@ -164,7 +162,10 @@ contract ERC20Predicate is IErcPredicate {
     inputItems = inputItems[1].toList(); // topics
     data.rootToken = address(RLPReader.toUint(inputItems[1]));
     (data.closingBalance, data.age) = processStateUpdate(inputItems, logData, participant);
-    data.age = data.age + age + (logIndex * MAX_LOGS); // @todo use safeMath
+    data.age += (logIndex * MAX_LOGS); // @todo use safeMath
+    if (verifyInclusion) {
+      data.age += withdrawManager.verifyInclusion(_data, 0, false /* verifyTxInclusion */); // @todo use safeMath
+    }
     return abi.encode(data.closingBalance, data.age, data.childToken, data.rootToken);
   }
 

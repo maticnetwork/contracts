@@ -11,7 +11,7 @@ matrix:
   fast_finish: true
 install:
   - sudo apt-get -qq update
-  - bash <(curl https://get.parity.io -L) -r v2.1.11
+  - bash <(curl https://get.parity.io -L) -r v2.4.7
 before_script:
   - export PATH=/snap/bin:${PATH}
   - npm install

@@ -122,9 +122,7 @@ contract ERC721Predicate is IErcPredicate {
     view
     returns (bytes memory b)
   {
-    (bytes memory _data, address participant) = abi.decode(state, (bytes, address));
-    // uint256 age = withdrawManager.verifyInclusion(_data, 0, false /* verifyTxInclusion */);
-    uint256 age;
+    (bytes memory _data, address participant, bool verifyInclusion) = abi.decode(state, (bytes, address, bool));
     RLPReader.RLPItem[] memory referenceTx = _data.toRlpItem().toList();
     bytes memory receipt = referenceTx[6].toBytes();
     uint256 logIndex = referenceTx[9].toUint();
@@ -138,7 +136,10 @@ contract ERC721Predicate is IErcPredicate {
     data.rootToken = address(RLPReader.toUint(inputItems[1]));
     data.closingBalance = BytesLib.toUint(logData, 0);
     data.age = processStateUpdate(inputItems, participant);
-    data.age = data.age + age + (logIndex * MAX_LOGS); // @todo use safeMath
+    data.age += (logIndex * MAX_LOGS); // @todo use safeMath
+    if (verifyInclusion) {
+      data.age += withdrawManager.verifyInclusion(_data, 0, false /* verifyTxInclusion */); // @todo use safeMath
+    }
     return abi.encode(data.closingBalance, data.age, data.childToken, data.rootToken);
   }
 

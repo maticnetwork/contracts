@@ -69,14 +69,14 @@ contract MarketplacePredicate is PredicateUtils {
       uint8(registry.predicates(predicate)) != 0,
       "Not a valid predicate"
     );
-    ReferenceTxData memory reference1 = processPreState(predicate, preState, msg.sender);
+    ReferenceTxData memory reference1 = processPreState(predicate, preState, msg.sender, true);
     validateTokenBalance(reference1.childToken, exitTxData.token1, reference1.closingBalance, exitTxData.amount1);
     (predicate, preState) = abi.decode(referenceTx[1].toBytes(), (address, bytes));
     require(
       uint8(registry.predicates(predicate)) != 0,
       "Not a valid predicate"
     );
-    ReferenceTxData memory reference2 = processPreState(predicate, preState, exitTxData.counterParty);
+    ReferenceTxData memory reference2 = processPreState(predicate, preState, exitTxData.counterParty, true);
     validateTokenBalance(reference2.childToken, exitTxData.token2, reference2.closingBalance, exitTxData.amount2);
     uint256 priority = Math.max(reference1.age, reference2.age);
     address exitChildToken = address(RLPReader.toUint(referenceTx[2]));
@@ -105,6 +105,7 @@ contract MarketplacePredicate is PredicateUtils {
     uint256 closingBalance,
     uint256 amount)
     internal
+    view
   {
     require(
       childToken == _childToken,
@@ -126,12 +127,13 @@ contract MarketplacePredicate is PredicateUtils {
   function processPreState(
     address predicate,
     bytes memory preState,
-    address participant)
+    address participant,
+    bool verifyInclusionInCheckpoint)
     internal
     view
     returns(ReferenceTxData memory _referenceTx)
   {
-    bytes memory _preState = IPredicate(predicate).interpretStateUpdate(abi.encode(preState, participant));
+    bytes memory _preState = IPredicate(predicate).interpretStateUpdate(abi.encode(preState, participant, verifyInclusionInCheckpoint));
     (_referenceTx.closingBalance, _referenceTx.age, _referenceTx.childToken, _referenceTx.rootToken) = abi.decode(_preState, (uint256, uint256, address,address));
   }
 
@@ -152,7 +154,6 @@ contract MarketplacePredicate is PredicateUtils {
     (, txData.txHash) = getAddressFromTx(txList, networkId);
   }
 
-  event DEBUG(address indexed token, address indexed from, bytes32 indexed dataHash, address sender, uint256 amount, bytes32 data, uint256 expiration);
   function verifySignatures(
     ExecuteOrderData memory executeOrder,
     address marketplaceContract)
@@ -228,7 +229,6 @@ contract MarketplacePredicate is PredicateUtils {
     orderHash = hashEIP712Message(token, hashTokenTransferOrder(spender, amount, data, expiration));
   }
 
-  event HTTO(bytes32 indexed result, address spender, uint256 amount, bytes32 data, uint256 expiration);
   function hashTokenTransferOrder(address spender, uint256 amount, bytes32 data, uint256 expiration)
     internal
     pure
@@ -248,7 +248,6 @@ contract MarketplacePredicate is PredicateUtils {
       // Compute hash
       result := keccak256(memPtr, 160)
     }
-    // emit HTTO(result, spender, amount, data, expiration);
   }
 
   function hashEIP712Message(address token, bytes32 hashStruct)
