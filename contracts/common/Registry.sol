@@ -77,7 +77,7 @@ contract Registry is Ownable {
 
   function addPredicate(address predicate, Type _type) public onlyOwner
   {
-    require(predicates[predicate]._type == Type.Invalid, "Predicate already added");	
+    require(predicates[predicate]._type == Type.Invalid, "Predicate already added");
     predicates[predicate]._type = _type;
     emit PredicateAdded(predicate, msg.sender);
   }
@@ -116,5 +116,11 @@ contract Registry is Ownable {
 
   function isTokenMapped(address _token) public view returns (bool) {
     return rootToChildToken[_token] != address(0x0);
+  }
+
+  function isChildTokenErc721(address childToken) public view returns(bool) {
+    address rootToken = childToRootToken[childToken];
+    require(rootToken != address(0x0), "Child token is not mapped");
+    return isERC721[rootToken];
   }
 }

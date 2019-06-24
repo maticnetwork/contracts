@@ -9,10 +9,10 @@ export async function build(event) {
   let tree = new MerkleTree([blockHeader])
   let receiptProof = await Proofs.getReceiptProof(event.receipt, event.block, null /* web3 */, [event.receipt])
   let txProof = await Proofs.getTxProof(event.tx, event.block)
-  assert.ok(
-    Proofs.verifyTxProof(receiptProof),
-    'verify receipt proof failed in js'
-  )
+  // assert.ok(
+  //   Proofs.verifyTxProof(receiptProof),
+  //   'verify receipt proof failed in js'
+  // )
   headerNumber += 1
   return {
     header: { number: headerNumber, root: tree.getRoot(), start: event.receipt.blockNumber },

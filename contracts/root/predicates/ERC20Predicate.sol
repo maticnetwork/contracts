@@ -144,6 +144,31 @@ contract ERC20Predicate is IErcPredicate {
     return ageOfChallengeTx > age;
   }
 
+  function interpretStateUpdate(bytes calldata state)
+    external
+    view
+    returns(bytes memory)
+  {
+    (bytes memory _data, address participant, bool verifyInclusion) = abi.decode(state, (bytes, address, bool));
+    RLPReader.RLPItem[] memory referenceTx = _data.toRlpItem().toList();
+    bytes memory receipt = referenceTx[6].toBytes();
+    uint256 logIndex = referenceTx[9].toUint();
+    require(logIndex < MAX_LOGS, "Supporting a max of 10 logs");
+    RLPReader.RLPItem[] memory inputItems = receipt.toRlpItem().toList();
+    inputItems = inputItems[3].toList()[logIndex].toList(); // select log based on given logIndex
+    ReferenceTxData memory data;
+    data.childToken = RLPReader.toAddress(inputItems[0]); // "address" (contract address that emitted the log) field in the receipt
+    bytes memory logData = inputItems[2].toBytes();
+    inputItems = inputItems[1].toList(); // topics
+    data.rootToken = address(RLPReader.toUint(inputItems[1]));
+    (data.closingBalance, data.age) = processStateUpdate(inputItems, logData, participant);
+    data.age += (logIndex * MAX_LOGS); // @todo use safeMath
+    if (verifyInclusion) {
+      data.age += withdrawManager.verifyInclusion(_data, 0, false /* verifyTxInclusion */); // @todo use safeMath
+    }
+    return abi.encode(data.closingBalance, data.age, data.childToken, data.rootToken);
+  }
+
   /**
    * @notice Process the reference tx to start a MoreVP style exit
    * @param receipt Receipt of the reference transaction
@@ -179,6 +204,7 @@ contract ERC20Predicate is IErcPredicate {
 
   function validateSequential(ExitTxData memory exitTxData, ReferenceTxData memory referenceTxData)
     internal
+    pure
   {
     // The closing balance of the referenced tx should be >= exit amount in exitTx
     require(
@@ -210,6 +236,11 @@ contract ERC20Predicate is IErcPredicate {
     // oIndex is always 0 for the 2 scenarios above, hence not returning it
   }
 
+  /**
+   * @notice Parse the state update and check if this predicate recognizes it
+   * @param inputItems inputItems[i] refers to i-th (0-based) topic in the topics array in the log
+   * @param logData Data field (unindexed params) in the log
+   */
   function processStateUpdate(
     RLPReader.RLPItem[] memory inputItems,
     bytes memory logData,

@@ -31,6 +31,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
 
   function verifyInclusion(bytes calldata data, uint8 offset, bool verifyTxInclusion)
     external
+    view
     returns (uint256 age)
   {
     RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
@@ -83,6 +84,10 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
 
   modifier isPredicateAuthorized(address rootToken) {
     (Registry.Type _type) = registry.predicates(msg.sender);
+    require(
+      registry.rootToChildToken(rootToken) != address(0x0),
+      "rootToken not supported"
+    );
     if (_type == Registry.Type.ERC20) {
       require(
         registry.isERC721(rootToken) == false,
@@ -93,6 +98,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
         registry.isERC721(rootToken) == true,
         "Predicate supports only ERC721 tokens"
       );
+    } else if (_type == Registry.Type.Custom) {
     } else {
       revert("PREDICATE_NOT_AUTHORIZED");
     }

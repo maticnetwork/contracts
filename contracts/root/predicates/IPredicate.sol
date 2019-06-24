@@ -46,9 +46,38 @@ interface IPredicate {
    * @return Whether or not the state is deprecated
    */
   function verifyDeprecation(bytes calldata exit, bytes calldata inputUtxo, bytes calldata challengeData) external returns (bool);
+
+  function interpretStateUpdate(bytes calldata state) external view returns (bytes memory);
 }
 
-contract IErcPredicate is IPredicate, ExitsDataStructure {
+contract PredicateUtils {
+  using RLPReader for RLPReader.RLPItem;
+
+  function getAddressFromTx(RLPReader.RLPItem[] memory txList, bytes memory networkId)
+    internal
+    pure
+    returns (address signer, bytes32 txHash)
+  {
+    bytes[] memory rawTx = new bytes[](9);
+    for (uint8 i = 0; i <= 5; i++) {
+      rawTx[i] = txList[i].toBytes();
+    }
+    rawTx[4] = hex"";
+    rawTx[6] = networkId;
+    rawTx[7] = hex"";
+    rawTx[8] = hex"";
+
+    txHash = keccak256(RLPEncode.encodeList(rawTx));
+    signer = ecrecover(
+      txHash,
+      Common.getV(txList[6].toBytes(), Common.toUint8(networkId)),
+      bytes32(txList[7].toUint()),
+      bytes32(txList[8].toUint())
+    );
+  }
+}
+
+contract IErcPredicate is IPredicate, PredicateUtils, ExitsDataStructure {
 
   struct ExitTxData {
     uint256 exitAmount;
@@ -64,8 +93,6 @@ contract IErcPredicate is IPredicate, ExitsDataStructure {
     address childToken;
     address rootToken;
   }
-
-  using RLPReader for RLPReader.RLPItem;
 
   uint256 constant internal MAX_LOGS = 10;
   IWithdrawManager internal withdrawManager;
@@ -89,28 +116,5 @@ contract IErcPredicate is IPredicate, ExitsDataStructure {
     returns (uint256 age, address signer)
   {
     (age, signer) = abi.decode(data, (uint256, address));
-  }
-
-  function getAddressFromTx(RLPReader.RLPItem[] memory txList, bytes memory networkId)
-    internal
-    pure
-    returns (address signer, bytes32 txHash)
-  {
-    bytes[] memory rawTx = new bytes[](9);
-    for (uint8 i = 0; i <= 5; i++) {
-      rawTx[i] = txList[i].toBytes();
-    }
-    rawTx[4] = hex"";
-    rawTx[6] = networkId;
-    rawTx[7] = hex"";
-    rawTx[8] = hex"";
-
-    txHash = keccak256(RLPEncode.encodeList(rawTx));
-    signer = ecrecover(
-      txHash,
-      Common.getV(txList[6].toBytes(), Common.toUint8(networkId)),
-      bytes32(txList[7].toUint()),
-      bytes32(txList[8].toUint())
-    );
   }
 }

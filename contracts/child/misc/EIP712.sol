@@ -1,6 +1,5 @@
 pragma solidity 0.5.2;
 
-
 contract LibEIP712Domain {
   string constant internal EIP712_DOMAIN_SCHEMA = "EIP712Domain(string name,string version,uint256 chainId,address contract)";
   bytes32 constant public EIP712_DOMAIN_SCHEMA_HASH = keccak256(abi.encodePacked(EIP712_DOMAIN_SCHEMA));
@@ -12,8 +11,7 @@ contract LibEIP712Domain {
   bytes32 public EIP712_DOMAIN_HASH;
 
   constructor () public {
-    EIP712_DOMAIN_HASH = keccak256(
-      abi.encodePacked(
+    EIP712_DOMAIN_HASH = keccak256(abi.encode(
       EIP712_DOMAIN_SCHEMA_HASH,
       keccak256(bytes(EIP712_DOMAIN_NAME)),
       keccak256(bytes(EIP712_DOMAIN_VERSION)),
@@ -46,4 +44,3 @@ contract LibEIP712Domain {
     return result;
   }
 }
-

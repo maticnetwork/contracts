@@ -71,13 +71,14 @@ contract ERC721Predicate is IErcPredicate {
     // process the receipt of the referenced tx
     address rootToken;
     uint256 oIndex;
-    (rootToken) = processReferenceTx(
+    (rootToken, oIndex) = processReferenceTx(
       referenceTxData[6].toBytes(), // receipt
       referenceTxData[9].toUint(), // logIndex
       participant,
       childToken,
       tokenId
     );
+    age = age + oIndex + (referenceTxData[9].toUint() /* logIndex */ * MAX_LOGS); // @todo Use SafeMath
     withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, tokenId, txHash, burnt, age);
   }
 
@@ -116,6 +117,32 @@ contract ERC721Predicate is IErcPredicate {
     return ageOfChallengeTx > age;
   }
 
+  function interpretStateUpdate(bytes calldata state)
+    external
+    view
+    returns (bytes memory b)
+  {
+    (bytes memory _data, address participant, bool verifyInclusion) = abi.decode(state, (bytes, address, bool));
+    RLPReader.RLPItem[] memory referenceTx = _data.toRlpItem().toList();
+    bytes memory receipt = referenceTx[6].toBytes();
+    uint256 logIndex = referenceTx[9].toUint();
+    require(logIndex < MAX_LOGS, "Supporting a max of 10 logs");
+    RLPReader.RLPItem[] memory inputItems = receipt.toRlpItem().toList();
+    inputItems = inputItems[3].toList()[logIndex].toList(); // select log based on given logIndex
+    ReferenceTxData memory data;
+    data.childToken = RLPReader.toAddress(inputItems[0]); // "address" (contract address that emitted the log) field in the receipt
+    bytes memory logData = inputItems[2].toBytes();
+    inputItems = inputItems[1].toList(); // topics
+    data.rootToken = address(RLPReader.toUint(inputItems[1]));
+    data.closingBalance = BytesLib.toUint(logData, 0);
+    data.age = processStateUpdate(inputItems, participant);
+    data.age += (logIndex * MAX_LOGS); // @todo use safeMath
+    if (verifyInclusion) {
+      data.age += withdrawManager.verifyInclusion(_data, 0, false /* verifyTxInclusion */); // @todo use safeMath
+    }
+    return abi.encode(data.closingBalance, data.age, data.childToken, data.rootToken);
+  }
+
   /**
    * @notice Process the reference tx to start a MoreVP style exit
    * @param receipt Receipt of the reference transaction
@@ -130,10 +157,10 @@ contract ERC721Predicate is IErcPredicate {
     uint256 tokenId)
     internal
     pure
-    returns(address rootToken)
+    returns(address rootToken, uint256 oIndex)
   {
-    RLPReader.RLPItem[] memory inputItems = receipt.toRlpItem().toList();
     require(logIndex < 10, "Supporting a max of 10 logs");
+    RLPReader.RLPItem[] memory inputItems = receipt.toRlpItem().toList();
     inputItems = inputItems[3].toList()[logIndex].toList(); // select log based on given logIndex
     require(
       childToken == RLPReader.toAddress(inputItems[0]), // "address" (contract address that emitted the log) field in the receipt
@@ -144,9 +171,7 @@ contract ERC721Predicate is IErcPredicate {
     // now, inputItems[i] refers to i-th (0-based) topic in the topics array
     // inputItems[0] is the event signature
     rootToken = address(RLPReader.toUint(inputItems[1]));
-    // rootToken = address(RLPReader.toaddress(inputItems[1])); // investigate why this reverts
-
-    processErc721(inputItems, participant);
+    oIndex = processStateUpdate(inputItems, participant);
     // tokenId is the first param in logData in all 3 of Deposit, Withdraw and LogTransfer
     require(
       tokenId == BytesLib.toUint(logData, 0),
@@ -154,11 +179,16 @@ contract ERC721Predicate is IErcPredicate {
     );
   }
 
-  function processErc721(
+  /**
+   * @notice Parse the state update and check if this predicate recognizes it
+   * @param inputItems inputItems[i] refers to i-th (0-based) topic in the topics array in the log
+   */
+  function processStateUpdate(
     RLPReader.RLPItem[] memory inputItems,
     address participant)
     internal
     pure
+    returns (uint256 oIndex)
   {
     bytes32 eventSignature = bytes32(inputItems[0].toUint());
     address _participant;
@@ -171,6 +201,7 @@ contract ERC721Predicate is IErcPredicate {
       //   uint256 amountOrTokenId);
       // Only makes sense to reference an incoming transfer, unlike erc20 where outgoing transfer also makes sense
       _participant = address(inputItems[3].toUint()); // to
+      oIndex = 1;
     } else {
       revert("Exit type not supported");
     }
