@@ -10,6 +10,7 @@ import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 import { IPredicate, PredicateUtils } from "./IPredicate.sol";
 import { Registry } from "../../common/Registry.sol";
 import { IWithdrawManager } from "../withdrawManager/IWithdrawManager.sol";
+import { IDepositManager } from "../depositManager/IDepositManager.sol";
 
 contract MarketplacePredicate is PredicateUtils {
   using RLPReader for bytes;
@@ -18,8 +19,9 @@ contract MarketplacePredicate is PredicateUtils {
   // 0xe660b9e4 = keccak256('executeOrder(bytes,bytes,bytes32,uint256,address)').slice(0, 4)
   bytes4 constant EXECUTE_ORDER_FUNC_SIG = 0xe660b9e4;
 
-  IWithdrawManager internal withdrawManager;
   Registry internal registry;
+  IWithdrawManager internal withdrawManager;
+  IDepositManager internal depositManager;
 
   struct ExecuteOrderData {
     bytes data1;
@@ -52,11 +54,12 @@ contract MarketplacePredicate is PredicateUtils {
     address rootToken;
   }
 
-  constructor(address _withdrawManager, address _registry)
+  constructor(address _withdrawManager, address _registry, address _depositManager)
     public
   {
-    withdrawManager = IWithdrawManager(_withdrawManager);
     registry = Registry(_registry);
+    withdrawManager = IWithdrawManager(_withdrawManager);
+    depositManager = IDepositManager(_depositManager);
   }
 
   function startExit(bytes calldata data, bytes calldata exitTx)
@@ -97,6 +100,12 @@ contract MarketplacePredicate is PredicateUtils {
     }
     withdrawManager.addInput(priority /* exitId */, reference1.age /* age of input */, msg.sender /* signer */);
     withdrawManager.addInput(priority /* exitId */, reference2.age /* age of input */, exitTxData.counterParty /* signer */);
+  }
+
+  function onFinalizeExit(address exitor, address token, uint256 tokenId)
+    external
+  {
+    depositManager.transferAssets(token, exitor, tokenId);
   }
 
   function validateTokenBalance(

@@ -60,5 +60,8 @@ contract WithdrawManagerStorage is ProxyStorage, WithdrawManagerHeader {
   mapping (bytes32 => uint256) public ownerExits;
   mapping (address => address) public exitsQueues;
   address public exitNFTContract;
-  uint32 public gasLimit = 207000; //[155000, 100000, 52000]+52000(fixed processExit cost) ERC721,ERC20,Weth
+  // ERC721, ERC20 and Weth transfers require 155000, 100000, 52000 gas respectively
+  // Processing each exit in a while loop iteration requires ~52000 gas (@todo check if this changed)
+  // So putting an upper limit of 155000 + 52000 + leeway for predicate.onFinalizeExit()
+  uint32 public gasLimit = 250000;
 }

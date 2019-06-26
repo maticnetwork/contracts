@@ -25,7 +25,11 @@ contract ExitNFT is ERC721 {
     _mint(_owner, _tokenId);
   }
 
-  function burn(address _owner, uint256 _tokenId) external onlyWithdrawManager {
-    _burn(_owner, _tokenId);
+  function burn(uint256 _tokenId) external onlyWithdrawManager {
+    _burn(_tokenId);
+  }
+
+  function exists(uint256 tokenId) public view returns (bool) {
+    return _exists(tokenId);
   }
 }

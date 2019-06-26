@@ -176,6 +176,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
   {
     PlasmaExit storage exit = exits[exitId];
     Input storage input = exit.inputs[inputId];
+    // In addition to the following check,
     require(
       exit.token != address(0x0) && input.signer != address(0x0),
       "Invalid exit or input id"
@@ -188,7 +189,9 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       ),
       "Challenge failed"
     );
-    deleteExit(exitId);
+    // In the call to burn(exitId), there is an implicit check that prevents challenging the same exit twice
+    ExitNFT(exitNFTContract).burn(exitId);
+    // delete exits[exitId];
     emit ExitCancelled(exitId);
   }
 
@@ -208,71 +211,49 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     return abi.encode(age, input.signer);
   }
 
-  function deleteExit(uint256 exitId)
-    internal
-  {
-    ExitNFT exitNFT = ExitNFT(exitNFTContract);
-    address owner = exitNFT.ownerOf(exitId);
-    exitNFT.burn(owner, exitId);
-  }
-
   function processExits(address _token) external {
     uint256 exitableAt;
     uint256 exitId;
-
-    // retrieve priority queue
+    ExitNFT exitNft = ExitNFT(exitNFTContract);
     PriorityQueue exitQueue = PriorityQueue(exitsQueues[_token]);
-
-    // Iterate while the queue is not empty.
-    while (exitQueue.currentSize() > 0 && gasleft() > gasLimit ) {
+    while(exitQueue.currentSize() > 0 && gasleft() > gasLimit) {
       (exitableAt, exitId) = exitQueue.getMin();
-
-      // Check if this exit has finished its challenge period.
-      if (exitableAt > block.timestamp) {
-        return;
-      }
-
-      // get withdraw block
+      // Stop processing exits if the exit that is next is queue is still in its challenge period
+      if (exitableAt > block.timestamp) return;
+      // If the exitNft was deleted as a result of a challenge, skip processing this exit
+      if (!exitNft.exists(exitId)) continue;
       PlasmaExit memory currentExit = exits[exitId];
 
-      // process if NFT exists
-      // If an exit was successfully challenged, owner would be address(0).
-      address payable exitOwner = address(uint160(ExitNFT(exitNFTContract).ownerOf(exitId)));
-      if (exitOwner != address(0)) {
-        // burn NFT first
-        ExitNFT(exitNFTContract).burn(exitOwner, exitId);
+      exitNft.burn(exitId);
 
-        // delete current exit if exit was "burnt"
-        if (currentExit.burnt) {
-          delete ownerExits[keccak256(abi.encodePacked(_token, currentExit.owner))];
-        }
-
-        address depositManager = registry.getDepositManagerAddress(); // TODO: make assembly call and reuse memPtr
-        uint256 amount = currentExit.receiptAmountOrNFTId;
-        uint256 _gas = gasLimit - 52000; // sub fixed processExit cost , ::=> can't read global vars in asm
-        assembly {
-          let ptr := mload(64)
-          // keccak256('transferAmount(address,address,uint256)') & 0xFFFFFFFF00000000000000000000000000000000000000000000000000000000
-          mstore(ptr, 0x01f4747100000000000000000000000000000000000000000000000000000000)
-          mstore(add(ptr, 4), _token)
-          mstore(add(ptr, 36), exitOwner)
-          mstore(add(ptr, 68), amount) // TODO: read directly from struct
-          let ret := add(ptr,100)
-          let result := call(_gas, depositManager, 0, ptr, 100, ret, 32) // returns 1 if success
-          // revert if => result is 0 or return value is false
-          if eq(and(result,mload(ret)), 0) {
-              revert(0,0)
-            }
-        }
-
-        // broadcast withdraw events
-        emit Withdraw(exitOwner, _token, currentExit.receiptAmountOrNFTId);
-
-        // Delete owner but keep amount to prevent another exit from the same UTXO.
-        // delete exits[exitId].owner;
+      // delete current exit if exit was "burnt"
+      if (currentExit.burnt) {
+        delete ownerExits[keccak256(abi.encodePacked(_token, currentExit.owner))];
       }
 
-      // exit queue
+      // limit the gas amount that predicate.onFinalizeExit() can use, to be able to make gas estimations for bulk process exits
+      address exitor = ExitNFT(exitNFTContract).ownerOf(exitId);
+      uint256 amountOrNft = currentExit.receiptAmountOrNFTId;
+      address predicate = currentExit.predicate;
+      uint256 _gas = gasLimit - 52000; // sub fixed processExit cost , ::=> can't read global vars in asm
+      assembly {
+        let ptr := mload(64)
+        // keccak256('onFinalizeExit(address,address,uint256)') & 0xFFFFFFFF00000000000000000000000000000000000000000000000000000000
+        mstore(ptr, 0xfdd3d6bd00000000000000000000000000000000000000000000000000000000)
+        mstore(add(ptr, 4), exitor)
+        mstore(add(ptr, 36), _token)
+        mstore(add(ptr, 68), amountOrNft)
+        let ret := add(ptr, 100)
+        // call returns 0 on error (eg. out of gas) and 1 on success
+        let result := call(_gas, predicate, 0, ptr, 100, ret, 32)
+        if eq(result, 0) {
+          revert(0,0)
+        }
+      }
+      emit Withdraw(exitor, _token, amountOrNft);
+
+      // Delete owner but keep amount to prevent another exit from the same UTXO.
+      // delete exits[exitId].owner;
       exitQueue.delMin();
     }
   }

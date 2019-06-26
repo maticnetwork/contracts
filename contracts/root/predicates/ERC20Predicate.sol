@@ -21,7 +21,9 @@ contract ERC20Predicate is IErcPredicate {
   // 0xa9059cbb = keccak256('transfer(address,uint256)').slice(0, 4)
   bytes4 constant TRANSFER_FUNC_SIG = 0xa9059cbb;
 
-  constructor(address _withdrawManager) public IErcPredicate(_withdrawManager) {}
+  constructor(address _withdrawManager, address _depositManager)
+    IErcPredicate(_withdrawManager, _depositManager)
+    public {}
 
   function startExitWithBurntTokens(bytes calldata data)
     external
@@ -115,7 +117,7 @@ contract ERC20Predicate is IErcPredicate {
     returns (bool)
   {
     PlasmaExit memory _exit = decodeExit(exit);
-    (uint256 age, address signer) = encodeInputUtxo(inputUtxo);
+    (uint256 age, address signer) = decodeInputUtxo(inputUtxo);
     RLPReader.RLPItem[] memory _challengeData = challengeData.toRlpItem().toList();
     ExitTxData memory exitTxData = processExitTx(_challengeData[10].toBytes());
     require(
@@ -142,6 +144,12 @@ contract ERC20Predicate is IErcPredicate {
     );
     ageOfChallengeTx += referenceTxData.age; // @todo SafeMath
     return ageOfChallengeTx > age;
+  }
+
+  function onFinalizeExit(address exitor, address token, uint256 tokenId)
+    external
+  {
+    depositManager.transferAssets(token, exitor, tokenId);
   }
 
   function interpretStateUpdate(bytes calldata state)

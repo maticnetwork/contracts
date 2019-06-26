@@ -8,7 +8,7 @@ import { ERC20Predicate } from "../root/predicates/ERC20Predicate.sol";
 contract MarketplacePredicateTest is MarketplacePredicate {
 
   constructor()
-    MarketplacePredicate(address(0x0), address(0x0))
+    MarketplacePredicate(address(0x0), address(0x0), address(0x0))
     public {}
 
   function processPreStateTest(
