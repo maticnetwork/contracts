@@ -24,8 +24,10 @@ interface IPredicate {
    * branchMask Merkle proof branchMask for the receipt
    * logIndex Log Index to read from the receipt
    * @param exitTx Signed exit transaction
+   * @return address rootToken that the exit corresponds to
+   * @return uint256 exitAmountOrTokenId
    */
-  function startExit(bytes calldata data, bytes calldata exitTx) external;
+  function startExit(bytes calldata data, bytes calldata exitTx) external returns(address rootToken, uint256 exitAmountOrTokenId);
 
   /**
    * @notice Verify the deprecation of a state update

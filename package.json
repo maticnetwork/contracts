@@ -11,7 +11,7 @@
     "truffle:compile": "truffle compile",
     "truffle:migrate:1": "truffle migrate --to 2",
     "truffle:migrate:2": "truffle migrate --network matic_dev --from 3 --to 3",
-    "truffle:migrate": "npm run truffle:migrate:1 && npm run truffle:migrate:2",
+    "truffle:migrate": "truffle migrate",
     "test:ci": "scripts/run-test.sh",
     "lint": "npm run lint:sol && npm run lint:js",
     "lint:js": "eslint test/**/*.js",

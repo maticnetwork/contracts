@@ -123,14 +123,6 @@ export function startExit(predicate, headerNumber, blockProof, blockNumber, bloc
   )
 }
 
-export function startExitForPlasmaMintedToken(mintTx, predicate, input, from) {
-  return predicate.startExitForPlasmaMintedToken(
-    utils.bufferToHex(mintTx),
-    utils.bufferToHex(rlp.encode(buildReferenceTxPayload(input))),
-    { from }
-  )
-}
-
 export function startExitWithBurntTokens(predicate, input, from) {
   if (from) {
     return predicate.startExitWithBurntTokens(

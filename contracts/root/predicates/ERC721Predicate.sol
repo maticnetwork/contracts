@@ -61,14 +61,13 @@ contract ERC721Predicate is IErcPredicate {
     );
   }
 
-  function startExit(bytes calldata data, bytes calldata exitTx)
-    external
+  function startExit(bytes memory data, bytes memory exitTx)
+    public
+    returns(address rootToken, uint256 tokenId)
   {
     RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
-    // bytes memory exitTx = referenceTxData[10].toBytes();
     uint256 age = withdrawManager.verifyInclusion(data, 0 /* offset */, false /* verifyTxInclusion */);
     // validate exitTx
-    uint256 tokenId;
     address childToken;
     address participant;
     bytes32 txHash;
@@ -76,7 +75,6 @@ contract ERC721Predicate is IErcPredicate {
     (tokenId, childToken, participant, txHash, burnt) = processExitTx(exitTx);
 
     // process the receipt of the referenced tx
-    address rootToken;
     uint256 oIndex;
     (rootToken, oIndex) = processReferenceTx(
       referenceTxData[6].toBytes(), // receipt
@@ -87,6 +85,23 @@ contract ERC721Predicate is IErcPredicate {
     );
     age = age + oIndex + (referenceTxData[9].toUint() /* logIndex */ * MAX_LOGS); // @todo Use SafeMath
     withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, tokenId, txHash, burnt, age);
+  }
+
+  /**
+   * 
+   */
+  function startExitWithBurntTokens(bytes calldata data, bytes calldata mintTx)
+    external
+  {
+    (address rootToken, uint256 tokenId) = startExitWithBurntTokens(data);
+    processMintTx(mintTx, rootToken, tokenId);
+  }
+
+  function startExit(bytes calldata data, bytes calldata exitTx, bytes calldata mintTx)
+    external
+  {
+    (address rootToken, uint256 tokenId) = startExit(data, exitTx);
+    processMintTx(mintTx, rootToken, tokenId);
   }
 
   function verifyDeprecation(bytes calldata exit, bytes calldata inputUtxo, bytes calldata challengeData)
@@ -122,26 +137,6 @@ contract ERC721Predicate is IErcPredicate {
       childToken,
       tokenId);
     return ageOfChallengeTx > age;
-  }
-
-  function startExitForPlasmaMintedToken(bytes calldata mintTx, bytes calldata data)
-    external
-  {
-    (address rootToken, uint256 tokenId) = startExitWithBurntTokens(data);
-    RLPReader.RLPItem[] memory txList = mintTx.toRlpItem().toList();
-    (address minter,) = getAddressFromTx(txList, withdrawManager.networkId());
-    ERC721PlasmaMintable token = ERC721PlasmaMintable(rootToken);
-    require(
-      token.isMinter(minter),
-      "Not authorized to mint"
-    );
-    if (!token.exists(tokenId)) {
-      // this predicate contract should have been added to the token minter role
-      require(
-        token.mint(address(depositManager), tokenId),
-        "TOKEN_MINT_FAILED"
-      );
-    }
   }
 
   function onFinalizeExit(address exitor, address token, uint256 tokenId)
@@ -296,5 +291,24 @@ contract ERC721Predicate is IErcPredicate {
       "Exit tx doesnt concern the exitor"
     );
     tokenId = BytesLib.toUint(txData, 68); // NFT ID
+  }
+
+  function processMintTx(bytes memory mintTx, address rootToken, uint256 tokenId)
+    internal
+  {
+    RLPReader.RLPItem[] memory txList = mintTx.toRlpItem().toList();
+    (address minter,) = getAddressFromTx(txList, withdrawManager.networkId());
+    ERC721PlasmaMintable token = ERC721PlasmaMintable(rootToken);
+    require(
+      token.isMinter(minter),
+      "Not authorized to mint"
+    );
+    if (!token.exists(tokenId)) {
+      // this predicate contract should have been added to the token minter role
+      require(
+        token.mint(address(depositManager), tokenId),
+        "TOKEN_MINT_FAILED"
+      );
+    }
   }
 }

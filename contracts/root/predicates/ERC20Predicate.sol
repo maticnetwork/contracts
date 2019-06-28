@@ -57,6 +57,7 @@ contract ERC20Predicate is IErcPredicate {
 
   function startExit(bytes calldata data, bytes calldata exitTx)
     external
+    returns(address /* rootToken */, uint256 /* exitAmount */)
   {
     RLPReader.RLPItem[] memory referenceTx = data.toRlpItem().toList();
     uint256 age = withdrawManager.verifyInclusion(data, 0 /* offset */, false /* verifyTxInclusion */);
@@ -83,7 +84,7 @@ contract ERC20Predicate is IErcPredicate {
         msg.sender, referenceTxData.childToken, referenceTxData.rootToken,
         exitTxData.exitAmount, exitTxData.txHash, exitTxData.burnt, age /* priority */);
       withdrawManager.addInput(age /* exitId or priority */, age /* age of input */, exitTxData.signer);
-      return;
+      return (referenceTxData.rootToken, exitTxData.exitAmount);
     }
 
     // referenceTx.length > 10 means the exitor sent along another input UTXO to the exit tx
@@ -110,6 +111,7 @@ contract ERC20Predicate is IErcPredicate {
       exitTxData.exitAmount + _referenceTxData.closingBalance, exitTxData.txHash, exitTxData.burnt, priority);
     withdrawManager.addInput(priority, age, exitTxData.signer);
     withdrawManager.addInput(priority, otherReferenceTxAge, msg.sender);
+    return (referenceTxData.rootToken, exitTxData.exitAmount + _referenceTxData.closingBalance);
   }
 
   function verifyDeprecation(bytes calldata exit, bytes calldata inputUtxo, bytes calldata challengeData)
