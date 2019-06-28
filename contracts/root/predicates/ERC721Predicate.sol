@@ -7,7 +7,6 @@ import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 
 import { ERC721PlasmaMintable } from "../../common/tokens/ERC721PlasmaMintable.sol";
 import { IErcPredicate } from "./IPredicate.sol";
-import { Registry } from "../../common/Registry.sol";
 
 contract ERC721Predicate is IErcPredicate {
   using RLPReader for bytes;
@@ -30,7 +29,7 @@ contract ERC721Predicate is IErcPredicate {
 
   function startExitWithBurntTokens(bytes memory data)
     public
-    returns(address rootToken)
+    returns(address rootToken, uint256 tokenId)
   {
     RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
     bytes memory receipt = referenceTxData[6].toBytes();
@@ -55,9 +54,10 @@ contract ERC721Predicate is IErcPredicate {
       msg.sender == address(inputItems[2].toUint()), // from
       "Withdrawer and burn exit tx do not match"
     );
+    tokenId = BytesLib.toUint(logData, 0);
     withdrawManager.addExitToQueue(
       msg.sender, childToken, rootToken,
-      BytesLib.toUint(logData, 0) /* tokenId */, bytes32(0x0) /* txHash */, true /* burnt */, age
+      tokenId, bytes32(0x0) /* txHash */, true /* burnt */, age
     );
   }
 
@@ -127,24 +127,28 @@ contract ERC721Predicate is IErcPredicate {
   function startExitForPlasmaMintedToken(bytes calldata mintTx, bytes calldata data)
     external
   {
-    address rootToken = startExitWithBurntTokens(data);
+    (address rootToken, uint256 tokenId) = startExitWithBurntTokens(data);
     RLPReader.RLPItem[] memory txList = mintTx.toRlpItem().toList();
     (address minter,) = getAddressFromTx(txList, withdrawManager.networkId());
+    ERC721PlasmaMintable token = ERC721PlasmaMintable(rootToken);
     require(
-      ERC721PlasmaMintable(rootToken).isMinter(minter),
+      token.isMinter(minter),
       "Not authorized to mint"
     );
+    if (!token.exists(tokenId)) {
+      // this predicate contract should have been added to the token minter role
+      require(
+        token.mint(address(depositManager), tokenId),
+        "TOKEN_MINT_FAILED"
+      );
+    }
   }
 
   function onFinalizeExit(address exitor, address token, uint256 tokenId)
     external
+    onlyWithdrawManager
   {
-    ERC721PlasmaMintable _token = ERC721PlasmaMintable(token);
-    if (!_token.exists(tokenId)) {
-      _token.mint(exitor, tokenId); // this contract should have been added to the token minter role
-    } else {
-      depositManager.transferAssets(token, exitor, tokenId);
-    }
+    depositManager.transferAssets(token, exitor, tokenId);
   }
 
   function interpretStateUpdate(bytes calldata state)

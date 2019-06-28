@@ -6,10 +6,8 @@ import logDecoder from '../../helpers/log-decoder.js'
 import ethUtils from 'ethereumjs-util'
 
 import {
-  getTxBytes,
   getTxProof,
   verifyTxProof,
-  getReceiptBytes,
   getReceiptProof,
   verifyReceiptProof
 } from '../../helpers/proofs'
@@ -21,6 +19,7 @@ import { build, buildInFlight } from '../../mockResponses/utils'
 
 const utils = require('../../helpers/utils')
 const web3Child = utils.web3Child
+const crypto = require('crypto')
 
 chai.use(chaiAsPromised).should()
 let contracts, childContracts
@@ -160,6 +159,53 @@ contract('ERC721Predicate', async function(accounts) {
 
   describe('verifyDeprecation', async function() {
     it('write test')
+  })
+
+  describe('startExitForPlasmaMintedToken', async function() {
+    beforeEach(async function() {
+      contracts.ERC721Predicate = await deployer.deployErc721Predicate()
+      const { rootERC721, childErc721 } = await deployer.deployChildErc721Mintable()
+      childContracts.rootERC721 = rootERC721
+      childContracts.childErc721 = childErc721
+    })
+
+    it('start exit with a token minted on the side chain', async function() {
+      const tokenId = '0x' + crypto.randomBytes(32).toString('hex')
+      const { receipt: r } = await childContracts.childErc721.mint(user, tokenId)
+      let mintTx = await web3Child.eth.getTransaction(r.transactionHash)
+      mintTx = await buildInFlight(mintTx)
+
+      await childContracts.childErc721.transferFrom(user, other, tokenId)
+
+      const { receipt } = await childContracts.childErc721.withdraw(tokenId, { from: other })
+
+      // the token doesnt exist on the root chain as yet
+      expect(await childContracts.rootERC721.exists(tokenId)).to.be.false
+
+      // add ERC721Predicate as a minter
+      await childContracts.rootERC721.addMinter(contracts.ERC721Predicate.address)
+
+      let { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts, start)
+      const startExitTx = await utils.startExitForPlasmaMintedToken(
+        mintTx,
+        contracts.ERC721Predicate,
+        { headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 },
+        other // exitor - account to initiate the exit from
+      )
+      // console.log(startExitTx)
+      expect(await childContracts.rootERC721.exists(tokenId)).to.be.true
+      expect((await childContracts.rootERC721.ownerOf(tokenId)).toLowerCase()).to.equal(contracts.depositManager.address.toLowerCase())
+
+      const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+      const log = logs[1]
+      log.event.should.equal('ExitStarted')
+      expect(log.args).to.include({
+        exitor: other,
+        token: childContracts.rootERC721.address,
+        burnt: true
+      })
+      utils.assertBigNumberEquality(log.args.amount, tokenId)
+    })
   })
 })
 

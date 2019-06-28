@@ -43,6 +43,7 @@
     "babel-preset-stage-2": "^6.24.1",
     "babel-preset-stage-3": "^6.24.1",
     "bip39": "^2.5.0",
+    "bluebird": "^3.5.5",
     "chai": "4.2.0",
     "chai-as-promised": "^7.1.1",
     "eslint": "5.9.0",

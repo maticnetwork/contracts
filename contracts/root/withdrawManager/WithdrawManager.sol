@@ -176,7 +176,6 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
   {
     PlasmaExit storage exit = exits[exitId];
     Input storage input = exit.inputs[inputId];
-    // In addition to the following check,
     require(
       exit.token != address(0x0) && input.signer != address(0x0),
       "Invalid exit or input id"

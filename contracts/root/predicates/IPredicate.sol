@@ -62,6 +62,17 @@ interface IPredicate {
 contract PredicateUtils {
   using RLPReader for RLPReader.RLPItem;
 
+  IWithdrawManager internal withdrawManager;
+  IDepositManager internal depositManager;
+
+  modifier onlyWithdrawManager() {
+    require(
+      msg.sender == address(withdrawManager),
+      "ONLY_WITHDRAW_MANAGER"
+    );
+    _;
+  }
+
   function getAddressFromTx(RLPReader.RLPItem[] memory txList, bytes memory networkId)
     internal
     pure
@@ -104,8 +115,6 @@ contract IErcPredicate is IPredicate, PredicateUtils, ExitsDataStructure {
   }
 
   uint256 constant internal MAX_LOGS = 10;
-  IWithdrawManager internal withdrawManager;
-  IDepositManager internal depositManager;
 
   constructor(address _withdrawManager, address _depositManager) public {
     withdrawManager = IWithdrawManager(_withdrawManager);

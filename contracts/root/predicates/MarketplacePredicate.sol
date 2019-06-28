@@ -20,8 +20,6 @@ contract MarketplacePredicate is PredicateUtils {
   bytes4 constant EXECUTE_ORDER_FUNC_SIG = 0xe660b9e4;
 
   Registry internal registry;
-  IWithdrawManager internal withdrawManager;
-  IDepositManager internal depositManager;
 
   struct ExecuteOrderData {
     bytes data1;
@@ -54,12 +52,12 @@ contract MarketplacePredicate is PredicateUtils {
     address rootToken;
   }
 
-  constructor(address _withdrawManager, address _registry, address _depositManager)
+  constructor(address _withdrawManager, address _depositManager, address _registry)
     public
   {
-    registry = Registry(_registry);
     withdrawManager = IWithdrawManager(_withdrawManager);
     depositManager = IDepositManager(_depositManager);
+    registry = Registry(_registry);
   }
 
   function startExit(bytes calldata data, bytes calldata exitTx)
@@ -104,6 +102,7 @@ contract MarketplacePredicate is PredicateUtils {
 
   function onFinalizeExit(address exitor, address token, uint256 tokenId)
     external
+    onlyWithdrawManager
   {
     depositManager.transferAssets(token, exitor, tokenId);
   }

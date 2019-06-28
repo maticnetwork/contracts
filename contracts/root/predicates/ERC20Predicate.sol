@@ -148,6 +148,7 @@ contract ERC20Predicate is IErcPredicate {
 
   function onFinalizeExit(address exitor, address token, uint256 tokenId)
     external
+    onlyWithdrawManager
   {
     depositManager.transferAssets(token, exitor, tokenId);
   }
