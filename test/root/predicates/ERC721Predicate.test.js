@@ -216,8 +216,14 @@ contract('ERC721Predicate', async function(accounts) {
       const { receipt: r } = await childContracts.childErc721.transferFrom(other, user, tokenId, { from: other })
       let exitTx = await buildInFlight(await web3Child.eth.getTransaction(r.transactionHash))
 
+      // the token doesnt exist on the root chain as yet
+      expect(await childContracts.rootERC721.exists(tokenId)).to.be.false
+
       const startExitTx = await startMoreVpExitWithMintableToken(
         headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx, mintTx, user)
+
+      expect(await childContracts.rootERC721.exists(tokenId)).to.be.true
+      expect((await childContracts.rootERC721.ownerOf(tokenId)).toLowerCase()).to.equal(contracts.depositManager.address.toLowerCase())
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       // console.log(startExitTx, logs)
       const log = logs[1]
