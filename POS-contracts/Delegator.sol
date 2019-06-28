@@ -1,11 +1,15 @@
 pragma solidity ^0.5.2;
 
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
+import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+
 import { StakeManager } from "./StakeManager.sol";
 import { ValidatorContract } from "./Validator.sol";
 
 
-contract Delegator is ERC721Full {
+contract Delegator is ERC721Full, Ownable {
+  event Staked(address indexed user, uint256 indexed validatorId, uint256 indexed activatonEpoch, uint256 amount, uint256 total);
+  event Unstaked(address indexed user, uint256 indexed validatorId, uint256 amount, uint256 total);
   event Bonding(uint256 indexed delegatorId, uint256 indexed validatorId);
   event UnBonding(uint256 indexed delegatorId, uint256 indexed validatorId);
   event ReStaked(uint256 indexed delegatorId,uint256 indexed amount);
@@ -13,11 +17,13 @@ contract Delegator is ERC721Full {
   ERC20 public token;
   uint256 public NFTCounter = 1;
   uint256 public MIN_DEPOSIT_SIZE = 0;
+  uint256 public WITHDRAWAL_DELAY = 0;
   uint256 public totalStaked;
-  StakeManager public stakeManager; // Todo: replace in calls like current Epoch
+  StakeManager public stakeManager;
 
   struct Delegator {
     uint256 activationEpoch;
+    uint256 delegationStartEpoch;
     uint256 deactivationEpoch;
     uint256 amount;
     uint256 reward;
@@ -34,14 +40,23 @@ contract Delegator is ERC721Full {
     _;
   }
 
-  constructor (stakeManager _stakeManager) ERC721Full("Matic Delegator", "MD") public {
+  constructor () ERC721Full("Matic Delegator", "MD") public {
+  }
+
+  function setStakeManager(StakeManager _stakeManager) public onlyOwner {
     stakeManager = _stakeManager;
+  }
+
+  function setToken(ERC20 _token) public onlyOwner {
+    token = _token;
   }
 
   function getRewards(uint256 delegatorId) public onlyDelegator(delegatorId) {
     address validator;
     (,,,,,validator) = stakeManager.validators(delegators[delegatorId].bondedTo);
     ValidatorContract(validator).getRewards(delegatorId);
+    require(token.transfer(msg.sender, delegators[delegatorId].reward)); // Todo safeMath
+    delegators[delegatorId].reward = 0;
   }
 
   function bond(uint256 delegatorId, uint256 validatorId) public onlyDelegator(delegatorId) {
@@ -49,6 +64,7 @@ contract Delegator is ERC721Full {
     address validator;
     (,,,,,validator) = stakeManager.validators(validatorId);
     ValidatorContract(validator).bond(delegatorId);
+    delegators[delegatorId].delegationStartEpoch = stakeManager.currentEpoch();
     delegators[delegatorId].bondedTo = validatorId;
   }
 
@@ -56,10 +72,12 @@ contract Delegator is ERC721Full {
     address validator;
     (,,,,,validator) = stakeManager.validators(delegators[delegatorId].bondedTo);
     ValidatorContract(validator).unBond(delegatorId);
+    delegators[delegatorId] += ValidatorContract(validator).getRewards(delegatorId);
     delegators[delegatorId].bondedTo = 0;
   }
 
   function reStake(uint256 delegatorId) public onlyDelegator(delegatorId) {
+    require(delegators[delegatorId].bondedTo, "can't restake while bonded");
     delegators[delegatorId].amount += delegators[delegatorId].reward;
     emit ReStaked(delegatorId, delegators[delegatorId].reward);
     delegators[delegatorId].reward = 0;
@@ -71,15 +89,18 @@ contract Delegator is ERC721Full {
 
   function stakeFor(address user, uint256 amount) public onlyWhenUnlocked {
     require(balanceOf(user) == 0, "No second time staking");
-    require(amount >= stakeManager.MIN_DEPOSIT_SIZE());
+    require(amount >= MIN_DEPOSIT_SIZE);
 
     require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");
     totalStaked = totalStaked.add(amount);
 
     delegators[NFTCounter] = Delegator({
-      reward: 0,
       activationEpoch: currentEpoch,
+      delegationStartEpoch: 0,
+      deactivationEpoch: 0,
       amount: amount,
+      reward: 0,
+      bondedTo: 0,
       data: "0x0"
       });
 
@@ -90,7 +111,7 @@ contract Delegator is ERC721Full {
 
   function unstake(uint256 delegatorId) public onlyDelegator(delegatorId) {
     if (!delegators[delegatorId].bondedTo) {
-      unBond();
+      unBond(delegatorId);
     }
     delegators[delegatorId].deactivationEpoch = currentEpoch;
     emit UnstakeInit(delegatorId, msg.sender, delegators[delegatorId].amount, currentEpoch);
@@ -98,7 +119,7 @@ contract Delegator is ERC721Full {
 
   function unstakeClaim(uint256 delegatorId) public onlyDelegator(delegatorId) {
     // can only claim stake back after WITHDRAWAL_DELAY
-    require(delegators[delegatorId].deactivationEpoch.add(stakeManager.WITHDRAWAL_DELAY()) <= currentEpoch);
+    require(delegators[delegatorId].deactivationEpoch.add(WITHDRAWAL_DELAY) <= stakeManager.currentEpoch());
     uint256 amount = delegators[delegatorId].amount;
     totalStaked = totalStaked.sub(amount);
 

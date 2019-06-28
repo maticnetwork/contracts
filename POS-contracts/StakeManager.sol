@@ -248,7 +248,6 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       validators[validatorId].deactivationEpoch > currentEpoch)
     );
   }
-
   function checkSignatures(bytes32 voteHash, bytes memory sigs) public view returns (bool)  {
     // total voting power
     uint256 stakePower = 0;
