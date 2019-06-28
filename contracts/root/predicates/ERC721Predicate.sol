@@ -88,7 +88,9 @@ contract ERC721Predicate is IErcPredicate {
   }
 
   /**
-   * 
+   * @notice Start an exit for a token that was minted and burnt on the side chain
+   * @param data RLP encoded data of the burn tx
+   * @param mintTx Signed mint transaction
    */
   function startExitWithBurntTokens(bytes calldata data, bytes calldata mintTx)
     external
@@ -97,6 +99,12 @@ contract ERC721Predicate is IErcPredicate {
     processMintTx(mintTx, rootToken, tokenId);
   }
 
+  /**
+   * @notice Start an exit for a token that was minted and burnt on the side chain
+   * @param data RLP encoded data of the reference tx(s)
+   * @param exitTx Signed exit transaction
+   * @param mintTx Signed mint transaction
+   */
   function startExit(bytes calldata data, bytes calldata exitTx, bytes calldata mintTx)
     external
   {

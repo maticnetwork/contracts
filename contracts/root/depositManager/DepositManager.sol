@@ -35,16 +35,15 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
     external
     isPredicateAuthorized
   {
-    address payable owner = address(uint160(_user));
     address wethToken = registry.getWethTokenAddress();
     if (registry.isERC721(_token)) {
-      ERC721(_token).transferFrom(address(this), owner, _amountOrNFTId);
+      ERC721(_token).transferFrom(address(this), _user, _amountOrNFTId);
     } else if (_token == wethToken) {
       WETH t = WETH(_token);
-      t.withdraw(_amountOrNFTId, owner);
+      t.withdraw(_amountOrNFTId, _user);
     } else {
       require(
-        ERC20(_token).transfer(owner, _amountOrNFTId),
+        ERC20(_token).transfer(_user, _amountOrNFTId),
         "TRANSFER_FAILED"
       );
     }

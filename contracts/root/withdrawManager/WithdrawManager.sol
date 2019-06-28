@@ -146,7 +146,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
 
     // create NFT for exit UTXO
     // @todo
-    ExitNFT(exitNFTContract).mint(_exitObject.owner, priority);
+    ExitNFT(exitNft).mint(_exitObject.owner, priority);
     exits[priority] = _exitObject;
 
     // set current exit
@@ -189,7 +189,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       "Challenge failed"
     );
     // In the call to burn(exitId), there is an implicit check that prevents challenging the same exit twice
-    ExitNFT(exitNFTContract).burn(exitId);
+    ExitNFT(exitNft).burn(exitId);
     // delete exits[exitId];
     emit ExitCancelled(exitId);
   }
@@ -213,7 +213,6 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
   function processExits(address _token) external {
     uint256 exitableAt;
     uint256 exitId;
-    ExitNFT exitNft = ExitNFT(exitNFTContract);
     PriorityQueue exitQueue = PriorityQueue(exitsQueues[_token]);
     while(exitQueue.currentSize() > 0 && gasleft() > gasLimit) {
       (exitableAt, exitId) = exitQueue.getMin();
@@ -231,7 +230,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       }
 
       // limit the gas amount that predicate.onFinalizeExit() can use, to be able to make gas estimations for bulk process exits
-      address exitor = ExitNFT(exitNFTContract).ownerOf(exitId);
+      address exitor = exitNft.ownerOf(exitId);
       uint256 amountOrNft = currentExit.receiptAmountOrNFTId;
       address predicate = currentExit.predicate;
       uint256 _gas = gasLimit - 52000; // sub fixed processExit cost , ::=> can't read global vars in asm
@@ -257,11 +256,11 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     }
   }
 
-  function setExitNFTContract(address _nftContract)
+  function setexitNft(address _nftContract)
     external
     onlyOwner
   {
     require(_nftContract != address(0));
-    exitNFTContract = _nftContract;
+    exitNft = ExitNFT(_nftContract);
   }
 }

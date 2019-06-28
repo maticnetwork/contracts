@@ -3,6 +3,7 @@ pragma solidity ^0.5.2;
 import { ProxyStorage } from "../../common/misc/ProxyStorage.sol";
 import { Registry } from "../../common/Registry.sol";
 import { RootChain } from "../RootChain.sol";
+import { ExitNFT } from "./ExitNFT.sol";
 
 contract ExitsDataStructure {
   struct Input {
@@ -59,7 +60,7 @@ contract WithdrawManagerStorage is ProxyStorage, WithdrawManagerHeader {
   // mapping with token => (owner => exitId) keccak(token+owner) keccak(token+owner+tokenId)
   mapping (bytes32 => uint256) public ownerExits;
   mapping (address => address) public exitsQueues;
-  address public exitNFTContract;
+  ExitNFT public exitNft;
   // ERC721, ERC20 and Weth transfers require 155000, 100000, 52000 gas respectively
   // Processing each exit in a while loop iteration requires ~52000 gas (@todo check if this changed)
   // So putting an upper limit of 155000 + 52000 + leeway for predicate.onFinalizeExit()
