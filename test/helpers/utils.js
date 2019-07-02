@@ -123,7 +123,13 @@ export function startExit(predicate, headerNumber, blockProof, blockNumber, bloc
   )
 }
 
-export function startExitWithBurntTokens(predicate, input) {
+export function startExitWithBurntTokens(predicate, input, from) {
+  if (from) {
+    return predicate.startExitWithBurntTokens(
+      utils.bufferToHex(rlp.encode(buildReferenceTxPayload(input))),
+      { from }
+    )
+  }
   return predicate.startExitWithBurntTokens(
     utils.bufferToHex(rlp.encode(buildReferenceTxPayload(input)))
   )

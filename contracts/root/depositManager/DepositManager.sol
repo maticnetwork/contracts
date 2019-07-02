@@ -18,18 +18,24 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
     _;
   }
 
+  modifier isPredicateAuthorized() {
+    require(
+      uint8(registry.predicates(msg.sender)) != 0,
+      "Not a valid predicate"
+    );
+    _;
+  }
+
   // deposit ETH by sending to this contract
   function () external payable {
     depositEther();
   }
 
-  function transferAmount(address _token, address payable _user, uint256 _amountOrNFTId)
-  external
-  /* onlyWithdrawManager */
-  returns(bool) {
+  function transferAssets(address _token, address _user, uint256 _amountOrNFTId)
+    external
+    isPredicateAuthorized
+  {
     address wethToken = registry.getWethTokenAddress();
-
-    // @todo use pull for transfer
     if (registry.isERC721(_token)) {
       ERC721(_token).transferFrom(address(this), _user, _amountOrNFTId);
     } else if (_token == wethToken) {
@@ -41,7 +47,6 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
         "TRANSFER_FAILED"
       );
     }
-    return true;
   }
 
   function depositERC20(address _token, uint256 _amount)

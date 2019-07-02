@@ -8,6 +8,7 @@ class Deployer {
     contracts.ChildChain.web3 = web3Child
     contracts.ChildERC20.web3 = web3Child
     contracts.ChildERC721.web3 = web3Child
+    contracts.ChildERC721Mintable.web3 = web3Child
     contracts.Marketplace.web3 = web3Child
   }
 
@@ -94,13 +95,19 @@ class Deployer {
   }
 
   async deployErc20Predicate() {
-    const ERC20Predicate = await contracts.ERC20Predicate.new(this.withdrawManagerProxy.address)
+    const ERC20Predicate = await contracts.ERC20Predicate.new(
+      this.withdrawManagerProxy.address,
+      this.depositManagerProxy.address
+    )
     await this.registry.addPredicate(ERC20Predicate.address, 1 /* Type.ERC20 */)
     return ERC20Predicate
   }
 
   async deployErc721Predicate() {
-    const ERC721Predicate = await contracts.ERC721Predicate.new(this.withdrawManagerProxy.address)
+    const ERC721Predicate = await contracts.ERC721Predicate.new(
+      this.withdrawManagerProxy.address,
+      this.depositManagerProxy.address
+    )
     await this.registry.addPredicate(ERC721Predicate.address, 2 /* Type.ERC721 */)
     return ERC721Predicate
   }
@@ -108,6 +115,7 @@ class Deployer {
   async deployMarketplacePredicate() {
     const MarketplacePredicate = await contracts.MarketplacePredicate.new(
       this.withdrawManagerProxy.address,
+      this.depositManagerProxy.address,
       this.registry.address
     )
     await this.registry.addPredicate(MarketplacePredicate.address, 3 /* Type.Custom */)
@@ -175,6 +183,14 @@ class Deployer {
     )
     const NewTokenEvent = tx.logs.find(log => log.event === 'NewToken')
     const childErc721 = await contracts.ChildERC721.at(NewTokenEvent.args.token)
+    if (options.mapToken) await this.mapToken(rootERC721.address, childErc721.address, true /* isERC721 */)
+    return { rootERC721, childErc721 }
+  }
+
+  async deployChildErc721Mintable(options = { mapToken: true }) {
+    const rootERC721 = await contracts.ERC721PlasmaMintable.new()
+    const childErc721 = await contracts.ChildERC721Mintable.new(rootERC721.address)
+    await this.childChain.mapToken(rootERC721.address, childErc721.address, true /* isERC721 */)
     if (options.mapToken) await this.mapToken(rootERC721.address, childErc721.address, true /* isERC721 */)
     return { rootERC721, childErc721 }
   }

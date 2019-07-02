@@ -15,6 +15,7 @@ export const MarketplacePredicateTest = artifacts.require('MarketplacePredicateT
 export const MaticWETH = artifacts.require('MaticWETH')
 export const TestToken = artifacts.require('TestToken')
 export const RootERC721 = artifacts.require('RootERC721')
+export const ERC721PlasmaMintable = artifacts.require('ERC721PlasmaMintable')
 export const ExitNFT = artifacts.require('ExitNFT.sol')
 
 // child chain
@@ -22,3 +23,4 @@ export const Marketplace = artifacts.require('Marketplace')
 export const ChildChain = artifacts.require('ChildChain')
 export const ChildERC20 = artifacts.require('ChildERC20')
 export const ChildERC721 = artifacts.require('ChildERC721')
+export const ChildERC721Mintable = artifacts.require('ChildERC721Mintable')
