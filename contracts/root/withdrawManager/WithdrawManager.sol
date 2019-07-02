@@ -256,7 +256,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     }
   }
 
-  function setexitNft(address _nftContract)
+  function setExitNFTContract(address _nftContract)
     external
     onlyOwner
   {
