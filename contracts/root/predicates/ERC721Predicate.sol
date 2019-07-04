@@ -23,6 +23,9 @@ contract ERC721Predicate is IErcPredicate {
   // keccak256('transferFrom(address,address,uint256)').slice(0, 4)
   bytes4 constant TRANSFER_FROM_FUNC_SIG = 0x23b872dd;
 
+  // bond amount 0.1 ETH
+  uint constant BOND_AMOUNT = 10**17;
+
   constructor(address _withdrawManager, address _depositManager)
     IErcPredicate(_withdrawManager, _depositManager)
     public {}
@@ -84,7 +87,13 @@ contract ERC721Predicate is IErcPredicate {
       tokenId
     );
     age = age + oIndex + (referenceTxData[9].toUint() /* logIndex */ * MAX_LOGS); // @todo Use SafeMath
-    withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, tokenId, txHash, burnt, age);
+    // withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, tokenId, txHash, burnt, age);
+
+    // Send bond amount to Withdraw manager
+    address(withdrawManager).call.value(BOND_AMOUNT)(abi.encodeWithSignature(
+      "addExitToQueue(address,address,address,uint256,bytes32,bool,uint256)",
+      msg.sender, childToken, rootToken, tokenId, txHash, burnt, age
+    ));
   }
 
   /**
