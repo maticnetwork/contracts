@@ -103,12 +103,12 @@ contract MarketplacePredicate is PredicateUtils {
         priority
       ));
     } else if (exitChildToken == reference2.childToken) {
-      withdrawManager.addExitToQueue(
-        msg.sender, exitChildToken, reference2.rootToken,
-        exitTxData.amount2,
-        exitTxData.txHash, false /* burnt */,
-        priority
-      );
+      // withdrawManager.addExitToQueue(
+      //   msg.sender, exitChildToken, reference2.rootToken,
+      //   exitTxData.amount2,
+      //   exitTxData.txHash, false /* burnt */,
+      //   priority
+      // );
 
       // Send bond amount to Withdraw manager
       address(withdrawManager).call.value(BOND_AMOUNT)(abi.encodeWithSignature(
