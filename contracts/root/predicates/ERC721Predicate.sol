@@ -65,9 +65,11 @@ contract ERC721Predicate is IErcPredicate {
   }
 
   function startExit(bytes memory data, bytes memory exitTx)
-    public
+    public payable
     returns(address rootToken, uint256 tokenId)
   {
+    require(msg.value == BOND_AMOUNT);
+
     RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
     uint256 age = withdrawManager.verifyInclusion(data, 0 /* offset */, false /* verifyTxInclusion */);
     // validate exitTx
