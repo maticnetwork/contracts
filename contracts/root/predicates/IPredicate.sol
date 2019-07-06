@@ -27,7 +27,7 @@ interface IPredicate {
    * @return address rootToken that the exit corresponds to
    * @return uint256 exitAmountOrTokenId
    */
-  function startExit(bytes calldata data, bytes calldata exitTx) external returns(address rootToken, uint256 exitAmountOrTokenId);
+  function startExit(bytes calldata data, bytes calldata exitTx) external payable returns(address rootToken, uint256 exitAmountOrTokenId);
 
   /**
    * @notice Verify the deprecation of a state update
@@ -64,6 +64,9 @@ interface IPredicate {
 contract PredicateUtils {
   using RLPReader for RLPReader.RLPItem;
 
+  // Bonded exits collaterized at 0.1 ETH
+  uint256 constant private BOND_AMOUNT = 10 ** 17;
+
   IWithdrawManager internal withdrawManager;
   IDepositManager internal depositManager;
 
@@ -73,6 +76,39 @@ contract PredicateUtils {
       "ONLY_WITHDRAW_MANAGER"
     );
     _;
+  }
+
+  modifier isBondProvided() {
+    require(
+      msg.value == BOND_AMOUNT,
+      "Invalid Bond amount"
+    );
+    _;
+  }
+
+  /**
+   * @dev Add exit to queue while also sending the bond amount to the withdraw manager
+   */
+  function addExitToQueue(
+    address exitor,
+    address childToken,
+    address rootToken,
+    uint256 exitAmountOrTokenId,
+    bytes32 txHash,
+    bool burnt,
+    uint256 priority)
+    internal
+  {
+    address(withdrawManager).call.value(BOND_AMOUNT)(abi.encodeWithSignature(
+      "addExitToQueue(address,address,address,uint256,bytes32,bool,uint256)",
+      exitor,
+      childToken,
+      rootToken,
+      exitAmountOrTokenId,
+      txHash,
+      burnt,
+      priority
+    ));
   }
 
   function getAddressFromTx(RLPReader.RLPItem[] memory txList, bytes memory networkId)
@@ -129,7 +165,10 @@ contract IErcPredicate is IPredicate, PredicateUtils, ExitsDataStructure {
     returns (PlasmaExit memory)
   {
     (address owner, address token, uint256 amountOrTokenId, bytes32 txHash, bool burnt) = abi.decode(data, (address, address, uint256, bytes32, bool));
-    return PlasmaExit(owner, token, amountOrTokenId, txHash, burnt, address(0x0) /* predicate value will not be used */);
+    return PlasmaExit(owner, token, amountOrTokenId, txHash, burnt,
+      address(0x0), // predicate value is not being used
+      0 // inputCount is not used
+    );
   }
 
   function decodeInputUtxo(bytes memory data)

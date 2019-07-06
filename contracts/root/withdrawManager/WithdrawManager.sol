@@ -22,9 +22,6 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
   using RLPReader for RLPReader.RLPItem;
   using Merkle for bytes32;
 
-  // bond amount 0.1 ETH
-  uint constant BOND_AMOUNT = 10**17;
-
   function createExitQueue(address token)
     external
   {
@@ -117,8 +114,8 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     bool burnt,
     uint256 priority)
     external
-    isPredicateAuthorized(rootToken)
     payable
+    isPredicateAuthorized(rootToken)
   {
     require(
       registry.rootToChildToken(rootToken) == childToken,
@@ -128,7 +125,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       exits[priority].token == address(0x0),
       "EXIT_ALREADY_EXISTS"
     );
-    exits[priority] = PlasmaExit(exitor, rootToken, exitAmountOrTokenId, txHash, burnt, msg.sender /* predicate */);
+    exits[priority] = PlasmaExit(exitor, rootToken, exitAmountOrTokenId, txHash, burnt, msg.sender /* predicate */, 0 /* inputCount */);
     PlasmaExit storage _exitObject = exits[priority];
 
     bytes32 key;
@@ -172,6 +169,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       "EXIT_DOES_NOT_EXIST OR NOT_AUTHORIZED"
     );
     exitObject.inputs[age] = Input(signer);
+    exitObject.inputCount++;
     emit ExitUpdated(exitId, age, signer);
   }
 
@@ -195,8 +193,9 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     // In the call to burn(exitId), there is an implicit check that prevents challenging the same exit twice
     ExitNFT(exitNft).burn(exitId);
 
-    // incentivise challenger
+    // Send bond amount to challenger
     msg.sender.transfer(BOND_AMOUNT);
+
     // delete exits[exitId];
     emit ExitCancelled(exitId);
   }
@@ -255,15 +254,17 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
           revert(0,0)
         }
       }
-      if (!currentExit.burnt) {
-        // on sucessfull exit return bond amount to exitor
-        exitor.transfer(BOND_AMOUNT);
-      }
+
       emit Withdraw(exitor, _token, amountOrNft);
 
       // Delete owner but keep amount to prevent another exit from the same UTXO.
       // delete exits[exitId].owner;
       exitQueue.delMin();
+
+      // return the bond amount if this was a MoreVp style exit
+      if (currentExit.inputCount > 0) {
+        address(uint160(exitor)).transfer(BOND_AMOUNT);
+      }
     }
   }
 

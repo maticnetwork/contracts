@@ -18,9 +18,6 @@ contract MarketplacePredicate is PredicateUtils {
 
   // 0xe660b9e4 = keccak256('executeOrder(bytes,bytes,bytes32,uint256,address)').slice(0, 4)
   bytes4 constant EXECUTE_ORDER_FUNC_SIG = 0xe660b9e4;
-  
-  // bond amount 0.1 ETH
-  uint constant BOND_AMOUNT = 10**17;
 
   Registry internal registry;
 
@@ -64,10 +61,10 @@ contract MarketplacePredicate is PredicateUtils {
   }
 
   function startExit(bytes calldata data, bytes calldata exitTx)
-    external payable
+    external
+    payable
+    isBondProvided
   {
-    require(msg.value == BOND_AMOUNT);
-
     ExitTxData memory exitTxData = processExitTx(exitTx, withdrawManager.networkId());
     RLPReader.RLPItem[] memory referenceTx = data.toRlpItem().toList();
     (address predicate, bytes memory preState) = abi.decode(referenceTx[0].toBytes(), (address, bytes));
@@ -87,37 +84,21 @@ contract MarketplacePredicate is PredicateUtils {
     uint256 priority = Math.max(reference1.age, reference2.age);
     address exitChildToken = address(RLPReader.toUint(referenceTx[2]));
     if (exitChildToken == reference1.childToken) {
-      // withdrawManager.addExitToQueue(
-      //   msg.sender, exitChildToken, reference1.rootToken,
-      //   reference1.closingBalance - exitTxData.amount1,
-      //   exitTxData.txHash, false /* burnt */,
-      //   priority
-      // );
-
-      // Send bond amount to Withdraw manager
-      address(withdrawManager).call.value(BOND_AMOUNT)(abi.encodeWithSignature(
-        "addExitToQueue(address,address,address,uint256,bytes32,bool,uint256)",
+      // This also sends the bond amount to withdraw manager
+      addExitToQueue(
         msg.sender, exitChildToken, reference1.rootToken,
         reference1.closingBalance - exitTxData.amount1,
         exitTxData.txHash, false /* burnt */,
         priority
-      ));
+      );
     } else if (exitChildToken == reference2.childToken) {
-      // withdrawManager.addExitToQueue(
-      //   msg.sender, exitChildToken, reference2.rootToken,
-      //   exitTxData.amount2,
-      //   exitTxData.txHash, false /* burnt */,
-      //   priority
-      // );
-
-      // Send bond amount to Withdraw manager
-      address(withdrawManager).call.value(BOND_AMOUNT)(abi.encodeWithSignature(
-        "addExitToQueue(address,address,address,uint256,bytes32,bool,uint256)",
+      // This also sends the bond amount to withdraw manager
+      addExitToQueue(
         msg.sender, exitChildToken, reference2.rootToken,
         exitTxData.amount2,
         exitTxData.txHash, false /* burnt */,
         priority
-      ));
+      );
     }
     withdrawManager.addInput(priority /* exitId */, reference1.age /* age of input */, msg.sender /* signer */);
     withdrawManager.addInput(priority /* exitId */, reference2.age /* age of input */, exitTxData.counterParty /* signer */);

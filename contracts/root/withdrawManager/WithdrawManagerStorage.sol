@@ -17,6 +17,7 @@ contract ExitsDataStructure {
     bytes32 txHash;
     bool burnt;
     address predicate;
+    uint256 inputCount;
     // Mapping from age of input to Input
     mapping(uint256 => Input) inputs;
   }
@@ -51,6 +52,8 @@ contract WithdrawManagerStorage is ProxyStorage, WithdrawManagerHeader {
   uint256 constant internal WITHDRAW_BLOCK_NUMBER_WEIGHT = 10 ** 12;
   uint256 constant internal BRANCH_MASK_WEIGHT = 10 ** 5;
 
+  // Bonded exits collaterized at 0.1 ETH
+  uint256 constant internal BOND_AMOUNT = 10 ** 17;
   bytes constant public networkId = "\x0d";
 
   Registry internal registry;
