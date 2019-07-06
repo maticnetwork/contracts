@@ -21,6 +21,9 @@ contract ERC20Predicate is IErcPredicate {
   // 0xa9059cbb = keccak256('transfer(address,uint256)').slice(0, 4)
   bytes4 constant TRANSFER_FUNC_SIG = 0xa9059cbb;
 
+  // bond amount 0.1 ETH
+  uint constant BOND_AMOUNT = 10**17;
+
   constructor(address _withdrawManager, address _depositManager)
     IErcPredicate(_withdrawManager, _depositManager)
     public {}
@@ -56,9 +59,11 @@ contract ERC20Predicate is IErcPredicate {
   }
 
   function startExit(bytes calldata data, bytes calldata exitTx)
-    external
+    external payable
     returns(address /* rootToken */, uint256 /* exitAmount */)
   {
+    require(msg.value == BOND_AMOUNT);
+
     RLPReader.RLPItem[] memory referenceTx = data.toRlpItem().toList();
     uint256 age = withdrawManager.verifyInclusion(data, 0 /* offset */, false /* verifyTxInclusion */);
 
@@ -80,9 +85,23 @@ contract ERC20Predicate is IErcPredicate {
     age += referenceTxData.age; // @todo use SafeMath
 
     if (referenceTx.length <= 10) {
-      withdrawManager.addExitToQueue(
-        msg.sender, referenceTxData.childToken, referenceTxData.rootToken,
-        exitTxData.exitAmount, exitTxData.txHash, exitTxData.burnt, age /* priority */);
+      // withdrawManager.addExitToQueue(
+      //   msg.sender, referenceTxData.childToken, referenceTxData.rootToken,
+      //   exitTxData.exitAmount, exitTxData.txHash, exitTxData.burnt, age /* priority */);
+
+      // Send bond amount to Withdraw manager
+      address(withdrawManager).call.value(BOND_AMOUNT)(abi.encodeWithSignature(
+        "addExitToQueue(address,address,address,uint256,bytes32,bool,uint256)",
+        msg.sender,
+        referenceTxData.childToken,
+        referenceTxData.rootToken,
+        exitTxData.exitAmount,
+        exitTxData.txHash,
+        exitTxData.burnt,
+        age
+      ));
+
+
       withdrawManager.addInput(age /* exitId or priority */, age /* age of input */, exitTxData.signer);
       return (referenceTxData.rootToken, exitTxData.exitAmount);
     }

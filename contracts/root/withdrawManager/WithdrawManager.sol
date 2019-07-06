@@ -22,6 +22,9 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
   using RLPReader for RLPReader.RLPItem;
   using Merkle for bytes32;
 
+  // bond amount 0.1 ETH
+  uint constant BOND_AMOUNT = 10**17;
+
   function createExitQueue(address token)
     external
   {
@@ -115,6 +118,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     uint256 priority)
     external
     isPredicateAuthorized(rootToken)
+    payable
   {
     require(
       registry.rootToChildToken(rootToken) == childToken,
@@ -190,6 +194,9 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     );
     // In the call to burn(exitId), there is an implicit check that prevents challenging the same exit twice
     ExitNFT(exitNft).burn(exitId);
+
+    // incentivise challenger
+    msg.sender.transfer(BOND_AMOUNT);
     // delete exits[exitId];
     emit ExitCancelled(exitId);
   }
@@ -247,6 +254,10 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
         if eq(result, 0) {
           revert(0,0)
         }
+      }
+      if (!currentExit.burnt) {
+        // on sucessfull exit return bond amount to exitor
+        exitor.transfer(BOND_AMOUNT);
       }
       emit Withdraw(exitor, _token, amountOrNft);
 
