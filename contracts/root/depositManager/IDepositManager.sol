@@ -5,4 +5,6 @@ interface IDepositManager {
   function transferAssets(address _token, address  _user, uint256 _amountOrNFTId) external;
   function depositERC20(address _token, uint256 _amount) external;
   function depositERC721(address _token, uint256 _tokenId) external;
+
+  function onERC20Received(address _user, address _token, uint256 _amount) external;
 }

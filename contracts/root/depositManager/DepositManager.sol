@@ -26,6 +26,14 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
     _;
   }
 
+  modifier onlyDepositHelper() {
+    require(
+      msg.sender == registry.getDepositHelperAddress(),
+      "ONLY_DEPOSIT_HELPER"
+    );
+    _;
+  }
+
   // deposit ETH by sending to this contract
   function () external payable {
     depositEther();
@@ -90,22 +98,21 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
   }
 
   /**
-   * @notice This will be invoked when someone calls safeTransferFrom and deposits tokens to this contract
-     without directly interacting with this contract
-   * Note: the contract address is always the message sender.
-   * _operator The address which called `safeTransferFrom` function
-   * @param _from The address which previously owned the token
+   * @notice This will be invoked when safeTransferFrom is called on the token contract to deposit tokens to this contract
+     without directly interacting with it
+   * @dev msg.sender is the token contract
+   * _operator The address which called `safeTransferFrom` function on the token contract
+   * @param _user The address which previously owned the token
    * @param _tokenId The NFT identifier which is being transferred
    * _data Additional data with no specified format
    * @return `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
-   * unless throwing
    */
-  function onERC721Received(address /* _operator */, address _from, uint256 _tokenId, bytes memory /* _data */)
+  function onERC721Received(address /* _operator */, address _user, uint256 _tokenId, bytes memory /* _data */)
     public
     returns (bytes4)
   {
     // the ERC721 contract address is the message sender
-    _createDepositBlock(_from, msg.sender /* token */, _tokenId);
+    _createDepositBlock(_user, msg.sender /* token */, _tokenId);
     return 0x150b7a02;
   }
 
@@ -114,6 +121,13 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
   public
   {
     _createDepositBlock(_user, msg.sender /* token */, _amount);
+  }
+
+  function onERC20Received(address _user, address _token, uint256 _amount)
+    external
+    onlyDepositHelper
+  {
+    _createDepositBlock(_user, _token, _amount);
   }
 
   function _createDepositBlock(address _user, address _token, uint256 amountOrNFTId)
