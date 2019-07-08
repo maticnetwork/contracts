@@ -10,7 +10,6 @@ contract Registry is Ownable {
   bytes32 constant private STAKE_MANAGER = keccak256("stakeManager");
   bytes32 constant private WITHDRAW_MANAGER = keccak256("withdrawManager");
   bytes32 constant private CHILD_CHAIN_CONTRACT = keccak256("childChainContract");
-  bytes32 constant private DEPOSIT_HELPER = keccak256("depositHelper");
   bytes constant public networkId = "\x0d";
 
   mapping(bytes32 => address) contractMap;
@@ -113,10 +112,6 @@ contract Registry is Ownable {
 
   function getChildChainContract() public view returns(address) {
     return contractMap[CHILD_CHAIN_CONTRACT];
-  }
-
-  function getDepositHelperAddress() public view returns(address) {
-    return contractMap[DEPOSIT_HELPER];
   }
 
   function isTokenMapped(address _token) public view returns (bool) {

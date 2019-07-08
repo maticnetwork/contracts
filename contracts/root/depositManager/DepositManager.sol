@@ -26,14 +26,6 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
     _;
   }
 
-  modifier onlyDepositHelper() {
-    require(
-      msg.sender == registry.getDepositHelperAddress(),
-      "ONLY_DEPOSIT_HELPER"
-    );
-    _;
-  }
-
   // deposit ETH by sending to this contract
   function () external payable {
     depositEther();
@@ -54,6 +46,23 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
         ERC20(_token).transfer(_user, _amountOrNFTId),
         "TRANSFER_FAILED"
       );
+    }
+  }
+
+  function depositBulk(address[] calldata _tokens, uint256[] calldata _amountOrTokens, address _user)
+    external
+  {
+    require(
+      _tokens.length == _amountOrTokens.length,
+      "Invalid Input"
+    );
+    for (uint256 i = 0; i < _tokens.length; i++) {
+      // will revert if token is not mapped
+      if (registry.isTokenMappedAndIsErc721(_tokens[i])) {
+        depositERC721ForUser(_tokens[i], _user, _amountOrTokens[i]);
+      } else {
+        depositERC20ForUser(_tokens[i], _user, _amountOrTokens[i]);
+      }
     }
   }
 
@@ -121,13 +130,6 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
   public
   {
     _createDepositBlock(_user, msg.sender /* token */, _amount);
-  }
-
-  function onERC20Received(address _user, address _token, uint256 _amount)
-    external
-    onlyDepositHelper
-  {
-    _createDepositBlock(_user, _token, _amount);
   }
 
   function _createDepositBlock(address _user, address _token, uint256 amountOrNFTId)
