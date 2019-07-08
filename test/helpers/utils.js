@@ -119,7 +119,8 @@ export function startExit(predicate, headerNumber, blockProof, blockNumber, bloc
         logIndex
       ])
     ),
-    utils.bufferToHex(exitTx)
+    utils.bufferToHex(exitTx),
+    { value: web3.utils.toWei('.1', 'ether') }
   )
 }
 
@@ -142,7 +143,8 @@ export function startExitNew(predicate, inputs, exitTx) {
   })
   return predicate.startExit(
     utils.bufferToHex(rlp.encode(_inputs)),
-    utils.bufferToHex(exitTx)
+    utils.bufferToHex(exitTx),
+    { value: web3.utils.toWei('.1', 'ether') }
   )
 }
 
@@ -159,7 +161,8 @@ export function startExitForMarketplacePredicate(predicate, inputs, exitToken, e
   _inputs.push(exitToken)
   return predicate.startExit(
     utils.bufferToHex(rlp.encode(_inputs)),
-    utils.bufferToHex(exitTx)
+    utils.bufferToHex(exitTx),
+    { value: web3.utils.toWei('.1', 'ether') }
   )
 }
 

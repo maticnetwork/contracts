@@ -247,7 +247,7 @@ function startExitWithBurntMintableToken(input, mintTx, from) {
 
 function startMoreVpExitWithMintableToken(
   headerNumber, blockProof, blockNumber, blockTimestamp, reference, logIndex, exitTx, mintTx, from) {
-  return predicate.startExit(
+  return predicate.startExitAndMint(
     ethUtils.bufferToHex(
       ethUtils.rlp.encode([
         headerNumber,
@@ -264,7 +264,7 @@ function startMoreVpExitWithMintableToken(
     ),
     ethUtils.bufferToHex(exitTx),
     ethUtils.bufferToHex(mintTx),
-    { from }
+    { from, value: web3.utils.toWei('.1', 'ether') }
   )
 }
 

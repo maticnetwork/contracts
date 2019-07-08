@@ -104,13 +104,15 @@ contract ERC721Predicate is IErcPredicate {
   }
 
   /**
-   * @notice Start an exit for a token that was minted and burnt on the side chain
+   * @notice Start a MoreVP style exit for a token that was minted on the side chain
    * @param data RLP encoded data of the reference tx(s)
    * @param exitTx Signed exit transaction
    * @param mintTx Signed mint transaction
    */
-  function startExit(bytes calldata data, bytes calldata exitTx, bytes calldata mintTx)
+  function startExitAndMint(bytes calldata data, bytes calldata exitTx, bytes calldata mintTx)
     external
+    payable
+    isBondProvided
   {
     (address rootToken, uint256 tokenId) = startExit(data, exitTx);
     processMintTx(mintTx, rootToken, tokenId);

@@ -346,7 +346,8 @@ contract('MarketplacePredicate', async function(accounts) {
     try {
       await predicate.startExit(
         ethUtils.bufferToHex(rlp.encode(inputs)),
-        buildInFlight(executeOrder.tx)
+        buildInFlight(executeOrder.tx),
+        { value: web3.utils.toWei('.1', 'ether') }
       )
       assert.fail(1, 2, 'Expected to fail')
     } catch (e) {
