@@ -22,18 +22,13 @@ class Deployer {
       'ENFT'
     )
 
-    this.depositManager = await contracts.DepositManager.new()
-    this.depositManagerProxy = await contracts.DepositManagerProxy.new(
-      this.depositManager.address,
-      this.registry.address,
-      this.rootChain.address
-    )
+    const depositManager = await this.deployDepositManager()
     const withdrawManager = await this.deployWithdrawManager()
 
     await Promise.all([
       this.registry.updateContractMap(
         utils.keccak256('depositManager'),
-        this.depositManagerProxy.address
+        depositManager.address
       ),
       this.registry.updateContractMap(
         utils.keccak256('withdrawManager'),
@@ -48,34 +43,46 @@ class Deployer {
     let _contracts = {
       registry: this.registry,
       rootChain: this.rootChain,
-      // for abi to be compatible
-      depositManager: await contracts.DepositManager.at(
-        this.depositManagerProxy.address
-      ),
+      depositManager,
       withdrawManager,
       exitNFT: this.exitNFT
-    }
-
-    if (options.maticWeth) {
-      this.maticWeth = await contracts.MaticWETH.new()
-      await Promise.all([
-        this.mapToken(
-          this.maticWeth.address,
-          this.maticWeth.address,
-          false /* isERC721 */
-        ),
-        this.registry.updateContractMap(
-          utils.keccak256('wethToken'),
-          this.maticWeth.address
-        )
-      ])
-      _contracts.maticWeth = this.maticWeth
     }
 
     if (options.deployTestErc20) {
       _contracts.testToken = await this.deployTestErc20()
     }
+
     return _contracts
+  }
+
+  async deployMaticWeth() {
+    const maticWeth = await contracts.MaticWETH.new()
+    await Promise.all([
+      this.mapToken(
+        maticWeth.address,
+        maticWeth.address,
+        false /* isERC721 */
+      ),
+      this.registry.updateContractMap(
+        utils.keccak256('wethToken'),
+        maticWeth.address
+      )
+    ])
+    return maticWeth
+  }
+
+  async deployDepositManager() {
+    this.depositManager = await contracts.DepositManager.new()
+    this.depositManagerProxy = await contracts.DepositManagerProxy.new(
+      this.depositManager.address,
+      this.registry.address,
+      this.rootChain.address
+    )
+    await this.registry.updateContractMap(
+      utils.keccak256('depositManager'),
+      this.depositManagerProxy.address
+    )
+    return contracts.DepositManager.at(this.depositManagerProxy.address)
   }
 
   async deployWithdrawManager() {

@@ -84,7 +84,7 @@ contract RootChain is RootChainStorage {
     uint256 depositId = _nextHeaderBlock.sub(MAX_DEPOSITS).add(_blockDepositId);
     deposits[depositId] = DepositBlock(_owner, _token, _nextHeaderBlock, _amountOrToken, now);
     emit NewDepositBlock(_owner, _token, _amountOrToken, depositId);
-    _blockDepositId.add(1);
+    _blockDepositId = _blockDepositId.add(1);
   }
 
   function slash() external {

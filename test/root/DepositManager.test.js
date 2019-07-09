@@ -5,22 +5,24 @@ import deployer from '../helpers/deployer.js'
 import logDecoder from '../helpers/log-decoder.js'
 import { assertBigNumberEquality } from '../helpers/utils.js'
 
+const crypto = require('crypto')
+
 chai
   .use(chaiAsPromised)
   .should()
 
 contract("DepositManager", async function(accounts) {
-  let rootChain, depositManager, maticWeth
+  let rootChain, depositManager
   const amount = web3.utils.toBN('10').pow(web3.utils.toBN('18'))
 
   beforeEach(async function() {
-    const contracts = await deployer.freshDeploy({ maticWeth: true })
+    const contracts = await deployer.freshDeploy()
     rootChain = contracts.rootChain
     depositManager = contracts.depositManager
-    maticWeth = contracts.maticWeth
   })
 
   it("depositEther", async function() {
+    const maticWeth = await deployer.deployMaticWeth()
     const value = web3.utils.toWei('1', 'ether')
     const result = await depositManager.depositEther({
       value,
@@ -44,7 +46,7 @@ contract("DepositManager", async function(accounts) {
     const result = await depositManager.depositERC20(testToken.address, amount)
     const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
 
-    // Transfer, Approval, NewDepositBlock
+    // Transfer, Approval (ERC20 updates the spender allowance), NewDepositBlock
     logs.should.have.lengthOf(3)
     logs[2].event.should.equal('NewDepositBlock')
     validateDepositBlock(logs[2].args, accounts[0], testToken.address, amount)
@@ -61,7 +63,7 @@ contract("DepositManager", async function(accounts) {
     const result = await depositManager.depositERC20ForUser(testToken.address, user, amount)
     const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
 
-    // Transfer, Approval, NewDepositBlock
+    // Transfer, Approval (ERC20 updates the spender allowance), NewDepositBlock
     logs.should.have.lengthOf(3)
     logs[2].event.should.equal('NewDepositBlock')
     validateDepositBlock(logs[2].args, user, testToken.address, amount)
@@ -80,7 +82,6 @@ contract("DepositManager", async function(accounts) {
     const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
 
     // Transfer, NewDepositBlock
-    // check why Approval event is not being logged
     logs.should.have.lengthOf(2)
     const _depositBlock = logs[1]
     _depositBlock.event.should.equal('NewDepositBlock')
@@ -101,7 +102,6 @@ contract("DepositManager", async function(accounts) {
     const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
 
     // Transfer, NewDepositBlock
-    // check why Approval event is not being logged
     logs.should.have.lengthOf(2)
     const _depositBlock = logs[1]
     _depositBlock.event.should.equal('NewDepositBlock')
@@ -110,6 +110,55 @@ contract("DepositManager", async function(accounts) {
 
     const depositBlock = await rootChain.deposits(1)
     validateDepositBlock(depositBlock, user, testToken.address, tokenId)
+  })
+
+  it('depositBulk', async function() {
+    const tokens = []
+    const amounts = []
+    const NUM_DEPOSITS = 15
+    for (let i = 0; i < NUM_DEPOSITS; i++) {
+      const testToken = await deployer.deployTestErc20()
+      await testToken.approve(depositManager.address, amount)
+      tokens.push(testToken.address)
+      amounts.push('0x' + amount.toString(16))
+    }
+    for (let i = 0; i < NUM_DEPOSITS; i++) {
+      const testToken = await deployer.deployTestErc721()
+      const tokenId = '0x' + crypto.randomBytes(32).toString('hex')
+      await testToken.mint(tokenId)
+      await testToken.approve(depositManager.address, tokenId)
+      tokens.push(testToken.address)
+      amounts.push(tokenId)
+    }
+    const user = accounts[1]
+    const result = await depositManager.depositBulk(tokens, amounts, user)
+    console.log(`gasUsed in ${NUM_DEPOSITS} ERC20 and ERC721 deposits each`, result.receipt.gasUsed)
+    const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
+    // assert events for erc20 transfers
+    for (let i = 0; i < NUM_DEPOSITS; i++) {
+      // 3 logs per transfer - Transfer, Approval (ERC20 updates the spender allowance), NewDepositBlock
+      const logIndex = i * 3
+      logs[logIndex].event.should.equal('Transfer')
+      const log = logs[logIndex + 2]
+      log.event.should.equal('NewDepositBlock')
+      validateDepositBlock(log.args, user, tokens[i], amounts[i])
+      expect(log.args.depositBlockId.toString()).to.equal((i + 1).toString())
+      const depositBlock = await rootChain.deposits(i + 1)
+      validateDepositBlock(depositBlock, user, tokens[i], amounts[i])
+    }
+
+    // assert events for erc721 transfers
+    for (let j = 0; j < NUM_DEPOSITS; j++) {
+      const logIndex = 3 * NUM_DEPOSITS /* add erc20 events */ + j * 2 // 2 logs per transfer - Transfer, NewDepositBlock
+      logs[logIndex].event.should.equal('Transfer')
+      const log = logs[logIndex + 1]
+      const numTransfer = j + NUM_DEPOSITS
+      log.event.should.equal('NewDepositBlock')
+      validateDepositBlock(log.args, user, tokens[numTransfer], amounts[numTransfer])
+      expect(log.args.depositBlockId.toString()).to.equal((numTransfer + 1).toString())
+      const depositBlock = await rootChain.deposits(numTransfer + 1)
+      validateDepositBlock(depositBlock, user, tokens[numTransfer], amounts[numTransfer])
+    }
   })
 
   it('onERC721Received');

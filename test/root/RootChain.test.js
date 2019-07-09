@@ -67,7 +67,7 @@ contract("RootChain", async function(accounts) {
 
   it("createDepositBlock is ACLed on onlyDepositManager", async function() {
     try {
-      await rootChain.createDepositBlock(accounts[0], accounts[1], 1)
+      await rootChain.createDepositBlock(accounts[0], 1, accounts[1])
       assert.fail('should have failed with UNAUTHORIZED_DEPOSIT_MANAGER_ONLY.');
     } catch(e) {
       expect(e.reason).to.equal('UNAUTHORIZED_DEPOSIT_MANAGER_ONLY')
