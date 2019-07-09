@@ -85,7 +85,7 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
       ERC20(_token).transferFrom(msg.sender, address(this), _amount),
       "TOKEN_TRANSFER_FAILED"
     );
-    _createDepositBlock(_user, _token, _amount);
+    _safeCreateDepositBlock(_user, _token, _amount);
   }
 
   // @todo: write depositEtherForUser
@@ -96,14 +96,14 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
     address wethToken = registry.getWethTokenAddress();
     WETH t = WETH(wethToken);
     t.deposit.value(msg.value)();
-    _createDepositBlock(msg.sender, wethToken, msg.value);
+    _safeCreateDepositBlock(msg.sender, wethToken, msg.value);
   }
 
   function depositERC721ForUser(address _token, address _user, uint256 _tokenId)
     public
   {
     ERC721(_token).transferFrom(msg.sender, address(this), _tokenId);
-    _createDepositBlock(_user, _token, _tokenId);
+    _safeCreateDepositBlock(_user, _token, _tokenId);
   }
 
   /**
@@ -121,7 +121,7 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
     returns (bytes4)
   {
     // the ERC721 contract address is the message sender
-    _createDepositBlock(_user, msg.sender /* token */, _tokenId);
+    _safeCreateDepositBlock(_user, msg.sender /* token */, _tokenId);
     return 0x150b7a02;
   }
 
@@ -129,13 +129,19 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
   function tokenFallback(address _user, uint256 _amount, bytes memory /* _data */)
   public
   {
-    _createDepositBlock(_user, msg.sender /* token */, _amount);
+    _safeCreateDepositBlock(_user, msg.sender /* token */, _amount);
   }
 
-  function _createDepositBlock(address _user, address _token, uint256 amountOrNFTId)
+  function _safeCreateDepositBlock(address _user, address _token, uint256 _amountOrToken)
     internal
     isTokenMapped(_token)
   {
-    rootChain.createDepositBlock(_user, _token, amountOrNFTId);
+    rootChain.createDepositBlock(_token, _amountOrToken, _user);
+  }
+
+  function _createDepositBlockBulk(address[] memory _tokens, uint256[] memory _amountOrTokens, address _user)
+    internal
+  {
+    rootChain.bulkCreateDepositBlocks(_tokens, _amountOrTokens, _user);
   }
 }
