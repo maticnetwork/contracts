@@ -88,7 +88,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
     require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");
     totalStaked = totalStaked.add(amount);
-    address _contract;
+    address _contract = address(0x0);
     if (isContract) {
       _contract = address(new ValidatorContract(user));
     }
@@ -124,10 +124,11 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
     uint256 exitEpoch = currentEpoch.add(UNSTAKE_DELAY);// notice period
     validators[validatorId].deactivationEpoch = exitEpoch;
-    // unbond all delegatros
+
+    // unbond all delegatros in future
     require(!validators[validatorId].contractAddress ||
       ValidatorContract(validators[validatorId].contractAddress).unBondAllLazy(exitEpoch),
-       "unbond all delegators"); // unbond in future
+      "unbond all delegators");
 
     //  update future
     validatorState[exitEpoch].amount = (
@@ -172,16 +173,14 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     emit ReStaked(validatorId, validators[validatorId].amount, totalStaked);
   }
 
-  // if not jailed then in state of warning, else will be unstaking after x period
+  // if not jailed then in state of warning, else will be unstaking after x epoch
   function slash(uint256 validatorId) public /**onlyRootChain */ {
     // if contract call contract.slash
     // else slash here validator.amount
     // if amount < MIN_DEPOSIT_SIZE jail him as well
   }
 
-  // in context of slashing unset deactivation time
   function revoke(uint256 validatorId) public onlyStaker(validatorId) {
-    // require(validators[validatorId].state);
     require(validators[validatorId].activationEpoch > 0 &&
       validators[validatorId].deactivationEpoch > currentEpoch &&
       validators[validatorId].state == State.Locked);
@@ -198,7 +197,6 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
     validators[validatorId].deactivationEpoch = 0;
     validators[validatorId].state = State.Active;
-
   }
 
   // in context of slashing
@@ -232,12 +230,13 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     return _validators;
   }
 
-  function getStakerDetails(uint256 validatorId) public view returns(uint256, uint256, uint256, address) {
+  function getStakerDetails(uint256 validatorId) public view returns(uint256, uint256, uint256, address, uint256) {
     return (
       validators[validatorId].amount,
       validators[validatorId].activationEpoch,
       validators[validatorId].deactivationEpoch,
-      validators[validatorId].signer
+      validators[validatorId].signer,
+      uint256(validators[validatorId].state)
       );
   }
 
