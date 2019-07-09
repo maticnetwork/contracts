@@ -116,13 +116,19 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
   function unstake(uint256 validatorId) public onlyStaker(validatorId) {
     //Todo: add state here consider jail
-    require(validators[validatorId].activationEpoch > 0 && validators[validatorId].deactivationEpoch == 0);
+    require(validators[validatorId].activationEpoch > 0 &&
+      validators[validatorId].deactivationEpoch == 0 &&
+      validators[validatorId].state == State.Active);
+
     uint256 amount = validators[validatorId].amount;
 
     uint256 exitEpoch = currentEpoch.add(UNSTAKE_DELAY);// notice period
     validators[validatorId].deactivationEpoch = exitEpoch;
     // unbond all delegatros
-    require(!validators[validatorId].contractAddress || ValidatorContract(validators[validatorId].contractAddress).unBondAllLazy(exitEpoch), "unbond all delegators"); // unbond in future
+    require(!validators[validatorId].contractAddress ||
+      ValidatorContract(validators[validatorId].contractAddress).unBondAllLazy(exitEpoch),
+       "unbond all delegators"); // unbond in future
+
     //  update future
     validatorState[exitEpoch].amount = (
       validatorState[exitEpoch].amount - int256(amount));
@@ -150,8 +156,8 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   // slashing and jail interface
 
   function restake(uint256 validatorId, uint256 amount, bool stakeRewards) public onlyStaker(validatorId) {
-    // update this require with state jail
-    require(validators[validatorId].activationEpoch > 0 && validators[validatorId].deactivationEpoch == 0);
+    require(validators[validatorId].deactivationEpoch < currentEpoch, "No use of restaking");
+
     if (amount > 0) {
       require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");
     }
@@ -176,7 +182,10 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   // in context of slashing unset deactivation time
   function revoke(uint256 validatorId) public onlyStaker(validatorId) {
     // require(validators[validatorId].state);
-    require(validators[validatorId].activationEpoch > 0 && validators[validatorId].deactivationEpoch == 0);
+    require(validators[validatorId].activationEpoch > 0 &&
+      validators[validatorId].deactivationEpoch > currentEpoch &&
+      validators[validatorId].state == State.Locked);
+
     uint256 amount = validators[validatorId].amount;
     require(amount >= MIN_DEPOSIT_SIZE);
     uint256 exitEpoch = validators[validatorId].deactivationEpoch;
@@ -307,13 +316,13 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   }
 
   function isValidator(uint256 validatorId) public view returns (bool) {
-    // TODO: consider jailed
     return (
       validators[validatorId].amount > 0 &&
       (validators[validatorId].activationEpoch != 0 &&
       validators[validatorId].activationEpoch <= currentEpoch ) &&
       (validators[validatorId].deactivationEpoch == 0 ||
-      validators[validatorId].deactivationEpoch > currentEpoch)
+      validators[validatorId].deactivationEpoch > currentEpoch) &&
+      validators[validatorId].state == State.Active // Todo: reduce logic
     );
   }
 
