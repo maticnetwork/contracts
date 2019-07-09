@@ -307,6 +307,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   }
 
   function isValidator(uint256 validatorId) public view returns (bool) {
+    // TODO: consider jailed
     return (
       validators[validatorId].amount > 0 &&
       (validators[validatorId].activationEpoch != 0 &&
@@ -315,6 +316,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       validators[validatorId].deactivationEpoch > currentEpoch)
     );
   }
+
   function checkSignatures(bytes32 voteHash, bytes memory sigs) public view returns (bool)  {
     // total voting power
     uint256 stakePower = 0;
@@ -333,12 +335,13 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
         signer > lastAdd
       ) {
         lastAdd = signer;
-        stakePower = stakePower.add(validators[validatorId].amount);
-
-        if (validators[validatorId].contractAddress == address(0x0)) {
+        address _contract = validators[validatorId].contractAddress;
+        if (_contract == address(0x0)) {
           validators[validatorId].reward += _reward;
+          stakePower = stakePower.add(validators[validatorId].amount);
         } else {
-          ValidatorContract().updateRewards(_reward);
+          stakePower = stakePower.add(validators[validatorId].amount).add(ValidatorContract(_contract).delegatedAmount());
+          ValidatorContract(_contract).updateRewards(_reward);
         }
 
       } else {
