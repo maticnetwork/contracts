@@ -31,7 +31,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   ERC20 public token;
 
   // genesis/governance variables
-  uint256 public DYNASTY = 2**13;  // unit: epoch
+  uint256 public DYNASTY = 2**13;  // unit: epoch 50 days
   uint256 public MIN_DEPOSIT_SIZE = (10**18);  // in ERC20 token
   uint256 public EPOCH_LENGTH = 256; // unit : block
   uint256 public WITHDRAWAL_DELAY = DYNASTY.div(2); // unit: epoch
@@ -43,6 +43,8 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   uint256 public currentEpoch = 1;
   uint256 public NFTCounter = 1;
 
+  enum State { Inactive, Active, Locked }
+
   struct Validator {
     uint256 epoch;
     uint256 amount;
@@ -51,6 +53,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     uint256 deactivationEpoch;
     address signer;
     address contractAddress;
+    State state;
   }
 
   struct State {
@@ -97,7 +100,8 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       activationEpoch: currentEpoch,
       deactivationEpoch: 0,
       signer: signer,
-      contractAddress: _contract
+      contractAddress: _contract,
+      state : State.Active
     });
 
     _mint(validator, NFTCounter);
@@ -111,13 +115,14 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   }
 
   function unstake(uint256 validatorId) public onlyStaker(validatorId) {
+    //Todo: add state here consider jail
     require(validators[validatorId].activationEpoch > 0 && validators[validatorId].deactivationEpoch == 0);
-    require(true, "unbond all delegators");
     uint256 amount = validators[validatorId].amount;
 
-    uint256 exitEpoch = currentEpoch.add(UNSTAKE_DELAY);
+    uint256 exitEpoch = currentEpoch.add(UNSTAKE_DELAY);// notice period
     validators[validatorId].deactivationEpoch = exitEpoch;
-
+    // unbond all delegatros
+    require(!validators[validatorId].contractAddress || ValidatorContract(validators[validatorId].contractAddress).unBondAllLazy(exitEpoch), "unbond all delegators"); // unbond in future
     //  update future
     validatorState[exitEpoch].amount = (
       validatorState[exitEpoch].amount - int256(amount));
@@ -140,6 +145,68 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
     require(token.transfer(msg.sender, amount + validators[validatorId].reward));
     emit Unstaked(msg.sender, validatorId, amount, totalStaked);
+  }
+
+  // slashing and jail interface
+
+  function restake(uint256 validatorId, uint256 amount, bool stakeRewards) public onlyStaker(validatorId) {
+    // update this require with state jail
+    require(validators[validatorId].activationEpoch > 0 && validators[validatorId].deactivationEpoch == 0);
+    if (amount > 0) {
+      require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");
+    }
+    if (stakeRewards) {
+      amount += stakeRewards;
+      validators[validatorId].reward = 0;
+    }
+    totalStaked = totalStaked.add(amount);
+    validators[validatorId].amount += amount;
+    validatorState[currentEpoch].amount = (
+      validatorState[currentEpoch].amount + int256(amount));
+    emit ReStaked(validatorId, validators[validatorId].amount, totalStaked);
+  }
+
+  // if not jailed then in state of warning, else will be unstaking after x period
+  function slash(uint256 validatorId) public /**onlyRootChain */ {
+    // if contract call contract.slash
+    // else slash here validator.amount
+    // if amount < MIN_DEPOSIT_SIZE jail him as well
+  }
+
+  // in context of slashing unset deactivation time
+  function revoke(uint256 validatorId) public onlyStaker(validatorId) {
+    // require(validators[validatorId].state);
+    require(validators[validatorId].activationEpoch > 0 && validators[validatorId].deactivationEpoch == 0);
+    uint256 amount = validators[validatorId].amount;
+    require(amount >= MIN_DEPOSIT_SIZE);
+    uint256 exitEpoch = validators[validatorId].deactivationEpoch;
+
+    // undo timline
+    validatorState[exitEpoch].amount = (
+      validatorState[exitEpoch].amount + int256(amount));
+    validatorState[exitEpoch].stakerCount = (
+      validatorState[exitEpoch].stakerCount + 1);
+
+    validators[validatorId].deactivationEpoch = 0;
+    validators[validatorId].state = State.Active;
+
+  }
+
+  // in context of slashing
+  function jail(uint256 validatorId) public /** only*/ {
+    // Todo: requires and more conditions
+    uint256 amount = validators[validatorId].amount;
+    uint256 exitEpoch = currentEpoch.add(UNSTAKE_DELAY);  // jail period
+
+    // update future in case of no revoke
+    validatorState[exitEpoch].amount = (
+      validatorState[exitEpoch].amount - int256(amount));
+    validatorState[exitEpoch].stakerCount = (
+      validatorState[exitEpoch].stakerCount - 1);
+
+    validators[validatorId].deactivationEpoch = exitEpoch;
+    validators[validatorId].state = State.Locked;
+    emit Jailed(validatorId, exitEpoch);
   }
 
   // returns valid validator for current epoch
