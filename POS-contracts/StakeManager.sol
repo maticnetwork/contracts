@@ -319,6 +319,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     // total voting power
     uint256 stakePower = 0;
     uint256 validatorId;
+    uint256 _reward = 1; // temporary rewards placeholder
 
     address lastAdd = address(0x0); // cannot have address(0x0) as an owner
     for (uint64 i = 0; i < sigs.length; i += 65) {
@@ -333,6 +334,13 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       ) {
         lastAdd = signer;
         stakePower = stakePower.add(validators[validatorId].amount);
+
+        if (validators[validatorId].contractAddress == address(0x0)) {
+          validators[validatorId].reward += _reward;
+        } else {
+          ValidatorContract().updateRewards(_reward);
+        }
+
       } else {
         break;
       }

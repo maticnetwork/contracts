@@ -37,6 +37,10 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
 
   }
 
+  function updateRewards(uint256 amount) public onlyOwner {
+    rewards += amount;
+  }
+
   function bond(uint256 delegatorId) public onlyDelegatorContract {
     // is valid delegator
     // isn't bonded
