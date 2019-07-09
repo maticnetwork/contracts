@@ -8,8 +8,6 @@ contract Validator is ERC721Full {
   //
   // Storage
   //
-  uint256[] public delegators;
-
 }
 
 
@@ -60,7 +58,7 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
     delete delegators[delegators.length];
   }
 
-  function unBondAllLazy(uint256 exitEpoch) public returns(bool) { // onlyStakeManager
+  function unBondAllLazy(uint256 exitEpoch) public onlyOwner returns(bool) {
     delegation = false; //  won't be accepting any new delegations
     for (uint256 i; i < delegators.length; i++) {
       unBondLazy(delegators[i], exitEpoch);
@@ -77,7 +75,7 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
     // TODO: reward flow
   }
 
-  function slash() public {
+  function slash() public onlyOwner {
     // slash delegator according to slashingRatio
   }
 
