@@ -39,20 +39,16 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
     rewards += amount;
   }
 
-  function bond(uint256 delegatorId) public onlyDelegatorContract {
-    // is valid delegator
-    // isn't bonded
-    // lock , start
+  function bond(uint256 delegatorId, uint256 amount) public onlyDelegatorContract {
     require(delegation);
     delegators.push(delegatorId);
-    uint256 amount;
-    (, , , , amount) = Delegator(delegatorContract).delegators(delegatorId);
     delegatedAmount += amount;
   }
 
-  function unBond(uint256 delegatorId, uint256 index) public onlyDelegatorContract {
+  function unBond(uint256 delegatorId, uint256 index, uint256 amount) public onlyDelegatorContract {
     // update rewards according to rewardRatio
     require(delegators[index] == delegatorId);
+    delegatedAmount -= amount;
     // start unbonding
     delegators[index] = delegators[delegators.length];
     delete delegators[delegators.length];

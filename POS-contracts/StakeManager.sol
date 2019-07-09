@@ -163,7 +163,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");
     }
     if (stakeRewards) {
-      amount += stakeRewards;
+      amount += validators[validatorId].reward;
       validators[validatorId].reward = 0;
     }
     totalStaked = totalStaked.add(amount);

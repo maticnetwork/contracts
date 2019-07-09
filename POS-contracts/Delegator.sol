@@ -63,26 +63,26 @@ contract Delegator is ERC721Full, Ownable {
     // add into timeline for next checkpoint
     // require(time/count)
     Delegator delegator = delegators[delegatorId];
+    require(delegator.delegationStopEpoch == 0 && delegator.delegationStartEpoch == 0 && !delegators[delegatorId].bondedTo, "");
     uint256 currentEpoch = stakeManager.currentEpoch();
-    require(delegator.delegationStopEpoch == 0 && delegator.delegationStartEpoch == 0, "");
     address validator;
-    (,,,,,validator) = stakeManager.validators(validatorId);
-    ValidatorContract(validator).bond(delegatorId);
+    (,,,,,,validator,) = stakeManager.validators(validatorId);
+    ValidatorContract(validator).bond(delegatorId, delegator.amount);
     delegator.delegationStartEpoch = stakeManager.currentEpoch();
     delegator.bondedTo = validatorId;
   }
 
-  function unBond(uint256 delegatorId) public onlyDelegator(delegatorId) {
+  function unBond(uint256 delegatorId, uint256 index) public onlyDelegator(delegatorId) {
     address validator;
-    (,,,,,validator) = stakeManager.validators(delegators[delegatorId].bondedTo);
-    ValidatorContract(validator).unBond(delegatorId);
+    (,,,,,,validator,) = stakeManager.validators(delegators[delegatorId].bondedTo);
+    ValidatorContract(validator).unBond(delegatorId, index, delegators[delegatorId].amount);
     delegators[delegatorId].reward += ValidatorContract(validator).getRewards(delegatorId);
     delegators[delegatorId].bondedTo = 0;
   }
 
   function unBondLazy(uint256 delegatorId, uint256 epoch) public /* onlyDelegator(delegatorId) */ {
     address validator;
-    (,,,,,validator) = stakeManager.validators(delegators[delegatorId].bondedTo);
+    (,,,,,,validator,) = stakeManager.validators(delegators[delegatorId].bondedTo);
     require(msg.sender == validator);
     delegators[delegatorId].delegationStopEpoch = epoch;
     // ValidatorContract(validator).unBond(delegatorId);
@@ -92,12 +92,19 @@ contract Delegator is ERC721Full, Ownable {
 
   function hopValidator() public; // require(time/count)
 
-  function reStake(uint256 delegatorId) public onlyDelegator(delegatorId) {
-    // todo: add transfer as well
-    // require(delegators[delegatorId].bondedTo, "can't restake while bonded"); // remove me
-    delegators[delegatorId].amount += delegators[delegatorId].reward;
-    emit ReStaked(delegatorId, delegators[delegatorId].reward);
-    delegators[delegatorId].reward = 0;
+  function reStake(uint256 delegatorId, uint256 amount, bool stakeRewards) public onlyDelegator(delegatorId) {
+    require(!delegators[delegatorId].bondedTo, "can't restake while bonded");
+    if (amount > 0) {
+      require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");
+    }
+    if (stakeRewards) {
+      amount += stakeRewards;
+      delegators[delegatorId].reward = 0;
+    }
+    totalStaked = totalStaked.add(amount);
+
+    delegators[delegatorId].amount += amount;
+    emit ReStaked(delegatorId, amount);
   }
 
   function stake(uint256 amount) public {
