@@ -52,20 +52,6 @@ contract RootChain is RootChainStorage {
     _blockDepositId = 1;
   }
 
-  function bulkCreateDepositBlocks(address[] calldata _tokens, uint256[] calldata _amountOrTokens, address _owner)
-    external
-    onlyDepositManager
-  {
-    require(
-      // Only (MAX_DEPOSITS - 1) deposits per header block are allowed
-      _blockDepositId.add(_tokens.length) < MAX_DEPOSITS,
-      "TOO_MANY_DEPOSITS"
-    );
-    for (uint256 i = 0; i < _tokens.length; i++) {
-      _createDepositBlock(_owner, _tokens[i], _amountOrTokens[i]);
-    }
-  }
-
   function createDepositBlock(address _token, uint256 _amountOrNFTId, address _owner)
     external
     onlyDepositManager
@@ -76,6 +62,21 @@ contract RootChain is RootChainStorage {
       "TOO_MANY_DEPOSITS"
     );
     _createDepositBlock(_owner, _token, _amountOrNFTId);
+  }
+
+  function bulkCreateDepositBlocks(address[] calldata _tokens, uint256[] calldata _amountOrTokens, address _owner)
+    external
+    onlyDepositManager
+  {
+    require(
+      // Only (MAX_DEPOSITS - 1) deposits per header block are allowed
+      // deposit ids will be (_blockDepositId, _blockDepositId + 1, .... _blockDepositId + _tokens.length - 1)
+      _blockDepositId.add(_tokens.length).sub(1) < MAX_DEPOSITS,
+      "TOO_MANY_DEPOSITS"
+    );
+    for (uint256 i = 0; i < _tokens.length; i++) {
+      _createDepositBlock(_owner, _tokens[i], _amountOrTokens[i]);
+    }
   }
 
   function _createDepositBlock(address _owner, address _token, uint256 _amountOrToken)
