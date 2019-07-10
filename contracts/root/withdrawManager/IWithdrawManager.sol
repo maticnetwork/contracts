@@ -11,7 +11,7 @@ contract IWithdrawManager {
       address rootToken,
       uint256 exitAmountOrTokenId,
       bytes32 txHash,
-      bool burnt,
+      bool isRegularExit,
       uint256 priority)
     external
     payable;

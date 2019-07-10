@@ -171,7 +171,7 @@ export async function verifyDeprecation(withdrawManager, predicate, exitId, inpu
   // console.log('exit', exit, exit.receiptAmountOrNFTId.toString(16))
   const exitData = web3.eth.abi.encodeParameters(
     ['address', 'address', 'uint256', 'bytes32', 'bool'],
-    [exit.owner, options.childToken, exit.receiptAmountOrNFTId.toString(16), exit.txHash, exit.burnt]
+    [exit.owner, options.childToken, exit.receiptAmountOrNFTId.toString(16), exit.txHash, exit.isRegularExit]
   )
   // console.log('exitData', exitData)
   const inputUtxoData = web3.eth.abi.encodeParameters(

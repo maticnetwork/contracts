@@ -57,7 +57,7 @@ contract ERC721Predicate is IErcPredicate {
     tokenId = BytesLib.toUint(logData, 0);
     withdrawManager.addExitToQueue(
       msg.sender, childToken, rootToken,
-      tokenId, bytes32(0x0) /* txHash */, true /* burnt */, age
+      tokenId, bytes32(0x0) /* txHash */, true /* isRegularExit */, age
     );
   }
 
@@ -73,8 +73,7 @@ contract ERC721Predicate is IErcPredicate {
     address childToken;
     address participant;
     bytes32 txHash;
-    bool burnt;
-    (tokenId, childToken, participant, txHash, burnt) = processExitTx(exitTx);
+    (tokenId, childToken, participant, txHash,) = processExitTx(exitTx);
 
     // process the receipt of the referenced tx
     uint256 oIndex;
@@ -88,11 +87,11 @@ contract ERC721Predicate is IErcPredicate {
     age = age + oIndex + (referenceTxData[9].toUint() /* logIndex */ * MAX_LOGS); // @todo Use SafeMath
 
     // This also sends the bond amount to withdraw manager
-    addExitToQueue(msg.sender, childToken, rootToken, tokenId, txHash, burnt, age);
+    addExitToQueue(msg.sender, childToken, rootToken, tokenId, txHash, false /* isRegularExit */, age);
   }
 
   /**
-   * @notice Start an exit for a token that was minted and burnt on the side chain
+   * @notice Start an exit for a token that was minted and isRegularExit on the side chain
    * @param data RLP encoded data of the burn tx
    * @param mintTx Signed mint transaction
    */
@@ -261,14 +260,14 @@ contract ERC721Predicate is IErcPredicate {
   function processExitTx(bytes memory exitTx)
     internal
     view
-    returns(uint256 tokenId, address childToken, address participant, bytes32 txHash, bool burnt)
+    returns(uint256 tokenId, address childToken, address participant, bytes32 txHash, bool isRegularExit)
   {
     RLPReader.RLPItem[] memory txList = exitTx.toRlpItem().toList();
     require(txList.length == 9, "MALFORMED_WITHDRAW_TX");
     childToken = RLPReader.toAddress(txList[3]); // corresponds to "to" field in tx
     (participant, txHash) = getAddressFromTx(txList, withdrawManager.networkId());
     if (participant == msg.sender) { // exit tx is signed by exitor himself
-      (tokenId, burnt) = processExitTxSender(RLPReader.toBytes(txList[5]));
+      (tokenId, isRegularExit) = processExitTxSender(RLPReader.toBytes(txList[5]));
     } else {
       tokenId = processExitTxCounterparty(RLPReader.toBytes(txList[5]));
     }
@@ -277,13 +276,13 @@ contract ERC721Predicate is IErcPredicate {
   function processExitTxSender(bytes memory txData)
     internal
     pure
-    returns (uint256 tokenId, bool burnt)
+    returns (uint256 tokenId, bool isRegularExit)
   {
     bytes4 funcSig = BytesLib.toBytes4(BytesLib.slice(txData, 0, 4));
     if (funcSig == WITHDRAW_FUNC_SIG) {
       require(txData.length == 36, "Invalid tx"); // 4 bytes for funcSig and a single bytes32 parameter
       tokenId = BytesLib.toUint(txData, 4);
-      burnt = true;
+      isRegularExit = true;
     } else if (funcSig == TRANSFER_FROM_FUNC_SIG) {
       require(txData.length == 100, "Invalid tx"); // 4 bytes for funcSig and a 3 bytes32 parameters (to, value)
       tokenId = BytesLib.toUint(txData, 4);

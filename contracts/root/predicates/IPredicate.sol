@@ -95,7 +95,7 @@ contract PredicateUtils {
     address rootToken,
     uint256 exitAmountOrTokenId,
     bytes32 txHash,
-    bool burnt,
+    bool isRegularExit,
     uint256 priority)
     internal
   {
@@ -106,7 +106,7 @@ contract PredicateUtils {
       rootToken,
       exitAmountOrTokenId,
       txHash,
-      burnt,
+      isRegularExit,
       priority
     ));
   }
@@ -142,7 +142,7 @@ contract IErcPredicate is IPredicate, PredicateUtils, ExitsDataStructure {
     bytes32 txHash;
     address childToken;
     address signer;
-    bool burnt;
+    bool isRegularExit;
   }
 
   struct ReferenceTxData {
@@ -164,11 +164,8 @@ contract IErcPredicate is IPredicate, PredicateUtils, ExitsDataStructure {
     pure
     returns (PlasmaExit memory)
   {
-    (address owner, address token, uint256 amountOrTokenId, bytes32 txHash, bool burnt) = abi.decode(data, (address, address, uint256, bytes32, bool));
-    return PlasmaExit(owner, token, amountOrTokenId, txHash, burnt,
-      address(0x0), // predicate value is not being used
-      0 // inputCount is not used
-    );
+    (address owner, address token, uint256 amountOrTokenId, bytes32 txHash, bool isRegularExit) = abi.decode(data, (address, address, uint256, bytes32, bool));
+    return PlasmaExit(amountOrTokenId, txHash, owner, token, address(0x0) /* predicate value is not being used */, isRegularExit);
   }
 
   function decodeInputUtxo(bytes memory data)

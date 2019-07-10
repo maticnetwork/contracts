@@ -43,7 +43,7 @@ contract('ERC721Predicate', async function(accounts) {
       childContracts.childErc721 = childErc721
     })
 
-    it('Valid exit with burnt tokens', async function() {
+    it('Valid exit with isRegularExit tokens', async function() {
       await utils.deposit(
         contracts.depositManager,
         childContracts.childChain,
@@ -64,7 +64,7 @@ contract('ERC721Predicate', async function(accounts) {
       expect(log.args).to.include({
         exitor: user,
         token: childContracts.rootERC721.address,
-        burnt: true
+        isRegularExit: true
       })
       utils.assertBigNumberEquality(log.args.amount, tokenId)
     })
@@ -198,7 +198,7 @@ contract('ERC721Predicate', async function(accounts) {
       expect(log.args).to.include({
         exitor: other,
         token: childContracts.rootERC721.address,
-        burnt: true
+        isRegularExit: true
       })
       utils.assertBigNumberEquality(log.args.amount, tokenId)
     })

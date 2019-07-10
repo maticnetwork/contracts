@@ -111,7 +111,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     address rootToken,
     uint256 exitAmountOrTokenId,
     bytes32 txHash,
-    bool burnt,
+    bool isRegularExit,
     uint256 priority)
     external
     payable
@@ -125,7 +125,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       exits[priority].token == address(0x0),
       "EXIT_ALREADY_EXISTS"
     );
-    exits[priority] = PlasmaExit(exitor, rootToken, exitAmountOrTokenId, txHash, burnt, msg.sender /* predicate */, 0 /* inputCount */);
+    exits[priority] = PlasmaExit(exitAmountOrTokenId, txHash, exitor, rootToken, msg.sender /* predicate */, isRegularExit);
     PlasmaExit storage _exitObject = exits[priority];
 
     bytes32 key;
@@ -146,7 +146,6 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     queue.insert(exitableAt, priority);
 
     // create NFT for exit UTXO
-    // @todo
     ExitNFT(exitNft).mint(_exitObject.owner, priority);
     exits[priority] = _exitObject;
 
@@ -154,7 +153,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     ownerExits[key] = priority;
 
     // emit exit started event
-    emit ExitStarted(exitor, priority, rootToken, exitAmountOrTokenId, burnt);
+    emit ExitStarted(exitor, priority, rootToken, exitAmountOrTokenId, isRegularExit);
   }
 
   function addInput(uint256 exitId, uint256 age, address signer)
@@ -169,7 +168,6 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       "EXIT_DOES_NOT_EXIST OR NOT_AUTHORIZED"
     );
     exitObject.inputs[age] = Input(signer);
-    exitObject.inputCount++;
     emit ExitUpdated(exitId, age, signer);
   }
 
@@ -205,7 +203,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     view
     returns (bytes memory)
   {
-    return abi.encode(exit.owner, registry.rootToChildToken(exit.token), exit.receiptAmountOrNFTId, exit.txHash, exit.burnt);
+    return abi.encode(exit.owner, registry.rootToChildToken(exit.token), exit.receiptAmountOrNFTId, exit.txHash, exit.isRegularExit);
   }
 
   function encodeInputUtxo(uint256 age, Input storage input)
@@ -229,11 +227,6 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       PlasmaExit memory currentExit = exits[exitId];
 
       exitNft.burn(exitId);
-
-      // delete current exit if exit was "burnt"
-      if (currentExit.burnt) {
-        delete ownerExits[keccak256(abi.encodePacked(_token, currentExit.owner))];
-      }
 
       // limit the gas amount that predicate.onFinalizeExit() can use, to be able to make gas estimations for bulk process exits
       address exitor = exitNft.ownerOf(exitId);
@@ -261,8 +254,11 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       // delete exits[exitId].owner;
       exitQueue.delMin();
 
-      // return the bond amount if this was a MoreVp style exit
-      if (currentExit.inputCount > 0) {
+      if (currentExit.isRegularExit) {
+        // delete current exit for the owner, so they can do another one in the future
+        delete ownerExits[keccak256(abi.encodePacked(_token, currentExit.owner))];
+      } else {
+        // return the bond amount if this was a MoreVp style exit
         address(uint160(exitor)).transfer(BOND_AMOUNT);
       }
     }

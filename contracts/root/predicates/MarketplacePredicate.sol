@@ -88,7 +88,7 @@ contract MarketplacePredicate is PredicateUtils {
       addExitToQueue(
         msg.sender, exitChildToken, reference1.rootToken,
         reference1.closingBalance - exitTxData.amount1,
-        exitTxData.txHash, false /* burnt */,
+        exitTxData.txHash, false /* isRegularExit */,
         priority
       );
     } else if (exitChildToken == reference2.childToken) {
@@ -96,7 +96,7 @@ contract MarketplacePredicate is PredicateUtils {
       addExitToQueue(
         msg.sender, exitChildToken, reference2.rootToken,
         exitTxData.amount2,
-        exitTxData.txHash, false /* burnt */,
+        exitTxData.txHash, false /* isRegularExit */,
         priority
       );
     }

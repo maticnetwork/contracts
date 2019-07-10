@@ -40,7 +40,7 @@ contract('ERC20Predicate', async function(accounts) {
       childContracts.childToken = childToken
     })
 
-    it('Valid exit with burnt tokens', async function() {
+    it('Valid exit with isRegularExit tokens', async function() {
       await utils.deposit(
         contracts.depositManager,
         childContracts.childChain,
@@ -61,7 +61,7 @@ contract('ERC20Predicate', async function(accounts) {
       expect(log.args).to.include({
         exitor: user,
         token: childContracts.rootERC20.address,
-        burnt: true
+        isRegularExit: true
       })
       utils.assertBigNumberEquality(log.args.amount, amount)
     })

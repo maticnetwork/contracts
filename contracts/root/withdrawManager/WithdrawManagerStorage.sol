@@ -11,13 +11,12 @@ contract ExitsDataStructure {
   }
 
   struct PlasmaExit {
-    address owner;
-    address token;
     uint256 receiptAmountOrNFTId;
     bytes32 txHash;
-    bool burnt;
+    address owner;
+    address token;
     address predicate;
-    uint256 inputCount;
+    bool isRegularExit;
     // Mapping from age of input to Input
     mapping(uint256 => Input) inputs;
   }
@@ -35,7 +34,7 @@ contract WithdrawManagerHeader is ExitsDataStructure {
     uint256 indexed exitId,
     address indexed token,
     uint256 amount,
-    bool burnt
+    bool isRegularExit
   );
 
   event ExitUpdated(

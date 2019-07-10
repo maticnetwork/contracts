@@ -52,7 +52,7 @@ contract ERC20Predicate is IErcPredicate {
       "Withdrawer and burn exit tx do not match"
     );
     uint256 exitAmount = BytesLib.toUint(logData, 0); // amountOrTokenId
-    withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, exitAmount, bytes32(0x0), true /* burnt */, age);
+    withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, exitAmount, bytes32(0x0), true /* isRegularExit */, age);
   }
 
   function startExit(bytes calldata data, bytes calldata exitTx)
@@ -84,7 +84,7 @@ contract ERC20Predicate is IErcPredicate {
     if (referenceTx.length <= 10) {
       addExitToQueue(
         msg.sender, referenceTxData.childToken, referenceTxData.rootToken,
-        exitTxData.exitAmount, exitTxData.txHash, exitTxData.burnt, age /* priority */);
+        exitTxData.exitAmount, exitTxData.txHash, false /* isRegularExit */, age /* priority */);
       withdrawManager.addInput(age /* exitId or priority */, age /* age of input */, exitTxData.signer);
       return (referenceTxData.rootToken, exitTxData.exitAmount);
     }
@@ -110,7 +110,7 @@ contract ERC20Predicate is IErcPredicate {
     uint256 priority = Math.max(age, otherReferenceTxAge);
     addExitToQueue(
       msg.sender, referenceTxData.childToken, referenceTxData.rootToken,
-      exitTxData.exitAmount + _referenceTxData.closingBalance, exitTxData.txHash, exitTxData.burnt, priority);
+      exitTxData.exitAmount + _referenceTxData.closingBalance, exitTxData.txHash, false /* isRegularExit */, priority);
     withdrawManager.addInput(priority, age, exitTxData.signer);
     withdrawManager.addInput(priority, otherReferenceTxAge, msg.sender);
     return (referenceTxData.rootToken, exitTxData.exitAmount + _referenceTxData.closingBalance);
@@ -302,7 +302,7 @@ contract ERC20Predicate is IErcPredicate {
     txData.childToken = RLPReader.toAddress(txList[3]); // corresponds to "to" field in tx
     (txData.signer, txData.txHash) = getAddressFromTx(txList, withdrawManager.networkId());
     if (txData.signer == msg.sender) { // exit tx is signed by exitor himself
-      (txData.exitAmount, txData.burnt) = processExitTxSender(RLPReader.toBytes(txList[5]));
+      (txData.exitAmount, txData.isRegularExit) = processExitTxSender(RLPReader.toBytes(txList[5]));
     } else {
       txData.exitAmount = processExitTxCounterparty(RLPReader.toBytes(txList[5]));
     }
@@ -311,13 +311,13 @@ contract ERC20Predicate is IErcPredicate {
   function processExitTxSender(bytes memory txData)
     internal
     pure
-    returns (uint256 exitAmount, bool burnt)
+    returns (uint256 exitAmount, bool isRegularExit)
   {
     bytes4 funcSig = BytesLib.toBytes4(BytesLib.slice(txData, 0, 4));
     if (funcSig == WITHDRAW_FUNC_SIG) {
       require(txData.length == 36, "Invalid tx"); // 4 bytes for funcSig and a single bytes32 parameter
       exitAmount = BytesLib.toUint(txData, 4);
-      burnt = true;
+      isRegularExit = true;
     } else if (funcSig == TRANSFER_FUNC_SIG) {
       require(txData.length == 68, "Invalid tx"); // 4 bytes for funcSig and a 2 bytes32 parameters (to, value)
       exitAmount = BytesLib.toUint(txData, 36);
