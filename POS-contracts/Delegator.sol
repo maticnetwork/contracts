@@ -54,7 +54,7 @@ contract Delegator is ERC721Full, Ownable {
   function getRewards(uint256 delegatorId) public onlyDelegator(delegatorId) {
     address validator;
     (,,,,,validator) = stakeManager.validators(delegators[delegatorId].bondedTo);
-    ValidatorContract(validator).getRewards(delegatorId);
+    ValidatorContract(validator).getRewards(delegatorId, delegators[delegatorId].amount);
     require(token.transfer(msg.sender, delegators[delegatorId].reward)); // Todo safeMath
     delegators[delegatorId].reward = 0;
   }
@@ -76,7 +76,7 @@ contract Delegator is ERC721Full, Ownable {
     address validator;
     (,,,,,,validator,) = stakeManager.validators(delegators[delegatorId].bondedTo);
     ValidatorContract(validator).unBond(delegatorId, index, delegators[delegatorId].amount);
-    delegators[delegatorId].reward += ValidatorContract(validator).getRewards(delegatorId);
+    delegators[delegatorId].reward += ValidatorContract(validator).getRewards(delegatorId, delegators[delegatorId].amount);
     delegators[delegatorId].bondedTo = 0;
   }
 
@@ -86,7 +86,7 @@ contract Delegator is ERC721Full, Ownable {
     require(msg.sender == validator);
     delegators[delegatorId].delegationStopEpoch = epoch;
     // ValidatorContract(validator).unBond(delegatorId);
-    // delegators[delegatorId] += ValidatorContract(validator).getRewards(delegatorId);
+    // delegators[delegatorId] += ValidatorContract(validator).getRewards(delegatorId, delegators[delegatorId].amount);
     // delegators[delegatorId].bondedTo = 0;
   }
 

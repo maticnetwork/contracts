@@ -344,18 +344,25 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       ) {
         lastAdd = signer;
         address _contract = validators[validatorId].contractAddress;
-        if (_contract == address(0x0)) {
-          validators[validatorId].reward += _reward;
-          stakePower = stakePower.add(validators[validatorId].amount);
-        } else {
-          stakePower = stakePower.add(validators[validatorId].amount).add(ValidatorContract(_contract).delegatedAmount());
-          ValidatorContract(_contract).updateRewards(_reward);
+        stakePower = stakePower.add(validators[validatorId].amount);
+        // add delegation power
+        if (_contract != address(0x0)) {
+          stakePower = stakePower.add(ValidatorContract(_contract).delegatedAmount());
         }
-
       } else {
         break;
       }
     }
+    // TODO: use proposer
+    validatorId = signerToValidator[signer];
+    address _contract = validators[validatorId].contractAddress;
+    if (_contract == address(0x0)) {
+      validators[validatorId].reward += _reward;
+    }
+    else {
+      ValidatorContract(_contract).updateRewards(_reward, currentEpoch, validators[validatorId].amount);
+    }
+
     return stakePower >= currentValidatorSetTotalStake().mul(2).div(3).add(1);
   }
 
