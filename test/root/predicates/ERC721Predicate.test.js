@@ -64,7 +64,7 @@ contract('ERC721Predicate', async function(accounts) {
       expect(log.args).to.include({
         exitor: user,
         token: childContracts.rootERC721.address,
-        burnt: true
+        isRegularExit: true
       })
       utils.assertBigNumberEquality(log.args.amount, tokenId)
     })
@@ -198,7 +198,7 @@ contract('ERC721Predicate', async function(accounts) {
       expect(log.args).to.include({
         exitor: other,
         token: childContracts.rootERC721.address,
-        burnt: true
+        isRegularExit: true
       })
       utils.assertBigNumberEquality(log.args.amount, tokenId)
     })
@@ -247,7 +247,7 @@ function startExitWithBurntMintableToken(input, mintTx, from) {
 
 function startMoreVpExitWithMintableToken(
   headerNumber, blockProof, blockNumber, blockTimestamp, reference, logIndex, exitTx, mintTx, from) {
-  return predicate.startExit(
+  return predicate.startExitAndMint(
     ethUtils.bufferToHex(
       ethUtils.rlp.encode([
         headerNumber,
@@ -264,7 +264,7 @@ function startMoreVpExitWithMintableToken(
     ),
     ethUtils.bufferToHex(exitTx),
     ethUtils.bufferToHex(mintTx),
-    { from }
+    { from, value: web3.utils.toWei('.1', 'ether') }
   )
 }
 

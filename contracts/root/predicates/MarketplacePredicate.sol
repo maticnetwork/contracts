@@ -62,6 +62,8 @@ contract MarketplacePredicate is PredicateUtils {
 
   function startExit(bytes calldata data, bytes calldata exitTx)
     external
+    payable
+    isBondProvided
   {
     ExitTxData memory exitTxData = processExitTx(exitTx, withdrawManager.networkId());
     RLPReader.RLPItem[] memory referenceTx = data.toRlpItem().toList();
@@ -82,17 +84,19 @@ contract MarketplacePredicate is PredicateUtils {
     uint256 priority = Math.max(reference1.age, reference2.age);
     address exitChildToken = address(RLPReader.toUint(referenceTx[2]));
     if (exitChildToken == reference1.childToken) {
-      withdrawManager.addExitToQueue(
+      // This also sends the bond amount to withdraw manager
+      addExitToQueue(
         msg.sender, exitChildToken, reference1.rootToken,
         reference1.closingBalance - exitTxData.amount1,
-        exitTxData.txHash, false /* burnt */,
+        exitTxData.txHash, false /* isRegularExit */,
         priority
       );
     } else if (exitChildToken == reference2.childToken) {
-      withdrawManager.addExitToQueue(
+      // This also sends the bond amount to withdraw manager
+      addExitToQueue(
         msg.sender, exitChildToken, reference2.rootToken,
         exitTxData.amount2,
-        exitTxData.txHash, false /* burnt */,
+        exitTxData.txHash, false /* isRegularExit */,
         priority
       );
     }

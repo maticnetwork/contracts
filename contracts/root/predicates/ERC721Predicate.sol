@@ -57,12 +57,14 @@ contract ERC721Predicate is IErcPredicate {
     tokenId = BytesLib.toUint(logData, 0);
     withdrawManager.addExitToQueue(
       msg.sender, childToken, rootToken,
-      tokenId, bytes32(0x0) /* txHash */, true /* burnt */, age
+      tokenId, bytes32(0x0) /* txHash */, true /* isRegularExit */, age
     );
   }
 
   function startExit(bytes memory data, bytes memory exitTx)
     public
+    payable
+    isBondProvided
     returns(address rootToken, uint256 tokenId)
   {
     RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
@@ -71,8 +73,7 @@ contract ERC721Predicate is IErcPredicate {
     address childToken;
     address participant;
     bytes32 txHash;
-    bool burnt;
-    (tokenId, childToken, participant, txHash, burnt) = processExitTx(exitTx);
+    (tokenId, childToken, participant, txHash,) = processExitTx(exitTx);
 
     // process the receipt of the referenced tx
     uint256 oIndex;
@@ -84,7 +85,9 @@ contract ERC721Predicate is IErcPredicate {
       tokenId
     );
     age = age + oIndex + (referenceTxData[9].toUint() /* logIndex */ * MAX_LOGS); // @todo Use SafeMath
-    withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, tokenId, txHash, burnt, age);
+
+    // This also sends the bond amount to withdraw manager
+    addExitToQueue(msg.sender, childToken, rootToken, tokenId, txHash, false /* isRegularExit */, age);
   }
 
   /**
@@ -100,13 +103,15 @@ contract ERC721Predicate is IErcPredicate {
   }
 
   /**
-   * @notice Start an exit for a token that was minted and burnt on the side chain
+   * @notice Start a MoreVP style exit for a token that was minted on the side chain
    * @param data RLP encoded data of the reference tx(s)
    * @param exitTx Signed exit transaction
    * @param mintTx Signed mint transaction
    */
-  function startExit(bytes calldata data, bytes calldata exitTx, bytes calldata mintTx)
+  function startExitAndMint(bytes calldata data, bytes calldata exitTx, bytes calldata mintTx)
     external
+    payable
+    isBondProvided
   {
     (address rootToken, uint256 tokenId) = startExit(data, exitTx);
     processMintTx(mintTx, rootToken, tokenId);

@@ -11,12 +11,12 @@ contract ExitsDataStructure {
   }
 
   struct PlasmaExit {
-    address owner;
-    address token;
     uint256 receiptAmountOrNFTId;
     bytes32 txHash;
-    bool burnt;
+    address owner;
+    address token;
     address predicate;
+    bool isRegularExit;
     // Mapping from age of input to Input
     mapping(uint256 => Input) inputs;
   }
@@ -34,7 +34,7 @@ contract WithdrawManagerHeader is ExitsDataStructure {
     uint256 indexed exitId,
     address indexed token,
     uint256 amount,
-    bool burnt
+    bool isRegularExit
   );
 
   event ExitUpdated(
@@ -51,6 +51,8 @@ contract WithdrawManagerStorage is ProxyStorage, WithdrawManagerHeader {
   uint256 constant internal WITHDRAW_BLOCK_NUMBER_WEIGHT = 10 ** 12;
   uint256 constant internal BRANCH_MASK_WEIGHT = 10 ** 5;
 
+  // Bonded exits collaterized at 0.1 ETH
+  uint256 constant internal BOND_AMOUNT = 10 ** 17;
   bytes constant public networkId = "\x0d";
 
   Registry internal registry;

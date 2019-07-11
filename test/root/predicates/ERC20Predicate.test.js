@@ -61,7 +61,7 @@ contract('ERC20Predicate', async function(accounts) {
       expect(log.args).to.include({
         exitor: user,
         token: childContracts.rootERC20.address,
-        burnt: true
+        isRegularExit: true
       })
       utils.assertBigNumberEquality(log.args.amount, amount)
     })
@@ -447,4 +447,3 @@ async function init(rootChain, receipt, accounts, _) {
   start = end + 1
   return { block: event.block, blockProof, headerNumber: NewHeaderBlockEvent.args.headerBlockId, reference: await build(event) }
 }
-

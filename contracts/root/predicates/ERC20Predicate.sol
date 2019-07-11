@@ -52,11 +52,13 @@ contract ERC20Predicate is IErcPredicate {
       "Withdrawer and burn exit tx do not match"
     );
     uint256 exitAmount = BytesLib.toUint(logData, 0); // amountOrTokenId
-    withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, exitAmount, bytes32(0x0), true /* burnt */, age);
+    withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, exitAmount, bytes32(0x0), true /* isRegularExit */, age);
   }
 
   function startExit(bytes calldata data, bytes calldata exitTx)
     external
+    payable
+    isBondProvided
     returns(address /* rootToken */, uint256 /* exitAmount */)
   {
     RLPReader.RLPItem[] memory referenceTx = data.toRlpItem().toList();
@@ -80,9 +82,9 @@ contract ERC20Predicate is IErcPredicate {
     age += referenceTxData.age; // @todo use SafeMath
 
     if (referenceTx.length <= 10) {
-      withdrawManager.addExitToQueue(
+      addExitToQueue(
         msg.sender, referenceTxData.childToken, referenceTxData.rootToken,
-        exitTxData.exitAmount, exitTxData.txHash, exitTxData.burnt, age /* priority */);
+        exitTxData.exitAmount, exitTxData.txHash, false /* isRegularExit */, age /* priority */);
       withdrawManager.addInput(age /* exitId or priority */, age /* age of input */, exitTxData.signer);
       return (referenceTxData.rootToken, exitTxData.exitAmount);
     }
@@ -106,9 +108,9 @@ contract ERC20Predicate is IErcPredicate {
     );
     otherReferenceTxAge += _referenceTxData.age;
     uint256 priority = Math.max(age, otherReferenceTxAge);
-    withdrawManager.addExitToQueue(
+    addExitToQueue(
       msg.sender, referenceTxData.childToken, referenceTxData.rootToken,
-      exitTxData.exitAmount + _referenceTxData.closingBalance, exitTxData.txHash, exitTxData.burnt, priority);
+      exitTxData.exitAmount + _referenceTxData.closingBalance, exitTxData.txHash, false /* isRegularExit */, priority);
     withdrawManager.addInput(priority, age, exitTxData.signer);
     withdrawManager.addInput(priority, otherReferenceTxAge, msg.sender);
     return (referenceTxData.rootToken, exitTxData.exitAmount + _referenceTxData.closingBalance);
