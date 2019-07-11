@@ -43,7 +43,7 @@ contract('ERC721Predicate', async function(accounts) {
       childContracts.childErc721 = childErc721
     })
 
-    it('Valid exit with isRegularExit tokens', async function() {
+    it('Valid exit with burnt tokens', async function() {
       await utils.deposit(
         contracts.depositManager,
         childContracts.childChain,

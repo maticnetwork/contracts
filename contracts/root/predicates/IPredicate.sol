@@ -142,7 +142,7 @@ contract IErcPredicate is IPredicate, PredicateUtils, ExitsDataStructure {
     bytes32 txHash;
     address childToken;
     address signer;
-    bool isRegularExit;
+    bool burnt;
   }
 
   struct ReferenceTxData {

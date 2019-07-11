@@ -302,7 +302,7 @@ contract ERC20Predicate is IErcPredicate {
     txData.childToken = RLPReader.toAddress(txList[3]); // corresponds to "to" field in tx
     (txData.signer, txData.txHash) = getAddressFromTx(txList, withdrawManager.networkId());
     if (txData.signer == msg.sender) { // exit tx is signed by exitor himself
-      (txData.exitAmount, txData.isRegularExit) = processExitTxSender(RLPReader.toBytes(txList[5]));
+      (txData.exitAmount, txData.burnt) = processExitTxSender(RLPReader.toBytes(txList[5]));
     } else {
       txData.exitAmount = processExitTxCounterparty(RLPReader.toBytes(txList[5]));
     }
@@ -311,13 +311,13 @@ contract ERC20Predicate is IErcPredicate {
   function processExitTxSender(bytes memory txData)
     internal
     pure
-    returns (uint256 exitAmount, bool isRegularExit)
+    returns (uint256 exitAmount, bool burnt)
   {
     bytes4 funcSig = BytesLib.toBytes4(BytesLib.slice(txData, 0, 4));
     if (funcSig == WITHDRAW_FUNC_SIG) {
       require(txData.length == 36, "Invalid tx"); // 4 bytes for funcSig and a single bytes32 parameter
       exitAmount = BytesLib.toUint(txData, 4);
-      isRegularExit = true;
+      burnt = true;
     } else if (funcSig == TRANSFER_FUNC_SIG) {
       require(txData.length == 68, "Invalid tx"); // 4 bytes for funcSig and a 2 bytes32 parameters (to, value)
       exitAmount = BytesLib.toUint(txData, 36);
