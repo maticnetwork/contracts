@@ -1,16 +1,20 @@
 dist: xenial
 sudo: required
 group: beta
-language: node_js
-node_js:
-  - "8"
+services:
+  - docker
+# Replace with your image name.
+before_script:
+  - docker pull parity/parity
+  - docker pull node:8
 matrix:
   fast_finish: true
-install:
-  - sudo apt-get -qq update
-  - bash <(curl https://get.parity.io -L) -r v2.4.7
 before_script:
   - export PATH=/snap/bin:${PATH}
   - npm install
 script:
+  - docker run -it parity/parity
+  - docker run -it node:8
   - npm run test:ci
+
+
