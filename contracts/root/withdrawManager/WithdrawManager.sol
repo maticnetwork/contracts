@@ -10,7 +10,7 @@ import { MerklePatriciaProof } from "../../common/lib/MerklePatriciaProof.sol";
 import { PriorityQueue } from "../../common/lib/PriorityQueue.sol";
 
 import { ExitNFT } from "./ExitNFT.sol";
-import { IDepositManager } from "../depositManager/IDepositManager.sol";
+import { DepositManager } from "../depositManager/DepositManager.sol";
 import { IPredicate } from "../predicates/IPredicate.sol";
 import { IWithdrawManager } from "./IWithdrawManager.sol";
 import { RootChainHeader } from "../RootChainStorage.sol";
@@ -21,6 +21,11 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
   using Merkle for bytes32;
+
+  modifier isBondProvided() {
+    require(msg.value == BOND_AMOUNT, "Invalid Bond amount");
+    _;
+  }
 
   function createExitQueue(address token)
     external
@@ -105,6 +110,20 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     _;
   }
 
+  function startExitWithDepositedTokens(uint256 depositId)
+    external
+    payable
+    isBondProvided
+  {
+    address payable depositManager = address(uint160(registry.getDepositManagerAddress()));
+    (address exitor, address token, uint256 amountOrTokenId,) = DepositManager(depositManager).deposits(depositId);
+    require(exitor == msg.sender, "UNAUTHORIZED_EXIT");
+    uint256 priority = depositId * HEADER_BLOCK_NUMBER_WEIGHT;
+    address predicate = registry.isTokenMappedAndGetPredicate(token);
+    _addExitToQueue(exitor, token, amountOrTokenId, bytes32(0) /* txHash */, false /* isRegularExit */, priority, predicate);
+    _addInput(priority /* exit Id */, priority /* input age */, msg.sender /* signer */);
+  }
+
   function addExitToQueue(
     address exitor,
     address childToken,
@@ -121,11 +140,24 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       registry.rootToChildToken(rootToken) == childToken,
       "INVALID_ROOT_TO_CHILD_TOKEN_MAPPING"
     );
+    _addExitToQueue(exitor, rootToken, exitAmountOrTokenId, txHash, isRegularExit, priority, msg.sender /* predicate */);
+  }
+
+  function _addExitToQueue(
+    address exitor,
+    address rootToken,
+    uint256 exitAmountOrTokenId,
+    bytes32 txHash,
+    bool isRegularExit,
+    uint256 priority,
+    address predicate)
+    internal
+  {
     require(
       exits[priority].token == address(0x0),
       "EXIT_ALREADY_EXISTS"
     );
-    exits[priority] = PlasmaExit(exitAmountOrTokenId, txHash, exitor, rootToken, msg.sender /* predicate */, isRegularExit);
+    exits[priority] = PlasmaExit(exitAmountOrTokenId, txHash, exitor, rootToken, predicate, isRegularExit);
     PlasmaExit storage _exitObject = exits[priority];
 
     bytes32 key;
@@ -156,18 +188,30 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     emit ExitStarted(exitor, priority, rootToken, exitAmountOrTokenId, isRegularExit);
   }
 
+  /**
+   * @dev Add a state update (UTXO style input) to an exit
+   * @param exitId Exit ID
+   * @param age age of the UTXO style input
+   * @param signer Signer of the state update which is being added as an input
+   */
   function addInput(uint256 exitId, uint256 age, address signer)
     external
   {
     PlasmaExit storage exitObject = exits[exitId];
-    // Checks both that
+    // Checks both of
     // 1. Exit at the particular exitId exists
     // 2. Only the predicate that started the exit is authorized to addInput
     require(
       exitObject.predicate == msg.sender,
       "EXIT_DOES_NOT_EXIST OR NOT_AUTHORIZED"
     );
-    exitObject.inputs[age] = Input(signer);
+    _addInput(exitId, age, signer);
+  }
+
+  function _addInput(uint256 exitId, uint256 age, address signer)
+    internal
+  {
+    exits[exitId].inputs[age] = Input(signer);
     emit ExitUpdated(exitId, age, signer);
   }
 

@@ -12,6 +12,9 @@ contract Registry is Ownable {
   bytes32 constant private CHILD_CHAIN_CONTRACT = keccak256("childChainContract");
   bytes constant public networkId = "\x0d";
 
+  address public erc20Predicate;
+  address public erc721Predicate;
+
   mapping(bytes32 => address) contractMap;
   mapping(address => address) public rootToChildToken;
   mapping(address => address) public childToRootToken;
@@ -75,6 +78,16 @@ contract Registry is Ownable {
     proofValidatorContracts[_validator] = true;
   }
 
+  function addErc20Predicate(address predicate) public onlyOwner {
+    erc20Predicate = predicate;
+    addPredicate(predicate, Type.ERC20);
+  }
+
+  function addErc721Predicate(address predicate) public onlyOwner {
+    erc721Predicate = predicate;
+    addPredicate(predicate, Type.ERC721);
+  }
+
   function addPredicate(address predicate, Type _type) public onlyOwner
   {
     require(predicates[predicate]._type == Type.Invalid, "Predicate already added");
@@ -121,6 +134,13 @@ contract Registry is Ownable {
   function isTokenMappedAndIsErc721(address _token) public view returns (bool) {
     require(isTokenMapped(_token), "TOKEN_NOT_MAPPED");
     return isERC721[_token];
+  }
+
+  function isTokenMappedAndGetPredicate(address _token) public view returns (address) {
+    if (isTokenMappedAndIsErc721(_token)) {
+      return erc721Predicate;
+    }
+    return erc20Predicate;
   }
 
   function isChildTokenErc721(address childToken) public view returns(bool) {
