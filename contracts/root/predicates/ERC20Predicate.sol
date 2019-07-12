@@ -123,7 +123,7 @@ contract ERC20Predicate is IErcPredicate {
     PlasmaExit memory _exit = decodeExit(exit);
     (uint256 age, address signer) = decodeInputUtxo(inputUtxo);
     RLPReader.RLPItem[] memory _challengeData = challengeData.toRlpItem().toList();
-    ExitTxData memory exitTxData = processExitTx(_challengeData[10].toBytes());
+    ExitTxData memory exitTxData = processChallengeTx(_challengeData[10].toBytes());
     require(
       signer == exitTxData.signer,
       "Challenge tx not signed by the party who signed the input UTXO to the exit"
@@ -301,13 +301,38 @@ contract ERC20Predicate is IErcPredicate {
     require(txList.length == 9, "MALFORMED_WITHDRAW_TX");
     txData.childToken = RLPReader.toAddress(txList[3]); // corresponds to "to" field in tx
     (txData.signer, txData.txHash) = getAddressFromTx(txList, withdrawManager.networkId());
-    if (txData.signer == msg.sender) { // exit tx is signed by exitor himself
+    if (txData.signer == msg.sender) {
+      // exit tx is signed by exitor
       (txData.exitAmount, txData.burnt) = processExitTxSender(RLPReader.toBytes(txList[5]));
     } else {
+      // exitor is a counterparty in the provided tx
       txData.exitAmount = processExitTxCounterparty(RLPReader.toBytes(txList[5]));
     }
   }
 
+  /**
+   * @notice Process the challenge transaction
+   * @param exitTx Challenge transaction
+   */
+  function processChallengeTx(bytes memory exitTx)
+    internal
+    view
+    returns(ExitTxData memory txData)
+  {
+    RLPReader.RLPItem[] memory txList = exitTx.toRlpItem().toList();
+    require(txList.length == 9, "MALFORMED_WITHDRAW_TX");
+    txData.childToken = RLPReader.toAddress(txList[3]); // corresponds to "to" field in tx
+    (txData.signer, txData.txHash) = getAddressFromTx(txList, withdrawManager.networkId());
+    // during a challenge, the tx signer must be the first party
+    (txData.exitAmount,) = processExitTxSender(RLPReader.toBytes(txList[5]));
+  }
+
+  /**
+   * @dev Processes transaction from the "signer / sender" perspective
+   * @param txData Transaction input data
+   * @return exitAmount Number of tokens burnt or sent
+   * @return burnt Whether the tokens were burnt
+   */
   function processExitTxSender(bytes memory txData)
     internal
     pure
@@ -326,6 +351,11 @@ contract ERC20Predicate is IErcPredicate {
     }
   }
 
+  /**
+   * @dev Processes transaction from the "receiver" perspective
+   * @param txData Transaction input data
+   * @return exitAmount Number of tokens received
+   */
   function processExitTxCounterparty(bytes memory txData)
     internal
     view
