@@ -2,15 +2,13 @@ dist: xenial
 sudo: required
 group: beta
 language: node_js
-node_js:
-  - "8"
-cache:
-  directories:
-    - node_modules
+# Build fails if cache is enabled unless caches are manually cleared from travis settings
+# cache:
+#   directories:
+#     - node_modules
 matrix:
   fast_finish: true
 install:
-  - sudo apt-get -qq update
   - bash <(curl https://get.parity.io -L) -r v2.4.7
 before_script:
   - export PATH=/snap/bin:${PATH}

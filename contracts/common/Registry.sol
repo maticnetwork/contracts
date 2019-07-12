@@ -118,6 +118,11 @@ contract Registry is Ownable {
     return rootToChildToken[_token] != address(0x0);
   }
 
+  function isTokenMappedAndIsErc721(address _token) public view returns (bool) {
+    require(isTokenMapped(_token), "TOKEN_NOT_MAPPED");
+    return isERC721[_token];
+  }
+
   function isChildTokenErc721(address childToken) public view returns(bool) {
     address rootToken = childToRootToken[childToken];
     require(rootToken != address(0x0), "Child token is not mapped");

@@ -65,10 +65,10 @@ contract("RootChain", async function(accounts) {
     assertBigNumberEquality(block.createdAt, '0');
   })
 
-  it("createDepositBlock is ACLed on onlyDepositManager", async function() {
+  it("updateDepositId is ACLed on onlyDepositManager", async function() {
     try {
-      await rootChain.createDepositBlock(accounts[0], accounts[1], 1)
-      assert.fail('should have failed with UNAUTHORIZED_DEPOSIT_MANAGER_ONLY.');
+      await rootChain.updateDepositId(1)
+      assert.fail('should have failed with UNAUTHORIZED_DEPOSIT_MANAGER_ONLY');
     } catch(e) {
       expect(e.reason).to.equal('UNAUTHORIZED_DEPOSIT_MANAGER_ONLY')
     }

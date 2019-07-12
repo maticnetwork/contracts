@@ -52,20 +52,19 @@ contract RootChain is RootChainStorage {
     _blockDepositId = 1;
   }
 
-  function createDepositBlock(address _owner, address _token, uint256 _amountOrNFTId)
+  function updateDepositId(uint256 numDeposits)
     external
     onlyDepositManager
+    returns(uint256 depositId)
   {
+    depositId = _blockDepositId;
+    // deposit ids will be (_blockDepositId, _blockDepositId + 1, .... _blockDepositId + numDeposits - 1)
+    _blockDepositId = _blockDepositId.add(numDeposits);
     require(
-      // Only MAX_DEPOSITS per header block are allowed
-      _blockDepositId < MAX_DEPOSITS,
+      // Since _blockDepositId is initialized to 1; only (MAX_DEPOSITS - 1) deposits per header block are allowed
+      _blockDepositId <= MAX_DEPOSITS,
       "TOO_MANY_DEPOSITS"
     );
-    uint256 depositId = _nextHeaderBlock.sub(MAX_DEPOSITS).add(_blockDepositId);
-    deposits[depositId] = DepositBlock(_owner, _token, _nextHeaderBlock, _amountOrNFTId, now);
-
-    emit NewDepositBlock(_owner, _token, _amountOrNFTId, depositId);
-    _blockDepositId.add(1);
   }
 
   function slash() external {
