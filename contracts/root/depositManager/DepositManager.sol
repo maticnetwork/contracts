@@ -1,8 +1,9 @@
 pragma solidity ^0.5.2;
 
 import { IERC721Receiver } from "openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol";
-import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
-import { ERC721 } from "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
+import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+import { IERC721 } from "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
+import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { ContractReceiver } from "../../common/misc/ContractReceiver.sol";
 import { Registry } from "../../common/Registry.sol";
@@ -12,6 +13,7 @@ import { DepositManagerStorage } from "./DepositManagerStorage.sol";
 
 
 contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiver, ContractReceiver {
+  using SafeMath for uint256;
 
   modifier isTokenMapped(address _token) {
     require(registry.isTokenMapped(_token), "TOKEN_NOT_SUPPORTED");
@@ -37,32 +39,15 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
   {
     address wethToken = registry.getWethTokenAddress();
     if (registry.isERC721(_token)) {
-      ERC721(_token).transferFrom(address(this), _user, _amountOrNFTId);
+      IERC721(_token).transferFrom(address(this), _user, _amountOrNFTId);
     } else if (_token == wethToken) {
       WETH t = WETH(_token);
       t.withdraw(_amountOrNFTId, _user);
     } else {
       require(
-        ERC20(_token).transfer(_user, _amountOrNFTId),
+        IERC20(_token).transfer(_user, _amountOrNFTId),
         "TRANSFER_FAILED"
       );
-    }
-  }
-
-  function depositBulk(address[] calldata _tokens, uint256[] calldata _amountOrTokens, address _user)
-    external
-  {
-    require(
-      _tokens.length == _amountOrTokens.length,
-      "Invalid Input"
-    );
-    for (uint256 i = 0; i < _tokens.length; i++) {
-      // will revert if token is not mapped
-      if (registry.isTokenMappedAndIsErc721(_tokens[i])) {
-        depositERC721ForUser(_tokens[i], _user, _amountOrTokens[i]);
-      } else {
-        depositERC20ForUser(_tokens[i], _user, _amountOrTokens[i]);
-      }
     }
   }
 
@@ -78,14 +63,45 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
     depositERC721ForUser(_token, msg.sender, _tokenId);
   }
 
+  function depositBulk(address[] calldata _tokens, uint256[] calldata _amountOrTokens, address _user)
+    external
+  {
+    require(
+      _tokens.length == _amountOrTokens.length,
+      "Invalid Input"
+    );
+    uint256 depositId = rootChain.updateDepositId(_tokens.length);
+
+    for (uint256 i = 0; i < _tokens.length; i++) {
+      // will revert if token is not mapped
+      if (registry.isTokenMappedAndIsErc721(_tokens[i])) {
+        IERC721(_tokens[i]).transferFrom(msg.sender, address(this), _amountOrTokens[i]);
+      } else {
+        require(
+          IERC20(_tokens[i]).transferFrom(msg.sender, address(this), _amountOrTokens[i]),
+          "TOKEN_TRANSFER_FAILED"
+        );
+      }
+      _createDepositBlock(_user, _tokens[i], _amountOrTokens[i], depositId);
+      depositId = depositId.add(1);
+    }
+  }
+
   function depositERC20ForUser(address _token, address _user, uint256 _amount)
     public
   {
     require(
-      ERC20(_token).transferFrom(msg.sender, address(this), _amount),
+      IERC20(_token).transferFrom(msg.sender, address(this), _amount),
       "TOKEN_TRANSFER_FAILED"
     );
     _safeCreateDepositBlock(_user, _token, _amount);
+  }
+
+  function depositERC721ForUser(address _token, address _user, uint256 _tokenId)
+    public
+  {
+    IERC721(_token).transferFrom(msg.sender, address(this), _tokenId);
+    _safeCreateDepositBlock(_user, _token, _tokenId);
   }
 
   // @todo: write depositEtherForUser
@@ -97,13 +113,6 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
     WETH t = WETH(wethToken);
     t.deposit.value(msg.value)();
     _safeCreateDepositBlock(msg.sender, wethToken, msg.value);
-  }
-
-  function depositERC721ForUser(address _token, address _user, uint256 _tokenId)
-    public
-  {
-    ERC721(_token).transferFrom(msg.sender, address(this), _tokenId);
-    _safeCreateDepositBlock(_user, _token, _tokenId);
   }
 
   /**
@@ -136,12 +145,13 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
     internal
     isTokenMapped(_token)
   {
-    rootChain.createDepositBlock(_token, _amountOrToken, _user);
+    _createDepositBlock(_user, _token, _amountOrToken, rootChain.updateDepositId(1) /* returns _depositId */);
   }
 
-  function _createDepositBlockBulk(address[] memory _tokens, uint256[] memory _amountOrTokens, address _user)
+  function _createDepositBlock(address _user, address _token, uint256 _amountOrToken, uint256 _depositId)
     internal
   {
-    rootChain.bulkCreateDepositBlocks(_tokens, _amountOrTokens, _user);
+    deposits[_depositId] = DepositBlock(_user, _token, _amountOrToken, now);
+    emit NewDepositBlock(_user, _token, _amountOrToken, _depositId);
   }
 }

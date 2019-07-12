@@ -52,40 +52,19 @@ contract RootChain is RootChainStorage {
     _blockDepositId = 1;
   }
 
-  function createDepositBlock(address _token, uint256 _amountOrNFTId, address _owner)
+  function updateDepositId(uint256 numDeposits)
     external
     onlyDepositManager
+    returns(uint256 depositId)
   {
+    depositId = _blockDepositId;
+    // deposit ids will be (_blockDepositId, _blockDepositId + 1, .... _blockDepositId + numDeposits - 1)
+    _blockDepositId = _blockDepositId.add(numDeposits);
     require(
-      // Only (MAX_DEPOSITS - 1) deposits per header block are allowed
-      _blockDepositId < MAX_DEPOSITS,
+      // Since _blockDepositId is initialized to 1; only (MAX_DEPOSITS - 1) deposits per header block are allowed
+      _blockDepositId <= MAX_DEPOSITS,
       "TOO_MANY_DEPOSITS"
     );
-    _createDepositBlock(_owner, _token, _amountOrNFTId);
-  }
-
-  function bulkCreateDepositBlocks(address[] calldata _tokens, uint256[] calldata _amountOrTokens, address _owner)
-    external
-    onlyDepositManager
-  {
-    require(
-      // Only (MAX_DEPOSITS - 1) deposits per header block are allowed
-      // deposit ids will be (_blockDepositId, _blockDepositId + 1, .... _blockDepositId + _tokens.length - 1)
-      _blockDepositId.add(_tokens.length).sub(1) < MAX_DEPOSITS,
-      "TOO_MANY_DEPOSITS"
-    );
-    for (uint256 i = 0; i < _tokens.length; i++) {
-      _createDepositBlock(_owner, _tokens[i], _amountOrTokens[i]);
-    }
-  }
-
-  function _createDepositBlock(address _owner, address _token, uint256 _amountOrToken)
-    internal
-  {
-    uint256 depositId = _nextHeaderBlock.sub(MAX_DEPOSITS).add(_blockDepositId);
-    deposits[depositId] = DepositBlock(_owner, _token, _nextHeaderBlock, _amountOrToken, now);
-    emit NewDepositBlock(_owner, _token, _amountOrToken, depositId);
-    _blockDepositId = _blockDepositId.add(1);
   }
 
   function slash() external {

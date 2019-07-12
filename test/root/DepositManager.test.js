@@ -28,6 +28,7 @@ contract("DepositManager", async function(accounts) {
       value,
       from: accounts[0]
     })
+    console.log('gasUsed', result.receipt.gasUsed)
     const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
 
     // Transfer, Deposit, NewDepositBlock
@@ -36,7 +37,7 @@ contract("DepositManager", async function(accounts) {
     validateDepositBlock(logs[2].args, accounts[0], maticWeth.address, value)
     expect(logs[2].args.depositBlockId.toString()).to.equal('1')
 
-    const depositBlock = await rootChain.deposits(1)
+    const depositBlock = await depositManager.deposits(1)
     validateDepositBlock(depositBlock, accounts[0], maticWeth.address, value)
   })
 
@@ -44,6 +45,7 @@ contract("DepositManager", async function(accounts) {
     const testToken = await deployer.deployTestErc20()
     await testToken.approve(depositManager.address, amount)
     const result = await depositManager.depositERC20(testToken.address, amount)
+    console.log('gasUsed', result.receipt.gasUsed)
     const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
 
     // Transfer, Approval (ERC20 updates the spender allowance), NewDepositBlock
@@ -52,7 +54,7 @@ contract("DepositManager", async function(accounts) {
     validateDepositBlock(logs[2].args, accounts[0], testToken.address, amount)
     expect(logs[2].args.depositBlockId.toString()).to.equal('1')
 
-    const depositBlock = await rootChain.deposits(1)
+    const depositBlock = await depositManager.deposits(1)
     validateDepositBlock(depositBlock, accounts[0], testToken.address, amount)
   })
 
@@ -61,6 +63,7 @@ contract("DepositManager", async function(accounts) {
     const user = accounts[1]
     await testToken.approve(depositManager.address, amount)
     const result = await depositManager.depositERC20ForUser(testToken.address, user, amount)
+    console.log('gasUsed', result.receipt.gasUsed)
     const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
 
     // Transfer, Approval (ERC20 updates the spender allowance), NewDepositBlock
@@ -69,7 +72,7 @@ contract("DepositManager", async function(accounts) {
     validateDepositBlock(logs[2].args, user, testToken.address, amount)
     expect(logs[2].args.depositBlockId.toString()).to.equal('1')
 
-    const depositBlock = await rootChain.deposits(1)
+    const depositBlock = await depositManager.deposits(1)
     validateDepositBlock(depositBlock, user, testToken.address, amount)
   })
 
@@ -79,6 +82,7 @@ contract("DepositManager", async function(accounts) {
     await testToken.mint(tokenId)
     await testToken.approve(depositManager.address, tokenId)
     const result = await depositManager.depositERC721(testToken.address, tokenId)
+    console.log('gasUsed', result.receipt.gasUsed)
     const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
 
     // Transfer, NewDepositBlock
@@ -88,7 +92,7 @@ contract("DepositManager", async function(accounts) {
     validateDepositBlock(_depositBlock.args, accounts[0], testToken.address, tokenId)
     expect(_depositBlock.args.depositBlockId.toString()).to.equal('1')
 
-    const depositBlock = await rootChain.deposits(1)
+    const depositBlock = await depositManager.deposits(1)
     validateDepositBlock(depositBlock, accounts[0], testToken.address, tokenId)
   })
 
@@ -99,6 +103,7 @@ contract("DepositManager", async function(accounts) {
     await testToken.mint(tokenId)
     await testToken.approve(depositManager.address, tokenId)
     const result = await depositManager.depositERC721ForUser(testToken.address, user, tokenId)
+    console.log('gasUsed', result.receipt.gasUsed)
     const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
 
     // Transfer, NewDepositBlock
@@ -108,7 +113,7 @@ contract("DepositManager", async function(accounts) {
     validateDepositBlock(_depositBlock.args, user, testToken.address, tokenId)
     expect(_depositBlock.args.depositBlockId.toString()).to.equal('1')
 
-    const depositBlock = await rootChain.deposits(1)
+    const depositBlock = await depositManager.deposits(1)
     validateDepositBlock(depositBlock, user, testToken.address, tokenId)
   })
 
@@ -143,7 +148,7 @@ contract("DepositManager", async function(accounts) {
       log.event.should.equal('NewDepositBlock')
       validateDepositBlock(log.args, user, tokens[i], amounts[i])
       expect(log.args.depositBlockId.toString()).to.equal((i + 1).toString())
-      const depositBlock = await rootChain.deposits(i + 1)
+      const depositBlock = await depositManager.deposits(i + 1)
       validateDepositBlock(depositBlock, user, tokens[i], amounts[i])
     }
 
@@ -156,7 +161,7 @@ contract("DepositManager", async function(accounts) {
       log.event.should.equal('NewDepositBlock')
       validateDepositBlock(log.args, user, tokens[numTransfer], amounts[numTransfer])
       expect(log.args.depositBlockId.toString()).to.equal((numTransfer + 1).toString())
-      const depositBlock = await rootChain.deposits(numTransfer + 1)
+      const depositBlock = await depositManager.deposits(numTransfer + 1)
       validateDepositBlock(depositBlock, user, tokens[numTransfer], amounts[numTransfer])
     }
   })
