@@ -121,11 +121,8 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       keccak256(abi.encodePacked(msg.sender, token, amountOrToken)) == depositHash,
       "UNAUTHORIZED_EXIT"
     );
-    // (address exitor, address token, uint256 amountOrToken,) = DepositManager(depositManager).deposits(depositId);
-    // require(exitor == msg.sender, "UNAUTHORIZED_EXIT");
     uint256 priority = depositId * HEADER_BLOCK_NUMBER_WEIGHT;
     address predicate = registry.isTokenMappedAndGetPredicate(token);
-    // _addExitToQueue(exitor, token, amountOrTokenId, bytes32(0) /* txHash */, false /* isRegularExit */, priority, predicate);
     _addExitToQueue(msg.sender, token, amountOrToken, bytes32(0) /* txHash */, false /* isRegularExit */, priority, predicate);
     _addInput(priority /* exit Id */, priority /* input age */, msg.sender /* signer */);
   }
@@ -139,7 +136,6 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     bool isRegularExit,
     uint256 priority)
     external
-    payable
     isPredicateAuthorized(rootToken)
   {
     require(
@@ -313,6 +309,11 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       }
     }
   }
+
+  /**
+   * @dev Receive bond for bonded exits
+   */
+  function () external payable {}
 
   function setExitNFTContract(address _nftContract)
     external
