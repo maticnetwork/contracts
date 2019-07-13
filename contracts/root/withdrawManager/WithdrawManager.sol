@@ -110,17 +110,23 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     _;
   }
 
-  function startExitWithDepositedTokens(uint256 depositId)
+  function startExitWithDepositedTokens(uint256 depositId, address token, uint256 amountOrToken)
     external
     payable
     isBondProvided
   {
     address payable depositManager = address(uint160(registry.getDepositManagerAddress()));
-    (address exitor, address token, uint256 amountOrTokenId,) = DepositManager(depositManager).deposits(depositId);
-    require(exitor == msg.sender, "UNAUTHORIZED_EXIT");
+    bytes32 depositHash = DepositManager(depositManager).deposits(depositId);
+    require(
+      keccak256(abi.encodePacked(msg.sender, token, amountOrToken)) == depositHash,
+      "UNAUTHORIZED_EXIT"
+    );
+    // (address exitor, address token, uint256 amountOrToken,) = DepositManager(depositManager).deposits(depositId);
+    // require(exitor == msg.sender, "UNAUTHORIZED_EXIT");
     uint256 priority = depositId * HEADER_BLOCK_NUMBER_WEIGHT;
     address predicate = registry.isTokenMappedAndGetPredicate(token);
-    _addExitToQueue(exitor, token, amountOrTokenId, bytes32(0) /* txHash */, false /* isRegularExit */, priority, predicate);
+    // _addExitToQueue(exitor, token, amountOrTokenId, bytes32(0) /* txHash */, false /* isRegularExit */, priority, predicate);
+    _addExitToQueue(msg.sender, token, amountOrToken, bytes32(0) /* txHash */, false /* isRegularExit */, priority, predicate);
     _addInput(priority /* exit Id */, priority /* input age */, msg.sender /* signer */);
   }
 

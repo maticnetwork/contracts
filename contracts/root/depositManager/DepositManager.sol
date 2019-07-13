@@ -151,7 +151,7 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
   function _createDepositBlock(address _user, address _token, uint256 _amountOrToken, uint256 _depositId)
     internal
   {
-    deposits[_depositId] = DepositBlock(_user, _token, _amountOrToken, now);
-    emit NewDepositBlock(_user, _token, _amountOrToken, _depositId);
+    deposits[_depositId] = keccak256(abi.encodePacked(_user, _token, _amountOrToken));
+    emit NewDepositBlock(_depositId, _user, _token, _amountOrToken);
   }
 }
