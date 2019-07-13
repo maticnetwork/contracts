@@ -50,15 +50,13 @@ contract('WithdrawManager', async function(accounts) {
       )
       const depositId = depositTx.logs[0].args.depositCount
       expect(depositId.toString()).to.equal('1') // first deposit
-      const depositBlock = await contracts.depositManager.deposits(depositId)
-      expect(depositBlock).to.include({
-        owner: user,
-        token: contracts.rootERC20.address
-      })
-      utils.assertBigNumberEquality(depositBlock.amountOrNFTId, amount)
+      const depositHash = await contracts.depositManager.deposits(depositId)
+      expect(depositHash).to.equal(web3.utils.soliditySha3(user, contracts.rootERC20.address, amount))
 
       const exitTx = await contracts.withdrawManager.startExitWithDepositedTokens(
         depositId,
+        contracts.rootERC20.address,
+        amount,
         { value: web3.utils.toWei('.1', 'ether'), from: user }
       )
       let log = exitTx.logs[0]

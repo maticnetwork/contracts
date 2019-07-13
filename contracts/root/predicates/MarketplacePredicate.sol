@@ -83,17 +83,17 @@ contract MarketplacePredicate is PredicateUtils {
     validateTokenBalance(reference2.childToken, exitTxData.token2, reference2.closingBalance, exitTxData.amount2);
     uint256 priority = Math.max(reference1.age, reference2.age);
     address exitChildToken = address(RLPReader.toUint(referenceTx[2]));
+
+    sendBond(); // send BOND_AMOUNT to withdrawManager
     if (exitChildToken == reference1.childToken) {
-      // This also sends the bond amount to withdraw manager
-      addExitToQueue(
+      withdrawManager.addExitToQueue(
         msg.sender, exitChildToken, reference1.rootToken,
         reference1.closingBalance - exitTxData.amount1,
         exitTxData.txHash, false /* isRegularExit */,
         priority
       );
     } else if (exitChildToken == reference2.childToken) {
-      // This also sends the bond amount to withdraw manager
-      addExitToQueue(
+      withdrawManager.addExitToQueue(
         msg.sender, exitChildToken, reference2.rootToken,
         exitTxData.amount2,
         exitTxData.txHash, false /* isRegularExit */,

@@ -6,10 +6,10 @@ import { ProxyStorage } from "../../common/misc/ProxyStorage.sol";
 
 contract DepositManagerHeader {
   event NewDepositBlock(
-    uint256 indexed depositBlockId,
     address indexed owner,
     address indexed token,
-    uint256 amountOrNFTId
+    uint256 amountOrNFTId,
+    uint256 depositBlockId
   );
 }
 

@@ -65,29 +65,27 @@ contract ERC721Predicate is IErcPredicate {
     public
     payable
     isBondProvided
-    returns(address rootToken, uint256 tokenId)
+    returns(address /* rootToken */, uint256 /* tokenId */)
   {
     RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
     uint256 age = withdrawManager.verifyInclusion(data, 0 /* offset */, false /* verifyTxInclusion */);
-    // validate exitTx
-    address childToken;
-    address participant;
-    bytes32 txHash;
-    (tokenId, childToken, participant, txHash,) = processExitTx(exitTx);
+
+    // validate exitTx - This may be an in-flight tx, so inclusion will not be checked
+    ExitTxData memory exitTxData = processExitTx(exitTx);
 
     // process the receipt of the referenced tx
-    uint256 oIndex;
-    (rootToken, oIndex) = processReferenceTx(
+    (address rootToken, uint256 oIndex) = processReferenceTx(
       referenceTxData[6].toBytes(), // receipt
       referenceTxData[9].toUint(), // logIndex
-      participant,
-      childToken,
-      tokenId
+      exitTxData.signer,
+      exitTxData.childToken,
+      exitTxData.amountOrToken
     );
     age = age + oIndex + (referenceTxData[9].toUint() /* logIndex */ * MAX_LOGS); // @todo Use SafeMath
 
-    // This also sends the bond amount to withdraw manager
-    addExitToQueue(msg.sender, childToken, rootToken, tokenId, txHash, false /* isRegularExit */, age);
+    sendBond(); // send BOND_AMOUNT to withdrawManager
+    withdrawManager.addExitToQueue(msg.sender, exitTxData.childToken, rootToken, exitTxData.amountOrToken, exitTxData.txHash, false /* isRegularExit */, age);
+    return (rootToken, exitTxData.amountOrToken);
   }
 
   /**
@@ -125,21 +123,21 @@ contract ERC721Predicate is IErcPredicate {
     (uint256 age, address signer) = decodeInputUtxo(inputUtxo);
     RLPReader.RLPItem[] memory referenceTxData = challengeData.toRlpItem().toList();
 
-    (uint256 tokenId, address childToken, address participant, bytes32 txHash,) = processExitTx(referenceTxData[10].toBytes());
+    ExitTxData memory challengeTxData = processChallengeTx(referenceTxData[10].toBytes());
     require(
-      participant == signer,
+      signer == challengeTxData.signer,
       "Challenge tx not signed by the party who signed the input UTXO to the exit"
     );
     require(
-      _exit.token == childToken,
+      _exit.token == challengeTxData.childToken,
       "Challenge tx token doesnt match with exit token"
     );
     require(
-      _exit.txHash != txHash,
+      _exit.txHash != challengeTxData.txHash,
       "Cannot challenge with the exit tx"
     );
     require(
-      _exit.receiptAmountOrNFTId == tokenId,
+      _exit.receiptAmountOrNFTId == challengeTxData.amountOrToken,
       "tokenId doesn't match"
     );
     uint256 ageOfChallengeTx = withdrawManager.verifyInclusion(challengeData, 0, true /* verifyTxInclusion */);
@@ -147,8 +145,9 @@ contract ERC721Predicate is IErcPredicate {
       referenceTxData[6].toBytes(), // receipt
       referenceTxData[9].toUint(), // logIndex
       signer,
-      childToken,
-      tokenId);
+      challengeTxData.childToken,
+      challengeTxData.amountOrToken
+    );
     return ageOfChallengeTx > age;
   }
 
@@ -260,32 +259,53 @@ contract ERC721Predicate is IErcPredicate {
   function processExitTx(bytes memory exitTx)
     internal
     view
-    returns(uint256 tokenId, address childToken, address participant, bytes32 txHash, bool burnt)
+    returns(ExitTxData memory txData)
   {
     RLPReader.RLPItem[] memory txList = exitTx.toRlpItem().toList();
     require(txList.length == 9, "MALFORMED_WITHDRAW_TX");
-    childToken = RLPReader.toAddress(txList[3]); // corresponds to "to" field in tx
-    (participant, txHash) = getAddressFromTx(txList, withdrawManager.networkId());
-    if (participant == msg.sender) { // exit tx is signed by exitor himself
-      (tokenId, burnt) = processExitTxSender(RLPReader.toBytes(txList[5]));
+    txData.childToken = RLPReader.toAddress(txList[3]); // corresponds to "to" field in tx
+    (txData.signer, txData.txHash) = getAddressFromTx(txList, withdrawManager.networkId());
+    if (txData.signer == msg.sender) { // exit tx is signed by exitor himself
+      (txData.amountOrToken, txData.exitType) = processExitTxSender(RLPReader.toBytes(txList[5]));
     } else {
-      tokenId = processExitTxCounterparty(RLPReader.toBytes(txList[5]));
+      // exitor is a counterparty in the provided tx
+      txData.amountOrToken = processExitTxCounterparty(RLPReader.toBytes(txList[5]));
+      txData.exitType = ExitType.IncomingTransfer;
     }
+  }
+
+  /**
+   * @notice Process the challenge transaction
+   * @param challengeTx Challenge transaction
+   * @return ExitTxData Parsed challenge transaction data
+   */
+  function processChallengeTx(bytes memory challengeTx)
+    internal
+    view
+    returns(ExitTxData memory txData)
+  {
+    RLPReader.RLPItem[] memory txList = challengeTx.toRlpItem().toList();
+    require(txList.length == 9, "MALFORMED_WITHDRAW_TX");
+    txData.childToken = RLPReader.toAddress(txList[3]); // corresponds to "to" field in tx
+    (txData.signer, txData.txHash) = getAddressFromTx(txList, withdrawManager.networkId());
+    // during a challenge, the tx signer must be the first party
+    (txData.amountOrToken,) = processExitTxSender(RLPReader.toBytes(txList[5]));
   }
 
   function processExitTxSender(bytes memory txData)
     internal
     pure
-    returns (uint256 tokenId, bool burnt)
+    returns (uint256 tokenId, ExitType exitType)
   {
     bytes4 funcSig = BytesLib.toBytes4(BytesLib.slice(txData, 0, 4));
     if (funcSig == WITHDRAW_FUNC_SIG) {
       require(txData.length == 36, "Invalid tx"); // 4 bytes for funcSig and a single bytes32 parameter
       tokenId = BytesLib.toUint(txData, 4);
-      burnt = true;
+      exitType = ExitType.Burnt;
     } else if (funcSig == TRANSFER_FROM_FUNC_SIG) {
       require(txData.length == 100, "Invalid tx"); // 4 bytes for funcSig and a 3 bytes32 parameters (to, value)
       tokenId = BytesLib.toUint(txData, 4);
+      exitType = ExitType.OutgoingTransfer;
     } else {
       revert("Exit tx type not supported");
     }
