@@ -60,7 +60,6 @@ contract Delegator is ERC721Full, Ownable {
   function _getRewards(uint256 delegatorId) internal {
     address validator;
     uint256 currentEpoch = stakeManager.currentEpoch();
-    uint256 reward;
     (,,,,,validator) = stakeManager.validators(delegators[delegatorId].bondedTo);
     delegators[delegatorId].reward += ValidatorContract(validator).getRewards(
       delegatorId,
@@ -68,15 +67,25 @@ contract Delegator is ERC721Full, Ownable {
       delegators[delegatorId].delegationStartEpoch,
       delegators[delegatorId].delegationStopEpoch,
       currentEpoch);
-    require(token.transfer(msg.sender, delegators[delegatorId].reward)); // Todo safeMath
+    // require(token.transfer(msg.sender, delegators[delegatorId].reward));
     delegators[delegatorId].delegationStartEpoch = currentEpoch;
   }
 
   function bond(uint256 delegatorId, uint256 validatorId) public onlyDelegator(delegatorId) {
     // require(time/count)
     Delegator delegator = delegators[delegatorId];
-    require(delegator.delegationStopEpoch == 0 && delegator.delegationStartEpoch == 0 && !delegators[delegatorId].bondedTo, "");
     uint256 currentEpoch = stakeManager.currentEpoch();
+    // for lazy unbonding
+    if (delegator.delegationStopEpoch != 0 && delegator.delegationStopEpoch < currentEpoch ) {
+      _getRewards(delegatorId);
+      delegator.delegationStopEpoch = 0;
+      delegator.delegationStartEpoch = 0;
+    } else {
+      require(delegator.delegationStopEpoch == 0 &&
+        delegator.delegationStartEpoch == 0 &&
+        delegators[delegatorId].bondedTo == address(0x0),
+        "");
+    }
     address validator;
     (,,,,,,validator,) = stakeManager.validators(validatorId);
     ValidatorContract(validator).bond(delegatorId, delegator.amount);
@@ -86,8 +95,8 @@ contract Delegator is ERC721Full, Ownable {
 
   function unBond(uint256 delegatorId, uint256 index) public onlyDelegator(delegatorId) {
     address validator;
+    _getRewards(delegatorId);
     (,,,,,,validator,) = stakeManager.validators(delegators[delegatorId].bondedTo);
-    delegators[delegatorId].reward += ValidatorContract(validator).getRewards(delegatorId, delegators[delegatorId].amount);
     ValidatorContract(validator).unBond(delegatorId, index, delegators[delegatorId].amount);
     delegators[delegatorId].bondedTo = 0;
   }
