@@ -41,15 +41,16 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
     _;
   }
 
-  function updateRewards(uint256 amount, uint256 checkpoint, uint256 stake) public onlyOwner {
-    validatorRewards += 100;// fixed cost
-    amount -=100;
+  function updateRewards(uint256 amount, uint256 checkpoint, uint256 validatorStake) public onlyOwner {
+    // TODO: reduce logic
     uint256 validatorReward = amount.mul(rewardRatio).div(100);
-    validatorRewards += amount.mul(rewardRatio).div(100);
-    amount -= validatorRewards;
+    amount -= validatorReward;
+    validatorReward += (amount * validatorStake)/(validatorStake + delegatedAmount);
+    validatorRewards += validatorReward;
+    amount -= validatorReward;
     rewards += amount;
     delegationState[checkpoint].amount = amount;
-    delegationState[checkpoint].totalStake = delegatedAmount + stake;
+    delegationState[checkpoint].totalStake = delegatedAmount;
   }
 
   function bond(uint256 delegatorId, uint256 amount) public onlyDelegatorContract {
@@ -85,9 +86,12 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
   function getRewards(uint256 delegatorId, uint256 delegationAmount, uint256 startEpoch, uint256 endEpoch) public onlyDelegatorContract retruns(uint256) {
     // TODO: use struct as param
     uint256 reward = 0;
+    if (endEpoch == 0) {
+      endEpoch = currentEpoch;
+    }
     for (uint256 epoch = startEpoch; epoch > endEpoch; epoch++) {
       if (delegationState[epoch].amount) {
-        reward += (delegationState[epoch].amount * delegationAmount)/delegationState[epoch];
+        reward += (delegationState[epoch].amount * delegationAmount)/delegationState[epoch].totalStake;
       }
     }
     return reward;

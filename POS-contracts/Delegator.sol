@@ -52,11 +52,24 @@ contract Delegator is ERC721Full, Ownable {
   }
 
   function getRewards(uint256 delegatorId) public onlyDelegator(delegatorId) {
-    address validator;
-    (,,,,,validator) = stakeManager.validators(delegators[delegatorId].bondedTo);
-    ValidatorContract(validator).getRewards(delegatorId, delegators[delegatorId].amount);
-    require(token.transfer(msg.sender, delegators[delegatorId].reward)); // Todo safeMath
+    _getRewards(delegatorId);
+    require(token.transfer(msg.sender, delegators[delegatorId].reward));
     delegators[delegatorId].reward = 0;
+  }
+
+  function _getRewards(uint256 delegatorId) internal {
+    address validator;
+    uint256 currentEpoch = stakeManager.currentEpoch();
+    uint256 reward;
+    (,,,,,validator) = stakeManager.validators(delegators[delegatorId].bondedTo);
+    delegators[delegatorId].reward += ValidatorContract(validator).getRewards(
+      delegatorId,
+      delegators[delegatorId].amount,
+      delegators[delegatorId].delegationStartEpoch,
+      delegators[delegatorId].delegationStopEpoch,
+      currentEpoch);
+    require(token.transfer(msg.sender, delegators[delegatorId].reward)); // Todo safeMath
+    delegators[delegatorId].delegationStartEpoch = currentEpoch;
   }
 
   function bond(uint256 delegatorId, uint256 validatorId) public onlyDelegator(delegatorId) {
@@ -74,22 +87,19 @@ contract Delegator is ERC721Full, Ownable {
   function unBond(uint256 delegatorId, uint256 index) public onlyDelegator(delegatorId) {
     address validator;
     (,,,,,,validator,) = stakeManager.validators(delegators[delegatorId].bondedTo);
-    ValidatorContract(validator).unBond(delegatorId, index, delegators[delegatorId].amount);
     delegators[delegatorId].reward += ValidatorContract(validator).getRewards(delegatorId, delegators[delegatorId].amount);
+    ValidatorContract(validator).unBond(delegatorId, index, delegators[delegatorId].amount);
     delegators[delegatorId].bondedTo = 0;
   }
 
-  function unBondLazy(uint256 delegatorId, uint256 epoch) public /* onlyDelegator(delegatorId) */ {
+  function unBondLazy(uint256 delegatorId, uint256 epoch) public /* onlyStakeManager(delegatorId) */ {
     address validator;
     (,,,,,,validator,) = stakeManager.validators(delegators[delegatorId].bondedTo);
     require(msg.sender == validator);
     delegators[delegatorId].delegationStopEpoch = epoch;
-    // ValidatorContract(validator).unBond(delegatorId);
-    // delegators[delegatorId] += ValidatorContract(validator).getRewards(delegatorId, delegators[delegatorId].amount);
   }
 
-  function revertLazyUnBond(uint256 epoch, address validator) public {
-    require(msg.sender == validator);
+  function revertLazyUnBond(uint256 epoch, address validator) public /* onlyStakeManager(delegatorId) */ {
     if (delegators[delegatorId].delegationStopEpoch == epoch) {
       delegators[delegatorId].delegationStopEpoch = 0;
     }
@@ -98,7 +108,7 @@ contract Delegator is ERC721Full, Ownable {
   function hopValidator() public; // require(time/count)
 
   function reStake(uint256 delegatorId, uint256 amount, bool stakeRewards) public onlyDelegator(delegatorId) {
-    require(!delegators[delegatorId].bondedTo, "can't restake while bonded");
+    _getRewards(delegatorId);
     if (amount > 0) {
       require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");
     }
