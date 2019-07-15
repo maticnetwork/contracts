@@ -14,7 +14,8 @@ contract Validator is ERC721Full {
 contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
   uint256 public delegatedAmount;
   uint256[] public delegators;
-  uint256 public rewards;
+  uint256 public rewards = 0;
+  uint256 public validatorRewards = 0;
   address public validator;
   address public delegatorContract;
   bool delegation = true;
@@ -40,11 +41,12 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
     _;
   }
 
-  function register() public onlyOwner {
-
-  }
-
   function updateRewards(uint256 amount, uint256 checkpoint, uint256 stake) public onlyOwner {
+    validatorRewards += 100;// fixed cost
+    amount -=100;
+    uint256 validatorReward = amount.mul(rewardRatio).div(100);
+    validatorRewards += amount.mul(rewardRatio).div(100);
+    amount -= validatorRewards;
     rewards += amount;
     delegationState[checkpoint].amount = amount;
     delegationState[checkpoint].totalStake = delegatedAmount + stake;
@@ -68,14 +70,19 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
   function unBondAllLazy(uint256 exitEpoch) public onlyOwner returns(bool) {
     delegation = false; //  won't be accepting any new delegations
     for (uint256 i; i < delegators.length; i++) {
-      unBondLazy(delegators[i], exitEpoch);
+      unBondLazy(delegators[i], exitEpoch, validator);
     }
     return true;
   }
 
+  function revertLazyUnBonding(uint256 exitEpoch) public onlyOwner returns(bool) {
+    delegation = true;
+    for (uint256 i; i < delegators.length; i++) {
+      revertLazyUnBond(delegators[i], exitEpoch, validator);
+    }
+  }
+
   function getRewards(uint256 delegatorId, uint256 delegationAmount, uint256 startEpoch, uint256 endEpoch) public onlyDelegatorContract retruns(uint256) {
-    // distribute delegator rewards first
-    // for each delegator reward, keep the rest
     // TODO: use struct as param
     uint256 reward = 0;
     for (uint256 epoch = startEpoch; epoch > endEpoch; epoch++) {
