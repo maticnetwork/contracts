@@ -60,7 +60,6 @@ contract Delegator is ERC721Full, Ownable {
   }
 
   function bond(uint256 delegatorId, uint256 validatorId) public onlyDelegator(delegatorId) {
-    // add into timeline for next checkpoint
     // require(time/count)
     Delegator delegator = delegators[delegatorId];
     require(delegator.delegationStopEpoch == 0 && delegator.delegationStartEpoch == 0 && !delegators[delegatorId].bondedTo, "");
@@ -87,7 +86,13 @@ contract Delegator is ERC721Full, Ownable {
     delegators[delegatorId].delegationStopEpoch = epoch;
     // ValidatorContract(validator).unBond(delegatorId);
     // delegators[delegatorId] += ValidatorContract(validator).getRewards(delegatorId, delegators[delegatorId].amount);
-    // delegators[delegatorId].bondedTo = 0;
+  }
+
+  function revertLazyUnBond(uint256 epoch, address validator) public {
+    require(msg.sender == validator);
+    if (delegators[delegatorId].delegationStopEpoch == epoch) {
+      delegators[delegatorId].delegationStopEpoch = 0;
+    }
   }
 
   function hopValidator() public; // require(time/count)

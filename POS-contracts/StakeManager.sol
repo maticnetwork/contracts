@@ -43,7 +43,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   uint256 public currentEpoch = 1;
   uint256 public NFTCounter = 1;
 
-  enum State { Inactive, Active, Locked }
+  enum Status { Inactive, Active, Locked }
 
   struct Validator {
     uint256 epoch;
@@ -53,7 +53,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     uint256 deactivationEpoch;
     address signer;
     address contractAddress;
-    State state;
+    Status status;
   }
 
   struct State {
@@ -118,7 +118,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     //Todo: add state here consider jail
     require(validators[validatorId].activationEpoch > 0 &&
       validators[validatorId].deactivationEpoch == 0 &&
-      validators[validatorId].state == State.Active);
+      validators[validatorId].status == Status.Active);
 
     uint256 amount = validators[validatorId].amount;
 
@@ -177,13 +177,13 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   function slash(uint256 validatorId) public /**onlyRootChain */ {
     // if contract call contract.slash
     // else slash here validator.amount
-    // if amount < MIN_DEPOSIT_SIZE jail him as well
+    // if amount < MIN_DEPOSIT_SIZE unstake, can restake/revoke => unBondAllLazy here
   }
 
   function revoke(uint256 validatorId) public onlyStaker(validatorId) {
     require(validators[validatorId].activationEpoch > 0 &&
       validators[validatorId].deactivationEpoch > currentEpoch &&
-      validators[validatorId].state == State.Locked);
+      validators[validatorId].status == Status.Locked);
 
     uint256 amount = validators[validatorId].amount;
     require(amount >= MIN_DEPOSIT_SIZE);
@@ -195,8 +195,12 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     validatorState[exitEpoch].stakerCount = (
       validatorState[exitEpoch].stakerCount + 1);
 
+    require(!validators[validatorId].contractAddress ||
+      ValidatorContract(validators[validatorId].contractAddress).unBondAllLazy(exitEpoch),
+      "unbond all delegators");
+
     validators[validatorId].deactivationEpoch = 0;
-    validators[validatorId].state = State.Active;
+    validators[validatorId].status = Status.Active;
   }
 
   // in context of slashing
@@ -211,8 +215,12 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     validatorState[exitEpoch].stakerCount = (
       validatorState[exitEpoch].stakerCount - 1);
 
+    require(!validators[validatorId].contractAddress ||
+      ValidatorContract(validators[validatorId].contractAddress).revertLazyUnBonding(exitEpoch),
+      "unbond all delegators");
+
     validators[validatorId].deactivationEpoch = exitEpoch;
-    validators[validatorId].state = State.Locked;
+    validators[validatorId].status = Status.Locked;
     emit Jailed(validatorId, exitEpoch);
   }
 
@@ -236,7 +244,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       validators[validatorId].activationEpoch,
       validators[validatorId].deactivationEpoch,
       validators[validatorId].signer,
-      uint256(validators[validatorId].state)
+      uint256(validators[validatorId].status)
       );
   }
 
@@ -321,16 +329,26 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       validators[validatorId].activationEpoch <= currentEpoch ) &&
       (validators[validatorId].deactivationEpoch == 0 ||
       validators[validatorId].deactivationEpoch > currentEpoch) &&
-      validators[validatorId].state == State.Active // Todo: reduce logic
+      validators[validatorId].status == Status.Active // Todo: reduce logic
     );
   }
 
-  function checkSignatures(bytes32 voteHash, bytes memory sigs) public view returns (bool)  {
+  function rewardValidator(uint256 validatorId, uint256 _totalStake, uint256 stakePower) internal {
+    uint256 checkpointReward = 10; // Todo: fix me
+    uint256 _reward = checkpointReward.mul(stakePower).div(_totalStake);
+    address _contract = validators[validatorId].contractAddress;
+    if (_contract == address(0x0)) {
+      validators[validatorId].reward += _reward;
+    }
+    else {
+      ValidatorContract(_contract).updateRewards(_reward, currentEpoch, validators[validatorId].amount);
+    }
+  }
+
+  function checkSignatures(bytes32 voteHash, bytes memory sigs) public onlyRootChain {
     // total voting power
     uint256 stakePower = 0;
     uint256 validatorId;
-    uint256 _reward = 1; // temporary rewards placeholder
-
     address lastAdd = address(0x0); // cannot have address(0x0) as an owner
     for (uint64 i = 0; i < sigs.length; i += 65) {
       bytes memory sigElement = BytesLib.slice(sigs, i, 65);
@@ -355,15 +373,9 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     }
     // TODO: use proposer
     validatorId = signerToValidator[signer];
-    address _contract = validators[validatorId].contractAddress;
-    if (_contract == address(0x0)) {
-      validators[validatorId].reward += _reward;
-    }
-    else {
-      ValidatorContract(_contract).updateRewards(_reward, currentEpoch, validators[validatorId].amount);
-    }
-
-    return stakePower >= currentValidatorSetTotalStake().mul(2).div(3).add(1);
+    uint256 _totalStake = currentValidatorSetTotalStake(); // todo: add delegation total bonded amount
+    require(stakePower >= _totalStake.mul(2).div(3).add(1));
+    rewardValidator(validatorId, stakePower, _totalStake);
   }
 
 }
