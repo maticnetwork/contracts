@@ -83,7 +83,7 @@ contract Delegator is ERC721Full, Ownable {
     } else {
       require(delegator.delegationStopEpoch == 0 &&
         delegator.delegationStartEpoch == 0 &&
-        delegators[delegatorId].bondedTo == address(0x0),
+        !delegators[delegatorId].bondedTo,
         "");
     }
     address validator;
@@ -171,10 +171,10 @@ contract Delegator is ERC721Full, Ownable {
     uint256 amount = delegators[delegatorId].amount;
     totalStaked = totalStaked.sub(amount);
 
-    // TODO :add slashing here use soft slashing in slash amt variable
+    // TODO :add slashing
     _burn(msg.sender, delegatorId);
 
-    require(token.transfer(msg.sender, amount + delegators[delegatorId].reward)); // Todo safeMath
+    require(token.transfer(msg.sender, amount + delegators[delegatorId].reward));
     emit Unstaked(msg.sender, delegatorId, amount, totalStaked);
   }
 
