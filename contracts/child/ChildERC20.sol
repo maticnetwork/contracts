@@ -7,9 +7,8 @@ import "./ChildToken.sol";
 import "./misc/IParentToken.sol";
 import "./misc/LibTokenTransferOrder.sol";
 
-
 contract ChildERC20 is ChildToken, ERC20, LibTokenTransferOrder, ERC20Detailed {
-  
+
   event Deposit(
     address indexed token,
     address indexed from,
@@ -102,7 +101,7 @@ contract ChildERC20 is ChildToken, ERC20, LibTokenTransferOrder, ERC20Detailed {
     return true; // to be compliant with the standard ERC20.transfer function interface
   }
 
-  function transferWithSig(bytes memory sig, uint256 amount, bytes32 data, uint256 expiration, address to) public returns (address) {
+  function transferWithSig(bytes calldata sig, uint256 amount, bytes32 data, uint256 expiration, address to) external returns (address from) {
     require(amount > 0);
     require(expiration == 0 || block.number <= expiration, "Signature is expired");
 
@@ -115,10 +114,8 @@ contract ChildERC20 is ChildToken, ERC20, LibTokenTransferOrder, ERC20Detailed {
     require(disabledHashes[dataHash] == false, "Sig deactivated");
     disabledHashes[dataHash] = true;
 
-    // recover address and send tokens
-    address from = dataHash.ecrecovery(sig);
+    from = ecrecovery(dataHash, sig);
     _transferFrom(from, to, amount);
-    return from;
   }
 
   /// @param from Address from where tokens are withdrawn.

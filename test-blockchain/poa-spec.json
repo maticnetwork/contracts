@@ -5,19 +5,8 @@
       "params": {
         "stepDuration": "1",
         "validators": {
-          "multi": {
-            "0": {
-              "list": ["0x9fb29aac15b9a4b7f17c3385939b007540f4d791"]
-            }
-          }
-        },
-        "homesteadTransition": 0,
-        "eip155Transition": 0,
-        "eip150Transition": 0,
-        "eip160Transition": 0,
-        "eip161abcTransition": 0,
-        "eip161dTransition": 0,
-        "eip658Transition": 0
+          "list": ["0xf0ebfbd01347aaca487358132394a4b87945b553"]
+        }
       }
     }
   },
@@ -26,12 +15,11 @@
     "maximumExtraDataSize": "0x20",
     "minGasLimit": "0x1388",
     "networkID": "0x0D",
-    "homesteadTransition": 0,
     "eip155Transition": 0,
-    "eip150Transition": 0,
-    "eip160Transition": 0,
-    "eip161abcTransition": 0,
-    "eip161dTransition": 0,
+    "validateChainIdTransition": 0,
+    "eip140Transition": 0,
+    "eip211Transition": 0,
+    "eip214Transition": 0,
     "eip658Transition": 0
   },
   "genesis": {
@@ -73,13 +61,13 @@
         "pricing": { "linear": { "base": 15, "word": 3 } }
       }
     },
+    "0xf0ebfbd01347aaca487358132394a4b87945b553": {
+      "balance": "10000000000000000000000000000"
+    },
     "0x9fb29aac15b9a4b7f17c3385939b007540f4d791": {
       "balance": "10000000000000000000000000000"
     },
     "0x96c42c56fdb78294f96b0cfa33c92bed7d75f96a": {
-      "balance": "10000000000000000000000000000"
-    },
-    "0xacf8eccdca12a0eb6ae4fb1431e26c44e66decdb": {
       "balance": "10000000000000000000000000000"
     }
   }

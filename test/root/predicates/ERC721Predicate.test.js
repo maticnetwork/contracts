@@ -6,10 +6,8 @@ import logDecoder from '../../helpers/log-decoder.js'
 import ethUtils from 'ethereumjs-util'
 
 import {
-  getTxBytes,
   getTxProof,
   verifyTxProof,
-  getReceiptBytes,
   getReceiptProof,
   verifyReceiptProof
 } from '../../helpers/proofs'
@@ -19,12 +17,13 @@ import MerkleTree from '../../helpers/merkle-tree'
 
 import { build, buildInFlight } from '../../mockResponses/utils'
 
+const crypto = require('crypto')
 const utils = require('../../helpers/utils')
 const web3Child = utils.web3Child
 
 chai.use(chaiAsPromised).should()
 let contracts, childContracts
-let start = 0
+let start = 0, predicate
 
 contract('ERC721Predicate', async function(accounts) {
   const tokenId = '0x117'
@@ -65,7 +64,7 @@ contract('ERC721Predicate', async function(accounts) {
       expect(log.args).to.include({
         exitor: user,
         token: childContracts.rootERC721.address,
-        burnt: true
+        isRegularExit: true
       })
       utils.assertBigNumberEquality(log.args.amount, tokenId)
     })
@@ -161,7 +160,113 @@ contract('ERC721Predicate', async function(accounts) {
   describe('verifyDeprecation', async function() {
     it('write test')
   })
+
+  describe('ERC721PlasmaMintable', async function() {
+    beforeEach(async function() {
+      predicate = await deployer.deployErc721Predicate()
+      const { rootERC721, childErc721 } = await deployer.deployChildErc721Mintable()
+      // add ERC721Predicate as a minter
+      await rootERC721.addMinter(predicate.address)
+      childContracts.rootERC721 = rootERC721
+      childContracts.childErc721 = childErc721
+    })
+
+    it('mint and burn on the side chain', async function() {
+      const tokenId = '0x' + crypto.randomBytes(32).toString('hex')
+      const { receipt: r } = await childContracts.childErc721.mint(user, tokenId)
+      let mintTx = await web3Child.eth.getTransaction(r.transactionHash)
+      mintTx = await buildInFlight(mintTx)
+      await childContracts.childErc721.transferFrom(user, other, tokenId)
+
+      const { receipt } = await childContracts.childErc721.withdraw(tokenId, { from: other })
+      // the token doesnt exist on the root chain as yet
+      expect(await childContracts.rootERC721.exists(tokenId)).to.be.false
+
+      let { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts, start)
+      const startExitTx = await startExitWithBurntMintableToken(
+        { headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 },
+        mintTx,
+        other // exitor - account to initiate the exit from
+      )
+      // console.log(startExitTx)
+      expect(await childContracts.rootERC721.exists(tokenId)).to.be.true
+      expect((await childContracts.rootERC721.ownerOf(tokenId)).toLowerCase()).to.equal(contracts.depositManager.address.toLowerCase())
+
+      const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+      const log = logs[1]
+      log.event.should.equal('ExitStarted')
+      expect(log.args).to.include({
+        exitor: other,
+        token: childContracts.rootERC721.address,
+        isRegularExit: true
+      })
+      utils.assertBigNumberEquality(log.args.amount, tokenId)
+    })
+
+    it('mint, MoreVP exit with reference: counterparty balance (Transfer) and exitTx: incomingTransfer', async function() {
+      const tokenId = '0x' + crypto.randomBytes(32).toString('hex')
+      const { receipt: mint } = await childContracts.childErc721.mint(user, tokenId)
+      const mintTx = await buildInFlight(await web3Child.eth.getTransaction(mint.transactionHash))
+
+      // proof of counterparty's balance
+      const { receipt } = await childContracts.childErc721.transferFrom(user, other, tokenId)
+      const { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts)
+
+      // treating this as in-flight incomingTransfer
+      const { receipt: r } = await childContracts.childErc721.transferFrom(other, user, tokenId, { from: other })
+      let exitTx = await buildInFlight(await web3Child.eth.getTransaction(r.transactionHash))
+
+      // the token doesnt exist on the root chain as yet
+      expect(await childContracts.rootERC721.exists(tokenId)).to.be.false
+
+      const startExitTx = await startMoreVpExitWithMintableToken(
+        headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx, mintTx, user)
+
+      expect(await childContracts.rootERC721.exists(tokenId)).to.be.true
+      expect((await childContracts.rootERC721.ownerOf(tokenId)).toLowerCase()).to.equal(contracts.depositManager.address.toLowerCase())
+      const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+      // console.log(startExitTx, logs)
+      const log = logs[1]
+      log.event.should.equal('ExitStarted')
+      expect(log.args).to.include({
+        exitor: user,
+        token: childContracts.rootERC721.address
+      })
+      utils.assertBigNumberEquality(log.args.amount, tokenId)
+    })
+  })
 })
+
+function startExitWithBurntMintableToken(input, mintTx, from) {
+  return predicate.startExitWithBurntTokens(
+    ethUtils.bufferToHex(ethUtils.rlp.encode(utils.buildReferenceTxPayload(input))),
+    ethUtils.bufferToHex(mintTx),
+    { from }
+  )
+}
+
+function startMoreVpExitWithMintableToken(
+  headerNumber, blockProof, blockNumber, blockTimestamp, reference, logIndex, exitTx, mintTx, from) {
+  return predicate.startExitAndMint(
+    ethUtils.bufferToHex(
+      ethUtils.rlp.encode([
+        headerNumber,
+        ethUtils.bufferToHex(Buffer.concat(blockProof)),
+        blockNumber,
+        blockTimestamp,
+        ethUtils.bufferToHex(reference.transactionsRoot),
+        ethUtils.bufferToHex(reference.receiptsRoot),
+        ethUtils.bufferToHex(reference.receipt),
+        ethUtils.bufferToHex(ethUtils.rlp.encode(reference.receiptParentNodes)),
+        ethUtils.bufferToHex(ethUtils.rlp.encode(reference.path)), // branch mask,
+        logIndex
+      ])
+    ),
+    ethUtils.bufferToHex(exitTx),
+    ethUtils.bufferToHex(mintTx),
+    { from, value: web3.utils.toWei('.1', 'ether') }
+  )
+}
 
 async function init(rootChain, receipt, accounts) {
   const event = {

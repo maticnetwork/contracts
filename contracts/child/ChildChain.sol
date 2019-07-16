@@ -1,7 +1,6 @@
 pragma solidity ^0.5.2;
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import "./ChildToken.sol";
 import "./ChildERC20.sol";
@@ -9,27 +8,12 @@ import "./ChildERC721.sol";
 
 
 contract ChildChain is Ownable {
-  using SafeMath for uint256;
-
-  //
-  // Storage
-  //
-
   // mapping for (root token => child token)
   mapping(address => address) public tokens;
-
-  // weather contract is erc721 or not
   mapping(address => bool) public isERC721;
-
-  // deposit mapping
   mapping(uint256 => bool) public deposits;
-
-  // withdraw mapping
   mapping(uint256 => bool) public withdraws;
 
-  //
-  // Events
-  //
   event NewToken(
     address indexed rootToken,
     address indexed token,
@@ -81,7 +65,12 @@ contract ChildChain is Ownable {
     // broadcast new token's event
     emit NewToken(_rootToken, token, _decimals);
   }
- 
+
+  function mapToken(address rootToken, address token, bool isErc721) public onlyOwner {
+    tokens[rootToken] = token;
+    isERC721[rootToken] = isErc721;
+  }
+
   function depositTokens(
     address rootToken,
     address user,
@@ -99,7 +88,7 @@ contract ChildChain is Ownable {
 
     // check if child token is mapped
     require(childToken != address(0x0));
-    
+
     ChildToken obj;
 
     if (isERC721[rootToken]) {
@@ -132,7 +121,7 @@ contract ChildChain is Ownable {
 
     // check if child token is mapped
     require(childToken != address(0x0));
-    
+
     ChildToken obj;
 
     if (isERC721[rootToken]) {

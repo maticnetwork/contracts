@@ -3,17 +3,10 @@
 import utils from 'ethereumjs-util'
 import { Buffer } from 'safe-buffer'
 import encode from 'ethereumjs-abi'
+import fs from 'fs'
+import path from 'path'
 
 import { generateFirstWallets, mnemonics } from './wallets.js'
-import {
-  getTxProof,
-  verifyTxProof,
-  getReceiptProof,
-  verifyReceiptProof
-} from './proofs'
-import { getBlockHeader } from './blocks'
-import MerkleTree from './merkle-tree'
-import { build, buildInFlight } from '../mockResponses/utils'
 
 const crypto = require('crypto')
 const BN = utils.BN
@@ -103,7 +96,11 @@ export async function deposit(depositManager, childChain, rootContract, user, am
   } else {
     depositBlockId = '0x' + crypto.randomBytes(32).toString('hex')
   }
-  return childChain.depositTokens(rootContract.address, user, amount, depositBlockId)
+  const deposit = await childChain.depositTokens(rootContract.address, user, amount, depositBlockId)
+  if (options.writeToFile) {
+    await writeToFile(options.writeToFile, deposit.receipt);
+  }
+  return deposit
 }
 
 export function startExit(predicate, headerNumber, blockProof, blockNumber, blockTimestamp, reference, logIndex, exitTx) {
@@ -122,11 +119,18 @@ export function startExit(predicate, headerNumber, blockProof, blockNumber, bloc
         logIndex
       ])
     ),
-    utils.bufferToHex(exitTx)
+    utils.bufferToHex(exitTx),
+    { value: web3.utils.toWei('.1', 'ether') }
   )
 }
 
-export function startExitWithBurntTokens(predicate, input) {
+export function startExitWithBurntTokens(predicate, input, from) {
+  if (from) {
+    return predicate.startExitWithBurntTokens(
+      utils.bufferToHex(rlp.encode(buildReferenceTxPayload(input))),
+      { from }
+    )
+  }
   return predicate.startExitWithBurntTokens(
     utils.bufferToHex(rlp.encode(buildReferenceTxPayload(input)))
   )
@@ -139,7 +143,26 @@ export function startExitNew(predicate, inputs, exitTx) {
   })
   return predicate.startExit(
     utils.bufferToHex(rlp.encode(_inputs)),
-    utils.bufferToHex(exitTx)
+    utils.bufferToHex(exitTx),
+    { value: web3.utils.toWei('.1', 'ether') }
+  )
+}
+
+export function startExitForMarketplacePredicate(predicate, inputs, exitToken, exitTx) {
+  let _inputs = []
+  inputs.forEach(input => {
+    _inputs.push(
+      web3.eth.abi.encodeParameters(
+        ['address', 'bytes'],
+        [input.predicate, rlp.encode(buildReferenceTxPayload(input))]
+      )
+    )
+  })
+  _inputs.push(exitToken)
+  return predicate.startExit(
+    utils.bufferToHex(rlp.encode(_inputs)),
+    utils.bufferToHex(exitTx),
+    { value: web3.utils.toWei('.1', 'ether') }
   )
 }
 
@@ -148,7 +171,7 @@ export async function verifyDeprecation(withdrawManager, predicate, exitId, inpu
   // console.log('exit', exit, exit.receiptAmountOrNFTId.toString(16))
   const exitData = web3.eth.abi.encodeParameters(
     ['address', 'address', 'uint256', 'bytes32', 'bool'],
-    [exit.owner, options.childToken, exit.receiptAmountOrNFTId.toString(16), exit.txHash, exit.burnt]
+    [exit.owner, options.childToken, exit.receiptAmountOrNFTId.toString(16), exit.txHash, exit.isRegularExit]
   )
   // console.log('exitData', exitData)
   const inputUtxoData = web3.eth.abi.encodeParameters(
@@ -160,19 +183,23 @@ export async function verifyDeprecation(withdrawManager, predicate, exitId, inpu
 }
 
 export function buildReferenceTxPayload(input) {
-  const { headerNumber, blockProof, blockNumber, blockTimestamp, reference, logIndex } = input
-  return [
-    headerNumber,
-    utils.bufferToHex(Buffer.concat(blockProof)),
-    blockNumber,
-    blockTimestamp,
-    utils.bufferToHex(reference.transactionsRoot),
-    utils.bufferToHex(reference.receiptsRoot),
-    utils.bufferToHex(reference.receipt),
-    utils.bufferToHex(rlp.encode(reference.receiptParentNodes)),
-    utils.bufferToHex(rlp.encode(reference.path)), // branch mask,
-    logIndex
-  ]
+  const res = []
+  const { headerNumber, blockProof, blockNumber, blockTimestamp, reference, logIndex, predicate } = input
+  // if (predicate) res.push(predicate)
+  return res.concat(
+    [
+      headerNumber,
+      utils.bufferToHex(Buffer.concat(blockProof)),
+      blockNumber,
+      blockTimestamp,
+      utils.bufferToHex(reference.transactionsRoot),
+      utils.bufferToHex(reference.receiptsRoot),
+      utils.bufferToHex(reference.receipt),
+      utils.bufferToHex(rlp.encode(reference.receiptParentNodes)),
+      utils.bufferToHex(rlp.encode(reference.path)), // branch mask,
+      logIndex
+    ]
+  )
 }
 
 export function buildChallengeData(input) {
@@ -184,4 +211,16 @@ export function buildChallengeData(input) {
       utils.bufferToHex(rlp.encode(reference.txParentNodes))
     ])
   ))
+}
+
+export async function writeToFile(file, receipt) {
+  const r = {
+    tx: await web3Child.eth.getTransaction(receipt.transactionHash),
+    receipt: await web3Child.eth.getTransactionReceipt(receipt.transactionHash),
+    block: await web3Child.eth.getBlock(receipt.blockHash, true /* returnTransactionObjects */)
+  }
+  return fs.writeFileSync(
+    path.join(__dirname, '..', 'mockResponses', file),
+    `module.exports = ${JSON.stringify(r, null, 2)}`
+  )
 }

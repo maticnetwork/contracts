@@ -21,7 +21,9 @@ contract ERC20Predicate is IErcPredicate {
   // 0xa9059cbb = keccak256('transfer(address,uint256)').slice(0, 4)
   bytes4 constant TRANSFER_FUNC_SIG = 0xa9059cbb;
 
-  constructor(address _withdrawManager) public IErcPredicate(_withdrawManager) {}
+  constructor(address _withdrawManager, address _depositManager)
+    IErcPredicate(_withdrawManager, _depositManager)
+    public {}
 
   function startExitWithBurntTokens(bytes calldata data)
     external
@@ -50,11 +52,14 @@ contract ERC20Predicate is IErcPredicate {
       "Withdrawer and burn exit tx do not match"
     );
     uint256 exitAmount = BytesLib.toUint(logData, 0); // amountOrTokenId
-    withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, exitAmount, bytes32(0x0), true /* burnt */, age);
+    withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, exitAmount, bytes32(0x0), true /* isRegularExit */, age);
   }
 
   function startExit(bytes calldata data, bytes calldata exitTx)
     external
+    payable
+    isBondProvided
+    returns(address /* rootToken */, uint256 /* exitAmount */)
   {
     RLPReader.RLPItem[] memory referenceTx = data.toRlpItem().toList();
     uint256 age = withdrawManager.verifyInclusion(data, 0 /* offset */, false /* verifyTxInclusion */);
@@ -77,11 +82,11 @@ contract ERC20Predicate is IErcPredicate {
     age += referenceTxData.age; // @todo use SafeMath
 
     if (referenceTx.length <= 10) {
-      withdrawManager.addExitToQueue(
+      addExitToQueue(
         msg.sender, referenceTxData.childToken, referenceTxData.rootToken,
-        exitTxData.exitAmount, exitTxData.txHash, exitTxData.burnt, age /* priority */);
+        exitTxData.exitAmount, exitTxData.txHash, false /* isRegularExit */, age /* priority */);
       withdrawManager.addInput(age /* exitId or priority */, age /* age of input */, exitTxData.signer);
-      return;
+      return (referenceTxData.rootToken, exitTxData.exitAmount);
     }
 
     // referenceTx.length > 10 means the exitor sent along another input UTXO to the exit tx
@@ -103,11 +108,12 @@ contract ERC20Predicate is IErcPredicate {
     );
     otherReferenceTxAge += _referenceTxData.age;
     uint256 priority = Math.max(age, otherReferenceTxAge);
-    withdrawManager.addExitToQueue(
+    addExitToQueue(
       msg.sender, referenceTxData.childToken, referenceTxData.rootToken,
-      exitTxData.exitAmount + _referenceTxData.closingBalance, exitTxData.txHash, exitTxData.burnt, priority);
+      exitTxData.exitAmount + _referenceTxData.closingBalance, exitTxData.txHash, false /* isRegularExit */, priority);
     withdrawManager.addInput(priority, age, exitTxData.signer);
     withdrawManager.addInput(priority, otherReferenceTxAge, msg.sender);
+    return (referenceTxData.rootToken, exitTxData.exitAmount + _referenceTxData.closingBalance);
   }
 
   function verifyDeprecation(bytes calldata exit, bytes calldata inputUtxo, bytes calldata challengeData)
@@ -115,7 +121,7 @@ contract ERC20Predicate is IErcPredicate {
     returns (bool)
   {
     PlasmaExit memory _exit = decodeExit(exit);
-    (uint256 age, address signer) = encodeInputUtxo(inputUtxo);
+    (uint256 age, address signer) = decodeInputUtxo(inputUtxo);
     RLPReader.RLPItem[] memory _challengeData = challengeData.toRlpItem().toList();
     ExitTxData memory exitTxData = processExitTx(_challengeData[10].toBytes());
     require(
@@ -142,6 +148,38 @@ contract ERC20Predicate is IErcPredicate {
     );
     ageOfChallengeTx += referenceTxData.age; // @todo SafeMath
     return ageOfChallengeTx > age;
+  }
+
+  function onFinalizeExit(address exitor, address token, uint256 tokenId)
+    external
+    onlyWithdrawManager
+  {
+    depositManager.transferAssets(token, exitor, tokenId);
+  }
+
+  function interpretStateUpdate(bytes calldata state)
+    external
+    view
+    returns(bytes memory)
+  {
+    (bytes memory _data, address participant, bool verifyInclusion) = abi.decode(state, (bytes, address, bool));
+    RLPReader.RLPItem[] memory referenceTx = _data.toRlpItem().toList();
+    bytes memory receipt = referenceTx[6].toBytes();
+    uint256 logIndex = referenceTx[9].toUint();
+    require(logIndex < MAX_LOGS, "Supporting a max of 10 logs");
+    RLPReader.RLPItem[] memory inputItems = receipt.toRlpItem().toList();
+    inputItems = inputItems[3].toList()[logIndex].toList(); // select log based on given logIndex
+    ReferenceTxData memory data;
+    data.childToken = RLPReader.toAddress(inputItems[0]); // "address" (contract address that emitted the log) field in the receipt
+    bytes memory logData = inputItems[2].toBytes();
+    inputItems = inputItems[1].toList(); // topics
+    data.rootToken = address(RLPReader.toUint(inputItems[1]));
+    (data.closingBalance, data.age) = processStateUpdate(inputItems, logData, participant);
+    data.age += (logIndex * MAX_LOGS); // @todo use safeMath
+    if (verifyInclusion) {
+      data.age += withdrawManager.verifyInclusion(_data, 0, false /* verifyTxInclusion */); // @todo use safeMath
+    }
+    return abi.encode(data.closingBalance, data.age, data.childToken, data.rootToken);
   }
 
   /**
@@ -179,6 +217,7 @@ contract ERC20Predicate is IErcPredicate {
 
   function validateSequential(ExitTxData memory exitTxData, ReferenceTxData memory referenceTxData)
     internal
+    pure
   {
     // The closing balance of the referenced tx should be >= exit amount in exitTx
     require(
@@ -210,6 +249,11 @@ contract ERC20Predicate is IErcPredicate {
     // oIndex is always 0 for the 2 scenarios above, hence not returning it
   }
 
+  /**
+   * @notice Parse the state update and check if this predicate recognizes it
+   * @param inputItems inputItems[i] refers to i-th (0-based) topic in the topics array in the log
+   * @param logData Data field (unindexed params) in the log
+   */
   function processStateUpdate(
     RLPReader.RLPItem[] memory inputItems,
     bytes memory logData,

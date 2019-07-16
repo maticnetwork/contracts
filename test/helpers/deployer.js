@@ -1,15 +1,15 @@
 import utils from 'ethereumjs-util'
 
-import * as contracts from './artifacts.js'
+import * as contracts from './artifacts'
+import { web3Child } from './utils'
 
-const web3Child = new web3.constructor(
-  new web3.providers.HttpProvider('http://localhost:8546')
-)
 class Deployer {
   constructor() {
     contracts.ChildChain.web3 = web3Child
     contracts.ChildERC20.web3 = web3Child
     contracts.ChildERC721.web3 = web3Child
+    contracts.ChildERC721Mintable.web3 = web3Child
+    contracts.Marketplace.web3 = web3Child
   }
 
   async freshDeploy(options = {}) {
@@ -22,18 +22,13 @@ class Deployer {
       'ENFT'
     )
 
-    this.depositManager = await contracts.DepositManager.new()
-    this.depositManagerProxy = await contracts.DepositManagerProxy.new(
-      this.depositManager.address,
-      this.registry.address,
-      this.rootChain.address
-    )
+    const depositManager = await this.deployDepositManager()
     const withdrawManager = await this.deployWithdrawManager()
 
     await Promise.all([
       this.registry.updateContractMap(
         utils.keccak256('depositManager'),
-        this.depositManagerProxy.address
+        depositManager.address
       ),
       this.registry.updateContractMap(
         utils.keccak256('withdrawManager'),
@@ -48,34 +43,46 @@ class Deployer {
     let _contracts = {
       registry: this.registry,
       rootChain: this.rootChain,
-      // for abi to be compatible
-      depositManager: await contracts.DepositManager.at(
-        this.depositManagerProxy.address
-      ),
+      depositManager,
       withdrawManager,
       exitNFT: this.exitNFT
-    }
-
-    if (options.maticWeth) {
-      this.maticWeth = await contracts.MaticWETH.new()
-      await Promise.all([
-        this.mapToken(
-          this.maticWeth.address,
-          this.maticWeth.address,
-          false /* isERC721 */
-        ),
-        this.registry.updateContractMap(
-          utils.keccak256('wethToken'),
-          this.maticWeth.address
-        )
-      ])
-      _contracts.maticWeth = this.maticWeth
     }
 
     if (options.deployTestErc20) {
       _contracts.testToken = await this.deployTestErc20()
     }
+
     return _contracts
+  }
+
+  async deployMaticWeth() {
+    const maticWeth = await contracts.MaticWETH.new()
+    await Promise.all([
+      this.mapToken(
+        maticWeth.address,
+        maticWeth.address,
+        false /* isERC721 */
+      ),
+      this.registry.updateContractMap(
+        utils.keccak256('wethToken'),
+        maticWeth.address
+      )
+    ])
+    return maticWeth
+  }
+
+  async deployDepositManager() {
+    this.depositManager = await contracts.DepositManager.new()
+    this.depositManagerProxy = await contracts.DepositManagerProxy.new(
+      this.depositManager.address,
+      this.registry.address,
+      this.rootChain.address
+    )
+    await this.registry.updateContractMap(
+      utils.keccak256('depositManager'),
+      this.depositManagerProxy.address
+    )
+    return contracts.DepositManager.at(this.depositManagerProxy.address)
   }
 
   async deployWithdrawManager() {
@@ -95,15 +102,31 @@ class Deployer {
   }
 
   async deployErc20Predicate() {
-    const ERC20Predicate = await contracts.ERC20Predicate.new(this.withdrawManagerProxy.address)
+    const ERC20Predicate = await contracts.ERC20Predicate.new(
+      this.withdrawManagerProxy.address,
+      this.depositManagerProxy.address
+    )
     await this.registry.addPredicate(ERC20Predicate.address, 1 /* Type.ERC20 */)
     return ERC20Predicate
   }
 
   async deployErc721Predicate() {
-    const ERC721Predicate = await contracts.ERC721Predicate.new(this.withdrawManagerProxy.address)
+    const ERC721Predicate = await contracts.ERC721Predicate.new(
+      this.withdrawManagerProxy.address,
+      this.depositManagerProxy.address
+    )
     await this.registry.addPredicate(ERC721Predicate.address, 2 /* Type.ERC721 */)
     return ERC721Predicate
+  }
+
+  async deployMarketplacePredicate() {
+    const MarketplacePredicate = await contracts.MarketplacePredicate.new(
+      this.withdrawManagerProxy.address,
+      this.depositManagerProxy.address,
+      this.registry.address
+    )
+    await this.registry.addPredicate(MarketplacePredicate.address, 3 /* Type.Custom */)
+    return MarketplacePredicate
   }
 
   async deployTestErc20(options = { mapToken: true }) {
@@ -139,7 +162,7 @@ class Deployer {
     )
   }
 
-  async deployChildErc20(owner) {
+  async deployChildErc20(owner, options = { mapToken: true }) {
     const rootERC20 = await this.deployTestErc20({ mapToken: false })
     const tx = await this.childChain.addToken(
       owner,
@@ -151,32 +174,32 @@ class Deployer {
     )
     const NewTokenEvent = tx.logs.find(log => log.event === 'NewToken')
     const childToken = await contracts.ChildERC20.at(NewTokenEvent.args.token)
-    await this.mapToken(
-      rootERC20.address,
-      childToken.address,
-      false /* isERC721 */
-    )
+    if (options.mapToken) await this.mapToken(rootERC20.address, childToken.address, false /* isERC721 */)
     return { rootERC20, childToken }
   }
 
-  async deployChildErc721(owner) {
+  async deployChildErc721(owner, options = { mapToken: true }) {
     const rootERC721 = await this.deployTestErc721({ mapToken: false })
-      const tx = await this.childChain.addToken(
-        owner,
-        rootERC721.address,
-        'ChildERC721',
-        'C721',
-        18,
-        true /* isERC721 */
-      )
-      const NewTokenEvent = tx.logs.find(log => log.event === 'NewToken')
-      const childErc721 = await contracts.ChildERC721.at(NewTokenEvent.args.token)
-      await this.mapToken(
-        rootERC721.address,
-        childErc721.address,
-        true /* isERC721 */
-      )
-      return { rootERC721, childErc721 }
+    const tx = await this.childChain.addToken(
+      owner,
+      rootERC721.address,
+      'ChildERC721',
+      'C721',
+      18,
+      true /* isERC721 */
+    )
+    const NewTokenEvent = tx.logs.find(log => log.event === 'NewToken')
+    const childErc721 = await contracts.ChildERC721.at(NewTokenEvent.args.token)
+    if (options.mapToken) await this.mapToken(rootERC721.address, childErc721.address, true /* isERC721 */)
+    return { rootERC721, childErc721 }
+  }
+
+  async deployChildErc721Mintable(options = { mapToken: true }) {
+    const rootERC721 = await contracts.ERC721PlasmaMintable.new()
+    const childErc721 = await contracts.ChildERC721Mintable.new(rootERC721.address)
+    await this.childChain.mapToken(rootERC721.address, childErc721.address, true /* isERC721 */)
+    if (options.mapToken) await this.mapToken(rootERC721.address, childErc721.address, true /* isERC721 */)
+    return { rootERC721, childErc721 }
   }
 
   async initializeChildChain(owner, options = {}) {
@@ -193,6 +216,10 @@ class Deployer {
       res.childErc721 = childErc721
     }
     return res
+  }
+
+  async deployMarketplace(owner) {
+    return contracts.Marketplace.new()
   }
 }
 

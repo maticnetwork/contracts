@@ -13,27 +13,12 @@ contract RootChainHeader {
     bytes32 root
   );
 
-  event NewDepositBlock(
-    address indexed owner,
-    address indexed token,
-    uint256 amountOrNFTId,
-    uint256 depositBlockId
-  );
-
   struct HeaderBlock {
     bytes32 root;
     uint256 start;
     uint256 end;
     uint256 createdAt;
     address proposer;
-  }
-
-  struct DepositBlock {
-    address owner;
-    address token;
-    uint256 header;
-    uint256 amountOrNFTId;
-    uint256 createdAt;
   }
 }
 
@@ -49,7 +34,5 @@ contract RootChainStorage is ProxyStorage, RootChainHeader {
   uint256 internal _blockDepositId = 1;
 
   mapping(uint256 => HeaderBlock) public headerBlocks;
-  mapping(uint256 => DepositBlock) public deposits;
-
   Registry internal registry;
 }

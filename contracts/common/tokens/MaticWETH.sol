@@ -20,9 +20,9 @@ contract MaticWETH is WETH {
     emit Withdrawal(msg.sender, wad);
   }
 
-  function withdraw(uint wad, address payable user) public {
+  function withdraw(uint wad, address user) public {
     require(balanceOf(msg.sender) >= wad);
-    user.transfer(wad);
+    address(uint160(user)).transfer(wad);
     _burn(msg.sender, wad);
     emit Withdrawal(user, wad);
   }

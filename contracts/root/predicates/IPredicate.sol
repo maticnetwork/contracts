@@ -5,6 +5,7 @@ import { Common } from "../../common/lib/Common.sol";
 import { RLPEncode } from "../../common/lib/RLPEncode.sol";
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 import { IWithdrawManager } from "../withdrawManager/IWithdrawManager.sol";
+import { IDepositManager } from "../depositManager/IDepositManager.sol";
 import { ExitsDataStructure } from "../withdrawManager/WithdrawManagerStorage.sol";
 import { Registry } from "../../common/Registry.sol";
 
@@ -23,8 +24,10 @@ interface IPredicate {
    * branchMask Merkle proof branchMask for the receipt
    * logIndex Log Index to read from the receipt
    * @param exitTx Signed exit transaction
+   * @return address rootToken that the exit corresponds to
+   * @return uint256 exitAmountOrTokenId
    */
-  function startExit(bytes calldata data, bytes calldata exitTx) external;
+  function startExit(bytes calldata data, bytes calldata exitTx) external payable returns(address rootToken, uint256 exitAmountOrTokenId);
 
   /**
    * @notice Verify the deprecation of a state update
@@ -46,49 +49,66 @@ interface IPredicate {
    * @return Whether or not the state is deprecated
    */
   function verifyDeprecation(bytes calldata exit, bytes calldata inputUtxo, bytes calldata challengeData) external returns (bool);
+
+  /**
+   * @dev Called when an exit initiated by the predicate is being finalized, post the challenge period
+   * @param exitor The user who initiated the exit
+   * @param token Token contract that the exitor initiated an exit for
+   * @param amountOrNft ERC20 amount or ERC721 NFT Id that the exitor wishes to exit with
+   */
+  function onFinalizeExit(address exitor, address token, uint256 amountOrNft) external;
+
+  function interpretStateUpdate(bytes calldata state) external view returns (bytes memory);
 }
 
-contract IErcPredicate is IPredicate, ExitsDataStructure {
-
-  struct ExitTxData {
-    uint256 exitAmount;
-    bytes32 txHash;
-    address childToken;
-    address signer;
-    bool burnt;
-  }
-
-  struct ReferenceTxData {
-    uint256 closingBalance;
-    uint256 age;
-    address childToken;
-    address rootToken;
-  }
-
+contract PredicateUtils {
   using RLPReader for RLPReader.RLPItem;
 
-  uint256 constant internal MAX_LOGS = 10;
+  // Bonded exits collaterized at 0.1 ETH
+  uint256 constant private BOND_AMOUNT = 10 ** 17;
+
   IWithdrawManager internal withdrawManager;
+  IDepositManager internal depositManager;
 
-  constructor(address _withdrawManager) public {
-    withdrawManager = IWithdrawManager(_withdrawManager);
+  modifier onlyWithdrawManager() {
+    require(
+      msg.sender == address(withdrawManager),
+      "ONLY_WITHDRAW_MANAGER"
+    );
+    _;
   }
 
-  function decodeExit(bytes memory data)
-    internal
-    pure
-    returns (PlasmaExit memory)
-  {
-    (address owner, address token, uint256 amountOrTokenId, bytes32 txHash, bool burnt) = abi.decode(data, (address, address, uint256, bytes32, bool));
-    return PlasmaExit(owner, token, amountOrTokenId, txHash, burnt, address(0x0) /* predicate value will not be used */);
+  modifier isBondProvided() {
+    require(
+      msg.value == BOND_AMOUNT,
+      "Invalid Bond amount"
+    );
+    _;
   }
 
-  function encodeInputUtxo(bytes memory data)
+  /**
+   * @dev Add exit to queue while also sending the bond amount to the withdraw manager
+   */
+  function addExitToQueue(
+    address exitor,
+    address childToken,
+    address rootToken,
+    uint256 exitAmountOrTokenId,
+    bytes32 txHash,
+    bool isRegularExit,
+    uint256 priority)
     internal
-    pure
-    returns (uint256 age, address signer)
   {
-    (age, signer) = abi.decode(data, (uint256, address));
+    address(withdrawManager).call.value(BOND_AMOUNT)(abi.encodeWithSignature(
+      "addExitToQueue(address,address,address,uint256,bytes32,bool,uint256)",
+      exitor,
+      childToken,
+      rootToken,
+      exitAmountOrTokenId,
+      txHash,
+      isRegularExit,
+      priority
+    ));
   }
 
   function getAddressFromTx(RLPReader.RLPItem[] memory txList, bytes memory networkId)
@@ -112,5 +132,47 @@ contract IErcPredicate is IPredicate, ExitsDataStructure {
       bytes32(txList[7].toUint()),
       bytes32(txList[8].toUint())
     );
+  }
+}
+
+contract IErcPredicate is IPredicate, PredicateUtils, ExitsDataStructure {
+
+  struct ExitTxData {
+    uint256 exitAmount;
+    bytes32 txHash;
+    address childToken;
+    address signer;
+    bool burnt;
+  }
+
+  struct ReferenceTxData {
+    uint256 closingBalance;
+    uint256 age;
+    address childToken;
+    address rootToken;
+  }
+
+  uint256 constant internal MAX_LOGS = 10;
+
+  constructor(address _withdrawManager, address _depositManager) public {
+    withdrawManager = IWithdrawManager(_withdrawManager);
+    depositManager = IDepositManager(_depositManager);
+  }
+
+  function decodeExit(bytes memory data)
+    internal
+    pure
+    returns (PlasmaExit memory)
+  {
+    (address owner, address token, uint256 amountOrTokenId, bytes32 txHash, bool isRegularExit) = abi.decode(data, (address, address, uint256, bytes32, bool));
+    return PlasmaExit(amountOrTokenId, txHash, owner, token, address(0x0) /* predicate value is not being used */, isRegularExit);
+  }
+
+  function decodeInputUtxo(bytes memory data)
+    internal
+    pure
+    returns (uint256 age, address signer)
+  {
+    (age, signer) = abi.decode(data, (uint256, address));
   }
 }

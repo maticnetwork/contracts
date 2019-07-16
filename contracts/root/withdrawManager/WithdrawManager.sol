@@ -31,6 +31,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
 
   function verifyInclusion(bytes calldata data, uint8 offset, bool verifyTxInclusion)
     external
+    view
     returns (uint256 age)
   {
     RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
@@ -83,6 +84,10 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
 
   modifier isPredicateAuthorized(address rootToken) {
     (Registry.Type _type) = registry.predicates(msg.sender);
+    require(
+      registry.rootToChildToken(rootToken) != address(0x0),
+      "rootToken not supported"
+    );
     if (_type == Registry.Type.ERC20) {
       require(
         registry.isERC721(rootToken) == false,
@@ -93,6 +98,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
         registry.isERC721(rootToken) == true,
         "Predicate supports only ERC721 tokens"
       );
+    } else if (_type == Registry.Type.Custom) {
     } else {
       revert("PREDICATE_NOT_AUTHORIZED");
     }
@@ -105,9 +111,10 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     address rootToken,
     uint256 exitAmountOrTokenId,
     bytes32 txHash,
-    bool burnt,
+    bool isRegularExit,
     uint256 priority)
     external
+    payable
     isPredicateAuthorized(rootToken)
   {
     require(
@@ -118,7 +125,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       exits[priority].token == address(0x0),
       "EXIT_ALREADY_EXISTS"
     );
-    exits[priority] = PlasmaExit(exitor, rootToken, exitAmountOrTokenId, txHash, burnt, msg.sender /* predicate */);
+    exits[priority] = PlasmaExit(exitAmountOrTokenId, txHash, exitor, rootToken, msg.sender /* predicate */, isRegularExit);
     PlasmaExit storage _exitObject = exits[priority];
 
     bytes32 key;
@@ -139,15 +146,14 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     queue.insert(exitableAt, priority);
 
     // create NFT for exit UTXO
-    // @todo
-    ExitNFT(exitNFTContract).mint(_exitObject.owner, priority);
+    ExitNFT(exitNft).mint(_exitObject.owner, priority);
     exits[priority] = _exitObject;
 
     // set current exit
     ownerExits[key] = priority;
 
     // emit exit started event
-    emit ExitStarted(exitor, priority, rootToken, exitAmountOrTokenId, burnt);
+    emit ExitStarted(exitor, priority, rootToken, exitAmountOrTokenId, isRegularExit);
   }
 
   function addInput(uint256 exitId, uint256 age, address signer)
@@ -182,7 +188,13 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       ),
       "Challenge failed"
     );
-    deleteExit(exitId);
+    // In the call to burn(exitId), there is an implicit check that prevents challenging the same exit twice
+    ExitNFT(exitNft).burn(exitId);
+
+    // Send bond amount to challenger
+    msg.sender.transfer(BOND_AMOUNT);
+
+    // delete exits[exitId];
     emit ExitCancelled(exitId);
   }
 
@@ -191,7 +203,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     view
     returns (bytes memory)
   {
-    return abi.encode(exit.owner, registry.rootToChildToken(exit.token), exit.receiptAmountOrNFTId, exit.txHash, exit.burnt);
+    return abi.encode(exit.owner, registry.rootToChildToken(exit.token), exit.receiptAmountOrNFTId, exit.txHash, exit.isRegularExit);
   }
 
   function encodeInputUtxo(uint256 age, Input storage input)
@@ -202,72 +214,53 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     return abi.encode(age, input.signer);
   }
 
-  function deleteExit(uint256 exitId)
-    internal
-  {
-    ExitNFT exitNFT = ExitNFT(exitNFTContract);
-    address owner = exitNFT.ownerOf(exitId);
-    exitNFT.burn(owner, exitId);
-  }
-
   function processExits(address _token) external {
     uint256 exitableAt;
     uint256 exitId;
-
-    // retrieve priority queue
     PriorityQueue exitQueue = PriorityQueue(exitsQueues[_token]);
-
-    // Iterate while the queue is not empty.
-    while (exitQueue.currentSize() > 0 && gasleft() > gasLimit ) {
+    while(exitQueue.currentSize() > 0 && gasleft() > gasLimit) {
       (exitableAt, exitId) = exitQueue.getMin();
-
-      // Check if this exit has finished its challenge period.
-      if (exitableAt > block.timestamp) {
-        return;
-      }
-
-      // get withdraw block
+      // Stop processing exits if the exit that is next is queue is still in its challenge period
+      if (exitableAt > block.timestamp) return;
+      // If the exitNft was deleted as a result of a challenge, skip processing this exit
+      if (!exitNft.exists(exitId)) continue;
       PlasmaExit memory currentExit = exits[exitId];
 
-      // process if NFT exists
-      // If an exit was successfully challenged, owner would be address(0).
-      address payable exitOwner = address(uint160(ExitNFT(exitNFTContract).ownerOf(exitId)));
-      if (exitOwner != address(0)) {
-        // burn NFT first
-        ExitNFT(exitNFTContract).burn(exitOwner, exitId);
+      exitNft.burn(exitId);
 
-        // delete current exit if exit was "burnt"
-        if (currentExit.burnt) {
-          delete ownerExits[keccak256(abi.encodePacked(_token, currentExit.owner))];
+      // limit the gas amount that predicate.onFinalizeExit() can use, to be able to make gas estimations for bulk process exits
+      address exitor = exitNft.ownerOf(exitId);
+      uint256 amountOrNft = currentExit.receiptAmountOrNFTId;
+      address predicate = currentExit.predicate;
+      uint256 _gas = gasLimit - 52000; // sub fixed processExit cost , ::=> can't read global vars in asm
+      assembly {
+        let ptr := mload(64)
+        // keccak256('onFinalizeExit(address,address,uint256)') & 0xFFFFFFFF00000000000000000000000000000000000000000000000000000000
+        mstore(ptr, 0xfdd3d6bd00000000000000000000000000000000000000000000000000000000)
+        mstore(add(ptr, 4), exitor)
+        mstore(add(ptr, 36), _token)
+        mstore(add(ptr, 68), amountOrNft)
+        let ret := add(ptr, 100)
+        // call returns 0 on error (eg. out of gas) and 1 on success
+        let result := call(_gas, predicate, 0, ptr, 100, ret, 32)
+        if eq(result, 0) {
+          revert(0,0)
         }
-
-        address depositManager = registry.getDepositManagerAddress(); // TODO: make assembly call and reuse memPtr
-        uint256 amount = currentExit.receiptAmountOrNFTId;
-        uint256 _gas = gasLimit - 52000; // sub fixed processExit cost , ::=> can't read global vars in asm
-        assembly {
-          let ptr := mload(64)
-          // keccak256('transferAmount(address,address,uint256)') & 0xFFFFFFFF00000000000000000000000000000000000000000000000000000000
-          mstore(ptr, 0x01f4747100000000000000000000000000000000000000000000000000000000)
-          mstore(add(ptr, 4), _token)
-          mstore(add(ptr, 36), exitOwner)
-          mstore(add(ptr, 68), amount) // TODO: read directly from struct
-          let ret := add(ptr,100)
-          let result := call(_gas, depositManager, 0, ptr, 100, ret, 32) // returns 1 if success
-          // revert if => result is 0 or return value is false
-          if eq(and(result,mload(ret)), 0) {
-              revert(0,0)
-            }
-        }
-
-        // broadcast withdraw events
-        emit Withdraw(exitOwner, _token, currentExit.receiptAmountOrNFTId);
-
-        // Delete owner but keep amount to prevent another exit from the same UTXO.
-        // delete exits[exitId].owner;
       }
 
-      // exit queue
+      emit Withdraw(exitor, _token, amountOrNft);
+
+      // Delete owner but keep amount to prevent another exit from the same UTXO.
+      // delete exits[exitId].owner;
       exitQueue.delMin();
+
+      if (currentExit.isRegularExit) {
+        // delete current exit for the owner, so they can do another one in the future
+        delete ownerExits[keccak256(abi.encodePacked(_token, currentExit.owner))];
+      } else {
+        // return the bond amount if this was a MoreVp style exit
+        address(uint160(exitor)).transfer(BOND_AMOUNT);
+      }
     }
   }
 
@@ -276,6 +269,6 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     onlyOwner
   {
     require(_nftContract != address(0));
-    exitNFTContract = _nftContract;
+    exitNft = ExitNFT(_nftContract);
   }
 }
