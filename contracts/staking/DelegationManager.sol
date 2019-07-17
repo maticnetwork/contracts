@@ -4,16 +4,11 @@ import "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 import { IStakeManager } from "./IStakeManager.sol";
+import { IDelegationManager } from "./IDelegationManager.sol";
 import { ValidatorContract } from "./Validator.sol";
 
 
-contract Delegator is ERC721Full, Ownable {
-  event Staked(address indexed user, uint256 indexed validatorId, uint256 indexed activatonEpoch, uint256 amount, uint256 total);
-  event Unstaked(address indexed user, uint256 indexed validatorId, uint256 amount, uint256 total);
-  event Bonding(uint256 indexed delegatorId, uint256 indexed validatorId);
-  event UnBonding(uint256 indexed delegatorId, uint256 indexed validatorId);
-  event ReStaked(uint256 indexed delegatorId,uint256 indexed amount);
-
+contract DelegationManager is IDelegationManager, ERC721Full, Ownable {
   ERC20 public token;
   uint256 public NFTCounter = 1;
   uint256 public MIN_DEPOSIT_SIZE = 0;
@@ -113,8 +108,6 @@ contract Delegator is ERC721Full, Ownable {
       delegators[delegatorId].delegationStopEpoch = 0;
     }
   }
-
-  function hopValidator() public; // require(time/count)
 
   function reStake(uint256 delegatorId, uint256 amount, bool stakeRewards) public onlyDelegator(delegatorId) {
     _getRewards(delegatorId);
