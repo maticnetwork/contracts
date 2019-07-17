@@ -262,7 +262,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
         break;
       }
     }
-    require(stakePower >= currentValidatorSetTotalStake().mul(2).div(3).add(1));
+    require(stakePower >= currentValidatorSetTotalStake().mul(2).div(3).add(1), "2/3+1 stake power required");
   }
 
 }
