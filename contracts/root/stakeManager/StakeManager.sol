@@ -240,7 +240,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     );
   }
 
-  function checkSignatures(bytes32 voteHash, bytes memory sigs) public view returns (bool)  {
+  function checkSignatures(bytes32 voteHash, bytes memory sigs) public view {
     // total voting power
     uint256 stakePower = 0;
     uint256 validatorId;
@@ -262,7 +262,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
         break;
       }
     }
-    return stakePower >= currentValidatorSetTotalStake().mul(2).div(3).add(1);
+    require(stakePower >= currentValidatorSetTotalStake().mul(2).div(3).add(1));
   }
 
 }
