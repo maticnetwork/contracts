@@ -71,7 +71,7 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
   function unBondAllLazy(uint256 exitEpoch) public onlyOwner returns(bool) {
     delegation = false; //  won't be accepting any new delegations
     for (uint256 i; i < delegators.length; i++) {
-      unBondLazy(delegators[i], exitEpoch, validator);
+      // delegatorM.unBondLazy(delegators[i], exitEpoch, validator);
     }
     return true;
   }
@@ -79,11 +79,11 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
   function revertLazyUnBonding(uint256 exitEpoch) public onlyOwner returns(bool) {
     delegation = true;
     for (uint256 i; i < delegators.length; i++) {
-      revertLazyUnBond(delegators[i], exitEpoch, validator);
+      // revertLazyUnBond(delegators[i], exitEpoch, validator);
     }
   }
 
-  function getRewards(uint256 delegatorId, uint256 delegationAmount, uint256 startEpoch, uint256 endEpoch) public onlyDelegatorContract retruns(uint256) {
+  function getRewards(uint256 delegatorId, uint256 delegationAmount, uint256 startEpoch, uint256 endEpoch, uint256 currentEpoch) public onlyDelegatorContract returns(uint256) {
     // TODO: use struct as param
     uint256 reward = 0;
     if (endEpoch == 0) {
@@ -102,7 +102,3 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
   }
 
 }
-
-
-
-  }

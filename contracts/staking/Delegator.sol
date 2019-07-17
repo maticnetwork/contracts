@@ -3,7 +3,7 @@ pragma solidity ^0.5.2;
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
-import { StakeManager } from "./StakeManager.sol";
+import { IStakeManager } from "./IStakeManager.sol";
 import { ValidatorContract } from "./Validator.sol";
 
 
