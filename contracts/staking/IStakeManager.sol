@@ -15,7 +15,7 @@ contract IStakeManager {
   // function totalStaked() external view returns (uint256);
   // function token() external view returns (address);
   function supportsHistory() external pure returns (bool);
-  function checkSignatures(bytes32 voteHash, bytes memory sigs) public view returns (bool);
+  function checkSignatures(bytes32 voteHash, bytes memory sigs) public;
 
   // optional
   // function lastStakedFor(address addr) external view returns (uint256);

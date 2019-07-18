@@ -101,10 +101,10 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       deactivationEpoch: 0,
       signer: signer,
       contractAddress: _contract,
-      state : State.Active
+      status : Status.Active
     });
 
-    _mint(validator, NFTCounter);
+    _mint(user, NFTCounter);
 
     signerToValidator[signer] = NFTCounter;
     validatorState[currentEpoch].amount += int256(amount);
@@ -126,7 +126,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     validators[validatorId].deactivationEpoch = exitEpoch;
 
     // unbond all delegatros in future
-    require(!validators[validatorId].contractAddress ||
+    require(validators[validatorId].contractAddress == address(0x0) ||
       ValidatorContract(validators[validatorId].contractAddress).unBondAllLazy(exitEpoch),
       "unbond all delegators");
 
@@ -195,7 +195,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     validatorState[exitEpoch].stakerCount = (
       validatorState[exitEpoch].stakerCount + 1);
 
-    require(!validators[validatorId].contractAddress ||
+    require(validators[validatorId].contractAddress == address(0x0) ||
       ValidatorContract(validators[validatorId].contractAddress).unBondAllLazy(exitEpoch),
       "unbond all delegators");
 
@@ -215,7 +215,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     validatorState[exitEpoch].stakerCount = (
       validatorState[exitEpoch].stakerCount - 1);
 
-    require(!validators[validatorId].contractAddress ||
+    require(validators[validatorId].contractAddress == address(0x0) ||
       ValidatorContract(validators[validatorId].contractAddress).revertLazyUnBonding(exitEpoch),
       "unbond all delegators");
 
@@ -372,7 +372,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       }
     }
     // TODO: use proposer
-    validatorId = signerToValidator[signer];
+    validatorId = 1; //signerToValidator[signer];
     uint256 _totalStake = currentValidatorSetTotalStake(); // todo: add delegation total bonded amount
     require(stakePower >= _totalStake.mul(2).div(3).add(1));
     rewardValidator(validatorId, stakePower, _totalStake);

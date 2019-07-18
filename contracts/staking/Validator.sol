@@ -2,6 +2,7 @@ pragma solidity ^0.5.2;
 
 import { ERC721Full } from "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 contract Validator is ERC721Full {
   // TODO: pull validator staking here
@@ -12,6 +13,8 @@ contract Validator is ERC721Full {
 
 
 contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
+  using SafeMath for uint256;
+
   uint256 public delegatedAmount;
   uint256[] public delegators;
   uint256 public rewards = 0;
@@ -25,7 +28,7 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
   uint256 public slashingRatio;
 
   struct State {
-    int256 amount;
+    uint256 amount;
     uint256 totalStake;
   }
 
@@ -90,7 +93,7 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
       endEpoch = currentEpoch;
     }
     for (uint256 epoch = startEpoch; epoch > endEpoch; epoch++) {
-      if (delegationState[epoch].amount) {
+      if (delegationState[epoch].amount > 0) {
         reward += (delegationState[epoch].amount * delegationAmount)/delegationState[epoch].totalStake;
       }
     }
