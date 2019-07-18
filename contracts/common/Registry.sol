@@ -1,7 +1,7 @@
 pragma solidity ^0.5.2;
 
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import { WithdrawManager } from "../root/withdrawManager/WithdrawManager.sol";
+import { IWithdrawManager } from "../root/withdrawManager/IWithdrawManager.sol";
 
 contract Registry is Ownable {
   // @todo hardcode constants
@@ -11,6 +11,9 @@ contract Registry is Ownable {
   bytes32 constant private WITHDRAW_MANAGER = keccak256("withdrawManager");
   bytes32 constant private CHILD_CHAIN_CONTRACT = keccak256("childChainContract");
   bytes constant public networkId = "\x0d";
+
+  address public erc20Predicate;
+  address public erc721Predicate;
 
   mapping(bytes32 => address) contractMap;
   mapping(address => address) public rootToChildToken;
@@ -65,7 +68,7 @@ contract Registry is Ownable {
     rootToChildToken[_rootToken] = _childToken;
     childToRootToken[_childToken] = _rootToken;
     isERC721[_rootToken] = _isERC721;
-    WithdrawManager(contractMap[WITHDRAW_MANAGER]).createExitQueue(_rootToken);
+    IWithdrawManager(contractMap[WITHDRAW_MANAGER]).createExitQueue(_rootToken);
     emit TokenMapped(_rootToken, _childToken);
   }
 
@@ -73,6 +76,16 @@ contract Registry is Ownable {
     require(_validator != address(0) && proofValidatorContracts[_validator] != true);
     emit ProofValidatorAdded(_validator, msg.sender);
     proofValidatorContracts[_validator] = true;
+  }
+
+  function addErc20Predicate(address predicate) public onlyOwner {
+    erc20Predicate = predicate;
+    addPredicate(predicate, Type.ERC20);
+  }
+
+  function addErc721Predicate(address predicate) public onlyOwner {
+    erc721Predicate = predicate;
+    addPredicate(predicate, Type.ERC721);
   }
 
   function addPredicate(address predicate, Type _type) public onlyOwner
@@ -121,6 +134,13 @@ contract Registry is Ownable {
   function isTokenMappedAndIsErc721(address _token) public view returns (bool) {
     require(isTokenMapped(_token), "TOKEN_NOT_MAPPED");
     return isERC721[_token];
+  }
+
+  function isTokenMappedAndGetPredicate(address _token) public view returns (address) {
+    if (isTokenMappedAndIsErc721(_token)) {
+      return erc721Predicate;
+    }
+    return erc20Predicate;
   }
 
   function isChildTokenErc721(address childToken) public view returns(bool) {

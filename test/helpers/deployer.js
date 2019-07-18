@@ -106,7 +106,7 @@ class Deployer {
       this.withdrawManagerProxy.address,
       this.depositManagerProxy.address
     )
-    await this.registry.addPredicate(ERC20Predicate.address, 1 /* Type.ERC20 */)
+    await this.registry.addErc20Predicate(ERC20Predicate.address)
     return ERC20Predicate
   }
 
@@ -115,7 +115,7 @@ class Deployer {
       this.withdrawManagerProxy.address,
       this.depositManagerProxy.address
     )
-    await this.registry.addPredicate(ERC721Predicate.address, 2 /* Type.ERC721 */)
+    await this.registry.addErc721Predicate(ERC721Predicate.address)
     return ERC721Predicate
   }
 
