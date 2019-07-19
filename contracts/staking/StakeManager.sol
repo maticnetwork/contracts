@@ -76,7 +76,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     _;
   }
 
-  function stake(uint256 amount, address signer, bool isContract) public {
+  function stake(uint256 amount, address signer, bool isContract) external {
     stakeFor(msg.sender, amount, signer, isContract);
   }
 
@@ -114,7 +114,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     NFTCounter = NFTCounter.add(1);
   }
 
-  function unstake(uint256 validatorId) public onlyStaker(validatorId) {
+  function unstake(uint256 validatorId) external onlyStaker(validatorId) {
     //Todo: add state here consider jail
     require(validators[validatorId].activationEpoch > 0 &&
       validators[validatorId].deactivationEpoch == 0 &&
@@ -252,14 +252,14 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     return tokenOfOwnerByIndex(user, 0);
   }
 
-  function totalStakedFor(address user) public view returns (uint256) {
+  function totalStakedFor(address user) external view returns (uint256) {
     if (user == address(0x0) || balanceOf(user) == 0) {
       return 0;
     }
     return validators[tokenOfOwnerByIndex(user, 0)].amount;
   }
 
-  function supportsHistory() public pure returns (bool) {
+  function supportsHistory() external pure returns (bool) {
     return false;
   }
 

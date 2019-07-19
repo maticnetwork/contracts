@@ -156,7 +156,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     NFTCounter = NFTCounter.add(1);
   }
 
-  function unstake(uint256 delegatorId, uint256 index /*0 if unbonded already */ ) public onlyDelegator(delegatorId) {
+  function unstake(uint256 delegatorId, uint256 index) public onlyDelegator(delegatorId) {
     if (delegators[delegatorId].bondedTo != 0) {
       unBond(delegatorId, index);
     }
