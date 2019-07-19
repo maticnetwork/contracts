@@ -11,17 +11,16 @@ chai
   .use(chaiAsPromised)
   .should()
 
-contract("DepositManager", async function(accounts) {
-  let rootChain, depositManager
+contract('DepositManager', async function(accounts) {
+  let depositManager
   const amount = web3.utils.toBN('10').pow(web3.utils.toBN('18'))
 
   beforeEach(async function() {
     const contracts = await deployer.freshDeploy()
-    rootChain = contracts.rootChain
     depositManager = contracts.depositManager
   })
 
-  it("depositEther", async function() {
+  it('depositEther', async function() {
     const maticWeth = await deployer.deployMaticWeth()
     const value = web3.utils.toWei('1', 'ether')
     const result = await depositManager.depositEther({
@@ -37,11 +36,11 @@ contract("DepositManager", async function(accounts) {
     validateDepositBlock(logs[2].args, accounts[0], maticWeth.address, value)
     expect(logs[2].args.depositBlockId.toString()).to.equal('1')
 
-    const depositBlock = await depositManager.deposits(1)
-    validateDepositBlock(depositBlock, accounts[0], maticWeth.address, value)
+    const depositHash = await depositManager.deposits(1)
+    validateDepositHash(depositHash, accounts[0], maticWeth.address, value)
   })
 
-  it("depositERC20", async function() {
+  it('depositERC20', async function() {
     const testToken = await deployer.deployTestErc20()
     await testToken.approve(depositManager.address, amount)
     const result = await depositManager.depositERC20(testToken.address, amount)
@@ -54,11 +53,11 @@ contract("DepositManager", async function(accounts) {
     validateDepositBlock(logs[2].args, accounts[0], testToken.address, amount)
     expect(logs[2].args.depositBlockId.toString()).to.equal('1')
 
-    const depositBlock = await depositManager.deposits(1)
-    validateDepositBlock(depositBlock, accounts[0], testToken.address, amount)
+    const depositHash = await depositManager.deposits(1)
+    validateDepositHash(depositHash, accounts[0], testToken.address, amount)
   })
 
-  it("depositERC20ForUser", async function() {
+  it('depositERC20ForUser', async function() {
     const testToken = await deployer.deployTestErc20()
     const user = accounts[1]
     await testToken.approve(depositManager.address, amount)
@@ -72,11 +71,11 @@ contract("DepositManager", async function(accounts) {
     validateDepositBlock(logs[2].args, user, testToken.address, amount)
     expect(logs[2].args.depositBlockId.toString()).to.equal('1')
 
-    const depositBlock = await depositManager.deposits(1)
-    validateDepositBlock(depositBlock, user, testToken.address, amount)
+    const depositHash = await depositManager.deposits(1)
+    validateDepositHash(depositHash, user, testToken.address, amount)
   })
 
-  it("depositERC721", async function() {
+  it('depositERC721', async function() {
     const testToken = await deployer.deployTestErc721()
     let tokenId = '1212'
     await testToken.mint(tokenId)
@@ -92,11 +91,11 @@ contract("DepositManager", async function(accounts) {
     validateDepositBlock(_depositBlock.args, accounts[0], testToken.address, tokenId)
     expect(_depositBlock.args.depositBlockId.toString()).to.equal('1')
 
-    const depositBlock = await depositManager.deposits(1)
-    validateDepositBlock(depositBlock, accounts[0], testToken.address, tokenId)
+    const depositHash = await depositManager.deposits(1)
+    validateDepositHash(depositHash, accounts[0], testToken.address, tokenId)
   })
 
-  it("depositERC721ForUser", async function() {
+  it('depositERC721ForUser', async function() {
     const testToken = await deployer.deployTestErc721()
     const user = accounts[1]
     let tokenId = '1234'
@@ -113,8 +112,8 @@ contract("DepositManager", async function(accounts) {
     validateDepositBlock(_depositBlock.args, user, testToken.address, tokenId)
     expect(_depositBlock.args.depositBlockId.toString()).to.equal('1')
 
-    const depositBlock = await depositManager.deposits(1)
-    validateDepositBlock(depositBlock, user, testToken.address, tokenId)
+    const depositHash = await depositManager.deposits(1)
+    validateDepositHash(depositHash, user, testToken.address, tokenId)
   })
 
   it('depositBulk', async function() {
@@ -123,13 +122,14 @@ contract("DepositManager", async function(accounts) {
     const NUM_DEPOSITS = 15
     for (let i = 0; i < NUM_DEPOSITS; i++) {
       const testToken = await deployer.deployTestErc20()
-      await testToken.approve(depositManager.address, amount)
+      const _amount = amount.add(web3.utils.toBN(i))
+      await testToken.approve(depositManager.address, _amount)
       tokens.push(testToken.address)
-      amounts.push('0x' + amount.toString(16))
+      amounts.push(_amount)
     }
     for (let i = 0; i < NUM_DEPOSITS; i++) {
       const testToken = await deployer.deployTestErc721()
-      const tokenId = '0x' + crypto.randomBytes(32).toString('hex')
+      const tokenId = web3.utils.toBN(crypto.randomBytes(32).toString('hex'), 16)
       await testToken.mint(tokenId)
       await testToken.approve(depositManager.address, tokenId)
       tokens.push(testToken.address)
@@ -148,8 +148,8 @@ contract("DepositManager", async function(accounts) {
       log.event.should.equal('NewDepositBlock')
       validateDepositBlock(log.args, user, tokens[i], amounts[i])
       expect(log.args.depositBlockId.toString()).to.equal((i + 1).toString())
-      const depositBlock = await depositManager.deposits(i + 1)
-      validateDepositBlock(depositBlock, user, tokens[i], amounts[i])
+      const depositHash = await depositManager.deposits(i + 1)
+      validateDepositHash(depositHash, user, tokens[i], amounts[i])
     }
 
     // assert events for erc721 transfers
@@ -161,8 +161,8 @@ contract("DepositManager", async function(accounts) {
       log.event.should.equal('NewDepositBlock')
       validateDepositBlock(log.args, user, tokens[numTransfer], amounts[numTransfer])
       expect(log.args.depositBlockId.toString()).to.equal((numTransfer + 1).toString())
-      const depositBlock = await depositManager.deposits(numTransfer + 1)
-      validateDepositBlock(depositBlock, user, tokens[numTransfer], amounts[numTransfer])
+      const depositHash = await depositManager.deposits(numTransfer + 1)
+      validateDepositHash(depositHash, user, tokens[numTransfer], amounts[numTransfer])
     }
   })
 
@@ -173,4 +173,8 @@ contract("DepositManager", async function(accounts) {
 function validateDepositBlock(depositBlock, owner, token, amountOrNFTId) {
   expect(depositBlock).to.include({owner, token})
   assertBigNumberEquality(depositBlock.amountOrNFTId, amountOrNFTId)
+}
+
+function validateDepositHash(depositHash, owner, token, amountOrNFTId) {
+  expect(depositHash).to.equal(web3.utils.soliditySha3(owner, token, amountOrNFTId))
 }

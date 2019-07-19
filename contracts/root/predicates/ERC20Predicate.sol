@@ -78,15 +78,17 @@ contract ERC20Predicate is IErcPredicate {
       exitTxData.childToken == referenceTxData.childToken,
       "Reference and exit tx do not correspond to the same child token"
     );
-    validateSequential(exitTxData, referenceTxData);
+    exitTxData.amountOrToken = validateSequential(exitTxData, referenceTxData);
     age += referenceTxData.age; // @todo use SafeMath
 
+    sendBond(); // send BOND_AMOUNT to withdrawManager
     if (referenceTx.length <= 10) {
-      addExitToQueue(
+      withdrawManager.addExitToQueue(
         msg.sender, referenceTxData.childToken, referenceTxData.rootToken,
-        exitTxData.exitAmount, exitTxData.txHash, false /* isRegularExit */, age /* priority */);
+        exitTxData.amountOrToken, exitTxData.txHash, false /* isRegularExit */, age // priority
+      );
       withdrawManager.addInput(age /* exitId or priority */, age /* age of input */, exitTxData.signer);
-      return (referenceTxData.rootToken, exitTxData.exitAmount);
+      return (referenceTxData.rootToken, exitTxData.amountOrToken);
     }
 
     // referenceTx.length > 10 means the exitor sent along another input UTXO to the exit tx
@@ -108,12 +110,13 @@ contract ERC20Predicate is IErcPredicate {
     );
     otherReferenceTxAge += _referenceTxData.age;
     uint256 priority = Math.max(age, otherReferenceTxAge);
-    addExitToQueue(
+    withdrawManager.addExitToQueue(
       msg.sender, referenceTxData.childToken, referenceTxData.rootToken,
-      exitTxData.exitAmount + _referenceTxData.closingBalance, exitTxData.txHash, false /* isRegularExit */, priority);
+      exitTxData.amountOrToken + _referenceTxData.closingBalance, exitTxData.txHash, false /* isRegularExit */, priority
+    );
     withdrawManager.addInput(priority, age, exitTxData.signer);
     withdrawManager.addInput(priority, otherReferenceTxAge, msg.sender);
-    return (referenceTxData.rootToken, exitTxData.exitAmount + _referenceTxData.closingBalance);
+    return (referenceTxData.rootToken, exitTxData.amountOrToken + _referenceTxData.closingBalance);
   }
 
   function verifyDeprecation(bytes calldata exit, bytes calldata inputUtxo, bytes calldata challengeData)
@@ -123,7 +126,7 @@ contract ERC20Predicate is IErcPredicate {
     PlasmaExit memory _exit = decodeExit(exit);
     (uint256 age, address signer) = decodeInputUtxo(inputUtxo);
     RLPReader.RLPItem[] memory _challengeData = challengeData.toRlpItem().toList();
-    ExitTxData memory exitTxData = processExitTx(_challengeData[10].toBytes());
+    ExitTxData memory exitTxData = processChallengeTx(_challengeData[10].toBytes());
     require(
       signer == exitTxData.signer,
       "Challenge tx not signed by the party who signed the input UTXO to the exit"
@@ -218,13 +221,25 @@ contract ERC20Predicate is IErcPredicate {
   function validateSequential(ExitTxData memory exitTxData, ReferenceTxData memory referenceTxData)
     internal
     pure
+    returns(uint256 exitAmount)
   {
     // The closing balance of the referenced tx should be >= exit amount in exitTx
     require(
-      referenceTxData.closingBalance >= exitTxData.exitAmount,
+      referenceTxData.closingBalance >= exitTxData.amountOrToken,
       "Exiting with more tokens than referenced"
     );
     // @todo Check exitTxData.nonce > referenceTxData.nonce. The issue is that the referenceTx receipt doesn't contain the nonce
+
+    // If exit tx has is an outgoing transfer from exitor's perspective, exit with closingBalance minus sent amount
+    if (exitTxData.exitType == ExitType.OutgoingTransfer) {
+      return referenceTxData.closingBalance - exitTxData.amountOrToken;
+    }
+    // If exit tx was burnt tx, exit with the entire referenced balance not just that was burnt
+    if (exitTxData.exitType == ExitType.Burnt) {
+      return referenceTxData.closingBalance;
+    }
+    // If exit tx has is an incoming transfer from exitor's perspective, exit with exitAmount
+    return exitTxData.amountOrToken;
   }
 
   function processChallenge(
@@ -301,31 +316,64 @@ contract ERC20Predicate is IErcPredicate {
     require(txList.length == 9, "MALFORMED_WITHDRAW_TX");
     txData.childToken = RLPReader.toAddress(txList[3]); // corresponds to "to" field in tx
     (txData.signer, txData.txHash) = getAddressFromTx(txList, withdrawManager.networkId());
-    if (txData.signer == msg.sender) { // exit tx is signed by exitor himself
-      (txData.exitAmount, txData.burnt) = processExitTxSender(RLPReader.toBytes(txList[5]));
+    if (txData.signer == msg.sender) {
+      // exit tx is signed by exitor
+      (txData.amountOrToken, txData.exitType) = processExitTxSender(RLPReader.toBytes(txList[5]));
     } else {
-      txData.exitAmount = processExitTxCounterparty(RLPReader.toBytes(txList[5]));
+      // exitor is a counterparty in the provided tx
+      txData.amountOrToken = processExitTxCounterparty(RLPReader.toBytes(txList[5]));
+      txData.exitType = ExitType.IncomingTransfer;
     }
   }
 
+  /**
+   * @notice Process the challenge transaction
+   * @param exitTx Challenge transaction
+   * @return ExitTxData Parsed challenge transaction data
+   */
+  function processChallengeTx(bytes memory exitTx)
+    internal
+    view
+    returns(ExitTxData memory txData)
+  {
+    RLPReader.RLPItem[] memory txList = exitTx.toRlpItem().toList();
+    require(txList.length == 9, "MALFORMED_WITHDRAW_TX");
+    txData.childToken = RLPReader.toAddress(txList[3]); // corresponds to "to" field in tx
+    (txData.signer, txData.txHash) = getAddressFromTx(txList, withdrawManager.networkId());
+    // during a challenge, the tx signer must be the first party
+    (txData.amountOrToken,) = processExitTxSender(RLPReader.toBytes(txList[5]));
+  }
+
+  /**
+   * @dev Processes transaction from the "signer / sender" perspective
+   * @param txData Transaction input data
+   * @return exitAmount Number of tokens burnt or sent
+   * @return burnt Whether the tokens were burnt
+   */
   function processExitTxSender(bytes memory txData)
     internal
     pure
-    returns (uint256 exitAmount, bool burnt)
+    returns (uint256 amount, ExitType exitType)
   {
     bytes4 funcSig = BytesLib.toBytes4(BytesLib.slice(txData, 0, 4));
     if (funcSig == WITHDRAW_FUNC_SIG) {
       require(txData.length == 36, "Invalid tx"); // 4 bytes for funcSig and a single bytes32 parameter
-      exitAmount = BytesLib.toUint(txData, 4);
-      burnt = true;
+      amount = BytesLib.toUint(txData, 4);
+      exitType = ExitType.Burnt;
     } else if (funcSig == TRANSFER_FUNC_SIG) {
       require(txData.length == 68, "Invalid tx"); // 4 bytes for funcSig and a 2 bytes32 parameters (to, value)
-      exitAmount = BytesLib.toUint(txData, 36);
+      amount = BytesLib.toUint(txData, 36);
+      exitType = ExitType.OutgoingTransfer;
     } else {
       revert("Exit tx type not supported");
     }
   }
 
+  /**
+   * @dev Processes transaction from the "receiver" perspective
+   * @param txData Transaction input data
+   * @return exitAmount Number of tokens received
+   */
   function processExitTxCounterparty(bytes memory txData)
     internal
     view

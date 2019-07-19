@@ -86,29 +86,8 @@ contract PredicateUtils {
     _;
   }
 
-  /**
-   * @dev Add exit to queue while also sending the bond amount to the withdraw manager
-   */
-  function addExitToQueue(
-    address exitor,
-    address childToken,
-    address rootToken,
-    uint256 exitAmountOrTokenId,
-    bytes32 txHash,
-    bool isRegularExit,
-    uint256 priority)
-    internal
-  {
-    address(withdrawManager).call.value(BOND_AMOUNT)(abi.encodeWithSignature(
-      "addExitToQueue(address,address,address,uint256,bytes32,bool,uint256)",
-      exitor,
-      childToken,
-      rootToken,
-      exitAmountOrTokenId,
-      txHash,
-      isRegularExit,
-      priority
-    ));
+  function sendBond() internal {
+    address(uint160(address(withdrawManager))).transfer(BOND_AMOUNT);
   }
 
   function getAddressFromTx(RLPReader.RLPItem[] memory txList, bytes memory networkId)
@@ -136,13 +115,14 @@ contract PredicateUtils {
 }
 
 contract IErcPredicate is IPredicate, PredicateUtils, ExitsDataStructure {
+  enum ExitType { OutgoingTransfer, IncomingTransfer, Burnt }
 
   struct ExitTxData {
-    uint256 exitAmount;
+    uint256 amountOrToken;
     bytes32 txHash;
     address childToken;
     address signer;
-    bool burnt;
+    ExitType exitType;
   }
 
   struct ReferenceTxData {

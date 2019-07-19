@@ -7,6 +7,7 @@ import fs from 'fs'
 import path from 'path'
 
 import { generateFirstWallets, mnemonics } from './wallets.js'
+import logDecoder from './log-decoder.js'
 
 const crypto = require('crypto')
 const BN = utils.BN
@@ -81,24 +82,31 @@ export function getWallets() {
   return generateFirstWallets(mnemonics, Object.keys(stakes).length)
 }
 
-export async function deposit(depositManager, childChain, rootContract, user, amount, options = { rootDeposit: false }) {
+export async function depositOnRoot(depositManager, rootToken, from, amountOrToken, options = { erc20: true }) {
+  await rootToken.approve(depositManager.address, amountOrToken, { from })
+  let result
+  if (options.erc20) {
+    result = await depositManager.depositERC20(rootToken.address, amountOrToken, { from })
+  } else if (options.erc721) {
+    result = await depositManager.depositERC721(rootToken.address, amountOrToken, { from })
+  }
+  const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
+  const NewDepositBlockEvent = logs.find(log => log.event === 'NewDepositBlock')
+  return NewDepositBlockEvent.args.depositBlockId
+}
+
+export async function deposit(depositManager, childChain, rootContract, user, amountOrToken,
+  options = { rootDeposit: false, erc20: true }) {
   let depositBlockId
   if (options.rootDeposit) {
-    await rootContract.approve(depositManager.address, amount)
-    const result = await depositManager.depositERC20ForUser(
-      rootContract.address,
-      user,
-      amount
-    )
-    const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
-    const NewDepositBlockEvent = logs.find(log => log.event === 'NewDepositBlock')
-    depositBlockId = NewDepositBlockEvent.args.depositBlockId
+    depositBlockId = await depositOnRoot(depositManager, rootContract, user, amountOrToken, options)
   } else {
     depositBlockId = '0x' + crypto.randomBytes(32).toString('hex')
   }
-  const deposit = await childChain.depositTokens(rootContract.address, user, amount, depositBlockId)
+  // ACLed on onlyOwner
+  const deposit = await childChain.depositTokens(rootContract.address, user, amountOrToken, depositBlockId)
   if (options.writeToFile) {
-    await writeToFile(options.writeToFile, deposit.receipt);
+    await writeToFile(options.writeToFile, deposit.receipt)
   }
   return deposit
 }

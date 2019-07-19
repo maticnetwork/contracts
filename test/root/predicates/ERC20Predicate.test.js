@@ -134,7 +134,7 @@ contract('ERC20Predicate', async function(accounts) {
     })
 
     it('reference: deposit - exitTx: outgoingTransfer', async function() {
-      // Reference the counterparty's deposit which is the proof of counterparty's balance
+      // Reference exitor's deposit which is the proof of exitor's balance
       const { receipt } = await utils.deposit(
         contracts.depositManager,
         childContracts.childChain,
@@ -143,22 +143,22 @@ contract('ERC20Predicate', async function(accounts) {
         amount
       )
       const { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts, start)
-      // Treating this tx as an in-flight incoming transfer
-      const { receipt: r } = await childContracts.childToken.transfer(other, halfAmount)
+      // Treating this tx as an in-flight outgoing transfer
+      const transferAmount = web3.utils.toBN('3')
+      const { receipt: r } = await childContracts.childToken.transfer(other, transferAmount)
       let exitTx = await web3Child.eth.getTransaction(r.transactionHash)
       exitTx = await buildInFlight(exitTx)
 
       const startExitTx = await utils.startExit(contracts.ERC20Predicate, headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
-      // console.log('startExitTx', startExitTx.closingBalance.toNumber())
+      // console.log('startExitTx', startExitTx)
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
-      // console.log(startExitTx, logs)
       const log = logs[1]
       log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
         exitor: user,
         token: childContracts.rootERC20.address
       })
-      utils.assertBigNumberEquality(log.args.amount, halfAmount)
+      utils.assertBigNumberEquality(log.args.amount, amount.sub(transferAmount))
     })
 
     it('reference: counterparty balance (Deposit) - exitTx: incomingTransfer', async function() {
