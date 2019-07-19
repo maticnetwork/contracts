@@ -12,7 +12,8 @@ module.exports = {
     development: {
       host: 'localhost',
       port: 8545,
-      network_id: '*' // match any network
+      network_id: '*', // match any network
+      skipDryRun: true
     },
     matic_dev: {
       host: 'localhost',
@@ -23,17 +24,19 @@ module.exports = {
       provider: function() {
         return new HDWalletProvider(
           MNEMONIC,
-          `https://ropsten.infura.io/${API_KEY}`
+          `https://ropsten.infura.io/v3/${API_KEY}`
         )
       },
       network_id: 3,
-      gas: 8000000
+      gas: 8000000,
+      gasPrice: 100000000000,
+      skipDryRun: true
     },
     kovan: {
       provider: function() {
         return new HDWalletProvider(
           MNEMONIC,
-          `https://kovan.infura.io/${API_KEY}`
+          `https://kovan.infura.io/v3/${API_KEY}`
         )
       },
       network_id: 42,
@@ -43,7 +46,7 @@ module.exports = {
       provider: function() {
         return new HDWalletProvider(
           MNEMONIC,
-          `https://mainnet.infura.io/${API_KEY}`
+          `https://mainnet.infura.io/v3/${API_KEY}`
         )
       },
       network_id: 1,
