@@ -69,7 +69,7 @@
     "ethereumjs-util": "6.0.0",
     "ganache-cli": "6.2.4",
     "merkle-patricia-tree": "2.3.2",
-    "openzeppelin-solidity": "^2.2.0",
+    "openzeppelin-solidity": "2.2.0",
     "solidity-rlp": "^2.0.0",
     "truffle-hdwallet-provider": "^1.0.1"
   }
