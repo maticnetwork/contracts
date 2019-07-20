@@ -1,0 +1,109 @@
+import chai from 'chai'
+import chaiAsPromised from 'chai-as-promised'
+
+import deployer from '../helpers/deployer.js'
+import { ValidatorContract } from '../helpers/artifacts'
+
+import {
+  assertBigNumberEquality,
+  assertBigNumbergt,
+  buildSubmitHeaderBlockPaylod
+} from '../helpers/utils.js'
+import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
+import logDecoder from '../helpers/log-decoder.js'
+
+chai.use(chaiAsPromised).should()
+
+contract('ValidatorContract', async function(accounts) {
+  let validatorContract, wallets
+
+  before(async function() {
+    wallets = generateFirstWallets(mnemonics, 4)
+  })
+
+  beforeEach(async function() {
+    validatorContract = await ValidatorContract.new(
+      wallets[1].getAddressString(),
+      wallets[2].getAddressString()
+    )
+  })
+
+  it('UpdateDelegationManager', async function() {
+    const result = await validatorContract.updateDelegationManager(
+      wallets[1].getAddressString()
+    )
+    const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
+    logs.should.have.lengthOf(1)
+    logs[0].event.should.equal('UpdateDelegationManager')
+    logs[0].args.oldContract
+      .toLowerCase()
+      .should.equal(wallets[2].getAddressString())
+    logs[0].args.newcontract
+      .toLowerCase()
+      .should.equal(wallets[1].getAddressString())
+  })
+
+  it('write history for checkpoint rewards and get rewards for delegator/validator', async function() {
+    const validatorStake = web3.utils.toWei('100')
+    const delegatorStake = web3.utils.toWei('100')
+    const checkpointReward = web3.utils.toWei('1')
+
+    await validatorContract.bond(1, delegatorStake, {
+      from: wallets[2].getAddressString()
+    })
+    for (let checkpoint = 1; checkpoint < 10; checkpoint++) {
+      await validatorContract.updateRewards(
+        checkpointReward,
+        checkpoint,
+        validatorStake
+      )
+    }
+    let validatorRewards = await validatorContract.validatorRewards()
+    // getRewards(delegatorId, delegationAmount, startEpoch, endEpoch, currentEpoch)
+    let delegatorRewards = await validatorContract.getRewards(
+      1,
+      delegatorStake,
+      1,
+      10,
+      10,
+      { from: wallets[2].getAddressString() }
+    )
+    let totalReward = web3.utils
+      .toBN(checkpointReward)
+      .mul(web3.utils.toBN('9'))
+    assertBigNumberEquality(validatorRewards.add(delegatorRewards), totalReward)
+  })
+
+  it('bond unBond properly', async function() {
+    const delegatorStake = web3.utils.toWei('100')
+    const delegators = 10
+    for (let i = 0; i < delegators; i++) {
+      await validatorContract.bond(i, delegatorStake, {
+        from: wallets[2].getAddressString()
+      })
+    }
+    const delegator2 = web3.utils.toBN(2)
+    const n = await validatorContract.totalDelegators()
+    const totalDelegation = await validatorContract.delegatedAmount()
+    assertBigNumberEquality(n, delegators)
+    let delegatorIndex
+    for (let i = 0; i < n; i++) {
+      let delegatorId = await validatorContract.delegators(i)
+      if (delegator2.eq(delegatorId)) {
+        delegatorIndex = i
+        i = n
+      }
+    }
+    await validatorContract.unBond(delegator2, delegatorIndex, delegatorStake, {
+      from: wallets[2].getAddressString()
+    })
+    assertBigNumberEquality(
+      await validatorContract.delegatedAmount(),
+      totalDelegation.sub(web3.utils.toBN(delegatorStake))
+    )
+    assertBigNumberEquality(
+      await validatorContract.totalDelegators(),
+      delegators - 1
+    )
+  })
+})

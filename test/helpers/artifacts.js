@@ -1,6 +1,9 @@
 export const RootChain = artifacts.require('RootChain')
 export const Registry = artifacts.require('Registry')
 export const StakeManager = artifacts.require('StakeManager')
+export const ValidatorContract = artifacts.require('ValidatorContract')
+export const DelegationManager = artifacts.require('DelegationManager')
+
 export const DepositManager = artifacts.require('DepositManager')
 export const DepositManagerProxy = artifacts.require('DepositManagerProxy')
 export const WithdrawManager = artifacts.require('WithdrawManager')
@@ -9,7 +12,9 @@ export const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
 export const ERC20Predicate = artifacts.require('ERC20Predicate')
 export const ERC721Predicate = artifacts.require('ERC721Predicate')
 export const MarketplacePredicate = artifacts.require('MarketplacePredicate')
-export const MarketplacePredicateTest = artifacts.require('MarketplacePredicateTest')
+export const MarketplacePredicateTest = artifacts.require(
+  'MarketplacePredicateTest'
+)
 
 // tokens
 export const MaticWETH = artifacts.require('MaticWETH')
