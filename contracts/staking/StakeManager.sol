@@ -29,7 +29,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   event SignerChange(uint256 indexed validatorId, address indexed newSigner, address indexed oldSigner);
 
   ERC20 public token;
-
+  address public delegationManager;
   // genesis/governance variables
   uint256 public DYNASTY = 2**13;  // unit: epoch 50 days
   uint256 public MIN_DEPOSIT_SIZE = (10**18);  // in ERC20 token
@@ -90,7 +90,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     totalStaked = totalStaked.add(amount);
     address _contract = address(0x0);
     if (isContract) {
-      _contract = address(new ValidatorContract(user));
+      _contract = address(new ValidatorContract(user, delegationManager));
     }
 
     validators[NFTCounter] = Validator({
