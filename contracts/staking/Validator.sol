@@ -4,6 +4,9 @@ import { ERC721Full } from "openzeppelin-solidity/contracts/token/ERC721/ERC721F
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
+import { IDelegationManager } from "./IDelegationManager.sol";
+
+
 contract Validator is ERC721Full {
   // TODO: pull validator staking here
   //
@@ -14,18 +17,19 @@ contract Validator is ERC721Full {
 
 contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
   using SafeMath for uint256;
+  event UpdateDelegationManager(address indexed oldContract, address indexed newcontract);
 
   uint256 public delegatedAmount;
   uint256[] public delegators;
   uint256 public rewards = 0;
   uint256 public validatorRewards = 0;
   address public validator;
-  address public delegatorContract;
+  IDelegationManager public delegationManager;
   bool delegation = true;
 
   // will be reflected after one WITHDRAWAL_DELAY/(some Period + upper lower cap)
-  uint256 public rewardRatio;
-  uint256 public slashingRatio;
+  uint256 public rewardRatio = 10;
+  uint256 public slashingRatio = 10;
 
   struct State {
     uint256 amount;
@@ -35,20 +39,25 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
   // keep state of each checkpoint and rewards
   mapping (uint256 => State) public delegationState;
 
-  constructor (address _owner) public {
-    validator = _owner;
+  constructor (address _validator, address _delegationManager) public {
+    validator = _validator;
+    delegationManager = IDelegationManager(_delegationManager);
   }
 
   modifier onlyDelegatorContract() {
-    require(delegatorContract == msg.sender);
+    require(address(delegationManager) == msg.sender);
     _;
+  }
+
+  function updateDelegationManager(address _delegationManager) public onlyOwner {
+    emit UpdateDelegationManager(address(delegationManager), _delegationManager);
+    delegationManager = IDelegationManager(_delegationManager);
   }
 
   function updateRewards(uint256 amount, uint256 checkpoint, uint256 validatorStake) public onlyOwner {
     // TODO: reduce logic
     uint256 validatorReward = amount.mul(rewardRatio).div(100);
-    amount -= validatorReward;
-    validatorReward += (amount * validatorStake)/(validatorStake + delegatedAmount);
+    validatorReward += ((amount - validatorReward) * validatorStake)/(validatorStake + delegatedAmount);
     validatorRewards += validatorReward;
     amount -= validatorReward;
     rewards += amount;
@@ -67,14 +76,15 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
     require(delegators[index] == delegatorId);
     delegatedAmount -= amount;
     // start unbonding
-    delegators[index] = delegators[delegators.length];
-    delete delegators[delegators.length];
+    delegators[index] = delegators[delegators.length-1];
+    delete delegators[delegators.length-1];
+    delegators.length--;
   }
 
   function unBondAllLazy(uint256 exitEpoch) public onlyOwner returns(bool) {
     delegation = false; //  won't be accepting any new delegations
     for (uint256 i; i < delegators.length; i++) {
-      // delegatorM.unBondLazy(delegators[i], exitEpoch, validator);
+      delegationManager.unBondLazy(delegators[i], exitEpoch, validator);
     }
     return true;
   }
@@ -82,22 +92,26 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
   function revertLazyUnBonding(uint256 exitEpoch) public onlyOwner returns(bool) {
     delegation = true;
     for (uint256 i; i < delegators.length; i++) {
-      // revertLazyUnBond(delegators[i], exitEpoch, validator);
+      delegationManager.revertLazyUnBond(delegators[i], exitEpoch, validator);
     }
   }
 
-  function getRewards(uint256 delegatorId, uint256 delegationAmount, uint256 startEpoch, uint256 endEpoch, uint256 currentEpoch) public onlyDelegatorContract returns(uint256) {
+  function getRewards(uint256 delegatorId, uint256 delegationAmount, uint256 startEpoch, uint256 endEpoch, uint256 currentEpoch) public view returns(uint256) {
     // TODO: use struct as param
     uint256 reward = 0;
     if (endEpoch == 0) {
       endEpoch = currentEpoch;
     }
-    for (uint256 epoch = startEpoch; epoch > endEpoch; epoch++) {
+    for (uint256 epoch = startEpoch; epoch < endEpoch; epoch++) {
       if (delegationState[epoch].amount > 0) {
         reward += (delegationState[epoch].amount * delegationAmount)/delegationState[epoch].totalStake;
       }
     }
     return reward;
+  }
+
+  function totalDelegators() public view returns(uint256){
+    return delegators.length;
   }
 
   function slash() public onlyOwner {
