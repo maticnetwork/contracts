@@ -1,6 +1,6 @@
 pragma solidity ^0.5.2;
 
-import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import { ERC721Full } from "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
 import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
@@ -9,7 +9,6 @@ import { BytesLib } from "../common/lib/BytesLib.sol";
 import { ECVerify } from "../common/lib/ECVerify.sol";
 import { Lockable } from "../common/mixin/Lockable.sol";
 import { RootChainable } from "../common/mixin/RootChainable.sol";
-
 import { IStakeManager } from "./IStakeManager.sol";
 import { Validator } from "./Validator.sol";
 import { ValidatorContract } from "./Validator.sol";
@@ -28,7 +27,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   // signer changed
   event SignerChange(uint256 indexed validatorId, address indexed newSigner, address indexed oldSigner);
 
-  ERC20 public token;
+  IERC20 public token;
   address public delegationManager;
   // genesis/governance variables
   uint256 public DYNASTY = 2**13;  // unit: epoch 50 days
@@ -266,7 +265,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   // set staking Token
   function setToken(address _token) public onlyOwner {
     require(_token != address(0x0));
-    token = ERC20(_token);
+    token = IERC20(_token);
   }
 
   // Change the number of validators required to allow a passed header root
