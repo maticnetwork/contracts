@@ -97,13 +97,13 @@ module.exports = async function(deployer, network) {
     await Promise.all([
       deployer.deploy(Registry),
       deployer.deploy(WithdrawManager),
-      deployer.deploy(StakeManager),
-      deployer.deploy(DepositManager),
-      deployer.deploy(DelegationManager)
+      deployer.deploy(DepositManager)
     ])
 
     await Promise.all([
       deployer.deploy(RootChain, Registry.address),
+      deployer.deploy(StakeManager, Registry.address),
+      deployer.deploy(DelegationManager, Registry.address),
       deployer.deploy(
         ERC20Predicate,
         WithdrawManager.address,
