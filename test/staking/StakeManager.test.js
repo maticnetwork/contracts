@@ -24,13 +24,6 @@ contract('StakeManager', async function(accounts) {
   // let logDecoder
   let owner = accounts[0]
 
-  before(async function() {
-    // link libs
-    // await linkLibs()
-    // log decoder
-    // logDecoder = new LogDecoder([StakeManager._json.abi, TestToken._json.abi])
-  })
-
   // staking
   describe('Stake', async function() {
     before(async function() {
@@ -410,7 +403,7 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      await stakeManager.stake(amount, user, false, {
+      let result = await stakeManager.stake(amount, user, true, {
         from: user
       })
     })
@@ -476,5 +469,7 @@ contract('StakeManager', async function(accounts) {
         }
       )
     })
+    it('unBondLazy', async function() {})
+    it('revertLazyUnBond', async function() {})
   })
 })
