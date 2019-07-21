@@ -1,24 +1,16 @@
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
-import ethUtils from 'ethereumjs-util'
 
 import deployer from '../../helpers/deployer.js'
 import logDecoder from '../../helpers/log-decoder.js'
-import { getBlockHeader } from '../../helpers/blocks'
-import MerkleTree from '../../helpers/merkle-tree'
-import {
-  getTxProof,
-  verifyTxProof,
-  getReceiptProof,
-  verifyReceiptProof
-} from '../../helpers/proofs'
-import { build, buildInFlight } from '../../mockResponses/utils'
+import { buildInFlight } from '../../mockResponses/utils'
+import StatefulUtils from '../../helpers/StatefulUtils'
 
 const utils = require('../../helpers/utils')
 const web3Child = utils.web3Child
 
 chai.use(chaiAsPromised).should()
-let contracts, childContracts, start
+let contracts, childContracts, statefulUtils
 
 contract('ERC20Predicate', async function(accounts) {
   const amount = web3.utils.toBN('10')
@@ -29,6 +21,7 @@ contract('ERC20Predicate', async function(accounts) {
   before(async function() {
     contracts = await deployer.freshDeploy()
     childContracts = await deployer.initializeChildChain(accounts[0])
+    statefulUtils = new StatefulUtils()
   })
 
   describe('startExitWithBurntTokens', async function() {
@@ -49,7 +42,7 @@ contract('ERC20Predicate', async function(accounts) {
         amount
       )
       const { receipt } = await childContracts.childToken.withdraw(amount)
-      let { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts, start)
+      let { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
       const startExitTx = await utils.startExitWithBurntTokens(
         contracts.ERC20Predicate,
         { headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 }
@@ -88,7 +81,7 @@ contract('ERC20Predicate', async function(accounts) {
         amount
       )
       const { receipt } = await childContracts.childToken.transfer(user, amount, { from: other })
-      const { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts, start)
+      const { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
       const { receipt: r } = await childContracts.childToken.withdraw(amount)
       let exitTx = await web3Child.eth.getTransaction(r.transactionHash)
       exitTx = await buildInFlight(exitTx)
@@ -115,7 +108,7 @@ contract('ERC20Predicate', async function(accounts) {
       )
 
       const { receipt } = await childContracts.childToken.transfer(other, halfAmount)
-      const { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts, start)
+      const { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
 
       const { receipt: r } = await childContracts.childToken.withdraw(halfAmount)
       let exitTx = await web3Child.eth.getTransaction(r.transactionHash)
@@ -142,7 +135,7 @@ contract('ERC20Predicate', async function(accounts) {
         user,
         amount
       )
-      const { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts, start)
+      const { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
       // Treating this tx as an in-flight outgoing transfer
       const transferAmount = web3.utils.toBN('3')
       const { receipt: r } = await childContracts.childToken.transfer(other, transferAmount)
@@ -170,7 +163,7 @@ contract('ERC20Predicate', async function(accounts) {
         other,
         amount
       )
-      const { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts, start)
+      const { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
 
       // Treating this tx as an in-flight incoming transfer
       const { receipt: r } = await childContracts.childToken.transfer(user, halfAmount, { from: other })
@@ -200,7 +193,7 @@ contract('ERC20Predicate', async function(accounts) {
 
       // We will reference the following tx which is a proof of counterparty's balance
       const { receipt } = await childContracts.childToken.transfer(other, amount)
-      const { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts, start)
+      const { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
 
       // Treating this tx as an in-flight incoming transfer
       const { receipt: r } = await childContracts.childToken.transfer(user, halfAmount, { from: other })
@@ -229,12 +222,12 @@ contract('ERC20Predicate', async function(accounts) {
         halfAmount
       )
       const inputs = []
-      let { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts, start)
+      let { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
       inputs.push({ headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 })
 
       // We will reference the following tx (Deposit) which is a proof of counterparty's balance
       const { receipt: d } = await childContracts.childChain.depositTokens(childContracts.rootERC20.address, other, halfAmount, '2' /* mock depositBlockId */)
-      const i = await init(contracts.rootChain, d, accounts)
+      const i = await statefulUtils.submitCheckpoint(contracts.rootChain, d, accounts)
       inputs.unshift({ headerNumber: i.headerNumber, blockProof: i.blockProof, blockNumber: i.block.number, blockTimestamp: i.block.timestamp, reference: i.reference, logIndex: 1 })
 
       // Treating this tx as an in-flight incoming transfer
@@ -282,7 +275,7 @@ contract('ERC20Predicate', async function(accounts) {
 
       // 2. I transfer x/2 tokens to a user. Calling this tx A.
       let { receipt } = await childContracts.childToken.transfer(other, halfAmount)
-      const { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts, start)
+      const { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
       const inputs = []
       // We add an input which is the proof of counterparty's balance (x/2 amount)
       inputs.push({ headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 })
@@ -349,10 +342,10 @@ contract('ERC20Predicate', async function(accounts) {
         user,
         amount
       )
-      let { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts, start)
+      let { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
       inputs.push({ headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 })
       let { receipt: i } = await childContracts.childToken.transfer(other, halfAmount)
-      i = await init(contracts.rootChain, i, accounts)
+      i = await statefulUtils.submitCheckpoint(contracts.rootChain, i, accounts)
       const challengeData = utils.buildChallengeData({ headerNumber: i.headerNumber, blockProof: i.blockProof, blockNumber: i.block.number, blockTimestamp: i.block.timestamp, reference: i.reference, logIndex: 1 })
 
       let { receipt: w } = await childContracts.childToken.transfer(other, halfAmount) // to make it evm compatible but still challengeable bcoz we are referencing an older input
@@ -390,7 +383,7 @@ contract('ERC20Predicate', async function(accounts) {
         amount
       )
       const inputs = []
-      let { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts, start)
+      let { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
       inputs.push({ headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 })
 
       let { receipt: i } = await childContracts.childToken.transfer(other, halfAmount) // to make it evm compatible but still challengeable bcoz we are referencing an older input
@@ -399,7 +392,7 @@ contract('ERC20Predicate', async function(accounts) {
       const startExitTx = await utils.startExitNew(contracts.ERC20Predicate, inputs, exitTx)
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
 
-      i = await init(contracts.rootChain, i, accounts)
+      i = await statefulUtils.submitCheckpoint(contracts.rootChain, i, accounts)
       const challengeData = utils.buildChallengeData({ headerNumber: i.headerNumber, blockProof: i.blockProof, blockNumber: i.block.number, blockTimestamp: i.block.timestamp, reference: i.reference, logIndex: 1 })
 
       let log = logs[2] // 'ExitUpdated'
@@ -417,33 +410,3 @@ contract('ERC20Predicate', async function(accounts) {
     })
   })
 })
-
-async function init(rootChain, receipt, accounts, _) {
-  const event = {
-    tx: await web3Child.eth.getTransaction(receipt.transactionHash),
-    receipt: await web3Child.eth.getTransactionReceipt(receipt.transactionHash),
-    block: await web3Child.eth.getBlock(receipt.blockHash, true /* returnTransactionObjects */)
-  }
-
-  const blockHeader = getBlockHeader(event.block)
-  const headers = [blockHeader]
-  const tree = new MerkleTree(headers)
-  const root = ethUtils.bufferToHex(tree.getRoot())
-  const end = event.tx.blockNumber
-  const blockProof = await tree.getProof(blockHeader)
-  start = Math.min(start, end)
-  tree
-    .verify(blockHeader, event.block.number - start, tree.getRoot(), blockProof)
-    .should.equal(true)
-  const { vote, sigs, extraData } = utils.buildSubmitHeaderBlockPaylod(accounts[0], start, end, root)
-  const submitHeaderBlock = await rootChain.submitHeaderBlock(vote, sigs, extraData)
-
-  const txProof = await getTxProof(event.tx, event.block)
-  assert.isTrue(verifyTxProof(txProof), 'Tx proof must be valid (failed in js)')
-  const receiptProof = await getReceiptProof(event.receipt, event.block, web3Child)
-  assert.isTrue(verifyReceiptProof(receiptProof), 'Receipt proof must be valid (failed in js)')
-
-  const NewHeaderBlockEvent = submitHeaderBlock.logs.find(log => log.event === 'NewHeaderBlock')
-  start = end + 1
-  return { block: event.block, blockProof, headerNumber: NewHeaderBlockEvent.args.headerBlockId, reference: await build(event) }
-}

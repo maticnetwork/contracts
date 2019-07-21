@@ -1,21 +1,11 @@
+import ethUtils from 'ethereumjs-util'
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 
 import deployer from '../../helpers/deployer.js'
 import logDecoder from '../../helpers/log-decoder.js'
-import ethUtils from 'ethereumjs-util'
-
-import {
-  getTxProof,
-  verifyTxProof,
-  getReceiptProof,
-  verifyReceiptProof
-} from '../../helpers/proofs'
-
-import { getBlockHeader } from '../../helpers/blocks'
-import MerkleTree from '../../helpers/merkle-tree'
-
-import { build, buildInFlight } from '../../mockResponses/utils'
+import { buildInFlight } from '../../mockResponses/utils'
+import StatefulUtils from '../../helpers/StatefulUtils'
 
 const crypto = require('crypto')
 const utils = require('../../helpers/utils')
@@ -23,7 +13,7 @@ const web3Child = utils.web3Child
 
 chai.use(chaiAsPromised).should()
 let contracts, childContracts
-let start = 0, predicate
+let predicate, statefulUtils
 
 contract('ERC721Predicate', async function(accounts) {
   const tokenId = '0x117'
@@ -33,6 +23,7 @@ contract('ERC721Predicate', async function(accounts) {
   before(async function() {
     contracts = await deployer.freshDeploy()
     childContracts = await deployer.initializeChildChain(accounts[0])
+    statefulUtils = new StatefulUtils()
   })
 
   describe('startExitWithBurntTokens', async function() {
@@ -52,7 +43,7 @@ contract('ERC721Predicate', async function(accounts) {
         tokenId
       )
       const { receipt } = await childContracts.childErc721.withdraw(tokenId)
-      let { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts, start)
+      let { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
       const startExitTx = await utils.startExitWithBurntTokens(
         contracts.ERC721Predicate,
         { headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 }
@@ -88,7 +79,7 @@ contract('ERC721Predicate', async function(accounts) {
       )
 
       const { receipt } = await childContracts.childErc721.transferFrom(other, user, tokenId, { from: other })
-      const { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts)
+      const { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
 
       const { receipt: r } = await childContracts.childErc721.withdraw(tokenId)
       let exitTx = await web3Child.eth.getTransaction(r.transactionHash)
@@ -108,7 +99,7 @@ contract('ERC721Predicate', async function(accounts) {
 
     it('reference: Deposit - exitTx: burn', async function() {
       const { receipt } = await childContracts.childChain.depositTokens(childContracts.rootERC721.address, user, tokenId, '1' /* mock depositBlockId */)
-      const { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts)
+      const { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
 
       const { receipt: r } = await childContracts.childErc721.withdraw(tokenId)
       let exitTx = await web3Child.eth.getTransaction(r.transactionHash)
@@ -137,7 +128,7 @@ contract('ERC721Predicate', async function(accounts) {
 
       // proof of counterparty's balance
       const { receipt } = await childContracts.childErc721.transferFrom(user, other, tokenId)
-      const { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts)
+      const { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
 
       // treating this as in-flight incomingTransfer
       const { receipt: r } = await childContracts.childErc721.transferFrom(other, user, tokenId, { from: other })
@@ -182,7 +173,7 @@ contract('ERC721Predicate', async function(accounts) {
       // the token doesnt exist on the root chain as yet
       expect(await childContracts.rootERC721.exists(tokenId)).to.be.false
 
-      let { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts, start)
+      let { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
       const startExitTx = await startExitWithBurntMintableToken(
         { headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 },
         mintTx,
@@ -210,7 +201,7 @@ contract('ERC721Predicate', async function(accounts) {
 
       // proof of counterparty's balance
       const { receipt } = await childContracts.childErc721.transferFrom(user, other, tokenId)
-      const { block, blockProof, headerNumber, reference } = await init(contracts.rootChain, receipt, accounts)
+      const { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
 
       // treating this as in-flight incomingTransfer
       const { receipt: r } = await childContracts.childErc721.transferFrom(other, user, tokenId, { from: other })
@@ -266,34 +257,4 @@ function startMoreVpExitWithMintableToken(
     ethUtils.bufferToHex(mintTx),
     { from, value: web3.utils.toWei('.1', 'ether') }
   )
-}
-
-async function init(rootChain, receipt, accounts) {
-  const event = {
-    tx: await web3Child.eth.getTransaction(receipt.transactionHash),
-    receipt: await web3Child.eth.getTransactionReceipt(receipt.transactionHash),
-    block: await web3Child.eth.getBlock(receipt.blockHash, true /* returnTransactionObjects */)
-  }
-
-  const blockHeader = getBlockHeader(event.block)
-  const headers = [blockHeader]
-  const tree = new MerkleTree(headers)
-  const root = ethUtils.bufferToHex(tree.getRoot())
-  const end = event.tx.blockNumber
-  const blockProof = await tree.getProof(blockHeader)
-  start = Math.min(start, end)
-  tree
-    .verify(blockHeader, event.block.number - start, tree.getRoot(), blockProof)
-    .should.equal(true)
-  const { vote, sigs, extraData } = utils.buildSubmitHeaderBlockPaylod(accounts[0], start, end, root)
-  const submitHeaderBlock = await rootChain.submitHeaderBlock(vote, sigs, extraData)
-
-  const txProof = await getTxProof(event.tx, event.block)
-  assert.isTrue(verifyTxProof(txProof), 'Tx proof must be valid (failed in js)')
-  const receiptProof = await getReceiptProof(event.receipt, event.block, web3Child)
-  assert.isTrue(verifyReceiptProof(receiptProof), 'Receipt proof must be valid (failed in js)')
-
-  const NewHeaderBlockEvent = submitHeaderBlock.logs.find(log => log.event === 'NewHeaderBlock')
-  start = end + 1
-  return { block: event.block, blockProof, headerNumber: NewHeaderBlockEvent.args.headerBlockId, reference: await build(event) }
 }
