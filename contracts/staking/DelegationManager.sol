@@ -101,10 +101,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     delegators[delegatorId].bondedTo = 0;
   }
 
-  function unBondLazy(uint256 delegatorId, uint256 epoch) public /* onlyStakeManager(delegatorId) */ {
-    address validator;
-    (,,,,,,validator,) = stakeManager.validators(delegators[delegatorId].bondedTo);
-    require(msg.sender == validator);
+  function unBondLazy(uint256 delegatorId, uint256 epoch, address validator) public /* onlyStakeManager(delegatorId) */ {
     delegators[delegatorId].delegationStopEpoch = epoch;
   }
 
