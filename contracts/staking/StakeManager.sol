@@ -9,6 +9,7 @@ import { BytesLib } from "../common/lib/BytesLib.sol";
 import { ECVerify } from "../common/lib/ECVerify.sol";
 import { Lockable } from "../common/mixin/Lockable.sol";
 import { RootChainable } from "../common/mixin/RootChainable.sol";
+import { Registry } from "../common/Registry.sol";
 import { IStakeManager } from "./IStakeManager.sol";
 import { Validator } from "./Validator.sol";
 import { ValidatorContract } from "./Validator.sol";
@@ -28,7 +29,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   event SignerChange(uint256 indexed validatorId, address indexed newSigner, address indexed oldSigner);
 
   IERC20 public token;
-  address public delegationManager;
+  Registry public registry;
   // genesis/governance variables
   uint256 public DYNASTY = 2**13;  // unit: epoch 50 days
   uint256 public MIN_DEPOSIT_SIZE = (10**18);  // in ERC20 token
@@ -67,7 +68,9 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   //Mapping for epoch to totalStake for that epoch
   mapping (uint256 => State) public validatorState;
 
-  constructor () ERC721Full("Matic Validator", "MV") public {}
+  constructor (Registry _registry) ERC721Full("Matic Validator", "MV") public {
+    registry = _registry;
+  }
 
   // only staker
   modifier onlyStaker(uint256 validatorId) {
@@ -89,7 +92,8 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     totalStaked = totalStaked.add(amount);
     address _contract = address(0x0);
     if (isContract) {
-      _contract = address(new ValidatorContract(user, delegationManager));
+      // TODO: add registery to validatorContract
+      _contract = address(new ValidatorContract(user, registry.getDelegationManager()));
     }
 
     validators[NFTCounter] = Validator({

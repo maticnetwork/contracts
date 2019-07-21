@@ -8,6 +8,7 @@ contract Registry is Ownable {
   bytes32 constant private WETH_TOKEN = keccak256("wethToken");
   bytes32 constant private DEPOSIT_MANAGER = keccak256("depositManager");
   bytes32 constant private STAKE_MANAGER = keccak256("stakeManager");
+  bytes32 constant private DELEGATION_MANAGER = keccak256("delegationManager");
   bytes32 constant private WITHDRAW_MANAGER = keccak256("withdrawManager");
   bytes32 constant private CHILD_CHAIN_CONTRACT = keccak256("childChainContract");
   bytes constant public networkId = "\x0d";
@@ -105,6 +106,10 @@ contract Registry is Ownable {
     require(proofValidatorContracts[_validator] == true);
     emit ProofValidatorRemoved(_validator, msg.sender);
     delete proofValidatorContracts[_validator];
+  }
+
+  function getDelegationManager() public view returns(address) {
+    return contractMap[DELEGATION_MANAGER];
   }
 
   function getWethTokenAddress() public view returns(address) {
