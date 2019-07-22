@@ -102,6 +102,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     _getRewards(delegatorId);
     (,,,,,,validator,) = stakeManager.validators(delegators[delegatorId].bondedTo);
     ValidatorContract(validator).unBond(delegatorId, index, delegators[delegatorId].amount);
+    emit UnBonding(delegatorId, delegators[delegatorId].bondedTo);
     delegators[delegatorId].bondedTo = 0;
   }
 
@@ -116,7 +117,9 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
   }
 
   function reStake(uint256 delegatorId, uint256 amount, bool stakeRewards) public onlyDelegator(delegatorId) {
-    _getRewards(delegatorId);
+    if (delegators[delegatorId].bondedTo != 0) {
+      _getRewards(delegatorId);
+    }
     if (amount > 0) {
       require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");
     }
@@ -170,6 +173,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
   function unstakeClaim(uint256 delegatorId) public onlyDelegator(delegatorId) {
     // can only claim stake back after WITHDRAWAL_DELAY
     StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
+    // stakeManager.WITHDRAWAL_DELAY
     require(delegators[delegatorId].delegationStopEpoch.add(WITHDRAWAL_DELAY) <= stakeManager.currentEpoch());
     uint256 amount = delegators[delegatorId].amount;
     totalStaked = totalStaked.sub(amount);

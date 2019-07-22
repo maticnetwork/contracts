@@ -471,5 +471,12 @@ contract('StakeManager', async function(accounts) {
     })
     it('unBondLazy', async function() {})
     it('revertLazyUnBond', async function() {})
+    it('getRewards', async function() {
+      // simulate checkpoints and get rewards
+      // stake
+      // bond
+      // push checkpoints
+      // get rewards
+    })
   })
 })
