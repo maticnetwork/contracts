@@ -4,6 +4,7 @@ import { ERC721Full } from "openzeppelin-solidity/contracts/token/ERC721/ERC721F
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
+import { Registry } from "../common/Registry.sol";
 import { IDelegationManager } from "./IDelegationManager.sol";
 
 
@@ -17,14 +18,13 @@ contract Validator is ERC721Full {
 
 contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
   using SafeMath for uint256;
-  event UpdateDelegationManager(address indexed oldContract, address indexed newcontract);
 
   uint256 public delegatedAmount;
   uint256[] public delegators;
   uint256 public rewards = 0;
   uint256 public validatorRewards = 0;
   address public validator;
-  IDelegationManager public delegationManager;
+  Registry public registry;
   bool delegation = true;
 
   // will be reflected after one WITHDRAWAL_DELAY/(some Period + upper lower cap)
@@ -39,19 +39,14 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
   // keep state of each checkpoint and rewards
   mapping (uint256 => State) public delegationState;
 
-  constructor (address _validator, address _delegationManager) public {
+  constructor (address _validator, address _registry) public {
     validator = _validator;
-    delegationManager = IDelegationManager(_delegationManager);
+    registry = Registry(_registry);
   }
 
   modifier onlyDelegatorContract() {
-    require(address(delegationManager) == msg.sender);
+    require(registry.getDelegationManagerAddress() == msg.sender);
     _;
-  }
-
-  function updateDelegationManager(address _delegationManager) public onlyOwner {
-    emit UpdateDelegationManager(address(delegationManager), _delegationManager);
-    delegationManager = IDelegationManager(_delegationManager);
   }
 
   function updateRewards(uint256 amount, uint256 checkpoint, uint256 validatorStake) public onlyOwner {
@@ -83,6 +78,7 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
 
   function unBondAllLazy(uint256 exitEpoch) public onlyOwner returns(bool) {
     delegation = false; //  won't be accepting any new delegations
+    IDelegationManager delegationManager = IDelegationManager(registry.getDelegationManagerAddress());
     for (uint256 i; i < delegators.length; i++) {
       delegationManager.unBondLazy(delegators[i], exitEpoch, validator);
     }
@@ -91,6 +87,7 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
 
   function revertLazyUnBonding(uint256 exitEpoch) public onlyOwner returns(bool) {
     delegation = true;
+    IDelegationManager delegationManager = IDelegationManager(registry.getDelegationManagerAddress());
     for (uint256 i; i < delegators.length; i++) {
       delegationManager.revertLazyUnBond(delegators[i], exitEpoch, validator);
     }

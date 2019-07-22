@@ -108,7 +108,7 @@ contract Registry is Ownable {
     delete proofValidatorContracts[_validator];
   }
 
-  function getDelegationManager() public view returns(address) {
+  function getDelegationManagerAddress() public view returns(address) {
     return contractMap[DELEGATION_MANAGER];
   }
 

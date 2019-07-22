@@ -1,5 +1,6 @@
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
+import utils from 'ethereumjs-util'
 
 import deployer from '../helpers/deployer.js'
 import { ValidatorContract } from '../helpers/artifacts'
@@ -15,32 +16,23 @@ import logDecoder from '../helpers/log-decoder.js'
 chai.use(chaiAsPromised).should()
 
 contract('ValidatorContract', async function(accounts) {
-  let validatorContract, wallets
+  let validatorContract, wallets, registry
 
   before(async function() {
     wallets = generateFirstWallets(mnemonics, 4)
+    const contracts = await deployer.freshDeploy()
+    registry = contracts.registry
+    await registry.updateContractMap(
+      utils.keccak256('delegationManager'),
+      wallets[2].getAddressString()
+    )
   })
 
   beforeEach(async function() {
     validatorContract = await ValidatorContract.new(
       wallets[1].getAddressString(),
-      wallets[2].getAddressString()
+      registry.address
     )
-  })
-
-  it('UpdateDelegationManager', async function() {
-    const result = await validatorContract.updateDelegationManager(
-      wallets[1].getAddressString()
-    )
-    const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
-    logs.should.have.lengthOf(1)
-    logs[0].event.should.equal('UpdateDelegationManager')
-    logs[0].args.oldContract
-      .toLowerCase()
-      .should.equal(wallets[2].getAddressString())
-    logs[0].args.newcontract
-      .toLowerCase()
-      .should.equal(wallets[1].getAddressString())
   })
 
   it('write history for checkpoint rewards and get rewards for delegator/validator', async function() {
