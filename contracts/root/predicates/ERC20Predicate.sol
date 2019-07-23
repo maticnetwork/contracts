@@ -5,6 +5,7 @@ import { Common } from "../../common/lib/Common.sol";
 import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 import { RLPEncode } from "../../common/lib/RLPEncode.sol";
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
+import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { IErcPredicate } from "./IPredicate.sol";
 import { WithdrawManagerHeader } from "../withdrawManager/WithdrawManagerStorage.sol";
@@ -12,6 +13,7 @@ import { WithdrawManagerHeader } from "../withdrawManager/WithdrawManagerStorage
 contract ERC20Predicate is IErcPredicate {
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
+  using SafeMath for uint256;
 
   bytes32 constant DEPOSIT_EVENT_SIG = 0x4e2ca0515ed1aef1395f66b5303bb5d6f1bf9d61a353fa53f73f8ac9973fa9f6;
   bytes32 constant WITHDRAW_EVENT_SIG = 0xebff2602b3f468259e1e99f613fed6691f3a6526effe6ef3e768ba7ae7a36c4f;
@@ -21,7 +23,7 @@ contract ERC20Predicate is IErcPredicate {
   // 0xa9059cbb = keccak256('transfer(address,uint256)').slice(0, 4)
   bytes4 constant TRANSFER_FUNC_SIG = 0xa9059cbb;
 
-  constructor(address _withdrawManager, address _depositManager)
+  constructor (address _withdrawManager, address _depositManager)
     IErcPredicate(_withdrawManager, _depositManager)
     public {}
 
@@ -61,17 +63,24 @@ contract ERC20Predicate is IErcPredicate {
     isBondProvided
     returns(address /* rootToken */, uint256 /* exitAmount */)
   {
+    // referenceTx is a proof-of-funds of the party who signed the exit tx
+    // If the exitor is exiting with outgoing transfer, it will refer to their own preceding tx
+    // If the exitor is exiting with incoming transfer, it will refer to the counterparty's preceding tx
     RLPReader.RLPItem[] memory referenceTx = data.toRlpItem().toList();
+
+    // Checking the inclusion of the receipt of the preceding tx is enough
+    // It is inconclusive to check the inclusion of the signed tx, hence verifyTxInclusion = false
+    // age is a measure of the position of the tx in the side chain
     uint256 age = withdrawManager.verifyInclusion(data, 0 /* offset */, false /* verifyTxInclusion */);
 
-    // validate exitTx - This may be an in-flight tx, so inclusion will not be checked
+    // Validate the exitTx - This may be an in-flight tx, so inclusion will not be checked
     ExitTxData memory exitTxData = processExitTx(exitTx);
 
-    // process the receipt of the referenced tx
+    // Process the receipt of the referenced tx
     ReferenceTxData memory referenceTxData = processReferenceTx(
       referenceTx[6].toBytes(), // receipt
       referenceTx[9].toUint(), // logIndex
-      exitTxData.signer,
+      exitTxData.signer, // pikcing up the signer from exitTx and compare that reference tx was also signed by them
       false /* isChallenge */
     );
     require(
@@ -79,7 +88,8 @@ contract ERC20Predicate is IErcPredicate {
       "Reference and exit tx do not correspond to the same child token"
     );
     exitTxData.amountOrToken = validateSequential(exitTxData, referenceTxData);
-    age += referenceTxData.age; // @todo use SafeMath
+    // Add the logIndex and oIndex from the receipt
+    age = age.add(referenceTxData.age);
 
     sendBond(); // send BOND_AMOUNT to withdrawManager
     if (referenceTx.length <= 10) {
@@ -108,15 +118,17 @@ contract ERC20Predicate is IErcPredicate {
       _referenceTxData.rootToken == referenceTxData.rootToken,
       "root tokens in the referenced txs do not match"
     );
-    otherReferenceTxAge += _referenceTxData.age;
+    otherReferenceTxAge = otherReferenceTxAge.add(_referenceTxData.age);
+
+    // What MoreVp calls the age of the youngest input
     uint256 priority = Math.max(age, otherReferenceTxAge);
     withdrawManager.addExitToQueue(
       msg.sender, referenceTxData.childToken, referenceTxData.rootToken,
-      exitTxData.amountOrToken + _referenceTxData.closingBalance, exitTxData.txHash, false /* isRegularExit */, priority
+      exitTxData.amountOrToken.add(_referenceTxData.closingBalance), exitTxData.txHash, false /* isRegularExit */, priority
     );
     withdrawManager.addInput(priority, age, exitTxData.signer);
     withdrawManager.addInput(priority, otherReferenceTxAge, msg.sender);
-    return (referenceTxData.rootToken, exitTxData.amountOrToken + _referenceTxData.closingBalance);
+    return (referenceTxData.rootToken, exitTxData.amountOrToken.add(_referenceTxData.closingBalance));
   }
 
   function verifyDeprecation(bytes calldata exit, bytes calldata inputUtxo, bytes calldata challengeData)
@@ -149,7 +161,7 @@ contract ERC20Predicate is IErcPredicate {
       exitTxData.childToken == referenceTxData.childToken,
       "Tx and receipt do not correspond to the same child token"
     );
-    ageOfChallengeTx += referenceTxData.age; // @todo SafeMath
+    ageOfChallengeTx = ageOfChallengeTx.add(referenceTxData.age);
     return ageOfChallengeTx > age;
   }
 
@@ -178,9 +190,9 @@ contract ERC20Predicate is IErcPredicate {
     inputItems = inputItems[1].toList(); // topics
     data.rootToken = address(RLPReader.toUint(inputItems[1]));
     (data.closingBalance, data.age) = processStateUpdate(inputItems, logData, participant);
-    data.age += (logIndex * MAX_LOGS); // @todo use safeMath
+    data.age = data.age.add(logIndex.mul(MAX_LOGS));
     if (verifyInclusion) {
-      data.age += withdrawManager.verifyInclusion(_data, 0, false /* verifyTxInclusion */); // @todo use safeMath
+      data.age = data.age.add(withdrawManager.verifyInclusion(_data, 0, false /* verifyTxInclusion */));
     }
     return abi.encode(data.closingBalance, data.age, data.childToken, data.rootToken);
   }
@@ -215,7 +227,7 @@ contract ERC20Predicate is IErcPredicate {
     } else {
       (data.closingBalance, data.age) = processStateUpdate(inputItems, logData, participant);
     }
-    data.age += (logIndex * MAX_LOGS); // @todo use safeMath
+    data.age = data.age.add(logIndex.mul(MAX_LOGS));
   }
 
   function validateSequential(ExitTxData memory exitTxData, ReferenceTxData memory referenceTxData)

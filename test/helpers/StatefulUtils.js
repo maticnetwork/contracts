@@ -8,7 +8,7 @@ import {
   getReceiptProof,
   verifyReceiptProof
 } from './proofs'
-import { build, buildInFlight } from '../mockResponses/utils'
+import { build } from '../mockResponses/utils'
 
 const utils = require('./utils')
 const web3Child = utils.web3Child

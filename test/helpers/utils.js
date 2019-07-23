@@ -42,7 +42,7 @@ export function encodeSigs(sigs = []) {
 
 export function assertBigNumberEquality(num1, num2) {
   if (!BN.isBN(num1)) num1 = web3.utils.toBN(num1.toString())
-  if (!BN.isBN(num2)) num2 = web3.utils.toBN(num2)
+  if (!BN.isBN(num2)) num2 = web3.utils.toBN(num2.toString())
   expect(num1.eq(num2)).to.be.true
 }
 
@@ -146,15 +146,17 @@ export function startExitWithBurntTokens(predicate, input, from) {
   )
 }
 
-export function startExitNew(predicate, inputs, exitTx) {
+export function startExitNew(predicate, inputs, exitTx, from) {
   let _inputs = []
   inputs.forEach(input => {
     _inputs = _inputs.concat(buildReferenceTxPayload(input))
   })
+  const options = { value: web3.utils.toWei('.1', 'ether') }
+  if (from) options.from = from
   return predicate.startExit(
     ethUtils.bufferToHex(rlp.encode(_inputs)),
     ethUtils.bufferToHex(exitTx),
-    { value: web3.utils.toWei('.1', 'ether') }
+    options
   )
 }
 

@@ -71,7 +71,10 @@ const libDeps = [
   },
   {
     lib: SafeMath,
-    contracts: [RootChain]
+    contracts: [
+      RootChain,
+      ERC20Predicate
+    ]
   }
 ]
 
