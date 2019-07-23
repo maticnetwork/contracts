@@ -337,7 +337,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   }
 
   function rewardValidator(uint256 validatorId, uint256 _totalStake, uint256 stakePower) internal {
-    uint256 checkpointReward = 10; // Todo: fix me
+    uint256 checkpointReward = 10000; // Todo: fix me
     uint256 _reward = checkpointReward.mul(stakePower).div(_totalStake);
     address _contract = validators[validatorId].contractAddress;
     if (_contract == address(0x0)) {

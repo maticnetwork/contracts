@@ -3,15 +3,19 @@ import chaiAsPromised from 'chai-as-promised'
 
 import utils from 'ethereumjs-util'
 
-import { encodeSigs, getSigs, ZeroAddress } from '../helpers/utils'
-import { StakeManager, DummyERC20 } from '../helpers/artifacts'
+import {
+  StakeManager,
+  DummyERC20,
+  ValidatorContract
+} from '../helpers/artifacts'
 import logDecoder from '../helpers/log-decoder.js'
 
 import deployer from '../helpers/deployer.js'
 import {
   assertBigNumberEquality,
   assertBigNumbergt,
-  buildSubmitHeaderBlockPaylod
+  encodeSigs,
+  getSigs
 } from '../helpers/utils.js'
 import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
 
@@ -29,7 +33,7 @@ contract('StakeManager', async function(accounts) {
     before(async function() {
       wallets = generateFirstWallets(mnemonics, 10)
       stakeToken = await DummyERC20.new('Stake Token', 'STAKE')
-      stakeManager = await StakeManager.new()
+      stakeManager = await StakeManager.new(stakeToken.address) // dummy registry address
       await stakeManager.setToken(stakeToken.address)
       await stakeManager.changeRootChain(wallets[1].getAddressString())
 
@@ -468,15 +472,6 @@ contract('StakeManager', async function(accounts) {
           from: wallets[1].getAddressString()
         }
       )
-    })
-    it('unBondLazy', async function() {})
-    it('revertLazyUnBond', async function() {})
-    it('getRewards', async function() {
-      // simulate checkpoints and get rewards
-      // stake
-      // bond
-      // push checkpoints
-      // get rewards
     })
   })
 })
