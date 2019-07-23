@@ -198,8 +198,8 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       validatorState[exitEpoch].stakerCount + 1);
 
     require(validators[validatorId].contractAddress == address(0x0) ||
-      ValidatorContract(validators[validatorId].contractAddress).unBondAllLazy(exitEpoch),
-      "unbond all delegators");
+      ValidatorContract(validators[validatorId].contractAddress).revertLazyUnBonding(exitEpoch),
+      "bonding all delegators failed");
 
     validators[validatorId].deactivationEpoch = 0;
     validators[validatorId].status = Status.Active;
@@ -217,8 +217,9 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     validatorState[exitEpoch].stakerCount = (
       validatorState[exitEpoch].stakerCount - 1);
 
+
     require(validators[validatorId].contractAddress == address(0x0) ||
-      ValidatorContract(validators[validatorId].contractAddress).revertLazyUnBonding(exitEpoch),
+      ValidatorContract(validators[validatorId].contractAddress).unBondAllLazy(exitEpoch),
       "unbond all delegators");
 
     validators[validatorId].deactivationEpoch = exitEpoch;

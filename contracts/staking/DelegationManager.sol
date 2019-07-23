@@ -111,9 +111,10 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
   }
 
   function revertLazyUnBond(uint256 delegatorId, uint256 epoch, address validator) public /* onlyStakeManager(delegatorId) */ {
-    if (delegators[delegatorId].delegationStopEpoch == epoch) {
-      delegators[delegatorId].delegationStopEpoch = 0;
-    }
+    // TODO: revert all from unBondLazy
+    // if (delegators[delegatorId].delegationStopEpoch == epoch) {
+    delegators[delegatorId].delegationStopEpoch = 0;
+    // }
   }
 
   function reStake(uint256 delegatorId, uint256 amount, bool stakeRewards) public onlyDelegator(delegatorId) {

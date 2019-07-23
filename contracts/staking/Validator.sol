@@ -91,6 +91,7 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
     for (uint256 i; i < delegators.length; i++) {
       delegationManager.revertLazyUnBond(delegators[i], exitEpoch, validator);
     }
+    return true;
   }
 
   function getRewards(uint256 delegatorId, uint256 delegationAmount, uint256 startEpoch, uint256 endEpoch, uint256 currentEpoch) public view returns(uint256) {
