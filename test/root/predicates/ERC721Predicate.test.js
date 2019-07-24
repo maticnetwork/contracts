@@ -7,6 +7,7 @@ import logDecoder from '../../helpers/log-decoder.js'
 import { buildInFlight } from '../../mockResponses/utils'
 import StatefulUtils from '../../helpers/StatefulUtils'
 
+const predicateTestUtils = require('./predicateTestUtils')
 const crypto = require('crypto')
 const utils = require('../../helpers/utils')
 const web3Child = utils.web3Child
@@ -22,6 +23,7 @@ contract('ERC721Predicate', async function(accounts) {
 
   before(async function() {
     contracts = await deployer.freshDeploy()
+    contracts.ERC721Predicate = await deployer.deployErc721Predicate()
     childContracts = await deployer.initializeChildChain(accounts[0])
     statefulUtils = new StatefulUtils()
   })
@@ -149,7 +151,59 @@ contract('ERC721Predicate', async function(accounts) {
   })
 
   describe('verifyDeprecation', async function() {
-    it('write test')
+    beforeEach(async function() {
+      // contracts.ERC721Predicate = await deployer.deployErc721Predicate()
+      const { rootERC721, childErc721 } = await deployer.deployChildErc721(accounts[0])
+      childContracts.rootERC721 = rootERC721
+      childContracts.childErc721 = childErc721
+    })
+
+    it('Mallory tries to exit a spent output', async function() {
+      const alice = accounts[0]
+      const mallory = accounts[1]
+      // const aliceInitial = web3.utils.toBN('13')
+      // const aliceToMalloryTransferAmount = web3.utils.toBN('7')
+
+      // UTXO1A
+      const deposit = await utils.deposit(
+        contracts.depositManager,
+        childContracts.childChain,
+        childContracts.rootERC721,
+        alice,
+        tokenId
+      )
+      const utxo1a = { checkpoint: await statefulUtils.submitCheckpoint(contracts.rootChain, deposit.receipt, accounts), logIndex: 1 }
+
+      // Alice spends UTXO1A in tx1 to Mallory, creating UTXO1M
+      const tx1 = await childContracts.childErc721.transferFrom(alice, mallory, tokenId, { from: alice })
+
+      // Mallory spends UTXO2M in TX2
+      const tx2 = await childContracts.childErc721.transferFrom(mallory, '0x' + crypto.randomBytes(20).toString('hex'), tokenId, { from: mallory })
+      const spendUtxo = { checkpoint: await statefulUtils.submitCheckpoint(contracts.rootChain, tx2.receipt, accounts), logIndex: 1 }
+
+      // Mallory starts an exit from TX1 (from UTXO1M) while referencing UTXO1A and places exit bond
+      let startExitTx = await utils.startExitNew(
+        contracts.ERC721Predicate,
+        [utxo1a].map(predicateTestUtils.buildInputFromCheckpoint), // proof-of-funds of counterparty
+        await predicateTestUtils.buildInFlight(await web3Child.eth.getTransaction(tx1.receipt.transactionHash)),
+        mallory // exitor
+      )
+      let logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+      // console.log(startExitTx, logs)
+      const ageOfUtxo1a = predicateTestUtils.getAge(utxo1a)
+      predicateTestUtils.assertStartExit(logs[1], mallory, childContracts.rootERC721.address, tokenId, false /* isRegularExit */, ageOfUtxo1a)
+      predicateTestUtils.assertExitUpdated(logs[2], alice, ageOfUtxo1a)
+
+      // During the challenge period, the challenger reveals TX2 and receives exit bond
+      const challengeData = utils.buildChallengeData(predicateTestUtils.buildInputFromCheckpoint(spendUtxo))
+      // This will be used to assert that challenger received the bond amount
+      const originalBalance = web3.utils.toBN(await web3.eth.getBalance(accounts[0]))
+      const challenge = await contracts.withdrawManager.challengeExit(ageOfUtxo1a, ageOfUtxo1a, challengeData)
+      await predicateTestUtils.assertChallengeBondReceived(challenge, originalBalance)
+      const log = challenge.logs[0]
+      log.event.should.equal('ExitCancelled')
+      utils.assertBigNumberEquality(log.args.exitId, ageOfUtxo1a)
+    })
   })
 
   describe('ERC721PlasmaMintable', async function() {
