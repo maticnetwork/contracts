@@ -2,15 +2,18 @@ import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 
 import deployer from '../helpers/deployer.js'
-import { assertBigNumberEquality, assertBigNumbergt, buildSubmitHeaderBlockPaylod } from '../helpers/utils.js'
+import { DummyERC20 } from '../helpers/artifacts.js'
+import {
+  assertBigNumberEquality,
+  assertBigNumbergt,
+  buildSubmitHeaderBlockPaylod
+} from '../helpers/utils.js'
 import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
 
-chai
-  .use(chaiAsPromised)
-  .should()
+chai.use(chaiAsPromised).should()
 
-contract("RootChain", async function(accounts) {
-  let rootChain, wallets
+contract('RootChain', async function(accounts) {
+  let rootChain, wallets, stakeManager, stakeToken
 
   before(async function() {
     const stakes = {
@@ -25,10 +28,31 @@ contract("RootChain", async function(accounts) {
   beforeEach(async function() {
     const contracts = await deployer.freshDeploy()
     rootChain = contracts.rootChain
+    stakeManager = contracts.stakeManager
+    stakeToken = await DummyERC20.new('Stake Token', 'STAKE')
+    await stakeManager.setToken(stakeToken.address)
+    await stakeManager.changeRootChain(rootChain.address)
+
+    let amount = web3.utils.toWei('1000')
+    for (let i = 0; i < 4; i++) {
+      await stakeToken.mint(wallets[i].getAddressString(), amount)
+      await stakeToken.approve(stakeManager.address, amount, {
+        from: wallets[i].getAddressString()
+      })
+      await stakeManager.stake(amount, wallets[i].getAddressString(), false, {
+        from: wallets[i].getAddressString()
+      })
+    }
   })
 
-  it("submitHeaderBlock", async function() {
-    const {vote, sigs, extraData, root} = buildSubmitHeaderBlockPaylod(accounts[0], 0, 22, '' /* root */, wallets)
+  it('submitHeaderBlock', async function() {
+    const { vote, sigs, extraData, root } = buildSubmitHeaderBlockPaylod(
+      accounts[0],
+      0,
+      22,
+      '' /* root */,
+      wallets
+    )
     const result = await rootChain.submitHeaderBlock(vote, sigs, extraData)
     const logs = result.logs
     logs.should.have.lengthOf(1)
@@ -42,15 +66,27 @@ contract("RootChain", async function(accounts) {
     assertBigNumberEquality(logs[0].args.end, '22')
   })
 
-  it("submit multiple headerBlocks", async function() {
+  it('submit multiple headerBlocks', async function() {
     let payload = buildSubmitHeaderBlockPaylod(accounts[0], 0, 4, '', wallets)
-    await rootChain.submitHeaderBlock(payload.vote, payload.sigs, payload.extraData)
+    await rootChain.submitHeaderBlock(
+      payload.vote,
+      payload.sigs,
+      payload.extraData
+    )
 
     payload = buildSubmitHeaderBlockPaylod(accounts[0], 5, 9, '', wallets)
-    await rootChain.submitHeaderBlock(payload.vote, payload.sigs, payload.extraData)
+    await rootChain.submitHeaderBlock(
+      payload.vote,
+      payload.sigs,
+      payload.extraData
+    )
 
     payload = buildSubmitHeaderBlockPaylod(accounts[0], 10, 14, '', wallets)
-    await rootChain.submitHeaderBlock(payload.vote, payload.sigs, payload.extraData)
+    await rootChain.submitHeaderBlock(
+      payload.vote,
+      payload.sigs,
+      payload.extraData
+    )
 
     let block = await rootChain.headerBlocks('10000')
     assertBigNumbergt(block.createdAt, '0')
@@ -62,14 +98,14 @@ contract("RootChain", async function(accounts) {
     assertBigNumbergt(block.createdAt, '0')
 
     block = await rootChain.headerBlocks('40000')
-    assertBigNumberEquality(block.createdAt, '0');
+    assertBigNumberEquality(block.createdAt, '0')
   })
 
-  it("updateDepositId is ACLed on onlyDepositManager", async function() {
+  it('updateDepositId is ACLed on onlyDepositManager', async function() {
     try {
       await rootChain.updateDepositId(1)
-      assert.fail('should have failed with UNAUTHORIZED_DEPOSIT_MANAGER_ONLY');
-    } catch(e) {
+      assert.fail('should have failed with UNAUTHORIZED_DEPOSIT_MANAGER_ONLY')
+    } catch (e) {
       expect(e.reason).to.equal('UNAUTHORIZED_DEPOSIT_MANAGER_ONLY')
     }
   })
