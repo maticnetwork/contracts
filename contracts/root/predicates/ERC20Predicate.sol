@@ -23,7 +23,7 @@ contract ERC20Predicate is IErcPredicate {
   // 0xa9059cbb = keccak256('transfer(address,uint256)').slice(0, 4)
   bytes4 constant TRANSFER_FUNC_SIG = 0xa9059cbb;
 
-  constructor (address _withdrawManager, address _depositManager)
+  constructor(address _withdrawManager, address _depositManager)
     IErcPredicate(_withdrawManager, _depositManager)
     public {}
 
@@ -57,6 +57,23 @@ contract ERC20Predicate is IErcPredicate {
     withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, exitAmount, bytes32(0x0), true /* isRegularExit */, age);
   }
 
+  /**
+   * @notice Start an exit by referencing the preceding (reference) transaction
+   * @param data RLP encoded data of the reference tx(s) that encodes the following fields for each tx
+   * headerNumber Header block number of which the reference tx was a part of
+   * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
+   * blockNumber Block number of which the reference tx is a part of
+   * blockTime Reference tx block time
+   * blocktxRoot Transactions root of block
+   * blockReceiptsRoot Receipts root of block
+   * receipt Receipt of the reference transaction
+   * receiptProof Merkle proof of the reference receipt
+   * branchMask Merkle proof branchMask for the receipt
+   * logIndex Log Index to read from the receipt
+   * @param exitTx Signed exit transaction
+   * @return address rootToken that the exit corresponds to
+   * @return uint256 exitAmount
+   */
   function startExit(bytes calldata data, bytes calldata exitTx)
     external
     payable
@@ -80,7 +97,7 @@ contract ERC20Predicate is IErcPredicate {
     ReferenceTxData memory referenceTxData = processReferenceTx(
       referenceTx[6].toBytes(), // receipt
       referenceTx[9].toUint(), // logIndex
-      exitTxData.signer, // pikcing up the signer from exitTx and compare that reference tx was also signed by them
+      exitTxData.signer, // picking up the signer from exitTx and checking their proof-of-funds in the reference tx
       false /* isChallenge */
     );
     require(
@@ -131,6 +148,25 @@ contract ERC20Predicate is IErcPredicate {
     return (referenceTxData.rootToken, exitTxData.amountOrToken.add(_referenceTxData.closingBalance));
   }
 
+  /**
+   * @notice Verify the deprecation of a state update
+   * @param exit ABI encoded PlasmaExit data
+   * @param inputUtxo ABI encoded Input UTXO data
+   * @param challengeData RLP encoded data of the challenge reference tx that encodes the following fields
+   * headerNumber Header block number of which the reference tx was a part of
+   * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
+   * blockNumber Block number of which the reference tx is a part of
+   * blockTime Reference tx block time
+   * blocktxRoot Transactions root of block
+   * blockReceiptsRoot Receipts root of block
+   * receipt Receipt of the reference transaction
+   * receiptProof Merkle proof of the reference receipt
+   * branchMask Merkle proof branchMask for the receipt
+   * logIndex Log Index to read from the receipt
+   * tx Challenge transaction
+   * txProof Merkle proof of the challenge tx
+   * @return Whether or not the state is deprecated
+   */
   function verifyDeprecation(bytes calldata exit, bytes calldata inputUtxo, bytes calldata challengeData)
     external
     returns (bool)
@@ -138,31 +174,33 @@ contract ERC20Predicate is IErcPredicate {
     PlasmaExit memory _exit = decodeExit(exit);
     (uint256 age, address signer) = decodeInputUtxo(inputUtxo);
     RLPReader.RLPItem[] memory _challengeData = challengeData.toRlpItem().toList();
-    ExitTxData memory exitTxData = processChallengeTx(_challengeData[10].toBytes());
+    ExitTxData memory challengeTxData = processChallengeTx(_challengeData[10].toBytes());
     require(
-      signer == exitTxData.signer,
-      "Challenge tx not signed by the party who signed the input UTXO to the exit"
+      challengeTxData.signer == signer || challengeTxData.signer == _exit.owner,
+      "Challenge tx not signed by the exitor or the party who signed the input UTXO to the exit"
     );
     require(
-      _exit.token == exitTxData.childToken,
+      _exit.token == challengeTxData.childToken,
       "Challenge tx token doesnt match with exit token"
     );
     require(
-      _exit.txHash != exitTxData.txHash,
+      _exit.txHash != challengeTxData.txHash,
       "Cannot challenge with the exit tx"
     );
+
+    // receipt alone is not enough for a challenge. It is required to check that the challenge tx was included as well
     uint256 ageOfChallengeTx = withdrawManager.verifyInclusion(challengeData, 0, true /* verifyTxInclusion */);
     ReferenceTxData memory referenceTxData = processReferenceTx(
       _challengeData[6].toBytes(), // receipt
       _challengeData[9].toUint(), // logIndex
-      signer,
+      challengeTxData.signer,
       true /* isChallenge */);
     require(
-      exitTxData.childToken == referenceTxData.childToken,
+      challengeTxData.childToken == referenceTxData.childToken,
       "Tx and receipt do not correspond to the same child token"
     );
-    ageOfChallengeTx = ageOfChallengeTx.add(referenceTxData.age);
-    return ageOfChallengeTx > age;
+    // The challenge tx should be more recent that the Utxo being challenged
+    return ageOfChallengeTx.add(referenceTxData.age) > age;
   }
 
   function onFinalizeExit(address exitor, address token, uint256 tokenId)
@@ -198,10 +236,12 @@ contract ERC20Predicate is IErcPredicate {
   }
 
   /**
-   * @notice Process the reference tx to start a MoreVP style exit
+   * @dev Process the reference tx to start a MoreVP style exit
    * @param receipt Receipt of the reference transaction
    * @param logIndex Log Index to read from the receipt
    * @param participant Either of exitor or a counterparty depending on the type of exit
+   * @param isChallenge Whether it is a challenge or start exit operation
+   * @return ReferenceTxData Parsed reference tx data
    */
   function processReferenceTx(
     bytes memory receipt,
@@ -227,6 +267,7 @@ contract ERC20Predicate is IErcPredicate {
     } else {
       (data.closingBalance, data.age) = processStateUpdate(inputItems, logData, participant);
     }
+    // In our construction, we give an incrementing age to every log in a receipt
     data.age = data.age.add(logIndex.mul(MAX_LOGS));
   }
 
@@ -246,7 +287,7 @@ contract ERC20Predicate is IErcPredicate {
     if (exitTxData.exitType == ExitType.OutgoingTransfer) {
       return referenceTxData.closingBalance - exitTxData.amountOrToken;
     }
-    // If exit tx was burnt tx, exit with the entire referenced balance not just that was burnt
+    // If exit tx was burnt tx, exit with the entire referenced balance not just that was burnt, since user only gets one chance to exit MoreVP style
     if (exitTxData.exitType == ExitType.Burnt) {
       return referenceTxData.closingBalance;
     }

@@ -1,23 +1,23 @@
 const Proofs = require('../../helpers/proofs')
 const utils = require('../../helpers/utils')
 
-const HEADER_BLOCK_NUMBER_WEIGHT = web3.utils.toBN(10).pow(web3.utils.toBN(30))
+export const HEADER_BLOCK_NUMBER_WEIGHT = web3.utils.toBN(10).pow(web3.utils.toBN(30))
 const CHILD_BLOCK_NUMBER_WEIGHT = web3.utils.toBN(10).pow(web3.utils.toBN(12))
 const BRANCH_MASK_WEIGHT = web3.utils.toBN(10).pow(web3.utils.toBN(5))
 const MAX_LOGS = web3.utils.toBN(10)
+const BOND_AMOUNT = web3.utils.toBN(10).pow(web3.utils.toBN(17))
 
-// builds the reference tx input payload in the format that utils.startExitNew expects
-export function buildInputFromCheckpoint(checkpoints) {
-  return checkpoints.map(({ checkpoint, logIndex }) => {
-    return {
-      headerNumber: checkpoint.headerNumber,
-      blockProof: checkpoint.blockProof,
-      blockNumber: checkpoint.block.number,
-      blockTimestamp: checkpoint.block.timestamp,
-      reference: checkpoint.reference,
-      logIndex
-    }
-  })
+// builds the reference tx input payload in the format that utils.startExitNew or utils.buildChallengeData expect
+export function buildInputFromCheckpoint(utxo) {
+  const { checkpoint, logIndex } = utxo
+  return {
+    headerNumber: checkpoint.headerNumber,
+    blockProof: checkpoint.blockProof,
+    blockNumber: checkpoint.block.number,
+    blockTimestamp: checkpoint.block.timestamp,
+    reference: checkpoint.reference,
+    logIndex
+  }
 }
 
 export function getAge(utxo) {
@@ -50,14 +50,22 @@ export function assertStartExit(log, exitor, token, amount, isRegularExit, exitI
   log.event.should.equal('ExitStarted')
   expect(log.args).to.include({ exitor, token, isRegularExit })
   utils.assertBigNumberEquality(log.args.amount, amount)
-  console.log()
-  utils.assertBigNumberEquality(log.args.exitId, exitId)
+  if (exitId) utils.assertBigNumberEquality(log.args.exitId, exitId)
 }
 
 export function assertExitUpdated(log, signer, exitId, age) {
-  if (!age) age = exitId
   log.event.should.equal('ExitUpdated')
   expect(log.args).to.include({ signer })
-  utils.assertBigNumberEquality(log.args.age, age)
   utils.assertBigNumberEquality(log.args.exitId, exitId)
+  utils.assertBigNumberEquality(log.args.age, age || exitId)
+}
+
+export async function assertChallengeBondReceived(challenge, originalBalance) {
+  const challenger = challenge.receipt.from
+  // Need this to get the gasPrice to assert that challenger received the bond amount
+  const tx = await web3.eth.getTransaction(challenge.tx)
+  const ethSpent = web3.utils.toBN(challenge.receipt.gasUsed).mul(web3.utils.toBN(tx.gasPrice))
+  const expectedBalance = originalBalance.sub(ethSpent).add(BOND_AMOUNT)
+  const nowBalance = web3.utils.toBN(await web3.eth.getBalance(challenger))
+  assert.ok(expectedBalance.eq(nowBalance), 'Exitor did not receive the bond')
 }

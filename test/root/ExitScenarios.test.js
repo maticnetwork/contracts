@@ -5,6 +5,7 @@ import deployer from '../helpers/deployer.js'
 import logDecoder from '../helpers/log-decoder.js'
 import StatefulUtils from '../helpers/StatefulUtils'
 
+const crypto = require('crypto')
 const utils = require('../helpers/utils')
 const predicateTestUtils = require('./predicates/predicateTestUtils')
 const web3Child = utils.web3Child
@@ -13,9 +14,6 @@ chai.use(chaiAsPromised).should()
 let contracts, childContracts, rootERC20, childErc20, statefulUtils
 
 contract('Misc Predicates tests', async function(accounts) {
-  const alice = accounts[1]
-  const bob = accounts[2]
-
   before(async function() {
     contracts = await deployer.freshDeploy()
     childContracts = await deployer.initializeChildChain(accounts[0])
@@ -31,36 +29,31 @@ contract('Misc Predicates tests', async function(accounts) {
   })
 
   it('Alice & Bob are honest and cooperating', async function() {
+    const alice = accounts[1]
+    const bob = accounts[2]
     const aliceInitial = web3.utils.toBN('13')
     const bobInitial = web3.utils.toBN('9')
     const aliceToBobtransferAmount = web3.utils.toBN('7')
 
     // Utxo1a
-    let receipt = (await utils.deposit(
+    let deposit = await utils.deposit(
       contracts.depositManager,
       childContracts.childChain,
       rootERC20,
       alice,
       aliceInitial
-    )).receipt
-    const utxo1a = {
-      checkpoint: await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts),
-      logIndex: 1
-    }
-    let aliceExitId = predicateTestUtils.getAge(utxo1a)
+    )
+    const utxo1a = { checkpoint: await statefulUtils.submitCheckpoint(contracts.rootChain, deposit.receipt, accounts), logIndex: 1 }
 
     // Utxo1B
-    receipt = (await utils.deposit(
+    deposit = await utils.deposit(
       contracts.depositManager,
       childContracts.childChain,
       rootERC20,
       bob,
       bobInitial
-    )).receipt
-    const utxo1b = {
-      checkpoint: await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts),
-      logIndex: 1
-    }
+    )
+    const utxo1b = { checkpoint: await statefulUtils.submitCheckpoint(contracts.rootChain, deposit.receipt, accounts), logIndex: 1 }
     let bobExitId = predicateTestUtils.getAge(utxo1b)
 
     let inFlightTx = await predicateTestUtils.getRawInflightTx(childErc20.transfer.bind(null, bob, aliceToBobtransferAmount), alice /* from */, web3Child)
@@ -68,22 +61,21 @@ contract('Misc Predicates tests', async function(accounts) {
     // Alice starts an exit
     let startExitTx = await utils.startExitNew(
       contracts.ERC20Predicate,
-      predicateTestUtils.buildInputFromCheckpoint([utxo1a]),
+      [utxo1a].map(predicateTestUtils.buildInputFromCheckpoint),
       inFlightTx,
       alice // exitor
     )
     let logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
     // console.log(startExitTx, logs)
+    let aliceExitId = predicateTestUtils.getAge(utxo1a)
     predicateTestUtils.assertStartExit(logs[1], alice, rootERC20.address, aliceInitial.sub(aliceToBobtransferAmount), false /* isRegularExit */, aliceExitId)
     predicateTestUtils.assertExitUpdated(logs[2], alice, aliceExitId)
 
     // Bob starts an exit
     startExitTx = await utils.startExitNew(
       contracts.ERC20Predicate,
-      predicateTestUtils.buildInputFromCheckpoint([
-        utxo1a, // proof-of-funds of counterparty
-        utxo1b // proof-of-funds of exitor
-      ]),
+      // utxo1a is a proof-of-funds of counterparty and utxo1b is a proof-of-funds (that already existed on-chain) of the exitor
+      [utxo1a, utxo1b].map(predicateTestUtils.buildInputFromCheckpoint),
       inFlightTx,
       bob // exitor
     )
@@ -92,5 +84,51 @@ contract('Misc Predicates tests', async function(accounts) {
     predicateTestUtils.assertStartExit(logs[1], bob, rootERC20.address, bobInitial.add(aliceToBobtransferAmount), false /* isRegularExit */, bobExitId)
     predicateTestUtils.assertExitUpdated(logs[2], alice, bobExitId, aliceExitId)
     predicateTestUtils.assertExitUpdated(logs[3], bob, bobExitId)
+  })
+
+  it('Mallory tries to exit a spent output', async function() {
+    const alice = accounts[0]
+    const mallory = accounts[1]
+    const aliceInitial = web3.utils.toBN('13')
+    const aliceToMalloryTransferAmount = web3.utils.toBN('7')
+
+    // UTXO1A
+    let deposit = await utils.deposit(
+      contracts.depositManager,
+      childContracts.childChain,
+      rootERC20,
+      alice,
+      aliceInitial
+    )
+    const utxo1a = { checkpoint: await statefulUtils.submitCheckpoint(contracts.rootChain, deposit.receipt, accounts), logIndex: 1 }
+
+    // Alice spends UTXO1A in tx1 to Mallory, creating UTXO2M (and UTXO2A)
+    const tx1 = await childErc20.transfer(mallory, aliceToMalloryTransferAmount, { from: alice })
+
+    // Mallory spends UTXO2M in TX2 creating UTXO3M
+    const tx2 = await childErc20.transfer('0x' + crypto.randomBytes(20).toString('hex'), web3.utils.toBN('5'), { from: mallory })
+    const utxo3m = { checkpoint: await statefulUtils.submitCheckpoint(contracts.rootChain, tx2.receipt, accounts), logIndex: 1 }
+    // Mallory starts an exit from TX1 (from UTXO2M) while referencing UTXO1A and places exit bond
+    let startExitTx = await utils.startExitNew(
+      contracts.ERC20Predicate,
+      [utxo1a].map(predicateTestUtils.buildInputFromCheckpoint), // proof-of-funds of counterparty
+      await predicateTestUtils.buildInFlight(await web3Child.eth.getTransaction(tx1.receipt.transactionHash)),
+      mallory // exitor
+    )
+    let logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+    // console.log(startExitTx, logs)
+    const ageOfUtxo1a = predicateTestUtils.getAge(utxo1a)
+    predicateTestUtils.assertStartExit(logs[1], mallory, rootERC20.address, aliceToMalloryTransferAmount, false /* isRegularExit */, ageOfUtxo1a)
+    predicateTestUtils.assertExitUpdated(logs[2], alice, ageOfUtxo1a)
+
+    // During the challenge period, the challenger reveals TX2 and receives exit bond
+    const challengeData = utils.buildChallengeData(predicateTestUtils.buildInputFromCheckpoint(utxo3m))
+    // This will be used to assert that challenger received the bond amount
+    const originalBalance = web3.utils.toBN(await web3.eth.getBalance(accounts[0]))
+    const challenge = await contracts.withdrawManager.challengeExit(ageOfUtxo1a, ageOfUtxo1a, challengeData)
+    await predicateTestUtils.assertChallengeBondReceived(challenge, originalBalance)
+    const log = challenge.logs[0]
+    log.event.should.equal('ExitCancelled')
+    utils.assertBigNumberEquality(log.args.exitId, ageOfUtxo1a)
   })
 })

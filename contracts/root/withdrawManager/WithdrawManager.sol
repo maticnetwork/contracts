@@ -194,9 +194,9 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
    * @dev Add a state update (UTXO style input) to an exit
    * @param exitId Exit ID
    * @param age age of the UTXO style input
-   * @param signer Signer of the state update which is being added as an input
+   * @param participant User for which the input acts as a proof-of-funds
    */
-  function addInput(uint256 exitId, uint256 age, address signer)
+  function addInput(uint256 exitId, uint256 age, address participant)
     external
   {
     PlasmaExit storage exitObject = exits[exitId];
@@ -207,14 +207,14 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       exitObject.predicate == msg.sender,
       "EXIT_DOES_NOT_EXIST OR NOT_AUTHORIZED"
     );
-    _addInput(exitId, age, signer);
+    _addInput(exitId, age, participant);
   }
 
-  function _addInput(uint256 exitId, uint256 age, address signer)
+  function _addInput(uint256 exitId, uint256 age, address participant)
     internal
   {
-    exits[exitId].inputs[age] = Input(signer);
-    emit ExitUpdated(exitId, age, signer);
+    exits[exitId].inputs[age] = Input(participant);
+    emit ExitUpdated(exitId, age, participant);
   }
 
   function challengeExit(uint256 exitId, uint256 inputId, bytes calldata challengeData)

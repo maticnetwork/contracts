@@ -197,7 +197,6 @@ export async function verifyDeprecation(withdrawManager, predicate, exitId, inpu
 export function buildReferenceTxPayload(input) {
   const res = []
   const { headerNumber, blockProof, blockNumber, blockTimestamp, reference, logIndex } = input
-  // if (predicate) res.push(predicate)
   return res.concat(
     [
       headerNumber,
