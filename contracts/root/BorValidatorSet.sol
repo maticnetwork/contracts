@@ -39,6 +39,53 @@ contract BorValidatorSet is ValidatorSet {
     mapping (uint256 => Span) public spans; // span number => span
     uint256[] public spanNumbers; // recent span numbers
 
+    constructor() public {
+        _testValidator();
+    }
+
+    function _testValidator() internal {
+        address[] memory d = new address[](1);
+        d[0] = 0x9fB29AAc15b9A4B7F17c3385939b007540f4d791;
+        // d[1] = 0x96C42C56fdb78294F96B0cFa33c92bed7D75F96a;
+        // d[2] = 0x7D58F677794ECdB751332c9A507993dB1b008874;
+        // d[3] = 0xE4F1A86989758D4aC65671855B9a29B843bb865D;
+        uint256[] memory p = new uint256[](1);
+        p[0] = 1;
+        // p[1] = 20;
+        // p[2] = 30;
+        // p[3] = 40;
+
+
+        // initial span
+        uint256 span = 0;
+        spans[span] = Span({
+            number: span,
+            startBlock: 0,
+            endBlock: 0
+        });
+        spanNumbers.push(span);
+        validators[span].length = 0;
+        producers[span].length = 0;
+
+        for (uint256 i = 0; i < d.length; i++) {
+            validators[span].length++;
+            validators[span][i] = Validator({
+                id: i,
+                power: p[i],
+                signer: d[i]
+            });
+        }
+
+        for (uint256 i = 0; i < d.length; i++) {
+            producers[span].length++;
+            producers[span][i] = Validator({
+                id: i,
+                power: p[i],
+                signer: d[i]
+            });
+        }
+    }
+
 
 	/// Issue this log event to signal a desired change in validator set.
 	/// This will not lead to a change in active validator set until
@@ -93,7 +140,7 @@ contract BorValidatorSet is ValidatorSet {
     function currentSpan() public view returns (uint256) {
         for (uint256 i = 0; i < spanNumbers.length; i++) {
             Span memory span = spans[spanNumbers[i]];
-            if  (span.startBlock >= block.number && span.endBlock <= block.number) {
+            if  (span.startBlock >= block.number && span.endBlock != 0 && span.endBlock <= block.number) {
                 return spans[i].number;
             }
         }
@@ -153,36 +200,17 @@ contract BorValidatorSet is ValidatorSet {
 	function getValidators() external view returns (address[] memory, uint256[] memory) {
 	    uint256 span = currentSpan();
 
-	    if (span > 0) {
-            address[] memory addrs = new address[](producers[span].length);
-            uint256[] memory powers = new uint256[](producers[span].length);
-            for (uint256 i = 0; i < producers[span].length; i++) {
-                addrs[i] = producers[span][i].signer;
-                powers[i] = producers[span][i].power;
-            }
+	    address[] memory addrs = new address[](producers[span].length);
+        uint256[] memory powers = new uint256[](producers[span].length);
+        for (uint256 i = 0; i < producers[span].length; i++) {
+            addrs[i] = producers[span][i].signer;
+            powers[i] = producers[span][i].power;
+        }
 
-            return (addrs, powers);
-	    } else {
-            address[] memory d = new address[](4);
-            d[0] = 0x9fB29AAc15b9A4B7F17c3385939b007540f4d791;
-            d[1] = 0x96C42C56fdb78294F96B0cFa33c92bed7D75F96a;
-            d[2] = 0x7D58F677794ECdB751332c9A507993dB1b008874;
-            d[3] = 0xE4F1A86989758D4aC65671855B9a29B843bb865D;
-            uint256[] memory p = new uint256[](4);
-            p[0] = 10;
-            p[1] = 20;
-            p[2] = 30;
-            p[3] = 40;
-            return (d, p);
-	    }
+        return (addrs, powers);
 	}
 
-
-    event Address(uint256 id, address value);
-    event Bytes(uint256 id, bytes value);
-    event Bool(uint256 id, bool value);
     event Uint(uint256 id, uint256 value);
-    event Bytes32(uint256 id, bytes32 value);
     function commitSpan(
         bytes calldata vote,
         bytes calldata sigs,
@@ -202,13 +230,12 @@ contract BorValidatorSet is ValidatorSet {
         // validate hash of extradata was signed as part of the vote
         // TODO check merkel proof
         bytes32 rootHash = bytes32(dataList[4].toUint());
-        require(keccak256(dataList[4].toBytes()) == keccak256(abi.encodePacked(sha256(extradata))), "Transaction is invalid");
+        // require(keccak256(dataList[4].toBytes()) == keccak256(abi.encodePacked()), "Transaction is invalid");
+        require(checkMembership(bytes32(dataList[4].toUint()), sha256(extradata), hex""), "Transaction is invalid");
 
         // check sigs
         uint256 stakedPower = getStakePower(span, keccak256(vote), sigs);
         // require(stakedPower >= getValidatorsTotalStakeBySpan(span).mul(2).div(3).add(1), "Not enought power to change the span");
-        emit Uint(501, stakedPower);
-
 
         // check transaction data
         dataList = extradata.toRlpItem().toList();
@@ -233,14 +260,9 @@ contract BorValidatorSet is ValidatorSet {
         validators[span].length = 0;
         producers[span].length = 0;
 
-        bytes memory f = dataList[2].toBytes();
-        emit Bytes(60, f);
-        emit Bool(70, dataList[2].isList());
-        emit Uint(80, dataList[2].toList().length);
         RLPReader.RLPItem[] memory validatorItems = dataList[2].toList();
         for (uint256 i = 0; i < validatorItems.length; i++) {
             RLPReader.RLPItem[] memory v = validatorItems[i].toList();
-            emit Address(170 + i, v[2].toAddress());
             validators[span].length++;
             validators[span][i] = Validator({
                 id: v[0].toUint(),
@@ -249,14 +271,9 @@ contract BorValidatorSet is ValidatorSet {
             });
         }
 
-        f = dataList[3].toBytes();
-        emit Bytes(61, f);
-        emit Bool(71, dataList[3].isList());
-        emit Uint(81, dataList[3].toList().length);
         RLPReader.RLPItem[] memory producerItems = dataList[3].toList();
         for (uint256 i = 0; i < producerItems.length; i++) {
             RLPReader.RLPItem[] memory v = producerItems[i].toList();
-            emit Address(180 + i, v[2].toAddress());
             producers[span].length++;
             producers[span][i] = Validator({
                 id: v[0].toUint(),
@@ -283,7 +300,44 @@ contract BorValidatorSet is ValidatorSet {
             }
         }
 
-        // require(stakePower >= currentValidatorsTotalStake().mul(2).div(3).add(1), "Not enough power");
         return stakePower;
+    }
+
+    function checkMembership(
+        bytes32 rootHash,
+        bytes32 leaf,
+        bytes memory proof
+    ) public pure returns (bool) {
+        bytes32 proofElement;
+        byte direction;
+        bytes32 computedHash = leaf;
+
+        uint256 len = (proof.length / 33) * 33;
+        for (uint256 i = 33; i <= len; i += 33) {
+            bytes32 tempBytes;
+            assembly {
+                // Get a location of some free memory and store it in tempBytes as
+                // Solidity does for memory variables.
+                tempBytes := mload(add(proof, sub(i, 1)))
+                proofElement := mload(add(proof, i))
+            }
+
+            direction = tempBytes[0];
+            if (direction == 0) {
+                computedHash = innerNode(proofElement, computedHash);
+            } else {
+                computedHash = innerNode(computedHash, proofElement);
+            }
+        }
+
+        return computedHash == rootHash;
+    }
+
+    function leafNode(bytes32 d) public pure returns (bytes32) {
+        return sha256(abi.encodePacked(byte(uint8(0)), d));
+    }
+
+    function innerNode(bytes32 left, bytes32 right) public pure returns (bytes32) {
+        return sha256(abi.encodePacked(byte(uint8(1)), left, right));
     }
 }
