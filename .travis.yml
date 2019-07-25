@@ -15,3 +15,7 @@ before_script:
   - npm install
 script:
   - npm run test:ci
+# safelist
+branches:
+  only:
+  - master

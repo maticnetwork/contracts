@@ -61,10 +61,6 @@ contract Registry is Ownable {
       _rootToken != address(0x0) && _childToken != address(0x0),
       "INVALID_TOKEN_ADDRESS"
     );
-    require(
-      !isTokenMapped(_rootToken),
-      "TOKEN_ALREADY_MAPPED"
-    );
     rootToChildToken[_rootToken] = _childToken;
     childToRootToken[_childToken] = _rootToken;
     isERC721[_rootToken] = _isERC721;

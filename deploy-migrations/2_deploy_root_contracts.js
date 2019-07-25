@@ -1,3 +1,5 @@
+const bluebird = require('bluebird')
+
 const utils = require('ethereumjs-util')
 
 const SafeMath = artifacts.require(
@@ -29,8 +31,6 @@ const MarketplacePredicateTest = artifacts.require('MarketplacePredicateTest')
 
 // tokens
 const MaticWETH = artifacts.require('MaticWETH')
-const RootERC721 = artifacts.require('RootERC721')
-// const RootToken = artifacts.require('./token/TestToken.sol')
 const ExitNFT = artifacts.require('ExitNFT.sol')
 
 const libDeps = [
@@ -86,9 +86,9 @@ module.exports = async function(deployer, network) {
   deployer
     .then(async() => {
       console.log('linking libs...')
-      libDeps.forEach(async e => {
+      await bluebird.map(libDeps, async e => {
         await deployer.deploy(e.lib)
-        await deployer.link(e.lib, e.contracts)
+        deployer.link(e.lib, e.contracts)
       })
 
       console.log('deploying contracts...')
@@ -113,16 +113,15 @@ module.exports = async function(deployer, network) {
       )
 
       await Promise.all([
-        deployer.deploy(ERC20Predicate, WithdrawManagerProxy.address),
-        deployer.deploy(ERC721Predicate, WithdrawManagerProxy.address),
+        deployer.deploy(ERC20Predicate, WithdrawManagerProxy.address, DepositManagerProxy.address),
+        deployer.deploy(ERC721Predicate, WithdrawManagerProxy.address, DepositManagerProxy.address),
 
         // deploy tokens
         deployer.deploy(ExitNFT, Registry.address, 'ExitNFT', 'ENFT'),
-        deployer.deploy(MaticWETH),
-        deployer.deploy(RootERC721, 'RootERC721', 'T721')
+        deployer.deploy(MaticWETH)
       ])
       await Promise.all([
-        deployer.deploy(MarketplacePredicate, WithdrawManagerProxy.address, ERC20Predicate.address),
+        deployer.deploy(MarketplacePredicate, WithdrawManagerProxy.address, DepositManagerProxy.address, Registry.address),
         deployer.deploy(MarketplacePredicateTest)
       ])
     })
@@ -154,11 +153,6 @@ module.exports = async function(deployer, network) {
         MaticWETH.address,
         MaticWETH.address,
         false /* isERC721 */
-      )
-      await registry.mapToken(
-        RootERC721.address,
-        RootERC721.address,
-        true /* isERC721 */
       )
     })
 }
