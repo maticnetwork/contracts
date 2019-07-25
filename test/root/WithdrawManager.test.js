@@ -50,7 +50,7 @@ contract('WithdrawManager', async function(accounts) {
       )
       let log = exitTx.logs[0]
       const exitId = depositId.mul(predicateTestUtils.HEADER_BLOCK_NUMBER_WEIGHT)
-      predicateTestUtils.assertStartExit(log, user, contracts.rootERC20.address, amount, false /* isRegularExit */, exitId)
+      predicateTestUtils.assertStartExit(log, user, contracts.rootERC20.address, amount, false /* isRegularExit */, exitId, contracts.exitNFT)
 
       // The test above is complete in itself, now the challenge part
       // assuming the exitor made spending txs on child chain

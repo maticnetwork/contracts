@@ -17,6 +17,7 @@ contract ExitsDataStructure {
     address token;
     address predicate;
     bool isRegularExit;
+    uint256 exitableAt;
     // Mapping from age of input to Input
     mapping(uint256 => Input) inputs;
   }
@@ -24,6 +25,7 @@ contract ExitsDataStructure {
 
 contract WithdrawManagerHeader is ExitsDataStructure {
   event Withdraw(
+    uint256 indexed exitId,
     address indexed user,
     address indexed token,
     uint256 amount
@@ -66,5 +68,5 @@ contract WithdrawManagerStorage is ProxyStorage, WithdrawManagerHeader {
   // ERC721, ERC20 and Weth transfers require 155000, 100000, 52000 gas respectively
   // Processing each exit in a while loop iteration requires ~52000 gas (@todo check if this changed)
   // So putting an upper limit of 155000 + 52000 + leeway for predicate.onFinalizeExit()
-  uint32 public gasLimit = 250000;
+  uint32 public gasLimit = 300000;
 }

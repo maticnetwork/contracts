@@ -137,14 +137,16 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     uint256 priority)
     external
     isPredicateAuthorized(rootToken)
+    returns (uint256 /* exitId */)
   {
     require(
       registry.rootToChildToken(rootToken) == childToken,
       "INVALID_ROOT_TO_CHILD_TOKEN_MAPPING"
     );
-    _addExitToQueue(exitor, rootToken, exitAmountOrTokenId, txHash, isRegularExit, priority, msg.sender /* predicate */);
+    return _addExitToQueue(exitor, rootToken, exitAmountOrTokenId, txHash, isRegularExit, priority, msg.sender /* predicate */);
   }
 
+  event DEBUG(uint256 a);
   function _addExitToQueue(
     address exitor,
     address rootToken,
@@ -154,40 +156,34 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     uint256 priority,
     address predicate)
     internal
+    returns (uint256 exitId)
   {
+    // It is possible for multiple users to start an exit from the same reference UTXO
+    // So, exitId is derived from (exitor, priority)
+    exitId = getExitId(exitor, priority);
     require(
-      exits[priority].token == address(0x0),
+      exits[exitId].token == address(0x0),
       "EXIT_ALREADY_EXISTS"
     );
-    exits[priority] = PlasmaExit(exitAmountOrTokenId, txHash, exitor, rootToken, predicate, isRegularExit);
-    PlasmaExit storage _exitObject = exits[priority];
+    uint256 exitableAt = now - 1 hours; // @todo CHANGE BEFORE COMMITING
+    // uint256 exitableAt = Math.max(now + 2 weeks, block.timestamp + 1 weeks);
+    exits[exitId] = PlasmaExit(exitAmountOrTokenId, txHash, exitor, rootToken, predicate, isRegularExit, exitableAt);
+    PlasmaExit storage _exitObject = exits[exitId];
 
-    bytes32 key;
-    if (registry.isERC721(_exitObject.token)) {
-      key = keccak256(abi.encodePacked(_exitObject.token, _exitObject.owner, _exitObject.receiptAmountOrNFTId));
-    } else {
-      // validate amount
-      require(_exitObject.receiptAmountOrNFTId > 0, "CANNOT_EXIT_ZERO_AMOUNTS");
-      key = keccak256(abi.encodePacked(_exitObject.token, _exitObject.owner));
+    bytes32 key = getKey(_exitObject.token, _exitObject.owner, _exitObject.receiptAmountOrNFTId);
+
+    if (!isRegularExit) {
+      // a user cannot start 2 MoreVP exits for the same erc20 token or nft
+      require(ownerExits[key] == 0, "EXIT_ALREADY_IN_PROGRESS");
+      ownerExits[key] = exitId;
     }
-    // validate token exit
-    require(ownerExits[key] == 0, "EXIT_ALREADY_IN_PROGRESS");
-
-    // Calculate priority.
-    uint256 exitableAt = Math.max(now + 2 weeks, block.timestamp + 1 weeks);
 
     PriorityQueue queue = PriorityQueue(exitsQueues[_exitObject.token]);
-    queue.insert(exitableAt, priority);
+    queue.insert(priority, exitId);
 
-    // create NFT for exit UTXO
-    ExitNFT(exitNft).mint(_exitObject.owner, priority);
-    exits[priority] = _exitObject;
-
-    // set current exit
-    ownerExits[key] = priority;
-
-    // emit exit started event
-    emit ExitStarted(exitor, priority, rootToken, exitAmountOrTokenId, isRegularExit);
+    // create exit nft
+    exitNft.mint(_exitObject.owner, exitId);
+    emit ExitStarted(exitor, exitId, rootToken, exitAmountOrTokenId, isRegularExit);
   }
 
   /**
@@ -261,24 +257,34 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
   }
 
   function processExits(address _token) external {
-    uint256 exitableAt;
+    // uint256 exitableAt;
     uint256 exitId;
     PriorityQueue exitQueue = PriorityQueue(exitsQueues[_token]);
     while(exitQueue.currentSize() > 0 && gasleft() > gasLimit) {
-      (exitableAt, exitId) = exitQueue.getMin();
-      // Stop processing exits if the exit that is next is queue is still in its challenge period
-      if (exitableAt > block.timestamp) return;
-      // If the exitNft was deleted as a result of a challenge, skip processing this exit
-      if (!exitNft.exists(exitId)) continue;
+      // at this point exitId denotes the priority
+      (, exitId) = exitQueue.getMin();
       PlasmaExit memory currentExit = exits[exitId];
+
+      // Stop processing exits if the exit that is next is queue is still in its challenge period
+      if (currentExit.exitableAt > block.timestamp) {
+        emit DEBUG(4);
+        return;
+      }
+
+      exitQueue.delMin();
+      // If the exitNft was deleted as a result of a challenge, skip processing this exit
+      if (!exitNft.exists(exitId)) {
+        emit DEBUG(5);
+        continue;
+      }
 
       exitNft.burn(exitId);
 
       // limit the gas amount that predicate.onFinalizeExit() can use, to be able to make gas estimations for bulk process exits
-      address exitor = exitNft.ownerOf(exitId);
+      address exitor = currentExit.owner;
       uint256 amountOrNft = currentExit.receiptAmountOrNFTId;
       address predicate = currentExit.predicate;
-      uint256 _gas = gasLimit - 52000; // sub fixed processExit cost , ::=> can't read global vars in asm
+      uint256 _gas = gasLimit - 52000; // fixed while loop iteration cost. Can't read global vars in asm
       assembly {
         let ptr := mload(64)
         // keccak256('onFinalizeExit(address,address,uint256)') & 0xFFFFFFFF00000000000000000000000000000000000000000000000000000000
@@ -294,19 +300,38 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
         }
       }
 
-      emit Withdraw(exitor, _token, amountOrNft);
-
-      // Delete owner but keep amount to prevent another exit from the same UTXO.
-      // delete exits[exitId].owner;
-      exitQueue.delMin();
-
+      // emit Withdraw(exitId, exitor, _token, 0x1);
+      emit Withdraw(exitId, exitor, _token, amountOrNft);
       if (currentExit.isRegularExit) {
         // delete current exit for the owner, so they can do another one in the future
-        delete ownerExits[keccak256(abi.encodePacked(_token, currentExit.owner))];
+        delete ownerExits[getKey(_token, currentExit.owner, amountOrNft)];
       } else {
         // return the bond amount if this was a MoreVp style exit
         address(uint160(exitor)).transfer(BOND_AMOUNT);
       }
+    }
+  }
+
+  function getExitId(address exitor, uint256 priority)
+    internal
+    view
+    returns (uint256 exitId)
+  {
+    // priority queue expects 128 most significant bits to be zero
+    exitId = uint256(keccak256(abi.encodePacked(exitor, priority))) >> 128;
+  }
+
+  function getKey(address token, address exitor, uint256 amountOrToken)
+    internal
+    view
+    returns (bytes32 key)
+  {
+    if (registry.isERC721(token)) {
+      key = keccak256(abi.encodePacked(token, exitor, amountOrToken));
+    } else {
+      // validate amount
+      require(amountOrToken > 0, "CANNOT_EXIT_ZERO_AMOUNTS");
+      key = keccak256(abi.encodePacked(token, exitor));
     }
   }
 

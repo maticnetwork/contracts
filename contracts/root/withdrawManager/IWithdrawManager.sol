@@ -13,7 +13,8 @@ contract IWithdrawManager {
       bytes32 txHash,
       bool isRegularExit,
       uint256 priority)
-    external;
+    external
+    returns (uint256 exitId);
 
   function addInput(uint256 exitId, uint256 age, address signer) external;
 
