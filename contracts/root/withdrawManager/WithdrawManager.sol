@@ -123,8 +123,8 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     );
     uint256 priority = depositId * HEADER_BLOCK_NUMBER_WEIGHT;
     address predicate = registry.isTokenMappedAndGetPredicate(token);
-    _addExitToQueue(msg.sender, token, amountOrToken, bytes32(0) /* txHash */, false /* isRegularExit */, priority, predicate);
-    _addInput(priority /* exit Id */, priority /* input age */, msg.sender /* signer */);
+    uint256 exitId = _addExitToQueue(msg.sender, token, amountOrToken, bytes32(0) /* txHash */, false /* isRegularExit */, priority, predicate);
+    _addInput(exitId, priority /* input age */, msg.sender /* signer */);
   }
 
   function addExitToQueue(
@@ -146,7 +146,6 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     return _addExitToQueue(exitor, rootToken, exitAmountOrTokenId, txHash, isRegularExit, priority, msg.sender /* predicate */);
   }
 
-  event DEBUG(uint256 a);
   function _addExitToQueue(
     address exitor,
     address rootToken,
@@ -257,26 +256,18 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
   }
 
   function processExits(address _token) external {
-    // uint256 exitableAt;
     uint256 exitId;
     PriorityQueue exitQueue = PriorityQueue(exitsQueues[_token]);
     while(exitQueue.currentSize() > 0 && gasleft() > gasLimit) {
-      // at this point exitId denotes the priority
-      (, exitId) = exitQueue.getMin();
+      (,exitId) = exitQueue.getMin();
       PlasmaExit memory currentExit = exits[exitId];
 
       // Stop processing exits if the exit that is next is queue is still in its challenge period
-      if (currentExit.exitableAt > block.timestamp) {
-        emit DEBUG(4);
-        return;
-      }
+      if (currentExit.exitableAt > block.timestamp) return;
 
       exitQueue.delMin();
       // If the exitNft was deleted as a result of a challenge, skip processing this exit
-      if (!exitNft.exists(exitId)) {
-        emit DEBUG(5);
-        continue;
-      }
+      if (!exitNft.exists(exitId)) continue;
 
       exitNft.burn(exitId);
 
@@ -300,12 +291,9 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
         }
       }
 
-      // emit Withdraw(exitId, exitor, _token, 0x1);
       emit Withdraw(exitId, exitor, _token, amountOrNft);
-      if (currentExit.isRegularExit) {
-        // delete current exit for the owner, so they can do another one in the future
-        delete ownerExits[getKey(_token, currentExit.owner, amountOrNft)];
-      } else {
+
+      if (!currentExit.isRegularExit) {
         // return the bond amount if this was a MoreVp style exit
         address(uint160(exitor)).transfer(BOND_AMOUNT);
       }
@@ -314,7 +302,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
 
   function getExitId(address exitor, uint256 priority)
     internal
-    view
+    pure
     returns (uint256 exitId)
   {
     // priority queue expects 128 most significant bits to be zero

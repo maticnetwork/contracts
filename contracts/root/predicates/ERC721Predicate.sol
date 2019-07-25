@@ -107,8 +107,8 @@ contract ERC721Predicate is IErcPredicate {
     age = age.add(oIndex).add(referenceTxData[9].toUint() /* logIndex */ .mul(MAX_LOGS));
 
     sendBond(); // send BOND_AMOUNT to withdrawManager
-    withdrawManager.addExitToQueue(msg.sender, exitTxData.childToken, rootToken, exitTxData.amountOrToken, exitTxData.txHash, false /* isRegularExit */, age);
-    withdrawManager.addInput(age /* exitId or priority */, age /* age of input */, exitTxData.signer);
+    uint256 exitId = withdrawManager.addExitToQueue(msg.sender, exitTxData.childToken, rootToken, exitTxData.amountOrToken, exitTxData.txHash, false /* isRegularExit */, age);
+    withdrawManager.addInput(exitId, age /* age of input */, exitTxData.signer);
     return (rootToken, exitTxData.amountOrToken);
   }
 

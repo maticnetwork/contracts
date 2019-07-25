@@ -83,25 +83,26 @@ contract MarketplacePredicate is PredicateUtils {
     validateTokenBalance(reference2.childToken, exitTxData.token2, reference2.closingBalance, exitTxData.amount2);
     uint256 priority = Math.max(reference1.age, reference2.age);
     address exitChildToken = address(RLPReader.toUint(referenceTx[2]));
+    uint256 exitId;
 
     sendBond(); // send BOND_AMOUNT to withdrawManager
     if (exitChildToken == reference1.childToken) {
-      withdrawManager.addExitToQueue(
+      exitId = withdrawManager.addExitToQueue(
         msg.sender, exitChildToken, reference1.rootToken,
         reference1.closingBalance - exitTxData.amount1,
         exitTxData.txHash, false /* isRegularExit */,
         priority
       );
     } else if (exitChildToken == reference2.childToken) {
-      withdrawManager.addExitToQueue(
+      exitId = withdrawManager.addExitToQueue(
         msg.sender, exitChildToken, reference2.rootToken,
         exitTxData.amount2,
         exitTxData.txHash, false /* isRegularExit */,
         priority
       );
     }
-    withdrawManager.addInput(priority /* exitId */, reference1.age /* age of input */, msg.sender /* signer */);
-    withdrawManager.addInput(priority /* exitId */, reference2.age /* age of input */, exitTxData.counterParty /* signer */);
+    withdrawManager.addInput(exitId, reference1.age /* age of input */, msg.sender /* signer */);
+    withdrawManager.addInput(exitId, reference2.age /* age of input */, exitTxData.counterParty /* signer */);
   }
 
   function onFinalizeExit(address exitor, address token, uint256 tokenId)

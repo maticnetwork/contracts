@@ -49,8 +49,10 @@ contract('WithdrawManager', async function(accounts) {
         { value: web3.utils.toWei('.1', 'ether'), from: user }
       )
       let log = exitTx.logs[0]
-      const exitId = depositId.mul(predicateTestUtils.HEADER_BLOCK_NUMBER_WEIGHT)
+      const priority = depositId.mul(predicateTestUtils.HEADER_BLOCK_NUMBER_WEIGHT)
+      const exitId = predicateTestUtils.getExitId(user, priority)
       predicateTestUtils.assertStartExit(log, user, contracts.rootERC20.address, amount, false /* isRegularExit */, exitId, contracts.exitNFT)
+      predicateTestUtils.assertExitUpdated(exitTx.logs[1], user, exitId, priority)
 
       // The test above is complete in itself, now the challenge part
       // assuming the exitor made spending txs on child chain
@@ -59,7 +61,7 @@ contract('WithdrawManager', async function(accounts) {
       const challengeData = utils.buildChallengeData(predicateTestUtils.buildInputFromCheckpoint(utxo))
       // This will be used to assert that challenger received the bond amount
       const originalBalance = web3.utils.toBN(await web3.eth.getBalance(owner))
-      const challenge = await contracts.withdrawManager.challengeExit(exitId, exitId, challengeData)
+      const challenge = await contracts.withdrawManager.challengeExit(exitId, priority, challengeData)
       await predicateTestUtils.assertChallengeBondReceived(challenge, originalBalance)
       log = challenge.logs[0]
       log.event.should.equal('ExitCancelled')

@@ -191,18 +191,19 @@ contract('ERC721Predicate', async function(accounts) {
       let logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       // console.log(startExitTx, logs)
       const ageOfUtxo1a = predicateTestUtils.getAge(utxo1a)
-      predicateTestUtils.assertStartExit(logs[1], mallory, childContracts.rootERC721.address, tokenId, false /* isRegularExit */, ageOfUtxo1a, contracts.exitNFT)
-      predicateTestUtils.assertExitUpdated(logs[2], alice, ageOfUtxo1a)
+      let exitId = predicateTestUtils.getExitId(mallory, ageOfUtxo1a)
+      predicateTestUtils.assertStartExit(logs[1], mallory, childContracts.rootERC721.address, tokenId, false /* isRegularExit */, exitId, contracts.exitNFT)
+      predicateTestUtils.assertExitUpdated(logs[2], alice, exitId, ageOfUtxo1a)
 
       // During the challenge period, the challenger reveals TX2 and receives exit bond
       const challengeData = utils.buildChallengeData(predicateTestUtils.buildInputFromCheckpoint(spendUtxo))
       // This will be used to assert that challenger received the bond amount
       const originalBalance = web3.utils.toBN(await web3.eth.getBalance(accounts[0]))
-      const challenge = await contracts.withdrawManager.challengeExit(ageOfUtxo1a, ageOfUtxo1a, challengeData)
+      const challenge = await contracts.withdrawManager.challengeExit(exitId, ageOfUtxo1a, challengeData)
       await predicateTestUtils.assertChallengeBondReceived(challenge, originalBalance)
       const log = challenge.logs[0]
       log.event.should.equal('ExitCancelled')
-      utils.assertBigNumberEquality(log.args.exitId, ageOfUtxo1a)
+      utils.assertBigNumberEquality(log.args.exitId, exitId)
     })
 
     it('Alice double spends her input (eager exit fails)', async function() {
@@ -238,17 +239,17 @@ contract('ERC721Predicate', async function(accounts) {
       )
       let logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       let ageOfUtxo1a = predicateTestUtils.getAge(utxo1a)
-      // exitId is the "age of the youngest input". utxo1a came after utxo1b so exitId is ageOfUtxo1a
-      predicateTestUtils.assertStartExit(logs[1], bob, childContracts.rootERC721.address, tokenId, false /* isRegularExit */, ageOfUtxo1a, contracts.exitNFT)
-      predicateTestUtils.assertExitUpdated(logs[2], alice, ageOfUtxo1a)
+      let exitId = predicateTestUtils.getExitId(bob, ageOfUtxo1a)
+      predicateTestUtils.assertStartExit(logs[1], bob, childContracts.rootERC721.address, tokenId, false /* isRegularExit */, exitId, contracts.exitNFT)
+      predicateTestUtils.assertExitUpdated(logs[2], alice, exitId, ageOfUtxo1a)
 
       // During the challenge period, the challenger reveals TX2 and receives exit bond
       const challengeData = utils.buildChallengeData(predicateTestUtils.buildInputFromCheckpoint(spendUtxo))
       // This will be used to assert that challenger received the bond amount
       const originalBalance = web3.utils.toBN(await web3.eth.getBalance(accounts[0]))
-      const challenge = await contracts.withdrawManager.challengeExit(ageOfUtxo1a, ageOfUtxo1a, challengeData)
+      const challenge = await contracts.withdrawManager.challengeExit(exitId, ageOfUtxo1a, challengeData)
       await predicateTestUtils.assertChallengeBondReceived(challenge, originalBalance)
-      predicateTestUtils.assertExitCancelled(challenge.logs[0], ageOfUtxo1a)
+      predicateTestUtils.assertExitCancelled(challenge.logs[0], exitId)
     })
   })
 
