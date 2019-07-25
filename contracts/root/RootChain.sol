@@ -57,7 +57,7 @@ contract RootChain is RootChainStorage {
     onlyDepositManager
     returns(uint256 depositId)
   {
-    depositId = _blockDepositId;
+    depositId = _nextHeaderBlock.sub(MAX_DEPOSITS).add(_blockDepositId);
     // deposit ids will be (_blockDepositId, _blockDepositId + 1, .... _blockDepositId + numDeposits - 1)
     _blockDepositId = _blockDepositId.add(numDeposits);
     require(
@@ -106,5 +106,4 @@ contract RootChain is RootChainStorage {
     headerBlock.createdAt = now;
     headerBlock.proposer = msg.sender;
   }
-
 }

@@ -30,14 +30,17 @@ export function getAge(utxo) {
 // this is hack to generate a raw tx that is expected to be inflight
 // Fire the tx with less gas and get payload from the reverted tx
 export async function getRawInflightTx(fn, from, web3) {
-  const options = { from, gas: 25000 }
+  const options = { from, gas: 30000 } // minimal: 26136 is required, not sure why
   try {
     await fn(options)
     assert.fail('should have failed')
   } catch(e) {
     // console.log(e)
     // to ensure it doesnt revert because of some other reason
-    assert.ok(e.message.includes('exited with an error (status 0) after consuming all gas'))
+    assert.ok(
+      e.message.includes('exited with an error (status 0) after consuming all gas'),
+      'Expected tx to throw for a different reason'
+    )
     return buildInFlight(await web3.eth.getTransaction(e.tx))
   }
 }
@@ -46,18 +49,32 @@ export function buildInFlight(tx) {
   return Proofs.getTxBytes(tx)
 }
 
-export function assertStartExit(log, exitor, token, amount, isRegularExit, exitId) {
+export function getExitId(exitor, utxoAge) {
+  return web3.utils.toBN(web3.utils.soliditySha3(exitor, utxoAge)).shrn(128)
+}
+
+export async function assertStartExit(log, exitor, token, amount, isRegularExit, exitId, exitNFT) {
   log.event.should.equal('ExitStarted')
   expect(log.args).to.include({ exitor, token, isRegularExit })
   utils.assertBigNumberEquality(log.args.amount, amount)
-  if (exitId) utils.assertBigNumberEquality(log.args.exitId, exitId)
+  if (exitId) {
+    utils.assertBigNumberEquality(log.args.exitId, exitId)
+    if (exitNFT) assert.strictEqual(await exitNFT.ownerOf(exitId), exitor)
+  }
 }
 
-export function assertExitUpdated(log, signer, exitId, age) {
+export function assertExitUpdated(log, signer, exitId, ageOfUtxo) {
   log.event.should.equal('ExitUpdated')
   expect(log.args).to.include({ signer })
+  // console.log('exitId', log.args.exitId, exitId)
   utils.assertBigNumberEquality(log.args.exitId, exitId)
-  utils.assertBigNumberEquality(log.args.age, age || exitId)
+  // console.log('ageOfUtxo', log.args.age, ageOfUtxo)
+  utils.assertBigNumberEquality(log.args.age, ageOfUtxo)
+}
+
+export function assertExitCancelled(log, exitId) {
+  log.event.should.equal('ExitCancelled')
+  utils.assertBigNumberEquality(log.args.exitId, exitId)
 }
 
 export async function assertChallengeBondReceived(challenge, originalBalance) {
@@ -68,4 +85,10 @@ export async function assertChallengeBondReceived(challenge, originalBalance) {
   const expectedBalance = originalBalance.sub(ethSpent).add(BOND_AMOUNT)
   const nowBalance = web3.utils.toBN(await web3.eth.getBalance(challenger))
   assert.ok(expectedBalance.eq(nowBalance), 'Exitor did not receive the bond')
+}
+
+export async function processExit(withdrawManager, token) {
+  // await utils.increaseBlockTime(14 * 86400)
+  const receipt = await withdrawManager.processExits(token, { gas: 5000000 })
+  console.log(receipt)
 }

@@ -17,7 +17,7 @@ let contracts, childContracts
 let predicate, statefulUtils
 
 contract('ERC721Predicate', async function(accounts) {
-  const tokenId = '0x117'
+  let tokenId
   const user = accounts[0]
   const other = accounts[1]
 
@@ -34,6 +34,7 @@ contract('ERC721Predicate', async function(accounts) {
       const { rootERC721, childErc721 } = await deployer.deployChildErc721(accounts[0])
       childContracts.rootERC721 = rootERC721
       childContracts.childErc721 = childErc721
+      tokenId = '0x' + crypto.randomBytes(32).toString('hex')
     })
 
     it('Valid exit with burnt tokens', async function() {
@@ -65,10 +66,11 @@ contract('ERC721Predicate', async function(accounts) {
 
   describe('startExit', async function() {
     beforeEach(async function() {
-      contracts.ERC721Predicate = await deployer.deployErc721Predicate()
+      // contracts.ERC721Predicate = await deployer.deployErc721Predicate()
       const { rootERC721, childErc721 } = await deployer.deployChildErc721(accounts[0])
       childContracts.rootERC721 = rootERC721
       childContracts.childErc721 = childErc721
+      tokenId = '0x' + crypto.randomBytes(32).toString('hex')
     })
 
     it('reference: incomingTransfer - exitTx: burn', async function() {
@@ -152,17 +154,15 @@ contract('ERC721Predicate', async function(accounts) {
 
   describe('verifyDeprecation', async function() {
     beforeEach(async function() {
-      // contracts.ERC721Predicate = await deployer.deployErc721Predicate()
       const { rootERC721, childErc721 } = await deployer.deployChildErc721(accounts[0])
       childContracts.rootERC721 = rootERC721
       childContracts.childErc721 = childErc721
+      tokenId = '0x' + crypto.randomBytes(32).toString('hex')
     })
 
     it('Mallory tries to exit a spent output', async function() {
       const alice = accounts[0]
       const mallory = accounts[1]
-      // const aliceInitial = web3.utils.toBN('13')
-      // const aliceToMalloryTransferAmount = web3.utils.toBN('7')
 
       // UTXO1A
       const deposit = await utils.deposit(
@@ -191,7 +191,7 @@ contract('ERC721Predicate', async function(accounts) {
       let logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       // console.log(startExitTx, logs)
       const ageOfUtxo1a = predicateTestUtils.getAge(utxo1a)
-      predicateTestUtils.assertStartExit(logs[1], mallory, childContracts.rootERC721.address, tokenId, false /* isRegularExit */, ageOfUtxo1a)
+      predicateTestUtils.assertStartExit(logs[1], mallory, childContracts.rootERC721.address, tokenId, false /* isRegularExit */, ageOfUtxo1a, contracts.exitNFT)
       predicateTestUtils.assertExitUpdated(logs[2], alice, ageOfUtxo1a)
 
       // During the challenge period, the challenger reveals TX2 and receives exit bond
@@ -204,6 +204,52 @@ contract('ERC721Predicate', async function(accounts) {
       log.event.should.equal('ExitCancelled')
       utils.assertBigNumberEquality(log.args.exitId, ageOfUtxo1a)
     })
+
+    it('Alice double spends her input (eager exit fails)', async function() {
+      const alice = accounts[0]
+      const bob = accounts[1]
+
+      // UTXO1A
+      const deposit = await utils.deposit(
+        contracts.depositManager,
+        childContracts.childChain,
+        childContracts.rootERC721,
+        alice,
+        tokenId
+      )
+      const utxo1a = { checkpoint: await statefulUtils.submitCheckpoint(contracts.rootChain, deposit.receipt, accounts), logIndex: 1 }
+
+      // Alice spends UTXO1A in tx1 to Bob
+      // Operator begins withholding blocks while TX1 is still in-flight. Neither Alice nor Bob know if the transaction has been included in a block.
+      let tx1 = await predicateTestUtils.getRawInflightTx(childContracts.childErc721.transferFrom.bind(null, alice, bob, tokenId), alice /* from */, web3Child)
+
+      // Alice spends UTXO1A in TX2
+      const tx2 = await childContracts.childErc721.transferFrom(alice, '0x' + crypto.randomBytes(20).toString('hex'), tokenId, { from: alice })
+      const spendUtxo = { checkpoint: await statefulUtils.submitCheckpoint(contracts.rootChain, tx2.receipt, accounts), logIndex: 1 }
+
+      // TX2 is included in a withheld block. TX1 is not included in a block.
+
+      // Bob eagerly starts an exit from TX1, referencing UTXO1A and UTXO1B and places exit bond.
+      const startExitTx = await utils.startExitNew(
+        contracts.ERC721Predicate,
+        [utxo1a].map(predicateTestUtils.buildInputFromCheckpoint), // proof-of-funds of counterparty
+        tx1, // inFlightTx
+        bob // exitor
+      )
+      let logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+      let ageOfUtxo1a = predicateTestUtils.getAge(utxo1a)
+      // exitId is the "age of the youngest input". utxo1a came after utxo1b so exitId is ageOfUtxo1a
+      predicateTestUtils.assertStartExit(logs[1], bob, childContracts.rootERC721.address, tokenId, false /* isRegularExit */, ageOfUtxo1a, contracts.exitNFT)
+      predicateTestUtils.assertExitUpdated(logs[2], alice, ageOfUtxo1a)
+
+      // During the challenge period, the challenger reveals TX2 and receives exit bond
+      const challengeData = utils.buildChallengeData(predicateTestUtils.buildInputFromCheckpoint(spendUtxo))
+      // This will be used to assert that challenger received the bond amount
+      const originalBalance = web3.utils.toBN(await web3.eth.getBalance(accounts[0]))
+      const challenge = await contracts.withdrawManager.challengeExit(ageOfUtxo1a, ageOfUtxo1a, challengeData)
+      await predicateTestUtils.assertChallengeBondReceived(challenge, originalBalance)
+      predicateTestUtils.assertExitCancelled(challenge.logs[0], ageOfUtxo1a)
+    })
   })
 
   describe('ERC721PlasmaMintable', async function() {
@@ -214,10 +260,10 @@ contract('ERC721Predicate', async function(accounts) {
       await rootERC721.addMinter(predicate.address)
       childContracts.rootERC721 = rootERC721
       childContracts.childErc721 = childErc721
+      tokenId = '0x' + crypto.randomBytes(32).toString('hex')
     })
 
     it('mint and burn on the side chain', async function() {
-      const tokenId = '0x' + crypto.randomBytes(32).toString('hex')
       const { receipt: r } = await childContracts.childErc721.mint(user, tokenId)
       let mintTx = await web3Child.eth.getTransaction(r.transactionHash)
       mintTx = await buildInFlight(mintTx)
@@ -249,7 +295,6 @@ contract('ERC721Predicate', async function(accounts) {
     })
 
     it('mint, MoreVP exit with reference: counterparty balance (Transfer) and exitTx: incomingTransfer', async function() {
-      const tokenId = '0x' + crypto.randomBytes(32).toString('hex')
       const { receipt: mint } = await childContracts.childErc721.mint(user, tokenId)
       const mintTx = await buildInFlight(await web3Child.eth.getTransaction(mint.transactionHash))
 

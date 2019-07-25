@@ -143,7 +143,11 @@ contract IErcPredicate is IPredicate, PredicateUtils, ExitsDataStructure {
     returns (PlasmaExit memory)
   {
     (address owner, address token, uint256 amountOrTokenId, bytes32 txHash, bool isRegularExit) = abi.decode(data, (address, address, uint256, bytes32, bool));
-    return PlasmaExit(amountOrTokenId, txHash, owner, token, address(0x0) /* predicate value is not being used */, isRegularExit);
+    return PlasmaExit(amountOrTokenId, txHash, owner, token,
+      address(0x0), // predicate value is not being used
+      isRegularExit,
+      0 // exitableAt is redundant
+    );
   }
 
   function decodeInputUtxo(bytes memory data)

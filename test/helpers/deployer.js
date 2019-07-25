@@ -16,11 +16,7 @@ class Deployer {
     this.registry = await contracts.Registry.new()
     this.rootChain = await contracts.RootChain.new(this.registry.address)
     this.stakeManager = await contracts.StakeManager.new()
-    this.exitNFT = await contracts.ExitNFT.new(
-      this.registry.address,
-      'ExitNFT',
-      'ENFT'
-    )
+    this.exitNFT = await contracts.ExitNFT.new(this.registry.address)
 
     const depositManager = await this.deployDepositManager()
     const withdrawManager = await this.deployWithdrawManager()

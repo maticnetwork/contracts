@@ -85,11 +85,6 @@ contract ERC20Predicate is IErcPredicate {
     // If the exitor is exiting with incoming transfer, it will refer to the counterparty's preceding tx
     RLPReader.RLPItem[] memory referenceTx = data.toRlpItem().toList();
 
-    // Checking the inclusion of the receipt of the preceding tx is enough
-    // It is inconclusive to check the inclusion of the signed tx, hence verifyTxInclusion = false
-    // age is a measure of the position of the tx in the side chain
-    uint256 age = withdrawManager.verifyInclusion(data, 0 /* offset */, false /* verifyTxInclusion */);
-
     // Validate the exitTx - This may be an in-flight tx, so inclusion will not be checked
     ExitTxData memory exitTxData = processExitTx(exitTx);
 
@@ -105,22 +100,26 @@ contract ERC20Predicate is IErcPredicate {
       "Reference and exit tx do not correspond to the same child token"
     );
     exitTxData.amountOrToken = validateSequential(exitTxData, referenceTxData);
-    // Add the logIndex and oIndex from the receipt
-    age = age.add(referenceTxData.age);
 
+    // Checking the inclusion of the receipt of the preceding tx is enough
+    // It is inconclusive to check the inclusion of the signed tx, hence verifyTxInclusion = false
+    // age is a measure of the position of the tx in the side chain
+    referenceTxData.age = withdrawManager.verifyInclusion(data, 0 /* offset */, false /* verifyTxInclusion */)
+        .add(referenceTxData.age); // Add the logIndex and oIndex from the receipt
+
+    uint256 priority = referenceTxData.age;
     sendBond(); // send BOND_AMOUNT to withdrawManager
     if (referenceTx.length <= 10) {
-      withdrawManager.addExitToQueue(
+      priority = withdrawManager.addExitToQueue(
         msg.sender, referenceTxData.childToken, referenceTxData.rootToken,
-        exitTxData.amountOrToken, exitTxData.txHash, false /* isRegularExit */, age // priority
+        exitTxData.amountOrToken, exitTxData.txHash, false /* isRegularExit */, priority
       );
-      withdrawManager.addInput(age /* exitId or priority */, age /* age of input */, exitTxData.signer);
+      withdrawManager.addInput(priority /* exitId */, referenceTxData.age /* age of input */, exitTxData.signer);
       return (referenceTxData.rootToken, exitTxData.amountOrToken);
     }
 
     // referenceTx.length > 10 means the exitor sent along another input UTXO to the exit tx
     // This will be used to exit with the pre-existing balance on the chain along with the couterparty signed exit tx
-    uint256 otherReferenceTxAge = withdrawManager.verifyInclusion(data, 10 /* offset */, false /* verifyTxInclusion */);
     ReferenceTxData memory _referenceTxData = processReferenceTx(
       referenceTx[16].toBytes(), // receipt
       referenceTx[19].toUint(), // logIndex
@@ -135,16 +134,16 @@ contract ERC20Predicate is IErcPredicate {
       _referenceTxData.rootToken == referenceTxData.rootToken,
       "root tokens in the referenced txs do not match"
     );
-    otherReferenceTxAge = otherReferenceTxAge.add(_referenceTxData.age);
-
-    // What MoreVp calls the age of the youngest input
-    uint256 priority = Math.max(age, otherReferenceTxAge);
-    withdrawManager.addExitToQueue(
+    _referenceTxData.age = withdrawManager.verifyInclusion(data, 10 /* offset */, false /* verifyTxInclusion */)
+        .add(_referenceTxData.age);
+        
+    priority = withdrawManager.addExitToQueue(
       msg.sender, referenceTxData.childToken, referenceTxData.rootToken,
-      exitTxData.amountOrToken.add(_referenceTxData.closingBalance), exitTxData.txHash, false /* isRegularExit */, priority
+      exitTxData.amountOrToken.add(_referenceTxData.closingBalance), exitTxData.txHash, false /* isRegularExit */,
+      Math.max(referenceTxData.age, _referenceTxData.age) // What MoreVp calls the age of the youngest input
     );
-    withdrawManager.addInput(priority, age, exitTxData.signer);
-    withdrawManager.addInput(priority, otherReferenceTxAge, msg.sender);
+    withdrawManager.addInput(priority /* exitId */, referenceTxData.age, exitTxData.signer);
+    withdrawManager.addInput(priority /* exitId */, _referenceTxData.age, msg.sender);
     return (referenceTxData.rootToken, exitTxData.amountOrToken.add(_referenceTxData.closingBalance));
   }
 

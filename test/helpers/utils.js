@@ -84,13 +84,26 @@ export function getWallets() {
   return generateFirstWallets(mnemonics, Object.keys(stakes).length)
 }
 
-export async function depositOnRoot(depositManager, rootToken, from, amountOrToken, options = { erc20: true }) {
-  await rootToken.approve(depositManager.address, amountOrToken, { from })
+// export async function depositOnRoot(depositManager, rootToken, from, amountOrToken, options = { erc20: true }) {
+//   await rootToken.approve(depositManager.address, amountOrToken, { from })
+//   let result
+//   if (options.erc20) {
+//     result = await depositManager.depositERC20(rootToken.address, amountOrToken, { from })
+//   } else if (options.erc721) {
+//     result = await depositManager.depositERC721(rootToken.address, amountOrToken, { from })
+//   }
+//   const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
+//   const NewDepositBlockEvent = logs.find(log => log.event === 'NewDepositBlock')
+//   return NewDepositBlockEvent.args.depositBlockId
+// }
+
+export async function depositOnRoot(depositManager, rootToken, user, amountOrToken, options = { erc20: true }) {
+  await rootToken.approve(depositManager.address, amountOrToken)
   let result
   if (options.erc20) {
-    result = await depositManager.depositERC20(rootToken.address, amountOrToken, { from })
+    result = await depositManager.depositERC20ForUser(rootToken.address, user, amountOrToken)
   } else if (options.erc721) {
-    result = await depositManager.depositERC721(rootToken.address, amountOrToken, { from })
+    result = await depositManager.depositERC721ForUser(rootToken.address, user, amountOrToken)
   }
   const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
   const NewDepositBlockEvent = logs.find(log => log.event === 'NewDepositBlock')
@@ -234,4 +247,13 @@ export async function writeToFile(file, receipt) {
     path.join(__dirname, '..', 'mockResponses', file),
     `module.exports = ${JSON.stringify(r, null, 2)}`
   )
+}
+
+export function increaseBlockTime(seconds) {
+  return web3.currentProvider.send({
+    jsonrpc: '2.0',
+    method: 'evm_increaseTime',
+    params: [seconds],
+    id: new Date().getTime()
+  })
 }
