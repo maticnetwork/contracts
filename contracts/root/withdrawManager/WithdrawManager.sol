@@ -164,9 +164,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       exits[exitId].token == address(0x0),
       "EXIT_ALREADY_EXISTS"
     );
-    uint256 exitableAt = now - 1 hours; // @todo CHANGE BEFORE COMMITING
-    // uint256 exitableAt = Math.max(now + 2 weeks, block.timestamp + 1 weeks);
-    exits[exitId] = PlasmaExit(exitAmountOrTokenId, txHash, exitor, rootToken, predicate, isRegularExit, exitableAt);
+    exits[exitId] = PlasmaExit(exitAmountOrTokenId, txHash, exitor, rootToken, predicate, isRegularExit, getExitableWindow());
     PlasmaExit storage _exitObject = exits[exitId];
 
     bytes32 key = getKey(_exitObject.token, _exitObject.owner, _exitObject.receiptAmountOrNFTId);
@@ -255,10 +253,12 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     return abi.encode(age, input.signer);
   }
 
-  function processExits(address _token) external {
+  function processExits(address _token)
+    external
+  {
     uint256 exitId;
     PriorityQueue exitQueue = PriorityQueue(exitsQueues[_token]);
-    while(exitQueue.currentSize() > 0 && gasleft() > gasLimit) {
+    while(exitQueue.currentSize() > 0 && gasleft() > ON_FINALIZE_GAS_LIMIT) {
       (,exitId) = exitQueue.getMin();
       PlasmaExit memory currentExit = exits[exitId];
 
@@ -275,7 +275,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       address exitor = currentExit.owner;
       uint256 amountOrNft = currentExit.receiptAmountOrNFTId;
       address predicate = currentExit.predicate;
-      uint256 _gas = gasLimit - 52000; // fixed while loop iteration cost. Can't read global vars in asm
+      uint256 _gas = ON_FINALIZE_GAS_LIMIT - ITERATION_GAS; // fixed while loop iteration cost. Can't read global vars in asm
       assembly {
         let ptr := mload(64)
         // keccak256('onFinalizeExit(address,address,uint256)') & 0xFFFFFFFF00000000000000000000000000000000000000000000000000000000
@@ -321,6 +321,18 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       require(amountOrToken > 0, "CANNOT_EXIT_ZERO_AMOUNTS");
       key = keccak256(abi.encodePacked(token, exitor));
     }
+  }
+
+  function getExitableWindow()
+    internal
+    returns(uint256)
+  {
+    // Reset exitWindow if it is nearing its end
+    if (now + 1 days >= exitWindow) {
+      exitWindow = now + 1 weeks;
+      exitWindow = now - 1 hours; // JUST FOR TESTING. REMOVE BEFORE MERGING
+    }
+    return exitWindow;
   }
 
   /**
