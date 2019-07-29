@@ -76,7 +76,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     // require(time/count)
     Delegator storage delegator = delegators[delegatorId];
     StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
-    uint256 currentEpoch = stakeManager.currentEpoch();
+    uint256 currentEpoch = stakeManager.currentEpoch(); //TODO add 1
     // for lazy unbonding
     if (delegator.delegationStopEpoch != 0 && delegator.delegationStopEpoch < currentEpoch ) {
       _getRewards(delegatorId);
@@ -91,8 +91,9 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     address validator;
     (,,,,,,validator,) = stakeManager.validators(validatorId);
     ValidatorContract(validator).bond(delegatorId, delegator.amount);
-    delegator.delegationStartEpoch = stakeManager.currentEpoch();
+    delegator.delegationStartEpoch = currentEpoch;
     delegator.bondedTo = validatorId;
+    stakeManager.updateValidatorState(validatorId, currentEpoch, int(delegator.amount));
     emit Bonding(delegatorId, validatorId, validator);
   }
 
@@ -102,6 +103,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     _getRewards(delegatorId);
     (,,,,,,validator,) = stakeManager.validators(delegators[delegatorId].bondedTo);
     ValidatorContract(validator).unBond(delegatorId, index, delegators[delegatorId].amount);
+    stakeManager.updateValidatorState(delegators[delegatorId].bondedTo, stakeManager.currentEpoch(), -int(delegators[delegatorId].amount));
     emit UnBonding(delegatorId, delegators[delegatorId].bondedTo);
     delegators[delegatorId].bondedTo = 0;
   }
@@ -119,6 +121,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
 
   function reStake(uint256 delegatorId, uint256 amount, bool stakeRewards) public onlyDelegator(delegatorId) {
     if (delegators[delegatorId].bondedTo != 0) {
+      // Todo before getting rewards update validator state
       _getRewards(delegatorId);
     }
     if (amount > 0) {

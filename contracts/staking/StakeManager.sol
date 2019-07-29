@@ -287,6 +287,14 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     CHECKPOINT_REWARD = newReward;
   }
 
+  function updateValidatorState(uint256 validatorId, uint256 epoch, int256 amount) public {
+    // require(validators[validatorId].contractAddress == msg.sender);
+    require(epoch >= currentEpoch, "Can't change past");
+    validatorState[epoch].amount = (
+      validatorState[epoch].amount + amount
+    );
+  }
+
   function updateDynastyValue(uint256 newDynasty) public onlyOwner {
     require(newDynasty > 0);
     emit DynastyValueChange(newDynasty, DYNASTY);
