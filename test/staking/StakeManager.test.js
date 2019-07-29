@@ -468,6 +468,7 @@ contract('StakeManager', async function(accounts) {
       await stakeManager.checkSignatures(
         utils.bufferToHex(utils.keccak256(voteData)),
         sigs,
+        wallets[1].getAddressString(),
         {
           from: wallets[1].getAddressString()
         }

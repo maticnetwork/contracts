@@ -424,7 +424,8 @@ contract('StakeManager', async function(accounts) {
       )
       const result = await stakeManager.checkSignatures(
         utils.bufferToHex(utils.keccak256(voteData)),
-        sigs
+        sigs,
+        wallets[0].getAddressString()
       )
       // 2/3 majority vote
       assert.isTrue(result)

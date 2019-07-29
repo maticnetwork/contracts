@@ -161,7 +161,8 @@ contract('StakeManager<->DelegationManager', async function(accounts) {
     // 2/3 majority vote
     await stakeManager.checkSignatures(
       utils.bufferToHex(utils.keccak256(voteData)),
-      sigs
+      sigs,
+      wallets[0].getAddressString()
     )
     await stakeManager.finalizeCommit()
     assertBigNumbergt(

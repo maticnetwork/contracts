@@ -19,6 +19,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   using ECVerify for bytes32;
 
   event ThresholdChange(uint256 newThreshold, uint256 oldThreshold);
+  event RewardUpdate(uint256 newReward, uint256 oldReward);
   event DynastyValueChange(uint256 newDynasty, uint256 oldDynasty);
 
   // optional event to ack unstaking
@@ -31,6 +32,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   address public registry;
   // genesis/governance variables
   uint256 public DYNASTY = 2**13;  // unit: epoch 50 days
+  uint256 public CHECKPOINT_REWARD = 10000;
   uint256 public MIN_DEPOSIT_SIZE = (10**18);  // in ERC20 token
   uint256 public EPOCH_LENGTH = 256; // unit : block
   uint256 public WITHDRAWAL_DELAY = DYNASTY.div(2); // unit: epoch
@@ -91,7 +93,6 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     totalStaked = totalStaked.add(amount);
     address _contract = address(0x0);
     if (isContract) {
-      // TODO: add registery to validatorContract
       _contract = address(new ValidatorContract(user, registry));
     }
 
@@ -279,6 +280,13 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     validatorThreshold = newThreshold;
   }
 
+  // Change reward for each checkpoint
+  function updateCheckpointReward(uint256 newReward) public onlyOwner {
+    require(newReward > 0);
+    emit RewardUpdate(newReward, CHECKPOINT_REWARD);
+    CHECKPOINT_REWARD = newReward;
+  }
+
   function updateDynastyValue(uint256 newDynasty) public onlyOwner {
     require(newDynasty > 0);
     emit DynastyValueChange(newDynasty, DYNASTY);
@@ -337,8 +345,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   }
 
   function rewardValidator(uint256 validatorId, uint256 _totalStake, uint256 stakePower) internal {
-    uint256 checkpointReward = 10000; // Todo: fix me
-    uint256 _reward = checkpointReward.mul(stakePower).div(_totalStake);
+    uint256 _reward = CHECKPOINT_REWARD.mul(stakePower).div(_totalStake);
     address _contract = validators[validatorId].contractAddress;
     if (_contract == address(0x0)) {
       validators[validatorId].reward += _reward;
@@ -348,7 +355,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     }
   }
 
-  function checkSignatures(bytes32 voteHash, bytes memory sigs) public onlyRootChain {
+  function checkSignatures(bytes32 voteHash, bytes memory sigs, address proposer) public onlyRootChain {
     // total voting power
     uint256 stakePower = 0;
     uint256 validatorId;
@@ -374,8 +381,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
         break;
       }
     }
-    // TODO: use proposer
-    validatorId = 1; //signerToValidator[signer];
+    validatorId = tokenOfOwnerByIndex(proposer, 0);// get ValidatorId
     uint256 _totalStake = currentValidatorSetTotalStake(); // todo: add delegation total bonded amount
     require(stakePower >= _totalStake.mul(2).div(3).add(1));
     rewardValidator(validatorId, stakePower, _totalStake);
