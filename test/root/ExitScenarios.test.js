@@ -88,7 +88,7 @@ contract('Misc Predicates tests', async function(accounts) {
     predicateTestUtils.assertExitUpdated(logs[2], alice, exitId, ageOfUtxo1a)
     predicateTestUtils.assertExitUpdated(logs[3], bob, exitId, bobExitId)
 
-    // await utils.increaseBlockTime(14 * 86400)
+    // await utils.increaseBlockTime(7 * 86400)
     assert.strictEqual((await rootERC20.balanceOf(alice)).toString(), '0')
     assert.strictEqual((await rootERC20.balanceOf(bob)).toString(), '0')
     const processExits = await contracts.withdrawManager.processExits(rootERC20.address, { gas: 5000000 })

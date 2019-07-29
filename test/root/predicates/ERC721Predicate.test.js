@@ -18,8 +18,8 @@ let predicate, statefulUtils
 
 contract('ERC721Predicate', async function(accounts) {
   let tokenId
-  const user = accounts[0]
-  const other = accounts[1]
+  const alice = accounts[0]
+  const bob = accounts[1]
 
   before(async function() {
     contracts = await deployer.freshDeploy()
@@ -42,7 +42,7 @@ contract('ERC721Predicate', async function(accounts) {
         contracts.depositManager,
         childContracts.childChain,
         childContracts.rootERC721,
-        user,
+        alice,
         tokenId
       )
       const { receipt } = await childContracts.childErc721.withdraw(tokenId)
@@ -56,7 +56,7 @@ contract('ERC721Predicate', async function(accounts) {
       const log = logs[1]
       log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
-        exitor: user,
+        exitor: alice,
         token: childContracts.rootERC721.address,
         isRegularExit: true
       })
@@ -78,11 +78,11 @@ contract('ERC721Predicate', async function(accounts) {
         contracts.depositManager,
         childContracts.childChain,
         childContracts.rootERC721,
-        other,
+        bob,
         tokenId
       )
 
-      const { receipt } = await childContracts.childErc721.transferFrom(other, user, tokenId, { from: other })
+      const { receipt } = await childContracts.childErc721.transferFrom(bob, alice, tokenId, { from: bob })
       const { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
 
       const { receipt: r } = await childContracts.childErc721.withdraw(tokenId)
@@ -95,14 +95,14 @@ contract('ERC721Predicate', async function(accounts) {
       const log = logs[1]
       log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
-        exitor: user,
+        exitor: alice,
         token: childContracts.rootERC721.address
       })
       utils.assertBigNumberEquality(log.args.amount, tokenId)
     })
 
     it('reference: Deposit - exitTx: burn', async function() {
-      const { receipt } = await childContracts.childChain.depositTokens(childContracts.rootERC721.address, user, tokenId, '1' /* mock depositBlockId */)
+      const { receipt } = await childContracts.childChain.depositTokens(childContracts.rootERC721.address, alice, tokenId, '1' /* mock depositBlockId */)
       const { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
 
       const { receipt: r } = await childContracts.childErc721.withdraw(tokenId)
@@ -115,7 +115,7 @@ contract('ERC721Predicate', async function(accounts) {
       const log = logs[1]
       log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
-        exitor: user,
+        exitor: alice,
         token: childContracts.rootERC721.address
       })
       utils.assertBigNumberEquality(log.args.amount, tokenId)
@@ -126,16 +126,17 @@ contract('ERC721Predicate', async function(accounts) {
         contracts.depositManager,
         childContracts.childChain,
         childContracts.rootERC721,
-        user,
-        tokenId
+        alice,
+        tokenId,
+        { rootDeposit: true, erc721: true }
       )
 
       // proof of counterparty's balance
-      const { receipt } = await childContracts.childErc721.transferFrom(user, other, tokenId)
+      const { receipt } = await childContracts.childErc721.transferFrom(alice, bob, tokenId)
       const { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
 
       // treating this as in-flight incomingTransfer
-      const { receipt: r } = await childContracts.childErc721.transferFrom(other, user, tokenId, { from: other })
+      const { receipt: r } = await childContracts.childErc721.transferFrom(bob, alice, tokenId, { from: bob })
       let exitTx = await web3Child.eth.getTransaction(r.transactionHash)
       exitTx = await buildInFlight(exitTx)
 
@@ -145,10 +146,21 @@ contract('ERC721Predicate', async function(accounts) {
       const log = logs[1]
       log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
-        exitor: user,
+        exitor: alice,
         token: childContracts.rootERC721.address
       })
       utils.assertBigNumberEquality(log.args.amount, tokenId)
+
+      assert.strictEqual(await childContracts.rootERC721.ownerOf(tokenId), contracts.depositManager.address)
+      const processExits = await contracts.withdrawManager.processExits(childContracts.rootERC721.address, { gas: 5000000 })
+      processExits.logs.forEach(log => {
+        log.event.should.equal('Withdraw')
+        expect(log.args).to.include({
+          token: childContracts.rootERC721.address,
+          user: alice
+        })
+      })
+      assert.strictEqual(await childContracts.rootERC721.ownerOf(tokenId), alice)
     })
   })
 
@@ -192,7 +204,7 @@ contract('ERC721Predicate', async function(accounts) {
       // console.log(startExitTx, logs)
       const ageOfUtxo1a = predicateTestUtils.getAge(utxo1a)
       let exitId = predicateTestUtils.getExitId(mallory, ageOfUtxo1a)
-      predicateTestUtils.assertStartExit(logs[1], mallory, childContracts.rootERC721.address, tokenId, false /* isRegularExit */, exitId, contracts.exitNFT)
+      await predicateTestUtils.assertStartExit(logs[1], mallory, childContracts.rootERC721.address, tokenId, false /* isRegularExit */, exitId, contracts.exitNFT)
       predicateTestUtils.assertExitUpdated(logs[2], alice, exitId, ageOfUtxo1a)
 
       // During the challenge period, the challenger reveals TX2 and receives exit bond
@@ -240,7 +252,7 @@ contract('ERC721Predicate', async function(accounts) {
       let logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       let ageOfUtxo1a = predicateTestUtils.getAge(utxo1a)
       let exitId = predicateTestUtils.getExitId(bob, ageOfUtxo1a)
-      predicateTestUtils.assertStartExit(logs[1], bob, childContracts.rootERC721.address, tokenId, false /* isRegularExit */, exitId, contracts.exitNFT)
+      await predicateTestUtils.assertStartExit(logs[1], bob, childContracts.rootERC721.address, tokenId, false /* isRegularExit */, exitId, contracts.exitNFT)
       predicateTestUtils.assertExitUpdated(logs[2], alice, exitId, ageOfUtxo1a)
 
       // During the challenge period, the challenger reveals TX2 and receives exit bond
@@ -265,12 +277,12 @@ contract('ERC721Predicate', async function(accounts) {
     })
 
     it('mint and burn on the side chain', async function() {
-      const { receipt: r } = await childContracts.childErc721.mint(user, tokenId)
+      const { receipt: r } = await childContracts.childErc721.mint(alice, tokenId)
       let mintTx = await web3Child.eth.getTransaction(r.transactionHash)
       mintTx = await buildInFlight(mintTx)
-      await childContracts.childErc721.transferFrom(user, other, tokenId)
+      await childContracts.childErc721.transferFrom(alice, bob, tokenId)
 
-      const { receipt } = await childContracts.childErc721.withdraw(tokenId, { from: other })
+      const { receipt } = await childContracts.childErc721.withdraw(tokenId, { from: bob })
       // the token doesnt exist on the root chain as yet
       expect(await childContracts.rootERC721.exists(tokenId)).to.be.false
 
@@ -278,7 +290,7 @@ contract('ERC721Predicate', async function(accounts) {
       const startExitTx = await startExitWithBurntMintableToken(
         { headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 },
         mintTx,
-        other // exitor - account to initiate the exit from
+        bob // exitor - account to initiate the exit from
       )
       // console.log(startExitTx)
       expect(await childContracts.rootERC721.exists(tokenId)).to.be.true
@@ -288,7 +300,7 @@ contract('ERC721Predicate', async function(accounts) {
       const log = logs[1]
       log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
-        exitor: other,
+        exitor: bob,
         token: childContracts.rootERC721.address,
         isRegularExit: true
       })
@@ -296,22 +308,22 @@ contract('ERC721Predicate', async function(accounts) {
     })
 
     it('mint, MoreVP exit with reference: counterparty balance (Transfer) and exitTx: incomingTransfer', async function() {
-      const { receipt: mint } = await childContracts.childErc721.mint(user, tokenId)
+      const { receipt: mint } = await childContracts.childErc721.mint(alice, tokenId)
       const mintTx = await buildInFlight(await web3Child.eth.getTransaction(mint.transactionHash))
 
       // proof of counterparty's balance
-      const { receipt } = await childContracts.childErc721.transferFrom(user, other, tokenId)
+      const { receipt } = await childContracts.childErc721.transferFrom(alice, bob, tokenId)
       const { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
 
       // treating this as in-flight incomingTransfer
-      const { receipt: r } = await childContracts.childErc721.transferFrom(other, user, tokenId, { from: other })
+      const { receipt: r } = await childContracts.childErc721.transferFrom(bob, alice, tokenId, { from: bob })
       let exitTx = await buildInFlight(await web3Child.eth.getTransaction(r.transactionHash))
 
       // the token doesnt exist on the root chain as yet
       expect(await childContracts.rootERC721.exists(tokenId)).to.be.false
 
       const startExitTx = await startMoreVpExitWithMintableToken(
-        headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx, mintTx, user)
+        headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx, mintTx, alice)
 
       expect(await childContracts.rootERC721.exists(tokenId)).to.be.true
       expect((await childContracts.rootERC721.ownerOf(tokenId)).toLowerCase()).to.equal(contracts.depositManager.address.toLowerCase())
@@ -320,7 +332,7 @@ contract('ERC721Predicate', async function(accounts) {
       const log = logs[1]
       log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
-        exitor: user,
+        exitor: alice,
         token: childContracts.rootERC721.address
       })
       utils.assertBigNumberEquality(log.args.amount, tokenId)

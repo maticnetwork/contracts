@@ -84,25 +84,14 @@ export function getWallets() {
   return generateFirstWallets(mnemonics, Object.keys(stakes).length)
 }
 
-// export async function depositOnRoot(depositManager, rootToken, from, amountOrToken, options = { erc20: true }) {
-//   await rootToken.approve(depositManager.address, amountOrToken, { from })
-//   let result
-//   if (options.erc20) {
-//     result = await depositManager.depositERC20(rootToken.address, amountOrToken, { from })
-//   } else if (options.erc721) {
-//     result = await depositManager.depositERC721(rootToken.address, amountOrToken, { from })
-//   }
-//   const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
-//   const NewDepositBlockEvent = logs.find(log => log.event === 'NewDepositBlock')
-//   return NewDepositBlockEvent.args.depositBlockId
-// }
-
 export async function depositOnRoot(depositManager, rootToken, user, amountOrToken, options = { erc20: true }) {
-  await rootToken.approve(depositManager.address, amountOrToken)
   let result
   if (options.erc20) {
+    await rootToken.approve(depositManager.address, amountOrToken)
     result = await depositManager.depositERC20ForUser(rootToken.address, user, amountOrToken)
   } else if (options.erc721) {
+    await rootToken.mint(amountOrToken)
+    await rootToken.approve(depositManager.address, amountOrToken)
     result = await depositManager.depositERC721ForUser(rootToken.address, user, amountOrToken)
   }
   const logs = logDecoder.decodeLogs(result.receipt.rawLogs)

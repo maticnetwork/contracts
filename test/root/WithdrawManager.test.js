@@ -51,7 +51,7 @@ contract('WithdrawManager', async function(accounts) {
       let log = exitTx.logs[0]
       const priority = depositId.mul(predicateTestUtils.HEADER_BLOCK_NUMBER_WEIGHT)
       const exitId = predicateTestUtils.getExitId(user, priority)
-      predicateTestUtils.assertStartExit(log, user, contracts.rootERC20.address, amount, false /* isRegularExit */, exitId, contracts.exitNFT)
+      await predicateTestUtils.assertStartExit(log, user, contracts.rootERC20.address, amount, false /* isRegularExit */, exitId, contracts.exitNFT)
       predicateTestUtils.assertExitUpdated(exitTx.logs[1], user, exitId, priority)
 
       // The test above is complete in itself, now the challenge part
