@@ -129,13 +129,14 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     validators[validatorId].deactivationEpoch = exitEpoch;
 
     // unbond all delegatros in future
-    require(validators[validatorId].contractAddress == address(0x0) ||
-      ValidatorContract(validators[validatorId].contractAddress).unBondAllLazy(exitEpoch),
-      "unbond all delegators");
+    int256 delegationAmount = 0;
+    if (validators[validatorId].contractAddress != address(0x0)) {
+      delegationAmount = ValidatorContract(validators[validatorId].contractAddress).unBondAllLazy(exitEpoch);
+    }
 
     //  update future
     validatorState[exitEpoch].amount = (
-      validatorState[exitEpoch].amount - int256(amount));
+      validatorState[exitEpoch].amount - int256(amount + delegationAmount));
     validatorState[exitEpoch].stakerCount = (
       validatorState[exitEpoch].stakerCount - 1);
 
@@ -288,7 +289,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   }
 
   function updateValidatorState(uint256 validatorId, uint256 epoch, int256 amount) public {
-    // require(validators[validatorId].contractAddress == msg.sender);
+    require(registry.getDelegationManagerAddress() == msg.sender);
     require(epoch >= currentEpoch, "Can't change past");
     validatorState[epoch].amount = (
       validatorState[epoch].amount + amount
@@ -390,7 +391,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       }
     }
     validatorId = tokenOfOwnerByIndex(proposer, 0);// get ValidatorId
-    uint256 _totalStake = currentValidatorSetTotalStake(); // todo: add delegation total bonded amount
+    uint256 _totalStake = currentValidatorSetTotalStake();
     require(stakePower >= _totalStake.mul(2).div(3).add(1));
     rewardValidator(validatorId, stakePower, _totalStake);
   }

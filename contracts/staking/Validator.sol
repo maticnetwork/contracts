@@ -6,6 +6,7 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { Registry } from "../common/Registry.sol";
 import { IDelegationManager } from "./IDelegationManager.sol";
+import { IStakeManager } from "./IStakeManager.sol";
 
 
 contract Validator is ERC721Full {
@@ -76,13 +77,14 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
     delegators.length--;
   }
 
-  function unBondAllLazy(uint256 exitEpoch) public onlyOwner returns(bool) {
+  function unBondAllLazy(uint256 exitEpoch) public onlyOwner returns(uint256) {
     delegation = false; //  won't be accepting any new delegations
+    uint256 totalAmount = 0;
     IDelegationManager delegationManager = IDelegationManager(registry.getDelegationManagerAddress());
     for (uint256 i; i < delegators.length; i++) {
-      delegationManager.unBondLazy(delegators[i], exitEpoch, validator);
+      totalAmount += delegationManager.unBondLazy(delegators[i], exitEpoch, validator);
     }
-    return true;
+    return totalAmount;
   }
 
   function revertLazyUnBonding(uint256 exitEpoch) public onlyOwner returns(bool) {
@@ -91,6 +93,7 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
     for (uint256 i; i < delegators.length; i++) {
       delegationManager.revertLazyUnBond(delegators[i], exitEpoch, validator);
     }
+    // IStakeManager(registry.getStakeManagerAddress()).updateValidatorState(amount);
     return true;
   }
 

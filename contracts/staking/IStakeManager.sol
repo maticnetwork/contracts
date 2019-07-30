@@ -16,6 +16,7 @@ contract IStakeManager {
   function supportsHistory() external pure returns (bool);
   function stakeFor(address user, uint256 amount, address signer, bool isContract) public;
   function checkSignatures(bytes32 voteHash, bytes memory sigs, address proposer) public;
+  function updateValidatorState(uint256 validatorId, uint256 epoch, int256 amount) public;
 
   // optional
   // function lastStakedFor(address addr) external view returns (uint256);
