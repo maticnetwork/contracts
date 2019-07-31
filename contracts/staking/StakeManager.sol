@@ -9,6 +9,7 @@ import { BytesLib } from "../common/lib/BytesLib.sol";
 import { ECVerify } from "../common/lib/ECVerify.sol";
 import { Lockable } from "../common/mixin/Lockable.sol";
 import { RootChainable } from "../common/mixin/RootChainable.sol";
+import { Registry } from "../common/Registry.sol";
 import { IStakeManager } from "./IStakeManager.sol";
 import { Validator } from "./Validator.sol";
 import { ValidatorContract } from "./Validator.sol";
@@ -136,7 +137,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
     //  update future
     validatorState[exitEpoch].amount = (
-      validatorState[exitEpoch].amount - int256(amount + delegationAmount));
+      validatorState[exitEpoch].amount - (int256(amount) + delegationAmount));
     validatorState[exitEpoch].stakerCount = (
       validatorState[exitEpoch].stakerCount - 1);
 
@@ -211,6 +212,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   function jail(uint256 validatorId) public /** only*/ {
     // Todo: requires and more conditions
     uint256 amount = validators[validatorId].amount;
+    // should unbond instantly
     uint256 exitEpoch = currentEpoch.add(UNSTAKE_DELAY);  // jail period
 
     // update future in case of no revoke
@@ -219,10 +221,10 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     validatorState[exitEpoch].stakerCount = (
       validatorState[exitEpoch].stakerCount - 1);
 
-
-    require(validators[validatorId].contractAddress == address(0x0) ||
-      ValidatorContract(validators[validatorId].contractAddress).unBondAllLazy(exitEpoch),
-      "unbond all delegators");
+    int256 delegationAmount = 0;
+    if (validators[validatorId].contractAddress != address(0x0)) {
+      delegationAmount = ValidatorContract(validators[validatorId].contractAddress).unBondAllLazy(exitEpoch);
+    }
 
     validators[validatorId].deactivationEpoch = exitEpoch;
     validators[validatorId].status = Status.Locked;
@@ -289,7 +291,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   }
 
   function updateValidatorState(uint256 validatorId, uint256 epoch, int256 amount) public {
-    require(registry.getDelegationManagerAddress() == msg.sender);
+    require(Registry(registry).getDelegationManagerAddress() == msg.sender);
     require(epoch >= currentEpoch, "Can't change past");
     validatorState[epoch].amount = (
       validatorState[epoch].amount + amount
