@@ -87,14 +87,14 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
     return totalAmount;
   }
 
-  function revertLazyUnBonding(uint256 exitEpoch) public onlyOwner returns(bool) {
+  function revertLazyUnBonding(uint256 exitEpoch) public onlyOwner returns(uint256) {
     delegation = true;
     IDelegationManager delegationManager = IDelegationManager(registry.getDelegationManagerAddress());
+    int256 totalAmount = 0;
     for (uint256 i; i < delegators.length; i++) {
-      delegationManager.revertLazyUnBond(delegators[i], exitEpoch, validator);
+      totalAmount += delegationManager.revertLazyUnBond(delegators[i], exitEpoch, validator);
     }
-    // IStakeManager(registry.getStakeManagerAddress()).updateValidatorState(amount);
-    return true;
+    return totalAmount;
   }
 
   function getRewards(uint256 delegatorId, uint256 delegationAmount, uint256 startEpoch, uint256 endEpoch, uint256 currentEpoch) public view returns(uint256) {

@@ -193,15 +193,15 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     require(amount >= MIN_DEPOSIT_SIZE);
     uint256 exitEpoch = validators[validatorId].deactivationEpoch;
 
+    int256 delegationAmount = 0;
+    if (validators[validatorId].contractAddress != address(0x0)) {
+      delegationAmount = ValidatorContract(validators[validatorId].contractAddress).revertLazyUnBonding(exitEpoch);
+    }
     // undo timline
     validatorState[exitEpoch].amount = (
       validatorState[exitEpoch].amount + int256(amount));
     validatorState[exitEpoch].stakerCount = (
       validatorState[exitEpoch].stakerCount + 1);
-
-    require(validators[validatorId].contractAddress == address(0x0) ||
-      ValidatorContract(validators[validatorId].contractAddress).revertLazyUnBonding(exitEpoch),
-      "bonding all delegators failed");
 
     validators[validatorId].deactivationEpoch = 0;
     validators[validatorId].status = Status.Active;
