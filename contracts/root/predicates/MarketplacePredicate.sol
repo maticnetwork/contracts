@@ -104,6 +104,40 @@ contract MarketplacePredicate is PredicateUtils {
     withdrawManager.addInput(exitId, reference1.age /* age of input */, msg.sender /* signer */);
     withdrawManager.addInput(exitId, reference2.age /* age of input */, exitTxData.counterParty /* signer */);
   }
+    /**
+   * @notice Verify the deprecation of a state update
+   * @param exit ABI encoded PlasmaExit data
+   * @param inputUtxo ABI encoded Input UTXO data
+   * @param challengeData RLP encoded data of the challenge reference tx that encodes the following fields
+   * headerNumber Header block number of which the reference tx was a part of
+   * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
+   * blockNumber Block number of which the reference tx is a part of
+   * blockTime Reference tx block time
+   * blocktxRoot Transactions root of block
+   * blockReceiptsRoot Receipts root of block
+   * receipt Receipt of the reference transaction
+   * receiptProof Merkle proof of the reference receipt
+   * branchMask Merkle proof branchMask for the receipt
+   * logIndex Log Index to read from the receipt
+   * tx Challenge transaction
+   * txProof Merkle proof of the challenge tx
+   * @return Whether or not the state is deprecated
+   */
+  function verifyDeprecation(bytes calldata exit, bytes calldata inputUtxo, bytes calldata challengeData)
+    external
+    returns (bool)
+  {
+    //  ExitTxData memory exitTxData = processExitTx(exitTx, withdrawManager.networkId());
+    // get token from challengeData
+    // if == token1 {
+    // age = get from transferWithSig
+    // }
+    // else {
+    // age = get from transferWithSig
+    // }
+    // return ageOfChallengeTx.add(referenceTxData.age) > age;
+    return true;
+  }
 
   function onFinalizeExit(address exitor, address token, uint256 tokenId)
     external
