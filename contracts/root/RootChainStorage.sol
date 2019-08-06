@@ -22,7 +22,6 @@ contract RootChainHeader {
   }
 }
 
-
 contract RootChainStorage is ProxyStorage, RootChainHeader {
   // @todo hardcode constants
   bytes32 public constant CHAIN = keccak256("test-chain-E5igIA");
@@ -32,7 +31,6 @@ contract RootChainStorage is ProxyStorage, RootChainHeader {
   uint16 internal constant MAX_DEPOSITS = 10000;
   uint256 internal _nextHeaderBlock = MAX_DEPOSITS;
   uint256 internal _blockDepositId = 1;
-
   mapping(uint256 => HeaderBlock) public headerBlocks;
   Registry internal registry;
 }
