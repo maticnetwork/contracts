@@ -246,8 +246,8 @@ class Deployer {
     }
     if (options.erc721) {
       const r = await this.deployChildErc721(owner)
-      res.rootERC721 = rootERC721
-      res.childErc721 = childErc721
+      res.rootERC721 = r.rootERC721
+      res.childErc721 = r.childErc721
     }
     return res
   }
