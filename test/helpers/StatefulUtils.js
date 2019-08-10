@@ -45,6 +45,10 @@ export default class StatefulUtils {
 
     const NewHeaderBlockEvent = submitHeaderBlock.logs.find(log => log.event === 'NewHeaderBlock')
     this.start = end + 1
-    return { block: event.block, blockProof, headerNumber: NewHeaderBlockEvent.args.headerBlockId, reference: await build(event) }
+    return {
+      block: event.block, blockProof, headerNumber: NewHeaderBlockEvent.args.headerBlockId,
+      createdAt: (await rootChain.headerBlocks(NewHeaderBlockEvent.args.headerBlockId)).createdAt,
+      reference: await build(event)
+    }
   }
 }

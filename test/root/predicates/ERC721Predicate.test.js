@@ -152,7 +152,7 @@ contract('ERC721Predicate', async function(accounts) {
       utils.assertBigNumberEquality(log.args.amount, tokenId)
 
       assert.strictEqual(await childContracts.rootERC721.ownerOf(tokenId), contracts.depositManager.address)
-      const processExits = await contracts.withdrawManager.processExits(childContracts.rootERC721.address, { gas: 5000000 })
+      const processExits = await predicateTestUtils.processExits(contracts.withdrawManager, childContracts.rootERC721.address)
       processExits.logs.forEach(log => {
         log.event.should.equal('Withdraw')
         expect(log.args).to.include({
@@ -203,7 +203,7 @@ contract('ERC721Predicate', async function(accounts) {
       let logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       // console.log(startExitTx, logs)
       const ageOfUtxo1a = predicateTestUtils.getAge(utxo1a)
-      let exitId = predicateTestUtils.getExitId(mallory, ageOfUtxo1a)
+      let exitId = ageOfUtxo1a.shln(1)
       await predicateTestUtils.assertStartExit(logs[1], mallory, childContracts.rootERC721.address, tokenId, false /* isRegularExit */, exitId, contracts.exitNFT)
       predicateTestUtils.assertExitUpdated(logs[2], alice, exitId, ageOfUtxo1a)
 
@@ -251,7 +251,7 @@ contract('ERC721Predicate', async function(accounts) {
       )
       let logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       let ageOfUtxo1a = predicateTestUtils.getAge(utxo1a)
-      let exitId = predicateTestUtils.getExitId(bob, ageOfUtxo1a)
+      let exitId = ageOfUtxo1a.shln(1)
       await predicateTestUtils.assertStartExit(logs[1], bob, childContracts.rootERC721.address, tokenId, false /* isRegularExit */, exitId, contracts.exitNFT)
       predicateTestUtils.assertExitUpdated(logs[2], alice, exitId, ageOfUtxo1a)
 

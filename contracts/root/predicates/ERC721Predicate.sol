@@ -59,7 +59,7 @@ contract ERC721Predicate is IErcPredicate {
     tokenId = BytesLib.toUint(logData, 0);
     withdrawManager.addExitToQueue(
       msg.sender, childToken, rootToken,
-      tokenId, bytes32(0x0) /* txHash */, true /* isRegularExit */, age
+      tokenId, bytes32(0x0) /* txHash */, true /* isRegularExit */, age << 1
     );
   }
 
@@ -89,9 +89,6 @@ contract ERC721Predicate is IErcPredicate {
     // referenceTx is a proof-of-funds of the party who signed the exit tx
     RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
 
-    // age is a measure of the position of the tx in the side chain
-    uint256 age = withdrawManager.verifyInclusion(data, 0 /* offset */, false /* verifyTxInclusion */);
-
     // Validate the exitTx - This may be an in-flight tx, so inclusion will not be checked
     ExitTxData memory exitTxData = processExitTx(exitTx);
 
@@ -104,11 +101,16 @@ contract ERC721Predicate is IErcPredicate {
       exitTxData.amountOrToken,
       false // isChallenge
     );
-    age = age.add(oIndex).add(referenceTxData[9].toUint() /* logIndex */ .mul(MAX_LOGS));
 
     sendBond(); // send BOND_AMOUNT to withdrawManager
-    uint256 exitId = withdrawManager.addExitToQueue(msg.sender, exitTxData.childToken, rootToken, exitTxData.amountOrToken, exitTxData.txHash, false /* isRegularExit */, age);
-    withdrawManager.addInput(exitId, age /* age of input */, exitTxData.signer);
+
+    // verifyInclusion returns the position of the receipt in child chain
+    uint256 ageOfUtxo = withdrawManager.verifyInclusion(data, 0 /* offset */, false /* verifyTxInclusion */)
+      .add(referenceTxData[9].toUint().mul(MAX_LOGS)) // logIndex * MAX_LOGS
+      .add(oIndex); // whether exitTxData.signer is a sender or receiver in the referenced receipt
+    uint256 exitId = ageOfUtxo << 1;
+    withdrawManager.addExitToQueue(msg.sender, exitTxData.childToken, rootToken, exitTxData.amountOrToken, exitTxData.txHash, false /* isRegularExit */, exitId);
+    withdrawManager.addInput(exitId, ageOfUtxo, exitTxData.signer);
     return (rootToken, exitTxData.amountOrToken);
   }
 

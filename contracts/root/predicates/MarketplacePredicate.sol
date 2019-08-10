@@ -81,24 +81,23 @@ contract MarketplacePredicate is PredicateUtils {
     );
     ReferenceTxData memory reference2 = processPreState(predicate, preState, exitTxData.counterParty, true);
     validateTokenBalance(reference2.childToken, exitTxData.token2, reference2.closingBalance, exitTxData.amount2);
-    uint256 priority = Math.max(reference1.age, reference2.age);
+    uint256 exitId = Math.max(reference1.age, reference2.age) << 1; // What MoreVp calls the age of the youngest input
     address exitChildToken = address(RLPReader.toUint(referenceTx[2]));
-    uint256 exitId;
 
     sendBond(); // send BOND_AMOUNT to withdrawManager
     if (exitChildToken == reference1.childToken) {
-      exitId = withdrawManager.addExitToQueue(
+      withdrawManager.addExitToQueue(
         msg.sender, exitChildToken, reference1.rootToken,
         reference1.closingBalance - exitTxData.amount1,
         exitTxData.txHash, false /* isRegularExit */,
-        priority
+        exitId
       );
     } else if (exitChildToken == reference2.childToken) {
-      exitId = withdrawManager.addExitToQueue(
+      withdrawManager.addExitToQueue(
         msg.sender, exitChildToken, reference2.rootToken,
         exitTxData.amount2,
         exitTxData.txHash, false /* isRegularExit */,
-        priority
+        exitId
       );
     }
     withdrawManager.addInput(exitId, reference1.age /* age of input */, msg.sender /* signer */);

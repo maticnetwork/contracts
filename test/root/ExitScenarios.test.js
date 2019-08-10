@@ -45,7 +45,6 @@ contract('Misc Predicates tests', async function(accounts) {
       { rootDeposit: true, erc20: true }
     )
     const utxo1b = { checkpoint: await statefulUtils.submitCheckpoint(contracts.rootChain, deposit.receipt, accounts), logIndex: 1 }
-    let bobExitId = predicateTestUtils.getAge(utxo1b)
 
     // Utxo1a
     deposit = await utils.deposit(
@@ -69,7 +68,8 @@ contract('Misc Predicates tests', async function(accounts) {
     )
     let logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
     const ageOfUtxo1a = predicateTestUtils.getAge(utxo1a)
-    let exitId = predicateTestUtils.getExitId(alice, ageOfUtxo1a)
+    // last bit is to differentiate whether the sender or receiver of the in-flight tx is starting an exit
+    let exitId = ageOfUtxo1a.shln(1).or(web3.utils.toBN(1))
     await predicateTestUtils.assertStartExit(logs[1], alice, rootERC20.address, aliceInitial.sub(aliceToBobtransferAmount), false /* isRegularExit */, exitId, contracts.exitNFT)
     predicateTestUtils.assertExitUpdated(logs[2], alice, exitId, ageOfUtxo1a)
 
@@ -83,15 +83,14 @@ contract('Misc Predicates tests', async function(accounts) {
     )
     logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
     // exitId is the "age of the youngest input" which is derived from utxo1a since it came after utxo1b
-    exitId = predicateTestUtils.getExitId(bob, ageOfUtxo1a)
+    exitId = exitId = ageOfUtxo1a.shln(1)
     await predicateTestUtils.assertStartExit(logs[1], bob, rootERC20.address, bobInitial.add(aliceToBobtransferAmount), false /* isRegularExit */, exitId, contracts.exitNFT)
     predicateTestUtils.assertExitUpdated(logs[2], alice, exitId, ageOfUtxo1a)
-    predicateTestUtils.assertExitUpdated(logs[3], bob, exitId, bobExitId)
+    predicateTestUtils.assertExitUpdated(logs[3], bob, exitId, predicateTestUtils.getAge(utxo1b))
 
-    // await utils.increaseBlockTime(7 * 86400)
     assert.strictEqual((await rootERC20.balanceOf(alice)).toString(), '0')
     assert.strictEqual((await rootERC20.balanceOf(bob)).toString(), '0')
-    const processExits = await contracts.withdrawManager.processExits(rootERC20.address, { gas: 5000000 })
+    const processExits = await predicateTestUtils.processExits(contracts.withdrawManager, rootERC20.address)
     processExits.logs.forEach(log => {
       log.event.should.equal('Withdraw')
       expect(log.args).to.include({ token: rootERC20.address })
@@ -131,7 +130,7 @@ contract('Misc Predicates tests', async function(accounts) {
     )
     let logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
     const ageOfUtxo1a = predicateTestUtils.getAge(utxo1a)
-    let exitId = predicateTestUtils.getExitId(mallory, ageOfUtxo1a)
+    let exitId = ageOfUtxo1a.shln(1)
     await predicateTestUtils.assertStartExit(logs[1], mallory, rootERC20.address, aliceToMalloryTransferAmount, false /* isRegularExit */, exitId, contracts.exitNFT)
     predicateTestUtils.assertExitUpdated(logs[2], alice, exitId, ageOfUtxo1a)
 
@@ -193,7 +192,7 @@ contract('Misc Predicates tests', async function(accounts) {
     let ageOfUtxo1a = predicateTestUtils.getAge(utxo1a)
     let ageOfUtxo1b = predicateTestUtils.getAge(utxo1b)
     // exitId is the "age of the youngest input" which is derived from utxo1a since it came after utxo1b
-    let exitId = predicateTestUtils.getExitId(bob, ageOfUtxo1b)
+    let exitId = ageOfUtxo1b.shln(1)
     await predicateTestUtils.assertStartExit(logs[1], bob, rootERC20.address, bobInitial.add(aliceToBobTransferAmount), false /* isRegularExit */, exitId, contracts.exitNFT)
     predicateTestUtils.assertExitUpdated(logs[2], alice, exitId, ageOfUtxo1a)
     predicateTestUtils.assertExitUpdated(logs[3], bob, exitId, ageOfUtxo1b)
@@ -243,7 +242,7 @@ contract('Misc Predicates tests', async function(accounts) {
     )
     let logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
     let ageOfUtxo1a = predicateTestUtils.getAge(utxo1a)
-    let exitId = predicateTestUtils.getExitId(alice, ageOfUtxo1a)
+    let exitId = ageOfUtxo1a.shln(1).or(web3.utils.toBN(1))
     await predicateTestUtils.assertStartExit(logs[1], alice, rootERC20.address, aliceInitial.sub(web3.utils.toBN('6')), false /* isRegularExit */, exitId, contracts.exitNFT)
     predicateTestUtils.assertExitUpdated(logs[2], alice, exitId, ageOfUtxo1a)
 
