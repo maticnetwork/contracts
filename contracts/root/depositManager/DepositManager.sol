@@ -28,6 +28,14 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
     _;
   }
 
+  modifier onlyWithdrawManager() {
+    require(
+      msg.sender == registry.getWithdrawManagerAddress(),
+      "UNAUTHORIZED_WITHDRAW_MANAGER_ONLY"
+    );
+    _;
+  }
+
   // deposit ETH by sending to this contract
   function () external payable {
     depositEther();
@@ -35,7 +43,7 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
 
   function transferAssets(address _token, address _user, uint256 _amountOrNFTId)
     external
-    isPredicateAuthorized
+    onlyWithdrawManager
   {
     address wethToken = registry.getWethTokenAddress();
     if (registry.isERC721(_token)) {

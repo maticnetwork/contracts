@@ -82,25 +82,25 @@ module.exports = async function(deployer, network) {
   deployer
     .then(async() => {
       console.log('linking libs...')
-      await bluebird.map(libDeps, async e => {
-        await deployer.deploy(e.lib)
-        deployer.link(e.lib, e.contracts)
-      })
+      // await bluebird.map(libDeps, async e => {
+      //   await deployer.deploy(e.lib)
+      //   deployer.link(e.lib, e.contracts)
+      // })
 
       console.log('deploying contracts...')
-      await Promise.all([
-        deployer.deploy(Registry),
-        deployer.deploy(StakeManager),
-        deployer.deploy(WithdrawManager),
-        deployer.deploy(DepositManager)
-      ])
+      // await Promise.all([
+      //   deployer.deploy(Registry),
+      //   deployer.deploy(StakeManager),
+      //   deployer.deploy(WithdrawManager),
+      //   deployer.deploy(DepositManager)
+      // ])
 
-      await Promise.all([
-        deployer.deploy(RootChain, Registry.address),
-        deployer.deploy(ERC20Predicate, WithdrawManager.address, DepositManager.address),
-        deployer.deploy(ERC721Predicate, WithdrawManager.address, DepositManager.address),
-        deployer.deploy(MarketplacePredicate, WithdrawManager.address, DepositManager.address, Registry.address),
-        deployer.deploy(MarketplacePredicateTest)
-      ])
+      // await Promise.all([
+      //   deployer.deploy(RootChain, Registry.address),
+      //   deployer.deploy(ERC20Predicate, WithdrawManager.address, DepositManager.address),
+      //   deployer.deploy(ERC721Predicate, WithdrawManager.address, DepositManager.address),
+      //   deployer.deploy(MarketplacePredicate, WithdrawManager.address, DepositManager.address, Registry.address),
+      //   deployer.deploy(MarketplacePredicateTest)
+      // ])
     })
 }

@@ -250,6 +250,10 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       "Invalid exit or input id"
     );
     require(
+      registry.predicates(adjudicatorPredicate) != Registry.Type.Invalid,
+      "INVALID_PREDICATE"
+    );
+    require(
       IPredicate(adjudicatorPredicate).verifyDeprecation(
         encodeExit(exit),
         encodeInputUtxo(inputId, input),

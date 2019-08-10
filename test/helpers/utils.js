@@ -189,8 +189,8 @@ export async function verifyDeprecation(withdrawManager, predicate, exitId, inpu
   )
   // console.log('exitData', exitData)
   const inputUtxoData = web3.eth.abi.encodeParameters(
-    ['uint256', 'address'],
-    [options.age, options.signer]
+    ['uint256', 'address', 'address', 'address'],
+    [options.age, options.signer, predicate.address, options.childToken]
   )
   // console.log('inputUtxoData', inputUtxoData)
   return predicate.verifyDeprecation(exitData, inputUtxoData, challengeData)

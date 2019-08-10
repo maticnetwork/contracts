@@ -8,7 +8,7 @@ const predicateTestUtils = require('./predicates/predicateTestUtils')
 const utils = require('../helpers/utils')
 
 chai.use(chaiAsPromised).should()
-let contracts, childContracts, statefulUtils
+let contracts, childContracts, statefulUtils, erc20Predicate
 
 contract('WithdrawManager', async function(accounts) {
   const amount = web3.utils.toBN('10')
@@ -20,7 +20,7 @@ contract('WithdrawManager', async function(accounts) {
     before(async function() {
       contracts = await deployer.freshDeploy()
       statefulUtils = new StatefulUtils()
-      await deployer.deployErc20Predicate()
+      erc20Predicate = await deployer.deployErc20Predicate()
       childContracts = await deployer.initializeChildChain(owner)
       const { rootERC20, childToken } = await deployer.deployChildErc20(owner)
       contracts.rootERC20 = rootERC20
@@ -61,7 +61,7 @@ contract('WithdrawManager', async function(accounts) {
       const challengeData = utils.buildChallengeData(predicateTestUtils.buildInputFromCheckpoint(utxo))
       // This will be used to assert that challenger received the bond amount
       const originalBalance = web3.utils.toBN(await web3.eth.getBalance(owner))
-      const challenge = await contracts.withdrawManager.challengeExit(exitId, ageOfInput, challengeData)
+      const challenge = await contracts.withdrawManager.challengeExit(exitId, ageOfInput, challengeData, erc20Predicate.address)
       await predicateTestUtils.assertChallengeBondReceived(challenge, originalBalance)
       log = challenge.logs[0]
       log.event.should.equal('ExitCancelled')

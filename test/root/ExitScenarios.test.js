@@ -121,6 +121,7 @@ contract('Misc Predicates tests', async function(accounts) {
     // Mallory spends UTXO2M in TX2 creating UTXO3M
     const tx2 = await childErc20.transfer('0x' + crypto.randomBytes(20).toString('hex'), web3.utils.toBN('5'), { from: mallory })
     const utxo3m = { checkpoint: await statefulUtils.submitCheckpoint(contracts.rootChain, tx2.receipt, accounts), logIndex: 1 }
+
     // Mallory starts an exit from TX1 (from UTXO2M) while referencing UTXO1A and places exit bond
     let startExitTx = await utils.startExitNew(
       contracts.ERC20Predicate,
@@ -138,7 +139,8 @@ contract('Misc Predicates tests', async function(accounts) {
     const challengeData = utils.buildChallengeData(predicateTestUtils.buildInputFromCheckpoint(utxo3m))
     // This will be used to assert that challenger received the bond amount
     const originalBalance = web3.utils.toBN(await web3.eth.getBalance(accounts[0]))
-    const challenge = await contracts.withdrawManager.challengeExit(exitId, ageOfUtxo1a, challengeData)
+    // const challenge = await contracts.withdrawManager.challengeExit(exitId, ageOfUtxo1a, challengeData, contracts.ERC20Predicate.address)
+    const challenge = await contracts.withdrawManager.challengeExit(exitId, 0, challengeData, contracts.ERC20Predicate.address)
     await predicateTestUtils.assertChallengeBondReceived(challenge, originalBalance)
     predicateTestUtils.assertExitCancelled(challenge.logs[0], exitId)
   })
@@ -201,7 +203,7 @@ contract('Misc Predicates tests', async function(accounts) {
     const challengeData = utils.buildChallengeData(predicateTestUtils.buildInputFromCheckpoint(_utxo2A))
     // This will be used to assert that challenger received the bond amount
     const originalBalance = web3.utils.toBN(await web3.eth.getBalance(accounts[0]))
-    const challenge = await contracts.withdrawManager.challengeExit(exitId, ageOfUtxo1a, challengeData)
+    const challenge = await contracts.withdrawManager.challengeExit(exitId, ageOfUtxo1a, challengeData, contracts.ERC20Predicate.address)
     await predicateTestUtils.assertChallengeBondReceived(challenge, originalBalance)
     predicateTestUtils.assertExitCancelled(challenge.logs[0], exitId)
   })
@@ -249,7 +251,7 @@ contract('Misc Predicates tests', async function(accounts) {
     // challenging with the exit tx itself should fail
     try {
       const challengeData = utils.buildChallengeData(predicateTestUtils.buildInputFromCheckpoint(_utxo2A))
-      await contracts.withdrawManager.challengeExit(exitId, ageOfUtxo1a, challengeData)
+      await contracts.withdrawManager.challengeExit(exitId, ageOfUtxo1a, challengeData, contracts.ERC20Predicate.address)
       assert.fail('Challenge should have failed')
     } catch(e) {
       assert.strictEqual(e.reason, 'Cannot challenge with the exit tx')
@@ -259,7 +261,7 @@ contract('Misc Predicates tests', async function(accounts) {
     const challengeData = utils.buildChallengeData(predicateTestUtils.buildInputFromCheckpoint(utxo2A))
     // This will be used to assert that challenger received the bond amount
     const originalBalance = web3.utils.toBN(await web3.eth.getBalance(accounts[0]))
-    const challenge = await contracts.withdrawManager.challengeExit(exitId, ageOfUtxo1a, challengeData)
+    const challenge = await contracts.withdrawManager.challengeExit(exitId, ageOfUtxo1a, challengeData, contracts.ERC20Predicate.address)
     await predicateTestUtils.assertChallengeBondReceived(challenge, originalBalance)
     predicateTestUtils.assertExitCancelled(challenge.logs[0], exitId)
   })

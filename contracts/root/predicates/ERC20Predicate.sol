@@ -131,7 +131,7 @@ contract ERC20Predicate is IErcPredicate {
     sendBond(); // send BOND_AMOUNT to withdrawManager
 
     // last bit is to differentiate whether the sender or receiver of the in-flight tx is starting an exit
-    uint256 exitId = referenceTxData.age << 1;
+    uint256 exitId = Math.max(referenceTxData.age, _referenceTxData.age) << 1;
     if (msg.sender == exitTxData.signer) exitId |= 1;
     withdrawManager.addExitToQueue(
       msg.sender, referenceTxData.childToken, referenceTxData.rootToken,
@@ -167,18 +167,12 @@ contract ERC20Predicate is IErcPredicate {
     returns (bool)
   {
     PlasmaExit memory _exit = decodeExit(exit);
-    (uint256 age, address signer,,) = decodeInputUtxo(inputUtxo);
-    // it's possible to challenge either an input utxo or the exit directly
-    // age = Math.max(_exit. >> 1, )
+    (uint256 age, address signer,,address childToken) = decodeInputUtxo(inputUtxo);
     RLPReader.RLPItem[] memory _challengeData = challengeData.toRlpItem().toList();
     ExitTxData memory challengeTxData = processChallengeTx(_challengeData[10].toBytes());
     require(
-      challengeTxData.signer == signer || challengeTxData.signer == _exit.owner,
-      "Challenge tx not signed by the exitor or the party who signed the input UTXO to the exit"
-    );
-    require(
-      _exit.token == challengeTxData.childToken,
-      "Challenge tx token doesnt match with exit token"
+      challengeTxData.signer == signer,
+      "Challenge tx not signed by the party who signed the input UTXO to the exit"
     );
     require(
       _exit.txHash != challengeTxData.txHash,
@@ -195,8 +189,8 @@ contract ERC20Predicate is IErcPredicate {
     referenceTxData.age = withdrawManager.verifyInclusion(challengeData, 0, true /* verifyTxInclusion */)
       .add(referenceTxData.age);
     require(
-      challengeTxData.childToken == referenceTxData.childToken,
-      "Tx and receipt do not correspond to the same child token"
+      referenceTxData.childToken == childToken && challengeTxData.childToken == childToken,
+      "LogTransferReceipt, challengeTx token and challenged utxo token do not match"
     );
     require(
       referenceTxData.age > age,
