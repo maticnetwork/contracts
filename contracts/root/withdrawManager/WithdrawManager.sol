@@ -34,10 +34,27 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     exitsQueues[token] = address(new PriorityQueue());
   }
 
+  /**
+   * @dev Verify the inclusion of the receipt in the checkpoint
+   * @param data RLP encoded data of the reference tx(s) that encodes the following fields for each tx
+   * headerNumber Header block number of which the reference tx was a part of
+   * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
+   * blockNumber Block number of which the reference tx is a part of
+   * blockTime Reference tx block time
+   * blocktxRoot Transactions root of block
+   * blockReceiptsRoot Receipts root of block
+   * receipt Receipt of the reference transaction
+   * receiptProof Merkle proof of the reference receipt
+   * branchMask Merkle proof branchMask for the receipt
+   * logIndex Log Index to read from the receipt
+   * @param offset offset in the data array
+   * @param verifyTxInclusion Whether to also verify the inclusion of the raw tx in the txRoot
+   * @return ageOfInput Measure of the position of the receipt and the log in the child chain
+   */
   function verifyInclusion(bytes calldata data, uint8 offset, bool verifyTxInclusion)
     external
     view
-    returns (uint256 age)
+    returns (uint256 /* ageOfInput */)
   {
     RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
     uint256 headerNumber = referenceTxData[offset].toUint();
@@ -64,27 +81,24 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       );
     }
 
-    uint256 startBlock;
-    bytes32 headerRoot;
-    // @todo a function to return just root and startBlock might save gas
-    (headerRoot, startBlock,,,) = rootChain.headerBlocks(headerNumber);
-
     uint256 blockNumber = referenceTxData[offset + 2].toUint();
-    require(
-      keccak256(abi.encodePacked(
-        blockNumber,
-        referenceTxData[offset + 3].toUint(), // blockTime
-        bytes32(referenceTxData[offset + 4].toUint()), // txRoot
-        bytes32(referenceTxData[offset + 5].toUint()) // receiptRoot
-      )).checkMembership(blockNumber - startBlock, headerRoot, referenceTxData[offset + 1].toBytes() /* blockProof */),
-      "WITHDRAW_BLOCK_NOT_A_PART_OF_SUBMITTED_HEADER"
+    uint256 createdAt = checkBlockMembershipInCheckpoint(
+      blockNumber,
+      referenceTxData[offset + 3].toUint(), // blockTime
+      bytes32(referenceTxData[offset + 4].toUint()), // txRoot
+      bytes32(referenceTxData[offset + 5].toUint()), // receiptRoot
+      headerNumber,
+      referenceTxData[offset + 1].toBytes() // blockProof
     );
 
-    age = (
-      headerNumber * HEADER_BLOCK_NUMBER_WEIGHT +
-      blockNumber * CHILD_BLOCK_NUMBER_WEIGHT +
-      branchMask.toRlpItem().toUint() * BRANCH_MASK_WEIGHT
-    );
+    // ageOfInput is denoted as
+    // 1 reserve bit (see last 2 lines in comment)
+    // 128 bits for exitableAt timestamp
+    // 95 bits for child block number
+    // 32 bits for receiptPos + logIndex * MAX_LOGS + oIndex
+    // In predicates, the exitId will be evaluated by shifting the ageOfInput left by 1 bit
+    // (Only in erc20Predicate) Last bit is to differentiate whether the sender or receiver of the in-flight tx is starting an exit
+    return (getExitableAt(createdAt) << 127) | (blockNumber << 32) | branchMask.toRlpItem().toUint();
   }
 
   modifier isPredicateAuthorized(address rootToken) {
@@ -116,15 +130,16 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     isBondProvided
   {
     address payable depositManager = address(uint160(registry.getDepositManagerAddress()));
-    bytes32 depositHash = DepositManager(depositManager).deposits(depositId);
+    (bytes32 depositHash, uint256 createdAt) = DepositManager(depositManager).deposits(depositId);
     require(
       keccak256(abi.encodePacked(msg.sender, token, amountOrToken)) == depositHash,
       "UNAUTHORIZED_EXIT"
     );
-    uint256 priority = depositId * HEADER_BLOCK_NUMBER_WEIGHT;
+    uint256 ageOfInput = getExitableAt(createdAt) << 127;
+    uint256 exitId = ageOfInput << 1;
     address predicate = registry.isTokenMappedAndGetPredicate(token);
-    uint256 exitId = _addExitToQueue(msg.sender, token, amountOrToken, bytes32(0) /* txHash */, false /* isRegularExit */, priority, predicate);
-    _addInput(exitId, priority /* input age */, msg.sender /* signer */);
+    _addExitToQueue(msg.sender, token, amountOrToken, bytes32(0) /* txHash */, false /* isRegularExit */, exitId, predicate);
+    _addInput(exitId, ageOfInput, msg.sender /* signer */);
   }
 
   function addExitToQueue(
@@ -137,13 +152,12 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     uint256 priority)
     external
     isPredicateAuthorized(rootToken)
-    returns (uint256 /* exitId */)
   {
     require(
       registry.rootToChildToken(rootToken) == childToken,
       "INVALID_ROOT_TO_CHILD_TOKEN_MAPPING"
     );
-    return _addExitToQueue(exitor, rootToken, exitAmountOrTokenId, txHash, isRegularExit, priority, msg.sender /* predicate */);
+    _addExitToQueue(exitor, rootToken, exitAmountOrTokenId, txHash, isRegularExit, priority, msg.sender /* predicate */);
   }
 
   function _addExitToQueue(
@@ -152,19 +166,15 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     uint256 exitAmountOrTokenId,
     bytes32 txHash,
     bool isRegularExit,
-    uint256 priority,
+    uint256 exitId,
     address predicate)
     internal
-    returns (uint256 exitId)
   {
-    // It is possible for multiple users to start an exit from the same reference UTXO
-    // So, exitId is derived from (exitor, priority)
-    exitId = getExitId(exitor, priority);
     require(
       exits[exitId].token == address(0x0),
       "EXIT_ALREADY_EXISTS"
     );
-    exits[exitId] = PlasmaExit(exitAmountOrTokenId, txHash, exitor, rootToken, predicate, isRegularExit, getExitableWindow());
+    exits[exitId] = PlasmaExit(exitAmountOrTokenId, txHash, exitor, rootToken, predicate, isRegularExit);
     PlasmaExit storage _exitObject = exits[exitId];
 
     bytes32 key = getKey(_exitObject.token, _exitObject.owner, _exitObject.receiptAmountOrNFTId);
@@ -176,7 +186,13 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     }
 
     PriorityQueue queue = PriorityQueue(exitsQueues[_exitObject.token]);
-    queue.insert(priority, exitId);
+
+    // Way priority queue is implemented is such that it expects 2 uint256 params with most significant 128 bits masked out
+    // This is a workaround to split exitId, which otherwise is conclusive in itself
+    // exitId >> 128 gives 128 most significant bits
+    // uint256(uint128(exitId)) gives 128 least significant bits
+    // @todo Fix this mess
+    queue.insert(exitId >> 128, uint256(uint128(exitId)));
 
     // create exit nft
     exitNft.mint(_exitObject.owner, exitId);
@@ -256,14 +272,16 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
   function processExits(address _token)
     external
   {
+    uint256 exitableAt;
     uint256 exitId;
     PriorityQueue exitQueue = PriorityQueue(exitsQueues[_token]);
     while(exitQueue.currentSize() > 0 && gasleft() > ON_FINALIZE_GAS_LIMIT) {
-      (,exitId) = exitQueue.getMin();
+      (exitableAt, exitId) = exitQueue.getMin();
+      exitId = exitableAt << 128 | exitId;
       PlasmaExit memory currentExit = exits[exitId];
 
       // Stop processing exits if the exit that is next is queue is still in its challenge period
-      if (currentExit.exitableAt > block.timestamp) return;
+      if (exitableAt > block.timestamp) return;
 
       exitQueue.delMin();
       // If the exitNft was deleted as a result of a challenge, skip processing this exit
@@ -300,15 +318,6 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     }
   }
 
-  function getExitId(address exitor, uint256 priority)
-    internal
-    pure
-    returns (uint256 exitId)
-  {
-    // priority queue expects 128 most significant bits to be zero
-    exitId = uint256(keccak256(abi.encodePacked(exitor, priority))) >> 128;
-  }
-
   function getKey(address token, address exitor, uint256 amountOrToken)
     internal
     view
@@ -323,18 +332,6 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     }
   }
 
-  function getExitableWindow()
-    internal
-    returns(uint256)
-  {
-    // Reset exitWindow if it is nearing its end
-    if (now + 1 days >= exitWindow) {
-      exitWindow = now + 1 weeks;
-      exitWindow = now - 1 hours; // JUST FOR TESTING. REMOVE BEFORE MERGING
-    }
-    return exitWindow;
-  }
-
   /**
    * @dev Receive bond for bonded exits
    */
@@ -346,5 +343,28 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
   {
     require(_nftContract != address(0));
     exitNft = ExitNFT(_nftContract);
+  }
+
+  function checkBlockMembershipInCheckpoint(
+    uint256 blockNumber,
+    uint256 blockTime,
+    bytes32 txRoot,
+    bytes32 receiptRoot,
+    uint256 headerNumber,
+    bytes memory blockProof)
+    internal view returns(uint256 /* createdAt */)
+  {
+    (bytes32 headerRoot, uint256 startBlock,,uint256 createdAt,) = rootChain.headerBlocks(headerNumber);
+    require(
+      keccak256(abi.encodePacked(blockNumber, blockTime, txRoot, receiptRoot))
+        .checkMembership(blockNumber - startBlock, headerRoot, blockProof),
+      "WITHDRAW_BLOCK_NOT_A_PART_OF_SUBMITTED_HEADER"
+    );
+    return createdAt;
+  }
+
+  function getExitableAt(uint256 createdAt) internal view returns (uint256) {
+    // return Math.max(createdAt + 2 * HALF_EXIT_PERIOD, now + HALF_EXIT_PERIOD);
+    return createdAt; // FOR TESTING
   }
 }

@@ -39,7 +39,7 @@ contract('WithdrawManager', async function(accounts) {
       )
       const depositId = depositTx.logs[0].args.depositCount
       expect(depositId.toString()).to.equal('1') // first deposit
-      const depositHash = await contracts.depositManager.deposits(depositId)
+      const { depositHash, createdAt } = await contracts.depositManager.deposits(depositId)
       expect(depositHash).to.equal(web3.utils.soliditySha3(user, contracts.rootERC20.address, amount))
 
       const exitTx = await contracts.withdrawManager.startExitWithDepositedTokens(
@@ -49,10 +49,10 @@ contract('WithdrawManager', async function(accounts) {
         { value: web3.utils.toWei('.1', 'ether'), from: user }
       )
       let log = exitTx.logs[0]
-      const priority = depositId.mul(predicateTestUtils.HEADER_BLOCK_NUMBER_WEIGHT)
-      const exitId = predicateTestUtils.getExitId(user, priority)
+      const ageOfInput = createdAt.shln(127)
+      const exitId = createdAt.shln(128)
       await predicateTestUtils.assertStartExit(log, user, contracts.rootERC20.address, amount, false /* isRegularExit */, exitId, contracts.exitNFT)
-      predicateTestUtils.assertExitUpdated(exitTx.logs[1], user, exitId, priority)
+      predicateTestUtils.assertExitUpdated(exitTx.logs[1], user, exitId, ageOfInput)
 
       // The test above is complete in itself, now the challenge part
       // assuming the exitor made spending txs on child chain
@@ -61,7 +61,7 @@ contract('WithdrawManager', async function(accounts) {
       const challengeData = utils.buildChallengeData(predicateTestUtils.buildInputFromCheckpoint(utxo))
       // This will be used to assert that challenger received the bond amount
       const originalBalance = web3.utils.toBN(await web3.eth.getBalance(owner))
-      const challenge = await contracts.withdrawManager.challengeExit(exitId, priority, challengeData)
+      const challenge = await contracts.withdrawManager.challengeExit(exitId, ageOfInput, challengeData)
       await predicateTestUtils.assertChallengeBondReceived(challenge, originalBalance)
       log = challenge.logs[0]
       log.event.should.equal('ExitCancelled')

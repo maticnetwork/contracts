@@ -17,7 +17,6 @@ contract ExitsDataStructure {
     address token;
     address predicate;
     bool isRegularExit;
-    uint256 exitableAt;
     // Mapping from age of input to Input
     mapping(uint256 => Input) inputs;
   }
@@ -49,9 +48,10 @@ contract WithdrawManagerHeader is ExitsDataStructure {
 }
 
 contract WithdrawManagerStorage is ProxyStorage, WithdrawManagerHeader {
-  uint256 constant internal HEADER_BLOCK_NUMBER_WEIGHT = 10 ** 30;
-  uint256 constant internal CHILD_BLOCK_NUMBER_WEIGHT = 10 ** 12;
-  uint256 constant internal BRANCH_MASK_WEIGHT = 10 ** 5;
+  // uint256 constant internal HEADER_BLOCK_NUMBER_WEIGHT = 10 ** 30;
+  // uint256 constant internal CHILD_BLOCK_NUMBER_WEIGHT = 1 << 96;
+  // uint256 constant internal BRANCH_MASK_WEIGHT = 1 << 64;
+  uint256 internal constant HALF_EXIT_PERIOD = 1 weeks;
 
   // Bonded exits collaterized at 0.1 ETH
   uint256 constant internal BOND_AMOUNT = 10 ** 17;
@@ -65,7 +65,7 @@ contract WithdrawManagerStorage is ProxyStorage, WithdrawManagerHeader {
   mapping (bytes32 => uint256) public ownerExits;
   mapping (address => address) public exitsQueues;
   ExitNFT public exitNft;
-  
+
   // ERC721, ERC20 and Weth transfers require 155000, 100000, 52000 gas respectively
   // Processing each exit in a while loop iteration requires ~52000 gas (@todo check if this changed)
   uint32 constant internal ITERATION_GAS = 52000;

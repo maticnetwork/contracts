@@ -54,7 +54,7 @@ contract ERC20Predicate is IErcPredicate {
       "Withdrawer and burn exit tx do not match"
     );
     uint256 exitAmount = BytesLib.toUint(logData, 0); // amountOrTokenId
-    withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, exitAmount, bytes32(0x0), true /* isRegularExit */, age);
+    withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, exitAmount, bytes32(0x0), true /* isRegularExit */, age << 1);
   }
 
   /**
@@ -107,14 +107,18 @@ contract ERC20Predicate is IErcPredicate {
     referenceTxData.age = withdrawManager.verifyInclusion(data, 0 /* offset */, false /* verifyTxInclusion */)
         .add(referenceTxData.age); // Add the logIndex and oIndex from the receipt
 
-    uint256 priority = referenceTxData.age;
     sendBond(); // send BOND_AMOUNT to withdrawManager
+
+    // last bit is to differentiate whether the sender or receiver of the in-flight tx is starting an exit
+    uint256 exitId = referenceTxData.age << 1;
+    if (msg.sender == exitTxData.signer) exitId |= 1;
+
     if (referenceTx.length <= 10) {
-      priority = withdrawManager.addExitToQueue(
+      withdrawManager.addExitToQueue(
         msg.sender, referenceTxData.childToken, referenceTxData.rootToken,
-        exitTxData.amountOrToken, exitTxData.txHash, false /* isRegularExit */, priority
+        exitTxData.amountOrToken, exitTxData.txHash, false /* isRegularExit */, exitId
       );
-      withdrawManager.addInput(priority /* exitId */, referenceTxData.age /* age of input */, exitTxData.signer);
+      withdrawManager.addInput(exitId, referenceTxData.age /* age of input */, exitTxData.signer);
       return (referenceTxData.rootToken, exitTxData.amountOrToken);
     }
 
@@ -136,14 +140,19 @@ contract ERC20Predicate is IErcPredicate {
     );
     _referenceTxData.age = withdrawManager.verifyInclusion(data, 10 /* offset */, false /* verifyTxInclusion */)
         .add(_referenceTxData.age);
-        
-    priority = withdrawManager.addExitToQueue(
+
+    // If the other referenced receipt was more recent, modify the exitId
+    // This is to reflect what MoreVp calls the "age of the youngest input"
+    if (_referenceTxData.age > referenceTxData.age) {
+      exitId = _referenceTxData.age << 1;
+    }
+    withdrawManager.addExitToQueue(
       msg.sender, referenceTxData.childToken, referenceTxData.rootToken,
       exitTxData.amountOrToken.add(_referenceTxData.closingBalance), exitTxData.txHash, false /* isRegularExit */,
-      Math.max(referenceTxData.age, _referenceTxData.age) // What MoreVp calls the age of the youngest input
+      exitId
     );
-    withdrawManager.addInput(priority /* exitId */, referenceTxData.age, exitTxData.signer);
-    withdrawManager.addInput(priority /* exitId */, _referenceTxData.age, msg.sender);
+    withdrawManager.addInput(exitId, referenceTxData.age, exitTxData.signer);
+    withdrawManager.addInput(exitId, _referenceTxData.age, msg.sender);
     return (referenceTxData.rootToken, exitTxData.amountOrToken.add(_referenceTxData.closingBalance));
   }
 

@@ -1,9 +1,6 @@
 const Proofs = require('../../helpers/proofs')
 const utils = require('../../helpers/utils')
 
-export const HEADER_BLOCK_NUMBER_WEIGHT = web3.utils.toBN(10).pow(web3.utils.toBN(30))
-const CHILD_BLOCK_NUMBER_WEIGHT = web3.utils.toBN(10).pow(web3.utils.toBN(12))
-const BRANCH_MASK_WEIGHT = web3.utils.toBN(10).pow(web3.utils.toBN(5))
 const MAX_LOGS = web3.utils.toBN(10)
 const BOND_AMOUNT = web3.utils.toBN(10).pow(web3.utils.toBN(17))
 
@@ -21,10 +18,11 @@ export function buildInputFromCheckpoint(utxo) {
 }
 
 export function getAge(utxo) {
-  return web3.utils.toBN(utxo.checkpoint.headerNumber).mul(HEADER_BLOCK_NUMBER_WEIGHT)
-    .add(web3.utils.toBN(utxo.checkpoint.block.number, 10).mul(CHILD_BLOCK_NUMBER_WEIGHT))
-    .add(web3.utils.toBN(parseInt(utxo.checkpoint.reference.path.toString('hex'), 16)).mul(BRANCH_MASK_WEIGHT))
+  return utxo.checkpoint.createdAt.shln(127)
+    .or(web3.utils.toBN(utxo.checkpoint.block.number).shln(32))
+    .or(web3.utils.toBN(parseInt(utxo.checkpoint.reference.path.toString('hex'), 16)))
     .add(web3.utils.toBN(utxo.logIndex).mul(MAX_LOGS))
+    // oIndex
 }
 
 // this is hack to generate a raw tx that is expected to be inflight
@@ -49,15 +47,12 @@ export function buildInFlight(tx) {
   return Proofs.getTxBytes(tx)
 }
 
-export function getExitId(exitor, utxoAge) {
-  return web3.utils.toBN(web3.utils.soliditySha3(exitor, utxoAge)).shrn(128)
-}
-
 export async function assertStartExit(log, exitor, token, amount, isRegularExit, exitId, exitNFT) {
   log.event.should.equal('ExitStarted')
   expect(log.args).to.include({ exitor, token, isRegularExit })
   utils.assertBigNumberEquality(log.args.amount, amount)
   if (exitId) {
+    // console.log('in assertStartExit: exitId', log.args.exitId, exitId.toString(16))
     utils.assertBigNumberEquality(log.args.exitId, exitId)
     if (exitNFT) assert.strictEqual(await exitNFT.ownerOf(exitId), exitor)
   }
@@ -66,9 +61,9 @@ export async function assertStartExit(log, exitor, token, amount, isRegularExit,
 export function assertExitUpdated(log, signer, exitId, ageOfUtxo) {
   log.event.should.equal('ExitUpdated')
   expect(log.args).to.include({ signer })
-  // console.log('exitId', log.args.exitId, exitId)
+  // console.log('in assertExitUpdated: exitId', log.args.exitId, exitId.toString(16))
   utils.assertBigNumberEquality(log.args.exitId, exitId)
-  // console.log('ageOfUtxo', log.args.age, ageOfUtxo)
+  // console.log('in assertExitUpdated: ageOfUtxo', log.args.age, ageOfUtxo.toString(16))
   utils.assertBigNumberEquality(log.args.age, ageOfUtxo)
 }
 
@@ -87,8 +82,7 @@ export async function assertChallengeBondReceived(challenge, originalBalance) {
   assert.ok(expectedBalance.eq(nowBalance), 'Exitor did not receive the bond')
 }
 
-export async function processExit(withdrawManager, token) {
+export async function processExits(withdrawManager, token) {
   // await utils.increaseBlockTime(14 * 86400)
-  const receipt = await withdrawManager.processExits(token, { gas: 5000000 })
-  console.log(receipt)
+  return withdrawManager.processExits(token, { gas: 5000000 })
 }
