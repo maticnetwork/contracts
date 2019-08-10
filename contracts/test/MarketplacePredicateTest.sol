@@ -11,7 +11,7 @@ contract MarketplacePredicateTest is MarketplacePredicate {
     MarketplacePredicate(address(0x0), address(0x0), address(0x0))
     public {}
 
-  function processPreStateTest(
+  function processLogTransferReceiptTest(
     address predicate,
     bytes memory data,
     address participant)
@@ -19,7 +19,7 @@ contract MarketplacePredicateTest is MarketplacePredicate {
     view
     returns(bytes memory b)
   {
-    ReferenceTxData memory _referenceTx = super.processPreState(predicate, data, participant, false);
+    ReferenceTxData memory _referenceTx = super.processLogTransferReceipt(predicate, data, participant, false, false);
     b = abi.encode(_referenceTx.closingBalance, _referenceTx.age, _referenceTx.childToken, _referenceTx.rootToken);
   }
 
@@ -28,7 +28,7 @@ contract MarketplacePredicateTest is MarketplacePredicate {
     view
     returns(bytes memory b)
   {
-    ExitTxData memory txData = super.processExitTx(exitTx, "\x0d");
+    ExitTxData memory txData = super.processExitTx(exitTx, "\x0d", msg.sender);
     b = abi.encode(txData.amount1, txData.amount2, txData.token1, txData.token2, txData.counterParty);
   }
 
