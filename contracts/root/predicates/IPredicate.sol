@@ -50,16 +50,16 @@ interface IPredicate {
 
   /**
    * @dev Called when an exit initiated by the predicate is being finalized, post the challenge period
-   * @param exitor The user who initiated the exit
-   * @param token Token contract that the exitor initiated an exit for
-   * @param amountOrNft ERC20 amount or ERC721 NFT Id that the exitor wishes to exit with
+   * exitor The user who initiated the exit
+   * token Token contract that the exitor initiated an exit for
+   * amountOrNft ERC20 amount or ERC721 NFT Id that the exitor wishes to exit with
    */
-  function onFinalizeExit(address exitor, address token, uint256 amountOrNft) external;
+  // function onFinalizeExit(address exitor, address token, uint256 amountOrNft) external;
 
   function interpretStateUpdate(bytes calldata state) external view returns (bytes memory);
 }
 
-contract PredicateUtils {
+contract PredicateUtils is ExitsDataStructure {
   using RLPReader for RLPReader.RLPItem;
 
   // Bonded exits collaterized at 0.1 ETH
@@ -110,9 +110,26 @@ contract PredicateUtils {
       bytes32(txList[8].toUint())
     );
   }
+
+  function decodeExit(bytes memory data)
+    internal
+    pure
+    returns (PlasmaExit memory)
+  {
+    (address owner, address token, uint256 amountOrTokenId, bytes32 txHash, bool isRegularExit) = abi.decode(data, (address, address, uint256, bytes32, bool));
+    return PlasmaExit(amountOrTokenId, txHash, owner, token, isRegularExit);
+  }
+
+  function decodeInputUtxo(bytes memory data)
+    internal
+    pure
+    returns (uint256 age, address signer, address predicate, address token)
+  {
+    (age, signer, predicate, token) = abi.decode(data, (uint256, address, address, address));
+  }
 }
 
-contract IErcPredicate is IPredicate, PredicateUtils, ExitsDataStructure {
+contract IErcPredicate is IPredicate, PredicateUtils {
   enum ExitType { OutgoingTransfer, IncomingTransfer, Burnt }
 
   struct ExitTxData {
@@ -135,25 +152,5 @@ contract IErcPredicate is IPredicate, PredicateUtils, ExitsDataStructure {
   constructor(address _withdrawManager, address _depositManager) public {
     withdrawManager = IWithdrawManager(_withdrawManager);
     depositManager = IDepositManager(_depositManager);
-  }
-
-  function decodeExit(bytes memory data)
-    internal
-    pure
-    returns (PlasmaExit memory)
-  {
-    (address owner, address token, uint256 amountOrTokenId, bytes32 txHash, bool isRegularExit) = abi.decode(data, (address, address, uint256, bytes32, bool));
-    return PlasmaExit(amountOrTokenId, txHash, owner, token,
-      address(0x0), // predicate value is not being used
-      isRegularExit
-    );
-  }
-
-  function decodeInputUtxo(bytes memory data)
-    internal
-    pure
-    returns (uint256 age, address signer)
-  {
-    (age, signer) = abi.decode(data, (uint256, address));
   }
 }

@@ -110,7 +110,7 @@ contract ERC721Predicate is IErcPredicate {
       .add(oIndex); // whether exitTxData.signer is a sender or receiver in the referenced receipt
     uint256 exitId = ageOfUtxo << 1;
     withdrawManager.addExitToQueue(msg.sender, exitTxData.childToken, rootToken, exitTxData.amountOrToken, exitTxData.txHash, false /* isRegularExit */, exitId);
-    withdrawManager.addInput(exitId, ageOfUtxo, exitTxData.signer);
+    withdrawManager.addInput(exitId, ageOfUtxo, exitTxData.signer, rootToken);
     return (rootToken, exitTxData.amountOrToken);
   }
 
@@ -165,7 +165,7 @@ contract ERC721Predicate is IErcPredicate {
     returns (bool)
   {
     PlasmaExit memory _exit = decodeExit(exit);
-    (uint256 age, address signer) = decodeInputUtxo(inputUtxo);
+    (uint256 age, address signer,,) = decodeInputUtxo(inputUtxo);
     RLPReader.RLPItem[] memory referenceTxData = challengeData.toRlpItem().toList();
 
     ExitTxData memory challengeTxData = processChallengeTx(referenceTxData[10].toBytes());
@@ -197,19 +197,19 @@ contract ERC721Predicate is IErcPredicate {
     return ageOfChallengeTx > age;
   }
 
-  function onFinalizeExit(address exitor, address token, uint256 tokenId)
-    external
-    onlyWithdrawManager
-  {
-    depositManager.transferAssets(token, exitor, tokenId);
-  }
+  // function onFinalizeExit(address exitor, address token, uint256 tokenId)
+  //   external
+  //   onlyWithdrawManager
+  // {
+  //   depositManager.transferAssets(token, exitor, tokenId);
+  // }
 
   function interpretStateUpdate(bytes calldata state)
     external
     view
     returns (bytes memory b)
   {
-    (bytes memory _data, address participant, bool verifyInclusion) = abi.decode(state, (bytes, address, bool));
+    (bytes memory _data, address participant, bool verifyInclusion, bool isChallenge) = abi.decode(state, (bytes, address, bool, bool));
     RLPReader.RLPItem[] memory referenceTx = _data.toRlpItem().toList();
     bytes memory receipt = referenceTx[6].toBytes();
     uint256 logIndex = referenceTx[9].toUint();
@@ -222,10 +222,14 @@ contract ERC721Predicate is IErcPredicate {
     inputItems = inputItems[1].toList(); // topics
     data.rootToken = address(RLPReader.toUint(inputItems[1]));
     data.closingBalance = BytesLib.toUint(logData, 0);
-    data.age = processStateUpdate(inputItems, participant);
-    data.age += (logIndex * MAX_LOGS); // @todo use safeMath
+    if (isChallenge) {
+      processChallenge(inputItems, participant);
+    } else {
+      data.age = processStateUpdate(inputItems, participant);
+    }
+    data.age = data.age.add(logIndex.mul(MAX_LOGS));
     if (verifyInclusion) {
-      data.age += withdrawManager.verifyInclusion(_data, 0, false /* verifyTxInclusion */); // @todo use safeMath
+      data.age = withdrawManager.verifyInclusion(_data, 0, false /* verifyTxInclusion */).add(data.age);
     }
     return abi.encode(data.closingBalance, data.age, data.childToken, data.rootToken);
   }

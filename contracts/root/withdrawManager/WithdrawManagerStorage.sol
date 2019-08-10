@@ -7,7 +7,9 @@ import { ExitNFT } from "./ExitNFT.sol";
 
 contract ExitsDataStructure {
   struct Input {
-    address signer;
+    address utxoOwner;
+    address predicate;
+    address token;
   }
 
   struct PlasmaExit {
@@ -15,7 +17,6 @@ contract ExitsDataStructure {
     bytes32 txHash;
     address owner;
     address token;
-    address predicate;
     bool isRegularExit;
     // Mapping from age of input to Input
     mapping(uint256 => Input) inputs;

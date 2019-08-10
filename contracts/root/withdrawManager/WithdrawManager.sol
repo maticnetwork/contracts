@@ -101,7 +101,15 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     return (getExitableAt(createdAt) << 127) | (blockNumber << 32) | branchMask.toRlpItem().toUint();
   }
 
-  modifier isPredicateAuthorized(address rootToken) {
+  modifier isPredicateAuthorized() {
+    require(
+      registry.predicates(msg.sender) != Registry.Type.Invalid,
+      "PREDICATE_NOT_AUTHORIZED"
+    );
+    _;
+  }
+
+  modifier checkPredicateAndTokenMapping(address rootToken) {
     (Registry.Type _type) = registry.predicates(msg.sender);
     require(
       registry.rootToChildToken(rootToken) != address(0x0),
@@ -129,8 +137,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     payable
     isBondProvided
   {
-    address payable depositManager = address(uint160(registry.getDepositManagerAddress()));
-    (bytes32 depositHash, uint256 createdAt) = DepositManager(depositManager).deposits(depositId);
+    (bytes32 depositHash, uint256 createdAt) = getDepositManager().deposits(depositId);
     require(
       keccak256(abi.encodePacked(msg.sender, token, amountOrToken)) == depositHash,
       "UNAUTHORIZED_EXIT"
@@ -138,8 +145,12 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     uint256 ageOfInput = getExitableAt(createdAt) << 127;
     uint256 exitId = ageOfInput << 1;
     address predicate = registry.isTokenMappedAndGetPredicate(token);
-    _addExitToQueue(msg.sender, token, amountOrToken, bytes32(0) /* txHash */, false /* isRegularExit */, exitId, predicate);
-    _addInput(exitId, ageOfInput, msg.sender /* signer */);
+    _addExitToQueue(msg.sender, token, amountOrToken, bytes32(0) /* txHash */, false /* isRegularExit */, exitId);
+    _addInput(exitId, ageOfInput, msg.sender /* utxoOwner */, predicate, token);
+  }
+
+  function getDepositManager() internal view returns (DepositManager) {
+    return DepositManager(address(uint160(registry.getDepositManagerAddress())));
   }
 
   function addExitToQueue(
@@ -151,13 +162,13 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     bool isRegularExit,
     uint256 priority)
     external
-    isPredicateAuthorized(rootToken)
+    checkPredicateAndTokenMapping(rootToken)
   {
     require(
       registry.rootToChildToken(rootToken) == childToken,
       "INVALID_ROOT_TO_CHILD_TOKEN_MAPPING"
     );
-    _addExitToQueue(exitor, rootToken, exitAmountOrTokenId, txHash, isRegularExit, priority, msg.sender /* predicate */);
+    _addExitToQueue(exitor, rootToken, exitAmountOrTokenId, txHash, isRegularExit, priority);
   }
 
   function _addExitToQueue(
@@ -166,15 +177,14 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     uint256 exitAmountOrTokenId,
     bytes32 txHash,
     bool isRegularExit,
-    uint256 exitId,
-    address predicate)
+    uint256 exitId)
     internal
   {
     require(
       exits[exitId].token == address(0x0),
       "EXIT_ALREADY_EXISTS"
     );
-    exits[exitId] = PlasmaExit(exitAmountOrTokenId, txHash, exitor, rootToken, predicate, isRegularExit);
+    exits[exitId] = PlasmaExit(exitAmountOrTokenId, txHash, exitor, rootToken, isRegularExit);
     PlasmaExit storage _exitObject = exits[exitId];
 
     bytes32 key = getKey(_exitObject.token, _exitObject.owner, _exitObject.receiptAmountOrNFTId);
@@ -203,40 +213,44 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
    * @dev Add a state update (UTXO style input) to an exit
    * @param exitId Exit ID
    * @param age age of the UTXO style input
-   * @param participant User for which the input acts as a proof-of-funds
+   * @param utxoOwner User for whom the input acts as a proof-of-funds
+      * (alternate expression) User who could have potentially spent this UTXO
+   * @param token Token (Think of it like Utxo color)
    */
-  function addInput(uint256 exitId, uint256 age, address participant)
+  function addInput(uint256 exitId, uint256 age, address utxoOwner, address token)
     external
+    isPredicateAuthorized
   {
     PlasmaExit storage exitObject = exits[exitId];
-    // Checks both of
-    // 1. Exit at the particular exitId exists
-    // 2. Only the predicate that started the exit is authorized to addInput
     require(
-      exitObject.predicate == msg.sender,
-      "EXIT_DOES_NOT_EXIST OR NOT_AUTHORIZED"
+      exitObject.owner != address(0x0),
+      "INVALID_EXIT_ID"
     );
-    _addInput(exitId, age, participant);
+    _addInput(exitId, age, utxoOwner, msg.sender /* predicate */, token);
   }
 
-  function _addInput(uint256 exitId, uint256 age, address participant)
+  function _addInput(uint256 exitId, uint256 age, address utxoOwner, address predicate, address token)
     internal
   {
-    exits[exitId].inputs[age] = Input(participant);
-    emit ExitUpdated(exitId, age, participant);
+    exits[exitId].inputs[age] = Input(utxoOwner, predicate, token);
+    emit ExitUpdated(exitId, age, utxoOwner);
   }
 
-  function challengeExit(uint256 exitId, uint256 inputId, bytes calldata challengeData)
+  function challengeExit(
+    uint256 exitId,
+    uint256 inputId,
+    bytes calldata challengeData,
+    address adjudicatorPredicate)
     external
   {
     PlasmaExit storage exit = exits[exitId];
     Input storage input = exit.inputs[inputId];
     require(
-      exit.token != address(0x0) && input.signer != address(0x0),
+      exit.owner != address(0x0) && input.utxoOwner != address(0x0),
       "Invalid exit or input id"
     );
     require(
-      IPredicate(exit.predicate).verifyDeprecation(
+      IPredicate(adjudicatorPredicate).verifyDeprecation(
         encodeExit(exit),
         encodeInputUtxo(inputId, input),
         challengeData
@@ -266,7 +280,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     view
     returns (bytes memory)
   {
-    return abi.encode(age, input.signer);
+    return abi.encode(age, input.utxoOwner, input.predicate, registry.rootToChildToken(input.token));
   }
 
   function processExits(address _token)
@@ -274,7 +288,9 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
   {
     uint256 exitableAt;
     uint256 exitId;
+
     PriorityQueue exitQueue = PriorityQueue(exitsQueues[_token]);
+
     while(exitQueue.currentSize() > 0 && gasleft() > ON_FINALIZE_GAS_LIMIT) {
       (exitableAt, exitId) = exitQueue.getMin();
       exitId = exitableAt << 128 | exitId;
@@ -292,23 +308,23 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       // limit the gas amount that predicate.onFinalizeExit() can use, to be able to make gas estimations for bulk process exits
       address exitor = currentExit.owner;
       uint256 amountOrNft = currentExit.receiptAmountOrNFTId;
-      address predicate = currentExit.predicate;
-      uint256 _gas = ON_FINALIZE_GAS_LIMIT - ITERATION_GAS; // fixed while loop iteration cost. Can't read global vars in asm
-      assembly {
-        let ptr := mload(64)
-        // keccak256('onFinalizeExit(address,address,uint256)') & 0xFFFFFFFF00000000000000000000000000000000000000000000000000000000
-        mstore(ptr, 0xfdd3d6bd00000000000000000000000000000000000000000000000000000000)
-        mstore(add(ptr, 4), exitor)
-        mstore(add(ptr, 36), _token)
-        mstore(add(ptr, 68), amountOrNft)
-        let ret := add(ptr, 100)
-        // call returns 0 on error (eg. out of gas) and 1 on success
-        let result := call(_gas, predicate, 0, ptr, 100, ret, 32)
-        if eq(result, 0) {
-          revert(0,0)
-        }
-      }
-
+      // address predicate = currentExit.predicate;
+      // uint256 _gas = ON_FINALIZE_GAS_LIMIT - ITERATION_GAS; // fixed while loop iteration cost. Can't read global vars in asm
+      // assembly {
+      //   let ptr := mload(64)
+      //   // keccak256('onFinalizeExit(address,address,uint256)') & 0xFFFFFFFF00000000000000000000000000000000000000000000000000000000
+      //   mstore(ptr, 0xfdd3d6bd00000000000000000000000000000000000000000000000000000000)
+      //   mstore(add(ptr, 4), exitor)
+      //   mstore(add(ptr, 36), _token)
+      //   mstore(add(ptr, 68), amountOrNft)
+      //   let ret := add(ptr, 100)
+      //   // call returns 0 on error (eg. out of gas) and 1 on success
+      //   let result := call(_gas, predicate, 0, ptr, 100, ret, 32)
+      //   if eq(result, 0) {
+      //     revert(0,0)
+      //   }
+      // }
+      getDepositManager().transferAssets(_token, exitor, amountOrNft);
       emit Withdraw(exitId, exitor, _token, amountOrNft);
 
       if (!currentExit.isRegularExit) {
