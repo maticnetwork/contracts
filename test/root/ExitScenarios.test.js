@@ -4,6 +4,8 @@ import chaiAsPromised from 'chai-as-promised'
 import deployer from '../helpers/deployer.js'
 import logDecoder from '../helpers/log-decoder.js'
 import StatefulUtils from '../helpers/StatefulUtils'
+import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
+import { getSig } from '../helpers/marketplaceUtils'
 
 const crypto = require('crypto')
 const utils = require('../helpers/utils')
@@ -265,4 +267,118 @@ contract('Misc Predicates tests', async function(accounts) {
     await predicateTestUtils.assertChallengeBondReceived(challenge, originalBalance)
     predicateTestUtils.assertExitCancelled(challenge.logs[0], exitId)
   })
+
+  it('Mallory is challenged with a marketplace tx', async function() {
+    const stakes = {
+      1: web3.utils.toWei('101'),
+      2: web3.utils.toWei('100'),
+      3: web3.utils.toWei('100'),
+      4: web3.utils.toWei('100')
+    }
+    const wallets = generateFirstWallets(mnemonics, Object.keys(stakes).length)
+
+    const privateKey1 = wallets[0].getPrivateKeyString()
+    const alice = wallets[0].getAddressString()
+
+    const privateKey2 = wallets[1].getPrivateKeyString()
+    const mallory = wallets[1].getAddressString()
+
+    // setup tokens and predicate
+    const erc20 = await deployer.deployChildErc20(accounts[0])
+    const token1 = erc20.childToken
+    const otherErc20 = await deployer.deployChildErc20(accounts[0])
+    const token2 = otherErc20.childToken
+    const marketplacePredicate = await deployer.deployMarketplacePredicate()
+    const marketplace = await deployer.deployMarketplace()
+
+    // These are the amounts that will be used in Marketplace.executeOrder
+    const amount1 = web3.utils.toBN('3')
+    const amount2 = web3.utils.toBN('7')
+
+    // UTXO1A
+    let deposit = await utils.deposit(
+      contracts.depositManager,
+      childContracts.childChain,
+      otherErc20.rootERC20,
+      alice,
+      web3.utils.toBN('13')
+    )
+    const utxo1a = { checkpoint: await statefulUtils.submitCheckpoint(contracts.rootChain, deposit.receipt, accounts), logIndex: 1 }
+
+    // Alice spends UTXO1A in tx1 to Mallory, creating UTXO2M (and UTXO2A)
+    const tx1 = await token2.transfer(mallory, amount2, { from: alice })
+
+    // Mallory starts an exit from TX1 (from UTXO2M) while referencing UTXO1A and places exit bond
+    let startExitTx = await utils.startExitNew(
+      contracts.ERC20Predicate,
+      [utxo1a].map(predicateTestUtils.buildInputFromCheckpoint), // proof-of-funds of counterparty
+      await predicateTestUtils.buildInFlight(await web3Child.eth.getTransaction(tx1.receipt.transactionHash)),
+      mallory // exitor
+    )
+    let logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+    const ageOfUtxo1a = predicateTestUtils.getAge(utxo1a)
+    let exitId = ageOfUtxo1a.shln(1)
+    await predicateTestUtils.assertStartExit(logs[1], mallory, otherErc20.rootERC20.address, amount2, false /* isRegularExit */, exitId, contracts.exitNFT)
+    predicateTestUtils.assertExitUpdated(logs[2], alice, exitId, ageOfUtxo1a)
+
+    // setup for marketplace swap
+    const depositAmount = amount1.add(web3.utils.toBN('1'))
+    // deposit tokens of another type for a 3rd party (re-using alice here, but not necessary)
+    await utils.deposit(null, childContracts.childChain, erc20.rootERC20, alice, depositAmount)
+
+    assert.equal((await token1.balanceOf(alice)).toNumber(), depositAmount)
+    assert.equal((await token2.balanceOf(mallory)).toNumber(), amount2)
+
+    const orderId = '0x' + crypto.randomBytes(32).toString('hex')
+    // get expiration in future in 10 blocks
+    const expiration = 0 // (await web3.eth.getBlockNumber()) + 10
+    // Alice's sig on marketplace order
+    const obj1 = getSig({
+      privateKey: privateKey1,
+      spender: marketplace.address,
+      orderId: orderId,
+      expiration: expiration,
+
+      token1: token1.address,
+      amount1: amount1,
+      token2: token2.address,
+      amount2: amount2
+    })
+    // Mallory's sig on marketplace order
+    const obj2 = getSig({
+      privateKey: privateKey2,
+      spender: marketplace.address,
+      orderId: orderId,
+      expiration: expiration,
+
+      token2: token1.address,
+      amount2: amount1,
+      token1: token2.address,
+      amount1: amount2
+    })
+    const tx2 = await marketplace.executeOrder(
+      encode(token1.address, obj1.sig, amount1),
+      encode(token2.address, obj2.sig, amount2),
+      orderId,
+      expiration,
+      mallory
+    )
+    // logIndex = 3 because token2 was the second token transfer in executeOrder
+    const utxo3m = { checkpoint: await statefulUtils.submitCheckpoint(contracts.rootChain, tx2.receipt, accounts), logIndex: 3 }
+
+    // During the challenge period, the challenger reveals TX2 and receives exit bond
+    const challengeData = utils.buildChallengeData(predicateTestUtils.buildInputFromCheckpoint(utxo3m))
+    // This will be used to assert that challenger received the bond amount
+    const originalBalance = web3.utils.toBN(await web3.eth.getBalance(accounts[0]))
+    const challenge = await contracts.withdrawManager.challengeExit(exitId, 0, challengeData, marketplacePredicate.address)
+    await predicateTestUtils.assertChallengeBondReceived(challenge, originalBalance)
+    predicateTestUtils.assertExitCancelled(challenge.logs[0], exitId)
+  })
 })
+
+function encode(token, sig, tokenIdOrAmount) {
+  return web3.eth.abi.encodeParameters(
+    ['address', 'bytes', 'uint256'],
+    [token, sig, '0x' + tokenIdOrAmount.toString(16)]
+  )
+}
