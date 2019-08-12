@@ -1,3 +1,4 @@
+import { increaseBlockTime, mineOneBlock } from '../../helpers/chain'
 const Proofs = require('../../helpers/proofs')
 const utils = require('../../helpers/utils')
 
@@ -18,11 +19,16 @@ export function buildInputFromCheckpoint(utxo) {
 }
 
 export function getAge(utxo) {
-  return utxo.checkpoint.createdAt.shln(127)
+  return utxo.checkpoint.createdAt
+    .shln(127)
     .or(web3.utils.toBN(utxo.checkpoint.block.number).shln(32))
-    .or(web3.utils.toBN(parseInt(utxo.checkpoint.reference.path.toString('hex'), 16)))
+    .or(
+      web3.utils.toBN(
+        parseInt(utxo.checkpoint.reference.path.toString('hex'), 16)
+      )
+    )
     .add(web3.utils.toBN(utxo.logIndex).mul(MAX_LOGS))
-    // oIndex
+  // oIndex
 }
 
 // this is hack to generate a raw tx that is expected to be inflight
@@ -32,11 +38,13 @@ export async function getRawInflightTx(fn, from, web3) {
   try {
     await fn(options)
     assert.fail('should have failed')
-  } catch(e) {
+  } catch (e) {
     // console.log(e)
     // to ensure it doesnt revert because of some other reason
     assert.ok(
-      e.message.includes('exited with an error (status 0) after consuming all gas'),
+      e.message.includes(
+        'exited with an error (status 0) after consuming all gas'
+      ),
       'Expected tx to throw for a different reason'
     )
     return buildInFlight(await web3.eth.getTransaction(e.tx))
@@ -47,7 +55,15 @@ export function buildInFlight(tx) {
   return Proofs.getTxBytes(tx)
 }
 
-export async function assertStartExit(log, exitor, token, amount, isRegularExit, exitId, exitNFT) {
+export async function assertStartExit(
+  log,
+  exitor,
+  token,
+  amount,
+  isRegularExit,
+  exitId,
+  exitNFT
+) {
   exitor = exitor.toLowerCase()
   token = token.toLowerCase()
   log.event.should.equal('ExitStarted')
@@ -56,9 +72,31 @@ export async function assertStartExit(log, exitor, token, amount, isRegularExit,
   expect(log.args).to.include({ isRegularExit })
   utils.assertBigNumberEquality(log.args.amount, amount)
   if (exitId) {
-    // console.log('in assertStartExit: exitId', log.args.exitId, exitId.toString(16))
-    utils.assertBigNumberEquality(log.args.exitId, exitId)
-    if (exitNFT) assert.strictEqual((await exitNFT.ownerOf(exitId)).toLowerCase(), exitor)
+    console.log(
+      'in assertStartExit: exitId',
+      log.args.exitId,
+      exitId.toString(16)
+    )
+    console.log(
+      exitId,
+      web3.utils.toBN(exitId),
+      web3.utils.toBN(
+        exitId.toString(16),
+        log.args.exitId,
+        web3.utils.toBN(log.args.exitId)
+      )
+    )
+    const num1 = web3.utils.toBN(log.args.exitId)
+    // utils.assertBigNumberEquality(log.args.exitId, exitId)
+    console.log(exitId.toString(16) == log.args.exitId.toString(16))
+    console.log(exitId == log.args.exitId)
+    // expect(num1.eq(web3.utils.toBN(exitId))).to.be.true
+    console.log('woho')
+    if (exitNFT) {
+      console.log('yaha bhi?')
+      assert.strictEqual((await exitNFT.ownerOf(exitId)).toLowerCase(), exitor)
+    }
+    console.log('kuch to fuck up nahi h yaha')
   }
 }
 
@@ -80,13 +118,18 @@ export async function assertChallengeBondReceived(challenge, originalBalance) {
   const challenger = challenge.receipt.from
   // Need this to get the gasPrice to assert that challenger received the bond amount
   const tx = await web3.eth.getTransaction(challenge.tx)
-  const ethSpent = web3.utils.toBN(challenge.receipt.gasUsed).mul(web3.utils.toBN(tx.gasPrice))
+  const ethSpent = web3.utils
+    .toBN(challenge.receipt.gasUsed)
+    .mul(web3.utils.toBN(tx.gasPrice))
   const expectedBalance = originalBalance.sub(ethSpent).add(BOND_AMOUNT)
   const nowBalance = web3.utils.toBN(await web3.eth.getBalance(challenger))
   assert.ok(expectedBalance.eq(nowBalance), 'Exitor did not receive the bond')
 }
 
 export async function processExits(withdrawManager, token) {
-  // await utils.increaseBlockTime(14 * 86400)
+  console.log('kaam hua kya')
+  await increaseBlockTime(14 * 86400)
+  await mineOneBlock()
+  console.log('kaam hua')
   return withdrawManager.processExits(token, { gas: 5000000 })
 }

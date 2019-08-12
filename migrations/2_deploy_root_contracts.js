@@ -29,11 +29,7 @@ const MarketplacePredicateTest = artifacts.require('MarketplacePredicateTest')
 const libDeps = [
   {
     lib: BytesLib,
-    contracts: [
-      WithdrawManager,
-      ERC20Predicate,
-      ERC721Predicate
-    ]
+    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate]
   },
   {
     lib: Common,
@@ -63,44 +59,65 @@ const libDeps = [
   },
   {
     lib: RLPEncode,
-    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate, MarketplacePredicate, MarketplacePredicateTest]
+    contracts: [
+      WithdrawManager,
+      ERC20Predicate,
+      ERC721Predicate,
+      MarketplacePredicate,
+      MarketplacePredicateTest
+    ]
   },
   {
     lib: RLPReader,
-    contracts: [RootChain, ERC20Predicate, ERC721Predicate, MarketplacePredicate, MarketplacePredicateTest]
+    contracts: [
+      RootChain,
+      ERC20Predicate,
+      ERC721Predicate,
+      MarketplacePredicate,
+      MarketplacePredicateTest
+    ]
   },
   {
     lib: SafeMath,
-    contracts: [
-      RootChain,
-      ERC20Predicate
-    ]
+    contracts: [RootChain, ERC20Predicate]
   }
 ]
 
 module.exports = async function(deployer, network) {
-  deployer
-    .then(async() => {
-      console.log('linking libs...')
-      // await bluebird.map(libDeps, async e => {
-      //   await deployer.deploy(e.lib)
-      //   deployer.link(e.lib, e.contracts)
-      // })
-
-      console.log('deploying contracts...')
-      // await Promise.all([
-      //   deployer.deploy(Registry),
-      //   deployer.deploy(StakeManager),
-      //   deployer.deploy(WithdrawManager),
-      //   deployer.deploy(DepositManager)
-      // ])
-
-      // await Promise.all([
-      //   deployer.deploy(RootChain, Registry.address),
-      //   deployer.deploy(ERC20Predicate, WithdrawManager.address, DepositManager.address),
-      //   deployer.deploy(ERC721Predicate, WithdrawManager.address, DepositManager.address),
-      //   deployer.deploy(MarketplacePredicate, WithdrawManager.address, DepositManager.address, Registry.address),
-      //   deployer.deploy(MarketplacePredicateTest)
-      // ])
+  deployer.then(async() => {
+    console.log('linking libs...')
+    await bluebird.map(libDeps, async e => {
+      await deployer.deploy(e.lib)
+      deployer.link(e.lib, e.contracts)
     })
+
+    console.log('deploying contracts...')
+    await Promise.all([
+      deployer.deploy(Registry),
+      deployer.deploy(StakeManager),
+      deployer.deploy(WithdrawManager),
+      deployer.deploy(DepositManager)
+    ])
+
+    await Promise.all([
+      deployer.deploy(RootChain, Registry.address),
+      deployer.deploy(
+        ERC20Predicate,
+        WithdrawManager.address,
+        DepositManager.address
+      ),
+      deployer.deploy(
+        ERC721Predicate,
+        WithdrawManager.address,
+        DepositManager.address
+      ),
+      deployer.deploy(
+        MarketplacePredicate,
+        WithdrawManager.address,
+        DepositManager.address,
+        Registry.address
+      ),
+      deployer.deploy(MarketplacePredicateTest)
+    ])
+  })
 }
