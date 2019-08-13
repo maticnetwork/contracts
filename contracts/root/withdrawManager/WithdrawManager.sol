@@ -384,7 +384,6 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
   }
 
   function getExitableAt(uint256 createdAt) internal view returns (uint256) {
-    // return Math.max(createdAt + 2 * HALF_EXIT_PERIOD, now + HALF_EXIT_PERIOD);
-    return createdAt; // FOR TESTING
+    return Math.max(createdAt + 2 * HALF_EXIT_PERIOD, now + HALF_EXIT_PERIOD);
   }
 }

@@ -1,3 +1,4 @@
+import { increaseBlockTime, mineOneBlock } from '../../helpers/chain'
 const Proofs = require('../../helpers/proofs')
 const utils = require('../../helpers/utils')
 
@@ -18,7 +19,10 @@ export function buildInputFromCheckpoint(utxo) {
 }
 
 export function getAge(utxo) {
-  return utxo.checkpoint.createdAt.shln(127)
+  // Todo: address one week thing in priority
+  return utxo.checkpoint.createdAt
+    .add(web3.utils.toBN(14 * 86400))
+    .shln(127)
     .or(web3.utils.toBN(utxo.checkpoint.block.number).shln(32))
     .or(web3.utils.toBN(parseInt(utxo.checkpoint.reference.path.toString('hex'), 16)))
     .add(web3.utils.toBN(utxo.logIndex).mul(MAX_LOGS))
@@ -87,6 +91,7 @@ export async function assertChallengeBondReceived(challenge, originalBalance) {
 }
 
 export async function processExits(withdrawManager, token) {
-  // await utils.increaseBlockTime(14 * 86400)
+  await increaseBlockTime(14 * 86400)
+  await mineOneBlock()
   return withdrawManager.processExits(token, { gas: 5000000 })
 }
