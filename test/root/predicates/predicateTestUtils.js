@@ -20,8 +20,9 @@ export function buildInputFromCheckpoint(utxo) {
 
 export function getAge(utxo) {
   // Todo: address one week thing in priority
+  // Math.max(createdAt + 2 Week, now + 1 Week);
   return utxo.checkpoint.createdAt
-    .add(web3.utils.toBN(14 * 86400))
+    .add(web3.utils.toBN(14 * 86400))// createdAt + 2  Week
     .shln(127)
     .or(web3.utils.toBN(utxo.checkpoint.block.number).shln(32))
     .or(web3.utils.toBN(parseInt(utxo.checkpoint.reference.path.toString('hex'), 16)))
