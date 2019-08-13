@@ -49,9 +49,6 @@ contract WithdrawManagerHeader is ExitsDataStructure {
 }
 
 contract WithdrawManagerStorage is ProxyStorage, WithdrawManagerHeader {
-  // uint256 constant internal HEADER_BLOCK_NUMBER_WEIGHT = 10 ** 30;
-  // uint256 constant internal CHILD_BLOCK_NUMBER_WEIGHT = 1 << 96;
-  // uint256 constant internal BRANCH_MASK_WEIGHT = 1 << 64;
   uint256 internal constant HALF_EXIT_PERIOD = 1 weeks;
 
   // Bonded exits collaterized at 0.1 ETH
@@ -69,9 +66,10 @@ contract WithdrawManagerStorage is ProxyStorage, WithdrawManagerHeader {
 
   // ERC721, ERC20 and Weth transfers require 155000, 100000, 52000 gas respectively
   // Processing each exit in a while loop iteration requires ~52000 gas (@todo check if this changed)
-  uint32 constant internal ITERATION_GAS = 52000;
-  // So putting an upper limit of 155000 + 52000 + leeway for predicate.onFinalizeExit()
-  uint32 constant internal ON_FINALIZE_GAS_LIMIT = 250000;
+  // uint32 constant internal ITERATION_GAS = 52000;
+
+  // So putting an upper limit of 155000 + 52000 + leeway
+  uint32 constant internal ON_FINALIZE_GAS_LIMIT = 210000;
 
   uint256 public exitWindow;
 }
