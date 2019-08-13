@@ -49,8 +49,8 @@ contract('WithdrawManager', async function(accounts) {
         { value: web3.utils.toWei('.1', 'ether'), from: user }
       )
       let log = exitTx.logs[0]
-      const ageOfInput = createdAt.shln(127)
-      const exitId = createdAt.shln(128)
+      const ageOfInput = createdAt.add(web3.utils.toBN(14 * 86400)).shln(127)
+      const exitId = ageOfInput.shln(1)
       await predicateTestUtils.assertStartExit(log, user, contracts.rootERC20.address, amount, false /* isRegularExit */, exitId, contracts.exitNFT)
       predicateTestUtils.assertExitUpdated(exitTx.logs[1], user, exitId, ageOfInput)
 
