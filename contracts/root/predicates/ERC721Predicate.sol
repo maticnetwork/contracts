@@ -66,16 +66,16 @@ contract ERC721Predicate is IErcPredicate {
   /**
    * @notice Start an exit by referencing the preceding (reference) transaction
    * @param data RLP encoded data of the reference tx(s) that encodes the following fields for each tx
-   * headerNumber Header block number of which the reference tx was a part of
-   * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
-   * blockNumber Block number of which the reference tx is a part of
-   * blockTime Reference tx block time
-   * blocktxRoot Transactions root of block
-   * blockReceiptsRoot Receipts root of block
-   * receipt Receipt of the reference transaction
-   * receiptProof Merkle proof of the reference receipt
-   * branchMask Merkle proof branchMask for the receipt
-   * logIndex Log Index to read from the receipt
+      * headerNumber Header block number of which the reference tx was a part of
+      * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
+      * blockNumber Block number of which the reference tx is a part of
+      * blockTime Reference tx block time
+      * blocktxRoot Transactions root of block
+      * blockReceiptsRoot Receipts root of block
+      * receipt Receipt of the reference transaction
+      * receiptProof Merkle proof of the reference receipt
+      * branchMask Merkle proof branchMask for the receipt
+      * logIndex Log Index to read from the receipt
    * @param exitTx Signed exit transaction
    * @return address rootToken that the exit corresponds to
    * @return uint256 tokenId of the token that is being exited
@@ -108,9 +108,11 @@ contract ERC721Predicate is IErcPredicate {
     uint256 ageOfUtxo = withdrawManager.verifyInclusion(data, 0 /* offset */, false /* verifyTxInclusion */)
       .add(referenceTxData[9].toUint().mul(MAX_LOGS)) // logIndex * MAX_LOGS
       .add(oIndex); // whether exitTxData.signer is a sender or receiver in the referenced receipt
-    uint256 exitId = ageOfUtxo << 1;
+    uint256 exitId = ageOfUtxo << 1; // last bit is reserved for housekeeping in erc20Predicate
     withdrawManager.addExitToQueue(msg.sender, exitTxData.childToken, rootToken, exitTxData.amountOrToken, exitTxData.txHash, false /* isRegularExit */, exitId);
-    withdrawManager.addInput(exitId, ageOfUtxo, exitTxData.signer);
+    withdrawManager.addInput(exitId, ageOfUtxo, exitTxData.signer, rootToken);
+    // Adding a dummy input, owner being the exitor to challenge spends that the exitor made after the transaction being exited from
+    withdrawManager.addInput(exitId, ageOfUtxo.sub(1), msg.sender, rootToken);
     return (rootToken, exitTxData.amountOrToken);
   }
 
@@ -146,18 +148,18 @@ contract ERC721Predicate is IErcPredicate {
    * @param exit ABI encoded PlasmaExit data
    * @param inputUtxo ABI encoded Input UTXO data
    * @param challengeData RLP encoded data of the challenge reference tx that encodes the following fields
-   * headerNumber Header block number of which the reference tx was a part of
-   * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
-   * blockNumber Block number of which the reference tx is a part of
-   * blockTime Reference tx block time
-   * blocktxRoot Transactions root of block
-   * blockReceiptsRoot Receipts root of block
-   * receipt Receipt of the reference transaction
-   * receiptProof Merkle proof of the reference receipt
-   * branchMask Merkle proof branchMask for the receipt
-   * logIndex Log Index to read from the receipt
-   * tx Challenge transaction
-   * txProof Merkle proof of the challenge tx
+      * headerNumber Header block number of which the reference tx was a part of
+      * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
+      * blockNumber Block number of which the reference tx is a part of
+      * blockTime Reference tx block time
+      * blocktxRoot Transactions root of block
+      * blockReceiptsRoot Receipts root of block
+      * receipt Receipt of the reference transaction
+      * receiptProof Merkle proof of the reference receipt
+      * branchMask Merkle proof branchMask for the receipt
+      * logIndex Log Index to read from the receipt
+      * tx Challenge transaction
+      * txProof Merkle proof of the challenge tx
    * @return Whether or not the state is deprecated
    */
   function verifyDeprecation(bytes calldata exit, bytes calldata inputUtxo, bytes calldata challengeData)
@@ -165,13 +167,13 @@ contract ERC721Predicate is IErcPredicate {
     returns (bool)
   {
     PlasmaExit memory _exit = decodeExit(exit);
-    (uint256 age, address signer) = decodeInputUtxo(inputUtxo);
+    (uint256 age, address signer,,) = decodeInputUtxo(inputUtxo);
     RLPReader.RLPItem[] memory referenceTxData = challengeData.toRlpItem().toList();
 
     ExitTxData memory challengeTxData = processChallengeTx(referenceTxData[10].toBytes());
     require(
-      challengeTxData.signer == signer || challengeTxData.signer == _exit.owner,
-      "Challenge tx not signed by the exitor or the party who signed the input UTXO to the exit"
+      challengeTxData.signer == signer,
+      "Challenge tx not signed by the party who signed the input UTXO to the exit"
     );
     require(
       _exit.token == challengeTxData.childToken,
@@ -197,19 +199,19 @@ contract ERC721Predicate is IErcPredicate {
     return ageOfChallengeTx > age;
   }
 
-  function onFinalizeExit(address exitor, address token, uint256 tokenId)
-    external
-    onlyWithdrawManager
-  {
-    depositManager.transferAssets(token, exitor, tokenId);
-  }
+  // function onFinalizeExit(address exitor, address token, uint256 tokenId)
+  //   external
+  //   onlyWithdrawManager
+  // {
+  //   depositManager.transferAssets(token, exitor, tokenId);
+  // }
 
   function interpretStateUpdate(bytes calldata state)
     external
     view
     returns (bytes memory b)
   {
-    (bytes memory _data, address participant, bool verifyInclusion) = abi.decode(state, (bytes, address, bool));
+    (bytes memory _data, address participant, bool verifyInclusion, bool isChallenge) = abi.decode(state, (bytes, address, bool, bool));
     RLPReader.RLPItem[] memory referenceTx = _data.toRlpItem().toList();
     bytes memory receipt = referenceTx[6].toBytes();
     uint256 logIndex = referenceTx[9].toUint();
@@ -221,11 +223,16 @@ contract ERC721Predicate is IErcPredicate {
     bytes memory logData = inputItems[2].toBytes();
     inputItems = inputItems[1].toList(); // topics
     data.rootToken = address(RLPReader.toUint(inputItems[1]));
-    data.closingBalance = BytesLib.toUint(logData, 0);
-    data.age = processStateUpdate(inputItems, participant);
-    data.age += (logIndex * MAX_LOGS); // @todo use safeMath
+    // event LogTransfer(address indexed token, address indexed from, address indexed to, uint256 tokenId);
+    data.closingBalance = BytesLib.toUint(logData, 0); // first un-indexed param in LogTransfer
+    if (isChallenge) {
+      processChallenge(inputItems, participant);
+    } else {
+      data.age = processStateUpdate(inputItems, participant);
+    }
+    data.age = data.age.add(logIndex.mul(MAX_LOGS));
     if (verifyInclusion) {
-      data.age += withdrawManager.verifyInclusion(_data, 0, false /* verifyTxInclusion */); // @todo use safeMath
+      data.age = withdrawManager.verifyInclusion(_data, 0, false /* verifyTxInclusion */).add(data.age);
     }
     return abi.encode(data.closingBalance, data.age, data.childToken, data.rootToken);
   }

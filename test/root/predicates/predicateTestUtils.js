@@ -48,19 +48,23 @@ export function buildInFlight(tx) {
 }
 
 export async function assertStartExit(log, exitor, token, amount, isRegularExit, exitId, exitNFT) {
+  exitor = exitor.toLowerCase()
+  token = token.toLowerCase()
   log.event.should.equal('ExitStarted')
-  expect(log.args).to.include({ exitor, token, isRegularExit })
+  assert.strictEqual(log.args.exitor.toLowerCase(), exitor)
+  assert.strictEqual(log.args.token.toLowerCase(), token)
+  expect(log.args).to.include({ isRegularExit })
   utils.assertBigNumberEquality(log.args.amount, amount)
   if (exitId) {
     // console.log('in assertStartExit: exitId', log.args.exitId, exitId.toString(16))
     utils.assertBigNumberEquality(log.args.exitId, exitId)
-    if (exitNFT) assert.strictEqual(await exitNFT.ownerOf(exitId), exitor)
+    if (exitNFT) assert.strictEqual((await exitNFT.ownerOf(exitId)).toLowerCase(), exitor)
   }
 }
 
 export function assertExitUpdated(log, signer, exitId, ageOfUtxo) {
   log.event.should.equal('ExitUpdated')
-  expect(log.args).to.include({ signer })
+  assert.strictEqual(log.args.signer.toLowerCase(), signer.toLowerCase())
   // console.log('in assertExitUpdated: exitId', log.args.exitId, exitId.toString(16))
   utils.assertBigNumberEquality(log.args.exitId, exitId)
   // console.log('in assertExitUpdated: ageOfUtxo', log.args.age, ageOfUtxo.toString(16))

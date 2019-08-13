@@ -20,10 +20,18 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
     _;
   }
 
-  modifier isPredicateAuthorized() {
+  // modifier isPredicateAuthorized() {
+  //   require(
+  //     uint8(registry.predicates(msg.sender)) != 0,
+  //     "Not a valid predicate"
+  //   );
+  //   _;
+  // }
+
+  modifier onlyWithdrawManager() {
     require(
-      uint8(registry.predicates(msg.sender)) != 0,
-      "Not a valid predicate"
+      msg.sender == registry.getWithdrawManagerAddress(),
+      "UNAUTHORIZED_WITHDRAW_MANAGER_ONLY"
     );
     _;
   }
@@ -35,7 +43,7 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
 
   function transferAssets(address _token, address _user, uint256 _amountOrNFTId)
     external
-    isPredicateAuthorized
+    onlyWithdrawManager
   {
     address wethToken = registry.getWethTokenAddress();
     if (registry.isERC721(_token)) {

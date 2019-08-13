@@ -211,7 +211,7 @@ contract('ERC721Predicate', async function(accounts) {
       const challengeData = utils.buildChallengeData(predicateTestUtils.buildInputFromCheckpoint(spendUtxo))
       // This will be used to assert that challenger received the bond amount
       const originalBalance = web3.utils.toBN(await web3.eth.getBalance(accounts[0]))
-      const challenge = await contracts.withdrawManager.challengeExit(exitId, ageOfUtxo1a, challengeData)
+      const challenge = await contracts.withdrawManager.challengeExit(exitId, ageOfUtxo1a.sub(web3.utils.toBN(1)), challengeData, contracts.ERC721Predicate.address)
       await predicateTestUtils.assertChallengeBondReceived(challenge, originalBalance)
       const log = challenge.logs[0]
       log.event.should.equal('ExitCancelled')
@@ -259,7 +259,7 @@ contract('ERC721Predicate', async function(accounts) {
       const challengeData = utils.buildChallengeData(predicateTestUtils.buildInputFromCheckpoint(spendUtxo))
       // This will be used to assert that challenger received the bond amount
       const originalBalance = web3.utils.toBN(await web3.eth.getBalance(accounts[0]))
-      const challenge = await contracts.withdrawManager.challengeExit(exitId, ageOfUtxo1a, challengeData)
+      const challenge = await contracts.withdrawManager.challengeExit(exitId, ageOfUtxo1a, challengeData, contracts.ERC721Predicate.address)
       await predicateTestUtils.assertChallengeBondReceived(challenge, originalBalance)
       predicateTestUtils.assertExitCancelled(challenge.logs[0], exitId)
     })
