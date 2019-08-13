@@ -72,31 +72,16 @@ export async function assertStartExit(
   expect(log.args).to.include({ isRegularExit })
   utils.assertBigNumberEquality(log.args.amount, amount)
   if (exitId) {
-    console.log(
-      'in assertStartExit: exitId',
-      log.args.exitId,
-      exitId.toString(16)
-    )
-    console.log(
-      exitId,
-      web3.utils.toBN(exitId),
-      web3.utils.toBN(
-        exitId.toString(16),
-        log.args.exitId,
-        web3.utils.toBN(log.args.exitId)
-      )
-    )
+    // console.log(
+    //   'in assertStartExit: exitId',
+    //   log.args.exitId,
+    //   exitId.toString(16)
+    // )
     const num1 = web3.utils.toBN(log.args.exitId)
-    // utils.assertBigNumberEquality(log.args.exitId, exitId)
-    console.log(exitId.toString(16) == log.args.exitId.toString(16))
-    console.log(exitId == log.args.exitId)
-    // expect(num1.eq(web3.utils.toBN(exitId))).to.be.true
-    console.log('woho')
+    utils.assertBigNumberEquality(log.args.exitId, exitId)
     if (exitNFT) {
-      console.log('yaha bhi?')
       assert.strictEqual((await exitNFT.ownerOf(exitId)).toLowerCase(), exitor)
     }
-    console.log('kuch to fuck up nahi h yaha')
   }
 }
 
@@ -127,9 +112,7 @@ export async function assertChallengeBondReceived(challenge, originalBalance) {
 }
 
 export async function processExits(withdrawManager, token) {
-  console.log('kaam hua kya')
   await increaseBlockTime(14 * 86400)
   await mineOneBlock()
-  console.log('kaam hua')
   return withdrawManager.processExits(token, { gas: 5000000 })
 }
