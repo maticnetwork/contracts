@@ -140,12 +140,9 @@ contract ERC20Predicate is IErcPredicate {
       exitId
     );
     withdrawManager.addInput(exitId, referenceTxData.age, exitTxData.signer, referenceTxData.rootToken);
-    // If exitor did not have pre=exiting balance on the chain => _referenceTxData has default values;
+    // If exitor did not have pre-exiting balance on the chain => _referenceTxData has default values;
     // In that case, the following input acts as a "dummy" input UTXO to challenge token spends by the exitor
-    withdrawManager.addInput(
-      exitId, _referenceTxData.age > 0 ? _referenceTxData.age : 0,
-      msg.sender, referenceTxData.rootToken
-    );
+    withdrawManager.addInput(exitId, _referenceTxData.age, msg.sender, referenceTxData.rootToken);
     return (referenceTxData.rootToken, exitTxData.amountOrToken.add(_referenceTxData.closingBalance));
   }
 

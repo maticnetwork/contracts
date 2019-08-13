@@ -20,13 +20,13 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
     _;
   }
 
-  modifier isPredicateAuthorized() {
-    require(
-      uint8(registry.predicates(msg.sender)) != 0,
-      "Not a valid predicate"
-    );
-    _;
-  }
+  // modifier isPredicateAuthorized() {
+  //   require(
+  //     uint8(registry.predicates(msg.sender)) != 0,
+  //     "Not a valid predicate"
+  //   );
+  //   _;
+  // }
 
   modifier onlyWithdrawManager() {
     require(
