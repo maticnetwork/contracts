@@ -65,7 +65,7 @@ contract MarketplacePredicate is PredicateUtils {
   /**
    * @notice Start an exit from in-flight marketplace tx
    * @param data RLP encoded array of input utxos
-      * data[n] (n < 2) is abi encoded as (predicateAddress, RLP encoded reference tx)
+      * data[n] ( 1 < n <= 3) is abi encoded as (predicateAddress, RLP encoded reference tx)
       * data[n][1] is RLP encoded reference tx that encodes the following fields
         * headerNumber Header block number of which the reference tx was a part of
         * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
@@ -92,10 +92,12 @@ contract MarketplacePredicate is PredicateUtils {
       uint8(registry.predicates(predicate)) != 0,
       "Not a valid predicate"
     );
+
+    // process the first input, which is the proof-of-exitor's funds for token t1 which exitor transferred to counterparty as part of the marketplace tx
     ReferenceTxData memory reference1 = processLogTransferReceipt(predicate, preState, msg.sender, true /* verifyInclusionInCheckpoint */, false /* isChallenge */);
     validateTokenBalance(reference1.childToken, exitTxData.token1, reference1.closingBalance, exitTxData.amount1);
 
-    // process the second reference tx, which is the proof-of-counterparty funds for the exchange token
+    // process the second input, which is the proof-of-counterparty's funds for token t2 which the counterparty transferred to exitor as part of the marketplace tx
     (predicate, preState) = abi.decode(referenceTx[1].toBytes(), (address, bytes));
     require(
       uint8(registry.predicates(predicate)) != 0,
@@ -104,8 +106,11 @@ contract MarketplacePredicate is PredicateUtils {
     ReferenceTxData memory reference2 = processLogTransferReceipt(predicate, preState, exitTxData.counterParty, true /* verifyInclusionInCheckpoint */, false /* isChallenge */);
     validateTokenBalance(reference2.childToken, exitTxData.token2, reference2.closingBalance, exitTxData.amount2);
 
-    ReferenceTxData memory reference3;
     address exitChildToken;
+    ReferenceTxData memory reference3;
+    // referenceTx.length == 4 means the exitor sent along another input UTXO for token t2
+    // This will be used to exit with the pre-existing balance for token t2 on the chain
+    // @todo This part is untested
     if (referenceTx.length == 4) {
       (predicate, preState) = abi.decode(referenceTx[2].toBytes(), (address, bytes));
       reference3 = processLogTransferReceipt(predicate, preState, msg.sender, true /* verifyInclusionInCheckpoint */, false /* isChallenge */);
@@ -120,11 +125,13 @@ contract MarketplacePredicate is PredicateUtils {
 
     sendBond(); // send BOND_AMOUNT to withdrawManager
 
-    uint256 exitId = Math.max(Math.max(reference1.age, reference2.age), reference3.age) << 1; // age of the youngest input
+    // uint256 ageOfYoungestInput = ;
+    // exitId is the age of the youngest input + a reserved last bit
+    uint256 exitId = Math.max(Math.max(reference1.age, reference2.age), reference3.age) << 1;
     if (exitChildToken == reference1.childToken) {
       withdrawManager.addExitToQueue(
         msg.sender, exitChildToken, reference1.rootToken,
-        reference1.closingBalance - exitTxData.amount1,
+        reference1.closingBalance.sub(exitTxData.amount1),
         exitTxData.txHash, false /* isRegularExit */,
         exitId
       );
@@ -139,9 +146,30 @@ contract MarketplacePredicate is PredicateUtils {
     // @todo Support batch
     withdrawManager.addInput(exitId, reference1.age /* age of input */, msg.sender /* party whom this utxo belongs to */, reference1.rootToken);
     withdrawManager.addInput(exitId, reference2.age, exitTxData.counterParty, reference2.rootToken);
-    withdrawManager.addInput(exitId, reference3.age, msg.sender, reference3.rootToken);
+    // If exitor did not have pre=exiting balance on the chain for token t2
+    // In that case, the following input acts as a "dummy" input UTXO to challenge token t2 spends by the exitor
+    withdrawManager.addInput(exitId, 0, msg.sender, reference3.rootToken);
   }
 
+  /**
+   * @notice Verify the deprecation of a state update
+   * @param exit ABI encoded PlasmaExit data
+   * @param inputUtxo ABI encoded Input UTXO data
+   * @param challengeData RLP encoded data of the challenge reference tx that encodes the following fields
+      * headerNumber Header block number of which the reference tx was a part of
+      * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
+      * blockNumber Block number of which the reference tx is a part of
+      * blockTime Reference tx block time
+      * blocktxRoot Transactions root of block
+      * blockReceiptsRoot Receipts root of block
+      * receipt Receipt of the reference transaction
+      * receiptProof Merkle proof of the reference receipt
+      * branchMask Merkle proof branchMask for the receipt
+      * logIndex Log Index to read from the receipt
+      * tx Challenge transaction
+      * txProof Merkle proof of the challenge tx
+   * @return Whether or not the state is deprecated
+   */
   function verifyDeprecation(bytes calldata exit, bytes calldata inputUtxo, bytes calldata challengeData)
     external
     view
@@ -157,6 +185,13 @@ contract MarketplacePredicate is PredicateUtils {
     // Challenge will be considered successful if a more recent LogTransfer event is found
     // Interestingly, that will be determined by erc20/721 predicate
     ReferenceTxData memory referenceTxData = processLogTransferReceipt(predicate, challengeData, utxoOwner, true /* verifyInclusionInCheckpoint */, true /* isChallenge */);
+    // this assertion is required only for erc721 because the spend should correspond to the same NFT
+    if (registry.predicates(predicate) == Registry.Type.ERC721) {
+      require(
+        referenceTxData.closingBalance == _exit.receiptAmountOrNFTId && challengeTxData.amount1 == _exit.receiptAmountOrNFTId,
+        "LogTransferReceipt, challengeTx NFT and challenged utxo NFT do not match"
+      );
+    }
     require(
       referenceTxData.childToken == childToken && challengeTxData.token1 == childToken,
       "LogTransferReceipt, challengeTx token and challenged utxo token do not match"
@@ -245,7 +280,7 @@ contract MarketplacePredicate is PredicateUtils {
   {
     Order memory order1 = decodeOrder(executeOrder.data1);
     Order memory order2 = decodeOrder(executeOrder.data2);
-    require(order1.amount > 0);
+    // require(order1.amount > 0);
     // require(expiration == 0 || block.number <= expiration, "Signature is expired");
     bytes32 dataHash = getTokenTransferOrderHash(
       order1.token, // used to evaluate EIP712_DOMAIN_HASH
@@ -257,7 +292,7 @@ contract MarketplacePredicate is PredicateUtils {
     // Cannot check for deactivated sigs here on the root chain
     address tradeParticipant1 = ECVerify.ecrecovery(dataHash, order1.sig);
     // emit DEBUG(order1.token, tradeParticipant1, dataHash, marketplaceContract, order1.amount, keccak256(abi.encodePacked(executeOrder.orderId, order2.token, order2.amount)), executeOrder.expiration);
-    require(order2.amount > 0);
+    // require(order2.amount > 0);
     // require(expiration == 0 || block.number <= expiration, "Signature is expired");
     dataHash = getTokenTransferOrderHash(
       order2.token, // used to evaluate EIP712_DOMAIN_HASH

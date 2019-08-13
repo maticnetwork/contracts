@@ -108,7 +108,8 @@ contract ERC20Predicate is IErcPredicate {
         .add(referenceTxData.age); // Add the logIndex and oIndex from the receipt
 
     ReferenceTxData memory _referenceTxData;
-
+    // referenceTx.length > 10 means the exitor sent along another input UTXO to the exit tx
+    // This will be used to exit with the pre-existing balance on the chain along with the couterparty signed exit tx
     if (referenceTx.length > 10) {
       _referenceTxData = processReferenceTx(
         referenceTx[16].toBytes(), // receipt
@@ -139,7 +140,12 @@ contract ERC20Predicate is IErcPredicate {
       exitId
     );
     withdrawManager.addInput(exitId, referenceTxData.age, exitTxData.signer, referenceTxData.rootToken);
-    withdrawManager.addInput(exitId, _referenceTxData.age, msg.sender, referenceTxData.rootToken);
+    // If exitor did not have pre=exiting balance on the chain => _referenceTxData has default values;
+    // In that case, the following input acts as a "dummy" input UTXO to challenge token spends by the exitor
+    withdrawManager.addInput(
+      exitId, _referenceTxData.age > 0 ? _referenceTxData.age : 0,
+      msg.sender, referenceTxData.rootToken
+    );
     return (referenceTxData.rootToken, exitTxData.amountOrToken.add(_referenceTxData.closingBalance));
   }
 
@@ -167,7 +173,7 @@ contract ERC20Predicate is IErcPredicate {
     returns (bool)
   {
     PlasmaExit memory _exit = decodeExit(exit);
-    (uint256 age, address signer,,address childToken) = decodeInputUtxo(inputUtxo);
+    (uint256 age, address signer,, address childToken) = decodeInputUtxo(inputUtxo);
     RLPReader.RLPItem[] memory _challengeData = challengeData.toRlpItem().toList();
     ExitTxData memory challengeTxData = processChallengeTx(_challengeData[10].toBytes());
     require(
@@ -229,7 +235,7 @@ contract ERC20Predicate is IErcPredicate {
     view
     returns(bytes memory)
   {
-    // isChallenge Is the state being parsed for a challenge
+    // isChallenge - Is the state being parsed for a challenge
     (bytes memory _data, address participant, bool verifyInclusion, bool isChallenge) = abi.decode(state, (bytes, address, bool, bool));
     RLPReader.RLPItem[] memory referenceTx = _data.toRlpItem().toList();
     bytes memory receipt = referenceTx[6].toBytes();

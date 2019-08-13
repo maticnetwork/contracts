@@ -119,7 +119,6 @@ contract('MarketplacePredicate', async function(accounts) {
     log.event.should.equal('ExitUpdated')
     assert.equal(log.args.signer.toLowerCase(), address1.toLowerCase())
     utils.assertBigNumberEquality(log.args.exitId, exitId)
-    const age = log.args.age
 
     log = logs[3]
     log.event.should.equal('ExitUpdated')
@@ -195,7 +194,6 @@ contract('MarketplacePredicate', async function(accounts) {
     log.event.should.equal('ExitUpdated')
     assert.equal(log.args.signer.toLowerCase(), address1.toLowerCase())
     utils.assertBigNumberEquality(log.args.exitId, exitId)
-    const age = log.args.age
 
     log = logs[3]
     log.event.should.equal('ExitUpdated')
