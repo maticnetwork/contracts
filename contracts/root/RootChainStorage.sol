@@ -31,6 +31,7 @@ contract RootChainStorage is ProxyStorage, RootChainHeader {
   uint16 internal constant MAX_DEPOSITS = 10000;
   uint256 internal _nextHeaderBlock = MAX_DEPOSITS;
   uint256 internal _blockDepositId = 1;
+  uint256 public lastChildBlock;
   mapping(uint256 => HeaderBlock) public headerBlocks;
   Registry internal registry;
 }

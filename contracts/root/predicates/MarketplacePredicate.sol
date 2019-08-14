@@ -9,9 +9,10 @@ import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { IPredicate, PredicateUtils } from "./IPredicate.sol";
-import { Registry } from "../../common/Registry.sol";
 import { IWithdrawManager } from "../withdrawManager/IWithdrawManager.sol";
 import { IDepositManager } from "../depositManager/IDepositManager.sol";
+import { Registry } from "../../common/Registry.sol";
+import { RootChain } from "../RootChain.sol";
 
 contract MarketplacePredicate is PredicateUtils {
   using RLPReader for bytes;
@@ -21,7 +22,8 @@ contract MarketplacePredicate is PredicateUtils {
   // 0xe660b9e4 = keccak256('executeOrder(bytes,bytes,bytes32,uint256,address)').slice(0, 4)
   bytes4 constant EXECUTE_ORDER_FUNC_SIG = 0xe660b9e4;
 
-  Registry internal registry;
+  Registry public registry;
+  RootChain public rootChain;
 
   struct ExecuteOrderData {
     bytes data1;
@@ -45,6 +47,7 @@ contract MarketplacePredicate is PredicateUtils {
     address token2;
     address counterParty;
     bytes32 txHash;
+    uint256 expiration;
   }
 
   struct ReferenceTxData {
@@ -54,11 +57,12 @@ contract MarketplacePredicate is PredicateUtils {
     address rootToken;
   }
 
-  constructor(address _withdrawManager, address _depositManager, address _registry)
+  constructor(address _rootChain, address _withdrawManager, address _depositManager, address _registry)
     public
   {
     withdrawManager = IWithdrawManager(_withdrawManager);
     depositManager = IDepositManager(_depositManager);
+    rootChain = RootChain(_rootChain);
     registry = Registry(_registry);
   }
 
@@ -86,6 +90,10 @@ contract MarketplacePredicate is PredicateUtils {
     isBondProvided
   {
     ExitTxData memory exitTxData = processExitTx(exitTx, withdrawManager.networkId(), msg.sender);
+    require(
+      exitTxData.expiration > rootChain.lastChildBlock(),
+      "The inflight exit is not valid, because the marketplace order has expired"
+    );
     RLPReader.RLPItem[] memory referenceTx = data.toRlpItem().toList();
     (address predicate, bytes memory preState) = abi.decode(referenceTx[0].toBytes(), (address, bytes));
     require(
@@ -192,6 +200,11 @@ contract MarketplacePredicate is PredicateUtils {
         "LogTransferReceipt, challengeTx NFT and challenged utxo NFT do not match"
       );
     }
+    // assert transferWithSig was still valid when it was included in the child chain
+    require(
+      getChildBlockNumberFromAge(referenceTxData.age) <= challengeTxData.expiration,
+      "The marketplace order was expired when it was included"
+    );
     require(
       referenceTxData.childToken == childToken && challengeTxData.token1 == childToken,
       "LogTransferReceipt, challengeTx token and challenged utxo token do not match"
@@ -213,6 +226,11 @@ contract MarketplacePredicate is PredicateUtils {
   // {
   //   depositManager.transferAssets(token, exitor, tokenId);
   // }
+
+  function getChildBlockNumberFromAge(uint256 age) internal pure returns(uint256) {
+    // age is represented as (getExitableAt(createdAt) << 127) | (blockNumber << 32) | branchMask.toRlpItem().toUint();
+    return (age << 129) >> 161;
+  }
 
   function validateTokenBalance(
     address childToken,
@@ -267,7 +285,7 @@ contract MarketplacePredicate is PredicateUtils {
       "Not executeOrder transaction"
     );
     txData = verifySignatures(executeOrder, marketplaceContract, tradeParticipant);
-    (, txData.txHash) = getAddressFromTx(txList, networkId);
+    (,txData.txHash) = getAddressFromTx(txList, networkId);
   }
 
   function verifySignatures(
@@ -280,8 +298,6 @@ contract MarketplacePredicate is PredicateUtils {
   {
     Order memory order1 = decodeOrder(executeOrder.data1);
     Order memory order2 = decodeOrder(executeOrder.data2);
-    // require(order1.amount > 0);
-    // require(expiration == 0 || block.number <= expiration, "Signature is expired");
     bytes32 dataHash = getTokenTransferOrderHash(
       order1.token, // used to evaluate EIP712_DOMAIN_HASH
       marketplaceContract, // spender
@@ -291,9 +307,6 @@ contract MarketplacePredicate is PredicateUtils {
     );
     // Cannot check for deactivated sigs here on the root chain
     address tradeParticipant1 = ECVerify.ecrecovery(dataHash, order1.sig);
-    // emit DEBUG(order1.token, tradeParticipant1, dataHash, marketplaceContract, order1.amount, keccak256(abi.encodePacked(executeOrder.orderId, order2.token, order2.amount)), executeOrder.expiration);
-    // require(order2.amount > 0);
-    // require(expiration == 0 || block.number <= expiration, "Signature is expired");
     dataHash = getTokenTransferOrderHash(
       order2.token, // used to evaluate EIP712_DOMAIN_HASH
       marketplaceContract, // spender
@@ -306,10 +319,10 @@ contract MarketplacePredicate is PredicateUtils {
     require(executeOrder.taker == tradeParticipant2, "Orders are not complimentary");
     // token1 and amount1 in ExitTxData should correspond to what the tradeParticipant signed over (spent in the trade)
     if (tradeParticipant1 == tradeParticipant) {
-      return ExitTxData(order1.amount, order2.amount, order1.token, order2.token, tradeParticipant2, bytes32(0));
+      return ExitTxData(order1.amount, order2.amount, order1.token, order2.token, tradeParticipant2, bytes32(0), executeOrder.expiration);
     }
     else if (tradeParticipant2 == tradeParticipant) {
-      return ExitTxData(order2.amount, order1.amount, order2.token, order1.token, tradeParticipant1, bytes32(0));
+      return ExitTxData(order2.amount, order1.amount, order2.token, order1.token, tradeParticipant1, bytes32(0), executeOrder.expiration);
     }
     revert("Provided tx doesnt concern the exitor (tradeParticipant)");
   }
