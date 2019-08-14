@@ -12,7 +12,7 @@ import { IPredicate, PredicateUtils } from "./IPredicate.sol";
 import { IWithdrawManager } from "../withdrawManager/IWithdrawManager.sol";
 import { IDepositManager } from "../depositManager/IDepositManager.sol";
 import { Registry } from "../../common/Registry.sol";
-import { RootChain } from "../RootChain.sol";
+import { IRootChain } from "../IRootChain.sol";
 
 contract MarketplacePredicate is PredicateUtils {
   using RLPReader for bytes;
@@ -23,7 +23,7 @@ contract MarketplacePredicate is PredicateUtils {
   bytes4 constant EXECUTE_ORDER_FUNC_SIG = 0xe660b9e4;
 
   Registry public registry;
-  RootChain public rootChain;
+  IRootChain public rootChain;
 
   struct ExecuteOrderData {
     bytes data1;
@@ -62,7 +62,7 @@ contract MarketplacePredicate is PredicateUtils {
   {
     withdrawManager = IWithdrawManager(_withdrawManager);
     depositManager = IDepositManager(_depositManager);
-    rootChain = RootChain(_rootChain);
+    rootChain = IRootChain(_rootChain);
     registry = Registry(_registry);
   }
 
@@ -91,7 +91,7 @@ contract MarketplacePredicate is PredicateUtils {
   {
     ExitTxData memory exitTxData = processExitTx(exitTx, withdrawManager.networkId(), msg.sender);
     require(
-      exitTxData.expiration > rootChain.lastChildBlock(),
+      exitTxData.expiration > rootChain.getLastChildBlock(),
       "The inflight exit is not valid, because the marketplace order has expired"
     );
     RLPReader.RLPItem[] memory referenceTx = data.toRlpItem().toList();
