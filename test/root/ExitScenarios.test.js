@@ -335,7 +335,7 @@ contract('Misc Predicates tests', async function(accounts) {
 
       const orderId = '0x' + crypto.randomBytes(32).toString('hex')
       // get expiration in future in 10 blocks
-      const expiration = 0 // (await web3.eth.getBlockNumber()) + 10
+      const expiration = (await utils.web3Child.eth.getBlockNumber()) + 10
       // Alice's sig on marketplace order
       const obj1 = getSig({
         privateKey: privateKey1,
@@ -425,7 +425,7 @@ contract('Misc Predicates tests', async function(accounts) {
 
       const orderId = '0x' + crypto.randomBytes(32).toString('hex')
       // get expiration in future in 10 blocks
-      const expiration = 0 // (await web3.eth.getBlockNumber()) + 10
+      const expiration = (await utils.web3Child.eth.getBlockNumber()) + 10
       const obj1 = getSig({
         privateKey: privateKey1,
         spender: marketplace.address,

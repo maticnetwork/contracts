@@ -5,11 +5,12 @@ import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { RootChainHeader, RootChainStorage } from "./RootChainStorage.sol";
+import { IRootChain } from "./IRootChain.sol";
 import { IStakeManager } from "./stakeManager/IStakeManager.sol";
 import { Registry } from "../common/Registry.sol";
 
 
-contract RootChain is RootChainStorage {
+contract RootChain is RootChainStorage, IRootChain {
   using SafeMath for uint256;
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
@@ -65,6 +66,10 @@ contract RootChain is RootChainStorage {
       _blockDepositId <= MAX_DEPOSITS,
       "TOO_MANY_DEPOSITS"
     );
+  }
+
+  function getLastChildBlock() external view returns(uint256) {
+    return headerBlocks[_nextHeaderBlock.sub(MAX_DEPOSITS)].end;
   }
 
   function slash() external {
