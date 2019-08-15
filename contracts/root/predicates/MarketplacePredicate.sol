@@ -90,15 +90,15 @@ contract MarketplacePredicate is PredicateUtils {
     isBondProvided
   {
     ExitTxData memory exitTxData = processExitTx(exitTx, withdrawManager.networkId(), msg.sender);
-    require(
-      exitTxData.expiration > rootChain.getLastChildBlock(),
-      "The inflight exit is not valid, because the marketplace order has expired"
-    );
     RLPReader.RLPItem[] memory referenceTx = data.toRlpItem().toList();
     (address predicate, bytes memory preState) = abi.decode(referenceTx[0].toBytes(), (address, bytes));
     require(
       uint8(registry.predicates(predicate)) != 0,
       "Not a valid predicate"
+    );
+    require(
+      exitTxData.expiration > rootChain.getLastChildBlock(),
+      "The inflight exit is not valid, because the marketplace order has expired"
     );
 
     // process the first input, which is the proof-of-exitor's funds for token t1 which exitor transferred to counterparty as part of the marketplace tx

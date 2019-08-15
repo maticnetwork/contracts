@@ -117,6 +117,7 @@ class Deployer {
 
   async deployMarketplacePredicate() {
     const MarketplacePredicate = await contracts.MarketplacePredicate.new(
+      this.rootChain.address,
       this.withdrawManagerProxy.address,
       this.depositManagerProxy.address,
       this.registry.address
