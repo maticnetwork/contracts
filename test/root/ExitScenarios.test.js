@@ -388,7 +388,6 @@ contract('Misc Predicates tests', async function(accounts) {
       const erc721 = await deployer.deployChildErc721(accounts[0])
       const token2 = erc721.childErc721
 
-      // const depositAmount = amount1.add(web3.utils.toBN('3'))
       let deposit = await utils.deposit(
         contracts.depositManager,
         childContracts.childChain,
@@ -530,7 +529,57 @@ contract('Misc Predicates tests', async function(accounts) {
       // This will be used to assert that challenger received the bond amount
       const originalBalance = web3.utils.toBN(await web3.eth.getBalance(accounts[0]))
       const challenge = await contracts.withdrawManager.challengeExit(exitId, 0, challengeData, transferWithSigPredicate.address)
-      console.log(challenge)
+      await predicateTestUtils.assertChallengeBondReceived(challenge, originalBalance)
+      predicateTestUtils.assertExitCancelled(challenge.logs[0], exitId)
+    })
+
+    it('exit became stale because erc721 transferWithSig is executed', async function() {
+      contracts.ERC721Predicate = await deployer.deployErc721Predicate()
+      const erc721 = await deployer.deployChildErc721(accounts[0])
+      const tokenId = '0x' + crypto.randomBytes(32).toString('hex')
+      // UTXO1A
+      let deposit = await utils.deposit(contracts.depositManager, childContracts.childChain, erc721.rootERC721, alice, tokenId)
+      const utxo1a = { checkpoint: await statefulUtils.submitCheckpoint(contracts.rootChain, deposit.receipt, accounts), logIndex: 1 }
+
+      // Alice spends UTXO1A in tx1 to Mallory
+      const tx1 = await erc721.childErc721.transferFrom(alice, mallory, tokenId, { from: alice })
+
+      // Mallory starts an exit from TX1 while referencing UTXO1A and places exit bond
+      let startExitTx = await utils.startExitNew(
+        contracts.ERC721Predicate,
+        [utxo1a].map(predicateTestUtils.buildInputFromCheckpoint), // proof-of-funds of counterparty
+        await predicateTestUtils.buildInFlight(await web3Child.eth.getTransaction(tx1.receipt.transactionHash)),
+        mallory // exitor
+      )
+      let logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+      const ageOfUtxo1a = predicateTestUtils.getAge(utxo1a)
+      let exitId = ageOfUtxo1a.shln(1)
+      await predicateTestUtils.assertStartExit(logs[1], mallory, erc721.rootERC721.address, tokenId, false /* isRegularExit */, exitId, contracts.exitNFT)
+      predicateTestUtils.assertExitUpdated(logs[2], alice, exitId, ageOfUtxo1a)
+      predicateTestUtils.assertExitUpdated(logs[3], mallory, exitId, ageOfUtxo1a.sub(web3.utils.toBN(1)))
+
+      // setup for transferWithSig
+      const spender = alice
+      const data = '0x' + crypto.randomBytes(32).toString('hex')
+      const expiration = (await utils.web3Child.eth.getBlockNumber()) + 10
+      const { sig } = getTransferSig({
+        privateKey: malloryPrivateKey,
+        spender,
+        data,
+        tokenIdOrAmount: tokenId,
+        tokenAddress: erc721.childErc721.address,
+        expiration
+      })
+      const to = '0x' + crypto.randomBytes(20).toString('hex')
+      // Mallory spends in tx2, creating UTXO3M
+      const tx2 = await erc721.childErc721.transferWithSig(sig, tokenId, data, expiration, to, { from: spender })
+      const utxo3m = { checkpoint: await statefulUtils.submitCheckpoint(contracts.rootChain, tx2.receipt, accounts), logIndex: 1 }
+
+      // During the challenge period, the challenger reveals TX2 and receives exit bond
+      const challengeData = utils.buildChallengeData(predicateTestUtils.buildInputFromCheckpoint(utxo3m))
+      // This will be used to assert that challenger received the bond amount
+      const originalBalance = web3.utils.toBN(await web3.eth.getBalance(accounts[0]))
+      const challenge = await contracts.withdrawManager.challengeExit(exitId, ageOfUtxo1a.sub(web3.utils.toBN(1)), challengeData, transferWithSigPredicate.address)
       await predicateTestUtils.assertChallengeBondReceived(challenge, originalBalance)
       predicateTestUtils.assertExitCancelled(challenge.logs[0], exitId)
     })

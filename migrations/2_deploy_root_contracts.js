@@ -26,6 +26,7 @@ const ERC721Predicate = artifacts.require('ERC721Predicate')
 const MarketplacePredicate = artifacts.require('MarketplacePredicate')
 const MarketplacePredicateTest = artifacts.require('MarketplacePredicateTest')
 const TransferWithSigPredicate = artifacts.require('TransferWithSigPredicate')
+const TransferWithSigUtils = artifacts.require('TransferWithSigUtils')
 
 const libDeps = [
   {
@@ -81,6 +82,14 @@ const libDeps = [
     contracts: [
       RootChain,
       ERC20Predicate
+    ]
+  },
+  {
+    lib: TransferWithSigUtils,
+    contracts: [
+      TransferWithSigPredicate,
+      MarketplacePredicate,
+      MarketplacePredicateTest
     ]
   }
 ]
