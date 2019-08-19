@@ -5,7 +5,7 @@ import deployer from '../helpers/deployer.js'
 import logDecoder from '../helpers/log-decoder.js'
 import StatefulUtils from '../helpers/StatefulUtils'
 import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
-import { getSig } from '../helpers/marketplaceUtils'
+import { getSig, getTransferSig } from '../helpers/marketplaceUtils'
 
 const crypto = require('crypto')
 const utils = require('../helpers/utils')
@@ -463,6 +463,74 @@ contract('Misc Predicates tests', async function(accounts) {
       // This will be used to assert that challenger received the bond amount
       const originalBalance = web3.utils.toBN(await web3.eth.getBalance(accounts[0]))
       const challenge = await contracts.withdrawManager.challengeExit(exitId, ageOfUtxo1a.sub(web3.utils.toBN(1)), challengeData, marketplacePredicate.address)
+      await predicateTestUtils.assertChallengeBondReceived(challenge, originalBalance)
+      predicateTestUtils.assertExitCancelled(challenge.logs[0], exitId)
+    })
+  })
+
+  describe('Challenge with transferWithSig tx', async function() {
+    let alicePrivateKey, alice, malloryPrivateKey, mallory, transferWithSigPredicate
+    before(async function() {
+      const wallets = generateFirstWallets(mnemonics, 2)
+
+      alicePrivateKey = wallets[0].getPrivateKeyString()
+      alice = wallets[0].getAddressString()
+
+      malloryPrivateKey = wallets[1].getPrivateKeyString()
+      mallory = wallets[1].getAddressString()
+
+      transferWithSigPredicate = await deployer.deployTransferWithSigPredicate()
+    })
+
+    it('exit became stale because erc20 transferWithSig is executed', async function() {
+      const erc20 = await deployer.deployChildErc20(accounts[0])
+      const depositAmount = web3.utils.toBN('10')
+      // UTXO1A
+      let deposit = await utils.deposit(contracts.depositManager, childContracts.childChain, erc20.rootERC20, alice, depositAmount)
+      const utxo1a = { checkpoint: await statefulUtils.submitCheckpoint(contracts.rootChain, deposit.receipt, accounts), logIndex: 1 }
+
+      // Alice spends UTXO1A in tx1 to Mallory, creating UTXO2M (and UTXO2A)
+      const transferAmount = web3.utils.toBN('3')
+      const tx1 = await erc20.childToken.transfer(mallory, transferAmount, { from: alice })
+
+      // Mallory starts an exit from TX1 (from UTXO2M) while referencing UTXO1A and places exit bond
+      let startExitTx = await utils.startExitNew(
+        contracts.ERC20Predicate,
+        [utxo1a].map(predicateTestUtils.buildInputFromCheckpoint), // proof-of-funds of counterparty
+        await predicateTestUtils.buildInFlight(await web3Child.eth.getTransaction(tx1.receipt.transactionHash)),
+        mallory // exitor
+      )
+      let logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+      const ageOfUtxo1a = predicateTestUtils.getAge(utxo1a)
+      let exitId = ageOfUtxo1a.shln(1)
+      await predicateTestUtils.assertStartExit(logs[1], mallory, erc20.rootERC20.address, transferAmount, false /* isRegularExit */, exitId, contracts.exitNFT)
+      predicateTestUtils.assertExitUpdated(logs[2], alice, exitId, ageOfUtxo1a)
+      predicateTestUtils.assertExitUpdated(logs[3], mallory, exitId, 0)
+
+      // setup for transferWithSig
+      const spender = alice
+      const data = '0x' + crypto.randomBytes(32).toString('hex')
+      const tokenIdOrAmount = web3.utils.toBN('1')
+      const expiration = (await utils.web3Child.eth.getBlockNumber()) + 10
+      const { sig } = getTransferSig({
+        privateKey: malloryPrivateKey,
+        spender,
+        data,
+        tokenIdOrAmount,
+        tokenAddress: erc20.childToken.address,
+        expiration
+      })
+      const to = '0x' + crypto.randomBytes(20).toString('hex')
+      // Mallory spends in tx2, creating UTXO3M
+      const tx2 = await erc20.childToken.transferWithSig(sig, tokenIdOrAmount, data, expiration, to, { from: spender })
+      const utxo3m = { checkpoint: await statefulUtils.submitCheckpoint(contracts.rootChain, tx2.receipt, accounts), logIndex: 1 }
+
+      // During the challenge period, the challenger reveals TX2 and receives exit bond
+      const challengeData = utils.buildChallengeData(predicateTestUtils.buildInputFromCheckpoint(utxo3m))
+      // This will be used to assert that challenger received the bond amount
+      const originalBalance = web3.utils.toBN(await web3.eth.getBalance(accounts[0]))
+      const challenge = await contracts.withdrawManager.challengeExit(exitId, 0, challengeData, transferWithSigPredicate.address)
+      console.log(challenge)
       await predicateTestUtils.assertChallengeBondReceived(challenge, originalBalance)
       predicateTestUtils.assertExitCancelled(challenge.logs[0], exitId)
     })
