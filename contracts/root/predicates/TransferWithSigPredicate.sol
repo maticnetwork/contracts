@@ -2,6 +2,7 @@ pragma solidity ^0.5.2;
 
 import { BytesLib } from "../../common/lib/BytesLib.sol";
 import { ECVerify } from "../../common/lib/ECVerify.sol";
+import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
@@ -22,6 +23,8 @@ contract TransferWithSigPredicate is PredicateUtils {
   Registry public registry;
   IRootChain public rootChain;
 
+  // enum ExitType { Invalid, OutgoingTransfer, IncomingTransfer }
+
   struct ReferenceTxData {
     uint256 closingBalance;
     uint256 age;
@@ -29,7 +32,7 @@ contract TransferWithSigPredicate is PredicateUtils {
     address rootToken;
   }
 
-   struct ExitTxData {
+  struct ExitTxData {
     uint256 amountOrToken;
     bytes32 txHash;
     address childToken;
@@ -43,6 +46,139 @@ contract TransferWithSigPredicate is PredicateUtils {
     withdrawManager = IWithdrawManager(_withdrawManager);
     rootChain = IRootChain(_rootChain);
     registry = Registry(_registry);
+  }
+
+  /**
+   * @notice Start an exit from in-flight transferWithSig tx while also referencing the exitor's pre-existing balance on the chain for the token
+   * @param data RLP encoded array of 1 input utxo
+      * data[0] should be the exitor's proof-of-funds and encodes the following fields
+        * headerNumber Header block number of which the reference tx was a part of
+        * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
+        * blockNumber Block number of which the reference tx is a part of
+        * blockTime Reference tx block time
+        * blocktxRoot Transactions root of block
+        * blockReceiptsRoot Receipts root of block
+        * receipt Receipt of the reference transaction
+        * receiptProof Merkle proof of the reference receipt
+        * branchMask Merkle proof branchMask for the receipt
+        * logIndex Log Index to read from the receipt
+   * @param exitTx ERC20 transfer executed using a transferWithSig
+   */
+  function startExitForOutgoingErc20Transfer(bytes calldata data, bytes calldata exitTx)
+    external
+    payable
+    isBondProvided
+  {
+    RLPReader.RLPItem[] memory referenceTx = data.toRlpItem().toList();
+    bytes memory preState = referenceTx[0].toBytes();
+    (ExitTxData memory exitTxData, uint256 expiration) = processExitTx(exitTx);
+    require(
+      expiration > rootChain.getLastChildBlock(),
+      "The inflight exit is not valid, because the transfer sig has expired"
+    );
+    require(
+      exitTxData.signer == msg.sender,
+      "Should be an outgoing transfer"
+    );
+    address erc20Predicate = registry.erc20Predicate();
+    ReferenceTxData memory referenceTxData = processLogTransferReceipt(erc20Predicate, preState, msg.sender, true /* verifyInclusionInCheckpoint */, false /* isChallenge */);
+    require(
+      exitTxData.childToken == referenceTxData.childToken,
+      "Reference and exit tx do not correspond to the same child token"
+    );
+    // The closing balance of the referenced tx should be >= exit amount in exitTx
+    require(
+      referenceTxData.closingBalance >= exitTxData.amountOrToken,
+      "Exiting with more tokens than referenced"
+    );
+
+    sendBond(); // send BOND_AMOUNT to withdrawManager
+
+    // last bit is to differentiate whether the sender or receiver of the in-flight tx is starting an exit
+    uint256 exitId = (referenceTxData.age << 1);
+    exitId |= 1; // since msg.sender == exitTxData.signer
+    withdrawManager.addExitToQueue(
+      msg.sender, referenceTxData.childToken, referenceTxData.rootToken,
+      referenceTxData.closingBalance.sub(exitTxData.amountOrToken), exitTxData.txHash, false /* isRegularExit */,
+      exitId
+    );
+    withdrawManager.addInput(exitId, referenceTxData.age, msg.sender, referenceTxData.rootToken);
+  }
+
+  /**
+   * @notice Start an exit from in-flight transferWithSig tx while also referencing the exitor's pre-existing balance on the chain for the token
+   * @param data RLP encoded array of 2 input utxos
+      * data[0] should be the counterparty's proof-of-funds
+      * data[1] should be the exitor's proof-of-funds
+      * data[n] encodes the following fields
+        * headerNumber Header block number of which the reference tx was a part of
+        * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
+        * blockNumber Block number of which the reference tx is a part of
+        * blockTime Reference tx block time
+        * blocktxRoot Transactions root of block
+        * blockReceiptsRoot Receipts root of block
+        * receipt Receipt of the reference transaction
+        * receiptProof Merkle proof of the reference receipt
+        * branchMask Merkle proof branchMask for the receipt
+        * logIndex Log Index to read from the receipt
+   * @param exitTx ERC20 transfer executed using a transferWithSig
+   */
+  function startExitForIncomingErc20Transfer(bytes calldata data, bytes calldata exitTx)
+    external
+    payable
+    isBondProvided
+  {
+    RLPReader.RLPItem[] memory referenceTx = data.toRlpItem().toList();
+    bytes memory preState = referenceTx[0].toBytes();
+    (ExitTxData memory exitTxData, uint256 expiration) = processExitTx(exitTx);
+    require(
+      expiration > rootChain.getLastChildBlock(),
+      "The inflight exit is not valid, because the transfer sig has expired"
+    );
+    address erc20Predicate = registry.erc20Predicate();
+    ReferenceTxData memory referenceTxData = processLogTransferReceipt(erc20Predicate, preState, exitTxData.signer, true /* verifyInclusionInCheckpoint */, false /* isChallenge */);
+    require(
+      exitTxData.childToken == referenceTxData.childToken,
+      "Reference and exit tx do not correspond to the same child token"
+    );
+    // The closing balance of the referenced tx should be >= exit amount in exitTx
+    require(
+      referenceTxData.closingBalance >= exitTxData.amountOrToken,
+      "Exiting with more tokens than referenced"
+    );
+
+    // referenceTx.length == 2 means the exitor sent along another input UTXO to the exit tx
+    // This will be used to exit with the exitor's pre-existing balance on the chain for the token
+    ReferenceTxData memory _referenceTxData;
+    if (referenceTx.length > 1) {
+      preState = referenceTx[1].toBytes();
+      require(
+        exitTxData.signer != msg.sender,
+        "If 2 inputs were provided, first should belong to the counterparty"
+      );
+      _referenceTxData = processLogTransferReceipt(erc20Predicate, preState, msg.sender, true /* verifyInclusionInCheckpoint */, false /* isChallenge */);
+      require(
+        _referenceTxData.childToken == referenceTxData.childToken,
+        "child tokens in the referenced txs do not match"
+      );
+      require(
+        _referenceTxData.rootToken == referenceTxData.rootToken,
+        "root tokens in the referenced txs do not match"
+      );
+    }
+
+    sendBond(); // send BOND_AMOUNT to withdrawManager
+
+    // last bit is to differentiate whether the sender or receiver of the in-flight tx is starting an exit
+    uint256 exitId = Math.max(referenceTxData.age, _referenceTxData.age) << 1;
+    withdrawManager.addExitToQueue(
+      msg.sender, referenceTxData.childToken, referenceTxData.rootToken,
+      exitTxData.amountOrToken.add(_referenceTxData.closingBalance), exitTxData.txHash, false /* isRegularExit */,
+      exitId
+    );
+    withdrawManager.addInput(exitId, referenceTxData.age, exitTxData.signer, referenceTxData.rootToken);
+    // Even if referenceTx.length == 1, the following input acts as a "dummy" input UTXO to challenge token spends by the exitor
+    withdrawManager.addInput(exitId, _referenceTxData.age, msg.sender, referenceTxData.rootToken);
   }
 
   /**
@@ -165,6 +301,12 @@ contract TransferWithSigPredicate is PredicateUtils {
       data,
       expiration
     );
+    // The signer of the transfer order is the "real signer" of the exit tx
     txData.signer = ECVerify.ecrecovery(dataHash, sig);
+    // if (msg.sender == txData.signer) {
+    //   txData.exitType = ExitType.OutgoingTransfer;
+    // } else if (msg.sender == to) {
+    //   txData.exitType = ExitType.IncomingTransfer;
+    // }
   }
 }
