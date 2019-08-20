@@ -43,7 +43,6 @@ contract('ChildErc20', async function(accounts) {
     const to = '0x' + crypto.randomBytes(20).toString('hex')
     assert.strictEqual((await erc20.childToken.balanceOf(alice)).toString(), depositAmount.toString())
     assert.strictEqual((await erc20.childToken.balanceOf(to)).toString(), '0')
-    console.log(sig, depositAmount.toString(16), data, expiration, to)
     const { receipt } = await erc20.childToken.transferWithSig(sig, tokenIdOrAmount, data, expiration, to, { from: spender })
     // await utils.writeToFile('child/erc20-transferWithSig.js', receipt)
     assert.strictEqual((await erc20.childToken.balanceOf(alice)).toString(), depositAmount.sub(tokenIdOrAmount).toString())

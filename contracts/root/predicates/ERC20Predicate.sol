@@ -111,6 +111,10 @@ contract ERC20Predicate is IErcPredicate {
     // referenceTx.length > 10 means the exitor sent along another input UTXO to the exit tx
     // This will be used to exit with the pre-existing balance on the chain along with the couterparty signed exit tx
     if (referenceTx.length > 10) {
+      require(
+        exitTxData.signer != msg.sender,
+        "If 2 inputs were provided, first should belong to the counterparty"
+      );
       _referenceTxData = processReferenceTx(
         referenceTx[16].toBytes(), // receipt
         referenceTx[19].toUint(), // logIndex
@@ -213,18 +217,18 @@ contract ERC20Predicate is IErcPredicate {
    * @notice Parse a ERC20 LogTransfer event in the receipt
    * @param state abi encoded (data, participant, verifyInclusion)
       * data is RLP encoded reference tx receipt that encodes the following fields
-      * headerNumber Header block number of which the reference tx was a part of
-      * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
-      * blockNumber Block number of which the reference tx is a part of
-      * blockTime Reference tx block time
-      * blocktxRoot Transactions root of block
-      * blockReceiptsRoot Receipts root of block
-      * receipt Receipt of the reference transaction
-      * receiptProof Merkle proof of the reference receipt
-      * branchMask Merkle proof branchMask for the receipt
-      * logIndex Log Index to read from the receipt
-      * tx Challenge transaction
-      * txProof Merkle proof of the challenge tx
+        * headerNumber Header block number of which the reference tx was a part of
+        * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
+        * blockNumber Block number of which the reference tx is a part of
+        * blockTime Reference tx block time
+        * blocktxRoot Transactions root of block
+        * blockReceiptsRoot Receipts root of block
+        * receipt Receipt of the reference transaction
+        * receiptProof Merkle proof of the reference receipt
+        * branchMask Merkle proof branchMask for the receipt
+        * logIndex Log Index to read from the receipt
+        * tx Challenge transaction
+        * txProof Merkle proof of the challenge tx
     * @return abi encoded (closingBalance, ageOfUtxo, childToken, rootToken)
    */
   function interpretStateUpdate(bytes calldata state)

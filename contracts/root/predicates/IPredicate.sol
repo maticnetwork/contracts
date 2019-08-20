@@ -130,7 +130,7 @@ contract PredicateUtils is ExitsDataStructure {
 }
 
 contract IErcPredicate is IPredicate, PredicateUtils {
-  enum ExitType { OutgoingTransfer, IncomingTransfer, Burnt }
+  enum ExitType { Invalid, OutgoingTransfer, IncomingTransfer, Burnt }
 
   struct ExitTxData {
     uint256 amountOrToken;
