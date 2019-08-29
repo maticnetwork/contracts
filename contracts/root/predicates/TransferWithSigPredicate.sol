@@ -155,10 +155,6 @@ contract TransferWithSigPredicate is PredicateUtils {
     ReferenceTxData memory _referenceTxData;
     if (referenceTx.length > 1) {
       preState = referenceTx[1].toBytes();
-      require(
-        exitTxData.signer != msg.sender,
-        "If 2 inputs were provided, first should belong to the counterparty"
-      );
       _referenceTxData = processLogTransferReceipt(erc20Predicate, preState, msg.sender, true /* verifyInclusionInCheckpoint */, false /* isChallenge */);
       require(
         _referenceTxData.childToken == referenceTxData.childToken,

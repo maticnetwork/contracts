@@ -184,10 +184,6 @@ contract ERC20Predicate is IErcPredicate {
     // referenceTx.length > 10 means the exitor sent along another input UTXO to the exit tx
     // This will be used to exit with the pre-existing balance on the chain along with the couterparty signed exit tx
     if (referenceTx.length > 10) {
-      require(
-        exitTxData.signer != msg.sender,
-        "If 2 inputs were provided, first should belong to the counterparty"
-      );
       _referenceTxData = processReferenceTx(
         referenceTx[16].toBytes(), // receipt
         referenceTx[19].toUint(), // logIndex
