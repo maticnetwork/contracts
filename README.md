@@ -10,12 +10,8 @@ Ethereum smart contracts that power the [Matic Network](https://matic.network).
 npm install
 ```
 
-### Compile
-```
-npm run truffle:compile
-```
-
 ### Start main chain and side chain
+
 Start Main chain
 ```
 npm run testrpc
@@ -31,17 +27,15 @@ bash start.sh
 tail -f data/node.log
 ```
 
+### Compile
+```
+npm run truffle:compile
+```
+
 ### Migrate
 For development
 ```
 npm run truffle:migrate
-```
-
-For deploying contracts
-```
-rm -rf migrations
-mv deploy-migrations migrations
-npm run truffle:migrate:deploy
 ```
 
 ### Run tests

@@ -23,7 +23,7 @@ module.exports = {
       provider: function() {
         return new HDWalletProvider(
           MNEMONIC,
-          `https://ropsten.infura.io/${API_KEY}`
+          `https://ropsten.infura.io/v3/${API_KEY}`
         )
       },
       network_id: 3,

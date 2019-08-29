@@ -1,14 +1,13 @@
 const bluebird = require('bluebird')
+const ethUtils = require('ethereumjs-util')
 
-const utils = require('ethereumjs-util')
+const utils = require('./utils')
 
 const SafeMath = artifacts.require(
   'openzeppelin-solidity/contracts/math/SafeMath.sol'
 )
-
 const RLPReader = artifacts.require('solidity-rlp/contracts/RLPReader.sol')
 
-// const Math = artifacts.require('openzeppelin-solidity/contracts/math/Math.sol')
 const BytesLib = artifacts.require('BytesLib')
 const Common = artifacts.require('Common')
 const ECVerify = artifacts.require('ECVerify')
@@ -27,11 +26,13 @@ const StakeManager = artifacts.require('StakeManager')
 const ERC20Predicate = artifacts.require('ERC20Predicate')
 const ERC721Predicate = artifacts.require('ERC721Predicate')
 const MarketplacePredicate = artifacts.require('MarketplacePredicate')
-const MarketplacePredicateTest = artifacts.require('MarketplacePredicateTest')
+const TransferWithSigPredicate = artifacts.require('TransferWithSigPredicate')
+const TransferWithSigUtils = artifacts.require('TransferWithSigUtils')
+const ExitNFT = artifacts.require('ExitNFT')
 
 // tokens
-const MaticWETH = artifacts.require('MaticWETH')
-const ExitNFT = artifacts.require('ExitNFT.sol')
+const MaticWeth = artifacts.require('MaticWETH')
+const TestToken = artifacts.require('TestToken')
 
 const libDeps = [
   {
@@ -49,12 +50,16 @@ const libDeps = [
       ERC20Predicate,
       ERC721Predicate,
       MarketplacePredicate,
-      MarketplacePredicateTest
+      TransferWithSigPredicate
     ]
   },
   {
     lib: ECVerify,
-    contracts: [StakeManager, MarketplacePredicate, MarketplacePredicateTest]
+    contracts: [
+      StakeManager,
+      MarketplacePredicate,
+      TransferWithSigPredicate
+    ]
   },
   {
     lib: Merkle,
@@ -70,15 +75,31 @@ const libDeps = [
   },
   {
     lib: RLPEncode,
-    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate, MarketplacePredicate, MarketplacePredicateTest]
+    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate, MarketplacePredicate]
   },
   {
     lib: RLPReader,
-    contracts: [RootChain, ERC20Predicate, ERC721Predicate, MarketplacePredicate, MarketplacePredicateTest]
+    contracts: [
+      RootChain,
+      ERC20Predicate,
+      ERC721Predicate,
+      MarketplacePredicate,
+      TransferWithSigPredicate
+    ]
   },
   {
     lib: SafeMath,
-    contracts: [RootChain]
+    contracts: [
+      RootChain,
+      ERC20Predicate
+    ]
+  },
+  {
+    lib: TransferWithSigUtils,
+    contracts: [
+      MarketplacePredicate,
+      TransferWithSigPredicate
+    ]
   }
 ]
 
@@ -111,19 +132,39 @@ module.exports = async function(deployer, network) {
         Registry.address,
         RootChain.address
       )
+      await deployer.deploy(ExitNFT, Registry.address)
 
-      await Promise.all([
-        deployer.deploy(ERC20Predicate, WithdrawManagerProxy.address, DepositManagerProxy.address),
-        deployer.deploy(ERC721Predicate, WithdrawManagerProxy.address, DepositManagerProxy.address),
+      console.log('deploying predicates...')
+      await deployer.deploy(ERC20Predicate, WithdrawManagerProxy.address, DepositManagerProxy.address)
+      await deployer.deploy(ERC721Predicate, WithdrawManagerProxy.address, DepositManagerProxy.address)
+      await deployer.deploy(MarketplacePredicate, RootChain.address, WithdrawManagerProxy.address, Registry.address)
+      await deployer.deploy(TransferWithSigPredicate, RootChain.address, WithdrawManagerProxy.address, Registry.address)
 
-        // deploy tokens
-        deployer.deploy(ExitNFT, Registry.address, 'ExitNFT', 'ENFT'),
-        deployer.deploy(MaticWETH)
-      ])
-      await Promise.all([
-        deployer.deploy(MarketplacePredicate, WithdrawManagerProxy.address, DepositManagerProxy.address, Registry.address),
-        deployer.deploy(MarketplacePredicateTest)
-      ])
+      console.log('deploying tokens...')
+      await deployer.deploy(MaticWeth)
+      await deployer.deploy(TestToken, 'Test Token', 'TST')
+
+      console.log('writing contract addresses to file...')
+      const contractAddresses = {
+        root: {
+          // @todo add all of the above
+          Registry: Registry.address,
+          RootChain: RootChain.address,
+          DepositManager: DepositManager.address,
+          DepositManagerProxy: DepositManagerProxy.address,
+          predicates: {
+            ERC20Predicate: ERC20Predicate.address,
+            ERC721Predicate: ERC721Predicate.address,
+            MarketplacePredicate: MarketplacePredicate.address,
+            TransferWithSigPredicate: TransferWithSigPredicate.address
+          },
+          tokens: {
+            MaticWeth: MaticWeth.address,
+            TestToken: TestToken.address
+          }
+        }
+      }
+      utils.writeContractAddresses(contractAddresses)
     })
     .then(async() => {
       console.log('initializing contract state...')
@@ -132,27 +173,29 @@ module.exports = async function(deployer, network) {
         WithdrawManagerProxy.address
       )
       await registry.updateContractMap(
-        utils.keccak256('depositManager'),
+        ethUtils.keccak256('depositManager'),
         DepositManagerProxy.address
       )
       await registry.updateContractMap(
-        utils.keccak256('withdrawManager'),
+        ethUtils.keccak256('withdrawManager'),
         WithdrawManagerProxy.address
       )
       await registry.updateContractMap(
-        utils.keccak256('stakeManager'),
+        ethUtils.keccak256('stakeManager'),
         StakeManager.address
-      )
-      await registry.updateContractMap(
-        utils.keccak256('wethToken'),
-        MaticWETH.address
       )
       await _withdrawManager.setExitNFTContract(ExitNFT.address)
 
-      await registry.mapToken(
-        MaticWETH.address,
-        MaticWETH.address,
-        false /* isERC721 */
+      // whitelist predicates
+      await registry.addErc20Predicate(ERC20Predicate.address)
+      await registry.addErc721Predicate(ERC721Predicate.address)
+      await registry.addPredicate(MarketplacePredicate.address, 3 /* Type.Custom */)
+      await registry.addPredicate(TransferWithSigPredicate.address, 3 /* Type.Custom */)
+
+      // map weth contract
+      await registry.updateContractMap(
+        ethUtils.keccak256('wethToken'),
+        MaticWeth.address
       )
     })
 }
