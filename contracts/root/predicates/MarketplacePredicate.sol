@@ -115,21 +115,19 @@ contract MarketplacePredicate is PredicateUtils {
     ReferenceTxData memory reference2 = processLogTransferReceipt(predicate, preState, exitTxData.counterParty, true /* verifyInclusionInCheckpoint */, false /* isChallenge */);
     validateTokenBalance(reference2.childToken, exitTxData.token2, reference2.closingBalance, exitTxData.amount2);
 
-    address exitChildToken;
+    // The last element in referenceTx array refers to the child token being exited
+    address exitChildToken = address(RLPReader.toUint(referenceTx[referenceTx.length - 1]));
     ReferenceTxData memory reference3;
     // referenceTx.length == 4 means the exitor sent along another input UTXO for token t2
     // This will be used to exit with the pre-existing balance for token t2 on the chain
     // @todo This part is untested
     if (referenceTx.length == 4) {
-      (predicate, preState) = abi.decode(referenceTx[2].toBytes(), (address, bytes));
+      (predicate, preState) = abi.decode(referenceTx[3].toBytes(), (address, bytes));
       reference3 = processLogTransferReceipt(predicate, preState, msg.sender, true /* verifyInclusionInCheckpoint */, false /* isChallenge */);
-      exitChildToken = address(RLPReader.toUint(referenceTx[3]));
       require(
         reference2.childToken == reference3.childToken,
         "Child token doesnt match"
       );
-    } else {
-      exitChildToken = address(RLPReader.toUint(referenceTx[2]));
     }
 
     sendBond(); // send BOND_AMOUNT to withdrawManager
