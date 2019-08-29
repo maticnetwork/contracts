@@ -59,7 +59,7 @@ contract ERC20Predicate is IErcPredicate {
 
   /**
    * @notice Start an exit by referencing the preceding (reference) transaction
-   * @param data RLP encoded data of the reference tx(s) that encodes the following fields for each tx
+   * @param data RLP encoded data of the reference tx (proof-of-funds of exitor) that encodes the following fields
       * headerNumber Header block number of which the reference tx was a part of
       * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
       * blockNumber Block number of which the reference tx is a part of
@@ -70,11 +70,11 @@ contract ERC20Predicate is IErcPredicate {
       * receiptProof Merkle proof of the reference receipt
       * branchMask Merkle proof branchMask for the receipt
       * logIndex Log Index to read from the receipt
-   * @param exitTx Signed exit transaction
+   * @param exitTx Signed exit transaction (outgoing transfer or burn)
    * @return address rootToken that the exit corresponds to
    * @return uint256 exitAmount
    */
-  function startExit(bytes calldata data, bytes calldata exitTx)
+  function startExitForOutgoingErc20Transfer(bytes calldata data, bytes calldata exitTx)
     external
     payable
     isBondProvided
@@ -87,12 +87,85 @@ contract ERC20Predicate is IErcPredicate {
 
     // Validate the exitTx - This may be an in-flight tx, so inclusion will not be checked
     ExitTxData memory exitTxData = processExitTx(exitTx);
+    require(
+      exitTxData.signer == msg.sender,
+      "Should be an outgoing transfer"
+    );
 
     // Process the receipt of the referenced tx
     ReferenceTxData memory referenceTxData = processReferenceTx(
       referenceTx[6].toBytes(), // receipt
       referenceTx[9].toUint(), // logIndex
-      exitTxData.signer, // picking up the signer from exitTx and checking their proof-of-funds in the reference tx
+      msg.sender, // participant whose proof-of-funds are to be checked in the reference tx
+      false /* isChallenge */
+    );
+    require(
+      exitTxData.childToken == referenceTxData.childToken,
+      "Reference and exit tx do not correspond to the same child token"
+    );
+    // exitTxData.amountOrToken represents the total exit amount based on the in-flight exit type
+    // re-using the variable here to avoid stack overflow
+    exitTxData.amountOrToken = validateSequential(exitTxData, referenceTxData);
+
+    // Checking the inclusion of the receipt of the preceding tx is enough
+    // It is inconclusive to check the inclusion of the signed tx, hence verifyTxInclusion = false
+    // age is a measure of the position of the tx in the side chain
+    referenceTxData.age = withdrawManager.verifyInclusion(data, 0 /* offset */, false /* verifyTxInclusion */)
+        .add(referenceTxData.age); // Add the logIndex and oIndex from the receipt
+
+    sendBond(); // send BOND_AMOUNT to withdrawManager
+
+    // last bit is to differentiate whether the sender or receiver of the in-flight tx is starting an exit
+    uint256 exitId = referenceTxData.age << 1;
+    exitId |= 1; // since msg.sender == exitTxData.signer
+    withdrawManager.addExitToQueue(
+      msg.sender, referenceTxData.childToken, referenceTxData.rootToken,
+      exitTxData.amountOrToken, exitTxData.txHash, false /* isRegularExit */,
+      exitId
+    );
+    withdrawManager.addInput(exitId, referenceTxData.age, msg.sender, referenceTxData.rootToken);
+    return (referenceTxData.rootToken, exitTxData.amountOrToken);
+  }
+
+  /**
+   * @notice Start an exit by referencing the preceding (reference) transaction
+   * @param data RLP encoded data of the reference tx(s) that encodes the following fields for each tx
+      * headerNumber Header block number of which the reference tx was a part of
+      * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
+      * blockNumber Block number of which the reference tx is a part of
+      * blockTime Reference tx block time
+      * blocktxRoot Transactions root of block
+      * blockReceiptsRoot Receipts root of block
+      * receipt Receipt of the reference transaction
+      * receiptProof Merkle proof of the reference receipt
+      * branchMask Merkle proof branchMask for the receipt
+      * logIndex Log Index to read from the receipt
+   * @param exitTx Signed exit transaction (incoming transfer)
+   * @return address rootToken that the exit corresponds to
+   * @return uint256 exitAmount
+   */
+  function startExitForIncomingErc20Transfer(bytes calldata data, bytes calldata exitTx)
+    external
+    payable
+    isBondProvided
+    returns(address /* rootToken */, uint256 /* exitAmount */)
+  {
+    // referenceTx is a proof-of-funds of the party who signed the exit tx
+    // If the exitor is exiting with outgoing transfer, it will refer to their own preceding tx
+    // If the exitor is exiting with incoming transfer, it will refer to the counterparty's preceding tx
+    RLPReader.RLPItem[] memory referenceTx = data.toRlpItem().toList();
+
+    // Validate the exitTx - This may be an in-flight tx, so inclusion will not be checked
+    ExitTxData memory exitTxData = processExitTx(exitTx);
+    require(
+      exitTxData.signer != msg.sender,
+      "Should be an incoming transfer"
+    );
+    // Process the receipt (i.e. proof-of-funds of the counterparty) of the referenced tx
+    ReferenceTxData memory referenceTxData = processReferenceTx(
+      referenceTx[6].toBytes(), // receipt
+      referenceTx[9].toUint(), // logIndex
+      exitTxData.signer,
       false /* isChallenge */
     );
     require(
@@ -137,7 +210,6 @@ contract ERC20Predicate is IErcPredicate {
 
     // last bit is to differentiate whether the sender or receiver of the in-flight tx is starting an exit
     uint256 exitId = Math.max(referenceTxData.age, _referenceTxData.age) << 1;
-    if (msg.sender == exitTxData.signer) exitId |= 1;
     withdrawManager.addExitToQueue(
       msg.sender, referenceTxData.childToken, referenceTxData.rootToken,
       exitTxData.amountOrToken.add(_referenceTxData.closingBalance), exitTxData.txHash, false /* isRegularExit */,
@@ -311,7 +383,7 @@ contract ERC20Predicate is IErcPredicate {
 
     // If exit tx has is an outgoing transfer from exitor's perspective, exit with closingBalance minus sent amount
     if (exitTxData.exitType == ExitType.OutgoingTransfer) {
-      return referenceTxData.closingBalance - exitTxData.amountOrToken;
+      return referenceTxData.closingBalance.sub(exitTxData.amountOrToken);
     }
     // If exit tx was burnt tx, exit with the entire referenced balance not just that was burnt, since user only gets one chance to exit MoreVP style
     if (exitTxData.exitType == ExitType.Burnt) {

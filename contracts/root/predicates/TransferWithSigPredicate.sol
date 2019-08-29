@@ -23,7 +23,6 @@ contract TransferWithSigPredicate is PredicateUtils {
   Registry public registry;
   IRootChain public rootChain;
 
-  // enum ExitType { Invalid, OutgoingTransfer, IncomingTransfer }
 
   struct ReferenceTxData {
     uint256 closingBalance;
@@ -37,7 +36,6 @@ contract TransferWithSigPredicate is PredicateUtils {
     bytes32 txHash;
     address childToken;
     address signer;
-    // ExitType exitType;
   }
 
   constructor(address _rootChain, address _withdrawManager, address _registry)
@@ -49,8 +47,8 @@ contract TransferWithSigPredicate is PredicateUtils {
   }
 
   /**
-   * @notice Start an exit from in-flight transferWithSig tx while also referencing the exitor's pre-existing balance on the chain for the token
-   * @param data RLP encoded array of 1 input utxo
+   * @notice Start an exit from in-flight transferWithSig tx while referencing the exitor's pre-existing balance on the chain for the token
+   * @param data RLP encoded array of 1 input utxo (data format is to keep it consistent with other startExit methods)
       * data[0] should be the exitor's proof-of-funds and encodes the following fields
         * headerNumber Header block number of which the reference tx was a part of
         * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
@@ -95,7 +93,7 @@ contract TransferWithSigPredicate is PredicateUtils {
     sendBond(); // send BOND_AMOUNT to withdrawManager
 
     // last bit is to differentiate whether the sender or receiver of the in-flight tx is starting an exit
-    uint256 exitId = (referenceTxData.age << 1);
+    uint256 exitId = referenceTxData.age << 1;
     exitId |= 1; // since msg.sender == exitTxData.signer
     withdrawManager.addExitToQueue(
       msg.sender, referenceTxData.childToken, referenceTxData.rootToken,
@@ -135,7 +133,12 @@ contract TransferWithSigPredicate is PredicateUtils {
       expiration > rootChain.getLastChildBlock(),
       "The inflight exit is not valid, because the transfer sig has expired"
     );
+    require(
+      exitTxData.signer != msg.sender,
+      "Should be an incoming transfer"
+    );
     address erc20Predicate = registry.erc20Predicate();
+    // Process the receipt (i.e. proof-of-funds of the counterparty) of the referenced tx
     ReferenceTxData memory referenceTxData = processLogTransferReceipt(erc20Predicate, preState, exitTxData.signer, true /* verifyInclusionInCheckpoint */, false /* isChallenge */);
     require(
       exitTxData.childToken == referenceTxData.childToken,
@@ -303,10 +306,5 @@ contract TransferWithSigPredicate is PredicateUtils {
     );
     // The signer of the transfer order is the "real signer" of the exit tx
     txData.signer = ECVerify.ecrecovery(dataHash, sig);
-    // if (msg.sender == txData.signer) {
-    //   txData.exitType = ExitType.OutgoingTransfer;
-    // } else if (msg.sender == to) {
-    //   txData.exitType = ExitType.IncomingTransfer;
-    // }
   }
 }

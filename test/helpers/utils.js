@@ -162,6 +162,43 @@ export function startExitNew(predicate, inputs, exitTx, from) {
   )
 }
 
+export function startExitForErc20Predicate(fn, inputs, exitTx, from) {
+  let _inputs = []
+  inputs.forEach(input => {
+    _inputs = _inputs.concat(buildReferenceTxPayload(input))
+  })
+  const options = { value: web3.utils.toWei('.1', 'ether') }
+  if (from) options.from = from
+  return fn(
+    ethUtils.bufferToHex(rlp.encode(_inputs)),
+    ethUtils.bufferToHex(exitTx),
+    options
+  )
+}
+
+export function startExitForErc20PredicateLegacy(fn, headerNumber, blockProof, blockNumber, blockTimestamp, reference, logIndex, exitTx, from) {
+  const options = { value: web3.utils.toWei('.1', 'ether') }
+  if (from) options.from = from
+  return fn(
+    ethUtils.bufferToHex(
+      rlp.encode([
+        headerNumber,
+        ethUtils.bufferToHex(Buffer.concat(blockProof)),
+        blockNumber,
+        blockTimestamp,
+        ethUtils.bufferToHex(reference.transactionsRoot),
+        ethUtils.bufferToHex(reference.receiptsRoot),
+        ethUtils.bufferToHex(reference.receipt),
+        ethUtils.bufferToHex(rlp.encode(reference.receiptParentNodes)),
+        ethUtils.bufferToHex(rlp.encode(reference.path)), // branch mask,
+        logIndex
+      ])
+    ),
+    ethUtils.bufferToHex(exitTx),
+    options
+  )
+}
+
 export function startExitForMarketplacePredicate(predicate, inputs, exitToken, exitTx) {
   let _inputs = []
   inputs.forEach(input => {

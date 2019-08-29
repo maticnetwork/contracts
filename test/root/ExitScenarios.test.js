@@ -62,8 +62,8 @@ contract('Misc Predicates tests', async function(accounts) {
     let inFlightTx = await predicateTestUtils.getRawInflightTx(childErc20.transfer.bind(null, bob, aliceToBobtransferAmount), alice /* from */, web3Child)
 
     // Alice starts an exit
-    let startExitTx = await utils.startExitNew(
-      contracts.ERC20Predicate,
+    let startExitTx = await utils.startExitForErc20Predicate(
+      contracts.ERC20Predicate.startExitForOutgoingErc20Transfer,
       [utxo1a].map(predicateTestUtils.buildInputFromCheckpoint),
       inFlightTx,
       alice // exitor
@@ -76,8 +76,8 @@ contract('Misc Predicates tests', async function(accounts) {
     predicateTestUtils.assertExitUpdated(logs[2], alice, exitId, ageOfUtxo1a)
 
     // Bob starts an exit
-    startExitTx = await utils.startExitNew(
-      contracts.ERC20Predicate,
+    startExitTx = await utils.startExitForErc20Predicate(
+      contracts.ERC20Predicate.startExitForIncomingErc20Transfer,
       // utxo1a is a proof-of-funds of counterparty and utxo1b is a proof-of-funds (that already existed on-chain) of the exitor
       [utxo1a, utxo1b].map(predicateTestUtils.buildInputFromCheckpoint),
       inFlightTx,
@@ -125,8 +125,8 @@ contract('Misc Predicates tests', async function(accounts) {
     const utxo3m = { checkpoint: await statefulUtils.submitCheckpoint(contracts.rootChain, tx2.receipt, accounts), logIndex: 1 }
 
     // Mallory starts an exit from TX1 (from UTXO2M) while referencing UTXO1A and places exit bond
-    let startExitTx = await utils.startExitNew(
-      contracts.ERC20Predicate,
+    let startExitTx = await utils.startExitForErc20Predicate(
+      contracts.ERC20Predicate.startExitForIncomingErc20Transfer,
       [utxo1a].map(predicateTestUtils.buildInputFromCheckpoint), // proof-of-funds of counterparty
       await predicateTestUtils.buildInFlight(await web3Child.eth.getTransaction(tx1.receipt.transactionHash)),
       mallory // exitor
@@ -184,8 +184,8 @@ contract('Misc Predicates tests', async function(accounts) {
     // TX2 is included in a withheld block. TX1 is not included in a block.
 
     // Bob eagerly starts an exit from TX1, referencing UTXO1A and UTXO1B and places exit bond.
-    const startExitTx = await utils.startExitNew(
-      contracts.ERC20Predicate,
+    const startExitTx = await utils.startExitForErc20Predicate(
+      contracts.ERC20Predicate.startExitForIncomingErc20Transfer,
       // utxo1a is a proof-of-funds of counterparty and utxo1b is a proof-of-funds (that already existed on-chain) of the exitor
       [utxo1a, utxo1b].map(predicateTestUtils.buildInputFromCheckpoint),
       tx1, // inFlightTx
@@ -236,8 +236,8 @@ contract('Misc Predicates tests', async function(accounts) {
     // Both tx1 and tx2 are checkpointed
 
     // Alice starts an exit from TX2, referencing UTXO1A
-    const startExitTx = await utils.startExitNew(
-      contracts.ERC20Predicate,
+    const startExitTx = await utils.startExitForErc20Predicate(
+      contracts.ERC20Predicate.startExitForOutgoingErc20Transfer,
       // utxo1a is a proof-of-funds of counterparty and utxo1b is a proof-of-funds (that already existed on-chain) of the exitor
       [utxo1a].map(predicateTestUtils.buildInputFromCheckpoint),
       await predicateTestUtils.buildInFlight(await web3Child.eth.getTransaction(tx2.receipt.transactionHash)),
@@ -313,8 +313,8 @@ contract('Misc Predicates tests', async function(accounts) {
       const tx1 = await token2.transfer(mallory, amount2, { from: alice })
 
       // Mallory starts an exit from TX1 (from UTXO2M) while referencing UTXO1A and places exit bond
-      let startExitTx = await utils.startExitNew(
-        contracts.ERC20Predicate,
+      let startExitTx = await utils.startExitForErc20Predicate(
+        contracts.ERC20Predicate.startExitForIncomingErc20Transfer,
         [utxo1a].map(predicateTestUtils.buildInputFromCheckpoint), // proof-of-funds of counterparty
         await predicateTestUtils.buildInFlight(await web3Child.eth.getTransaction(tx1.receipt.transactionHash)),
         mallory // exitor
@@ -493,8 +493,8 @@ contract('Misc Predicates tests', async function(accounts) {
       const tx1 = await erc20.childToken.transfer(mallory, transferAmount, { from: alice })
 
       // Mallory starts an exit from TX1 (from UTXO2M) while referencing UTXO1A and places exit bond
-      let startExitTx = await utils.startExitNew(
-        contracts.ERC20Predicate,
+      let startExitTx = await utils.startExitForErc20Predicate(
+        contracts.ERC20Predicate.startExitForIncomingErc20Transfer,
         [utxo1a].map(predicateTestUtils.buildInputFromCheckpoint), // proof-of-funds of counterparty
         await predicateTestUtils.buildInFlight(await web3Child.eth.getTransaction(tx1.receipt.transactionHash)),
         mallory // exitor
