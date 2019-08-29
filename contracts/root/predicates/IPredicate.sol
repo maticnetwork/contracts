@@ -10,22 +10,11 @@ import { ExitsDataStructure } from "../withdrawManager/WithdrawManagerStorage.so
 interface IPredicate {
   /**
    * @notice Start an exit from the side chain by referencing the preceding (reference) transaction
+   * @dev This function could take various flavours in the inheriting contracts, hence commenting it out here
    * @param data RLP encoded data of the reference tx(s) that encodes the following fields for each tx
-   * headerNumber Header block number of which the reference tx was a part of
-   * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
-   * blockNumber Block number of which the reference tx is a part of
-   * blockTime Reference tx block time
-   * blocktxRoot Transactions root of block
-   * blockReceiptsRoot Receipts root of block
-   * receipt Receipt of the reference transaction
-   * receiptProof Merkle proof of the reference receipt
-   * branchMask Merkle proof branchMask for the receipt
-   * logIndex Log Index to read from the receipt
    * @param exitTx Signed exit transaction
-   * @return address rootToken that the exit corresponds to
-   * @return uint256 exitAmountOrTokenId
    */
-  function startExit(bytes calldata data, bytes calldata exitTx) external payable returns(address rootToken, uint256 exitAmountOrTokenId);
+  // function startExit(bytes calldata data, bytes calldata exitTx) external payable;
 
   /**
    * @notice Verify the deprecation of a state update
@@ -47,14 +36,6 @@ interface IPredicate {
    * @return Whether or not the state is deprecated
    */
   function verifyDeprecation(bytes calldata exit, bytes calldata inputUtxo, bytes calldata challengeData) external returns (bool);
-
-  /**
-   * @dev Called when an exit initiated by the predicate is being finalized, post the challenge period
-   * exitor The user who initiated the exit
-   * token Token contract that the exitor initiated an exit for
-   * amountOrNft ERC20 amount or ERC721 NFT Id that the exitor wishes to exit with
-   */
-  // function onFinalizeExit(address exitor, address token, uint256 amountOrNft) external;
 
   function interpretStateUpdate(bytes calldata state) external view returns (bytes memory);
 }
@@ -130,7 +111,7 @@ contract PredicateUtils is ExitsDataStructure {
 }
 
 contract IErcPredicate is IPredicate, PredicateUtils {
-  enum ExitType { OutgoingTransfer, IncomingTransfer, Burnt }
+  enum ExitType { Invalid, OutgoingTransfer, IncomingTransfer, Burnt }
 
   struct ExitTxData {
     uint256 amountOrToken;

@@ -43,7 +43,7 @@ export function encodeSigs(sigs = []) {
 export function assertBigNumberEquality(num1, num2) {
   if (!BN.isBN(num1)) num1 = web3.utils.toBN(num1.toString())
   if (!BN.isBN(num2)) num2 = web3.utils.toBN(num2.toString())
-  expect(num1.eq(num2)).to.be.true
+  assert.ok(num1.eq(num2), `expected ${num1.toString(16)} and ${num2.toString(16)} to be equal`)
 }
 
 export function assertBigNumbergt(num1, num2) {
@@ -162,6 +162,43 @@ export function startExitNew(predicate, inputs, exitTx, from) {
   )
 }
 
+export function startExitForErc20Predicate(fn, inputs, exitTx, from) {
+  let _inputs = []
+  inputs.forEach(input => {
+    _inputs = _inputs.concat(buildReferenceTxPayload(input))
+  })
+  const options = { value: web3.utils.toWei('.1', 'ether') }
+  if (from) options.from = from
+  return fn(
+    ethUtils.bufferToHex(rlp.encode(_inputs)),
+    ethUtils.bufferToHex(exitTx),
+    options
+  )
+}
+
+export function startExitForErc20PredicateLegacy(fn, headerNumber, blockProof, blockNumber, blockTimestamp, reference, logIndex, exitTx, from) {
+  const options = { value: web3.utils.toWei('.1', 'ether') }
+  if (from) options.from = from
+  return fn(
+    ethUtils.bufferToHex(
+      rlp.encode([
+        headerNumber,
+        ethUtils.bufferToHex(Buffer.concat(blockProof)),
+        blockNumber,
+        blockTimestamp,
+        ethUtils.bufferToHex(reference.transactionsRoot),
+        ethUtils.bufferToHex(reference.receiptsRoot),
+        ethUtils.bufferToHex(reference.receipt),
+        ethUtils.bufferToHex(rlp.encode(reference.receiptParentNodes)),
+        ethUtils.bufferToHex(rlp.encode(reference.path)), // branch mask,
+        logIndex
+      ])
+    ),
+    ethUtils.bufferToHex(exitTx),
+    options
+  )
+}
+
 export function startExitForMarketplacePredicate(predicate, inputs, exitToken, exitTx) {
   let _inputs = []
   inputs.forEach(input => {
@@ -177,6 +214,16 @@ export function startExitForMarketplacePredicate(predicate, inputs, exitToken, e
     ethUtils.bufferToHex(rlp.encode(_inputs)),
     ethUtils.bufferToHex(exitTx),
     { value: web3.utils.toWei('.1', 'ether') }
+  )
+}
+
+export function startExitForTransferWithSig(fn, inputs, exitTx, from) {
+  const options = { value: web3.utils.toWei('.1', 'ether') }
+  if (from) options.from = from
+  return fn(
+    ethUtils.bufferToHex(rlp.encode(inputs.map(buildReferenceTxPayload).map(rlp.encode))),
+    ethUtils.bufferToHex(exitTx),
+    options
   )
 }
 
@@ -197,22 +244,19 @@ export async function verifyDeprecation(withdrawManager, predicate, exitId, inpu
 }
 
 export function buildReferenceTxPayload(input) {
-  const res = []
   const { headerNumber, blockProof, blockNumber, blockTimestamp, reference, logIndex } = input
-  return res.concat(
-    [
-      headerNumber,
-      ethUtils.bufferToHex(Buffer.concat(blockProof)),
-      blockNumber,
-      blockTimestamp,
-      ethUtils.bufferToHex(reference.transactionsRoot),
-      ethUtils.bufferToHex(reference.receiptsRoot),
-      ethUtils.bufferToHex(reference.receipt),
-      ethUtils.bufferToHex(rlp.encode(reference.receiptParentNodes)),
-      ethUtils.bufferToHex(rlp.encode(reference.path)), // branch mask,
-      logIndex
-    ]
-  )
+  return [
+    headerNumber,
+    ethUtils.bufferToHex(Buffer.concat(blockProof)),
+    blockNumber,
+    blockTimestamp,
+    ethUtils.bufferToHex(reference.transactionsRoot),
+    ethUtils.bufferToHex(reference.receiptsRoot),
+    ethUtils.bufferToHex(reference.receipt),
+    ethUtils.bufferToHex(rlp.encode(reference.receiptParentNodes)),
+    ethUtils.bufferToHex(rlp.encode(reference.path)), // branch mask,
+    logIndex
+  ]
 }
 
 export function buildChallengeData(input) {

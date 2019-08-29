@@ -126,6 +126,16 @@ class Deployer {
     return MarketplacePredicate
   }
 
+  async deployTransferWithSigPredicate() {
+    const TransferWithSigPredicate = await contracts.TransferWithSigPredicate.new(
+      this.rootChain.address,
+      this.withdrawManagerProxy.address,
+      this.registry.address
+    )
+    await this.registry.addPredicate(TransferWithSigPredicate.address, 3 /* Type.Custom */)
+    return TransferWithSigPredicate
+  }
+
   async deployTestErc20(options = { mapToken: true }) {
     // TestToken auto-assigns 10000 to msg.sender
     const testToken = await contracts.TestToken.new('TestToken', 'TST')

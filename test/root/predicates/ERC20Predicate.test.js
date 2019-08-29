@@ -70,8 +70,6 @@ contract('ERC20Predicate', async function(accounts) {
       // start = 0
     })
 
-    it('reference: deposit - exitTx: fullBurn')
-
     it('reference: incomingTransfer - exitTx: fullBurn', async function() {
       await utils.deposit(
         contracts.depositManager,
@@ -86,7 +84,8 @@ contract('ERC20Predicate', async function(accounts) {
       let exitTx = await web3Child.eth.getTransaction(r.transactionHash)
       exitTx = await buildInFlight(exitTx)
 
-      const startExitTx = await utils.startExit(contracts.ERC20Predicate, headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
+      const startExitTx = await utils.startExitForErc20PredicateLegacy(
+        contracts.ERC20Predicate.startExitForOutgoingErc20Transfer, headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       // console.log(startExitTx, logs)
       const log = logs[1]
@@ -114,7 +113,7 @@ contract('ERC20Predicate', async function(accounts) {
       let exitTx = await web3Child.eth.getTransaction(r.transactionHash)
       exitTx = await buildInFlight(exitTx)
 
-      const startExitTx = await utils.startExit(contracts.ERC20Predicate, headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
+      const startExitTx = await utils.startExitForErc20PredicateLegacy(contracts.ERC20Predicate.startExitForOutgoingErc20Transfer, headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       // console.log(startExitTx, logs)
       const log = logs[1]
@@ -142,7 +141,7 @@ contract('ERC20Predicate', async function(accounts) {
       let exitTx = await web3Child.eth.getTransaction(r.transactionHash)
       exitTx = await buildInFlight(exitTx)
 
-      const startExitTx = await utils.startExit(contracts.ERC20Predicate, headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
+      const startExitTx = await utils.startExitForErc20PredicateLegacy(contracts.ERC20Predicate.startExitForOutgoingErc20Transfer, headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
       // console.log('startExitTx', startExitTx)
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       const log = logs[1]
@@ -170,7 +169,7 @@ contract('ERC20Predicate', async function(accounts) {
       let exitTx = await web3Child.eth.getTransaction(r.transactionHash)
       exitTx = await buildInFlight(exitTx)
 
-      const startExitTx = await utils.startExit(contracts.ERC20Predicate, headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
+      const startExitTx = await utils.startExitForErc20PredicateLegacy(contracts.ERC20Predicate.startExitForIncomingErc20Transfer, headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       // console.log(startExitTx, logs)
       const log = logs[1]
@@ -200,7 +199,7 @@ contract('ERC20Predicate', async function(accounts) {
       let exitTx = await web3Child.eth.getTransaction(r.transactionHash)
       exitTx = await buildInFlight(exitTx)
 
-      const startExitTx = await utils.startExit(contracts.ERC20Predicate, headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
+      const startExitTx = await utils.startExitForErc20PredicateLegacy(contracts.ERC20Predicate.startExitForIncomingErc20Transfer, headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       // console.log(startExitTx, logs)
       const log = logs[1]
@@ -235,7 +234,7 @@ contract('ERC20Predicate', async function(accounts) {
       let exitTx = await web3Child.eth.getTransaction(r.transactionHash)
       exitTx = await buildInFlight(exitTx)
 
-      const startExitTx = await utils.startExitNew(contracts.ERC20Predicate, inputs, exitTx)
+      const startExitTx = await utils.startExitForErc20Predicate(contracts.ERC20Predicate.startExitForIncomingErc20Transfer, inputs, exitTx)
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       // console.log(startExitTx, logs)
       let log = logs[1]
@@ -290,7 +289,7 @@ contract('ERC20Predicate', async function(accounts) {
       // What's interesting here is that tx A acts as proof-of-balance for both the counterparty and the user, so add the same input again
       inputs.push({ headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 })
 
-      const startExitTx = await utils.startExitNew(contracts.ERC20Predicate, inputs, exitTx)
+      const startExitTx = await utils.startExitForErc20Predicate(contracts.ERC20Predicate.startExitForIncomingErc20Transfer, inputs, exitTx)
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       let log = logs[1]
       log.event.should.equal('ExitStarted')
@@ -351,7 +350,7 @@ contract('ERC20Predicate', async function(accounts) {
       let { receipt: w } = await childContracts.childToken.transfer(other, halfAmount) // to make it evm compatible but still challengeable bcoz we are referencing an older input
       let exitTx = await web3Child.eth.getTransaction(w.transactionHash)
       exitTx = await buildInFlight(exitTx)
-      const startExitTx = await utils.startExitNew(contracts.ERC20Predicate, inputs, exitTx)
+      const startExitTx = await utils.startExitForErc20Predicate(contracts.ERC20Predicate.startExitForOutgoingErc20Transfer, inputs, exitTx)
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       // console.log(startExitTx, logs)
       let log = logs[1]
@@ -389,7 +388,7 @@ contract('ERC20Predicate', async function(accounts) {
       let { receipt: i } = await childContracts.childToken.transfer(other, halfAmount) // to make it evm compatible but still challengeable bcoz we are referencing an older input
       let exitTx = await web3Child.eth.getTransaction(i.transactionHash)
       exitTx = await buildInFlight(exitTx)
-      const startExitTx = await utils.startExitNew(contracts.ERC20Predicate, inputs, exitTx)
+      const startExitTx = await utils.startExitForErc20Predicate(contracts.ERC20Predicate.startExitForOutgoingErc20Transfer, inputs, exitTx)
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
 
       i = await statefulUtils.submitCheckpoint(contracts.rootChain, i, accounts)
