@@ -1,4 +1,3 @@
-const fs = require('fs')
 const utils = require('./utils')
 
 const Registry = artifacts.require('Registry')

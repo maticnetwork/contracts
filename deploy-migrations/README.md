@@ -14,11 +14,13 @@ mv migrations dev-migrations && cp -r deploy-migrations migrations
 
 (local)
 npm run truffle:migrate -- --reset --network development --to 2
-npm run truffle:migrate -- --reset --network matic_dev --from 3 --to 3
-npm run truffle:migrate -- --network development --from 4 --to 4
+npm run truffle:migrate -- --reset --network development --from 3 --to 3
+npm run truffle:migrate -- --reset --network matic_dev --from 4 --to 4
+npm run truffle:migrate -- --network development --from 5 --to 5
 
 (ropsten)
 npm run truffle:migrate -- --network ropsten --to 2
-npm run truffle:migrate -- --network matic --from 3 --to 3
-npm run truffle:migrate -- --network ropsten --from 4 --to 4
+npm run truffle:migrate -- --network ropsten --from 3 --to 3
+npm run truffle:migrate -- --network matic --from 4 --to 4
+npm run truffle:migrate -- --network ropsten --from 5 --to 5
 ```
