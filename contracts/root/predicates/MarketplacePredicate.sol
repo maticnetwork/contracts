@@ -8,7 +8,6 @@ import { RLPEncode } from "../../common/lib/RLPEncode.sol";
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
-import { IDepositManager } from "../depositManager/IDepositManager.sol";
 import { IPredicate, PredicateUtils } from "./IPredicate.sol";
 import { IRootChain } from "../IRootChain.sol";
 import { IWithdrawManager } from "../withdrawManager/IWithdrawManager.sol";
@@ -58,11 +57,10 @@ contract MarketplacePredicate is PredicateUtils {
     address rootToken;
   }
 
-  constructor(address _rootChain, address _withdrawManager, address _depositManager, address _registry)
+  constructor(address _rootChain, address _withdrawManager, address _registry)
     public
   {
     withdrawManager = IWithdrawManager(_withdrawManager);
-    depositManager = IDepositManager(_depositManager);
     rootChain = IRootChain(_rootChain);
     registry = Registry(_registry);
   }
@@ -218,13 +216,6 @@ contract MarketplacePredicate is PredicateUtils {
     );
     return true;
   }
-
-  // function onFinalizeExit(address exitor, address token, uint256 tokenId)
-  //   external
-  //   onlyWithdrawManager
-  // {
-  //   depositManager.transferAssets(token, exitor, tokenId);
-  // }
 
   function getChildBlockNumberFromAge(uint256 age) internal pure returns(uint256) {
     // age is represented as (getExitableAt(createdAt) << 127) | (blockNumber << 32) | branchMask.toRlpItem().toUint();

@@ -116,7 +116,7 @@ module.exports = async function(deployer, network) {
         deployer.deploy(ERC20Predicate, WithdrawManager.address, DepositManager.address),
         deployer.deploy(ERC721Predicate, WithdrawManager.address, DepositManager.address),
         deployer.deploy(MarketplacePredicateTest),
-        deployer.deploy(MarketplacePredicate, RootChain.address, WithdrawManager.address, DepositManager.address, Registry.address),
+        deployer.deploy(MarketplacePredicate, RootChain.address, WithdrawManager.address, Registry.address),
         deployer.deploy(TransferWithSigPredicate, RootChain.address, WithdrawManager.address, Registry.address)
       ])
     })
