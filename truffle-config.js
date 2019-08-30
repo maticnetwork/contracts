@@ -2,11 +2,9 @@ require('babel-register')
 require('babel-polyfill')
 
 var HDWalletProvider = require('truffle-hdwallet-provider')
-const MNEMONIC =
-  'clock radar mass judge dismiss just intact mind resemble fringe diary casino'
 
+const MNEMONIC = process.env.MNEMONIC || 'clock radar mass judge dismiss just intact mind resemble fringe diary casino'
 const API_KEY = process.env.API_KEY
-console.log('API_KEY', API_KEY)
 
 module.exports = {
   // See <http://truffleframework.com/docs/advanced/configuration>
@@ -23,14 +21,12 @@ module.exports = {
       network_id: '*' // match any network
     },
     ropsten: {
-      provider: function() {
-        return new HDWalletProvider(
-          MNEMONIC,
-          `https://ropsten.infura.io/v3/${API_KEY}`
-        )
-      },
+      provider: () => new HDWalletProvider(MNEMONIC, `https://ropsten.infura.io/v3/${API_KEY}`, 1),
       network_id: 3,
-      gas: 8000000
+      // gas: 8000000,
+      gasPrice: 100000000000,
+      skipDryRun: true
+      // confirmations: 5
     },
     kovan: {
       provider: function() {

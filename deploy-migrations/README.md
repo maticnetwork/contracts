@@ -2,13 +2,19 @@
 1. Use Infura to point to the main chain node (Ethereum ropsten)
 ```
 export API_KEY=<infura api key>
+export MNEMONIC=<mnemonic>
 ```
 2. Use Bor node to point the matic chain
 Update the chain url in `networks.matic` key in [truffle-config.js](./truffle-config.js).
 
-3. Check `0x9fB29AAc15b9A4B7F17c3385939b007540f4d791` has ropsten ether.
+3. Compile contracts
+```
+npm run truffle:compile
+```
 
-3. Deploy contracts
+4. Check account that you are deploying from has ropsten ether.
+
+5. Deploy contracts
 ```
 mv migrations dev-migrations && cp -r deploy-migrations migrations
 
