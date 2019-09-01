@@ -105,10 +105,11 @@ contract RootChain is Ownable, IRootChain {
     require(keccak256(dataList[4].toData()) == keccak256(sha256(extradata)), "Extra data is invalid");
 
     // extract end and assign to current child
+    
     dataList = extradata.toRLPItem().toList();
-
+    dataList = dataList[0].toList();
     // // check proposer
-    require(msg.sender == dataList[0].toAddress(), "Invalid proposer");
+    // require(msg.sender == dataList[0].toAddress(), "Invalid proposer");
     uint256 start = currentChildBlock();
     if (start > 0) {
       start = start.add(1);
@@ -122,7 +123,7 @@ contract RootChain is Ownable, IRootChain {
     require(end > start, "Not adding blocks");
 
     // // Make sure enough validators sign off on the proposed header root
-    require(stakeManager.checkSignatures(keccak256(vote), sigs), "Sigs are invalid");
+    // require(stakeManager.checkSignatures(keccak256(vote), sigs), "Sigs are invalid");
 
     // // Add the header root
     HeaderBlock memory headerBlock = HeaderBlock({
@@ -338,5 +339,6 @@ contract RootChain is Ownable, IRootChain {
   function slash() public isProofValidator(msg.sender) {
     // TODO pass block/proposer
   }
+  
 }
 
