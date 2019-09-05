@@ -1,5 +1,6 @@
 node_modules
 build
+contractAddresses.json
 
 test-blockchain/geth
 test-blockchain/history
@@ -10,3 +11,4 @@ test-blockchain/data/**
 *.log
 
 .DS_Store
+

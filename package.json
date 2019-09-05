@@ -10,6 +10,10 @@
     "truffle:test": "truffle test",
     "truffle:compile": "truffle compile",
     "truffle:migrate": "truffle migrate",
+    "truffle:migrate:deploy:1": "truffle migrate --network development --to 2",
+    "truffle:migrate:deploy:2": "truffle migrate --network matic_dev --from 3 --to 3",
+    "truffle:migrate:deploy": "npm run truffle:migrate:deploy:1 && npm run truffle:migrate:deploy:2",
+    "test": "truffle test",
     "test:ci": "scripts/run-test.sh",
     "lint": "npm run lint:sol && npm run lint:js",
     "lint:js": "eslint test/**/*.js",
@@ -57,7 +61,7 @@
     "pre-commit": "^1.2.2",
     "safe-buffer": "5.1.2",
     "solium": "^1.1.8",
-    "truffle": "^5.0.10",
+    "truffle": "^5.0.34",
     "web3": "^1.0.0-beta.33",
     "web3-eth-abi": "^1.0.0-beta.51"
   },
@@ -71,6 +75,6 @@
     "merkle-patricia-tree": "2.3.2",
     "openzeppelin-solidity": "^2.2.0",
     "solidity-rlp": "^2.0.0",
-    "truffle-hdwallet-provider": "^1.0.1"
+    "truffle-hdwallet-provider": "^1.0.17"
   }
 }

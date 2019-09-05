@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/maticnetwork/contracts.svg?branch=master)](https://travis-ci.org/maticnetwork/contracts)
 
-Matic contracts are ethereum smart contracts to power [Matic Network](https://matic.network).
+Ethereum smart contracts that power the [Matic Network](https://matic.network).
 
 ### Install dependencies with
 
@@ -10,37 +10,35 @@ Matic contracts are ethereum smart contracts to power [Matic Network](https://ma
 npm install
 ```
 
+### Start main chain and side chain
+
+Start Main chain
+```
+npm run testrpc
+```
+Start Matic side chain
+```
+# Install parity
+bash <(curl https://get.parity.io -L) -r stable
+cd test-blockchain
+bash start.sh
+
+# Tail logs
+tail -f data/node.log
+```
+
 ### Compile
 ```
 npm run truffle:compile
 ```
 
-### Start chains
-```
-npm run mainchain
-npm run maticchain
-```
-
 ### Migrate
+For development
 ```
 npm run truffle:migrate
 ```
-alternatively,
+
+### Run tests
 ```
-(deploy contracts on rootchain)
-npm run truffle:migrate:1
-
-(deploy contracts on matic chain)
-npm run truffle:migrate:2
-
-(map token on mainchain)
-npm run truffle:migrate:3
-```
-
-
-### Run test cases:
-
-```
-# run test cases
-$ npm run test:ci
+$ npm test
 ```
