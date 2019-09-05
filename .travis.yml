@@ -16,6 +16,6 @@ before_script:
 script:
   - npm run test:ci
 # safelist
-branches:
-  only:
-  - master
+# branches:
+#   only:
+#   - master
