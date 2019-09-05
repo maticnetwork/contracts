@@ -16,11 +16,7 @@ class Deployer {
     this.registry = await contracts.Registry.new()
     this.rootChain = await contracts.RootChain.new(this.registry.address)
     this.stakeManager = await contracts.StakeManager.new()
-    this.exitNFT = await contracts.ExitNFT.new(
-      this.registry.address,
-      'ExitNFT',
-      'ENFT'
-    )
+    this.exitNFT = await contracts.ExitNFT.new(this.registry.address)
 
     const depositManager = await this.deployDepositManager()
     const withdrawManager = await this.deployWithdrawManager()
@@ -121,12 +117,22 @@ class Deployer {
 
   async deployMarketplacePredicate() {
     const MarketplacePredicate = await contracts.MarketplacePredicate.new(
+      this.rootChain.address,
       this.withdrawManagerProxy.address,
-      this.depositManagerProxy.address,
       this.registry.address
     )
     await this.registry.addPredicate(MarketplacePredicate.address, 3 /* Type.Custom */)
     return MarketplacePredicate
+  }
+
+  async deployTransferWithSigPredicate() {
+    const TransferWithSigPredicate = await contracts.TransferWithSigPredicate.new(
+      this.rootChain.address,
+      this.withdrawManagerProxy.address,
+      this.registry.address
+    )
+    await this.registry.addPredicate(TransferWithSigPredicate.address, 3 /* Type.Custom */)
+    return TransferWithSigPredicate
   }
 
   async deployTestErc20(options = { mapToken: true }) {

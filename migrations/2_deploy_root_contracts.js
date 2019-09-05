@@ -25,6 +25,8 @@ const ERC20Predicate = artifacts.require('ERC20Predicate')
 const ERC721Predicate = artifacts.require('ERC721Predicate')
 const MarketplacePredicate = artifacts.require('MarketplacePredicate')
 const MarketplacePredicateTest = artifacts.require('MarketplacePredicateTest')
+const TransferWithSigPredicate = artifacts.require('TransferWithSigPredicate')
+const TransferWithSigUtils = artifacts.require('TransferWithSigUtils')
 
 const libDeps = [
   {
@@ -42,12 +44,18 @@ const libDeps = [
       ERC20Predicate,
       ERC721Predicate,
       MarketplacePredicate,
-      MarketplacePredicateTest
+      MarketplacePredicateTest,
+      TransferWithSigPredicate
     ]
   },
   {
     lib: ECVerify,
-    contracts: [StakeManager, MarketplacePredicate, MarketplacePredicateTest]
+    contracts: [
+      StakeManager,
+      MarketplacePredicate,
+      MarketplacePredicateTest,
+      TransferWithSigPredicate
+    ]
   },
   {
     lib: Merkle,
@@ -67,11 +75,22 @@ const libDeps = [
   },
   {
     lib: RLPReader,
-    contracts: [RootChain, ERC20Predicate, ERC721Predicate, MarketplacePredicate, MarketplacePredicateTest]
+    contracts: [RootChain, ERC20Predicate, ERC721Predicate, MarketplacePredicate, MarketplacePredicateTest, TransferWithSigPredicate]
   },
   {
     lib: SafeMath,
-    contracts: [RootChain]
+    contracts: [
+      RootChain,
+      ERC20Predicate
+    ]
+  },
+  {
+    lib: TransferWithSigUtils,
+    contracts: [
+      TransferWithSigPredicate,
+      MarketplacePredicate,
+      MarketplacePredicateTest
+    ]
   }
 ]
 
@@ -85,19 +104,20 @@ module.exports = async function(deployer, network) {
       })
 
       console.log('deploying contracts...')
+      await deployer.deploy(Registry)
       await Promise.all([
-        deployer.deploy(Registry),
+        deployer.deploy(RootChain, Registry.address),
         deployer.deploy(StakeManager),
         deployer.deploy(WithdrawManager),
         deployer.deploy(DepositManager)
       ])
 
       await Promise.all([
-        deployer.deploy(RootChain, Registry.address),
         deployer.deploy(ERC20Predicate, WithdrawManager.address, DepositManager.address),
         deployer.deploy(ERC721Predicate, WithdrawManager.address, DepositManager.address),
-        deployer.deploy(MarketplacePredicate, WithdrawManager.address, DepositManager.address, Registry.address),
-        deployer.deploy(MarketplacePredicateTest)
+        deployer.deploy(MarketplacePredicateTest),
+        deployer.deploy(MarketplacePredicate, RootChain.address, WithdrawManager.address, Registry.address),
+        deployer.deploy(TransferWithSigPredicate, RootChain.address, WithdrawManager.address, Registry.address)
       ])
     })
 }
