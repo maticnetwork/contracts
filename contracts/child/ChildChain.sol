@@ -1,13 +1,19 @@
 pragma solidity ^0.5.2;
 
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
+
+import "./bor/ValidatorVerifiable.sol";
 
 import "./ChildToken.sol";
 import "./ChildERC20.sol";
 import "./ChildERC721.sol";
 
 
-contract ChildChain is Ownable {
+contract ChildChain is Ownable, ValidatorVerifiable {
+  using RLPReader for bytes;
+  using RLPReader for RLPReader.RLPItem;
+
   // mapping for (root token => child token)
   mapping(address => address) public tokens;
   mapping(address => bool) public isERC721;
@@ -71,12 +77,38 @@ contract ChildChain is Ownable {
     isERC721[rootToken] = isErc721;
   }
 
+  // deposit tokens
   function depositTokens(
+    bytes memory vote,
+    bytes memory sigs,
+    bytes memory txBytes,
+    bytes memory proof
+  ) public {
+    // validate validator set
+    validateValidatorSet(vote, sigs, txBytes, proof);
+
+    // check transaction data
+    RLPReader.RLPItem[] memory dataList = txBytes.toRlpItem().toList();
+
+    // dataList = [msg, signature, memo]
+    // msg = dataList[0]  = [proposer, root token, user, amount, deposit count]
+    dataList = dataList[0].toList();
+
+    // deposit tokens
+    _depositTokens(
+      dataList[1].toAddress(),  // root token
+      dataList[2].toAddress(),  // user
+      dataList[3].toUint(),  // amount
+      dataList[4].toUint()  // deposit count
+    );
+  }
+
+  function _depositTokens(
     address rootToken,
     address user,
     uint256 amountOrTokenId,
     uint256 depositCount
-  ) public onlyOwner {
+  ) internal {
     // check if deposit happens only once
     require(deposits[depositCount] == false);
 
