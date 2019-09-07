@@ -20,9 +20,9 @@ import { StakeManager } from "./StakeManager.sol";
 
 contract RootChain is Ownable, IRootChain {
   using SafeMath for uint256;
-  using RLP for bytes;  
+  using RLP for bytes;
   using RLP for RLP.RLPItem;
-  using RLP for RLP.Iterator; 
+  using RLP for RLP.Iterator;
 
   mapping(address => bool) public proofValidatorContracts;
 
@@ -37,7 +37,7 @@ contract RootChain is Ownable, IRootChain {
 
   // stake interface
   StakeManager public stakeManager;
-  
+
   // withdraw manager
   WithdrawManager public withdrawManager;
 
@@ -105,8 +105,8 @@ contract RootChain is Ownable, IRootChain {
     require(keccak256(dataList[4].toData()) == keccak256(sha256(extradata)), "Extra data is invalid");
 
     // extract end and assign to current child
-    
     dataList = extradata.toRLPItem().toList();
+    // msg => authTx[msg, signature, memo][0]
     dataList = dataList[0].toList();
     // // check proposer
     // require(msg.sender == dataList[0].toAddress(), "Invalid proposer");
@@ -234,7 +234,7 @@ contract RootChain is Ownable, IRootChain {
     uint256,
     address,
     address,
-    uint256,    
+    uint256,
     uint256
   ) {
     return depositManager.depositBlock(_depositCount);
@@ -297,13 +297,13 @@ contract RootChain is Ownable, IRootChain {
     // generate deposit block and udpate counter
     depositManager.createDepositBlock(_currentHeaderBlock, _token, _user, _amount);
   }
-  
+
   // transfer tokens to user
   function transferAmount(
     address _token,
     address _user,
     uint256 _amount
-  ) public onlyWithdrawManager returns(bool)  { 
+  ) public onlyWithdrawManager returns(bool)  {
 
     address wethToken = depositManager.wethToken();
 
@@ -311,14 +311,14 @@ contract RootChain is Ownable, IRootChain {
     if (depositManager.isERC721(_token)) {
       ERC721(_token).transferFrom(address(this), _user, _amount);
     } else if (_token == wethToken) {
-      WETH t = WETH(_token); 
+      WETH t = WETH(_token);
       t.withdraw(_amount, _user);
     } else {
       require(ERC20(_token).transfer(_user, _amount));
     }
     return true;
   }
-  
+
   /**
    * @dev Accept ERC223 compatible tokens
    * @param _user address The address that is transferring the tokens
@@ -339,6 +339,6 @@ contract RootChain is Ownable, IRootChain {
   function slash() public isProofValidator(msg.sender) {
     // TODO pass block/proposer
   }
-  
+
 }
 
