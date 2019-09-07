@@ -21,6 +21,8 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
   uint256 public MIN_DEPOSIT_SIZE = 0;
   uint256 public WITHDRAWAL_DELAY = 0;
   uint256 public totalStaked;
+  uint256 public validatorHopLimit = 10; // checkpoint/epochs
+
   // TODO: fix stakeManager<-> Registry
   // StakeManager public stakeManager;
 
@@ -28,6 +30,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     uint256 activationEpoch;
     uint256 delegationStartEpoch;
     uint256 delegationStopEpoch;
+    uint256 lastValidatorEpoch;
     uint256 amount;
     uint256 reward;
     uint256 bondedTo;
@@ -73,10 +76,13 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
   }
 
   function bond(uint256 delegatorId, uint256 validatorId) public onlyDelegator(delegatorId) {
-    // require(time/count)
-    Delegator storage delegator = delegators[delegatorId];
     StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
     uint256 currentEpoch = stakeManager.currentEpoch(); //TODO add 1
+    Delegator storage delegator = delegators[delegatorId];
+
+    require(delegator.lastValidatorEpoch == 0 || delegator.lastValidatorEpoch.add(validatorHopLimit) >= currentEpoch);
+
+
     // for lazy unbonding
     if (delegator.delegationStopEpoch != 0 && delegator.delegationStopEpoch < currentEpoch ) {
       _getRewards(delegatorId);
@@ -94,6 +100,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     delegator.delegationStartEpoch = currentEpoch;
     delegator.bondedTo = validatorId;
     stakeManager.updateValidatorState(validatorId, currentEpoch, int(delegator.amount));
+    delegator.lastValidatorEpoch = currentEpoch;
     emit Bonding(delegatorId, validatorId, validator);
   }
 
@@ -101,10 +108,12 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     address validator;
     StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
     _getRewards(delegatorId);
+    uint256 currentEpoch = stakeManager.currentEpoch();
     (,,,,,,validator,) = stakeManager.validators(delegators[delegatorId].bondedTo);
     ValidatorContract(validator).unBond(delegatorId, index, delegators[delegatorId].amount);
-    stakeManager.updateValidatorState(delegators[delegatorId].bondedTo, stakeManager.currentEpoch(), -int(delegators[delegatorId].amount));
+    stakeManager.updateValidatorState(delegators[delegatorId].bondedTo, currentEpoch, -int(delegators[delegatorId].amount));
     emit UnBonding(delegatorId, delegators[delegatorId].bondedTo);
+    delegators[delegatorId].lastValidatorEpoch = currentEpoch;
     delegators[delegatorId].bondedTo = 0;
   }
 
@@ -157,6 +166,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
       activationEpoch: currentEpoch,
       delegationStartEpoch: 0,
       delegationStopEpoch: 0,
+      lastValidatorEpoch: 0,
       amount: amount,
       reward: 0,
       bondedTo: 0,
