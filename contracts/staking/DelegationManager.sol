@@ -2,7 +2,7 @@ pragma solidity ^0.5.2;
 
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
 import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
-import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+// import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { StakeManager } from "./StakeManager.sol";
@@ -21,7 +21,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
   uint256 public MIN_DEPOSIT_SIZE = 0;
   uint256 public WITHDRAWAL_DELAY = 0;
   uint256 public totalStaked;
-  uint256 public validatorHopLimit = 10; // checkpoint/epochs
+  uint256 public validatorHopLimit = 2; // checkpoint/epochs
 
   // TODO: fix stakeManager<-> Registry
   // StakeManager public stakeManager;
