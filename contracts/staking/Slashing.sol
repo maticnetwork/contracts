@@ -35,7 +35,7 @@ contract Slashing {
     require(dataList1[2].toUint() == dataList2[2].toUint(), "sig isn't duplicate");
     require((keccak256(dataList1[0].toBytes()) == chain && keccak256(dataList2[0].toBytes()) == chain),"Chain ID not same");
     require((keccak256(dataList1[1].toBytes()) == roundType && keccak256(dataList2[1].toBytes()) == roundType), "Round type not same ");
-    require((dataList1[3].toUint() == voteType && dataList2[4].toUint() == voteType), "Vote type not same");
+    require((dataList1[3].toUint() == voteType && dataList2[3].toUint() == voteType), "Vote type not same");
     require(keccak256(dataList1[4].toBytes()) != keccak256(dataList2[4].toBytes()), "same vote");
 
     address signer = keccak256(vote1).ecrecovery(sig1);
