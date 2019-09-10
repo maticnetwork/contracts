@@ -13,12 +13,15 @@ contract Slashing {
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
 
-  address stakeManagerAddress;
   uint256 checkpointHaltEpoch = 0;
   uint256 haltInterval = 50; // epoch
   uint256 slashingRate = 5; // slashing %
 
   // event validator(address indexed signer);
+
+  constructor (address _registry) public {
+    registry = _registry;
+  }
 
   function doubleSign(bytes memory vote1, bytes memory vote2, bytes memory sig1, bytes memory sig2) public {
     // Todo: fix signer chanage for same validator
@@ -32,14 +35,15 @@ contract Slashing {
     require(dataList1[2].toUint() == dataList2[2].toUint(), "sig isn't duplicate");
     require((keccak256(dataList1[0].toBytes()) == chain && keccak256(dataList2[0].toBytes()) == chain),"Chain ID not same");
     require((keccak256(dataList1[1].toBytes()) == roundType && keccak256(dataList2[1].toBytes()) == roundType), "Round type not same ");
-    require((dataList1[4].toUint() == voteType && dataList2[4].toUint() == voteType), "Vote type not same");
+    require((dataList1[3].toUint() == voteType && dataList2[4].toUint() == voteType), "Vote type not same");
+    require(keccak256(dataList1[4].toBytes()) != keccak256(dataList2[4].toBytes()), "same vote");
 
     address signer = keccak256(vote1).ecrecovery(sig1);
     require(signer == keccak256(vote2).ecrecovery(sig2));
     // emit validator(signer);
-    StakeManager stakeManager = StakeManager(stakeManagerAddress);
+    StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
     uint256 validatorId = stakeManager.signerToValidator(signer);
-    stakeManager.slash(validatorId);
+    stakeManager.slash(validatorId, slashingRate);
   }
 
   function checkpointHalt(uint256 start) public {
