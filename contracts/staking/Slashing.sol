@@ -16,11 +16,11 @@ contract Slashing {
   uint256 checkpointHaltEpoch = 0;
   uint256 haltInterval = 50; // epoch
   uint256 slashingRate = 5; // slashing %
-
+  Registry registry;
   // event validator(address indexed signer);
 
   constructor (address _registry) public {
-    registry = _registry;
+    registry = Registry(_registry);
   }
 
   function doubleSign(bytes memory vote1, bytes memory vote2, bytes memory sig1, bytes memory sig2) public {
