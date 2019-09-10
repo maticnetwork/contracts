@@ -116,7 +116,7 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
   }
 
   function slash() public onlyOwner {
-    // slash delegator according to slashingRatio
+    // TODO: slash delegator according to slashingRatio
   }
 
 }

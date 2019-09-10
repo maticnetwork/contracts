@@ -160,7 +160,6 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   }
 
   // slashing and jail interface
-
   function restake(uint256 validatorId, uint256 amount, bool stakeRewards) public onlyStaker(validatorId) {
     require(validators[validatorId].deactivationEpoch < currentEpoch, "No use of restaking");
 
@@ -179,10 +178,15 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   }
 
   // if not jailed then in state of warning, else will be unstaking after x epoch
-  function slash(uint256 validatorId) public /**onlyRootChain */ {
+  function slash(uint256 validatorId, uint256 slashingRate) public /**onlyRootChain */ {
     // if contract call contract.slash
-    // else slash here validator.amount
-    // if amount < MIN_DEPOSIT_SIZE unstake, can restake/revoke => unBondAllLazy here
+    if (validators[validatorId].contractAddress != address(0x0)) {
+        ValidatorContract(validators[validatorId].contractAddress).slash();
+    }
+    validators[validatorId].amount -= validators[validatorId].amount.mul(slashingRate).div(100);
+    if(validators[validatorId].amount < MIN_DEPOSIT_SIZE){
+        jail(validatorId);
+    }
   }
 
   function revoke(uint256 validatorId) public onlyStaker(validatorId) {
