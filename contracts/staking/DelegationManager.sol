@@ -2,7 +2,6 @@ pragma solidity ^0.5.2;
 
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
 import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
-// import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { StakeManager } from "./StakeManager.sol";
@@ -71,7 +70,6 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
       delegators[delegatorId].delegationStartEpoch,
       delegators[delegatorId].delegationStopEpoch,
       currentEpoch);
-    // require(token.transfer(msg.sender, delegators[delegatorId].reward));
     delegators[delegatorId].delegationStartEpoch = currentEpoch;
   }
 
@@ -80,20 +78,19 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     uint256 currentEpoch = stakeManager.currentEpoch(); //TODO add 1
     Delegator storage delegator = delegators[delegatorId];
 
-    require(delegator.lastValidatorEpoch == 0 || delegator.lastValidatorEpoch.add(validatorHopLimit) >= currentEpoch);
-
-
+    require(delegator.lastValidatorEpoch == 0 || delegator.lastValidatorEpoch.add(validatorHopLimit) <= currentEpoch, "Delegation_Limit_Reached");
     // for lazy unbonding
     if (delegator.delegationStopEpoch != 0 && delegator.delegationStopEpoch < currentEpoch ) {
       _getRewards(delegatorId);
       delegator.delegationStopEpoch = 0;
       delegator.delegationStartEpoch = 0;
     } else {
-      require(delegator.delegationStopEpoch == 0 &&
-        delegator.delegationStartEpoch == 0 &&
+      require((delegator.delegationStopEpoch == 0 && // TODO: handle !0
+        delegator.delegationStartEpoch == 0) &&
         delegators[delegatorId].bondedTo == 0,
-        "");
+        "Already_Bonded");
     }
+
     address validator;
     (,,,,,,validator,) = stakeManager.validators(validatorId);
     ValidatorContract(validator).bond(delegatorId, delegator.amount);
@@ -114,6 +111,8 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     stakeManager.updateValidatorState(delegators[delegatorId].bondedTo, currentEpoch, -int(delegators[delegatorId].amount));
     emit UnBonding(delegatorId, delegators[delegatorId].bondedTo);
     delegators[delegatorId].lastValidatorEpoch = currentEpoch;
+    delegators[delegatorId].delegationStopEpoch = 0;
+    delegators[delegatorId].delegationStartEpoch = 0;
     delegators[delegatorId].bondedTo = 0;
   }
 

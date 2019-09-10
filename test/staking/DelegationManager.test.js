@@ -33,6 +33,7 @@ contract('DelegationManager', async function(accounts) {
     await stakeManager.setToken(stakeToken.address)
     await delegationManager.setToken(stakeToken.address)
     await stakeManager.updateValidatorThreshold(3)
+    await stakeManager.changeRootChain(wallets[0].getAddressString())
     // transfer tokens to other accounts
     await stakeToken.mint(
       wallets[0].getAddressString(),
@@ -150,6 +151,93 @@ contract('DelegationManager', async function(accounts) {
     logs[0].event.should.equal('UnBonding')
     delegatedAmount = await validatorContract.delegatedAmount()
     assertBigNumberEquality(delegatedAmount, web3.utils.toWei('200'))
+  })
+
+  it('bond/unbond delegation hop limit test ', async function() {
+    const amount = web3.utils.toWei('200')
+    const validatorContracts = [true, true, true]
+    for (let i = 0; i < 3; i++) {
+      const user = wallets[i].getAddressString()
+      // approve tranfer
+      await stakeToken.approve(stakeManager.address, amount, {
+        from: user
+      })
+      // stake now
+      await stakeManager.stake(amount, user, validatorContracts[i], {
+        from: user
+      })
+    }
+
+    for (let i = 3; i < 6; i++) {
+      const delegator = wallets[i].getAddressString()
+      // approve tranfer
+      await stakeToken.approve(delegationManager.address, amount, {
+        from: delegator
+      })
+      // stake now
+      await delegationManager.stake(amount, {
+        from: delegator
+      })
+    }
+    let validatorContract
+    let result = await delegationManager.bond(
+      1 /** delegatorId */,
+      1 /** validatorId */,
+      {
+        from: wallets[3].getAddressString()
+      }
+    )
+    let logs = logDecoder.decodeLogs(result.receipt.rawLogs)
+    logs[0].event.should.equal('Bonding')
+
+    validatorContract = await ValidatorContract.at(
+      logs[0].args.validatorContract
+    )
+
+    await delegationManager.bond(3 /** delegatorId */, 2 /** validatorId */, {
+      from: wallets[5].getAddressString()
+    })
+    let index
+    let n = await validatorContract.totalDelegators()
+
+    for (let i = 0; i < n; i++) {
+      let delegatorId = await validatorContract.delegators(i)
+      if (delegatorId.eq(web3.utils.toBN('1'))) {
+        index = i
+        i = n
+      }
+    }
+    result = await delegationManager.unBond(1, index, {
+      from: wallets[3].getAddressString()
+    })
+    logs = logDecoder.decodeLogs(result.receipt.rawLogs)
+    logs[0].event.should.equal('UnBonding')
+
+    try {
+      await delegationManager.bond(
+        1 /** delegatorId */,
+        1 /** validatorId */,
+        {
+          from: wallets[3].getAddressString()
+        }
+      )
+    } catch(error) {
+      const invalidOpcode = error.message.search('revert') >= 0
+      assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
+    }
+
+    let C = await delegationManager.validatorHopLimit();
+    for(let i=0; i < C; i++){
+      await stakeManager.finalizeCommit()
+    }
+    result = await delegationManager.bond(
+      1 /** delegatorId */,
+      1 /** validatorId */,
+      {
+        from: wallets[3].getAddressString()
+      }
+    )
+
   })
 
   it('reStake', async function() {

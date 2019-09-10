@@ -105,7 +105,7 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
     }
     for (uint256 epoch = startEpoch; epoch < endEpoch; epoch++) {
       if (delegationState[epoch].amount > 0) {
-        reward += (delegationState[epoch].amount * delegationAmount)/delegationState[epoch].totalStake;
+        reward += (delegationState[epoch].amount * delegationAmount).div(delegationState[epoch].totalStake);
       }
     }
     return reward;
