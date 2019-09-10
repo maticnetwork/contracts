@@ -23,6 +23,7 @@ const WithdrawManager = artifacts.require('WithdrawManager')
 const StakeManager = artifacts.require('StakeManager')
 const ValidatorContract = artifacts.require('ValidatorContract')
 const DelegationManager = artifacts.require('DelegationManager')
+const Slashing = artifacts.require('Slashing')
 const ERC20Predicate = artifacts.require('ERC20Predicate')
 const ERC721Predicate = artifacts.require('ERC721Predicate')
 const MarketplacePredicate = artifacts.require('MarketplacePredicate')
@@ -45,7 +46,7 @@ const libDeps = [
   },
   {
     lib: ECVerify,
-    contracts: [StakeManager, MarketplacePredicate, MarketplacePredicateTest]
+    contracts: [StakeManager, Slashing, MarketplacePredicate, MarketplacePredicateTest]
   },
   {
     lib: Merkle,
@@ -72,6 +73,7 @@ const libDeps = [
   {
     lib: RLPReader,
     contracts: [
+      Slashing,
       RootChain,
       ERC20Predicate,
       ERC721Predicate,
@@ -103,6 +105,7 @@ module.exports = async function(deployer, network) {
     await Promise.all([
       deployer.deploy(RootChain, Registry.address),
       deployer.deploy(StakeManager, Registry.address),
+      deployer.deploy(Slashing, Registry.address),
       deployer.deploy(DelegationManager, Registry.address),
       deployer.deploy(
         ERC20Predicate,

@@ -1,6 +1,7 @@
 export const RootChain = artifacts.require('RootChain')
 export const Registry = artifacts.require('Registry')
 export const StakeManager = artifacts.require('StakeManager')
+export const Slashing = artifacts.require('Slashing')
 export const ValidatorContract = artifacts.require('ValidatorContract')
 export const DelegationManager = artifacts.require('DelegationManager')
 
