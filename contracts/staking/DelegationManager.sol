@@ -20,6 +20,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
   uint256 public MIN_DEPOSIT_SIZE = 0;
   uint256 public totalStaked;
   uint256 public validatorHopLimit = 2; // checkpoint/epochs
+  uint256 public WITHDRAWAL_DELAY = 0; // todo: remove if not needed use from stakeManager
 
   // TODO: fix stakeManager<-> Registry
   // StakeManager public stakeManager;
@@ -91,7 +92,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
 
     address validator;
     (,,,,,,validator,) = stakeManager.validators(validatorId);
-    ValidatorContract(validator).bond(delegatorId, delegator.amount), currentEpoch;
+    ValidatorContract(validator).bond(delegatorId, delegator.amount, currentEpoch);
     delegator.delegationStartEpoch = currentEpoch;
     delegator.bondedTo = validatorId;
     stakeManager.updateValidatorState(validatorId, currentEpoch, int(delegator.amount));
@@ -105,7 +106,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     _getRewards(delegatorId);
     uint256 currentEpoch = stakeManager.currentEpoch();
     (,,,,,,validator,) = stakeManager.validators(delegators[delegatorId].bondedTo);
-    ValidatorContract(validator).unBond(delegatorId, index, delegators[delegatorId].amount);
+    ValidatorContract(validator).unBond(delegatorId, index, delegators[delegatorId].amount, currentEpoch);
     stakeManager.updateValidatorState(delegators[delegatorId].bondedTo, currentEpoch, -int(delegators[delegatorId].amount));
     emit UnBonding(delegatorId, delegators[delegatorId].bondedTo);
     delegators[delegatorId].lastValidatorEpoch = currentEpoch;
@@ -160,14 +161,13 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     uint256 currentEpoch = stakeManager.currentEpoch();
 
     delegators[NFTCounter] = Delegator({
-      deactivationEpoch: currentEpoch,
+      deactivationEpoch: 0,
       delegationStartEpoch: 0,
       delegationStopEpoch: 0,
       lastValidatorEpoch: 0,
       amount: amount,
       reward: 0,
-      bondedTo: 0,
-      data: "0x0"
+      bondedTo: 0
       });
 
     _mint(user, NFTCounter);
@@ -200,7 +200,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     emit Unstaked(msg.sender, delegatorId, amount, totalStaked);
   }
 
-  funciton slash(uint256 delegatorId, uint256 slashRate) public {
+  function slash(uint256 delegatorId, uint256 slashRate) public {
     Delegator storage delegator = delegators[delegatorId];
     StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
     require(stakeManager.getValidatorContract(delegator.bondedTo) == msg.sender);

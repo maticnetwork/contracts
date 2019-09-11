@@ -24,14 +24,14 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
   uint256[] public delegators;
   uint256 public rewards = 0;
   uint256 public validatorRewards = 0;
+  uint256 public delegationSlash = 0;
   address public validator;
   Registry public registry;
   bool delegation = true;
 
   // [delegatorId][0] = start, [delegatorId][1] = end
   mapping (uint256 => uint256[2]) public delegatorHistory;
-  // amount, rate, checkpoint
-  // mapping (uint256 => )
+
 
   // will be reflected after one WITHDRAWAL_DELAY/(some Period + upper lower cap)
   uint256 public rewardRatio = 10;
@@ -68,7 +68,7 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
   function bond(uint256 delegatorId, uint256 amount, uint256 currentEpoch) public onlyDelegatorContract {
     require(delegation);
     require(delegatorHistory[delegatorId][1] == 0 ||
-      delegatorHistory[delegatorId][1] <= currentEpoch.sub(IDelegationManager(msg.sender).WITHDRAWAL_DELAY()));
+      delegatorHistory[delegatorId][1] <= currentEpoch.sub(IStakeManager(owner()).WITHDRAWAL_DELAY()));
 
     delegators.push(delegatorId);
     delegatorHistory[delegatorId][0] = currentEpoch;
@@ -124,8 +124,9 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
     return delegators.length;
   }
 
-  function slash() public onlyOwner {
- 
+  function slash(uint256 slashRate) public onlyOwner { //, uint256 checkpoint
+
+    // delegationSlash +=
   }
 
 }
