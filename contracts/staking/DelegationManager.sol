@@ -200,11 +200,13 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     emit Unstaked(msg.sender, delegatorId, amount, totalStaked);
   }
 
-  function slash(uint256 delegatorId, uint256 slashRate) public {
-    Delegator storage delegator = delegators[delegatorId];
+  function slash(uint256[] delegators, uint256 slashRate) public {
     StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
-    require(stakeManager.getValidatorContract(delegator.bondedTo) == msg.sender);
-    delegator.amount = delegator.amount.sub(delegator.amount.mul(slashRate).div(100));
+    require(stakeManager.getValidatorContract(delegators[0].bondedTo) == msg.sender);
+      for (uint256 i; i < delegators.length; i++) {
+        Delegator storage delegator = delegators[delegatorId];
+        delegator.amount = delegator.amount.sub(delegator.amount.mul(slashRate).div(100));
+      }
   }
 
 }

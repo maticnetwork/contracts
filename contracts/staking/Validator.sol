@@ -32,7 +32,6 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
   // [delegatorId][0] = start, [delegatorId][1] = end
   mapping (uint256 => uint256[2]) public delegatorHistory;
 
-
   // will be reflected after one WITHDRAWAL_DELAY/(some Period + upper lower cap)
   uint256 public rewardRatio = 10;
 
@@ -124,9 +123,13 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
     return delegators.length;
   }
 
-  function slash(uint256 slashRate) public onlyOwner { //, uint256 checkpoint
-
-    // delegationSlash +=
+  function slash(uint256 slashRate, uint256 checkpoint, uint256 currentEpoch) public onlyOwner {
+    IDelegationManager delegationManager = IDelegationManager(registry.getDelegationManagerAddress());
+    if (checkpoint == currentEpoch) {
+      delegationManager.slash(delegators, slashRate);
+    } else {
+      // TODO: add slashing for old delegators with Proofs
+    }
   }
 
 }

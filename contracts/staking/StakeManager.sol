@@ -176,7 +176,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   function slash(uint256 validatorId, uint256 slashingRate) public /**onlyRootChain */ {
     // if contract call contract.slash
     if (validators[validatorId].contractAddress != address(0x0)) {
-        ValidatorContract(validators[validatorId].contractAddress).slash(slashingRate);
+      ValidatorContract(validators[validatorId].contractAddress).slash(slashingRate, currentEpoch);
     }
     validators[validatorId].amount -= validators[validatorId].amount.mul(slashingRate).div(100);
     if(validators[validatorId].amount < MIN_DEPOSIT_SIZE){

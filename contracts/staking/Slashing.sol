@@ -24,6 +24,7 @@ contract Slashing is Ownable {
 
   function doubleSign(bytes memory vote1, bytes memory vote2, bytes memory sig1, bytes memory sig2) public {
     // Todo: fix signer chanage for same validator
+    // Height/checkpoint for slashing
     RLPReader.RLPItem[] memory dataList1 = vote1.toRlpItem().toList();
     RLPReader.RLPItem[] memory dataList2 = vote2.toRlpItem().toList();
 
