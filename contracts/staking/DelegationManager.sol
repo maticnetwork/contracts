@@ -26,7 +26,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
   // StakeManager public stakeManager;
 
   struct Delegator {
-    uint256 activationEpoch;
+    uint256 deactivationEpoch;
     uint256 delegationStartEpoch;
     uint256 delegationStopEpoch;
     uint256 lastValidatorEpoch;
@@ -162,7 +162,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     uint256 currentEpoch = stakeManager.currentEpoch();
 
     delegators[NFTCounter] = Delegator({
-      activationEpoch: currentEpoch,
+      deactivationEpoch: currentEpoch,
       delegationStartEpoch: 0,
       delegationStopEpoch: 0,
       lastValidatorEpoch: 0,
@@ -181,16 +181,17 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     if (delegators[delegatorId].bondedTo != 0) {
       unBond(delegatorId, index);
     }
+    require(delegators[delegatorId].deactivationEpoch == 0);
     StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
     uint256 currentEpoch = stakeManager.currentEpoch();
-    delegators[delegatorId].delegationStopEpoch = currentEpoch;
+    delegators[delegatorId].deactivationEpoch = currentEpoch;
   }
 
   function unstakeClaim(uint256 delegatorId) public onlyDelegator(delegatorId) {
     // can only claim stake back after WITHDRAWAL_DELAY
     StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
     // stakeManager.WITHDRAWAL_DELAY
-    require(delegators[delegatorId].delegationStopEpoch > 0 && delegators[delegatorId].delegationStopEpoch.add(WITHDRAWAL_DELAY) <= stakeManager.currentEpoch());
+    require(delegators[delegatorId].deactivationEpoch > 0 && delegators[delegatorId].deactivationEpoch.add(WITHDRAWAL_DELAY) <= stakeManager.currentEpoch());
     uint256 amount = delegators[delegatorId].amount;
     totalStaked = totalStaked.sub(amount);
 
