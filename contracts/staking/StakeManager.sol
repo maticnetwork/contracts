@@ -142,7 +142,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
   function unstakeClaim(uint256 validatorId) public onlyStaker(validatorId) {
     // can only claim stake back after WITHDRAWAL_DELAY
-    require(validators[validatorId].deactivationEpoch.add(WITHDRAWAL_DELAY) <= currentEpoch);
+    require(validators[validatorId].deactivationEpoch > 0 && validators[validatorId].deactivationEpoch.add(WITHDRAWAL_DELAY) <= currentEpoch);
     uint256 amount = validators[validatorId].amount;
     totalStaked = totalStaked.sub(amount);
 

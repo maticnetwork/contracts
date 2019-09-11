@@ -190,7 +190,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     // can only claim stake back after WITHDRAWAL_DELAY
     StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
     // stakeManager.WITHDRAWAL_DELAY
-    require(delegators[delegatorId].delegationStopEpoch.add(WITHDRAWAL_DELAY) <= stakeManager.currentEpoch());
+    require(delegators[delegatorId].deactivationEpoch > 0 && delegators[delegatorId].delegationStopEpoch.add(WITHDRAWAL_DELAY) <= stakeManager.currentEpoch());
     uint256 amount = delegators[delegatorId].amount;
     totalStaked = totalStaked.sub(amount);
 
