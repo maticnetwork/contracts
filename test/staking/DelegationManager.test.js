@@ -118,8 +118,8 @@ contract('DelegationManager', async function(accounts) {
     validatorContract = await ValidatorContract.at(
       logs[0].args.validatorContract
     )
-    // let delegatedAmount = await validatorContract.delegatedAmount()
-    // assertBigNumberEquality(delegatedAmount, amount)
+    let delegatedAmount = await validatorContract.delegatedAmount()
+    assertBigNumberEquality(delegatedAmount, amount)
     result = await delegationManager.bond(
       2 /** delegatorId */,
       1 /** validatorId */,
@@ -129,8 +129,8 @@ contract('DelegationManager', async function(accounts) {
     )
     logs = logDecoder.decodeLogs(result.receipt.rawLogs)
     logs[0].event.should.equal('Bonding')
-    // delegatedAmount = await validatorContract.delegatedAmount()
-    // assertBigNumberEquality(delegatedAmount, web3.utils.toWei('400'))
+    delegatedAmount = await validatorContract.delegatedAmount()
+    assertBigNumberEquality(delegatedAmount, web3.utils.toWei('400'))
 
     await delegationManager.bond(3 /** delegatorId */, 2 /** validatorId */, {
       from: wallets[5].getAddressString()
@@ -151,14 +151,15 @@ contract('DelegationManager', async function(accounts) {
     logs = logDecoder.decodeLogs(result.receipt.rawLogs)
     logs[0].event.should.equal('UnBonding')
 
-    // delegatedAmount = await validatorContract.delegatedAmount()
-    // assertBigNumberEquality(delegatedAmount, web3.utils.toWei('200'))
+    delegatedAmount = await validatorContract.delegatedAmount()
+    assertBigNumberEquality(delegatedAmount, web3.utils.toWei('200'))
 
   })
 
   it('bond/unbond delegation hop limit test ', async function() {
     const amount = web3.utils.toWei('200')
     const validatorContracts = [true, true, true]
+    await stakeManager.updateValidatorThreshold(4)
     for (let i = 0; i < 3; i++) {
       const user = wallets[i].getAddressString()
       // approve tranfer
@@ -215,7 +216,6 @@ contract('DelegationManager', async function(accounts) {
     })
     logs = logDecoder.decodeLogs(result.receipt.rawLogs)
     logs[0].event.should.equal('UnBonding')
-
     try {
       await delegationManager.bond(
         1 /** delegatorId */,
@@ -228,11 +228,13 @@ contract('DelegationManager', async function(accounts) {
       const invalidOpcode = error.message.search('revert') >= 0
       assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
     }
+    await stakeManager.updateDynastyValue(2)
 
-    let C = await delegationManager.validatorHopLimit();
+    let C = await stakeManager.WITHDRAWAL_DELAY()
     for(let i=0; i < C; i++) {
       await stakeManager.finalizeCommit()
     }
+
     result = await delegationManager.bond(
       1 /** delegatorId */,
       1 /** validatorId */,
@@ -280,9 +282,8 @@ contract('DelegationManager', async function(accounts) {
       from: delegator
     })
 
-    let data
-    // = await delegationManager.delegators(1)
-    // assertBigNumberEquality(data.amount, amount)
+    let data = await delegationManager.delegators("1")
+    assertBigNumberEquality(data.amount, amount)
 
     result = await delegationManager.reStake(1, amount, true, {
       from: delegator
@@ -292,8 +293,8 @@ contract('DelegationManager', async function(accounts) {
     logs[0].event.should.equal('ReStaked')
     assertBigNumberEquality(logs[0].args.amount, amount)
 
-    // data = await delegationManager.delegators(1)
-    // assertBigNumberEquality(data.amount, web3.utils.toWei('400'))
+    data = await delegationManager.delegators("1")
+    assertBigNumberEquality(data.amount, web3.utils.toWei('400'))
     // unbond
     let index
     let n = await validatorContract.totalDelegators()
@@ -320,8 +321,8 @@ contract('DelegationManager', async function(accounts) {
     logs[0].event.should.equal('ReStaked')
     assertBigNumberEquality(logs[0].args.amount, amount)
 
-    // data = await delegationManager.delegators(1)
-    // assertBigNumberEquality(data.amount, web3.utils.toWei('600'))
+    data = await delegationManager.delegators("1")
+    assertBigNumberEquality(data.amount, web3.utils.toWei('600'))
   })
 
   it('unstake and unstakeClaim', async function() {
