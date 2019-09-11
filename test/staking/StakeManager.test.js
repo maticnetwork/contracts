@@ -186,8 +186,10 @@ contract('StakeManager', async function(accounts) {
       const stakedFor = await stakeManager.totalStakedFor(user)
       // stakedFor.should.be.bignumber.equal(amount)
       assertBigNumberEquality(stakedFor, amount)
+
       const validatorId = await stakeManager.getValidatorId(user)
-      const value = await stakeManager.isValidator(validatorId)
+
+      const value = await stakeManager.isValidator(validatorId.toString())
       assert.isTrue(value)
     })
 
