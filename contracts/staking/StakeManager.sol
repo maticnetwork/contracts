@@ -86,16 +86,12 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
   function stakeFor(address user, uint256 amount, address signer, bool isContract) public onlyWhenUnlocked {
     require(currentValidatorSetSize() < validatorThreshold);
-    require(balanceOf(user) == 0, "No second time staking");
+    require(balanceOf(user) == 0, "Only one time staking is allowed");
     require(amount > MIN_DEPOSIT_SIZE);
     require(signerToValidator[signer] == 0);
 
-    require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");
+    require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake failed");
     totalStaked = totalStaked.add(amount);
-    address _contract = address(0x0);
-    if (isContract) {
-      _contract = address(new ValidatorContract(user, registry));
-    }
 
     validators[NFTCounter] = Validator({
       reward: 0,
@@ -104,7 +100,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       activationEpoch: currentEpoch,
       deactivationEpoch: 0,
       signer: signer,
-      contractAddress: _contract,
+      contractAddress: isContract ? address(new ValidatorContract(user, registry)) :address(0x0),
       status : Status.Active
     });
 
@@ -114,7 +110,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     validatorState[currentEpoch].amount += int256(amount);
     validatorState[currentEpoch].stakerCount += int256(1);
 
-    emit Staked(user, NFTCounter, validators[NFTCounter].activationEpoch, amount, totalStaked);
+    emit Staked(user, NFTCounter, currentEpoch, amount, totalStaked);
     NFTCounter = NFTCounter.add(1);
   }
 
@@ -129,7 +125,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     uint256 exitEpoch = currentEpoch.add(UNSTAKE_DELAY);// notice period
     validators[validatorId].deactivationEpoch = exitEpoch;
 
-    // unbond all delegatros in future
+    // unbond all delegators in future
     int256 delegationAmount = 0;
     if (validators[validatorId].contractAddress != address(0x0)) {
       delegationAmount = ValidatorContract(validators[validatorId].contractAddress).unBondAllLazy(exitEpoch);
@@ -204,7 +200,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     }
     // undo timline
     validatorState[exitEpoch].amount = (
-      validatorState[exitEpoch].amount + int256(amount));
+      validatorState[exitEpoch].amount + int256(amount) + delegationAmount);
     validatorState[exitEpoch].stakerCount = (
       validatorState[exitEpoch].stakerCount + 1);
 
