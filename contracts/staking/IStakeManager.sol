@@ -7,7 +7,8 @@ contract IStakeManager {
   event SignerChange(uint256 indexed validatorId, address indexed oldSigner, address indexed newSigner);
   event ReStaked(uint256 indexed validatorId, uint256 amount, uint256 total);
   event Jailed(uint256 indexed validatorId, uint256 indexed exitEpoch);
-
+  uint256 public WITHDRAWAL_DELAY = (2**13)/2; // unit: epoch
+  // Todo: fix WITHDRAWAL_DELAY with interface
   function stake(uint256 amount, address signer, bool isContract) external;
   function unstake(uint256 validatorId) external;
   function totalStakedFor(address addr) external view returns (uint256);

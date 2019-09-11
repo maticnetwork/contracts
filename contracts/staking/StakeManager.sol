@@ -36,7 +36,6 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   uint256 public CHECKPOINT_REWARD = 10000;
   uint256 public MIN_DEPOSIT_SIZE = (10**18);  // in ERC20 token
   uint256 public EPOCH_LENGTH = 256; // unit : block
-  uint256 public WITHDRAWAL_DELAY = DYNASTY.div(2); // unit: epoch
   uint256 public UNSTAKE_DELAY = DYNASTY.mul(2); // unit: epoch
 
   uint256 public validatorThreshold = 10; //128
@@ -177,7 +176,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   function slash(uint256 validatorId, uint256 slashingRate) public /**onlyRootChain */ {
     // if contract call contract.slash
     if (validators[validatorId].contractAddress != address(0x0)) {
-        ValidatorContract(validators[validatorId].contractAddress).slash();
+        ValidatorContract(validators[validatorId].contractAddress).slash(slashingRate);
     }
     validators[validatorId].amount -= validators[validatorId].amount.mul(slashingRate).div(100);
     if(validators[validatorId].amount < MIN_DEPOSIT_SIZE){
