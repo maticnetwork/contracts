@@ -1,14 +1,14 @@
 pragma solidity ^0.5.2;
+
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
-// import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-// import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+
 import { StakeManager } from "./StakeManager.sol";
-// import { Registry } from "../common/Registry.sol";
-// import { IStakeManager } from "./IStakeManager.sol";
 import { ECVerify } from "../common/lib/ECVerify.sol";
 import { Registry } from "../common/Registry.sol";
 
-contract Slashing {
+
+contract Slashing is Ownable {
   using ECVerify for bytes32;
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
