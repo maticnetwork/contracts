@@ -344,6 +344,10 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     return uint256(validatorState[currentEpoch].amount);
   }
 
+  function getValidatorContract(uint256 validatorId) public view returns(address) {
+    return validators[validatorId].contractAddress;
+  }
+
   function isValidator(uint256 validatorId) public view returns (bool) {
     return (
       validators[validatorId].amount > 0 &&

@@ -28,9 +28,13 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
   Registry public registry;
   bool delegation = true;
 
+  // [delegatorId][0] = start, [delegatorId][1] = end
+  mapping (uint256 => uint256[2]) public delegatorHistory;
+  // amount, rate, checkpoint
+  // mapping (uint256 => )
+
   // will be reflected after one WITHDRAWAL_DELAY/(some Period + upper lower cap)
   uint256 public rewardRatio = 10;
-  uint256 public slashingRatio = 10;
 
   struct State {
     uint256 amount;
@@ -61,15 +65,20 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
     delegationState[checkpoint].totalStake = delegatedAmount;
   }
 
-  function bond(uint256 delegatorId, uint256 amount) public onlyDelegatorContract {
+  function bond(uint256 delegatorId, uint256 amount, uint256 currentEpoch) public onlyDelegatorContract {
     require(delegation);
+    require(delegatorHistory[delegatorId][1] == 0 ||
+      delegatorHistory[delegatorId][1] <= currentEpoch.sub(IDelegationManager(msg.sender).WITHDRAWAL_DELAY()));
+
     delegators.push(delegatorId);
+    delegatorHistory[delegatorId][0] = currentEpoch;
     delegatedAmount += amount;
   }
 
-  function unBond(uint256 delegatorId, uint256 index, uint256 amount) public onlyDelegatorContract {
+  function unBond(uint256 delegatorId, uint256 index, uint256 amount, uint256 currentEpoch) public onlyDelegatorContract {
     // update rewards according to rewardRatio
     require(delegators[index] == delegatorId);
+    delegatorHistory[delegatorId][1] = currentEpoch;
     delegatedAmount -= amount;
     // start unbonding
     delegators[index] = delegators[delegators.length-1];
@@ -111,12 +120,12 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
     return reward;
   }
 
-  function totalDelegators() public view returns(uint256){
+  function totalDelegators() public view returns(uint256) {
     return delegators.length;
   }
 
   function slash() public onlyOwner {
-    // TODO: slash delegator according to slashingRatio
+ 
   }
 
 }

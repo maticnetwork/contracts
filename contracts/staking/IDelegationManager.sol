@@ -8,6 +8,7 @@ contract IDelegationManager {
   event UnBonding(uint256 indexed delegatorId, uint256 indexed validatorId);
   event ReStaked(uint256 indexed delegatorId, uint256 indexed amount, uint256 total);
 
+  uint256 public WITHDRAWAL_DELAY = 0;
 
   function stake(uint256 amount) public;
   function stakeFor(address user, uint256 amount) public;

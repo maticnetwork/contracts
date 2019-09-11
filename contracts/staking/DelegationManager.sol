@@ -18,7 +18,6 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
   Registry public registry;
   uint256 public NFTCounter = 1;
   uint256 public MIN_DEPOSIT_SIZE = 0;
-  uint256 public WITHDRAWAL_DELAY = 0;
   uint256 public totalStaked;
   uint256 public validatorHopLimit = 2; // checkpoint/epochs
 
@@ -33,7 +32,6 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     uint256 amount;
     uint256 reward;
     uint256 bondedTo;
-    bytes data; // meta data
   }
 
   //deligator metadata
@@ -93,7 +91,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
 
     address validator;
     (,,,,,,validator,) = stakeManager.validators(validatorId);
-    ValidatorContract(validator).bond(delegatorId, delegator.amount);
+    ValidatorContract(validator).bond(delegatorId, delegator.amount), currentEpoch;
     delegator.delegationStartEpoch = currentEpoch;
     delegator.bondedTo = validatorId;
     stakeManager.updateValidatorState(validatorId, currentEpoch, int(delegator.amount));
@@ -187,11 +185,11 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     delegators[delegatorId].deactivationEpoch = currentEpoch;
   }
 
+  // after unstaking wait for WITHDRAWAL_DELAY, in order to claim stake back
   function unstakeClaim(uint256 delegatorId) public onlyDelegator(delegatorId) {
-    // can only claim stake back after WITHDRAWAL_DELAY
     StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
-    // stakeManager.WITHDRAWAL_DELAY
-    require(delegators[delegatorId].deactivationEpoch > 0 && delegators[delegatorId].deactivationEpoch.add(WITHDRAWAL_DELAY) <= stakeManager.currentEpoch());
+    // WITHDRAWAL_DELAY should match with validator's WITHDRAWAL_DELAY for perfect slashing
+    require(delegators[delegatorId].deactivationEpoch > 0 && delegators[delegatorId].deactivationEpoch.add(stakeManager.WITHDRAWAL_DELAY()) <= stakeManager.currentEpoch());
     uint256 amount = delegators[delegatorId].amount;
     totalStaked = totalStaked.sub(amount);
 
@@ -200,6 +198,13 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
 
     require(token.transfer(msg.sender, amount + delegators[delegatorId].reward));
     emit Unstaked(msg.sender, delegatorId, amount, totalStaked);
+  }
+
+  funciton slash(uint256 delegatorId, uint256 slashRate) public {
+    Delegator storage delegator = delegators[delegatorId];
+    StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
+    require(stakeManager.getValidatorContract(delegator.bondedTo) == msg.sender);
+    delegator.amount = delegator.amount.sub(delegator.amount.mul(slashRate).div(100));
   }
 
 }
