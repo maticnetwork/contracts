@@ -91,6 +91,7 @@ contract('DelegationManager', async function(accounts) {
     await stakeToken.approve(stakeManager.address, amount, {
       from: user
     })
+
     await stakeManager.stake(amount, user, false, {
       from: user
     })
@@ -122,7 +123,6 @@ function buildCheckpointPaylod(proposer, start, end,  wallet) {
       utils.bufferToHex(utils.sha256(extraData)).slice(0, 42)
     ])
   )
-
 
   const sig = utils.bufferToHex(
     encodeSigs(getSigs([wallet], utils.keccak256(vote)))
