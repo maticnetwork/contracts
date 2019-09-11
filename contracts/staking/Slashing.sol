@@ -17,7 +17,6 @@ contract Slashing is Ownable {
   uint256 haltInterval = 50; // epoch
   uint256 slashingRate = 5; // slashing %
   Registry registry;
-  // event validator(address indexed signer);
 
   constructor (address _registry) public {
     registry = Registry(_registry);
@@ -40,7 +39,8 @@ contract Slashing is Ownable {
 
     address signer = keccak256(vote1).ecrecovery(sig1);
     require(signer == keccak256(vote2).ecrecovery(sig2));
-    // emit validator(signer);
+    // fetching validatorId is unnessacary but just to keep universal interface
+    // slash is called with validatorId
     StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
     uint256 validatorId = stakeManager.signerToValidator(signer);
     stakeManager.slash(validatorId, slashingRate);
