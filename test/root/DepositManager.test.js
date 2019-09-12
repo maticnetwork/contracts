@@ -1,5 +1,6 @@
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
+import Matic from 'maticjs'
 
 import deployer from '../helpers/deployer.js'
 import logDecoder from '../helpers/log-decoder.js'
@@ -13,12 +14,15 @@ chai
 
 contract('DepositManager', async function(accounts) {
   let depositManager
+  const maticClient = new Matic({ parentWeb3: web3 })
   const amount = web3.utils.toBN('10').pow(web3.utils.toBN('18'))
 
   beforeEach(async function() {
     const contracts = await deployer.freshDeploy()
     depositManager = contracts.depositManager
+    maticClient.depositManager.setDepositManagerAddress(depositManager.address)
   })
+
 
   it('depositEther', async function() {
     const maticWeth = await deployer.deployMaticWeth()
@@ -43,15 +47,14 @@ contract('DepositManager', async function(accounts) {
   it('depositERC20', async function() {
     const testToken = await deployer.deployTestErc20()
     await testToken.approve(depositManager.address, amount)
-    const result = await depositManager.depositERC20(testToken.address, amount)
-    console.log('gasUsed', result.receipt.gasUsed)
-    const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
+    const result = await maticClient.depositManager.depositERC20(testToken.address, '0x' + amount.toString(16), { from: accounts[0] })
+    console.log('gasUsed', result.gasUsed)
 
     // Transfer, Approval (ERC20 updates the spender allowance), NewDepositBlock
-    logs.should.have.lengthOf(3)
-    logs[2].event.should.equal('NewDepositBlock')
-    validateDepositBlock(logs[2].args, accounts[0], testToken.address, amount)
-    expect(logs[2].args.depositBlockId.toString()).to.equal('1')
+    const log = result.events.NewDepositBlock
+    assert.strictEqual(log.logIndex, 2)
+    validateDepositBlock(log.returnValues, accounts[0], testToken.address, amount)
+    expect(log.returnValues.depositBlockId.toString()).to.equal('1')
 
     const depositHash = (await depositManager.deposits(1)).depositHash
     validateDepositHash(depositHash, accounts[0], testToken.address, amount)
