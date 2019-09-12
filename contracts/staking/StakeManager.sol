@@ -52,6 +52,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     uint256 reward;
     uint256 activationEpoch;
     uint256 deactivationEpoch;
+    uint256 jailTime;
     address signer;
     address contractAddress;
     Status status;
@@ -98,6 +99,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       amount: amount,
       activationEpoch: currentEpoch,
       deactivationEpoch: 0,
+      jailTime: 0,
       signer: signer,
       contractAddress: isContract ? address(new ValidatorContract(user, registry)) :address(0x0),
       status : Status.Active
@@ -173,20 +175,21 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   }
 
   // if not jailed then in state of warning, else will be unstaking after x epoch
-  function slash(uint256 validatorId, uint256 slashingRate) public /**onlyRootChain */ {
+  function slash(uint256 validatorId, uint256 slashingRate, uint256 jailCheckpoints) public /**onlySlashingMananger */ {
     // if contract call contract.slash
     if (validators[validatorId].contractAddress != address(0x0)) {
       ValidatorContract(validators[validatorId].contractAddress).slash(slashingRate, currentEpoch, currentEpoch);
     }
     validators[validatorId].amount -= validators[validatorId].amount.mul(slashingRate).div(100);
-    if(validators[validatorId].amount < MIN_DEPOSIT_SIZE){
-        jail(validatorId);
+    if(validators[validatorId].amount < MIN_DEPOSIT_SIZE || jailCheckpoints > 0) {
+        jail(validatorId, jailCheckpoints);
     }
   }
 
   function revoke(uint256 validatorId) public onlyStaker(validatorId) {
     require(validators[validatorId].activationEpoch > 0 &&
       validators[validatorId].deactivationEpoch > currentEpoch &&
+      validators[validatorId].jailTime <= currentEpoch &&
       validators[validatorId].status == Status.Locked);
 
     uint256 amount = validators[validatorId].amount;
@@ -205,10 +208,11 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
     validators[validatorId].deactivationEpoch = 0;
     validators[validatorId].status = Status.Active;
+    validators[validatorId].jailTime = 0;
   }
 
   // in context of slashing
-  function jail(uint256 validatorId) public /** only*/ {
+  function jail(uint256 validatorId, uint256 jailCheckpoints) public /** only*/ {
     // Todo: requires and more conditions
     uint256 amount = validators[validatorId].amount;
     // should unbond instantly
@@ -221,6 +225,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       validatorState[exitEpoch].stakerCount - 1);
 
     int256 delegationAmount = 0;
+    validators[validatorId].jailTime = jailCheckpoints;
     if (validators[validatorId].contractAddress != address(0x0)) {
       delegationAmount = ValidatorContract(validators[validatorId].contractAddress).unBondAllLazy(exitEpoch);
     }

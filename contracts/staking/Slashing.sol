@@ -13,9 +13,13 @@ contract Slashing is Ownable {
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
 
-  uint256 checkpointHaltEpoch = 0;
-  uint256 haltInterval = 50; // epoch
-  uint256 slashingRate = 5; // slashing %
+  uint256 public checkpointHaltEpoch = 0;
+  uint256 public haltInterval = 50; // epoch
+  uint256 public slashingRate = 5; // slashing %
+  uint256 public jailCheckpoints = 5; // checkpoints
+  bytes32 public chain = keccak256("test-chain-E5igIA");
+  bytes32 public roundType = keccak256("vote");
+  uint8 public voteType = 2;
   Registry registry;
 
   constructor (address _registry) public {
@@ -27,10 +31,6 @@ contract Slashing is Ownable {
     // Height/checkpoint for slashing
     RLPReader.RLPItem[] memory dataList1 = vote1.toRlpItem().toList();
     RLPReader.RLPItem[] memory dataList2 = vote2.toRlpItem().toList();
-
-    bytes32 chain = keccak256("test-chain-E5igIA");
-    bytes32 roundType = keccak256("vote");
-    uint8 voteType = 2;
 
     require(dataList1[2].toUint() == dataList2[2].toUint(), "sig isn't duplicate");
     require((keccak256(dataList1[0].toBytes()) == chain && keccak256(dataList2[0].toBytes()) == chain),"Chain ID not same");
@@ -44,11 +44,10 @@ contract Slashing is Ownable {
     // slash is called with validatorId
     StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
     uint256 validatorId = stakeManager.signerToValidator(signer);
-    stakeManager.slash(validatorId, slashingRate);
+    stakeManager.slash(validatorId, slashingRate, jailCheckpoints);
   }
 
   function checkpointHalt(uint256 start) public {
-
   }
 
 }

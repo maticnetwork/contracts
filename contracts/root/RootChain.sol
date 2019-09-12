@@ -42,7 +42,7 @@ contract RootChain is RootChainStorage {
 
     // check if it is better to keep it in local storage instead
     IStakeManager stakeManager = IStakeManager(registry.getStakeManagerAddress());
-    // stakeManager.checkSignatures(keccak256(vote), sigs, msg.sender);
+    stakeManager.checkSignatures(keccak256(vote), sigs, msg.sender);
 
     // TODO: enable check for (msg.sender == proposer) in _buildHeaderBlock
     RootChainHeader.HeaderBlock memory headerBlock = _buildHeaderBlock(extradata);

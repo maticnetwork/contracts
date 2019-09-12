@@ -68,7 +68,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     address validator;
     StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
     uint256 currentEpoch = stakeManager.currentEpoch();
-    (,,,,,,validator,) = stakeManager.validators(delegators[delegatorId].bondedTo);
+    (,,,,,,,validator,) = stakeManager.validators(delegators[delegatorId].bondedTo);
     delegators[delegatorId].reward += ValidatorContract(validator).getRewards(
       delegatorId,
       delegators[delegatorId].amount,
@@ -97,7 +97,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     }
 
     address validator;
-    (,,,,,,validator,) = stakeManager.validators(validatorId);
+    (,,,,,,,validator,) = stakeManager.validators(validatorId);
     ValidatorContract(validator).bond(delegatorId, delegator.amount, currentEpoch);
     delegator.delegationStartEpoch = currentEpoch;
     delegator.bondedTo = validatorId;
@@ -111,7 +111,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
     _getRewards(delegatorId);
     uint256 currentEpoch = stakeManager.currentEpoch();
-    (,,,,,,validator,) = stakeManager.validators(delegators[delegatorId].bondedTo);
+    (,,,,,,,validator,) = stakeManager.validators(delegators[delegatorId].bondedTo);
     ValidatorContract(validator).unBond(delegatorId, index, delegators[delegatorId].amount, currentEpoch);
     stakeManager.updateValidatorState(delegators[delegatorId].bondedTo, currentEpoch, -int(delegators[delegatorId].amount));
     emit UnBonding(delegatorId, delegators[delegatorId].bondedTo);
