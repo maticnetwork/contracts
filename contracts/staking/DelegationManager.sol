@@ -44,6 +44,12 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     _;
   }
 
+  modifier onlyValidatorContract(uint256 delegatorId) {
+    StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
+    require(stakeManager.getValidatorContract(delegators[0].bondedTo) == msg.sender);
+    _;
+  }
+
   constructor (Registry _registry) ERC721Full("Matic Delegator", "MD") public {
     registry = _registry;
   }
@@ -115,17 +121,16 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     delegators[delegatorId].bondedTo = 0;
   }
 
-  function unBondLazy(uint256 delegatorId, uint256 epoch, address validator) public returns(uint256) {
+  function unBondLazy(uint256 delegatorId, uint256 epoch, address validator) public onlyValidatorContract(delegatorId) returns(uint256) {
     Delegator storage delegator =  delegators[delegatorId];
     delegator.delegationStopEpoch = epoch;
     return delegator.amount;
   }
 
-  function revertLazyUnBond(uint256 delegatorId, uint256 epoch, address validator) public returns(uint256) {
-    // TODO: revert all from unBondLazy
-    // if (delegators[delegatorId].delegationStopEpoch == epoch) {
-    delegators[delegatorId].delegationStopEpoch = 0;
-    // }
+  function revertLazyUnBond(uint256 delegatorId, uint256 epoch, address validator) public onlyValidatorContract(delegatorId) returns(uint256) {
+    if (delegators[delegatorId].delegationStopEpoch == epoch) {
+      delegators[delegatorId].delegationStopEpoch = 0;
+    }
     return delegators[delegatorId].amount;
   }
 
@@ -200,11 +205,9 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     emit Unstaked(msg.sender, delegatorId, amount, totalStaked);
   }
 
-  function slash(uint256[] delegators, uint256 slashRate) public {
-    StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
-    require(stakeManager.getValidatorContract(delegators[0].bondedTo) == msg.sender);
-      for (uint256 i; i < delegators.length; i++) {
-        Delegator storage delegator = delegators[delegatorId];
+  function slash(uint256[] memory _delegators, uint256 slashRate) public onlyValidatorContract(_delegators[0]) {
+      for (uint256 i; i < _delegators.length; i++) {
+        Delegator storage delegator = delegators[_delegators[i]];
         delegator.amount = delegator.amount.sub(delegator.amount.mul(slashRate).div(100));
       }
   }

@@ -11,6 +11,7 @@ contract IDelegationManager {
 
   function stake(uint256 amount) public;
   function stakeFor(address user, uint256 amount) public;
+  function slash(uint256[] memory _delegators, uint256 slashRate) public;
   function reStake(uint256 delegatorId, uint256 amount, bool stakeRewards) public;
   function unstake(uint256 delegatorId, uint256 index) public;
   function unstakeClaim(uint256 delegatorId) public;

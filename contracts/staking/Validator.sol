@@ -126,7 +126,8 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
   function slash(uint256 slashRate, uint256 checkpoint, uint256 currentEpoch) public onlyOwner {
     IDelegationManager delegationManager = IDelegationManager(registry.getDelegationManagerAddress());
     if (checkpoint == currentEpoch) {
-      delegationManager.slash(delegators, slashRate);
+      uint256[] memory _delegators = delegators;
+      delegationManager.slash(_delegators, slashRate);
     } else {
       // TODO: add slashing for old delegators with Proofs
     }
