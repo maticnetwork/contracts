@@ -18,7 +18,7 @@ contract IDelegationManager {
   function getRewards(uint256 delegatorId) public;
   function bond(uint256 delegatorId, uint256 validatorId) public;
   function unBond(uint256 delegatorId, uint256 index) public;
-  function unBondLazy(uint256 delegatorId, uint256 epoch, address validator) public returns(uint256);
-  function revertLazyUnBond(uint256 delegatorId, uint256 epoch, address validator) public returns(uint256);
+  function unBondLazy(uint256[] memory _delegators, uint256 epoch, address validator) public returns(uint256);
+  function revertLazyUnBond(uint256[] memory _delegators, uint256 epoch, address validator) public returns(uint256);
 
 }

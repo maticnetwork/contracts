@@ -121,17 +121,28 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     delegators[delegatorId].bondedTo = 0;
   }
 
-  function unBondLazy(uint256 delegatorId, uint256 epoch, address validator) public onlyValidatorContract(delegatorId) returns(uint256) {
-    Delegator storage delegator =  delegators[delegatorId];
-    delegator.delegationStopEpoch = epoch;
-    return delegator.amount;
+  function unBondLazy(uint256[] memory _delegators, uint256 epoch, address validator) public onlyValidatorContract(_delegators[0]) returns(uint256) {
+    uint256 amount;
+    uint256 delegatorId;
+    for (uint256 i; i < _delegators.length; i++) {
+      delegatorId = _delegators[i];
+      delegators[delegatorId].delegationStopEpoch = epoch;
+      amount = amount.add(delegators[delegatorId].amount);
+    }
+    return amount;
   }
 
-  function revertLazyUnBond(uint256 delegatorId, uint256 epoch, address validator) public onlyValidatorContract(delegatorId) returns(uint256) {
-    if (delegators[delegatorId].delegationStopEpoch == epoch) {
-      delegators[delegatorId].delegationStopEpoch = 0;
-    }
-    return delegators[delegatorId].amount;
+  function revertLazyUnBond(uint256[] memory _delegators, uint256 epoch, address validator) public onlyValidatorContract(_delegators[0]) returns(uint256) {
+    uint256 amount;
+    uint256 delegatorId;
+    for (uint256 i; i < _delegators.length; i++) {
+      delegatorId = _delegators[i];
+       if (delegators[delegatorId].delegationStopEpoch == epoch) {
+         delegators[delegatorId].delegationStopEpoch = 0;
+         amount = amount.add(delegators[delegatorId].amount);
+       }
+     }
+    return amount;
   }
 
   function reStake(uint256 delegatorId, uint256 amount, bool stakeRewards) public onlyDelegator(delegatorId) {
