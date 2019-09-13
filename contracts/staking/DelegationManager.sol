@@ -213,6 +213,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     _burn(msg.sender, delegatorId);
 
     require(token.transfer(msg.sender, amount + delegators[delegatorId].reward));
+    delete delegators[delegatorId];
     emit Unstaked(msg.sender, delegatorId, amount, totalStaked);
   }
 

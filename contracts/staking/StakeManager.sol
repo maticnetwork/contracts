@@ -385,7 +385,10 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
       validatorId = signerToValidator[signer];
       // check if signer is stacker and not proposer
-      if (
+      if (signer == lastAdd) {
+        break;
+      }
+      else if (
         isValidator(validatorId) &&
         signer > lastAdd
       ) {
@@ -396,10 +399,9 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
         if (_contract != address(0x0)) {
           stakePower = stakePower.add(ValidatorContract(_contract).delegatedAmount());
         }
-      } else {
-        break;
       }
     }
+
     validatorId = tokenOfOwnerByIndex(proposer, 0);// get ValidatorId
     uint256 _totalStake = currentValidatorSetTotalStake();
     require(stakePower >= _totalStake.mul(2).div(3).add(1));
