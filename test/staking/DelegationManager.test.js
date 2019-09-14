@@ -2,16 +2,9 @@ import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 
 import deployer from '../helpers/deployer.js'
-// import { ValidatorContract } from '../helpers/artifacts'
 import { DummyERC20, ValidatorContract } from '../helpers/artifacts'
 
-import {
-  assertBigNumberEquality,
-  assertBigNumbergt,
-  buildSubmitHeaderBlockPaylod,
-  ZeroAddress
-} from '../helpers/utils.js'
-import { mineOneBlock, increaseBlockTime } from '../helpers/chain.js'
+import { assertBigNumberEquality, ZeroAddress } from '../helpers/utils.js'
 import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
 import logDecoder from '../helpers/log-decoder.js'
 
@@ -153,7 +146,6 @@ contract('DelegationManager', async function(accounts) {
 
     delegatedAmount = await validatorContract.delegatedAmount()
     assertBigNumberEquality(delegatedAmount, web3.utils.toWei('200'))
-
   })
 
   it('bond/unbond delegation hop limit test ', async function() {
@@ -217,21 +209,17 @@ contract('DelegationManager', async function(accounts) {
     logs = logDecoder.decodeLogs(result.receipt.rawLogs)
     logs[0].event.should.equal('UnBonding')
     try {
-      await delegationManager.bond(
-        1 /** delegatorId */,
-        1 /** validatorId */,
-        {
-          from: wallets[3].getAddressString()
-        }
-      )
-    } catch(error) {
+      await delegationManager.bond(1 /** delegatorId */, 1 /** validatorId */, {
+        from: wallets[3].getAddressString()
+      })
+    } catch (error) {
       const invalidOpcode = error.message.search('revert') >= 0
       assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
     }
     await stakeManager.updateDynastyValue(2)
 
     let C = await stakeManager.WITHDRAWAL_DELAY()
-    for(let i=0; i < C; i++) {
+    for (let i = 0; i < C; i++) {
       await stakeManager.finalizeCommit()
     }
 
@@ -242,7 +230,6 @@ contract('DelegationManager', async function(accounts) {
         from: wallets[3].getAddressString()
       }
     )
-
   })
 
   it('reStake', async function() {
@@ -282,7 +269,7 @@ contract('DelegationManager', async function(accounts) {
       from: delegator
     })
 
-    let data = await delegationManager.delegators("1")
+    let data = await delegationManager.delegators('1')
     assertBigNumberEquality(data.amount, amount)
 
     result = await delegationManager.reStake(1, amount, true, {
@@ -293,7 +280,7 @@ contract('DelegationManager', async function(accounts) {
     logs[0].event.should.equal('ReStaked')
     assertBigNumberEquality(logs[0].args.amount, amount)
 
-    data = await delegationManager.delegators("1")
+    data = await delegationManager.delegators('1')
     assertBigNumberEquality(data.amount, web3.utils.toWei('400'))
     // unbond
     let index
@@ -321,7 +308,7 @@ contract('DelegationManager', async function(accounts) {
     logs[0].event.should.equal('ReStaked')
     assertBigNumberEquality(logs[0].args.amount, amount)
 
-    data = await delegationManager.delegators("1")
+    data = await delegationManager.delegators('1')
     assertBigNumberEquality(data.amount, web3.utils.toWei('600'))
   })
 
@@ -374,7 +361,7 @@ contract('DelegationManager', async function(accounts) {
     // unstakeClaim
     let withdrawDelay = await stakeManager.WITHDRAWAL_DELAY()
 
-    for(let i=0;i < withdrawDelay; i++){
+    for (let i = 0; i < withdrawDelay; i++) {
       await stakeManager.finalizeCommit()
     }
     result = await delegationManager.unstakeClaim(1, { from: delegator })

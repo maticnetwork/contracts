@@ -3,17 +3,11 @@ import chaiAsPromised from 'chai-as-promised'
 
 import utils from 'ethereumjs-util'
 
-import {
-  StakeManager,
-  DummyERC20,
-  ValidatorContract
-} from '../helpers/artifacts'
+import { StakeManager, DummyERC20 } from '../helpers/artifacts'
 import logDecoder from '../helpers/log-decoder.js'
 
-import deployer from '../helpers/deployer.js'
 import {
   assertBigNumberEquality,
-  assertBigNumbergt,
   encodeSigs,
   getSigs
 } from '../helpers/utils.js'

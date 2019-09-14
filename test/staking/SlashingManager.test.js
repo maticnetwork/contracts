@@ -1,33 +1,18 @@
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import utils from 'ethereumjs-util'
-import { Buffer } from 'safe-buffer'
 import encode from 'ethereumjs-abi'
 
 import deployer from '../helpers/deployer.js'
-// import { ValidatorContract } from '../helpers/artifacts'
-import { DummyERC20, ValidatorContract } from '../helpers/artifacts'
+import { DummyERC20 } from '../helpers/artifacts'
 
-import {
-  assertBigNumberEquality,
-  assertBigNumbergt,
-  buildSubmitHeaderBlockPaylod,
-  ZeroAddress,
-  encodeSigs,
-  getSigs
-} from '../helpers/utils.js'
-import { mineOneBlock, increaseBlockTime } from '../helpers/chain.js'
+import { assertBigNumbergt, encodeSigs, getSigs } from '../helpers/utils.js'
 import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
-import logDecoder from '../helpers/log-decoder.js'
-
-const crypto = require('crypto')
-const BN = utils.BN
-const rlp = utils.rlp
 
 chai.use(chaiAsPromised).should()
 
-contract('DelegationManager', async function(accounts) {
-  let stakeManager, delegationManager, wallets, stakeToken, SlashingManager
+contract('SlashingManager', async function(accounts) {
+  let stakeManager, wallets, stakeToken, SlashingManager
 
   before(async function() {
     wallets = generateFirstWallets(mnemonics, 10)

@@ -99,13 +99,13 @@ contract('StakeManager<->DelegationManager', async function(accounts) {
     })
     let logs = logDecoder.decodeLogs(result.receipt.rawLogs)
     let validatorExitEpoch = logs[0].args.deactivationEpoch
-    let delegator = await delegationManager.delegators("1")
+    let delegator = await delegationManager.delegators('1')
     assertBigNumberEquality(validatorExitEpoch, delegator.delegationStopEpoch)
 
-    delegator = await delegationManager.delegators("2")
+    delegator = await delegationManager.delegators('2')
     assertBigNumberEquality(validatorExitEpoch, delegator.delegationStopEpoch)
 
-    delegator = await delegationManager.delegators("3")
+    delegator = await delegationManager.delegators('3')
     assertBigNumberEquality(validatorExitEpoch, delegator.delegationStopEpoch)
   })
 
@@ -124,13 +124,13 @@ contract('StakeManager<->DelegationManager', async function(accounts) {
     })
     let logs = logDecoder.decodeLogs(result.receipt.rawLogs)
     let validatorExitEpoch = logs[0].args.exitEpoch
-    let delegator = await delegationManager.delegators("1")
+    let delegator = await delegationManager.delegators('1')
     assertBigNumberEquality(validatorExitEpoch, delegator.delegationStopEpoch)
 
     await stakeManager.revoke(1, {
       from: wallets[0].getAddressString()
     })
-    delegator = await delegationManager.delegators("1")
+    delegator = await delegationManager.delegators('1')
     assertBigNumberEquality('0', delegator.delegationStopEpoch)
   })
 

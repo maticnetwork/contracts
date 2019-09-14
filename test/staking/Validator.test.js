@@ -5,13 +5,8 @@ import utils from 'ethereumjs-util'
 import deployer from '../helpers/deployer.js'
 import { ValidatorContract } from '../helpers/artifacts'
 
-import {
-  assertBigNumberEquality,
-  assertBigNumbergt,
-  buildSubmitHeaderBlockPaylod
-} from '../helpers/utils.js'
+import { assertBigNumberEquality } from '../helpers/utils.js'
 import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
-import logDecoder from '../helpers/log-decoder.js'
 
 chai.use(chaiAsPromised).should()
 
@@ -40,7 +35,7 @@ contract('ValidatorContract', async function(accounts) {
     const delegatorStake = web3.utils.toWei('100')
     const checkpointReward = web3.utils.toWei('1')
 
-    await validatorContract.bond(1, delegatorStake, "1", {
+    await validatorContract.bond(1, delegatorStake, '1', {
       from: wallets[2].getAddressString()
     })
     for (let checkpoint = 1; checkpoint < 10; checkpoint++) {
@@ -54,11 +49,11 @@ contract('ValidatorContract', async function(accounts) {
     // getRewards(delegatorId, delegationAmount, startEpoch, endEpoch, currentEpoch)
     //  delegatorId,  delegationAmount,  startEpoch,  endEpoch,  currentEpoch
     let delegatorRewards = await validatorContract.getRewards(
-      "1",
+      '1',
       delegatorStake,
-      "1",
-      "10",
-      "10",
+      '1',
+      '10',
+      '10',
       { from: wallets[2].getAddressString() }
     )
     let totalReward = web3.utils
@@ -71,7 +66,7 @@ contract('ValidatorContract', async function(accounts) {
     const delegatorStake = web3.utils.toWei('100')
     const delegators = 10
     for (let i = 0; i < delegators; i++) {
-      await validatorContract.bond(i, delegatorStake, "1", {
+      await validatorContract.bond(i, delegatorStake, '1', {
         from: wallets[2].getAddressString()
       })
     }
@@ -87,9 +82,15 @@ contract('ValidatorContract', async function(accounts) {
         i = n
       }
     }
-    await validatorContract.unBond(delegator2, delegatorIndex, delegatorStake, "10",{
-      from: wallets[2].getAddressString()
-    })
+    await validatorContract.unBond(
+      delegator2,
+      delegatorIndex,
+      delegatorStake,
+      '10',
+      {
+        from: wallets[2].getAddressString()
+      }
+    )
     assertBigNumberEquality(
       await validatorContract.delegatedAmount(),
       totalDelegation.sub(web3.utils.toBN(delegatorStake))
