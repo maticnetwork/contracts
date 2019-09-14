@@ -16,7 +16,9 @@ class Deployer {
     this.registry = await contracts.Registry.new()
     this.rootChain = await contracts.RootChain.new(this.registry.address)
     this.stakeManager = await contracts.StakeManager.new(this.registry.address)
-    this.slashing = await contracts.Slashing.new(this.registry.address)
+    this.SlashingManager = await contracts.SlashingManager.new(
+      this.registry.address
+    )
     this.delegationManager = await contracts.DelegationManager.new(
       this.registry.address
     )
@@ -56,7 +58,7 @@ class Deployer {
       exitNFT: this.exitNFT,
       delegationManager: this.delegationManager,
       stakeManager: this.stakeManager,
-      slashing: this.slashing
+      SlashingManager: this.SlashingManager
     }
 
     if (options.deployTestErc20) {

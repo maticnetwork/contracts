@@ -8,7 +8,7 @@ import { ECVerify } from "../common/lib/ECVerify.sol";
 import { Registry } from "../common/Registry.sol";
 
 
-contract Slashing is Ownable {
+contract SlashingManager is Ownable {
   using ECVerify for bytes32;
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
