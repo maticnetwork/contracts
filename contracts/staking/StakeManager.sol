@@ -19,16 +19,6 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   using SafeMath for uint256;
   using ECVerify for bytes32;
 
-  event ThresholdChange(uint256 newThreshold, uint256 oldThreshold);
-  event RewardUpdate(uint256 newReward, uint256 oldReward);
-  event DynastyValueChange(uint256 newDynasty, uint256 oldDynasty);
-
-  // optional event to ack unstaking
-  event UnstakeInit(uint256 indexed validatorId, address indexed user, uint256 indexed amount, uint256 deactivationEpoch);
-
-  // signer changed
-  event SignerChange(uint256 indexed validatorId, address indexed newSigner, address indexed oldSigner);
-
   IERC20 public token;
   address public registry;
   // genesis/governance variables
