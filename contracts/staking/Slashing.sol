@@ -20,7 +20,7 @@ contract Slashing is Ownable {
   bytes32 public chain = keccak256("test-chain-E5igIA");
   bytes32 public roundType = keccak256("vote");
   uint8 public voteType = 2;
-  Registry registry;
+  Registry public registry;
 
   constructor (address _registry) public {
     registry = Registry(_registry);

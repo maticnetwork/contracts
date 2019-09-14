@@ -35,10 +35,9 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     uint256 bondedTo;
   }
 
-  //deligator metadata
+  // Delegator metadata
   mapping (uint256 => Delegator) public delegators;
 
-  // only delegator
   modifier onlyDelegator(uint256 delegatorId) {
     require(ownerOf(delegatorId) == msg.sender);
     _;
@@ -46,7 +45,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
 
   modifier onlyValidatorContract(uint256 delegatorId) {
     StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
-    require(stakeManager.getValidatorContract(delegators[0].bondedTo) == msg.sender);
+    require(stakeManager.getValidatorContract(delegators[delegatorId].bondedTo) == msg.sender);
     _;
   }
 
@@ -60,8 +59,9 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
 
   function getRewards(uint256 delegatorId) public onlyDelegator(delegatorId) {
     _getRewards(delegatorId);
-    require(token.transfer(msg.sender, delegators[delegatorId].reward));
+    uint256 amount = delegators[delegatorId].reward;
     delegators[delegatorId].reward = 0;
+    require(token.transfer(msg.sender, amount));
   }
 
   function _getRewards(uint256 delegatorId) internal {
@@ -210,7 +210,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     totalStaked = totalStaked.sub(amount);
 
     // TODO :add slashing
-    _burn(msg.sender, delegatorId);
+    _burn(delegatorId);
 
     require(token.transfer(msg.sender, amount + delegators[delegatorId].reward));
     delete delegators[delegatorId];

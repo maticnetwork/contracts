@@ -74,7 +74,6 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     registry = _registry;
   }
 
-  // only staker
   modifier onlyStaker(uint256 validatorId) {
     require(ownerOf(validatorId) == msg.sender);
     _;
@@ -148,7 +147,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     totalStaked = totalStaked.sub(amount);
 
     // TODO :add slashing here use soft slashing in slash amt variable
-    _burn(msg.sender, validatorId);
+    _burn(validatorId);
     delete signerToValidator[validators[validatorId].signer];
     // delete validators[validatorId];
 
