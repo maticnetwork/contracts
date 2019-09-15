@@ -11,6 +11,7 @@ contract Registry is Ownable {
   bytes32 constant private DELEGATION_MANAGER = keccak256("delegationManager");
   bytes32 constant private WITHDRAW_MANAGER = keccak256("withdrawManager");
   bytes32 constant private CHILD_CHAIN_CONTRACT = keccak256("childChainContract");
+  bytes32 constant private SLASHING_MANAGER = keccak256("SlashingManager");
   bytes constant public networkId = "\x0d";
 
   address public erc20Predicate;
@@ -122,6 +123,10 @@ contract Registry is Ownable {
 
   function getStakeManagerAddress() public view returns(address) {
     return contractMap[STAKE_MANAGER];
+  }
+
+  function getSlashingManagerAddress() public view returns(address) {
+    return contractMap[SLASHING_MANAGER];
   }
 
   function getWithdrawManagerAddress() public view returns(address) {

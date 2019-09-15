@@ -39,11 +39,7 @@ const ExitNFT = artifacts.require('ExitNFT.sol')
 const libDeps = [
   {
     lib: BytesLib,
-    contracts: [
-      WithdrawManager,
-      ERC20Predicate,
-      ERC721Predicate
-    ]
+    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate]
   },
   {
     lib: Common,
@@ -73,11 +69,23 @@ const libDeps = [
   },
   {
     lib: RLPEncode,
-    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate, MarketplacePredicate, MarketplacePredicateTest]
+    contracts: [
+      WithdrawManager,
+      ERC20Predicate,
+      ERC721Predicate,
+      MarketplacePredicate,
+      MarketplacePredicateTest
+    ]
   },
   {
     lib: RLPReader,
-    contracts: [RootChain, ERC20Predicate, ERC721Predicate, MarketplacePredicate, MarketplacePredicateTest]
+    contracts: [
+      RootChain,
+      ERC20Predicate,
+      ERC721Predicate,
+      MarketplacePredicate,
+      MarketplacePredicateTest
+    ]
   },
   {
     lib: SafeMath,
@@ -98,6 +106,7 @@ module.exports = async function(deployer, network) {
       await deployer.deploy(Registry)
       await deployer.deploy(RootChain, Registry.address)
       await deployer.deploy(StakeManager)
+      await deployer.deploy(SlashingManager, Registry.address)
 
       await deployer.deploy(DepositManager)
       await deployer.deploy(
@@ -125,7 +134,11 @@ module.exports = async function(deployer, network) {
         deployer.deploy(RootERC721, 'RootERC721', 'T721')
       ])
       await Promise.all([
-        deployer.deploy(MarketplacePredicate, WithdrawManagerProxy.address, ERC20Predicate.address),
+        deployer.deploy(
+          MarketplacePredicate,
+          WithdrawManagerProxy.address,
+          ERC20Predicate.address
+        ),
         deployer.deploy(MarketplacePredicateTest)
       ])
     })
@@ -150,6 +163,10 @@ module.exports = async function(deployer, network) {
       await registry.updateContractMap(
         utils.keccak256('wethToken'),
         MaticWETH.address
+      )
+      await registry.updateContractMap(
+        utils.keccak256('SlashingManager'),
+        SlashingManager.address
       )
       await _withdrawManager.setExitNFTContract(ExitNFT.address)
 

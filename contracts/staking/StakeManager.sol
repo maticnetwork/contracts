@@ -69,6 +69,11 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     _;
   }
 
+  modifier onlySlashingMananger() {
+    require(Registry(registry).getSlashingManagerAddress() == msg.sender);
+    _;
+  }
+
   function stake(uint256 amount, address signer, bool isContract) external {
     stakeFor(msg.sender, amount, signer, isContract);
   }
@@ -164,7 +169,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   }
 
   // if not jailed then in state of warning, else will be unstaking after x epoch
-  function slash(uint256 validatorId, uint256 slashingRate, uint256 jailCheckpoints) public /**onlySlashingMananger */ {
+  function slash(uint256 validatorId, uint256 slashingRate, uint256 jailCheckpoints) public onlySlashingMananger {
     // if contract call contract.slash
     if (validators[validatorId].contractAddress != address(0x0)) {
       ValidatorContract(validators[validatorId].contractAddress).slash(slashingRate, currentEpoch, currentEpoch);
