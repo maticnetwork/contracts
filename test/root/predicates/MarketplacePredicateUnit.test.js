@@ -30,15 +30,15 @@ contract('MarketplacePredicate (from mocked responses)', async function(accounts
     predicate = await artifacts.MarketplacePredicateTest.deployed()
   })
 
-  it('processPreState (Erc20 Deposit)', async function() {
+  it('processLogTransferReceipt (Erc20 Deposit)', async function() {
     let event = deposit1
-    let processPreState = await predicate.processPreStateTest(
+    let processLogTransferReceipt = await predicate.processLogTransferReceiptTest(
       erc20Predicate.address,
       ethUtils.bufferToHex(ethUtils.rlp.encode(dummyReferenceData(event, 1))),
       '0x9fb29aac15b9a4b7f17c3385939b007540f4d791'
     )
-    // console.log('processPreState', processPreState)
-    let ans = processPreState.slice(2)
+    // console.log('processLogTransferReceipt', processLogTransferReceipt)
+    let ans = processLogTransferReceipt.slice(2)
     let input = event.receipt.logs[1]
     assert.equal(parseInt(ans.slice(0, 64), 16), parseInt(input.data.slice(-64), 16))
     assert.equal(parseInt(ans.slice(64, 128), 16), 1 * 10 /* logIndex * MAX_LOGS */)
@@ -46,13 +46,13 @@ contract('MarketplacePredicate (from mocked responses)', async function(accounts
     assert.equal(ans.slice(192, 256).slice(24).toLowerCase(), input.topics[1].slice(26).toLowerCase())
 
     event = deposit2
-    processPreState = await predicate.processPreStateTest(
+    processLogTransferReceipt = await predicate.processLogTransferReceiptTest(
       erc20Predicate.address,
       ethUtils.bufferToHex(ethUtils.rlp.encode(dummyReferenceData(event, 1))),
       '0x96c42c56fdb78294f96b0cfa33c92bed7d75f96a'
     )
-    // console.log('processPreState', processPreState)
-    ans = processPreState.slice(2)
+    // console.log('processLogTransferReceipt', processLogTransferReceipt)
+    ans = processLogTransferReceipt.slice(2)
     input = event.receipt.logs[1]
     assert.equal(parseInt(ans.slice(0, 64), 16), parseInt(input.data.slice(-64), 16))
     assert.equal(parseInt(ans.slice(64, 128), 16), 1 * 10 /* logIndex * MAX_LOGS */)
@@ -60,15 +60,15 @@ contract('MarketplacePredicate (from mocked responses)', async function(accounts
     assert.equal(ans.slice(192, 256).slice(24).toLowerCase(), input.topics[1].slice(26).toLowerCase())
   })
 
-  it('processPreState (Erc20 outgoingTransfer)', async function() {
+  it('processLogTransferReceipt (Erc20 outgoingTransfer)', async function() {
     let event = incomingTransfer
-    let processPreState = await predicate.processPreStateTest(
+    let processLogTransferReceipt = await predicate.processLogTransferReceiptTest(
       erc20Predicate.address,
       ethUtils.bufferToHex(ethUtils.rlp.encode(dummyReferenceData(event, 1))),
       '0x96c42c56fdb78294f96b0cfa33c92bed7d75f96a'
     )
-    // console.log('processPreState', processPreState)
-    let ans = processPreState.slice(2)
+    // console.log('processLogTransferReceipt', processLogTransferReceipt)
+    let ans = processLogTransferReceipt.slice(2)
     let input = event.receipt.logs[1]
     assert.equal(parseInt(ans.slice(0, 64), 16), parseInt(input.data.slice(-128, -64) /* output1 */, 16))
     assert.equal(parseInt(ans.slice(64, 128), 16), 1 * 10 /* logIndex * MAX_LOGS */)
@@ -76,15 +76,15 @@ contract('MarketplacePredicate (from mocked responses)', async function(accounts
     assert.equal(ans.slice(192, 256).slice(24).toLowerCase(), input.topics[1].slice(26).toLowerCase())
   })
 
-  it('processPreState (Erc20 incomingTransfer)', async function() {
+  it('processLogTransferReceipt (Erc20 incomingTransfer)', async function() {
     let event = incomingTransfer
-    let processPreState = await predicate.processPreStateTest(
+    let processLogTransferReceipt = await predicate.processLogTransferReceiptTest(
       erc20Predicate.address,
       ethUtils.bufferToHex(ethUtils.rlp.encode(dummyReferenceData(event, 1))),
       '0x9fb29aac15b9a4b7f17c3385939b007540f4d791'
     )
-    // console.log('processPreState', processPreState)
-    let ans = processPreState.slice(2)
+    // console.log('processLogTransferReceipt', processLogTransferReceipt)
+    let ans = processLogTransferReceipt.slice(2)
     let input = event.receipt.logs[1]
     assert.equal(parseInt(ans.slice(0, 64), 16), parseInt(input.data.slice(-64) /* output2 */, 16))
     assert.equal(parseInt(ans.slice(64, 128), 16), 1 * 10 + 1 /* logIndex * MAX_LOGS + oIndex */)
@@ -92,15 +92,15 @@ contract('MarketplacePredicate (from mocked responses)', async function(accounts
     assert.equal(ans.slice(192, 256).slice(24).toLowerCase(), input.topics[1].slice(26).toLowerCase())
   })
 
-  it('processPreState (Erc721 Deposit)', async function() {
+  it('processLogTransferReceipt (Erc721 Deposit)', async function() {
     let event = erc20_721_Deposit_1
-    let processPreState = await predicate.processPreStateTest(
+    let processLogTransferReceipt = await predicate.processLogTransferReceiptTest(
       erc20Predicate.address,
       ethUtils.bufferToHex(ethUtils.rlp.encode(dummyReferenceData(event, 1))),
       '0x9fb29aac15b9a4b7f17c3385939b007540f4d791'
     )
-    // console.log('processPreState', processPreState)
-    let ans = processPreState.slice(2)
+    // console.log('processLogTransferReceipt', processLogTransferReceipt)
+    let ans = processLogTransferReceipt.slice(2)
     let input = event.receipt.logs[1]
     assert.equal(parseInt(ans.slice(0, 64), 16), parseInt(input.data.slice(-64), 16))
     assert.equal(parseInt(ans.slice(64, 128), 16), 1 * 10 /* logIndex * MAX_LOGS */)
@@ -108,13 +108,13 @@ contract('MarketplacePredicate (from mocked responses)', async function(accounts
     assert.equal(ans.slice(192, 256).slice(24).toLowerCase(), input.topics[1].slice(26).toLowerCase())
 
     event = erc20_721_Deposit_2
-    processPreState = await predicate.processPreStateTest(
+    processLogTransferReceipt = await predicate.processLogTransferReceiptTest(
       erc721Predicate.address,
       ethUtils.bufferToHex(ethUtils.rlp.encode(dummyReferenceData(event, 1))),
       '0x96c42c56fdb78294f96b0cfa33c92bed7d75f96a'
     )
-    // console.log('processPreState', processPreState)
-    ans = processPreState.slice(2)
+    // console.log('processLogTransferReceipt', processLogTransferReceipt)
+    ans = processLogTransferReceipt.slice(2)
     input = event.receipt.logs[1]
     assert.equal(parseInt(ans.slice(0, 64), 16), parseInt(input.data.slice(-64), 16))
     assert.equal(parseInt(ans.slice(64, 128), 16), 1 * 10 /* logIndex * MAX_LOGS */)

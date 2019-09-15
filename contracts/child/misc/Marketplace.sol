@@ -11,7 +11,7 @@ contract Marketplace {
     uint256 tokenIdOrAmount;
   }
 
-  function decode(bytes memory data) internal returns(Order memory order) {
+  function decode(bytes memory data) internal pure returns(Order memory order) {
     (order.token, order.sig, order.tokenIdOrAmount) = abi.decode(data, (address, bytes, uint256));
   }
 

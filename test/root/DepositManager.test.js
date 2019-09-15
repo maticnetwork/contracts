@@ -36,7 +36,7 @@ contract('DepositManager', async function(accounts) {
     validateDepositBlock(logs[2].args, accounts[0], maticWeth.address, value)
     expect(logs[2].args.depositBlockId.toString()).to.equal('1')
 
-    const depositHash = await depositManager.deposits(1)
+    const depositHash = (await depositManager.deposits(1)).depositHash
     validateDepositHash(depositHash, accounts[0], maticWeth.address, value)
   })
 
@@ -53,7 +53,7 @@ contract('DepositManager', async function(accounts) {
     validateDepositBlock(logs[2].args, accounts[0], testToken.address, amount)
     expect(logs[2].args.depositBlockId.toString()).to.equal('1')
 
-    const depositHash = await depositManager.deposits(1)
+    const depositHash = (await depositManager.deposits(1)).depositHash
     validateDepositHash(depositHash, accounts[0], testToken.address, amount)
   })
 
@@ -71,7 +71,7 @@ contract('DepositManager', async function(accounts) {
     validateDepositBlock(logs[2].args, user, testToken.address, amount)
     expect(logs[2].args.depositBlockId.toString()).to.equal('1')
 
-    const depositHash = await depositManager.deposits(1)
+    const depositHash = (await depositManager.deposits(1)).depositHash
     validateDepositHash(depositHash, user, testToken.address, amount)
   })
 
@@ -91,7 +91,7 @@ contract('DepositManager', async function(accounts) {
     validateDepositBlock(_depositBlock.args, accounts[0], testToken.address, tokenId)
     expect(_depositBlock.args.depositBlockId.toString()).to.equal('1')
 
-    const depositHash = await depositManager.deposits(1)
+    const depositHash = (await depositManager.deposits(1)).depositHash
     validateDepositHash(depositHash, accounts[0], testToken.address, tokenId)
   })
 
@@ -112,7 +112,7 @@ contract('DepositManager', async function(accounts) {
     validateDepositBlock(_depositBlock.args, user, testToken.address, tokenId)
     expect(_depositBlock.args.depositBlockId.toString()).to.equal('1')
 
-    const depositHash = await depositManager.deposits(1)
+    const depositHash = (await depositManager.deposits(1)).depositHash
     validateDepositHash(depositHash, user, testToken.address, tokenId)
   })
 
@@ -148,7 +148,7 @@ contract('DepositManager', async function(accounts) {
       log.event.should.equal('NewDepositBlock')
       validateDepositBlock(log.args, user, tokens[i], amounts[i])
       expect(log.args.depositBlockId.toString()).to.equal((i + 1).toString())
-      const depositHash = await depositManager.deposits(i + 1)
+      const depositHash = (await depositManager.deposits(i + 1)).depositHash
       validateDepositHash(depositHash, user, tokens[i], amounts[i])
     }
 
@@ -161,7 +161,7 @@ contract('DepositManager', async function(accounts) {
       log.event.should.equal('NewDepositBlock')
       validateDepositBlock(log.args, user, tokens[numTransfer], amounts[numTransfer])
       expect(log.args.depositBlockId.toString()).to.equal((numTransfer + 1).toString())
-      const depositHash = await depositManager.deposits(numTransfer + 1)
+      const depositHash = (await depositManager.deposits(numTransfer + 1)).depositHash
       validateDepositHash(depositHash, user, tokens[numTransfer], amounts[numTransfer])
     }
   })

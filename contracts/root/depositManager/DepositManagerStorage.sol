@@ -11,11 +11,17 @@ contract DepositManagerHeader {
     uint256 amountOrNFTId,
     uint256 depositBlockId
   );
+
+  struct DepositBlock {
+    bytes32 depositHash;
+    uint256 createdAt;
+  }
 }
+
 
 contract DepositManagerStorage is ProxyStorage, DepositManagerHeader {
   Registry internal registry;
   RootChain internal rootChain;
 
-  mapping(uint256 => bytes32) public deposits;
+  mapping(uint256 => DepositBlock) public deposits;
 }

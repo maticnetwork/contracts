@@ -11,7 +11,7 @@ chai
   .use(chaiAsPromised)
   .should()
 
-contract("Marketplace", async function(accounts) {
+contract('Marketplace', async function(accounts) {
   let childContracts, marketplace
   const amount1 = web3.utils.toBN('10')
   const amount2 = web3.utils.toBN('5')
@@ -51,7 +51,7 @@ contract("Marketplace", async function(accounts) {
 
     const orderId = '0x468fc9c005382579139846222b7b0aebc9182ba073b2455938a86d9753bfb078'
     // get expiration in future in 10 blocks
-    const expiration = 0 // (await web3.eth.getBlockNumber()) + 10
+    const expiration = (await utils.web3Child.eth.getBlockNumber()) + 10
 
     const obj1 = getSig({
       privateKey: privateKey1,
@@ -112,7 +112,7 @@ contract("Marketplace", async function(accounts) {
 
     const orderId = '0x468fc9c005382579139846222b7b0aebc9182ba073b2455938a86d9753bfb078'
     // get expiration in future in 10 blocks
-    const expiration = 0 // (await web3.eth.getBlockNumber()) + 10
+    const expiration = (await utils.web3Child.eth.getBlockNumber()) + 10
 
     const obj1 = getSig({
       privateKey: privateKey1,

@@ -136,8 +136,8 @@ class Deployer {
 
   async deployMarketplacePredicate() {
     const MarketplacePredicate = await contracts.MarketplacePredicate.new(
+      this.rootChain.address,
       this.withdrawManagerProxy.address,
-      this.depositManagerProxy.address,
       this.registry.address
     )
     await this.registry.addPredicate(
@@ -145,6 +145,16 @@ class Deployer {
       3 /* Type.Custom */
     )
     return MarketplacePredicate
+  }
+
+  async deployTransferWithSigPredicate() {
+    const TransferWithSigPredicate = await contracts.TransferWithSigPredicate.new(
+      this.rootChain.address,
+      this.withdrawManagerProxy.address,
+      this.registry.address
+    )
+    await this.registry.addPredicate(TransferWithSigPredicate.address, 3 /* Type.Custom */)
+    return TransferWithSigPredicate
   }
 
   async deployTestErc20(options = { mapToken: true }) {

@@ -28,7 +28,7 @@ export function getSig({
   })
 }
 
-function getTransferSig({
+export function getTransferSig({
   privateKey,
   spender,
   data,

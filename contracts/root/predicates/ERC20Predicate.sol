@@ -5,6 +5,7 @@ import { Common } from "../../common/lib/Common.sol";
 import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 import { RLPEncode } from "../../common/lib/RLPEncode.sol";
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
+import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { IErcPredicate } from "./IPredicate.sol";
 import { WithdrawManagerHeader } from "../withdrawManager/WithdrawManagerStorage.sol";
@@ -12,6 +13,7 @@ import { WithdrawManagerHeader } from "../withdrawManager/WithdrawManagerStorage
 contract ERC20Predicate is IErcPredicate {
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
+  using SafeMath for uint256;
 
   bytes32 constant DEPOSIT_EVENT_SIG = 0x4e2ca0515ed1aef1395f66b5303bb5d6f1bf9d61a353fa53f73f8ac9973fa9f6;
   bytes32 constant WITHDRAW_EVENT_SIG = 0xebff2602b3f468259e1e99f613fed6691f3a6526effe6ef3e768ba7ae7a36c4f;
@@ -52,22 +54,114 @@ contract ERC20Predicate is IErcPredicate {
       "Withdrawer and burn exit tx do not match"
     );
     uint256 exitAmount = BytesLib.toUint(logData, 0); // amountOrTokenId
-    withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, exitAmount, bytes32(0x0), true /* isRegularExit */, age);
+    withdrawManager.addExitToQueue(msg.sender, childToken, rootToken, exitAmount, bytes32(0x0), true /* isRegularExit */, age << 1);
   }
 
-  function startExit(bytes calldata data, bytes calldata exitTx)
+  /**
+   * @notice Start an exit by referencing the preceding (reference) transaction
+   * @param data RLP encoded data of the reference tx (proof-of-funds of exitor) that encodes the following fields
+      * headerNumber Header block number of which the reference tx was a part of
+      * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
+      * blockNumber Block number of which the reference tx is a part of
+      * blockTime Reference tx block time
+      * blocktxRoot Transactions root of block
+      * blockReceiptsRoot Receipts root of block
+      * receipt Receipt of the reference transaction
+      * receiptProof Merkle proof of the reference receipt
+      * branchMask Merkle proof branchMask for the receipt
+      * logIndex Log Index to read from the receipt
+   * @param exitTx Signed exit transaction (outgoing transfer or burn)
+   * @return address rootToken that the exit corresponds to
+   * @return uint256 exitAmount
+   */
+  function startExitForOutgoingErc20Transfer(bytes calldata data, bytes calldata exitTx)
     external
     payable
     isBondProvided
     returns(address /* rootToken */, uint256 /* exitAmount */)
   {
+    // referenceTx is a proof-of-funds of the party who signed the exit tx
+    // If the exitor is exiting with outgoing transfer, it will refer to their own preceding tx
+    // If the exitor is exiting with incoming transfer, it will refer to the counterparty's preceding tx
     RLPReader.RLPItem[] memory referenceTx = data.toRlpItem().toList();
-    uint256 age = withdrawManager.verifyInclusion(data, 0 /* offset */, false /* verifyTxInclusion */);
 
-    // validate exitTx - This may be an in-flight tx, so inclusion will not be checked
+    // Validate the exitTx - This may be an in-flight tx, so inclusion will not be checked
     ExitTxData memory exitTxData = processExitTx(exitTx);
+    require(
+      exitTxData.signer == msg.sender,
+      "Should be an outgoing transfer"
+    );
 
-    // process the receipt of the referenced tx
+    // Process the receipt of the referenced tx
+    ReferenceTxData memory referenceTxData = processReferenceTx(
+      referenceTx[6].toBytes(), // receipt
+      referenceTx[9].toUint(), // logIndex
+      msg.sender, // participant whose proof-of-funds are to be checked in the reference tx
+      false /* isChallenge */
+    );
+    require(
+      exitTxData.childToken == referenceTxData.childToken,
+      "Reference and exit tx do not correspond to the same child token"
+    );
+    // exitTxData.amountOrToken represents the total exit amount based on the in-flight exit type
+    // re-using the variable here to avoid stack overflow
+    exitTxData.amountOrToken = validateSequential(exitTxData, referenceTxData);
+
+    // Checking the inclusion of the receipt of the preceding tx is enough
+    // It is inconclusive to check the inclusion of the signed tx, hence verifyTxInclusion = false
+    // age is a measure of the position of the tx in the side chain
+    referenceTxData.age = withdrawManager.verifyInclusion(data, 0 /* offset */, false /* verifyTxInclusion */)
+        .add(referenceTxData.age); // Add the logIndex and oIndex from the receipt
+
+    sendBond(); // send BOND_AMOUNT to withdrawManager
+
+    // last bit is to differentiate whether the sender or receiver of the in-flight tx is starting an exit
+    uint256 exitId = referenceTxData.age << 1;
+    exitId |= 1; // since msg.sender == exitTxData.signer
+    withdrawManager.addExitToQueue(
+      msg.sender, referenceTxData.childToken, referenceTxData.rootToken,
+      exitTxData.amountOrToken, exitTxData.txHash, false /* isRegularExit */,
+      exitId
+    );
+    withdrawManager.addInput(exitId, referenceTxData.age, msg.sender, referenceTxData.rootToken);
+    return (referenceTxData.rootToken, exitTxData.amountOrToken);
+  }
+
+  /**
+   * @notice Start an exit by referencing the preceding (reference) transaction
+   * @param data RLP encoded data of the reference tx(s) that encodes the following fields for each tx
+      * headerNumber Header block number of which the reference tx was a part of
+      * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
+      * blockNumber Block number of which the reference tx is a part of
+      * blockTime Reference tx block time
+      * blocktxRoot Transactions root of block
+      * blockReceiptsRoot Receipts root of block
+      * receipt Receipt of the reference transaction
+      * receiptProof Merkle proof of the reference receipt
+      * branchMask Merkle proof branchMask for the receipt
+      * logIndex Log Index to read from the receipt
+   * @param exitTx Signed exit transaction (incoming transfer)
+   * @return address rootToken that the exit corresponds to
+   * @return uint256 exitAmount
+   */
+  function startExitForIncomingErc20Transfer(bytes calldata data, bytes calldata exitTx)
+    external
+    payable
+    isBondProvided
+    returns(address /* rootToken */, uint256 /* exitAmount */)
+  {
+    // referenceTx is a proof-of-funds of the party who signed the exit tx
+    // If the exitor is exiting with outgoing transfer, it will refer to their own preceding tx
+    // If the exitor is exiting with incoming transfer, it will refer to the counterparty's preceding tx
+    RLPReader.RLPItem[] memory referenceTx = data.toRlpItem().toList();
+
+    // Validate the exitTx - This may be an in-flight tx, so inclusion will not be checked
+    ExitTxData memory exitTxData = processExitTx(exitTx);
+    require(
+      exitTxData.signer != msg.sender,
+      "Should be an incoming transfer"
+    );
+    // Process the receipt (i.e. proof-of-funds of the counterparty) of the referenced tx
     ReferenceTxData memory referenceTxData = processReferenceTx(
       referenceTx[6].toBytes(), // receipt
       referenceTx[9].toUint(), // logIndex
@@ -79,93 +173,139 @@ contract ERC20Predicate is IErcPredicate {
       "Reference and exit tx do not correspond to the same child token"
     );
     exitTxData.amountOrToken = validateSequential(exitTxData, referenceTxData);
-    age += referenceTxData.age; // @todo use SafeMath
 
-    sendBond(); // send BOND_AMOUNT to withdrawManager
-    if (referenceTx.length <= 10) {
-      withdrawManager.addExitToQueue(
-        msg.sender, referenceTxData.childToken, referenceTxData.rootToken,
-        exitTxData.amountOrToken, exitTxData.txHash, false /* isRegularExit */, age // priority
-      );
-      withdrawManager.addInput(age /* exitId or priority */, age /* age of input */, exitTxData.signer);
-      return (referenceTxData.rootToken, exitTxData.amountOrToken);
-    }
+    // Checking the inclusion of the receipt of the preceding tx is enough
+    // It is inconclusive to check the inclusion of the signed tx, hence verifyTxInclusion = false
+    // age is a measure of the position of the tx in the side chain
+    referenceTxData.age = withdrawManager.verifyInclusion(data, 0 /* offset */, false /* verifyTxInclusion */)
+        .add(referenceTxData.age); // Add the logIndex and oIndex from the receipt
 
+    ReferenceTxData memory _referenceTxData;
     // referenceTx.length > 10 means the exitor sent along another input UTXO to the exit tx
     // This will be used to exit with the pre-existing balance on the chain along with the couterparty signed exit tx
-    uint256 otherReferenceTxAge = withdrawManager.verifyInclusion(data, 10 /* offset */, false /* verifyTxInclusion */);
-    ReferenceTxData memory _referenceTxData = processReferenceTx(
-      referenceTx[16].toBytes(), // receipt
-      referenceTx[19].toUint(), // logIndex
-      msg.sender, // participant
-      false /* isChallenge */
-    );
-    require(
-      _referenceTxData.childToken == referenceTxData.childToken,
-      "child tokens in the referenced txs do not match"
-    );
-    require(
-      _referenceTxData.rootToken == referenceTxData.rootToken,
-      "root tokens in the referenced txs do not match"
-    );
-    otherReferenceTxAge += _referenceTxData.age;
-    uint256 priority = Math.max(age, otherReferenceTxAge);
+    if (referenceTx.length > 10) {
+      _referenceTxData = processReferenceTx(
+        referenceTx[16].toBytes(), // receipt
+        referenceTx[19].toUint(), // logIndex
+        msg.sender, // participant
+        false /* isChallenge */
+      );
+      require(
+        _referenceTxData.childToken == referenceTxData.childToken,
+        "child tokens in the referenced txs do not match"
+      );
+      require(
+        _referenceTxData.rootToken == referenceTxData.rootToken,
+        "root tokens in the referenced txs do not match"
+      );
+      _referenceTxData.age = withdrawManager.verifyInclusion(data, 10 /* offset */, false /* verifyTxInclusion */)
+        .add(_referenceTxData.age);
+    }
+
+    sendBond(); // send BOND_AMOUNT to withdrawManager
+
+    // last bit is to differentiate whether the sender or receiver of the in-flight tx is starting an exit
+    uint256 exitId = Math.max(referenceTxData.age, _referenceTxData.age) << 1;
     withdrawManager.addExitToQueue(
       msg.sender, referenceTxData.childToken, referenceTxData.rootToken,
-      exitTxData.amountOrToken + _referenceTxData.closingBalance, exitTxData.txHash, false /* isRegularExit */, priority
+      exitTxData.amountOrToken.add(_referenceTxData.closingBalance), exitTxData.txHash, false /* isRegularExit */,
+      exitId
     );
-    withdrawManager.addInput(priority, age, exitTxData.signer);
-    withdrawManager.addInput(priority, otherReferenceTxAge, msg.sender);
-    return (referenceTxData.rootToken, exitTxData.amountOrToken + _referenceTxData.closingBalance);
+    withdrawManager.addInput(exitId, referenceTxData.age, exitTxData.signer, referenceTxData.rootToken);
+    // If exitor did not have pre-exiting balance on the chain => _referenceTxData has default values;
+    // In that case, the following input acts as a "dummy" input UTXO to challenge token spends by the exitor
+    withdrawManager.addInput(exitId, _referenceTxData.age, msg.sender, referenceTxData.rootToken);
+    return (referenceTxData.rootToken, exitTxData.amountOrToken.add(_referenceTxData.closingBalance));
   }
 
+  /**
+   * @notice Verify the deprecation of a state update
+   * @param exit ABI encoded PlasmaExit data
+   * @param inputUtxo ABI encoded Input UTXO data
+   * @param challengeData RLP encoded data of the challenge reference tx that encodes the following fields
+      * headerNumber Header block number of which the reference tx was a part of
+      * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
+      * blockNumber Block number of which the reference tx is a part of
+      * blockTime Reference tx block time
+      * blocktxRoot Transactions root of block
+      * blockReceiptsRoot Receipts root of block
+      * receipt Receipt of the reference transaction
+      * receiptProof Merkle proof of the reference receipt
+      * branchMask Merkle proof branchMask for the receipt
+      * logIndex Log Index to read from the receipt
+      * tx Challenge transaction
+      * txProof Merkle proof of the challenge tx
+   * @return Whether or not the state is deprecated
+   */
   function verifyDeprecation(bytes calldata exit, bytes calldata inputUtxo, bytes calldata challengeData)
     external
     returns (bool)
   {
     PlasmaExit memory _exit = decodeExit(exit);
-    (uint256 age, address signer) = decodeInputUtxo(inputUtxo);
+    (uint256 age, address signer,, address childToken) = decodeInputUtxo(inputUtxo);
     RLPReader.RLPItem[] memory _challengeData = challengeData.toRlpItem().toList();
-    ExitTxData memory exitTxData = processChallengeTx(_challengeData[10].toBytes());
+    ExitTxData memory challengeTxData = processChallengeTx(_challengeData[10].toBytes());
     require(
-      signer == exitTxData.signer,
+      challengeTxData.signer == signer,
       "Challenge tx not signed by the party who signed the input UTXO to the exit"
     );
     require(
-      _exit.token == exitTxData.childToken,
-      "Challenge tx token doesnt match with exit token"
-    );
-    require(
-      _exit.txHash != exitTxData.txHash,
+      _exit.txHash != challengeTxData.txHash,
       "Cannot challenge with the exit tx"
     );
-    uint256 ageOfChallengeTx = withdrawManager.verifyInclusion(challengeData, 0, true /* verifyTxInclusion */);
+
+    // receipt alone is not enough for a challenge. It is required to check that the challenge tx was included as well
     ReferenceTxData memory referenceTxData = processReferenceTx(
       _challengeData[6].toBytes(), // receipt
       _challengeData[9].toUint(), // logIndex
-      signer,
-      true /* isChallenge */);
-    require(
-      exitTxData.childToken == referenceTxData.childToken,
-      "Tx and receipt do not correspond to the same child token"
+      challengeTxData.signer,
+      true /* isChallenge */
     );
-    ageOfChallengeTx += referenceTxData.age; // @todo SafeMath
-    return ageOfChallengeTx > age;
+    referenceTxData.age = withdrawManager.verifyInclusion(challengeData, 0, true /* verifyTxInclusion */)
+      .add(referenceTxData.age);
+    require(
+      referenceTxData.childToken == childToken && challengeTxData.childToken == childToken,
+      "LogTransferReceipt, challengeTx token and challenged utxo token do not match"
+    );
+    require(
+      referenceTxData.age > age,
+      "Age of challenge log in the receipt needs to be more recent than Utxo being challenged"
+    );
+    return true;
   }
 
-  function onFinalizeExit(address exitor, address token, uint256 tokenId)
-    external
-    onlyWithdrawManager
-  {
-    depositManager.transferAssets(token, exitor, tokenId);
-  }
+  // function onFinalizeExit(address exitor, address token, uint256 tokenId)
+  //   external
+  //   onlyWithdrawManager
+  // {
+  //   depositManager.transferAssets(token, exitor, tokenId);
+  // }
 
+  /**
+   * @notice Parse a ERC20 LogTransfer event in the receipt
+   * @param state abi encoded (data, participant, verifyInclusion)
+      * data is RLP encoded reference tx receipt that encodes the following fields
+        * headerNumber Header block number of which the reference tx was a part of
+        * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
+        * blockNumber Block number of which the reference tx is a part of
+        * blockTime Reference tx block time
+        * blocktxRoot Transactions root of block
+        * blockReceiptsRoot Receipts root of block
+        * receipt Receipt of the reference transaction
+        * receiptProof Merkle proof of the reference receipt
+        * branchMask Merkle proof branchMask for the receipt
+        * logIndex Log Index to read from the receipt
+        * tx Challenge transaction
+        * txProof Merkle proof of the challenge tx
+    * @return abi encoded (closingBalance, ageOfUtxo, childToken, rootToken)
+   */
   function interpretStateUpdate(bytes calldata state)
     external
     view
     returns(bytes memory)
   {
-    (bytes memory _data, address participant, bool verifyInclusion) = abi.decode(state, (bytes, address, bool));
+    // isChallenge - Is the state being parsed for a challenge
+    (bytes memory _data, address participant, bool verifyInclusion, bool isChallenge) = abi.decode(state, (bytes, address, bool, bool));
     RLPReader.RLPItem[] memory referenceTx = _data.toRlpItem().toList();
     bytes memory receipt = referenceTx[6].toBytes();
     uint256 logIndex = referenceTx[9].toUint();
@@ -177,19 +317,25 @@ contract ERC20Predicate is IErcPredicate {
     bytes memory logData = inputItems[2].toBytes();
     inputItems = inputItems[1].toList(); // topics
     data.rootToken = address(RLPReader.toUint(inputItems[1]));
-    (data.closingBalance, data.age) = processStateUpdate(inputItems, logData, participant);
-    data.age += (logIndex * MAX_LOGS); // @todo use safeMath
+    if (isChallenge) {
+      processChallenge(inputItems, participant);
+    } else {
+      (data.closingBalance, data.age) = processStateUpdate(inputItems, logData, participant);
+    }
+    data.age = data.age.add(logIndex.mul(MAX_LOGS));
     if (verifyInclusion) {
-      data.age += withdrawManager.verifyInclusion(_data, 0, false /* verifyTxInclusion */); // @todo use safeMath
+      data.age = data.age.add(withdrawManager.verifyInclusion(_data, 0, false /* verifyTxInclusion */));
     }
     return abi.encode(data.closingBalance, data.age, data.childToken, data.rootToken);
   }
 
   /**
-   * @notice Process the reference tx to start a MoreVP style exit
+   * @dev Process the reference tx to start a MoreVP style exit
    * @param receipt Receipt of the reference transaction
    * @param logIndex Log Index to read from the receipt
    * @param participant Either of exitor or a counterparty depending on the type of exit
+   * @param isChallenge Whether it is a challenge or start exit operation
+   * @return ReferenceTxData Parsed reference tx data
    */
   function processReferenceTx(
     bytes memory receipt,
@@ -215,7 +361,8 @@ contract ERC20Predicate is IErcPredicate {
     } else {
       (data.closingBalance, data.age) = processStateUpdate(inputItems, logData, participant);
     }
-    data.age += (logIndex * MAX_LOGS); // @todo use safeMath
+    // In our construction, we give an incrementing age to every log in a receipt
+    data.age = data.age.add(logIndex.mul(MAX_LOGS));
   }
 
   function validateSequential(ExitTxData memory exitTxData, ReferenceTxData memory referenceTxData)
@@ -232,9 +379,9 @@ contract ERC20Predicate is IErcPredicate {
 
     // If exit tx has is an outgoing transfer from exitor's perspective, exit with closingBalance minus sent amount
     if (exitTxData.exitType == ExitType.OutgoingTransfer) {
-      return referenceTxData.closingBalance - exitTxData.amountOrToken;
+      return referenceTxData.closingBalance.sub(exitTxData.amountOrToken);
     }
-    // If exit tx was burnt tx, exit with the entire referenced balance not just that was burnt
+    // If exit tx was burnt tx, exit with the entire referenced balance not just that was burnt, since user only gets one chance to exit MoreVP style
     if (exitTxData.exitType == ExitType.Burnt) {
       return referenceTxData.closingBalance;
     }

@@ -7,7 +7,9 @@ import { ExitNFT } from "./ExitNFT.sol";
 
 contract ExitsDataStructure {
   struct Input {
-    address signer;
+    address utxoOwner;
+    address predicate;
+    address token;
   }
 
   struct PlasmaExit {
@@ -15,7 +17,6 @@ contract ExitsDataStructure {
     bytes32 txHash;
     address owner;
     address token;
-    address predicate;
     bool isRegularExit;
     // Mapping from age of input to Input
     mapping(uint256 => Input) inputs;
@@ -24,6 +25,7 @@ contract ExitsDataStructure {
 
 contract WithdrawManagerHeader is ExitsDataStructure {
   event Withdraw(
+    uint256 indexed exitId,
     address indexed user,
     address indexed token,
     uint256 amount
@@ -47,9 +49,7 @@ contract WithdrawManagerHeader is ExitsDataStructure {
 }
 
 contract WithdrawManagerStorage is ProxyStorage, WithdrawManagerHeader {
-  uint256 constant internal HEADER_BLOCK_NUMBER_WEIGHT = 10 ** 30;
-  uint256 constant internal WITHDRAW_BLOCK_NUMBER_WEIGHT = 10 ** 12;
-  uint256 constant internal BRANCH_MASK_WEIGHT = 10 ** 5;
+  uint256 internal constant HALF_EXIT_PERIOD = 1 weeks;
 
   // Bonded exits collaterized at 0.1 ETH
   uint256 constant internal BOND_AMOUNT = 10 ** 17;
@@ -63,8 +63,13 @@ contract WithdrawManagerStorage is ProxyStorage, WithdrawManagerHeader {
   mapping (bytes32 => uint256) public ownerExits;
   mapping (address => address) public exitsQueues;
   ExitNFT public exitNft;
+
   // ERC721, ERC20 and Weth transfers require 155000, 100000, 52000 gas respectively
   // Processing each exit in a while loop iteration requires ~52000 gas (@todo check if this changed)
-  // So putting an upper limit of 155000 + 52000 + leeway for predicate.onFinalizeExit()
-  uint32 public gasLimit = 250000;
+  // uint32 constant internal ITERATION_GAS = 52000;
+
+  // So putting an upper limit of 155000 + 52000 + leeway
+  uint32 constant internal ON_FINALIZE_GAS_LIMIT = 210000;
+
+  uint256 public exitWindow;
 }

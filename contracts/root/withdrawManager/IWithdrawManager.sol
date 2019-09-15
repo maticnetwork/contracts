@@ -15,9 +15,9 @@ contract IWithdrawManager {
       uint256 priority)
     external;
 
-  function addInput(uint256 exitId, uint256 age, address signer) external;
+  function addInput(uint256 exitId, uint256 age, address utxoOwner, address token) external;
 
-  function challengeExit(uint256 exitId, uint256 inputId, bytes calldata challengeData) external;
+  function challengeExit(uint256 exitId, uint256 inputId, bytes calldata challengeData, address adjudicatorPredicate) external;
 
   // overridden by inheriting contract
   bytes public networkId;

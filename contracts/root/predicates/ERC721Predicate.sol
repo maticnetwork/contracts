@@ -4,6 +4,7 @@ import { BytesLib } from "../../common/lib/BytesLib.sol";
 import { Common } from "../../common/lib/Common.sol";
 import { RLPEncode } from "../../common/lib/RLPEncode.sol";
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
+import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { ERC721PlasmaMintable } from "../../common/tokens/ERC721PlasmaMintable.sol";
 import { IErcPredicate } from "./IPredicate.sol";
@@ -11,6 +12,7 @@ import { IErcPredicate } from "./IPredicate.sol";
 contract ERC721Predicate is IErcPredicate {
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
+  using SafeMath for uint256;
 
   // keccak256('Deposit(address,address,uint256)')
   bytes32 constant DEPOSIT_EVENT_SIG = 0x5548c837ab068cf56a2c2479df0882a4922fd203edb7517321831d95078c5f62;
@@ -57,20 +59,37 @@ contract ERC721Predicate is IErcPredicate {
     tokenId = BytesLib.toUint(logData, 0);
     withdrawManager.addExitToQueue(
       msg.sender, childToken, rootToken,
-      tokenId, bytes32(0x0) /* txHash */, true /* isRegularExit */, age
+      tokenId, bytes32(0x0) /* txHash */, true /* isRegularExit */, age << 1
     );
   }
 
+  /**
+   * @notice Start an exit by referencing the preceding (reference) transaction
+   * @param data RLP encoded data of the reference tx(s) that encodes the following fields for each tx
+      * headerNumber Header block number of which the reference tx was a part of
+      * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
+      * blockNumber Block number of which the reference tx is a part of
+      * blockTime Reference tx block time
+      * blocktxRoot Transactions root of block
+      * blockReceiptsRoot Receipts root of block
+      * receipt Receipt of the reference transaction
+      * receiptProof Merkle proof of the reference receipt
+      * branchMask Merkle proof branchMask for the receipt
+      * logIndex Log Index to read from the receipt
+   * @param exitTx Signed exit transaction
+   * @return address rootToken that the exit corresponds to
+   * @return uint256 tokenId of the token that is being exited
+   */
   function startExit(bytes memory data, bytes memory exitTx)
     public
     payable
     isBondProvided
     returns(address /* rootToken */, uint256 /* tokenId */)
   {
+    // referenceTx is a proof-of-funds of the party who signed the exit tx
     RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
-    uint256 age = withdrawManager.verifyInclusion(data, 0 /* offset */, false /* verifyTxInclusion */);
 
-    // validate exitTx - This may be an in-flight tx, so inclusion will not be checked
+    // Validate the exitTx - This may be an in-flight tx, so inclusion will not be checked
     ExitTxData memory exitTxData = processExitTx(exitTx);
 
     // process the receipt of the referenced tx
@@ -79,12 +98,21 @@ contract ERC721Predicate is IErcPredicate {
       referenceTxData[9].toUint(), // logIndex
       exitTxData.signer,
       exitTxData.childToken,
-      exitTxData.amountOrToken
+      exitTxData.amountOrToken,
+      false // isChallenge
     );
-    age = age + oIndex + (referenceTxData[9].toUint() /* logIndex */ * MAX_LOGS); // @todo Use SafeMath
 
     sendBond(); // send BOND_AMOUNT to withdrawManager
-    withdrawManager.addExitToQueue(msg.sender, exitTxData.childToken, rootToken, exitTxData.amountOrToken, exitTxData.txHash, false /* isRegularExit */, age);
+
+    // verifyInclusion returns the position of the receipt in child chain
+    uint256 ageOfUtxo = withdrawManager.verifyInclusion(data, 0 /* offset */, false /* verifyTxInclusion */)
+      .add(referenceTxData[9].toUint().mul(MAX_LOGS)) // logIndex * MAX_LOGS
+      .add(oIndex); // whether exitTxData.signer is a sender or receiver in the referenced receipt
+    uint256 exitId = ageOfUtxo << 1; // last bit is reserved for housekeeping in erc20Predicate
+    withdrawManager.addExitToQueue(msg.sender, exitTxData.childToken, rootToken, exitTxData.amountOrToken, exitTxData.txHash, false /* isRegularExit */, exitId);
+    withdrawManager.addInput(exitId, ageOfUtxo, exitTxData.signer, rootToken);
+    // Adding a dummy input, owner being the exitor to challenge spends that the exitor made after the transaction being exited from
+    withdrawManager.addInput(exitId, ageOfUtxo.sub(1), msg.sender, rootToken);
     return (rootToken, exitTxData.amountOrToken);
   }
 
@@ -115,17 +143,36 @@ contract ERC721Predicate is IErcPredicate {
     processMintTx(mintTx, rootToken, tokenId);
   }
 
+  /**
+   * @notice Verify the deprecation of a state update
+   * @param exit ABI encoded PlasmaExit data
+   * @param inputUtxo ABI encoded Input UTXO data
+   * @param challengeData RLP encoded data of the challenge reference tx that encodes the following fields
+      * headerNumber Header block number of which the reference tx was a part of
+      * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
+      * blockNumber Block number of which the reference tx is a part of
+      * blockTime Reference tx block time
+      * blocktxRoot Transactions root of block
+      * blockReceiptsRoot Receipts root of block
+      * receipt Receipt of the reference transaction
+      * receiptProof Merkle proof of the reference receipt
+      * branchMask Merkle proof branchMask for the receipt
+      * logIndex Log Index to read from the receipt
+      * tx Challenge transaction
+      * txProof Merkle proof of the challenge tx
+   * @return Whether or not the state is deprecated
+   */
   function verifyDeprecation(bytes calldata exit, bytes calldata inputUtxo, bytes calldata challengeData)
     external
     returns (bool)
   {
     PlasmaExit memory _exit = decodeExit(exit);
-    (uint256 age, address signer) = decodeInputUtxo(inputUtxo);
+    (uint256 age, address signer,,) = decodeInputUtxo(inputUtxo);
     RLPReader.RLPItem[] memory referenceTxData = challengeData.toRlpItem().toList();
 
     ExitTxData memory challengeTxData = processChallengeTx(referenceTxData[10].toBytes());
     require(
-      signer == challengeTxData.signer,
+      challengeTxData.signer == signer,
       "Challenge tx not signed by the party who signed the input UTXO to the exit"
     );
     require(
@@ -144,26 +191,27 @@ contract ERC721Predicate is IErcPredicate {
     processReferenceTx(
       referenceTxData[6].toBytes(), // receipt
       referenceTxData[9].toUint(), // logIndex
-      signer,
+      challengeTxData.signer,
       challengeTxData.childToken,
-      challengeTxData.amountOrToken
+      challengeTxData.amountOrToken,
+      true // isChallenge
     );
     return ageOfChallengeTx > age;
   }
 
-  function onFinalizeExit(address exitor, address token, uint256 tokenId)
-    external
-    onlyWithdrawManager
-  {
-    depositManager.transferAssets(token, exitor, tokenId);
-  }
+  // function onFinalizeExit(address exitor, address token, uint256 tokenId)
+  //   external
+  //   onlyWithdrawManager
+  // {
+  //   depositManager.transferAssets(token, exitor, tokenId);
+  // }
 
   function interpretStateUpdate(bytes calldata state)
     external
     view
     returns (bytes memory b)
   {
-    (bytes memory _data, address participant, bool verifyInclusion) = abi.decode(state, (bytes, address, bool));
+    (bytes memory _data, address participant, bool verifyInclusion, bool isChallenge) = abi.decode(state, (bytes, address, bool, bool));
     RLPReader.RLPItem[] memory referenceTx = _data.toRlpItem().toList();
     bytes memory receipt = referenceTx[6].toBytes();
     uint256 logIndex = referenceTx[9].toUint();
@@ -175,11 +223,16 @@ contract ERC721Predicate is IErcPredicate {
     bytes memory logData = inputItems[2].toBytes();
     inputItems = inputItems[1].toList(); // topics
     data.rootToken = address(RLPReader.toUint(inputItems[1]));
-    data.closingBalance = BytesLib.toUint(logData, 0);
-    data.age = processStateUpdate(inputItems, participant);
-    data.age += (logIndex * MAX_LOGS); // @todo use safeMath
+    // event LogTransfer(address indexed token, address indexed from, address indexed to, uint256 tokenId);
+    data.closingBalance = BytesLib.toUint(logData, 0); // first un-indexed param in LogTransfer
+    if (isChallenge) {
+      processChallenge(inputItems, participant);
+    } else {
+      data.age = processStateUpdate(inputItems, participant);
+    }
+    data.age = data.age.add(logIndex.mul(MAX_LOGS));
     if (verifyInclusion) {
-      data.age += withdrawManager.verifyInclusion(_data, 0, false /* verifyTxInclusion */); // @todo use safeMath
+      data.age = withdrawManager.verifyInclusion(_data, 0, false /* verifyTxInclusion */).add(data.age);
     }
     return abi.encode(data.closingBalance, data.age, data.childToken, data.rootToken);
   }
@@ -195,7 +248,8 @@ contract ERC721Predicate is IErcPredicate {
     uint256 logIndex,
     address participant,
     address childToken,
-    uint256 tokenId)
+    uint256 tokenId,
+    bool isChallenge)
     internal
     pure
     returns(address rootToken, uint256 oIndex)
@@ -212,7 +266,11 @@ contract ERC721Predicate is IErcPredicate {
     // now, inputItems[i] refers to i-th (0-based) topic in the topics array
     // inputItems[0] is the event signature
     rootToken = address(RLPReader.toUint(inputItems[1]));
-    oIndex = processStateUpdate(inputItems, participant);
+    if (isChallenge) {
+      processChallenge(inputItems, participant);
+    } else {
+      oIndex = processStateUpdate(inputItems, participant);
+    }
     // tokenId is the first param in logData in all 3 of Deposit, Withdraw and LogTransfer
     require(
       tokenId == BytesLib.toUint(logData, 0),
@@ -250,6 +308,32 @@ contract ERC721Predicate is IErcPredicate {
       participant == _participant,
       "tx / log doesnt concern the participant"
     );
+  }
+
+  /**
+   * @notice Parse the state update and check if this predicate recognizes it
+   * @param inputItems inputItems[i] refers to i-th (0-based) topic in the topics array in the log
+   */
+  function processChallenge(
+    RLPReader.RLPItem[] memory inputItems,
+    address participant)
+    internal
+    pure
+  {
+    bytes32 eventSignature = bytes32(inputItems[0].toUint());
+    // event Withdraw(address indexed token, address indexed from, uint256 amountOrTokenId, uint256 input1, uint256 output1)
+    // event LogTransfer(
+    //   address indexed token, address indexed from, address indexed to,
+    //   uint256 amountOrTokenId, uint256 input1, uint256 input2, uint256 output1, uint256 output2)
+    require(
+      eventSignature == WITHDRAW_EVENT_SIG || eventSignature == E721_LOG_TRANSFER_EVENT_SIG,
+      "Log signature doesnt qualify as a valid spend"
+    );
+    require(
+      participant == address(inputItems[2].toUint()), // from
+      "participant and referenced tx do not match"
+    );
+    // oIndex is always 0 for the 2 scenarios above, hence not returning it
   }
 
   /**
@@ -299,12 +383,14 @@ contract ERC721Predicate is IErcPredicate {
   {
     bytes4 funcSig = BytesLib.toBytes4(BytesLib.slice(txData, 0, 4));
     if (funcSig == WITHDRAW_FUNC_SIG) {
+      // function withdraw(uint256 tokenId)
       require(txData.length == 36, "Invalid tx"); // 4 bytes for funcSig and a single bytes32 parameter
       tokenId = BytesLib.toUint(txData, 4);
       exitType = ExitType.Burnt;
     } else if (funcSig == TRANSFER_FROM_FUNC_SIG) {
-      require(txData.length == 100, "Invalid tx"); // 4 bytes for funcSig and a 3 bytes32 parameters (to, value)
-      tokenId = BytesLib.toUint(txData, 4);
+      // function transferFrom(address from, address to, uint256 tokenId)
+      require(txData.length == 100, "Invalid tx"); // 4 bytes for funcSig and a 3 bytes32 parameters (from, to, tokenId)
+      tokenId = BytesLib.toUint(txData, 68);
       exitType = ExitType.OutgoingTransfer;
     } else {
       revert("Exit tx type not supported");

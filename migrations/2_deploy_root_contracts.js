@@ -28,6 +28,8 @@ const ERC20Predicate = artifacts.require('ERC20Predicate')
 const ERC721Predicate = artifacts.require('ERC721Predicate')
 const MarketplacePredicate = artifacts.require('MarketplacePredicate')
 const MarketplacePredicateTest = artifacts.require('MarketplacePredicateTest')
+const TransferWithSigPredicate = artifacts.require('TransferWithSigPredicate')
+const TransferWithSigUtils = artifacts.require('TransferWithSigUtils')
 
 const libDeps = [
   {
@@ -41,16 +43,23 @@ const libDeps = [
       ERC20Predicate,
       ERC721Predicate,
       MarketplacePredicate,
-      MarketplacePredicateTest
+      MarketplacePredicateTest,
+      TransferWithSigPredicate
     ]
   },
   {
     lib: ECVerify,
     contracts: [
       StakeManager,
+<<<<<<< HEAD
       SlashingManager,
       MarketplacePredicate,
       MarketplacePredicateTest
+=======
+      MarketplacePredicate,
+      MarketplacePredicateTest,
+      TransferWithSigPredicate
+>>>>>>> 90fe6b30b2e4d485cbb86c60f2c79b77c5de7f00
     ]
   },
   {
@@ -88,7 +97,23 @@ const libDeps = [
   },
   {
     lib: SafeMath,
-    contracts: [RootChain, ValidatorContract, StakeManager, DelegationManager]
+    contracts: [RootChain, ERC20Predicate, ERC721Predicate, 
+      MarketplacePredicate, MarketplacePredicateTest, TransferWithSigPredicate, ValidatorContract, StakeManager, DelegationManager]
+  },
+  {
+    lib: SafeMath,
+    contracts: [
+      RootChain,
+      ERC20Predicate
+    ]
+  },
+  {
+    lib: TransferWithSigUtils,
+    contracts: [
+      TransferWithSigPredicate,
+      MarketplacePredicate,
+      MarketplacePredicateTest
+    ]
   }
 ]
 
@@ -100,35 +125,24 @@ module.exports = async function(deployer, network) {
       deployer.link(e.lib, e.contracts)
     })
 
-    console.log('deploying contracts...')
-    await Promise.all([
-      deployer.deploy(Registry),
-      deployer.deploy(WithdrawManager),
-      deployer.deploy(DepositManager)
-    ])
+      console.log('deploying contracts...')
+      await deployer.deploy(Registry)
+      await Promise.all([
+        deployer.deploy(RootChain, Registry.address),
+        deployer.deploy(StakeManager, Registry.address),
+        deployer.deploy(SlashingManager, Registry.address),
+        deployer.deploy(DelegationManager, Registry.address),
+      
+        deployer.deploy(WithdrawManager),
+        deployer.deploy(DepositManager)
+      ])
 
-    await Promise.all([
-      deployer.deploy(RootChain, Registry.address),
-      deployer.deploy(StakeManager, Registry.address),
-      deployer.deploy(SlashingManager, Registry.address),
-      deployer.deploy(DelegationManager, Registry.address),
-      deployer.deploy(
-        ERC20Predicate,
-        WithdrawManager.address,
-        DepositManager.address
-      ),
-      deployer.deploy(
-        ERC721Predicate,
-        WithdrawManager.address,
-        DepositManager.address
-      ),
-      deployer.deploy(
-        MarketplacePredicate,
-        WithdrawManager.address,
-        DepositManager.address,
-        Registry.address
-      ),
-      deployer.deploy(MarketplacePredicateTest)
-    ])
-  })
+      await Promise.all([
+        deployer.deploy(ERC20Predicate, WithdrawManager.address, DepositManager.address),
+        deployer.deploy(ERC721Predicate, WithdrawManager.address, DepositManager.address),
+        deployer.deploy(MarketplacePredicateTest),
+        deployer.deploy(MarketplacePredicate, RootChain.address, WithdrawManager.address, Registry.address),
+        deployer.deploy(TransferWithSigPredicate, RootChain.address, WithdrawManager.address, Registry.address)
+      ])
+    })
 }

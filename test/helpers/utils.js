@@ -1,17 +1,19 @@
 /* global web3 */
 
-import utils from 'ethereumjs-util'
+import ethUtils from 'ethereumjs-util'
 import { Buffer } from 'safe-buffer'
 import encode from 'ethereumjs-abi'
 import fs from 'fs'
 import path from 'path'
 
 import { generateFirstWallets, mnemonics } from './wallets.js'
-import logDecoder from './log-decoder.js'
+import logDecoder from './log-decoder'
+
+// console.log(ethUtils.keccak256('depositTokens(address,address,uint256,uint256)').slice(0, 4))
 
 const crypto = require('crypto')
-const BN = utils.BN
-const rlp = utils.rlp
+const BN = ethUtils.BN
+const rlp = ethUtils.rlp
 
 export const web3Child = new web3.constructor(
   new web3.providers.HttpProvider('http://localhost:8546')
@@ -24,24 +26,24 @@ export function getSigs(wallets, votedata) {
     return w1.getAddressString().localeCompare(w2.getAddressString())
   })
 
-  const h = utils.toBuffer(votedata)
+  const h = ethUtils.toBuffer(votedata)
 
   return wallets
     .map(w => {
-      const vrs = utils.ecsign(h, w.getPrivateKey())
-      return utils.toRpcSig(vrs.v, vrs.r, vrs.s)
+      const vrs = ethUtils.ecsign(h, w.getPrivateKey())
+      return ethUtils.toRpcSig(vrs.v, vrs.r, vrs.s)
     })
     .filter(d => d)
 }
 
 export function encodeSigs(sigs = []) {
-  return Buffer.concat(sigs.map(s => utils.toBuffer(s)))
+  return Buffer.concat(sigs.map(s => ethUtils.toBuffer(s)))
 }
 
 export function assertBigNumberEquality(num1, num2) {
   if (!BN.isBN(num1)) num1 = web3.utils.toBN(num1.toString())
-  if (!BN.isBN(num2)) num2 = web3.utils.toBN(num2)
-  expect(num1.eq(num2)).to.be.true
+  if (!BN.isBN(num2)) num2 = web3.utils.toBN(num2.toString())
+  assert.ok(num1.eq(num2), `expected ${num1.toString(16)} and ${num2.toString(16)} to be equal`)
 }
 
 export function assertBigNumbergt(num1, num2) {
@@ -50,14 +52,14 @@ export function assertBigNumbergt(num1, num2) {
 }
 
 export function buildSubmitHeaderBlockPaylod(proposer, start, end, root, wallets) {
-  if (!root) root = utils.keccak256(encode(start, end)) // dummy root
+  if (!root) root = ethUtils.keccak256(encode(start, end)) // dummy root
   // [proposer, start, end, root]
-  const extraData = utils.bufferToHex(utils.rlp.encode([proposer, start, end, root]))
-  const vote = utils.bufferToHex(
+  const extraData = ethUtils.bufferToHex(ethUtils.rlp.encode([proposer, start, end, root]))
+  const vote = ethUtils.bufferToHex(
     // [chain, roundType, height, round, voteType, keccak256(bytes20(sha256(extraData)))]
-    utils.rlp.encode([
+    ethUtils.rlp.encode([
       'test-chain-E5igIA', 'vote', 0, 0, 2,
-      utils.bufferToHex(utils.sha256(extraData)).slice(0, 42)
+      ethUtils.bufferToHex(ethUtils.sha256(extraData)).slice(0, 42)
     ])
   )
 
@@ -66,8 +68,8 @@ export function buildSubmitHeaderBlockPaylod(proposer, start, end, root, wallets
   }
   const validators = [wallets[1], wallets[2], wallets[3]]
 
-  const sigs = utils.bufferToHex(
-    encodeSigs(getSigs(validators, utils.keccak256(vote)))
+  const sigs = ethUtils.bufferToHex(
+    encodeSigs(getSigs(validators, ethUtils.keccak256(vote)))
   )
   return {vote, sigs, extraData, root}
 }
@@ -82,13 +84,15 @@ export function getWallets() {
   return generateFirstWallets(mnemonics, Object.keys(stakes).length)
 }
 
-export async function depositOnRoot(depositManager, rootToken, from, amountOrToken, options = { erc20: true }) {
-  await rootToken.approve(depositManager.address, amountOrToken, { from })
+export async function depositOnRoot(depositManager, rootToken, user, amountOrToken, options = { erc20: true }) {
   let result
   if (options.erc20) {
-    result = await depositManager.depositERC20(rootToken.address, amountOrToken, { from })
+    await rootToken.approve(depositManager.address, amountOrToken)
+    result = await depositManager.depositERC20ForUser(rootToken.address, user, amountOrToken)
   } else if (options.erc721) {
-    result = await depositManager.depositERC721(rootToken.address, amountOrToken, { from })
+    await rootToken.mint(amountOrToken)
+    await rootToken.approve(depositManager.address, amountOrToken)
+    result = await depositManager.depositERC721ForUser(rootToken.address, user, amountOrToken)
   }
   const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
   const NewDepositBlockEvent = logs.find(log => log.event === 'NewDepositBlock')
@@ -113,21 +117,21 @@ export async function deposit(depositManager, childChain, rootContract, user, am
 
 export function startExit(predicate, headerNumber, blockProof, blockNumber, blockTimestamp, reference, logIndex, exitTx) {
   return predicate.startExit(
-    utils.bufferToHex(
+    ethUtils.bufferToHex(
       rlp.encode([
         headerNumber,
-        utils.bufferToHex(Buffer.concat(blockProof)),
+        ethUtils.bufferToHex(Buffer.concat(blockProof)),
         blockNumber,
         blockTimestamp,
-        utils.bufferToHex(reference.transactionsRoot),
-        utils.bufferToHex(reference.receiptsRoot),
-        utils.bufferToHex(reference.receipt),
-        utils.bufferToHex(rlp.encode(reference.receiptParentNodes)),
-        utils.bufferToHex(rlp.encode(reference.path)), // branch mask,
+        ethUtils.bufferToHex(reference.transactionsRoot),
+        ethUtils.bufferToHex(reference.receiptsRoot),
+        ethUtils.bufferToHex(reference.receipt),
+        ethUtils.bufferToHex(rlp.encode(reference.receiptParentNodes)),
+        ethUtils.bufferToHex(rlp.encode(reference.path)), // branch mask,
         logIndex
       ])
     ),
-    utils.bufferToHex(exitTx),
+    ethUtils.bufferToHex(exitTx),
     { value: web3.utils.toWei('.1', 'ether') }
   )
 }
@@ -135,24 +139,63 @@ export function startExit(predicate, headerNumber, blockProof, blockNumber, bloc
 export function startExitWithBurntTokens(predicate, input, from) {
   if (from) {
     return predicate.startExitWithBurntTokens(
-      utils.bufferToHex(rlp.encode(buildReferenceTxPayload(input))),
+      ethUtils.bufferToHex(rlp.encode(buildReferenceTxPayload(input))),
       { from }
     )
   }
   return predicate.startExitWithBurntTokens(
-    utils.bufferToHex(rlp.encode(buildReferenceTxPayload(input)))
+    ethUtils.bufferToHex(rlp.encode(buildReferenceTxPayload(input)))
   )
 }
 
-export function startExitNew(predicate, inputs, exitTx) {
+export function startExitNew(predicate, inputs, exitTx, from) {
   let _inputs = []
   inputs.forEach(input => {
     _inputs = _inputs.concat(buildReferenceTxPayload(input))
   })
+  const options = { value: web3.utils.toWei('.1', 'ether') }
+  if (from) options.from = from
   return predicate.startExit(
-    utils.bufferToHex(rlp.encode(_inputs)),
-    utils.bufferToHex(exitTx),
-    { value: web3.utils.toWei('.1', 'ether') }
+    ethUtils.bufferToHex(rlp.encode(_inputs)),
+    ethUtils.bufferToHex(exitTx),
+    options
+  )
+}
+
+export function startExitForErc20Predicate(fn, inputs, exitTx, from) {
+  let _inputs = []
+  inputs.forEach(input => {
+    _inputs = _inputs.concat(buildReferenceTxPayload(input))
+  })
+  const options = { value: web3.utils.toWei('.1', 'ether') }
+  if (from) options.from = from
+  return fn(
+    ethUtils.bufferToHex(rlp.encode(_inputs)),
+    ethUtils.bufferToHex(exitTx),
+    options
+  )
+}
+
+export function startExitForErc20PredicateLegacy(fn, headerNumber, blockProof, blockNumber, blockTimestamp, reference, logIndex, exitTx, from) {
+  const options = { value: web3.utils.toWei('.1', 'ether') }
+  if (from) options.from = from
+  return fn(
+    ethUtils.bufferToHex(
+      rlp.encode([
+        headerNumber,
+        ethUtils.bufferToHex(Buffer.concat(blockProof)),
+        blockNumber,
+        blockTimestamp,
+        ethUtils.bufferToHex(reference.transactionsRoot),
+        ethUtils.bufferToHex(reference.receiptsRoot),
+        ethUtils.bufferToHex(reference.receipt),
+        ethUtils.bufferToHex(rlp.encode(reference.receiptParentNodes)),
+        ethUtils.bufferToHex(rlp.encode(reference.path)), // branch mask,
+        logIndex
+      ])
+    ),
+    ethUtils.bufferToHex(exitTx),
+    options
   )
 }
 
@@ -168,9 +211,19 @@ export function startExitForMarketplacePredicate(predicate, inputs, exitToken, e
   })
   _inputs.push(exitToken)
   return predicate.startExit(
-    utils.bufferToHex(rlp.encode(_inputs)),
-    utils.bufferToHex(exitTx),
+    ethUtils.bufferToHex(rlp.encode(_inputs)),
+    ethUtils.bufferToHex(exitTx),
     { value: web3.utils.toWei('.1', 'ether') }
+  )
+}
+
+export function startExitForTransferWithSig(fn, inputs, exitTx, from) {
+  const options = { value: web3.utils.toWei('.1', 'ether') }
+  if (from) options.from = from
+  return fn(
+    ethUtils.bufferToHex(rlp.encode(inputs.map(buildReferenceTxPayload).map(rlp.encode))),
+    ethUtils.bufferToHex(exitTx),
+    options
   )
 }
 
@@ -183,40 +236,36 @@ export async function verifyDeprecation(withdrawManager, predicate, exitId, inpu
   )
   // console.log('exitData', exitData)
   const inputUtxoData = web3.eth.abi.encodeParameters(
-    ['uint256', 'address'],
-    [options.age, options.signer]
+    ['uint256', 'address', 'address', 'address'],
+    [options.age, options.signer, predicate.address, options.childToken]
   )
   // console.log('inputUtxoData', inputUtxoData)
   return predicate.verifyDeprecation(exitData, inputUtxoData, challengeData)
 }
 
 export function buildReferenceTxPayload(input) {
-  const res = []
-  const { headerNumber, blockProof, blockNumber, blockTimestamp, reference, logIndex, predicate } = input
-  // if (predicate) res.push(predicate)
-  return res.concat(
-    [
-      headerNumber,
-      utils.bufferToHex(Buffer.concat(blockProof)),
-      blockNumber,
-      blockTimestamp,
-      utils.bufferToHex(reference.transactionsRoot),
-      utils.bufferToHex(reference.receiptsRoot),
-      utils.bufferToHex(reference.receipt),
-      utils.bufferToHex(rlp.encode(reference.receiptParentNodes)),
-      utils.bufferToHex(rlp.encode(reference.path)), // branch mask,
-      logIndex
-    ]
-  )
+  const { headerNumber, blockProof, blockNumber, blockTimestamp, reference, logIndex } = input
+  return [
+    headerNumber,
+    ethUtils.bufferToHex(Buffer.concat(blockProof)),
+    blockNumber,
+    blockTimestamp,
+    ethUtils.bufferToHex(reference.transactionsRoot),
+    ethUtils.bufferToHex(reference.receiptsRoot),
+    ethUtils.bufferToHex(reference.receipt),
+    ethUtils.bufferToHex(rlp.encode(reference.receiptParentNodes)),
+    ethUtils.bufferToHex(rlp.encode(reference.path)), // branch mask,
+    logIndex
+  ]
 }
 
 export function buildChallengeData(input) {
   const data = buildReferenceTxPayload(input)
   const { reference } = input
-  return utils.bufferToHex(rlp.encode(
+  return ethUtils.bufferToHex(rlp.encode(
     data.concat([
-      utils.bufferToHex(reference.tx),
-      utils.bufferToHex(rlp.encode(reference.txParentNodes))
+      ethUtils.bufferToHex(reference.tx),
+      ethUtils.bufferToHex(rlp.encode(reference.txParentNodes))
     ])
   ))
 }
@@ -231,4 +280,13 @@ export async function writeToFile(file, receipt) {
     path.join(__dirname, '..', 'mockResponses', file),
     `module.exports = ${JSON.stringify(r, null, 2)}`
   )
+}
+
+export function increaseBlockTime(seconds) {
+  return web3.currentProvider.send({
+    jsonrpc: '2.0',
+    method: 'evm_increaseTime',
+    params: [seconds],
+    id: new Date().getTime()
+  })
 }

@@ -9,7 +9,7 @@ import { IStakeManager } from "../staking/IStakeManager.sol";
 import { Registry } from "../common/Registry.sol";
 
 
-contract RootChain is RootChainStorage {
+contract RootChain is RootChainStorage, IRootChain {
   using SafeMath for uint256;
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
@@ -58,7 +58,7 @@ contract RootChain is RootChainStorage {
     onlyDepositManager
     returns(uint256 depositId)
   {
-    depositId = _blockDepositId;
+    depositId = _nextHeaderBlock.sub(MAX_DEPOSITS).add(_blockDepositId);
     // deposit ids will be (_blockDepositId, _blockDepositId + 1, .... _blockDepositId + numDeposits - 1)
     _blockDepositId = _blockDepositId.add(numDeposits);
     require(
@@ -66,6 +66,10 @@ contract RootChain is RootChainStorage {
       _blockDepositId <= MAX_DEPOSITS,
       "TOO_MANY_DEPOSITS"
     );
+  }
+
+  function getLastChildBlock() external view returns(uint256) {
+    return headerBlocks[_nextHeaderBlock.sub(MAX_DEPOSITS)].end;
   }
 
   function slash() external {
@@ -107,5 +111,4 @@ contract RootChain is RootChainStorage {
     headerBlock.createdAt = now;
     headerBlock.proposer = msg.sender;
   }
-
 }
