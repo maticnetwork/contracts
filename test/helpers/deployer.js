@@ -22,12 +22,7 @@ class Deployer {
     this.delegationManager = await contracts.DelegationManager.new(
       this.registry.address
     )
-    this.exitNFT = await contracts.ExitNFT.new(
-      this.registry.address,
-      'ExitNFT',
-      'ENFT'
-    )
-
+    this.exitNFT = await contracts.ExitNFT.new(this.registry.address)
     const depositManager = await this.deployDepositManager()
     const withdrawManager = await this.deployWithdrawManager()
 
@@ -153,7 +148,10 @@ class Deployer {
       this.withdrawManagerProxy.address,
       this.registry.address
     )
-    await this.registry.addPredicate(TransferWithSigPredicate.address, 3 /* Type.Custom */)
+    await this.registry.addPredicate(
+      TransferWithSigPredicate.address,
+      3 /* Type.Custom */
+    )
     return TransferWithSigPredicate
   }
 

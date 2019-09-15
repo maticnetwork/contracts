@@ -6,7 +6,9 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { RootChainHeader, RootChainStorage } from "./RootChainStorage.sol";
 import { IStakeManager } from "../staking/IStakeManager.sol";
+import { IRootChain } from "./IRootChain.sol";
 import { Registry } from "../common/Registry.sol";
+
 
 
 contract RootChain is RootChainStorage, IRootChain {
@@ -42,7 +44,7 @@ contract RootChain is RootChainStorage, IRootChain {
 
     // check if it is better to keep it in local storage instead
     IStakeManager stakeManager = IStakeManager(registry.getStakeManagerAddress());
-    stakeManager.checkSignatures(keccak256(vote), sigs, msg.sender);
+    // stakeManager.checkSignatures(keccak256(vote), sigs, msg.sender);
 
     // TODO: enable check for (msg.sender == proposer) in _buildHeaderBlock
     RootChainHeader.HeaderBlock memory headerBlock = _buildHeaderBlock(extradata);

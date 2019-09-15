@@ -119,7 +119,7 @@ contract('StakeManager<->DelegationManager', async function(accounts) {
     await delegationManager.bond(3 /** delegatorId */, 1 /** validatorId */, {
       from: wallets[5].getAddressString()
     })
-    let result = await stakeManager.jail(1, {
+    let result = await stakeManager.jail(1, 0, {
       from: wallets[0].getAddressString()
     })
     let logs = logDecoder.decodeLogs(result.receipt.rawLogs)
