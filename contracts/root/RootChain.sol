@@ -30,21 +30,21 @@ contract RootChain is RootChainStorage, IRootChain {
   function submitHeaderBlock(
     bytes calldata vote,
     bytes calldata sigs,
-    bytes calldata extradata)
+    bytes calldata txData)
     external
   {
     RLPReader.RLPItem[] memory dataList = vote.toRlpItem().toList();
     require(keccak256(dataList[0].toBytes()) == HEIMDALL_ID, "Chain ID is invalid");
     require(dataList[1].toUint() == VOTE_TYPE, "Vote type is invalid");
 
-    // validate hash of extradata was signed as part of the vote
-    require(keccak256(dataList[4].toBytes()) == keccak256(abi.encodePacked(sha256(extradata))), "Extra data is invalid");
+    // validate hash of txData was signed as part of the vote
+    require(keccak256(dataList[4].toBytes()) == keccak256(abi.encodePacked(sha256(txData))), "Extra data is invalid");
 
     // check if it is better to keep it in local storage instead
     IStakeManager stakeManager = IStakeManager(registry.getStakeManagerAddress());
     stakeManager.checkSignatures(keccak256(vote), sigs);
 
-    RootChainHeader.HeaderBlock memory headerBlock = _buildHeaderBlock(extradata);
+    RootChainHeader.HeaderBlock memory headerBlock = _buildHeaderBlock(txData);
     headerBlocks[_nextHeaderBlock] = headerBlock;
 
     emit NewHeaderBlock(headerBlock.proposer, _nextHeaderBlock, headerBlock.start, headerBlock.end, headerBlock.root);
@@ -113,6 +113,5 @@ contract RootChain is RootChainStorage, IRootChain {
     // toUintStrict returns the encoded uint. Encoded data must be padded to 32 bytes.
     headerBlock.root = bytes32(dataList[3].toUintStrict());
     headerBlock.createdAt = now;
-    headerBlock.proposer = msg.sender;
   }
 }

@@ -25,7 +25,7 @@ contract RootChainHeader {
 contract RootChainStorage is ProxyStorage, RootChainHeader {
   // @todo hardcode constants
   bytes32 public constant HEIMDALL_ID = keccak256("heimdall-P5rXwg");
-  bytes32 public constant BOR_ID = keccak256("15001");
+  // bytes32 public constant BOR_ID = keccak256("15001");
   uint8 public constant VOTE_TYPE = 2;
 
   uint16 internal constant MAX_DEPOSITS = 10000;
