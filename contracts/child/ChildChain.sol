@@ -3,14 +3,15 @@ pragma solidity ^0.5.2;
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 
-import "./bor/ValidatorVerifiable.sol";
+import "./bor/StateSyncerVerifier.sol";
+import "./bor/StateReceiver.sol";
 
 import "./ChildToken.sol";
 import "./ChildERC20.sol";
 import "./ChildERC721.sol";
 
 
-contract ChildChain is Ownable, ValidatorVerifiable {
+contract ChildChain is Ownable, StateSyncerVerifier, StateReceiver {
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
 
@@ -77,12 +78,25 @@ contract ChildChain is Ownable, ValidatorVerifiable {
     isERC721[rootToken] = isErc721;
   }
 
+  function onStateReceive(
+    bytes memory data
+  ) public onlyStateSyncer {
+    // address(this).call(abi.encodePacked(bytes4(keccak256("depositTokens(address,address,uint256,uint256)")), data));
+    address rootToken;
+    address user;
+    uint256 amountOrTokenId;
+    uint256 depositCount;
+
+    (rootToken,user, amountOrTokenId, depositCount) = abi.decode(data, (address, address, uint256, uint256));
+    depositTokens(rootToken, user, amountOrTokenId, depositCount);
+  }
+
   function depositTokens(
     address rootToken,
     address user,
     uint256 amountOrTokenId,
     uint256 depositCount
-  ) public onlyValidatorSetContract {
+  ) internal {
     // check if deposit happens only once
     require(deposits[depositCount] == false);
 

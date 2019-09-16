@@ -4,7 +4,7 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "./ValidatorSet.sol";
 
 
-contract ValidatorVerifiable is Ownable {
+contract ValidatorVerifier is Ownable {
   // validator set
   address public validatorSet;
 
@@ -34,7 +34,7 @@ contract ValidatorVerifiable is Ownable {
   // initial setup
   constructor () public {
     // default validator set contract
-    validatorSet = 0x0000000000000000000000000000000000000010;
+    validatorSet = 0x0000000000000000000000000000000000001000;
 
     // emit event for first change
     emit ValidatorSetAddressChanged(address(0), validatorSet);
