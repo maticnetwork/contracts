@@ -131,8 +131,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       validatorState[exitEpoch].amount - (int256(amount) + delegationAmount));
     validatorState[exitEpoch].stakerCount = (
       validatorState[exitEpoch].stakerCount - 1);
-
-    emit UnstakeInit(validatorId, msg.sender, amount, exitEpoch);
+    emit UnstakeInit(msg.sender, validatorId, exitEpoch, amount);
   }
 
   function unstakeClaim(uint256 validatorId) public onlyStaker(validatorId) {
