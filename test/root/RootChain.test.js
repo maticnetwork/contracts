@@ -27,7 +27,24 @@ contract("RootChain", async function(accounts) {
     rootChain = contracts.rootChain
   })
 
-  it("submitHeaderBlock", async function() {
+  it('submitHeaderBlock (with hardcoded data)', async function() {
+    const vote = '0xf48f6865696d64616c6c2d503572587767020d80a0f7225d5fbdaeec3e35d970c4d36bc0f2945241ac5de2f53a8b0703a318d6c892'
+    const sigs = '0xd61890e6167518b0352515d45381be76508e6fb1d3abef80c9944e910984b14014d82f12eb133f613c1378efceb50356b5509a14b82f7715e9a0f48dbc8a432001'
+    const txData = '0xf885f83f946c468cf8c9879006e22ec4029696e005c2319c9d808203ffa0fcaf3d0b2e32e20916c9f8c8bc2e8d89838fba5ea20885406e78767061305d4e845d7f51cfb841c3cd61fb7bb74b2ab89690be137d545418e9756fde4742fc2770edc5558ece682d3bf1ba90c11dfbaa1f84c0fa0c35af2ebfdd4632b7e69ab73f70aed1511a460080'
+    const result = await rootChain.submitHeaderBlock(vote, sigs, txData)
+    const logs = result.logs
+    logs.should.have.lengthOf(1)
+    logs[0].event.should.equal('NewHeaderBlock')
+    expect(logs[0].args).to.include({
+      proposer: '0x6c468CF8c9879006E22EC4029696E005C2319C9D',
+      root: '0xfcaf3d0b2e32e20916c9f8c8bc2e8d89838fba5ea20885406e78767061305d4e'
+    })
+    assertBigNumberEquality(logs[0].args.headerBlockId, '10000')
+    assertBigNumberEquality(logs[0].args.start, '0')
+    assertBigNumberEquality(logs[0].args.end, '1023')
+  })
+
+  it('submitHeaderBlock', async function() {
     const {vote, sigs, extraData, root} = buildSubmitHeaderBlockPaylod(accounts[0], 0, 22, '' /* root */, wallets)
     const result = await rootChain.submitHeaderBlock(vote, sigs, extraData)
     const logs = result.logs
