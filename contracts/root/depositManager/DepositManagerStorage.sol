@@ -24,4 +24,9 @@ contract DepositManagerStorage is ProxyStorage, DepositManagerHeader {
   RootChain internal rootChain;
 
   mapping(uint256 => DepositBlock) public deposits;
+
+  // state sender
+  address public stateSender;
+  // child chain
+  address public childChain;
 }

@@ -77,38 +77,12 @@ contract ChildChain is Ownable, ValidatorVerifiable {
     isERC721[rootToken] = isErc721;
   }
 
-  // deposit tokens
   function depositTokens(
-    bytes memory vote,
-    bytes memory sigs,
-    bytes memory txBytes,
-    bytes memory proof
-  ) public {
-    // validate validator set
-    validateValidatorSet(vote, sigs, txBytes, proof);
-
-    // check transaction data
-    RLPReader.RLPItem[] memory dataList = txBytes.toRlpItem().toList();
-
-    // dataList = [msg, signature, memo]
-    // msg = dataList[0]  = [proposer, root token, user, amount, deposit count]
-    dataList = dataList[0].toList();
-
-    // deposit tokens
-    _depositTokens(
-      dataList[1].toAddress(),  // root token
-      dataList[2].toAddress(),  // user
-      dataList[3].toUint(),  // amount
-      dataList[4].toUint()  // deposit count
-    );
-  }
-
-  function _depositTokens(
     address rootToken,
     address user,
     uint256 amountOrTokenId,
     uint256 depositCount
-  ) internal {
+  ) public onlyValidatorSetContract {
     // check if deposit happens only once
     require(deposits[depositCount] == false);
 
