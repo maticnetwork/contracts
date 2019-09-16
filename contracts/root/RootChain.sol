@@ -34,12 +34,11 @@ contract RootChain is RootChainStorage, IRootChain {
     external
   {
     RLPReader.RLPItem[] memory dataList = vote.toRlpItem().toList();
-    require(keccak256(dataList[0].toBytes()) == CHAIN, "Chain ID not same");
-    require(keccak256(dataList[1].toBytes()) == ROUND_TYPE, "Round type not same ");
-    require(dataList[4].toUint() == VOTE_TYPE, "Vote type not same");
+    require(keccak256(dataList[0].toBytes()) == HEIMDALL_ID, "Chain ID is invalid");
+    require(dataList[1].toUint() == VOTE_TYPE, "Vote type is invalid");
 
     // validate hash of extradata was signed as part of the vote
-    require(keccak256(dataList[5].toBytes()) == keccak256(abi.encodePacked(bytes20(sha256(extradata)))), "Extra data is invalid");
+    require(keccak256(dataList[4].toBytes()) == keccak256(abi.encodePacked(sha256(extradata))), "Extra data is invalid");
 
     // check if it is better to keep it in local storage instead
     IStakeManager stakeManager = IStakeManager(registry.getStakeManagerAddress());
@@ -48,7 +47,7 @@ contract RootChain is RootChainStorage, IRootChain {
     RootChainHeader.HeaderBlock memory headerBlock = _buildHeaderBlock(extradata);
     headerBlocks[_nextHeaderBlock] = headerBlock;
 
-    emit NewHeaderBlock(msg.sender, _nextHeaderBlock, headerBlock.start, headerBlock.end, headerBlock.root);
+    emit NewHeaderBlock(headerBlock.proposer, _nextHeaderBlock, headerBlock.start, headerBlock.end, headerBlock.root);
     _nextHeaderBlock = _nextHeaderBlock.add(MAX_DEPOSITS);
     _blockDepositId = 1;
   }
@@ -58,7 +57,7 @@ contract RootChain is RootChainStorage, IRootChain {
     onlyDepositManager
     returns(uint256 depositId)
   {
-    depositId = _nextHeaderBlock.sub(MAX_DEPOSITS).add(_blockDepositId);
+    depositId = currentHeaderBlock().add(_blockDepositId);
     // deposit ids will be (_blockDepositId, _blockDepositId + 1, .... _blockDepositId + numDeposits - 1)
     _blockDepositId = _blockDepositId.add(numDeposits);
     require(
@@ -68,8 +67,12 @@ contract RootChain is RootChainStorage, IRootChain {
     );
   }
 
+  function currentHeaderBlock() public view returns(uint256) {
+    return _nextHeaderBlock.sub(MAX_DEPOSITS);
+  }
+
   function getLastChildBlock() external view returns(uint256) {
-    return headerBlocks[_nextHeaderBlock.sub(MAX_DEPOSITS)].end;
+    return headerBlocks[currentHeaderBlock()].end;
   }
 
   function slash() external {
@@ -82,10 +85,11 @@ contract RootChain is RootChainStorage, IRootChain {
     returns(HeaderBlock memory headerBlock)
   {
     RLPReader.RLPItem[] memory dataList = data.toRlpItem().toList();
+    dataList = dataList[0].toList();
 
+    headerBlock.proposer = dataList[0].toAddress();
     // Is this required? Why does a proposer need to be the sender? Think validator relay networks
     // require(msg.sender == dataList[0].toAddress(), "Invalid proposer");
-    headerBlock.proposer = dataList[0].toAddress();
 
     uint256 nextChildBlock;
     /*
@@ -93,7 +97,7 @@ contract RootChain is RootChainStorage, IRootChain {
     if _nextHeaderBlock == MAX_DEPOSITS, then the first header block is yet to be submitted, hence nextChildBlock = 0
     */
     if (_nextHeaderBlock > MAX_DEPOSITS) {
-      nextChildBlock = headerBlocks[_nextHeaderBlock.sub(MAX_DEPOSITS)].end + 1;
+      nextChildBlock = headerBlocks[currentHeaderBlock()].end + 1;
     }
     require(
       nextChildBlock == dataList[1].toUint(),
