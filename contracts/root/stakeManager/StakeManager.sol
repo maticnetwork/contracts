@@ -18,15 +18,6 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   using SafeMath for uint256;
   using ECVerify for bytes32;
 
-  event ThresholdChange(uint256 newThreshold, uint256 oldThreshold);
-  event DynastyValueChange(uint256 newDynasty, uint256 oldDynasty);
-
-  // optional event to ack unstaking
-  event UnstakeInit(uint256 indexed validatorId, address indexed user, uint256 indexed amount, uint256 deactivationEpoch);
-
-  // signer changed
-  event SignerChange(uint256 indexed validatorId, address indexed newSigner, address indexed oldSigner);
-
   ERC20 public token;
 
   // genesis/governance variables
@@ -115,7 +106,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     validatorState[exitEpoch].stakerCount = (
       validatorState[exitEpoch].stakerCount - 1);
 
-    emit UnstakeInit(validatorId, msg.sender, amount, exitEpoch);
+    emit UnstakeInit(msg.sender, validatorId, exitEpoch, amount);
   }
 
   function unstakeClaim(uint256 validatorId) public onlyStaker(validatorId) {
