@@ -6,6 +6,9 @@ contract IStakeManager {
   // event to ack unstaking which will start at deactivationEpoch
   event UnstakeInit(address indexed user, uint256 indexed validatorId, uint256 deactivationEpoch, uint256 indexed amount);
   event Unstaked(address indexed user, uint256 indexed validatorId, uint256 amount, uint256 total);
+   // event to ack unstaking which will start at deactivationEpoch
+  event UnstakeInit(address indexed user, uint256 indexed validatorId, uint256 deactivationEpoch, uint256 indexed amount);
+
   event SignerChange(uint256 indexed validatorId, address indexed oldSigner, address indexed newSigner);
   event ReStaked(uint256 indexed validatorId, uint256 amount, uint256 total);
   event Jailed(uint256 indexed validatorId, uint256 indexed exitEpoch);
