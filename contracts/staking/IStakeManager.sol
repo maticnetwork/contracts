@@ -3,8 +3,6 @@ pragma solidity ^0.5.2;
 
 contract IStakeManager {
   event Staked(address indexed user, uint256 indexed validatorId, uint256 indexed activatonEpoch, uint256 amount, uint256 total);
-  // event to ack unstaking which will start at deactivationEpoch
-  event UnstakeInit(address indexed user, uint256 indexed validatorId, uint256 deactivationEpoch, uint256 indexed amount);
   event Unstaked(address indexed user, uint256 indexed validatorId, uint256 amount, uint256 total);
    // event to ack unstaking which will start at deactivationEpoch
   event UnstakeInit(address indexed user, uint256 indexed validatorId, uint256 deactivationEpoch, uint256 indexed amount);
