@@ -23,7 +23,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
   uint256 public WITHDRAWAL_DELAY = 0; // todo: remove if not needed use from stakeManager
 
   struct Delegator {
-    // unstaking delgator
+    // unstaking delegator
     uint256 deactivationEpoch;
     uint256 delegationStartEpoch;
     uint256 delegationStopEpoch;
@@ -86,7 +86,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
 
     address validator;
     (,,,,,,validator,) = stakeManager.validators(validatorId);
-    require(validator != address(0x0), "Unknown validatorId");
+    require(validator != address(0x0), "Unknown validatorId or validator doesn't expect delegations");
 
     // for lazy unbonding
     if (delegator.delegationStopEpoch != 0 && delegator.delegationStopEpoch < currentEpoch ) {
