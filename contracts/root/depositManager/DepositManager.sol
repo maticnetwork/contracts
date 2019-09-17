@@ -10,6 +10,7 @@ import { Registry } from "../../common/Registry.sol";
 import { WETH } from "../../common/tokens/WETH.sol";
 import { IDepositManager } from "./IDepositManager.sol";
 import { DepositManagerStorage } from "./DepositManagerStorage.sol";
+import { StateSender } from "../stateSyncer/StateSender.sol";
 
 
 contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiver, ContractReceiver {
@@ -31,6 +32,19 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
   // deposit ETH by sending to this contract
   function () external payable {
     depositEther();
+  }
+
+  /**
+   * @dev Caches childChain and stateSender (frequently used variables) from registry
+   */
+  function updateChildChainAndStateSender() public {
+    (address _childChain, address _stateSender) = registry.getChildChainAndStateSender();
+    require(
+      _stateSender != address(stateSender) || _childChain != childChain,
+      "Atleast one of stateSender or childChain address should change"
+    );
+    childChain = _childChain;
+    stateSender = StateSender(_stateSender);
   }
 
   function transferAssets(address _token, address _user, uint256 _amountOrNFTId)
@@ -152,6 +166,7 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
     internal
   {
     deposits[_depositId] = DepositBlock(keccak256(abi.encodePacked(_user, _token, _amountOrToken)), now);
+    stateSender.syncState(childChain, abi.encode(_user, _token, _amountOrToken, _depositId));
     emit NewDepositBlock(_user, _token, _amountOrToken, _depositId);
   }
 }

@@ -1,13 +1,17 @@
 pragma solidity ^0.5.2;
 
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+
+import { StateSyncerVerifier } from "./bor/StateSyncerVerifier.sol";
+import { StateReceiver } from "./bor/StateReceiver.sol";
 
 import "./ChildToken.sol";
 import "./ChildERC20.sol";
 import "./ChildERC721.sol";
 
 
-contract ChildChain is Ownable {
+contract ChildChain is Ownable, StateSyncerVerifier, StateReceiver {
+
   // mapping for (root token => child token)
   mapping(address => address) public tokens;
   mapping(address => bool) public isERC721;
@@ -36,9 +40,7 @@ contract ChildChain is Ownable {
     uint256 withrawCount
   );
 
-  constructor () public {
-
-  }
+  constructor () public {}
 
   function addToken(
     address _owner,
@@ -71,17 +73,25 @@ contract ChildChain is Ownable {
     isERC721[rootToken] = isErc721;
   }
 
+  function onStateReceive(
+    uint256 /* id */,
+    bytes calldata data
+  ) external onlyStateSyncer {
+    (address user, address rootToken, uint256 amountOrTokenId, uint256 depositId) = abi.decode(data, (address, address, uint256, uint256));
+    depositTokens(rootToken, user, amountOrTokenId, depositId);
+  }
+
   function depositTokens(
     address rootToken,
     address user,
     uint256 amountOrTokenId,
-    uint256 depositCount
-  ) public onlyOwner {
+    uint256 depositId
+  ) internal {
     // check if deposit happens only once
-    require(deposits[depositCount] == false);
+    require(deposits[depositId] == false);
 
     // set deposit flag
-    deposits[depositCount] = true;
+    deposits[depositId] = true;
 
     // retrieve child tokens
     address childToken = tokens[rootToken];
@@ -101,7 +111,7 @@ contract ChildChain is Ownable {
     obj.deposit(user, amountOrTokenId);
 
     // Emit TokenDeposited event
-    emit TokenDeposited(rootToken, childToken, user, amountOrTokenId, depositCount);
+    emit TokenDeposited(rootToken, childToken, user, amountOrTokenId, depositId);
   }
 
   function withdrawTokens(

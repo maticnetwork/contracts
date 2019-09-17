@@ -10,7 +10,8 @@ contract Registry is Ownable {
   bytes32 constant private STAKE_MANAGER = keccak256("stakeManager");
   bytes32 constant private DELEGATION_MANAGER = keccak256("delegationManager");
   bytes32 constant private WITHDRAW_MANAGER = keccak256("withdrawManager");
-  bytes32 constant private CHILD_CHAIN_CONTRACT = keccak256("childChainContract");
+  bytes32 constant private CHILD_CHAIN = keccak256("childChain");
+  bytes32 constant private STATE_SENDER = keccak256("stateSender");
   bytes32 constant private SLASHING_MANAGER = keccak256("slashingManager");
   bytes constant public networkId = "\x0d";
 
@@ -129,8 +130,8 @@ contract Registry is Ownable {
     return contractMap[WITHDRAW_MANAGER];
   }
 
-  function getChildChainContract() public view returns(address) {
-    return contractMap[CHILD_CHAIN_CONTRACT];
+  function getChildChainAndStateSender() public view returns(address, address) {
+    return (contractMap[CHILD_CHAIN], contractMap[STATE_SENDER]);
   }
 
   function isTokenMapped(address _token) public view returns (bool) {

@@ -37,7 +37,7 @@ contract('WithdrawManager', async function(accounts) {
         contracts.rootERC20, user, amount,
         { rootDeposit: true, erc20: true } // options
       )
-      const depositId = depositTx.logs[0].args.depositCount
+      const depositId = depositTx.logs[0].args.depositCount // TokenDeposited
       expect(depositId.toString()).to.equal('1') // first deposit
       const { depositHash, createdAt } = await contracts.depositManager.deposits(depositId)
       expect(depositHash).to.equal(web3.utils.soliditySha3(user, contracts.rootERC20.address, amount))

@@ -33,7 +33,7 @@ contract('Marketplace', async function(accounts) {
   })
 
   beforeEach(async function() {
-    childContracts = await deployer.initializeChildChain(accounts[0])
+    childContracts = await deployer.initializeChildChain(accounts[0], { updateRegistry: false })
   })
 
   it('executeOrder - ERC20/20', async function() {

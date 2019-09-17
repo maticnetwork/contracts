@@ -225,7 +225,7 @@ contract('ERC20Predicate', async function(accounts) {
       inputs.push({ headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 })
 
       // We will reference the following tx (Deposit) which is a proof of counterparty's balance
-      const { receipt: d } = await childContracts.childChain.depositTokens(childContracts.rootERC20.address, other, halfAmount, '2' /* mock depositBlockId */)
+      const { receipt: d } = await utils.deposit(null, childContracts.childChain, childContracts.rootERC20, other, halfAmount)
       const i = await statefulUtils.submitCheckpoint(contracts.rootChain, d, accounts)
       inputs.unshift({ headerNumber: i.headerNumber, blockProof: i.blockProof, blockNumber: i.block.number, blockTimestamp: i.block.timestamp, reference: i.reference, logIndex: 1 })
 
