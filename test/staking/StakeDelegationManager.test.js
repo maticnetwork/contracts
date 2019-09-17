@@ -127,7 +127,7 @@ contract('StakeManager<->DelegationManager', async function(accounts) {
     let delegator = await delegationManager.delegators('1')
     assertBigNumberEquality(validatorExitEpoch, delegator.delegationStopEpoch)
 
-    await stakeManager.revoke(1, {
+    await stakeManager.unJail(1, {
       from: wallets[0].getAddressString()
     })
     delegator = await delegationManager.delegators('1')

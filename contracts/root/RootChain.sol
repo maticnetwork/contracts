@@ -42,12 +42,13 @@ contract RootChain is RootChainStorage, IRootChain {
     // validate hash of extradata was signed as part of the vote
     require(keccak256(dataList[5].toBytes()) == keccak256(abi.encodePacked(bytes20(sha256(extradata)))), "Extra data is invalid");
 
+    RLPReader.RLPItem[] memory extradataList = data.toRlpItem().toList();
     // check if it is better to keep it in local storage instead
     IStakeManager stakeManager = IStakeManager(registry.getStakeManagerAddress());
-    // stakeManager.checkSignatures(keccak256(vote), sigs, msg.sender);
+    // stakeManager.checkSignatures(keccak256(vote), sigs, extradataList[0].toAddress());
+    // TODO: fix test
 
-    // TODO: enable check for (msg.sender == proposer) in _buildHeaderBlock
-    RootChainHeader.HeaderBlock memory headerBlock = _buildHeaderBlock(extradata);
+    RootChainHeader.HeaderBlock memory headerBlock = _buildHeaderBlock(extradataList);
     headerBlocks[_nextHeaderBlock] = headerBlock;
 
     emit NewHeaderBlock(msg.sender, _nextHeaderBlock, headerBlock.start, headerBlock.end, headerBlock.root);
@@ -78,15 +79,11 @@ contract RootChain is RootChainStorage, IRootChain {
     //TODO: future implementation
   }
 
-  function _buildHeaderBlock(bytes memory data)
+  function _buildHeaderBlock(RLPReader.RLPItem[] memory dataList)
     private
     view
     returns(HeaderBlock memory headerBlock)
   {
-    RLPReader.RLPItem[] memory dataList = data.toRlpItem().toList();
-
-    // Is this required? Why does a proposer need to be the sender? Think validator relay networks
-    // require(msg.sender == dataList[0].toAddress(), "Invalid proposer");
     headerBlock.proposer = dataList[0].toAddress();
 
     uint256 nextChildBlock;

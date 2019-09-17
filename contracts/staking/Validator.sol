@@ -53,6 +53,8 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
     _;
   }
 
+  // on each checkpoint submitted by proposer, after taking validators cut
+  // amount is stored in rewards timeline
   function updateRewards(uint256 amount, uint256 checkpoint, uint256 validatorStake) public onlyOwner {
     // TODO: reduce logic
     uint256 validatorReward = amount.mul(rewardRatio).div(100);
@@ -99,7 +101,7 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
     return int(delegationManager.revertLazyUnBond(_delegators, exitEpoch, validator));
   }
 
-  function getRewards(uint256 delegatorId, uint256 delegationAmount, uint256 startEpoch, uint256 endEpoch, uint256 currentEpoch) public view returns(uint256) {
+  function calculateRewards(uint256 delegatorId, uint256 delegationAmount, uint256 startEpoch, uint256 endEpoch, uint256 currentEpoch) public view returns(uint256) {
     // TODO: use struct as param
     uint256 reward = 0;
     if (endEpoch == 0) {

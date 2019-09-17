@@ -22,17 +22,16 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
   uint256 public validatorHopLimit = 2; // checkpoint/epochs
   uint256 public WITHDRAWAL_DELAY = 0; // todo: remove if not needed use from stakeManager
 
-  // TODO: fix stakeManager<-> Registry
-  // StakeManager public stakeManager;
-
   struct Delegator {
+    // unstaking delgator
     uint256 deactivationEpoch;
     uint256 delegationStartEpoch;
     uint256 delegationStopEpoch;
+    // to keep track of validators hops
     uint256 lastValidatorEpoch;
     uint256 amount;
     uint256 reward;
-    uint256 bondedTo;
+    uint256 bondedTo; // validatorId
   }
 
   // Delegator metadata
@@ -57,19 +56,19 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     token = _token;
   }
 
-  function getRewards(uint256 delegatorId) public onlyDelegator(delegatorId) {
-    _getRewards(delegatorId);
+  function claimRewards(uint256 delegatorId) public onlyDelegator(delegatorId) {
+    _claimRewards(delegatorId);
     uint256 amount = delegators[delegatorId].reward;
     delegators[delegatorId].reward = 0;
     require(token.transfer(msg.sender, amount));
   }
 
-  function _getRewards(uint256 delegatorId) internal {
+  function _claimRewards(uint256 delegatorId) internal {
     address validator;
     StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
     uint256 currentEpoch = stakeManager.currentEpoch();
     (,,,,,,,validator,) = stakeManager.validators(delegators[delegatorId].bondedTo);
-    delegators[delegatorId].reward += ValidatorContract(validator).getRewards(
+    delegators[delegatorId].reward += ValidatorContract(validator).calculateRewards(
       delegatorId,
       delegators[delegatorId].amount,
       delegators[delegatorId].delegationStartEpoch,
@@ -84,9 +83,14 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     Delegator storage delegator = delegators[delegatorId];
 
     require(delegator.lastValidatorEpoch == 0 || delegator.lastValidatorEpoch.add(validatorHopLimit) <= currentEpoch, "Delegation_Limit_Reached");
+
+    address validator;
+    (,,,,,,,validator,) = stakeManager.validators(validatorId);
+    require(validator != address(0x0), "Unknown validatorId");
+
     // for lazy unbonding
     if (delegator.delegationStopEpoch != 0 && delegator.delegationStopEpoch < currentEpoch ) {
-      _getRewards(delegatorId);
+      _claimRewards(delegatorId);
       delegator.delegationStopEpoch = 0;
       delegator.delegationStartEpoch = 0;
     } else {
@@ -96,8 +100,6 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
         "Already_Bonded");
     }
 
-    address validator;
-    (,,,,,,,validator,) = stakeManager.validators(validatorId);
     ValidatorContract(validator).bond(delegatorId, delegator.amount, currentEpoch);
     delegator.delegationStartEpoch = currentEpoch;
     delegator.bondedTo = validatorId;
@@ -109,7 +111,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
   function unBond(uint256 delegatorId, uint256 index) public onlyDelegator(delegatorId) {
     address validator;
     StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
-    _getRewards(delegatorId);
+    _claimRewards(delegatorId);
     uint256 currentEpoch = stakeManager.currentEpoch();
     (,,,,,,,validator,) = stakeManager.validators(delegators[delegatorId].bondedTo);
     ValidatorContract(validator).unBond(delegatorId, index, delegators[delegatorId].amount, currentEpoch);
@@ -137,18 +139,18 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     uint256 delegatorId;
     for (uint256 i; i < _delegators.length; i++) {
       delegatorId = _delegators[i];
-       if (delegators[delegatorId].delegationStopEpoch == epoch) {
-         delegators[delegatorId].delegationStopEpoch = 0;
-         amount = amount.add(delegators[delegatorId].amount);
+        if (delegators[delegatorId].delegationStopEpoch == epoch) {
+          delegators[delegatorId].delegationStopEpoch = 0;
+          amount = amount.add(delegators[delegatorId].amount);
        }
-     }
+    }
     return amount;
   }
 
   function reStake(uint256 delegatorId, uint256 amount, bool stakeRewards) public onlyDelegator(delegatorId) {
     if (delegators[delegatorId].bondedTo != 0) {
       // Todo before getting rewards update validator state
-      _getRewards(delegatorId);
+      _claimRewards(delegatorId);
     }
     if (amount > 0) {
       require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");

@@ -179,9 +179,8 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     }
   }
 
-  function revoke(uint256 validatorId) public onlyStaker(validatorId) {
-    require(validators[validatorId].activationEpoch > 0 &&
-      validators[validatorId].deactivationEpoch > currentEpoch &&
+  function unJail(uint256 validatorId) public onlyStaker(validatorId) {
+    require(validators[validatorId].deactivationEpoch > currentEpoch &&
       validators[validatorId].jailTime <= currentEpoch &&
       validators[validatorId].status == Status.Locked);
 
@@ -193,7 +192,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     if (validators[validatorId].contractAddress != address(0x0)) {
       delegationAmount = ValidatorContract(validators[validatorId].contractAddress).revertLazyUnBonding(exitEpoch);
     }
-    // undo timline
+    // undo timline so that validator is normal validator
     validatorState[exitEpoch].amount = (
       validatorState[exitEpoch].amount + int256(amount) + delegationAmount);
     validatorState[exitEpoch].stakerCount = (
@@ -211,17 +210,16 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     // should unbond instantly
     uint256 exitEpoch = currentEpoch.add(UNSTAKE_DELAY);  // jail period
 
-    // update future in case of no revoke
-    validatorState[exitEpoch].amount = (
-      validatorState[exitEpoch].amount - int256(amount));
-    validatorState[exitEpoch].stakerCount = (
-      validatorState[exitEpoch].stakerCount - 1);
-
     int256 delegationAmount = 0;
     validators[validatorId].jailTime = jailCheckpoints;
     if (validators[validatorId].contractAddress != address(0x0)) {
       delegationAmount = ValidatorContract(validators[validatorId].contractAddress).unBondAllLazy(exitEpoch);
     }
+    // update future in case of no `unJail`
+    validatorState[exitEpoch].amount = (
+      validatorState[exitEpoch].amount - int256(amount) - delegationAmount);
+    validatorState[exitEpoch].stakerCount = (
+      validatorState[exitEpoch].stakerCount - 1);
 
     validators[validatorId].deactivationEpoch = exitEpoch;
     validators[validatorId].status = Status.Locked;
