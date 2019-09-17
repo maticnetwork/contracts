@@ -4,19 +4,15 @@ import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 
 contract StateSyncerVerifier is Ownable {
-  // validator set
   address public stateSyncer;
 
-  //
-  // Events
-  //
   event StateSyncerAddressChanged(
     address indexed previousAddress,
     address indexed newAddress
   );
 
   /**
-   * @dev Throws if called by any account other than the validator set.
+   * @dev Throws if called by any account other than state syncer
    */
   modifier onlyStateSyncer() {
     require(isOnlyStateSyncerContract(), "State syncer: caller is not the state syncer contract");
@@ -24,7 +20,7 @@ contract StateSyncerVerifier is Ownable {
   }
 
   /**
-   * @dev Returns true if the caller is the current validator set contract.
+   * @dev Returns true if the caller is the state syncer contract
    */
   function isOnlyStateSyncerContract() public view returns (bool) {
     return msg.sender == stateSyncer;
