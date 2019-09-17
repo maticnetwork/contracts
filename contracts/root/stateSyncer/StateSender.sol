@@ -33,7 +33,7 @@ contract StateSender is Ownable {
   }
 
   function syncState(address receiver, bytes calldata data) external onlyRegistered(receiver) {
-    emit StateSynced(counter, receiver, data);
     counter = counter.add(1);
+    emit StateSynced(counter, receiver, data);
   }
 }

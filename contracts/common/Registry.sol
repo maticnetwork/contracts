@@ -120,12 +120,8 @@ contract Registry is Ownable {
     return contractMap[WITHDRAW_MANAGER];
   }
 
-  function getChildChainContract() public view returns(address) {
-    return contractMap[CHILD_CHAIN];
-  }
-
-  function getStateSenderContract() public view returns(address) {
-    return contractMap[STATE_SENDER];
+  function getChildChainAndStateSender() public view returns(address, address) {
+    return (contractMap[CHILD_CHAIN], contractMap[STATE_SENDER]);
   }
 
   function isTokenMapped(address _token) public view returns (bool) {

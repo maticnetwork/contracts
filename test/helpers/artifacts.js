@@ -5,6 +5,7 @@ export const DepositManager = artifacts.require('DepositManager')
 export const DepositManagerProxy = artifacts.require('DepositManagerProxy')
 export const WithdrawManager = artifacts.require('WithdrawManager')
 export const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
+export const StateSender = artifacts.require('StateSender')
 
 export const ERC20Predicate = artifacts.require('ERC20Predicate')
 export const ERC721Predicate = artifacts.require('ERC721Predicate')

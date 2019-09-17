@@ -30,11 +30,12 @@ contract('DepositManager', async function(accounts) {
     console.log('gasUsed', result.receipt.gasUsed)
     const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
 
-    // Transfer, Deposit, NewDepositBlock
-    logs.should.have.lengthOf(3)
-    logs[2].event.should.equal('NewDepositBlock')
-    validateDepositBlock(logs[2].args, accounts[0], maticWeth.address, value)
-    expect(logs[2].args.depositBlockId.toString()).to.equal('1')
+    // Transfer, Deposit, StateSynced, NewDepositBlock
+    logs.should.have.lengthOf(4)
+    const depositLog = logs[3]
+    depositLog.event.should.equal('NewDepositBlock')
+    validateDepositBlock(depositLog.args, accounts[0], maticWeth.address, value)
+    expect(depositLog.args.depositBlockId.toString()).to.equal('1')
 
     const depositHash = (await depositManager.deposits(1)).depositHash
     validateDepositHash(depositHash, accounts[0], maticWeth.address, value)
@@ -47,11 +48,12 @@ contract('DepositManager', async function(accounts) {
     console.log('gasUsed', result.receipt.gasUsed)
     const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
 
-    // Transfer, Approval (ERC20 updates the spender allowance), NewDepositBlock
-    logs.should.have.lengthOf(3)
-    logs[2].event.should.equal('NewDepositBlock')
-    validateDepositBlock(logs[2].args, accounts[0], testToken.address, amount)
-    expect(logs[2].args.depositBlockId.toString()).to.equal('1')
+    // Transfer, Approval (ERC20 updates the spender allowance), StateSynced, NewDepositBlock
+    logs.should.have.lengthOf(4)
+    const depositLog = logs[3]
+    depositLog.event.should.equal('NewDepositBlock')
+    validateDepositBlock(depositLog.args, accounts[0], testToken.address, amount)
+    expect(depositLog.args.depositBlockId.toString()).to.equal('1')
 
     const depositHash = (await depositManager.deposits(1)).depositHash
     validateDepositHash(depositHash, accounts[0], testToken.address, amount)
@@ -65,11 +67,12 @@ contract('DepositManager', async function(accounts) {
     console.log('gasUsed', result.receipt.gasUsed)
     const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
 
-    // Transfer, Approval (ERC20 updates the spender allowance), NewDepositBlock
-    logs.should.have.lengthOf(3)
-    logs[2].event.should.equal('NewDepositBlock')
-    validateDepositBlock(logs[2].args, user, testToken.address, amount)
-    expect(logs[2].args.depositBlockId.toString()).to.equal('1')
+    // Transfer, Approval (ERC20 updates the spender allowance), StateSynced, NewDepositBlock
+    logs.should.have.lengthOf(4)
+    const depositLog = logs[3]
+    depositLog.event.should.equal('NewDepositBlock')
+    validateDepositBlock(depositLog.args, user, testToken.address, amount)
+    expect(depositLog.args.depositBlockId.toString()).to.equal('1')
 
     const depositHash = (await depositManager.deposits(1)).depositHash
     validateDepositHash(depositHash, user, testToken.address, amount)
@@ -84,9 +87,9 @@ contract('DepositManager', async function(accounts) {
     console.log('gasUsed', result.receipt.gasUsed)
     const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
 
-    // Transfer, NewDepositBlock
-    logs.should.have.lengthOf(2)
-    const _depositBlock = logs[1]
+    // Transfer, StateSynced, NewDepositBlock
+    logs.should.have.lengthOf(3)
+    const _depositBlock = logs[2]
     _depositBlock.event.should.equal('NewDepositBlock')
     validateDepositBlock(_depositBlock.args, accounts[0], testToken.address, tokenId)
     expect(_depositBlock.args.depositBlockId.toString()).to.equal('1')
@@ -105,9 +108,9 @@ contract('DepositManager', async function(accounts) {
     console.log('gasUsed', result.receipt.gasUsed)
     const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
 
-    // Transfer, NewDepositBlock
-    logs.should.have.lengthOf(2)
-    const _depositBlock = logs[1]
+    // Transfer, StateSynced, NewDepositBlock
+    logs.should.have.lengthOf(3)
+    const _depositBlock = logs[2]
     _depositBlock.event.should.equal('NewDepositBlock')
     validateDepositBlock(_depositBlock.args, user, testToken.address, tokenId)
     expect(_depositBlock.args.depositBlockId.toString()).to.equal('1')
@@ -141,10 +144,10 @@ contract('DepositManager', async function(accounts) {
     const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
     // assert events for erc20 transfers
     for (let i = 0; i < NUM_DEPOSITS; i++) {
-      // 3 logs per transfer - Transfer, Approval (ERC20 updates the spender allowance), NewDepositBlock
-      const logIndex = i * 3
+      // 3 logs per transfer - Transfer, Approval (ERC20 updates the spender allowance), StateSynced, NewDepositBlock
+      const logIndex = i * 4
       logs[logIndex].event.should.equal('Transfer')
-      const log = logs[logIndex + 2]
+      const log = logs[logIndex + 3]
       log.event.should.equal('NewDepositBlock')
       validateDepositBlock(log.args, user, tokens[i], amounts[i])
       expect(log.args.depositBlockId.toString()).to.equal((i + 1).toString())
@@ -154,9 +157,9 @@ contract('DepositManager', async function(accounts) {
 
     // assert events for erc721 transfers
     for (let j = 0; j < NUM_DEPOSITS; j++) {
-      const logIndex = 3 * NUM_DEPOSITS /* add erc20 events */ + j * 2 // 2 logs per transfer - Transfer, NewDepositBlock
+      const logIndex = 4 * NUM_DEPOSITS /* add erc20 events */ + j * 3 // 2 logs per transfer - Transfer, StateSynced, NewDepositBlock
       logs[logIndex].event.should.equal('Transfer')
-      const log = logs[logIndex + 1]
+      const log = logs[logIndex + 2]
       const numTransfer = j + NUM_DEPOSITS
       log.event.should.equal('NewDepositBlock')
       validateDepositBlock(log.args, user, tokens[numTransfer], amounts[numTransfer])
