@@ -1,7 +1,6 @@
 pragma solidity ^0.5.2;
 
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-// import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 
 import { StateSyncerVerifier } from "./bor/StateSyncerVerifier.sol";
 import { StateReceiver } from "./bor/StateReceiver.sol";
@@ -12,8 +11,6 @@ import "./ChildERC721.sol";
 
 
 contract ChildChain is Ownable, StateSyncerVerifier, StateReceiver {
-  // using RLPReader for bytes;
-  // using RLPReader for RLPReader.RLPItem;
 
   // mapping for (root token => child token)
   mapping(address => address) public tokens;
@@ -79,7 +76,6 @@ contract ChildChain is Ownable, StateSyncerVerifier, StateReceiver {
   }
 
   function onStateReceive(
-    uint256 id,
     bytes calldata data
   ) external onlyStateSyncer {
     (address user, address rootToken, uint256 amountOrTokenId, uint256 depositId) = abi.decode(data, (address, address, uint256, uint256));

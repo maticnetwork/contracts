@@ -15,8 +15,6 @@ contract Registry is Ownable {
 
   address public erc20Predicate;
   address public erc721Predicate;
-  address public childChain;
-  address public stateSender;
 
   mapping(bytes32 => address) contractMap;
   mapping(address => address) public rootToChildToken;
@@ -104,10 +102,6 @@ contract Registry is Ownable {
     require(proofValidatorContracts[_validator] == true);
     emit ProofValidatorRemoved(_validator, msg.sender);
     delete proofValidatorContracts[_validator];
-  }
-
-  function changeStateSender(address stateSender) public onlyOwner {
-    stateSender = newStateSender;
   }
 
   function getWethTokenAddress() public view returns(address) {

@@ -36,11 +36,11 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
   }
 
   // next 2 functions are just to update cache (since childChain and stateSender are frequently used variables)
-  function changeChildChain(address newChildChain) public {
+  function changeChildChain() public {
     childChain = registry.getChildChainContract();
   }
 
-  function updateStateSender(address newStateSender) public {
+  function updateStateSender() public {
     stateSender = StateSender(registry.getStateSenderContract());
   }
 
