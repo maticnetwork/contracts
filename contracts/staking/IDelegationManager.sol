@@ -15,7 +15,7 @@ contract IDelegationManager {
   function reStake(uint256 delegatorId, uint256 amount, bool stakeRewards) public;
   function unstake(uint256 delegatorId, uint256 index) public;
   function unstakeClaim(uint256 delegatorId) public;
-  function getRewards(uint256 delegatorId) public;
+  function claimRewards(uint256 delegatorId) public;
   function bond(uint256 delegatorId, uint256 validatorId) public;
   function unBond(uint256 delegatorId, uint256 index) public;
   function unBondLazy(uint256[] memory _delegators, uint256 epoch, address validator) public returns(uint256);

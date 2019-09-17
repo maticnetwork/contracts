@@ -42,11 +42,10 @@ contract RootChain is RootChainStorage, IRootChain {
     // validate hash of extradata was signed as part of the vote
     require(keccak256(dataList[5].toBytes()) == keccak256(abi.encodePacked(bytes20(sha256(extradata)))), "Extra data is invalid");
 
-    RLPReader.RLPItem[] memory extradataList = data.toRlpItem().toList();
+    RLPReader.RLPItem[] memory extradataList = extradata.toRlpItem().toList();
     // check if it is better to keep it in local storage instead
     IStakeManager stakeManager = IStakeManager(registry.getStakeManagerAddress());
-    // stakeManager.checkSignatures(keccak256(vote), sigs, extradataList[0].toAddress());
-    // TODO: fix test
+    stakeManager.checkSignatures(keccak256(vote), sigs, extradataList[0].toAddress());
 
     RootChainHeader.HeaderBlock memory headerBlock = _buildHeaderBlock(extradataList);
     headerBlocks[_nextHeaderBlock] = headerBlock;

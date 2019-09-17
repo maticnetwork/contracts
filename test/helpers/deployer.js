@@ -15,13 +15,23 @@ class Deployer {
   async freshDeploy(options = {}) {
     this.registry = await contracts.Registry.new()
     this.rootChain = await contracts.RootChain.new(this.registry.address)
-    this.stakeManager = await contracts.StakeManager.new(this.registry.address)
+
     this.SlashingManager = await contracts.SlashingManager.new(
       this.registry.address
     )
     this.delegationManager = await contracts.DelegationManager.new(
       this.registry.address
     )
+
+    if (options.stakeManager) {
+      this.stakeManager = await contracts.StakeManager.new(
+        this.registry.address
+      )
+    } else {
+      this.stakeManager = await contracts.StakeManagerTest.new(
+        this.registry.address
+      )
+    }
     this.exitNFT = await contracts.ExitNFT.new(this.registry.address)
     const depositManager = await this.deployDepositManager()
     const withdrawManager = await this.deployWithdrawManager()

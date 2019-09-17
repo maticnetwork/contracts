@@ -31,6 +31,8 @@ const MarketplacePredicateTest = artifacts.require('MarketplacePredicateTest')
 const TransferWithSigPredicate = artifacts.require('TransferWithSigPredicate')
 const TransferWithSigUtils = artifacts.require('TransferWithSigUtils')
 
+const StakeManagerTest = artifacts.require('StakeManagerTest')
+
 const libDeps = [
   {
     lib: BytesLib,
@@ -135,7 +137,8 @@ module.exports = async function(deployer, network) {
       deployer.deploy(DelegationManager, Registry.address),
 
       deployer.deploy(WithdrawManager),
-      deployer.deploy(DepositManager)
+      deployer.deploy(DepositManager),
+      deployer.deploy(StakeManagerTest, Registry.address)
     ])
 
     await Promise.all([

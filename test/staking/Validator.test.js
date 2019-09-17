@@ -15,7 +15,9 @@ contract('ValidatorContract', async function(accounts) {
 
   before(async function() {
     wallets = generateFirstWallets(mnemonics, 4)
-    const contracts = await deployer.freshDeploy()
+    const contracts = await deployer.freshDeploy({
+      options: { stakeManager: true }
+    })
     registry = contracts.registry
     await registry.updateContractMap(
       utils.keccak256('delegationManager'),
