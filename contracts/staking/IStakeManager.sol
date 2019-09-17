@@ -8,18 +8,21 @@ contract IStakeManager {
   event UnstakeInit(address indexed user, uint256 indexed validatorId, uint256 deactivationEpoch, uint256 indexed amount);
 
   event SignerChange(uint256 indexed validatorId, address indexed oldSigner, address indexed newSigner);
-
+  event ReStaked(uint256 indexed validatorId, uint256 amount, uint256 total);
+  event Jailed(uint256 indexed validatorId, uint256 indexed exitEpoch);
   event ThresholdChange(uint256 newThreshold, uint256 oldThreshold);
   event DynastyValueChange(uint256 newDynasty, uint256 oldDynasty);
+  event RewardUpdate(uint256 newReward, uint256 oldReward);
 
-  function stake(uint256 amount, address signer) external;
-  function stakeFor(address user, uint256 amount, address signer) external;
+  uint256 public WITHDRAWAL_DELAY = (2**13)/2; // unit: epoch
+  // Todo: fix WITHDRAWAL_DELAY with interface
+  function stake(uint256 amount, address signer, bool isContract) external;
   function unstake(uint256 validatorId) external;
   function totalStakedFor(address addr) external view returns (uint256);
-  // function totalStaked() external view returns (uint256);
-  // function token() external view returns (address);
   function supportsHistory() external pure returns (bool);
-  function checkSignatures(bytes32 voteHash, bytes memory sigs) public view returns (bool);
+  function stakeFor(address user, uint256 amount, address signer, bool isContract) public;
+  function checkSignatures(bytes32 voteHash, bytes memory sigs, address proposer) public;
+  function updateValidatorState(uint256 validatorId, uint256 epoch, int256 amount) public;
 
   // optional
   // function lastStakedFor(address addr) external view returns (uint256);
