@@ -100,8 +100,10 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     _mint(user, NFTCounter);
 
     signerToValidator[signer] = NFTCounter;
-    validatorState[currentEpoch].amount += int256(amount);
-    validatorState[currentEpoch].stakerCount += int256(1);
+    // validatorState[currentEpoch].amount += int256(amount);
+    // validatorState[currentEpoch].stakerCount += int256(1);
+
+    updateTimeLine(currentEpoch,  int256(amount), 1);
 
     emit Staked(user, NFTCounter, currentEpoch, amount, totalStaked);
     NFTCounter = NFTCounter.add(1);
@@ -125,10 +127,12 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     }
 
     //  update future
-    validatorState[exitEpoch].amount = (
-      validatorState[exitEpoch].amount - (int256(amount) + delegationAmount));
-    validatorState[exitEpoch].stakerCount = (
-      validatorState[exitEpoch].stakerCount - 1);
+    // validatorState[exitEpoch].amount = (
+    //   validatorState[exitEpoch].amount - (int256(amount) + delegationAmount));
+    // validatorState[exitEpoch].stakerCount = (
+    //   validatorState[exitEpoch].stakerCount - 1);
+    updateTimeLine(exitEpoch,  -(int256(amount) + delegationAmount ), -1);
+
     emit UnstakeInit(msg.sender, validatorId, exitEpoch, amount);
   }
 
@@ -191,10 +195,11 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       delegationAmount = ValidatorContract(validators[validatorId].contractAddress).revertLazyUnBonding(exitEpoch);
     }
     // undo timline so that validator is normal validator
-    validatorState[exitEpoch].amount = (
-      validatorState[exitEpoch].amount + int256(amount) + delegationAmount);
-    validatorState[exitEpoch].stakerCount = (
-      validatorState[exitEpoch].stakerCount + 1);
+    // validatorState[exitEpoch].amount = (
+    //   validatorState[exitEpoch].amount + int256(amount) + delegationAmount);
+    // validatorState[exitEpoch].stakerCount = (
+    //   validatorState[exitEpoch].stakerCount + 1);
+    updateTimeLine(exitEpoch,  (int256(amount) + delegationAmount ), 1);
 
     validators[validatorId].deactivationEpoch = 0;
     validators[validatorId].status = Status.Active;
@@ -214,14 +219,20 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       delegationAmount = ValidatorContract(validators[validatorId].contractAddress).unBondAllLazy(exitEpoch);
     }
     // update future in case of no `unJail`
-    validatorState[exitEpoch].amount = (
-      validatorState[exitEpoch].amount - int256(amount) - delegationAmount);
-    validatorState[exitEpoch].stakerCount = (
-      validatorState[exitEpoch].stakerCount - 1);
+    // validatorState[exitEpoch].amount = (
+    //   validatorState[exitEpoch].amount - int256(amount) - delegationAmount);
+    // validatorState[exitEpoch].stakerCount = (
+    //   validatorState[exitEpoch].stakerCount - 1);
 
+    updateTimeLine(exitEpoch,  -(int256(amount) + delegationAmount ), -1);
     validators[validatorId].deactivationEpoch = exitEpoch;
     validators[validatorId].status = Status.Locked;
     emit Jailed(validatorId, exitEpoch);
+  }
+
+  function updateTimeLine(uint256 epoch, int256 amount, int256 stakerCount) private {
+    validatorState[epoch].amount += amount;
+    validatorState[epoch].stakerCount += stakerCount;
   }
 
   // returns valid validator for current epoch
