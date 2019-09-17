@@ -54,7 +54,7 @@ class Deployer {
         this.delegationManager.address
       ),
       this.registry.updateContractMap(
-        utils.keccak256('SlashingManager'),
+        utils.keccak256('slashingManager'),
         this.SlashingManager.address
       )
     ])
