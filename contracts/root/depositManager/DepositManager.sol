@@ -35,13 +35,21 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
     depositEther();
   }
 
-  // next 2 functions are just to update cache (since childChain and stateSender are frequently used variables)
-  function changeChildChain() public {
-    childChain = registry.getChildChainContract();
-  }
-
-  function updateStateSender() public {
-    stateSender = StateSender(registry.getStateSenderContract());
+  /**
+   * @dev Caches childChain and stateSender (frequently used variables) from registry
+   */
+  function updateChildChainAndStateSender() public {
+    (address _childChain, address _stateSender) = registry.getChildChainAndStateSender();
+    require(
+      _stateSender != address(stateSender) || _childChain != childChain,
+      "Atleast one of stateSender or childChain address should change"
+    );
+    if (childChain != _childChain) {
+      childChain = _childChain;
+    }
+    if (address(stateSender) != _stateSender) {
+      stateSender = StateSender(_stateSender);
+    }
   }
 
   function transferAssets(address _token, address _user, uint256 _amountOrNFTId)

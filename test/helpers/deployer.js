@@ -18,6 +18,7 @@ class Deployer {
     this.stakeManager = await contracts.StakeManager.new()
     this.exitNFT = await contracts.ExitNFT.new(this.registry.address)
 
+    await this.deployStateSender()
     const depositManager = await this.deployDepositManager()
     const withdrawManager = await this.deployWithdrawManager()
 
@@ -67,6 +68,12 @@ class Deployer {
     return maticWeth
   }
 
+  async deployStateSender() {
+    this.stateSender = await contracts.StateSender.new()
+    await this.registry.updateContractMap(utils.keccak256('stateSender'), this.stateSender.address)
+    return this.stateSender
+  }
+
   async deployDepositManager() {
     this.depositManager = await contracts.DepositManager.new()
     this.depositManagerProxy = await contracts.DepositManagerProxy.new(
@@ -78,7 +85,13 @@ class Deployer {
       utils.keccak256('depositManager'),
       this.depositManagerProxy.address
     )
-    return contracts.DepositManager.at(this.depositManagerProxy.address)
+    this.depositManager = await contracts.DepositManager.at(this.depositManagerProxy.address)
+    if (this.stateSender) {
+      // child chain is expected to be null at this point
+      await this.stateSender.register(this.depositManager.address, '0x0000000000000000000000000000000000000000')
+      await this.depositManager.updateChildChainAndStateSender()
+    }
+    return this.depositManager
   }
 
   async deployWithdrawManager() {
@@ -208,8 +221,14 @@ class Deployer {
     return { rootERC721, childErc721 }
   }
 
-  async initializeChildChain(owner, options = {}) {
+  async initializeChildChain(owner, options = { updateRegistry: true }) {
     this.childChain = await contracts.ChildChain.new()
+    await this.childChain.changeStateSyncerAddress(owner)
+    if (options.updateRegistry) {
+      await this.registry.updateContractMap(utils.keccak256('childChain'), this.childChain.address)
+      await this.stateSender.register(this.depositManager.address, this.childChain.address)
+      await this.depositManager.updateChildChainAndStateSender()
+    }
     let res = { childChain: this.childChain }
     if (options.erc20) {
       const r = await this.deployChildErc20(owner)

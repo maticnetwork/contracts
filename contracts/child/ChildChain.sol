@@ -29,7 +29,7 @@ contract ChildChain is Ownable, StateSyncerVerifier, StateReceiver {
     address indexed childToken,
     address indexed user,
     uint256 amount,
-    uint256 depositId
+    uint256 depositCount
   );
 
   event TokenWithdrawn(
@@ -40,9 +40,7 @@ contract ChildChain is Ownable, StateSyncerVerifier, StateReceiver {
     uint256 withrawCount
   );
 
-  constructor () public {
-
-  }
+  constructor () public {}
 
   function addToken(
     address _owner,
@@ -76,6 +74,7 @@ contract ChildChain is Ownable, StateSyncerVerifier, StateReceiver {
   }
 
   function onStateReceive(
+    uint256 /* id */,
     bytes calldata data
   ) external onlyStateSyncer {
     (address user, address rootToken, uint256 amountOrTokenId, uint256 depositId) = abi.decode(data, (address, address, uint256, uint256));

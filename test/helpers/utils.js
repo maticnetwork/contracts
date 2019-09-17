@@ -110,11 +110,21 @@ export async function deposit(depositManager, childChain, rootContract, user, am
     depositBlockId = '0x' + crypto.randomBytes(32).toString('hex')
   }
   // ACLed on onlyOwner
-  const deposit = await childChain.depositTokens(rootContract.address, user, amountOrToken, depositBlockId)
+  const deposit = await childChain.onStateReceive('0xa' /* dummy id */, encodeDepositStateSync(user, rootContract.address, amountOrToken, depositBlockId))
   if (options.writeToFile) {
     await writeToFile(options.writeToFile, deposit.receipt)
   }
   return deposit
+}
+
+function encodeDepositStateSync(user, rootToken, tokenIdOrAmount, depositId) {
+  if (typeof tokenIdOrAmount !== 'string') {
+    tokenIdOrAmount = '0x' + tokenIdOrAmount.toString(16)
+  }
+  return web3.eth.abi.encodeParameters(
+    ['address', 'address', 'uint256', 'uint256'],
+    [user, rootToken, tokenIdOrAmount, depositId]
+  )
 }
 
 export function startExit(predicate, headerNumber, blockProof, blockNumber, blockTimestamp, reference, logIndex, exitTx) {

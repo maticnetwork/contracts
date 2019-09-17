@@ -21,7 +21,7 @@ let childContracts, erc20
 
 contract('ChildErc20', async function(accounts) {
   beforeEach(async function() {
-    childContracts = await deployer.initializeChildChain(accounts[0])
+    childContracts = await deployer.initializeChildChain(accounts[0], { updateRegistry: false })
     erc20 = await deployer.deployChildErc20(accounts[0], { mapToken: false })
   })
 

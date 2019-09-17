@@ -102,7 +102,7 @@ contract('ERC721Predicate', async function(accounts) {
     })
 
     it('reference: Deposit - exitTx: burn', async function() {
-      const { receipt } = await childContracts.childChain.depositTokens(childContracts.rootERC721.address, alice, tokenId, '1' /* mock depositBlockId */)
+      const { receipt } = await utils.deposit(null, childContracts.childChain, childContracts.rootERC721, alice, tokenId)
       const { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
 
       const { receipt: r } = await childContracts.childErc721.withdraw(tokenId)
