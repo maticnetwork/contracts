@@ -1,4 +1,4 @@
-pragma solidity 0.5.2;
+pragma solidity ^0.5.2;
 
 import { LibEIP712Domain } from "./EIP712.sol";
 

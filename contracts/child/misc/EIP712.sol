@@ -1,4 +1,4 @@
-pragma solidity 0.5.2;
+pragma solidity ^0.5.2;
 
 contract LibEIP712Domain {
   string constant internal EIP712_DOMAIN_SCHEMA = "EIP712Domain(string name,string version,uint256 chainId,address contract)";

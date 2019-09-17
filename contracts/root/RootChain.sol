@@ -5,9 +5,10 @@ import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { RootChainHeader, RootChainStorage } from "./RootChainStorage.sol";
+import { IStakeManager } from "../staking/IStakeManager.sol";
 import { IRootChain } from "./IRootChain.sol";
-import { IStakeManager } from "./stakeManager/IStakeManager.sol";
 import { Registry } from "../common/Registry.sol";
+
 
 
 contract RootChain is RootChainStorage, IRootChain {
@@ -40,12 +41,12 @@ contract RootChain is RootChainStorage, IRootChain {
     // validate hash of txData was signed as part of the vote
     require(keccak256(dataList[4].toBytes()) == keccak256(abi.encodePacked(sha256(txData))), "Extra data is invalid");
 
-    // check if it is better to keep it in local storage instead
-    IStakeManager stakeManager = IStakeManager(registry.getStakeManagerAddress());
-    stakeManager.checkSignatures(keccak256(vote), sigs);
-
     RootChainHeader.HeaderBlock memory headerBlock = _buildHeaderBlock(txData);
     headerBlocks[_nextHeaderBlock] = headerBlock;
+
+    // check if it is better to keep it in local storage instead
+    IStakeManager stakeManager = IStakeManager(registry.getStakeManagerAddress());
+    stakeManager.checkSignatures(keccak256(vote), sigs, headerBlock.proposer);
 
     emit NewHeaderBlock(headerBlock.proposer, _nextHeaderBlock, headerBlock.start, headerBlock.end, headerBlock.root);
     _nextHeaderBlock = _nextHeaderBlock.add(MAX_DEPOSITS);

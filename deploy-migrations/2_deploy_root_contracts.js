@@ -23,6 +23,8 @@ const DepositManagerProxy = artifacts.require('DepositManagerProxy')
 const WithdrawManager = artifacts.require('WithdrawManager')
 const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
 const StakeManager = artifacts.require('StakeManager')
+const DelegationManager = artifacts.require('DelegationManager')
+const SlashingManager = artifacts.require('SlashingManager')
 const ERC20Predicate = artifacts.require('ERC20Predicate')
 const ERC721Predicate = artifacts.require('ERC721Predicate')
 const MarketplacePredicate = artifacts.require('MarketplacePredicate')
@@ -36,11 +38,7 @@ const TestToken = artifacts.require('TestToken')
 const libDeps = [
   {
     lib: BytesLib,
-    contracts: [
-      WithdrawManager,
-      ERC20Predicate,
-      ERC721Predicate
-    ]
+    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate]
   },
   {
     lib: Common,
@@ -54,11 +52,7 @@ const libDeps = [
   },
   {
     lib: ECVerify,
-    contracts: [
-      StakeManager,
-      MarketplacePredicate,
-      TransferWithSigPredicate
-    ]
+    contracts: [StakeManager, MarketplacePredicate, TransferWithSigPredicate]
   },
   {
     lib: Merkle,
@@ -74,7 +68,12 @@ const libDeps = [
   },
   {
     lib: RLPEncode,
-    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate, MarketplacePredicate]
+    contracts: [
+      WithdrawManager,
+      ERC20Predicate,
+      ERC721Predicate,
+      MarketplacePredicate
+    ]
   },
   {
     lib: RLPReader,
@@ -88,17 +87,11 @@ const libDeps = [
   },
   {
     lib: SafeMath,
-    contracts: [
-      RootChain,
-      ERC20Predicate
-    ]
+    contracts: [RootChain, ERC20Predicate, DelegationManager, StakeManager]
   },
   {
     lib: TransferWithSigUtils,
-    contracts: [
-      MarketplacePredicate,
-      TransferWithSigPredicate
-    ]
+    contracts: [MarketplacePredicate, TransferWithSigPredicate]
   }
 ]
 
@@ -113,7 +106,9 @@ module.exports = async function(deployer, network) {
     console.log('deploying contracts...')
     await deployer.deploy(Registry)
     await deployer.deploy(RootChain, Registry.address)
-    await deployer.deploy(StakeManager)
+    await deployer.deploy(StakeManager, Registry.address)
+    await deployer.deploy(SlashingManager, Registry.address)
+    await deployer.deploy(DelegationManager, Registry.address)
 
     await deployer.deploy(DepositManager)
     await deployer.deploy(
@@ -133,10 +128,28 @@ module.exports = async function(deployer, network) {
     await deployer.deploy(ExitNFT, Registry.address)
 
     console.log('deploying predicates...')
-    await deployer.deploy(ERC20Predicate, WithdrawManagerProxy.address, DepositManagerProxy.address)
-    await deployer.deploy(ERC721Predicate, WithdrawManagerProxy.address, DepositManagerProxy.address)
-    await deployer.deploy(MarketplacePredicate, RootChain.address, WithdrawManagerProxy.address, Registry.address)
-    await deployer.deploy(TransferWithSigPredicate, RootChain.address, WithdrawManagerProxy.address, Registry.address)
+    await deployer.deploy(
+      ERC20Predicate,
+      WithdrawManagerProxy.address,
+      DepositManagerProxy.address
+    )
+    await deployer.deploy(
+      ERC721Predicate,
+      WithdrawManagerProxy.address,
+      DepositManagerProxy.address
+    )
+    await deployer.deploy(
+      MarketplacePredicate,
+      RootChain.address,
+      WithdrawManagerProxy.address,
+      Registry.address
+    )
+    await deployer.deploy(
+      TransferWithSigPredicate,
+      RootChain.address,
+      WithdrawManagerProxy.address,
+      Registry.address
+    )
 
     console.log('deploying tokens...')
     await deployer.deploy(MaticWeth)
@@ -152,6 +165,8 @@ module.exports = async function(deployer, network) {
         WithdrawManager: WithdrawManager.address,
         WithdrawManagerProxy: WithdrawManagerProxy.address,
         StakeManager: StakeManager.address,
+        SlashingManager: SlashingManager.address,
+        DelegationManager: DelegationManager.address,
         ExitNFT: ExitNFT.address,
         predicates: {
           ERC20Predicate: ERC20Predicate.address,
