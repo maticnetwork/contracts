@@ -4,7 +4,6 @@ import { IERC721Receiver } from "openzeppelin-solidity/contracts/token/ERC721/IE
 import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import { IERC721 } from "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 import { BytesLib } from "../../common/lib/BytesLib.sol";
 import { ContractReceiver } from "../../common/misc/ContractReceiver.sol";
@@ -12,10 +11,10 @@ import { Registry } from "../../common/Registry.sol";
 import { WETH } from "../../common/tokens/WETH.sol";
 import { IDepositManager } from "./IDepositManager.sol";
 import { DepositManagerStorage } from "./DepositManagerStorage.sol";
-import { StateSender } from "../state/StateSender.sol";
+import { StateSender } from "../stateSyncer/StateSender.sol";
 
 
-contract DepositManager is DepositManagerStorage, Ownable, IDepositManager, IERC721Receiver, ContractReceiver {
+contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiver, ContractReceiver {
   using SafeMath for uint256;
 
   modifier isTokenMapped(address _token) {
@@ -36,18 +35,13 @@ contract DepositManager is DepositManagerStorage, Ownable, IDepositManager, IERC
     depositEther();
   }
 
-  // change child chain
-  function changeChildChain(address newChildChain)
-    public
-    onlyOwner {
-    childChain = newChildChain;
+  // next 2 functions are just to update cache (since childChain and stateSender are frequently used variables)
+  function changeChildChain() public {
+    childChain = registry.getChildChainContract();
   }
 
-  // change state sender
-  function changeStateSender(address newStateSender)
-    public
-    onlyOwner {
-    stateSender = newStateSender;
+  function updateStateSender() public {
+    stateSender = StateSender(registry.getStateSenderContract());
   }
 
   function transferAssets(address _token, address _user, uint256 _amountOrNFTId)
@@ -169,9 +163,7 @@ contract DepositManager is DepositManagerStorage, Ownable, IDepositManager, IERC
     internal
   {
     deposits[_depositId] = DepositBlock(keccak256(abi.encodePacked(_user, _token, _amountOrToken)), now);
+    stateSender.syncState(childChain, abi.encode(_user, _token, _amountOrToken, _depositId));
     emit NewDepositBlock(_user, _token, _amountOrToken, _depositId);
-
-    // state sender
-    StateSender(stateSender).syncState(childChain, abi.encode(_user, _token, _amountOrToken, _depostiId));
   }
 }
