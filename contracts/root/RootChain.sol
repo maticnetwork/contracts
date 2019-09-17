@@ -10,7 +10,6 @@ import { IRootChain } from "./IRootChain.sol";
 import { Registry } from "../common/Registry.sol";
 
 
-
 contract RootChain is RootChainStorage, IRootChain {
   using SafeMath for uint256;
   using RLPReader for bytes;

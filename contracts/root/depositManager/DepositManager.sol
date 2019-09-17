@@ -5,7 +5,6 @@ import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import { IERC721 } from "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
-import { BytesLib } from "../../common/lib/BytesLib.sol";
 import { ContractReceiver } from "../../common/misc/ContractReceiver.sol";
 import { Registry } from "../../common/Registry.sol";
 import { WETH } from "../../common/tokens/WETH.sol";
@@ -44,12 +43,8 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
       _stateSender != address(stateSender) || _childChain != childChain,
       "Atleast one of stateSender or childChain address should change"
     );
-    if (childChain != _childChain) {
-      childChain = _childChain;
-    }
-    if (address(stateSender) != _stateSender) {
-      stateSender = StateSender(_stateSender);
-    }
+    childChain = _childChain;
+    stateSender = StateSender(_stateSender);
   }
 
   function transferAssets(address _token, address _user, uint256 _amountOrNFTId)
