@@ -136,7 +136,7 @@ contract('StakeManager<->DelegationManager', async function(accounts) {
     assertBigNumberEquality('0', delegator.delegationStopEpoch)
   })
 
-  it('getRewards', async function() {
+  it('claimRewards', async function() {
     await delegationManager.bond(1 /** delegatorId */, 1 /** validatorId */, {
       from: wallets[3].getAddressString()
     })
@@ -173,7 +173,7 @@ contract('StakeManager<->DelegationManager', async function(accounts) {
     )
     for (let i = 3; i < 6; i++) {
       let balance = await stakeToken.balanceOf(wallets[i].getAddressString())
-      await delegationManager.getRewards(i - 2, {
+      await delegationManager.claimRewards(i - 2, {
         from: wallets[i].getAddressString()
       })
       assertBigNumbergt(

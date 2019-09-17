@@ -48,9 +48,9 @@ contract('ValidatorContract', async function(accounts) {
       )
     }
     let validatorRewards = await validatorContract.validatorRewards()
-    // getRewards(delegatorId, delegationAmount, startEpoch, endEpoch, currentEpoch)
+    // claimRewards(delegatorId, delegationAmount, startEpoch, endEpoch, currentEpoch)
     //  delegatorId,  delegationAmount,  startEpoch,  endEpoch,  currentEpoch
-    let delegatorRewards = await validatorContract.getRewards(
+    let delegatorRewards = await validatorContract.calculateRewards(
       '1',
       delegatorStake,
       '1',
