@@ -25,9 +25,7 @@ contract('StakeManager<->DelegationManager', async function(accounts) {
   })
 
   beforeEach(async function() {
-    const contracts = await deployer.freshDeploy({
-      options: { stakeManager: true }
-    })
+    const contracts = await deployer.freshDeploy({ stakeManager: true })
     const amount = web3.utils.toWei('200')
     const validatorContracts = [true, true, false]
 
