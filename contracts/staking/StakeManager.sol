@@ -37,7 +37,6 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   enum Status { Inactive, Active, Locked }
 
   struct Validator {
-    uint256 epoch;
     uint256 amount;
     uint256 reward;
     uint256 activationEpoch;
@@ -89,7 +88,6 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
     validators[NFTCounter] = Validator({
       reward: 0,
-      epoch: currentEpoch,
       amount: amount,
       activationEpoch: currentEpoch,
       deactivationEpoch: 0,
@@ -173,7 +171,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     if (validators[validatorId].contractAddress != address(0x0)) {
       ValidatorContract(validators[validatorId].contractAddress).slash(slashingRate, currentEpoch, currentEpoch);
     }
-    validators[validatorId].amount -= validators[validatorId].amount.mul(slashingRate).div(100);
+    validators[validatorId].amount = validators[validatorId].amount.mul(100 - slashingRate).div(100);
     if(validators[validatorId].amount < MIN_DEPOSIT_SIZE || jailCheckpoints > 0) {
         jail(validatorId, jailCheckpoints);
     }
