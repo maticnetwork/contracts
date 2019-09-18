@@ -119,7 +119,7 @@ module.exports = async function(deployer, network) {
     console.log('deploying contracts...')
     await deployer.deploy(Registry)
     await deployer.deploy(RootChain, Registry.address)
-    await deployer.deploy(StakeManager, Registry.address)
+    await deployer.deploy(StakeManager, Registry.address, RootChain.address)
     await deployer.deploy(SlashingManager, Registry.address)
     await deployer.deploy(DelegationManager, Registry.address)
 

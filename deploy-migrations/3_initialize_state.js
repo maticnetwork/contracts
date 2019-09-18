@@ -79,7 +79,6 @@ module.exports = async function(deployer, network) {
           slashingManager.address
         )
         await stakeManager.setToken(testToken.address)
-        await stakeManager.changeRootChain(rootChain.address)
 
         // whitelist predicates
         await registry.addErc20Predicate(ERC20Predicate.address)

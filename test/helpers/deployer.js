@@ -24,12 +24,18 @@ class Deployer {
     )
 
     if (options.stakeManager) {
-      this.stakeManager = await contracts.StakeManager.new(this.registry.address)
+      this.stakeManager = await contracts.StakeManager.new(
+        this.registry.address,
+        this.rootChain.address
+      )
     } else {
-      this.stakeManager = await contracts.StakeManagerTest.new(this.registry.address)
+      this.stakeManager = await contracts.StakeManagerTest.new(
+        this.registry.address,
+        this.rootChain.address
+      )
     }
     this.exitNFT = await contracts.ExitNFT.new(this.registry.address)
-    
+
     await this.deployStateSender()
     const depositManager = await this.deployDepositManager()
     const withdrawManager = await this.deployWithdrawManager()
@@ -89,7 +95,10 @@ class Deployer {
 
   async deployStateSender() {
     this.stateSender = await contracts.StateSender.new()
-    await this.registry.updateContractMap(utils.keccak256('stateSender'), this.stateSender.address)
+    await this.registry.updateContractMap(
+      utils.keccak256('stateSender'),
+      this.stateSender.address
+    )
     return this.stateSender
   }
 
@@ -104,10 +113,15 @@ class Deployer {
       utils.keccak256('depositManager'),
       this.depositManagerProxy.address
     )
-    this.depositManager = await contracts.DepositManager.at(this.depositManagerProxy.address)
+    this.depositManager = await contracts.DepositManager.at(
+      this.depositManagerProxy.address
+    )
     if (this.stateSender) {
       // child chain is expected to be null at this point
-      await this.stateSender.register(this.depositManager.address, '0x0000000000000000000000000000000000000000')
+      await this.stateSender.register(
+        this.depositManager.address,
+        '0x0000000000000000000000000000000000000000'
+      )
       await this.depositManager.updateChildChainAndStateSender()
     }
     return this.depositManager
@@ -276,8 +290,14 @@ class Deployer {
     this.childChain = await contracts.ChildChain.new()
     await this.childChain.changeStateSyncerAddress(owner)
     if (options.updateRegistry) {
-      await this.registry.updateContractMap(utils.keccak256('childChain'), this.childChain.address)
-      await this.stateSender.register(this.depositManager.address, this.childChain.address)
+      await this.registry.updateContractMap(
+        utils.keccak256('childChain'),
+        this.childChain.address
+      )
+      await this.stateSender.register(
+        this.depositManager.address,
+        this.childChain.address
+      )
       await this.depositManager.updateChildChainAndStateSender()
     }
     let res = { childChain: this.childChain }

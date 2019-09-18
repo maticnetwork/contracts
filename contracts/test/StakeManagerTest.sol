@@ -8,7 +8,7 @@ contract StakeManagerTest is StakeManager {
     _;
   }
 
-  constructor (address _registry) StakeManager(_registry) public {
+  constructor (address _registry, address _rootChain) StakeManager(_registry, _rootChain) public {
   }
 
   function checkSignatures(bytes32 voteHash, bytes memory sigs, address proposer) public onlyRootChain {

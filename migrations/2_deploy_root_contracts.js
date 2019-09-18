@@ -132,13 +132,13 @@ module.exports = async function(deployer, network) {
     await deployer.deploy(Registry)
     await Promise.all([
       deployer.deploy(RootChain, Registry.address),
-      deployer.deploy(StakeManager, Registry.address),
+      deployer.deploy(StakeManager, Registry.address, RootChain.address),
       deployer.deploy(SlashingManager, Registry.address),
       deployer.deploy(DelegationManager, Registry.address),
 
       deployer.deploy(WithdrawManager),
       deployer.deploy(DepositManager),
-      deployer.deploy(StakeManagerTest, Registry.address)
+      deployer.deploy(StakeManagerTest, Registry.address, RootChain.address)
     ])
 
     await Promise.all([
