@@ -13,6 +13,7 @@ contract IStakeManager {
   event ThresholdChange(uint256 newThreshold, uint256 oldThreshold);
   event DynastyValueChange(uint256 newDynasty, uint256 oldDynasty);
   event RewardUpdate(uint256 newReward, uint256 oldReward);
+  event StakeUpdate(uint256 indexed validatorId, uint256 indexed oldAmount, uint256 indexed newAmount);
 
   uint256 public WITHDRAWAL_DELAY = (2**13)/2; // unit: epoch
   // Todo: fix WITHDRAWAL_DELAY with interface
