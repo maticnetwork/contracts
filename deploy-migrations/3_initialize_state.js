@@ -2,7 +2,9 @@ const ethUtils = require('ethereumjs-util')
 const bluebird = require('bluebird')
 
 const Registry = artifacts.require('Registry')
+const RootChain = artifacts.require('RootChain')
 const DepositManagerProxy = artifacts.require('DepositManagerProxy')
+const StateSender = artifacts.require('StateSender')
 const WithdrawManager = artifacts.require('WithdrawManager')
 const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
 const StakeManager = artifacts.require('StakeManager')
@@ -23,7 +25,9 @@ module.exports = async function(deployer, network) {
       .all([
         TestToken.deployed(),
         Registry.deployed(),
+        RootChain.deployed(),
         DepositManagerProxy.deployed(),
+        StateSender.deployed(),
         WithdrawManagerProxy.deployed(),
         StakeManager.deployed(),
         DelegationManager.deployed(),
@@ -38,7 +42,9 @@ module.exports = async function(deployer, network) {
       .spread(async function(
         testToken,
         registry,
+        rootChain,
         depositManagerProxy,
+        stateSender,
         withdrawManagerProxy,
         stakeManager,
         delegationManager,
@@ -50,7 +56,6 @@ module.exports = async function(deployer, network) {
         MarketplacePredicate,
         TransferWithSigPredicate
       ) {
-        console.log('contract addresses', registry.address, maticWeth.address)
         const _withdrawManager = await WithdrawManager.at(
           withdrawManagerProxy.address
         )
@@ -74,6 +79,10 @@ module.exports = async function(deployer, network) {
         await registry.updateContractMap(
           ethUtils.keccak256('slashingManager'),
           slashingManager.address
+        )
+        await registry.updateContractMap(
+          ethUtils.keccak256('stateSender'),
+          stateSender.address
         )
         await stakeManager.setToken(testToken.address)
 

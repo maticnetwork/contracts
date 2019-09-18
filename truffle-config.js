@@ -3,7 +3,9 @@ require('babel-polyfill')
 
 var HDWalletProvider = require('truffle-hdwallet-provider')
 
-const MNEMONIC = process.env.MNEMONIC || 'clock radar mass judge dismiss just intact mind resemble fringe diary casino'
+const MNEMONIC =
+  process.env.MNEMONIC ||
+  'clock radar mass judge dismiss just intact mind resemble fringe diary casino'
 const API_KEY = process.env.API_KEY
 
 module.exports = {
@@ -22,9 +24,14 @@ module.exports = {
       network_id: '*' // match any network
     },
     ropsten: {
-      provider: () => new HDWalletProvider(MNEMONIC, `https://ropsten.infura.io/v3/${API_KEY}`, 1),
+      provider: () =>
+        new HDWalletProvider(
+          MNEMONIC,
+          `https://ropsten.infura.io/v3/${API_KEY}`,
+          1
+        ),
       network_id: 3,
-      // gas: 8000000,
+      gas: 8000000,
       gasPrice: 100000000000,
       skipDryRun: true
       // confirmations: 5
@@ -51,10 +58,11 @@ module.exports = {
     },
     matic: {
       provider: function() {
-        return new HDWalletProvider(MNEMONIC, `https://testnet.matic.network`)
+        return new HDWalletProvider(MNEMONIC, `https://testnet2.matic.network`)
       },
-      network_id: 13,
-      gas: 400000000
+      network_id: 8995,
+      gas: 8000000,
+      confirmations: 2
     }
   },
   compilers: {

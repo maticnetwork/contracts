@@ -22,6 +22,7 @@ const DepositManager = artifacts.require('DepositManager')
 const DepositManagerProxy = artifacts.require('DepositManagerProxy')
 const WithdrawManager = artifacts.require('WithdrawManager')
 const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
+const StateSender = artifacts.require('StateSender')
 const StakeManager = artifacts.require('StakeManager')
 const DelegationManager = artifacts.require('DelegationManager')
 const SlashingManager = artifacts.require('SlashingManager')
@@ -52,7 +53,12 @@ const libDeps = [
   },
   {
     lib: ECVerify,
-    contracts: [StakeManager, MarketplacePredicate, TransferWithSigPredicate]
+    contracts: [
+      StakeManager,
+      MarketplacePredicate,
+      TransferWithSigPredicate,
+      SlashingManager
+    ]
   },
   {
     lib: Merkle,
@@ -79,6 +85,7 @@ const libDeps = [
     lib: RLPReader,
     contracts: [
       RootChain,
+      SlashingManager,
       ERC20Predicate,
       ERC721Predicate,
       MarketplacePredicate,
@@ -87,7 +94,13 @@ const libDeps = [
   },
   {
     lib: SafeMath,
-    contracts: [RootChain, ERC20Predicate, DelegationManager, StakeManager]
+    contracts: [
+      RootChain,
+      ERC20Predicate,
+      DelegationManager,
+      StakeManager,
+      StateSender
+    ]
   },
   {
     lib: TransferWithSigUtils,
@@ -106,9 +119,11 @@ module.exports = async function(deployer, network) {
     console.log('deploying contracts...')
     await deployer.deploy(Registry)
     await deployer.deploy(RootChain, Registry.address)
-    await deployer.deploy(StakeManager, Registry.address)
+    await deployer.deploy(StakeManager, Registry.address, RootChain.address)
     await deployer.deploy(SlashingManager, Registry.address)
     await deployer.deploy(DelegationManager, Registry.address)
+
+    await deployer.deploy(StateSender)
 
     await deployer.deploy(DepositManager)
     await deployer.deploy(
@@ -168,6 +183,7 @@ module.exports = async function(deployer, network) {
         SlashingManager: SlashingManager.address,
         DelegationManager: DelegationManager.address,
         ExitNFT: ExitNFT.address,
+        StateSender: StateSender.address,
         predicates: {
           ERC20Predicate: ERC20Predicate.address,
           ERC721Predicate: ERC721Predicate.address,
