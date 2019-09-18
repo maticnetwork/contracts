@@ -26,7 +26,7 @@ contract('RootChain', async function(accounts) {
   })
 
   beforeEach(async function() {
-    const contracts = await deployer.freshDeploy()
+    const contracts = await deployer.freshDeploy({ stakeManager: true })
     rootChain = contracts.rootChain
     stakeManager = contracts.stakeManager
     stakeToken = await DummyERC20.new('Stake Token', 'STAKE')

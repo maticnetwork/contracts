@@ -18,9 +18,7 @@ contract('DelegationManager', async function(accounts) {
   })
 
   beforeEach(async function() {
-    const contracts = await deployer.freshDeploy({
-      options: { stakeManager: true }
-    })
+    const contracts = await deployer.freshDeploy({ stakeManager: true })
     // setToken
     stakeManager = contracts.stakeManager
     delegationManager = contracts.delegationManager
