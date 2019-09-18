@@ -28,7 +28,7 @@ contract RootChainable is Ownable {
    * @dev Allows the current owner to change root chain address.
    * @param newRootChain The address to new rootchain.
    */
-  function changeRootChain(address newRootChain) external onlyOwner {
+  function changeRootChain(address newRootChain) public onlyOwner {
     require(newRootChain != address(0));
     emit RootChainChanged(rootChain, newRootChain);
     rootChain = newRootChain;
