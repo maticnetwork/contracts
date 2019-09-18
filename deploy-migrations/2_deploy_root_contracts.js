@@ -183,6 +183,7 @@ module.exports = async function(deployer, network) {
         SlashingManager: SlashingManager.address,
         DelegationManager: DelegationManager.address,
         ExitNFT: ExitNFT.address,
+        StateSender: StateSender.address,
         predicates: {
           ERC20Predicate: ERC20Predicate.address,
           ERC721Predicate: ERC721Predicate.address,
