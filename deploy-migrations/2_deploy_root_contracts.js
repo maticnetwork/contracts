@@ -22,6 +22,7 @@ const DepositManager = artifacts.require('DepositManager')
 const DepositManagerProxy = artifacts.require('DepositManagerProxy')
 const WithdrawManager = artifacts.require('WithdrawManager')
 const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
+const StateSender = artifacts.require('StateSender')
 const StakeManager = artifacts.require('StakeManager')
 const DelegationManager = artifacts.require('DelegationManager')
 const SlashingManager = artifacts.require('SlashingManager')
@@ -93,7 +94,13 @@ const libDeps = [
   },
   {
     lib: SafeMath,
-    contracts: [RootChain, ERC20Predicate, DelegationManager, StakeManager]
+    contracts: [
+      RootChain,
+      ERC20Predicate,
+      DelegationManager,
+      StakeManager,
+      StateSender
+    ]
   },
   {
     lib: TransferWithSigUtils,
@@ -115,6 +122,8 @@ module.exports = async function(deployer, network) {
     await deployer.deploy(StakeManager, Registry.address)
     await deployer.deploy(SlashingManager, Registry.address)
     await deployer.deploy(DelegationManager, Registry.address)
+
+    await deployer.deploy(StateSender)
 
     await deployer.deploy(DepositManager)
     await deployer.deploy(
