@@ -19,8 +19,7 @@ npm run truffle:compile
 mv migrations dev-migrations && cp -r deploy-migrations migrations
 
 (local)
-npm run truffle:migrate -- --reset --network development --to 2
-npm run truffle:migrate -- --reset --network development -f 3 --to 3
+npm run truffle:migrate -- --reset --network development --to 3
 npm run truffle:migrate -- --reset --network matic_dev -f 4 --to 4
 npm run truffle:migrate -- --network development -f 5 --to 5
 
