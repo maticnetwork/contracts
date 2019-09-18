@@ -52,7 +52,12 @@ const libDeps = [
   },
   {
     lib: ECVerify,
-    contracts: [StakeManager, MarketplacePredicate, TransferWithSigPredicate]
+    contracts: [
+      StakeManager,
+      MarketplacePredicate,
+      TransferWithSigPredicate,
+      SlashingManager
+    ]
   },
   {
     lib: Merkle,
@@ -79,6 +84,7 @@ const libDeps = [
     lib: RLPReader,
     contracts: [
       RootChain,
+      SlashingManager,
       ERC20Predicate,
       ERC721Predicate,
       MarketplacePredicate,

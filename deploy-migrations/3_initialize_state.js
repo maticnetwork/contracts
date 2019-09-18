@@ -2,6 +2,7 @@ const ethUtils = require('ethereumjs-util')
 const bluebird = require('bluebird')
 
 const Registry = artifacts.require('Registry')
+const RootChain = artifacts.require('RootChain')
 const DepositManagerProxy = artifacts.require('DepositManagerProxy')
 const WithdrawManager = artifacts.require('WithdrawManager')
 const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
@@ -23,6 +24,7 @@ module.exports = async function(deployer, network) {
       .all([
         TestToken.deployed(),
         Registry.deployed(),
+        RootChain.deployed(),
         DepositManagerProxy.deployed(),
         WithdrawManagerProxy.deployed(),
         StakeManager.deployed(),
@@ -38,6 +40,7 @@ module.exports = async function(deployer, network) {
       .spread(async function(
         testToken,
         registry,
+        rootChain,
         depositManagerProxy,
         withdrawManagerProxy,
         stakeManager,
@@ -76,6 +79,7 @@ module.exports = async function(deployer, network) {
           slashingManager.address
         )
         await stakeManager.setToken(testToken.address)
+        await stakeManager.changeRootChain(rootChain.address)
 
         // whitelist predicates
         await registry.addErc20Predicate(ERC20Predicate.address)
