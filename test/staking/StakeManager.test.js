@@ -27,9 +27,11 @@ contract('StakeManager', async function(accounts) {
     before(async function() {
       wallets = generateFirstWallets(mnemonics, 10)
       stakeToken = await DummyERC20.new('Stake Token', 'STAKE')
-      stakeManager = await StakeManager.new(stakeToken.address) // dummy registry address
+      stakeManager = await StakeManager.new(
+        stakeToken.address,
+        wallets[1].getAddressString()
+      ) // dummy registry address
       await stakeManager.setToken(stakeToken.address)
-      await stakeManager.changeRootChain(wallets[1].getAddressString())
 
       // transfer tokens to other accounts
       await stakeToken.mint(
