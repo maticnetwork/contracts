@@ -6,6 +6,7 @@ import { MarketplacePredicate } from "../root/predicates/MarketplacePredicate.so
 import { ERC20Predicate } from "../root/predicates/ERC20Predicate.sol";
 
 contract MarketplacePredicateTest is MarketplacePredicate {
+  bytes constant public NETWORK_ID = hex"3A99";
 
   constructor()
     MarketplacePredicate(address(0x0), address(0x0), address(0x0))
@@ -28,8 +29,17 @@ contract MarketplacePredicateTest is MarketplacePredicate {
     view
     returns(bytes memory b)
   {
-    ExitTxData memory txData = super.processExitTx(exitTx, "\x0d", msg.sender);
+    ExitTxData memory txData = super.processExitTx(exitTx, NETWORK_ID, msg.sender);
     b = abi.encode(txData.amount1, txData.amount2, txData.token1, txData.token2, txData.counterParty);
+  }
+
+  function testGetAddressFromTx(bytes memory exitTx)
+    public
+    pure
+    returns (address signer, bytes32 txHash)
+  {
+    RLPReader.RLPItem[] memory txList = exitTx.toRlpItem().toList();
+    (signer, txHash) = getAddressFromTx(txList, NETWORK_ID);
   }
 
   function decodeExitTx(bytes memory exitTx)

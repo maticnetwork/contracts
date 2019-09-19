@@ -13,7 +13,7 @@ contract Registry is Ownable {
   bytes32 constant private CHILD_CHAIN = keccak256("childChain");
   bytes32 constant private STATE_SENDER = keccak256("stateSender");
   bytes32 constant private SLASHING_MANAGER = keccak256("slashingManager");
-  bytes constant public networkId = "\x0d";
+  bytes constant public networkId = hex"3A99";
 
   address public erc20Predicate;
   address public erc721Predicate;

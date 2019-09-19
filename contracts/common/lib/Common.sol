@@ -4,7 +4,7 @@ import "./BytesLib.sol";
 
 
 library Common {
-  function getV(bytes memory v, uint8 chainId) public pure returns (uint8) {
+  function getV(bytes memory v, uint16 chainId) public pure returns (uint8) {
     if (chainId > 0) {
       return uint8(BytesLib.toUint(BytesLib.leftPad(v), 0) - (chainId * 2) - 8);
     } else {
@@ -34,5 +34,9 @@ library Common {
   // convert bytes to uint8
   function toUint8(bytes memory _arg) public pure returns (uint8) {
     return uint8(_arg[0]);
+  }
+
+  function toUint16(bytes memory _arg) public pure returns (uint16) {
+    return (uint16(uint8(_arg[0])) << 8) | uint16(uint8(_arg[1]));
   }
 }

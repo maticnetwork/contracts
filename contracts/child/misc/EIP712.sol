@@ -6,7 +6,7 @@ contract LibEIP712Domain {
 
   string constant internal EIP712_DOMAIN_NAME = "Matic Network";
   string constant internal EIP712_DOMAIN_VERSION = "1";
-  uint256 constant internal EIP712_DOMAIN_CHAINID = 13;
+  uint256 constant internal EIP712_DOMAIN_CHAINID = 15001;
 
   bytes32 public EIP712_DOMAIN_HASH;
 
