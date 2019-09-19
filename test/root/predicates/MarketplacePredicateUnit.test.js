@@ -27,7 +27,7 @@ contract('MarketplacePredicate (from mocked responses)', async function(accounts
   before(async function() {
     erc721Predicate = await artifacts.ERC721Predicate.deployed()
     erc20Predicate = await artifacts.ERC20Predicate.deployed()
-    predicate = await artifacts.MarketplacePredicateTest.deployed()
+    predicate = await artifacts.MarketplacePredicateTest.new()
   })
 
   it('processLogTransferReceipt (Erc20 Deposit)', async function() {
@@ -137,7 +137,6 @@ contract('MarketplacePredicate (from mocked responses)', async function(accounts
   it('processExitTx (20/721)', async function() {
     const event = executeOrder_E20_E721
     const startExit = await predicate.processExitTx(ethUtils.bufferToHex(buildInFlight(event.tx)))
-    // console.log('startExit', startExit)
     const ans = startExit.slice(2)
     const input = parseRawTxData(Buffer.from(event.tx.input.slice(2), 'hex'))
     assert.equal(parseInt(ans.slice(0, 64), 16), parseInt(input.data1.tokenIdOrAmount))
@@ -145,6 +144,12 @@ contract('MarketplacePredicate (from mocked responses)', async function(accounts
     assert.equal(ans.slice(128, 192).slice(24).toLowerCase(), input.data1.token.slice(2).toLowerCase())
     assert.equal(ans.slice(192, 256).slice(24).toLowerCase(), input.data2.token.slice(2).toLowerCase())
     assert.equal(ans.slice(256).toLowerCase(), input.taker.toString('hex').toLowerCase())
+  })
+
+  it('testGetAddressFromTx', async function() {
+    let event = executeOrder
+    const getAddressFromTx = await predicate.testGetAddressFromTx(ethUtils.bufferToHex(buildInFlight(event.tx)))
+    assert.equal(getAddressFromTx.signer, event.tx.from)
   })
 })
 
