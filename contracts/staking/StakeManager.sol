@@ -160,6 +160,8 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     validators[validatorId].amount += amount;
     validatorState[currentEpoch].amount = (
       validatorState[currentEpoch].amount + int256(amount));
+
+    emit StakeUpdate(validatorId, validators[validatorId].amount.sub(amount), validators[validatorId].amount);
     emit ReStaked(validatorId, validators[validatorId].amount, totalStaked);
   }
 
@@ -169,10 +171,13 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     if (validators[validatorId].contractAddress != address(0x0)) {
       ValidatorContract(validators[validatorId].contractAddress).slash(slashingRate, currentEpoch, currentEpoch);
     }
-    validators[validatorId].amount = validators[validatorId].amount.mul(100 - slashingRate).div(100);
+    uint256 amount = validators[validatorId].amount.mul(slashingRate).div(100);
+    validators[validatorId].amount = validators[validatorId].amount.sub(amount);
     if(validators[validatorId].amount < MIN_DEPOSIT_SIZE || jailCheckpoints > 0) {
         jail(validatorId, jailCheckpoints);
     }
+    // todo: slash event
+    emit StakeUpdate(validatorId, validators[validatorId].amount.add(amount), validators[validatorId].amount);
   }
 
   function unJail(uint256 validatorId) public onlyStaker(validatorId) {
