@@ -1,0 +1,404 @@
+{
+  "contractName": "IParentToken",
+  "abi": [
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "name": "to",
+          "type": "address"
+        },
+        {
+          "name": "value",
+          "type": "uint256"
+        }
+      ],
+      "name": "beforeTransfer",
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "metadata": "{\"compiler\":{\"version\":\"0.5.7+commit.6da8b019\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"constant\":false,\"inputs\":[{\"name\":\"sender\",\"type\":\"address\"},{\"name\":\"to\",\"type\":\"address\"},{\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"beforeTransfer\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"methods\":{}},\"userdoc\":{\"methods\":{}}},\"settings\":{\"compilationTarget\":{\"/Users/arpit/projects/contracts/contracts/child/misc/IParentToken.sol\":\"IParentToken\"},\"evmVersion\":\"constantinople\",\"libraries\":{},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"/Users/arpit/projects/contracts/contracts/child/misc/IParentToken.sol\":{\"keccak256\":\"0x43c4ecc508957b485aac6cf2d037ad3aaca85d2cdd41f0247adda7134c369740\",\"urls\":[\"bzzr://b8c1d63d0d24108205c895c4cb9705e987241c337cc55f4fa554b1f83d064c33\"]}},\"version\":1}",
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "sourceMap": "",
+  "deployedSourceMap": "",
+  "source": "pragma solidity ^0.5.2;\n//interface for parent contract of any child token\n\n\ninterface IParentToken {\n  function beforeTransfer(address sender, address to, uint256 value) external returns(bool);\n}\n",
+  "sourcePath": "/Users/arpit/projects/contracts/contracts/child/misc/IParentToken.sol",
+  "ast": {
+    "absolutePath": "/Users/arpit/projects/contracts/contracts/child/misc/IParentToken.sol",
+    "exportedSymbols": {
+      "IParentToken": [
+        1378
+      ]
+    },
+    "id": 1379,
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 1366,
+        "literals": [
+          "solidity",
+          "^",
+          "0.5",
+          ".2"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "0:23:9"
+      },
+      {
+        "baseContracts": [],
+        "contractDependencies": [],
+        "contractKind": "interface",
+        "documentation": null,
+        "fullyImplemented": false,
+        "id": 1378,
+        "linearizedBaseContracts": [
+          1378
+        ],
+        "name": "IParentToken",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "body": null,
+            "documentation": null,
+            "id": 1377,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "beforeTransfer",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 1373,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 1368,
+                  "name": "sender",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1377,
+                  "src": "128:14:9",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 1367,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "128:7:9",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 1370,
+                  "name": "to",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1377,
+                  "src": "144:10:9",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 1369,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "144:7:9",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 1372,
+                  "name": "value",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1377,
+                  "src": "156:13:9",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 1371,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "156:7:9",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "127:43:9"
+            },
+            "returnParameters": {
+              "id": 1376,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 1375,
+                  "name": "",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1377,
+                  "src": "188:4:9",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bool",
+                    "typeString": "bool"
+                  },
+                  "typeName": {
+                    "id": 1374,
+                    "name": "bool",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "188:4:9",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "187:6:9"
+            },
+            "scope": 1378,
+            "src": "104:90:9",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "external"
+          }
+        ],
+        "scope": 1379,
+        "src": "77:119:9"
+      }
+    ],
+    "src": "0:197:9"
+  },
+  "legacyAST": {
+    "absolutePath": "/Users/arpit/projects/contracts/contracts/child/misc/IParentToken.sol",
+    "exportedSymbols": {
+      "IParentToken": [
+        1378
+      ]
+    },
+    "id": 1379,
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 1366,
+        "literals": [
+          "solidity",
+          "^",
+          "0.5",
+          ".2"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "0:23:9"
+      },
+      {
+        "baseContracts": [],
+        "contractDependencies": [],
+        "contractKind": "interface",
+        "documentation": null,
+        "fullyImplemented": false,
+        "id": 1378,
+        "linearizedBaseContracts": [
+          1378
+        ],
+        "name": "IParentToken",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "body": null,
+            "documentation": null,
+            "id": 1377,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "beforeTransfer",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 1373,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 1368,
+                  "name": "sender",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1377,
+                  "src": "128:14:9",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 1367,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "128:7:9",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 1370,
+                  "name": "to",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1377,
+                  "src": "144:10:9",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 1369,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "144:7:9",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 1372,
+                  "name": "value",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1377,
+                  "src": "156:13:9",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 1371,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "156:7:9",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "127:43:9"
+            },
+            "returnParameters": {
+              "id": 1376,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 1375,
+                  "name": "",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 1377,
+                  "src": "188:4:9",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bool",
+                    "typeString": "bool"
+                  },
+                  "typeName": {
+                    "id": 1374,
+                    "name": "bool",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "188:4:9",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "187:6:9"
+            },
+            "scope": 1378,
+            "src": "104:90:9",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "external"
+          }
+        ],
+        "scope": 1379,
+        "src": "77:119:9"
+      }
+    ],
+    "src": "0:197:9"
+  },
+  "compiler": {
+    "name": "solc",
+    "version": "0.5.7+commit.6da8b019.Emscripten.clang"
+  },
+  "networks": {},
+  "schemaVersion": "3.0.16",
+  "updatedAt": "2019-09-21T10:53:38.841Z",
+  "devdoc": {
+    "methods": {}
+  },
+  "userdoc": {
+    "methods": {}
+  }
+}

@@ -1,0 +1,325 @@
+{
+  "contractName": "ProxyStorage",
+  "abi": [
+    {
+      "constant": false,
+      "inputs": [],
+      "name": "renounceOwnership",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "isOwner",
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "transferOwnership",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "name": "previousOwner",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "OwnershipTransferred",
+      "type": "event"
+    }
+  ],
+  "metadata": "{\"compiler\":{\"version\":\"0.5.7+commit.6da8b019\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"constant\":false,\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"isOwner\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"}],\"devdoc\":{\"methods\":{\"isOwner()\":{\"return\":\"true if `msg.sender` is the owner of the contract.\"},\"owner()\":{\"return\":\"the address of the owner.\"},\"renounceOwnership()\":{\"details\":\"Allows the current owner to relinquish control of the contract. It will not be possible to call the functions with the `onlyOwner` modifier anymore.\"},\"transferOwnership(address)\":{\"details\":\"Allows the current owner to transfer control of the contract to a newOwner.\",\"params\":{\"newOwner\":\"The address to transfer ownership to.\"}}}},\"userdoc\":{\"methods\":{\"renounceOwnership()\":{\"notice\":\"Renouncing ownership will leave the contract without an owner, thereby removing any functionality that is only available to the owner.\"}}}},\"settings\":{\"compilationTarget\":{\"/Users/arpit/projects/contracts/contracts/common/misc/ProxyStorage.sol\":\"ProxyStorage\"},\"evmVersion\":\"constantinople\",\"libraries\":{},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"/Users/arpit/projects/contracts/contracts/common/misc/ProxyStorage.sol\":{\"keccak256\":\"0x0648b0e0e84be908da595e3a79baaa978f5b57af15598523b2da9515b128f6fd\",\"urls\":[\"bzzr://d0e8df5ed1449bf4ee3b73f9dad08c309dc6b5d3f768695e623cba165f9d3422\"]},\"openzeppelin-solidity/contracts/ownership/Ownable.sol\":{\"keccak256\":\"0xcb16adc00dcf0d75e0bdf94379f4d5a6d74dca7c74e4183b94e15721159f8a30\",\"urls\":[\"bzzr://b81e03f7203cd628cfed19255911a04a05e8670d248afb48a7b067dd03b4ff55\"]}},\"version\":1}",
+  "bytecode": "0x60806040819052600080546001600160a01b03191633178082556001600160a01b0316917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0908290a36101f3806100576000396000f3fe608060405234801561001057600080fd5b506004361061004c5760003560e01c8063715018a6146100515780638da5cb5b1461005b5780638f32d59b1461007f578063f2fde38b1461009b575b600080fd5b6100596100c1565b005b61006361011c565b604080516001600160a01b039092168252519081900360200190f35b61008761012b565b604080519115158252519081900360200190f35b610059600480360360208110156100b157600080fd5b50356001600160a01b031661013c565b6100c961012b565b6100d257600080fd5b600080546040516001600160a01b03909116907f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0908390a3600080546001600160a01b0319169055565b6000546001600160a01b031690565b6000546001600160a01b0316331490565b61014461012b565b61014d57600080fd5b61015681610159565b50565b6001600160a01b03811661016c57600080fd5b600080546040516001600160a01b03808516939216917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e091a3600080546001600160a01b0319166001600160a01b039290921691909117905556fea165627a7a72305820912a490dcd36ccf4431fb1308576b0246a95c2cfef4969b26b48cda96320eb0c0029",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b506004361061004c5760003560e01c8063715018a6146100515780638da5cb5b1461005b5780638f32d59b1461007f578063f2fde38b1461009b575b600080fd5b6100596100c1565b005b61006361011c565b604080516001600160a01b039092168252519081900360200190f35b61008761012b565b604080519115158252519081900360200190f35b610059600480360360208110156100b157600080fd5b50356001600160a01b031661013c565b6100c961012b565b6100d257600080fd5b600080546040516001600160a01b03909116907f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0908390a3600080546001600160a01b0319169055565b6000546001600160a01b031690565b6000546001600160a01b0316331490565b61014461012b565b61014d57600080fd5b61015681610159565b50565b6001600160a01b03811661016c57600080fd5b600080546040516001600160a01b03808516939216917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e091a3600080546001600160a01b0319166001600160a01b039290921691909117905556fea165627a7a72305820912a490dcd36ccf4431fb1308576b0246a95c2cfef4969b26b48cda96320eb0c0029",
+  "sourceMap": "107:64:25:-;;;;;515:6:69;:19;;-1:-1:-1;;;;;;515:19:69;524:10;515:19;;;;-1:-1:-1;;;;;582:6:69;;549:40;;515:6;;549:40;107:64:25;;;;;;",
+  "deployedSourceMap": "107:64:25:-;;;;8:9:-1;5:2;;;30:1;27;20:12;5:2;107:64:25;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1423:137:69;;;:::i;:::-;;659:77;;;:::i;:::-;;;;-1:-1:-1;;;;;659:77:69;;;;;;;;;;;;;;979:90;;;:::i;:::-;;;;;;;;;;;;;;;;;;1731:107;;;;;;13:2:-1;8:3;5:11;2:2;;;29:1;26;19:12;2:2;-1:-1;1731:107:69;-1:-1:-1;;;;;1731:107:69;;:::i;1423:137::-;863:9;:7;:9::i;:::-;855:18;;;;;;1521:1;1505:6;;1484:40;;-1:-1:-1;;;;;1505:6:69;;;;1484:40;;1521:1;;1484:40;1551:1;1534:19;;-1:-1:-1;;;;;;1534:19:69;;;1423:137::o;659:77::-;697:7;723:6;-1:-1:-1;;;;;723:6:69;659:77;:::o;979:90::-;1019:4;1056:6;-1:-1:-1;;;;;1056:6:69;1042:10;:20;;979:90::o;1731:107::-;863:9;:7;:9::i;:::-;855:18;;;;;;1803:28;1822:8;1803:18;:28::i;:::-;1731:107;:::o;1982:183::-;-1:-1:-1;;;;;2055:22:69;;2047:31;;;;;;2114:6;;;2093:38;;-1:-1:-1;;;;;2093:38:69;;;;2114:6;;;2093:38;;;2141:6;:17;;-1:-1:-1;;;;;;2141:17:69;-1:-1:-1;;;;;2141:17:69;;;;;;;;;;1982:183::o",
+  "source": "pragma solidity ^0.5.2;\nimport { Ownable } from \"openzeppelin-solidity/contracts/ownership/Ownable.sol\";\n\n\ncontract ProxyStorage is Ownable {\n  address internal proxyTo;\n}\n",
+  "sourcePath": "/Users/arpit/projects/contracts/contracts/common/misc/ProxyStorage.sol",
+  "ast": {
+    "absolutePath": "/Users/arpit/projects/contracts/contracts/common/misc/ProxyStorage.sol",
+    "exportedSymbols": {
+      "ProxyStorage": [
+        3959
+      ]
+    },
+    "id": 3960,
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 3952,
+        "literals": [
+          "solidity",
+          "^",
+          "0.5",
+          ".2"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "0:23:25"
+      },
+      {
+        "absolutePath": "openzeppelin-solidity/contracts/ownership/Ownable.sol",
+        "file": "openzeppelin-solidity/contracts/ownership/Ownable.sol",
+        "id": 3954,
+        "nodeType": "ImportDirective",
+        "scope": 3960,
+        "sourceUnit": 17254,
+        "src": "24:80:25",
+        "symbolAliases": [
+          {
+            "foreign": 3953,
+            "local": null
+          }
+        ],
+        "unitAlias": ""
+      },
+      {
+        "baseContracts": [
+          {
+            "arguments": null,
+            "baseName": {
+              "contractScope": null,
+              "id": 3955,
+              "name": "Ownable",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 17253,
+              "src": "132:7:25",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_Ownable_$17253",
+                "typeString": "contract Ownable"
+              }
+            },
+            "id": 3956,
+            "nodeType": "InheritanceSpecifier",
+            "src": "132:7:25"
+          }
+        ],
+        "contractDependencies": [
+          17253
+        ],
+        "contractKind": "contract",
+        "documentation": null,
+        "fullyImplemented": true,
+        "id": 3959,
+        "linearizedBaseContracts": [
+          3959,
+          17253
+        ],
+        "name": "ProxyStorage",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "constant": false,
+            "id": 3958,
+            "name": "proxyTo",
+            "nodeType": "VariableDeclaration",
+            "scope": 3959,
+            "src": "144:24:25",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_address",
+              "typeString": "address"
+            },
+            "typeName": {
+              "id": 3957,
+              "name": "address",
+              "nodeType": "ElementaryTypeName",
+              "src": "144:7:25",
+              "stateMutability": "nonpayable",
+              "typeDescriptions": {
+                "typeIdentifier": "t_address",
+                "typeString": "address"
+              }
+            },
+            "value": null,
+            "visibility": "internal"
+          }
+        ],
+        "scope": 3960,
+        "src": "107:64:25"
+      }
+    ],
+    "src": "0:172:25"
+  },
+  "legacyAST": {
+    "absolutePath": "/Users/arpit/projects/contracts/contracts/common/misc/ProxyStorage.sol",
+    "exportedSymbols": {
+      "ProxyStorage": [
+        3959
+      ]
+    },
+    "id": 3960,
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 3952,
+        "literals": [
+          "solidity",
+          "^",
+          "0.5",
+          ".2"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "0:23:25"
+      },
+      {
+        "absolutePath": "openzeppelin-solidity/contracts/ownership/Ownable.sol",
+        "file": "openzeppelin-solidity/contracts/ownership/Ownable.sol",
+        "id": 3954,
+        "nodeType": "ImportDirective",
+        "scope": 3960,
+        "sourceUnit": 17254,
+        "src": "24:80:25",
+        "symbolAliases": [
+          {
+            "foreign": 3953,
+            "local": null
+          }
+        ],
+        "unitAlias": ""
+      },
+      {
+        "baseContracts": [
+          {
+            "arguments": null,
+            "baseName": {
+              "contractScope": null,
+              "id": 3955,
+              "name": "Ownable",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 17253,
+              "src": "132:7:25",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_Ownable_$17253",
+                "typeString": "contract Ownable"
+              }
+            },
+            "id": 3956,
+            "nodeType": "InheritanceSpecifier",
+            "src": "132:7:25"
+          }
+        ],
+        "contractDependencies": [
+          17253
+        ],
+        "contractKind": "contract",
+        "documentation": null,
+        "fullyImplemented": true,
+        "id": 3959,
+        "linearizedBaseContracts": [
+          3959,
+          17253
+        ],
+        "name": "ProxyStorage",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "constant": false,
+            "id": 3958,
+            "name": "proxyTo",
+            "nodeType": "VariableDeclaration",
+            "scope": 3959,
+            "src": "144:24:25",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_address",
+              "typeString": "address"
+            },
+            "typeName": {
+              "id": 3957,
+              "name": "address",
+              "nodeType": "ElementaryTypeName",
+              "src": "144:7:25",
+              "stateMutability": "nonpayable",
+              "typeDescriptions": {
+                "typeIdentifier": "t_address",
+                "typeString": "address"
+              }
+            },
+            "value": null,
+            "visibility": "internal"
+          }
+        ],
+        "scope": 3960,
+        "src": "107:64:25"
+      }
+    ],
+    "src": "0:172:25"
+  },
+  "compiler": {
+    "name": "solc",
+    "version": "0.5.7+commit.6da8b019.Emscripten.clang"
+  },
+  "networks": {},
+  "schemaVersion": "3.0.16",
+  "updatedAt": "2019-09-21T10:53:38.962Z",
+  "devdoc": {
+    "methods": {
+      "isOwner()": {
+        "return": "true if `msg.sender` is the owner of the contract."
+      },
+      "owner()": {
+        "return": "the address of the owner."
+      },
+      "renounceOwnership()": {
+        "details": "Allows the current owner to relinquish control of the contract. It will not be possible to call the functions with the `onlyOwner` modifier anymore."
+      },
+      "transferOwnership(address)": {
+        "details": "Allows the current owner to transfer control of the contract to a newOwner.",
+        "params": {
+          "newOwner": "The address to transfer ownership to."
+        }
+      }
+    }
+  },
+  "userdoc": {
+    "methods": {
+      "renounceOwnership()": {
+        "notice": "Renouncing ownership will leave the contract without an owner, thereby removing any functionality that is only available to the owner."
+      }
+    }
+  }
+}

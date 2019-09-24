@@ -1,0 +1,353 @@
+{
+  "contractName": "ContractReceiver",
+  "abi": [
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "_from",
+          "type": "address"
+        },
+        {
+          "name": "_value",
+          "type": "uint256"
+        },
+        {
+          "name": "_data",
+          "type": "bytes"
+        }
+      ],
+      "name": "tokenFallback",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "metadata": "{\"compiler\":{\"version\":\"0.5.7+commit.6da8b019\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"constant\":false,\"inputs\":[{\"name\":\"_from\",\"type\":\"address\"},{\"name\":\"_value\",\"type\":\"uint256\"},{\"name\":\"_data\",\"type\":\"bytes\"}],\"name\":\"tokenFallback\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"methods\":{\"tokenFallback(address,uint256,bytes)\":{\"details\":\"Function that is called when a user or another contract wants to transfer funds.\",\"params\":{\"_data\":\"Data containig a function signature and/or parameters\",\"_from\":\"Transaction initiator, analogue of msg.sender\",\"_value\":\"Number of tokens to transfer.\"}}},\"title\":\"ContractReceiver - Standard contract implementation for compatibility with ERC 223 tokens.\"},\"userdoc\":{\"methods\":{}}},\"settings\":{\"compilationTarget\":{\"/Users/arpit/projects/contracts/contracts/common/misc/ContractReceiver.sol\":\"ContractReceiver\"},\"evmVersion\":\"constantinople\",\"libraries\":{},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"/Users/arpit/projects/contracts/contracts/common/misc/ContractReceiver.sol\":{\"keccak256\":\"0xca9355196bd457bfb4c91006043a66008e4e7038f85d3891ae29e2bed3c1ce8b\",\"urls\":[\"bzzr://28157e71f8486381a515ff8b3bf98ed837def5d57975f5e1121c9618acd909ad\"]}},\"version\":1}",
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "sourceMap": "",
+  "deployedSourceMap": "",
+  "source": "pragma solidity ^0.5.2;\n\n /*\n * Contract that is working with ERC223 tokens\n */\n\n\n/// @title ContractReceiver - Standard contract implementation for compatibility with ERC 223 tokens.\ncontract ContractReceiver {\n  /// @dev Function that is called when a user or another contract wants to transfer funds.\n  /// @param _from Transaction initiator, analogue of msg.sender\n  /// @param _value Number of tokens to transfer.\n  /// @param _data Data containig a function signature and/or parameters\n  function tokenFallback(address _from, uint256 _value, bytes memory _data) public;\n}\n",
+  "sourcePath": "/Users/arpit/projects/contracts/contracts/common/misc/ContractReceiver.sol",
+  "ast": {
+    "absolutePath": "/Users/arpit/projects/contracts/contracts/common/misc/ContractReceiver.sol",
+    "exportedSymbols": {
+      "ContractReceiver": [
+        3795
+      ]
+    },
+    "id": 3796,
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 3785,
+        "literals": [
+          "solidity",
+          "^",
+          "0.5",
+          ".2"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "0:23:21"
+      },
+      {
+        "baseContracts": [],
+        "contractDependencies": [],
+        "contractKind": "contract",
+        "documentation": "@title ContractReceiver - Standard contract implementation for compatibility with ERC 223 tokens.",
+        "fullyImplemented": false,
+        "id": 3795,
+        "linearizedBaseContracts": [
+          3795
+        ],
+        "name": "ContractReceiver",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "body": null,
+            "documentation": "@dev Function that is called when a user or another contract wants to transfer funds.\n @param _from Transaction initiator, analogue of msg.sender\n @param _value Number of tokens to transfer.\n @param _data Data containig a function signature and/or parameters",
+            "id": 3794,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "tokenFallback",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 3792,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 3787,
+                  "name": "_from",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 3794,
+                  "src": "517:13:21",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 3786,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "517:7:21",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 3789,
+                  "name": "_value",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 3794,
+                  "src": "532:14:21",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 3788,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "532:7:21",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 3791,
+                  "name": "_data",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 3794,
+                  "src": "548:18:21",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes_memory_ptr",
+                    "typeString": "bytes"
+                  },
+                  "typeName": {
+                    "id": 3790,
+                    "name": "bytes",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "548:5:21",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes_storage_ptr",
+                      "typeString": "bytes"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "516:51:21"
+            },
+            "returnParameters": {
+              "id": 3793,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "574:0:21"
+            },
+            "scope": 3795,
+            "src": "494:81:21",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          }
+        ],
+        "scope": 3796,
+        "src": "184:393:21"
+      }
+    ],
+    "src": "0:578:21"
+  },
+  "legacyAST": {
+    "absolutePath": "/Users/arpit/projects/contracts/contracts/common/misc/ContractReceiver.sol",
+    "exportedSymbols": {
+      "ContractReceiver": [
+        3795
+      ]
+    },
+    "id": 3796,
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 3785,
+        "literals": [
+          "solidity",
+          "^",
+          "0.5",
+          ".2"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "0:23:21"
+      },
+      {
+        "baseContracts": [],
+        "contractDependencies": [],
+        "contractKind": "contract",
+        "documentation": "@title ContractReceiver - Standard contract implementation for compatibility with ERC 223 tokens.",
+        "fullyImplemented": false,
+        "id": 3795,
+        "linearizedBaseContracts": [
+          3795
+        ],
+        "name": "ContractReceiver",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "body": null,
+            "documentation": "@dev Function that is called when a user or another contract wants to transfer funds.\n @param _from Transaction initiator, analogue of msg.sender\n @param _value Number of tokens to transfer.\n @param _data Data containig a function signature and/or parameters",
+            "id": 3794,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "tokenFallback",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 3792,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 3787,
+                  "name": "_from",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 3794,
+                  "src": "517:13:21",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 3786,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "517:7:21",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 3789,
+                  "name": "_value",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 3794,
+                  "src": "532:14:21",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 3788,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "532:7:21",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 3791,
+                  "name": "_data",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 3794,
+                  "src": "548:18:21",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes_memory_ptr",
+                    "typeString": "bytes"
+                  },
+                  "typeName": {
+                    "id": 3790,
+                    "name": "bytes",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "548:5:21",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes_storage_ptr",
+                      "typeString": "bytes"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "516:51:21"
+            },
+            "returnParameters": {
+              "id": 3793,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "574:0:21"
+            },
+            "scope": 3795,
+            "src": "494:81:21",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          }
+        ],
+        "scope": 3796,
+        "src": "184:393:21"
+      }
+    ],
+    "src": "0:578:21"
+  },
+  "compiler": {
+    "name": "solc",
+    "version": "0.5.7+commit.6da8b019.Emscripten.clang"
+  },
+  "networks": {},
+  "schemaVersion": "3.0.16",
+  "updatedAt": "2019-09-21T10:53:38.954Z",
+  "devdoc": {
+    "methods": {
+      "tokenFallback(address,uint256,bytes)": {
+        "details": "Function that is called when a user or another contract wants to transfer funds.",
+        "params": {
+          "_data": "Data containig a function signature and/or parameters",
+          "_from": "Transaction initiator, analogue of msg.sender",
+          "_value": "Number of tokens to transfer."
+        }
+      }
+    },
+    "title": "ContractReceiver - Standard contract implementation for compatibility with ERC 223 tokens."
+  },
+  "userdoc": {
+    "methods": {}
+  }
+}

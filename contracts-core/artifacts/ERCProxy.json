@@ -1,0 +1,353 @@
+{
+  "contractName": "ERCProxy",
+  "abi": [
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "proxyType",
+      "outputs": [
+        {
+          "name": "proxyTypeId",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "implementation",
+      "outputs": [
+        {
+          "name": "codeAddr",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "metadata": "{\"compiler\":{\"version\":\"0.5.7+commit.6da8b019\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"constant\":true,\"inputs\":[],\"name\":\"proxyType\",\"outputs\":[{\"name\":\"proxyTypeId\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"pure\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"implementation\",\"outputs\":[{\"name\":\"codeAddr\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"methods\":{}},\"userdoc\":{\"methods\":{}}},\"settings\":{\"compilationTarget\":{\"/Users/arpit/projects/contracts/contracts/common/misc/ERCProxy.sol\":\"ERCProxy\"},\"evmVersion\":\"constantinople\",\"libraries\":{},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"/Users/arpit/projects/contracts/contracts/common/misc/ERCProxy.sol\":{\"keccak256\":\"0xf827f3e519a1a42782dd227b06459b594f0e58a2c266d865c451764e8b37fb32\",\"urls\":[\"bzzr://8232f93ee1b68caf4ea60a23c46ec13f3665bae5b3762da8e1b4260ef103acb1\"]}},\"version\":1}",
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "sourceMap": "",
+  "deployedSourceMap": "",
+  "source": "/*\n * SPDX-License-Identitifer:    MIT\n */\n\npragma solidity ^0.5.2;\n\n// See https://github.com/ethereum/EIPs/blob/master/EIPS/eip-897.md\n\ninterface ERCProxy {\n  function proxyType() external pure returns (uint256 proxyTypeId);\n  function implementation() external view returns (address codeAddr);\n}\n",
+  "sourcePath": "/Users/arpit/projects/contracts/contracts/common/misc/ERCProxy.sol",
+  "ast": {
+    "absolutePath": "/Users/arpit/projects/contracts/contracts/common/misc/ERCProxy.sol",
+    "exportedSymbols": {
+      "ERCProxy": [
+        3841
+      ]
+    },
+    "id": 3842,
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 3830,
+        "literals": [
+          "solidity",
+          "^",
+          "0.5",
+          ".2"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "44:23:23"
+      },
+      {
+        "baseContracts": [],
+        "contractDependencies": [],
+        "contractKind": "interface",
+        "documentation": null,
+        "fullyImplemented": false,
+        "id": 3841,
+        "linearizedBaseContracts": [
+          3841
+        ],
+        "name": "ERCProxy",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "body": null,
+            "documentation": null,
+            "id": 3835,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "proxyType",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 3831,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "179:2:23"
+            },
+            "returnParameters": {
+              "id": 3834,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 3833,
+                  "name": "proxyTypeId",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 3835,
+                  "src": "205:19:23",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 3832,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "205:7:23",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "204:21:23"
+            },
+            "scope": 3841,
+            "src": "161:65:23",
+            "stateMutability": "pure",
+            "superFunction": null,
+            "visibility": "external"
+          },
+          {
+            "body": null,
+            "documentation": null,
+            "id": 3840,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "implementation",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 3836,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "252:2:23"
+            },
+            "returnParameters": {
+              "id": 3839,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 3838,
+                  "name": "codeAddr",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 3840,
+                  "src": "278:16:23",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 3837,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "278:7:23",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "277:18:23"
+            },
+            "scope": 3841,
+            "src": "229:67:23",
+            "stateMutability": "view",
+            "superFunction": null,
+            "visibility": "external"
+          }
+        ],
+        "scope": 3842,
+        "src": "138:160:23"
+      }
+    ],
+    "src": "44:255:23"
+  },
+  "legacyAST": {
+    "absolutePath": "/Users/arpit/projects/contracts/contracts/common/misc/ERCProxy.sol",
+    "exportedSymbols": {
+      "ERCProxy": [
+        3841
+      ]
+    },
+    "id": 3842,
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 3830,
+        "literals": [
+          "solidity",
+          "^",
+          "0.5",
+          ".2"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "44:23:23"
+      },
+      {
+        "baseContracts": [],
+        "contractDependencies": [],
+        "contractKind": "interface",
+        "documentation": null,
+        "fullyImplemented": false,
+        "id": 3841,
+        "linearizedBaseContracts": [
+          3841
+        ],
+        "name": "ERCProxy",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "body": null,
+            "documentation": null,
+            "id": 3835,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "proxyType",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 3831,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "179:2:23"
+            },
+            "returnParameters": {
+              "id": 3834,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 3833,
+                  "name": "proxyTypeId",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 3835,
+                  "src": "205:19:23",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 3832,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "205:7:23",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "204:21:23"
+            },
+            "scope": 3841,
+            "src": "161:65:23",
+            "stateMutability": "pure",
+            "superFunction": null,
+            "visibility": "external"
+          },
+          {
+            "body": null,
+            "documentation": null,
+            "id": 3840,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "implementation",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 3836,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "252:2:23"
+            },
+            "returnParameters": {
+              "id": 3839,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 3838,
+                  "name": "codeAddr",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 3840,
+                  "src": "278:16:23",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 3837,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "278:7:23",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "277:18:23"
+            },
+            "scope": 3841,
+            "src": "229:67:23",
+            "stateMutability": "view",
+            "superFunction": null,
+            "visibility": "external"
+          }
+        ],
+        "scope": 3842,
+        "src": "138:160:23"
+      }
+    ],
+    "src": "44:255:23"
+  },
+  "compiler": {
+    "name": "solc",
+    "version": "0.5.7+commit.6da8b019.Emscripten.clang"
+  },
+  "networks": {},
+  "schemaVersion": "3.0.16",
+  "updatedAt": "2019-09-21T10:53:38.957Z",
+  "devdoc": {
+    "methods": {}
+  },
+  "userdoc": {
+    "methods": {}
+  }
+}
