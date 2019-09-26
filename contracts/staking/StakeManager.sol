@@ -103,7 +103,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     signerToValidator[signer] = NFTCounter;
     updateTimeLine(currentEpoch, int256(amount), 1);
 
-    emit Staked(user, NFTCounter, currentEpoch, amount, totalStaked);
+    emit Staked(signer, NFTCounter, currentEpoch, amount, totalStaked);
     NFTCounter = NFTCounter.add(1);
   }
 

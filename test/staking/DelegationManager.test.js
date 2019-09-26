@@ -67,7 +67,7 @@ contract('DelegationManager', async function(accounts) {
     })
     const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
     logs[1].event.should.equal('Staked')
-    logs[1].args.user.toLowerCase().should.equal(delegator)
+    logs[1].args.signer.toLowerCase().should.equal(delegator)
     assertBigNumberEquality(logs[1].args.amount, amount)
   })
 
