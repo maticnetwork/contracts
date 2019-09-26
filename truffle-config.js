@@ -1,7 +1,7 @@
 require('babel-register')
 require('babel-polyfill')
 
-var HDWalletProvider = require('truffle-hdwallet-provider')
+const HDWalletProvider = require('@truffle/hdwallet-provider')
 
 const MNEMONIC =
   process.env.MNEMONIC ||
@@ -61,8 +61,7 @@ module.exports = {
         return new HDWalletProvider(MNEMONIC, `https://testnet2.matic.network`)
       },
       network_id: 8995,
-      gas: 8000000,
-      confirmations: 2
+      gas: 8000000
     }
   },
   compilers: {
