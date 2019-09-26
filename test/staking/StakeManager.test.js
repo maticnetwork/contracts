@@ -128,7 +128,7 @@ contract('StakeManager', async function(accounts) {
       // assertBigNumberEquality(logs[0].args.value, amount)
 
       logs[1].event.should.equal('Staked')
-      logs[1].args.user.toLowerCase().should.equal(user)
+      logs[1].args.signer.toLowerCase().should.equal(user)
       // logs[2].args.amount.should.be.bignumber.equal(amount)
     })
 
@@ -157,7 +157,7 @@ contract('StakeManager', async function(accounts) {
       // assertBigNumberEquality(logs[0].args.value, amount)
 
       logs[1].event.should.equal('Staked')
-      logs[1].args.user.toLowerCase().should.equal(user)
+      logs[1].args.signer.toLowerCase().should.equal(user)
       // logs[2].args.amount.should.be.bignumber.equal(amount)
       assertBigNumberEquality(logs[1].args.amount, amount)
 
