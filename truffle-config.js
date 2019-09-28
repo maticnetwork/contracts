@@ -63,6 +63,12 @@ module.exports = {
       network_id: 8995,
       gas: 8000000,
       confirmations: 2
+    },
+    devnet: {
+      provider: function() {
+        return new HDWalletProvider('70e8c03346745867a67798fd3784e4bf1765d82b08b54cd4ff58a1ca9e87518e', `http://localhost:8545`)
+      },
+      network_id: 15001
     }
   },
   compilers: {
