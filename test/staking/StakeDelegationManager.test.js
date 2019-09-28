@@ -34,6 +34,7 @@ contract('StakeManager<->DelegationManager', async function(accounts) {
     delegationManager = contracts.delegationManager
     stakeToken = await DummyERC20.new('Stake Token', 'STAKE')
     await stakeManager.setToken(stakeToken.address)
+    await stakeManager.changeRootChain(wallets[0].getAddressString())
     await delegationManager.setToken(stakeToken.address)
     await stakeManager.updateValidatorThreshold(3)
 
@@ -164,7 +165,12 @@ contract('StakeManager<->DelegationManager', async function(accounts) {
       sigs,
       wallets[0].getAddressString()
     )
-    await stakeManager.finalizeCommit()
+    await stakeManager.checkSignatures(
+      utils.bufferToHex(utils.keccak256(voteData)),
+      sigs,
+      wallets[0].getAddressString()
+    )
+
     assertBigNumbergt(
       await validatorContracts.validatorRewards(),
       ValidatorReward
