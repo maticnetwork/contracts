@@ -30,7 +30,7 @@ contract('DelegationManager', async function(accounts) {
     await stakeManager.setToken(stakeToken.address)
     await delegationManager.setToken(stakeToken.address)
     await stakeManager.updateValidatorThreshold(3)
-    await stakeManager.changeRootChain(wallets[0].getAddressString())
+    await stakeManager.changeRootChain(wallets[1].getAddressString())
     // transfer tokens to other accounts
     await stakeToken.mint(
       wallets[0].getAddressString(),
@@ -226,8 +226,8 @@ contract('DelegationManager', async function(accounts) {
     let w = [wallets[0], wallets[1], wallets[2]]
 
     for (let i = 0; i < C; i++) {
-      await checkPoint(w, wallets[0], stakeManager, {
-        from: wallets[0].getAddressString()
+      await checkPoint(w, wallets[1], stakeManager, {
+        from: wallets[1].getAddressString()
       })
     }
 
@@ -369,9 +369,8 @@ contract('DelegationManager', async function(accounts) {
     // unstakeClaim
     let withdrawDelay = await stakeManager.WITHDRAWAL_DELAY()
     let w = [wallets[1]]
-
     for (let i = 0; i < withdrawDelay; i++) {
-      await checkPoint(w, wallets[0], stakeManager)
+      await checkPoint(w, wallets[1], stakeManager)
     }
     result = await delegationManager.unstakeClaim(1, { from: delegator })
     logs = logDecoder.decodeLogs(result.receipt.rawLogs)
