@@ -436,7 +436,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     validators[validatorId].signer = _signer;
   }
 
-  function finalizeCommit() public onlyRootChain {
+  function finalizeCommit() internal {
     uint256 nextEpoch = currentEpoch.add(1);
     // update totalstake and validator count
     validatorState[nextEpoch].amount = (
@@ -512,6 +512,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     // for previous checkpoint rewards
     accountStateRoot = stateRoot;
     totalRewards = totalRewards.add(CHECKPOINT_REWARD.mul(stakePower).div(_totalStake));
+    finalizeCommit();
   }
 
   function challangeStateRootUpdate(bytes memory checkpointTx /* txData from submitCheckpoint */) public {

@@ -18,6 +18,7 @@ import {
   encodeSigs,
   getSigs,
   assertBigNumbergt
+  checkPoint
 } from '../helpers/utils.js'
 import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
 
@@ -261,7 +262,10 @@ contract('StakeManager', async function(accounts) {
 
     it('should update and verify signer/pubkey', async function() {
       let user = wallets[5].getAddressString()
-      await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
+      let w = [wallets[1], wallets[2], wallets[3], wallets[4]]
+      await checkPoint(w, wallets[1], stakeManager)
+
+      // await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
 
       let signer = wallets[0].getAddressString()
       const validatorId = await stakeManager.getValidatorId(user)
@@ -341,8 +345,12 @@ contract('StakeManager', async function(accounts) {
     it('should unstake via wallets[3] after 2 epoch', async function() {
       const user = wallets[3].getAddressString()
       const amount = web3.utils.toWei('300')
-      await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
-      await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
+      let w = [wallets[1], wallets[3], wallets[4], wallets[5]]
+
+      await checkPoint(w, wallets[1], stakeManager)
+      await checkPoint(w, wallets[1], stakeManager)
+      // await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
+      // await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
 
       const validatorId = await stakeManager.getValidatorId(user)
       // stake now
@@ -375,11 +383,17 @@ contract('StakeManager', async function(accounts) {
     it('should stake via wallets[6]', async function() {
       const user = wallets[6].getAddressString()
       const amount = web3.utils.toWei('400')
+      let w = [wallets[1], wallets[5], wallets[4]]
 
-      await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
-      await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
-      await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
-      await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
+      await checkPoint(w, wallets[1], stakeManager)
+      await checkPoint(w, wallets[1], stakeManager)
+      await checkPoint(w, wallets[1], stakeManager)
+      await checkPoint(w, wallets[1], stakeManager)
+
+      // await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
+      // await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
+      // await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
+      // await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
 
       // approve tranfer
       await stakeToken.approve(stakeManager.address, amount, {
@@ -413,7 +427,7 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      let result = await stakeManager.stake(amount, user, true, {
+      let result = await stakeManager.stake(amount, user, false, {
         from: user
       })
     })
@@ -428,7 +442,12 @@ contract('StakeManager', async function(accounts) {
       await stakeManager.unstakeClaim(ValidatorId2, {
         from: wallets[2].getAddressString()
       })
-      await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
+      let w = [wallets[1], wallets[5], wallets[6], wallets[7], wallets[4]]
+      await checkPoint(w, wallets[1], stakeManager, {
+        from: wallets[1].getAddressString()
+      })
+
+      // await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
       await stakeManager.unstakeClaim(ValidatorId3, {
         from: wallets[3].getAddressString()
       })
@@ -465,20 +484,9 @@ contract('StakeManager', async function(accounts) {
     it('should create sigs properly', async function() {
       // dummy vote data
       let w = [wallets[0], wallets[4], wallets[6], wallets[7], wallets[5]]
-
-      const voteData = 'dummyData'
-      const sigs = utils.bufferToHex(
-        encodeSigs(getSigs(w, utils.keccak256(voteData)))
-      )
-      // 2/3 majority vote
-      await stakeManager.checkSignatures(
-        utils.bufferToHex(utils.keccak256(voteData)),
-        utils.bufferToHex(utils.keccak256('stateRoot')),
-        sigs,
-        {
-          from: wallets[1].getAddressString()
-        }
-      )
+      await checkPoint(w, wallets[1], stakeManager, {
+        from: wallets[1].getAddressString()
+      })
     })
   })
 })
