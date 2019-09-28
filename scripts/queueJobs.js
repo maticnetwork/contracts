@@ -24,12 +24,22 @@ async function deploy() {
   await deployer.deploy(transformArtifact('StateSender', []))
   await deployer.deploy(transformArtifact('DepositManager', []))
   await deployer.deploy(transformArtifact('DepositManagerProxy', ['DepositManager', 'Registry', 'RootChain']))
+
+  await deployer.deploy(transformArtifact('WithdrawManager', []))
+  await deployer.deploy(transformArtifact('WithdrawManagerProxy', ['WithdrawManager', 'Registry', 'RootChain']))
+
   await deployer.deploy(transformArtifact('TestToken', [ { value: 'Test Token' }, { value: 'TST' } ]))
 
   await deployer.deploy(
     tx('Registry', 'updateContractMap', [
       { value: ethUtils.bufferToHex(ethUtils.keccak256('depositManager')) },
       'DepositManagerProxy'
+    ])
+  )
+  await deployer.deploy(
+    tx('Registry', 'updateContractMap', [
+      { value: ethUtils.bufferToHex(ethUtils.keccak256('withdrawManager')) },
+      'WithdrawManagerProxy'
     ])
   )
   await deployer.deploy(
