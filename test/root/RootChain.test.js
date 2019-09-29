@@ -73,20 +73,25 @@ contract('RootChain', async function(accounts) {
       payload.sigs,
       payload.extraData
     )
-
+    let currentEpoch = await stakeManager.currentEpoch()
     payload = buildSubmitHeaderBlockPaylod(accounts[0], 5, 9, '', wallets)
     await rootChain.submitHeaderBlock(
       payload.vote,
       payload.sigs,
       payload.extraData
     )
+    let newCurrentEpoch = await stakeManager.currentEpoch()
+    assertBigNumbergt(newCurrentEpoch, currentEpoch)
 
+    currentEpoch = newCurrentEpoch
     payload = buildSubmitHeaderBlockPaylod(accounts[0], 10, 14, '', wallets)
     await rootChain.submitHeaderBlock(
       payload.vote,
       payload.sigs,
       payload.extraData
     )
+    newCurrentEpoch = await stakeManager.currentEpoch()
+    assertBigNumbergt(newCurrentEpoch, currentEpoch)
 
     let block = await rootChain.headerBlocks('10000')
     assertBigNumbergt(block.createdAt, '0')

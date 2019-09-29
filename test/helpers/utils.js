@@ -40,6 +40,22 @@ export function encodeSigs(sigs = []) {
   return Buffer.concat(sigs.map(s => ethUtils.toBuffer(s)))
 }
 
+export async function checkPoint(wallets, proposer, stakeManager) {
+  const voteData = 'dummyData'
+  const sigs = ethUtils.bufferToHex(
+    encodeSigs(getSigs(wallets, ethUtils.keccak256(voteData)))
+  )
+  // 2/3 majority vote
+  await stakeManager.checkSignatures(
+    ethUtils.bufferToHex(ethUtils.keccak256(voteData)),
+    sigs,
+    proposer.getAddressString(),
+    {
+      from: proposer.getAddressString()
+    }
+  )
+}
+
 export function assertBigNumberEquality(num1, num2) {
   if (!BN.isBN(num1)) num1 = web3.utils.toBN(num1.toString())
   if (!BN.isBN(num2)) num2 = web3.utils.toBN(num2.toString())

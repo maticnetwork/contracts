@@ -312,7 +312,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     validators[validatorId].signer = _signer;
   }
 
-  function finalizeCommit() public onlyRootChain {
+  function finalizeCommit() internal {
     uint256 nextEpoch = currentEpoch.add(1);
     // update totalstake and validator count
     validatorState[nextEpoch].amount = (
@@ -397,6 +397,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     uint256 _totalStake = currentValidatorSetTotalStake();
     require(stakePower >= _totalStake.mul(2).div(3).add(1));
     rewardValidator(validatorId, stakePower, _totalStake);
+    finalizeCommit();
   }
 
 }

@@ -4,7 +4,11 @@ import chaiAsPromised from 'chai-as-promised'
 import deployer from '../helpers/deployer.js'
 import { DummyERC20, ValidatorContract } from '../helpers/artifacts'
 
-import { assertBigNumberEquality, ZeroAddress } from '../helpers/utils.js'
+import {
+  assertBigNumberEquality,
+  checkPoint,
+  ZeroAddress
+} from '../helpers/utils.js'
 import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
 import logDecoder from '../helpers/log-decoder.js'
 
@@ -26,7 +30,7 @@ contract('DelegationManager', async function(accounts) {
     await stakeManager.setToken(stakeToken.address)
     await delegationManager.setToken(stakeToken.address)
     await stakeManager.updateValidatorThreshold(3)
-    await stakeManager.changeRootChain(wallets[0].getAddressString())
+    await stakeManager.changeRootChain(wallets[1].getAddressString())
     // transfer tokens to other accounts
     await stakeToken.mint(
       wallets[0].getAddressString(),
@@ -219,8 +223,12 @@ contract('DelegationManager', async function(accounts) {
     await stakeManager.updateDynastyValue(2)
 
     let C = await stakeManager.WITHDRAWAL_DELAY()
+    let w = [wallets[0], wallets[1], wallets[2]]
+
     for (let i = 0; i < C; i++) {
-      await stakeManager.finalizeCommit()
+      await checkPoint(w, wallets[1], stakeManager, {
+        from: wallets[1].getAddressString()
+      })
     }
 
     result = await delegationManager.bond(
@@ -360,9 +368,9 @@ contract('DelegationManager', async function(accounts) {
     logs[0].event.should.equal('UnBonding') // unstaking without unbonding
     // unstakeClaim
     let withdrawDelay = await stakeManager.WITHDRAWAL_DELAY()
-
+    let w = [wallets[1]]
     for (let i = 0; i < withdrawDelay; i++) {
-      await stakeManager.finalizeCommit()
+      await checkPoint(w, wallets[1], stakeManager)
     }
     result = await delegationManager.unstakeClaim(1, { from: delegator })
     logs = logDecoder.decodeLogs(result.receipt.rawLogs)
