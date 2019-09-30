@@ -45,7 +45,7 @@ contract RootChain is RootChainStorage, IRootChain {
 
     // check if it is better to keep it in local storage instead
     IStakeManager stakeManager = IStakeManager(registry.getStakeManagerAddress());
-    stakeManager.checkSignatures(keccak256(vote), sigs, headerBlock.proposer);
+    stakeManager.checkSignatures(keccak256(vote), bytes32(dataList[5].toUint()), sigs);
 
     emit NewHeaderBlock(headerBlock.proposer, _nextHeaderBlock, headerBlock.start, headerBlock.end, headerBlock.root);
     _nextHeaderBlock = _nextHeaderBlock.add(MAX_DEPOSITS);

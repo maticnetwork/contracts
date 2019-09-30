@@ -4,9 +4,11 @@ import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import { ERC721Full } from "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
 import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 
 import { BytesLib } from "../common/lib/BytesLib.sol";
 import { ECVerify } from "../common/lib/ECVerify.sol";
+import { MerklePatriciaProof } from "../common/lib/MerklePatriciaProof.sol";
 import { Lockable } from "../common/mixin/Lockable.sol";
 import { RootChainable } from "../common/mixin/RootChainable.sol";
 import { Registry } from "../common/Registry.sol";
@@ -18,6 +20,9 @@ import { ValidatorContract } from "./Validator.sol";
 contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   using SafeMath for uint256;
   using ECVerify for bytes32;
+  using RLPReader for bytes;
+  using RLPReader for RLPReader.RLPItem;
+
 
   IERC20 public token;
   address public registry;
@@ -30,15 +35,19 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
   uint256 public validatorThreshold = 10; //128
   uint256 public minLockInPeriod = 2; // unit: DYNASTY
-  uint256 public totalStaked = 0;
+  uint256 public totalStaked;
   uint256 public currentEpoch = 1;
   uint256 public NFTCounter = 1;
+  uint256 public totalRewards;
+  uint256 public totalRewardsLiquidated;
+  bytes32 public accountStateRoot;
 
   enum Status { Inactive, Active, Locked }
 
   struct Validator {
     uint256 amount;
     uint256 reward;
+    uint256 totalReward;
     uint256 activationEpoch;
     uint256 deactivationEpoch;
     uint256 jailTime;
@@ -90,11 +99,12 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     validators[NFTCounter] = Validator({
       reward: 0,
       amount: amount,
+      totalReward: 0,
       activationEpoch: currentEpoch,
       deactivationEpoch: 0,
       jailTime: 0,
       signer: signer,
-      contractAddress: isContract ? address(new ValidatorContract(user, registry)) :address(0x0),
+      contractAddress: isContract ? address(new ValidatorContract(user, registry)) : address(0x0),
       status : Status.Active
     });
 
@@ -163,6 +173,24 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
     emit StakeUpdate(validatorId, validators[validatorId].amount.sub(amount), validators[validatorId].amount);
     emit ReStaked(validatorId, validators[validatorId].amount, totalStaked);
+  }
+
+  function claimRewards(uint256 validatorId, bytes memory accountState, bytes memory path, bytes memory stateProof) public /*onlyStaker(validatorId) */ {
+    require(MerklePatriciaProof.verify(accountState, path, stateProof, accountStateRoot));
+    RLPReader.RLPItem[] memory dataList = accountState.toRlpItem().toList();
+    uint256 amount = dataList[0].toUint();
+    uint256 _reward = amount.sub(validators[validatorId].totalReward);
+    address _contract = validators[validatorId].contractAddress;
+    if (_contract == address(0x0)) {
+      validators[validatorId].reward = validators[validatorId].reward.add(_reward);
+    }
+    else {
+      // TODO: delegator bond/share rate if return needs to be updated periodically
+      ValidatorContract(_contract).updateRewards(_reward, currentEpoch, validators[validatorId].amount);
+    }
+    totalRewardsLiquidated += validators[validatorId].reward;
+    require(totalRewardsLiquidated <= totalRewards, "Oops this shouldn't have happened");// pos 2/3+1 is colluded
+    validators[validatorId].totalReward = amount;
   }
 
   // if not jailed then in state of warning, else will be unstaking after x epoch
@@ -354,18 +382,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     );
   }
 
-  function rewardValidator(uint256 validatorId, uint256 _totalStake, uint256 stakePower) internal {
-    uint256 _reward = CHECKPOINT_REWARD.mul(stakePower).div(_totalStake);
-    address _contract = validators[validatorId].contractAddress;
-    if (_contract == address(0x0)) {
-      validators[validatorId].reward += _reward;
-    }
-    else {
-      ValidatorContract(_contract).updateRewards(_reward, currentEpoch, validators[validatorId].amount);
-    }
-  }
-
-  function checkSignatures(bytes32 voteHash, bytes memory sigs, address proposer) public onlyRootChain {
+  function checkSignatures(bytes32 voteHash, bytes32 stateRoot, bytes memory sigs) public onlyRootChain {
     // total voting power
     uint256 stakePower = 0;
     uint256 validatorId;
@@ -393,10 +410,17 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       }
     }
 
-    validatorId = tokenOfOwnerByIndex(proposer, 0);// get ValidatorId
+    // validatorId = tokenOfOwnerByIndex(proposer, 0);// get ValidatorId
     uint256 _totalStake = currentValidatorSetTotalStake();
     require(stakePower >= _totalStake.mul(2).div(3).add(1));
-    rewardValidator(validatorId, stakePower, _totalStake);
+    // update stateTrie root for accounts balance on heimdall chain
+    // for previous checkpoint rewards
+    accountStateRoot = stateRoot;
+    totalRewards = totalRewards.add(CHECKPOINT_REWARD.mul(stakePower).div(_totalStake));
+  }
+
+  function challangeStateRootUpdate(bytes memory checkpointTx /* txData from submitCheckpoint */) public {
+    // TODO: check for 2/3+1 sig and validate non-inclusion in newStateUpdate
   }
 
 }
