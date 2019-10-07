@@ -34,6 +34,8 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   uint256 public EPOCH_LENGTH = 256; // unit : block
   uint256 public UNSTAKE_DELAY = DYNASTY.mul(2); // unit: epoch
 
+  uint256 public proposerToSignerRewards = 50; // will be used with fraud proof
+
   uint256 public validatorThreshold = 10; //128
   uint256 public minLockInPeriod = 2; // unit: DYNASTY
   uint256 public totalStaked;
