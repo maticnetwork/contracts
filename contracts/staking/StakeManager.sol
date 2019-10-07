@@ -8,7 +8,7 @@ import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 
 import { BytesLib } from "../common/lib/BytesLib.sol";
 import { ECVerify } from "../common/lib/ECVerify.sol";
-import { MerklePatriciaProof } from "../common/lib/MerklePatriciaProof.sol";
+import { Merkle } from "../common/lib/Merkle.sol";
 import { Lockable } from "../common/mixin/Lockable.sol";
 import { RootChainable } from "../common/mixin/RootChainable.sol";
 import { Registry } from "../common/Registry.sol";
@@ -20,6 +20,7 @@ import { ValidatorContract } from "./Validator.sol";
 contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   using SafeMath for uint256;
   using ECVerify for bytes32;
+  using Merkle for bytes32;
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
 
@@ -175,17 +176,17 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     emit ReStaked(validatorId, validators[validatorId].amount, totalStaked);
   }
 
-  function claimRewards(uint256 validatorId, bytes memory accountState, bytes memory path, bytes memory stateProof) public /*onlyStaker(validatorId) */ {
-    require(MerklePatriciaProof.verify(accountState, path, stateProof, accountStateRoot));
-    RLPReader.RLPItem[] memory dataList = accountState.toRlpItem().toList();
-    uint256 amount = dataList[0].toUint();
-    uint256 _reward = amount.sub(validators[validatorId].totalReward);
+  function claimRewards(uint256 validatorId, uint256 accountBalance, bytes memory path, bytes memory proof) public /*onlyStaker(validatorId) */ {
+    // accountState = keccak256(abi.encodePacked(validatorId, accountBalance))
+    require(keccak256(abi.encodePacked(validatorId, accountBalance)).checkMembership(path, accountStateRoot, proof));
+    uint256 _reward = accountBalance.sub(validators[validatorId].totalReward);
     address _contract = validators[validatorId].contractAddress;
     if (_contract == address(0x0)) {
       validators[validatorId].reward = validators[validatorId].reward.add(_reward);
     }
     else {
       // TODO: delegator bond/share rate if return needs to be updated periodically
+      // otherwise validator can delay and get all the delegators reward
       ValidatorContract(_contract).updateRewards(_reward, currentEpoch, validators[validatorId].amount);
     }
     totalRewardsLiquidated += validators[validatorId].reward;
