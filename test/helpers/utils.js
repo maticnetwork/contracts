@@ -60,7 +60,7 @@ export function buildSubmitHeaderBlockPaylod(
   end,
   root,
   wallets,
-  options = { rewardsRootHash: '' }
+  options = { rewardsRootHash: '', allValidators: false }
 ) {
   if (!root) root = ethUtils.keccak256(encode(start, end)) // dummy root
   const extraData = ethUtils.bufferToHex(
@@ -83,7 +83,9 @@ export function buildSubmitHeaderBlockPaylod(
   if (!wallets) {
     wallets = getWallets()
   }
-  const validators = [wallets[1], wallets[2], wallets[3]]
+  let validators = options.allValidators
+    ? wallets
+    : [wallets[1], wallets[2], wallets[3]]
 
   const sigs = ethUtils.bufferToHex(
     encodeSigs(getSigs(validators, ethUtils.keccak256(vote)))

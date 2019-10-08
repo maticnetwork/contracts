@@ -130,6 +130,7 @@ contract('RootChain', async function(accounts) {
     }
   })
 })
+
 contract('submitHeaderBlock hardcoded params', async function(accounts) {
   let rootChain
 
