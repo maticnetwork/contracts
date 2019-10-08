@@ -178,9 +178,9 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     emit ReStaked(validatorId, validators[validatorId].amount, totalStaked);
   }
 
-  function claimRewards(uint256 validatorId, uint256 accountBalance, bytes memory path, bytes memory proof) public /*onlyStaker(validatorId) */ {
+  function claimRewards(uint256 validatorId, uint256 accountBalance, uint256 index, bytes memory proof) public /*onlyStaker(validatorId) */ {
     // accountState = keccak256(abi.encodePacked(validatorId, accountBalance))
-    require(keccak256(abi.encodePacked(validatorId, accountBalance)).checkMembership(path, accountStateRoot, proof));
+    require(keccak256(abi.encodePacked(validatorId, accountBalance)).checkMembership(index, accountStateRoot, proof));
     uint256 _reward = accountBalance.sub(validators[validatorId].totalReward);
     address _contract = validators[validatorId].contractAddress;
     if (_contract == address(0x0)) {
@@ -193,7 +193,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     }
     totalRewardsLiquidated += validators[validatorId].reward;
     require(totalRewardsLiquidated <= totalRewards, "Oops this shouldn't have happened");// pos 2/3+1 is colluded
-    validators[validatorId].totalReward = amount;
+    validators[validatorId].totalReward = accountBalance;
   }
 
   // if not jailed then in state of warning, else will be unstaking after x epoch
