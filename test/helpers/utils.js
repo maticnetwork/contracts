@@ -43,23 +43,38 @@ export function encodeSigs(sigs = []) {
 export function assertBigNumberEquality(num1, num2) {
   if (!BN.isBN(num1)) num1 = web3.utils.toBN(num1.toString())
   if (!BN.isBN(num2)) num2 = web3.utils.toBN(num2.toString())
-  assert.ok(num1.eq(num2), `expected ${num1.toString(16)} and ${num2.toString(16)} to be equal`)
+  assert.ok(
+    num1.eq(num2),
+    `expected ${num1.toString(16)} and ${num2.toString(16)} to be equal`
+  )
 }
 
 export function assertBigNumbergt(num1, num2) {
-  expect(num1.gt(web3.utils.toBN(num2))).to.be.true;
+  expect(num1.gt(web3.utils.toBN(num2))).to.be.true
   // num1.should.be.bignumber.greaterThan(num2)
 }
 
-export function buildSubmitHeaderBlockPaylod(proposer, start, end, root, wallets) {
+export function buildSubmitHeaderBlockPaylod(
+  proposer,
+  start,
+  end,
+  root,
+  wallets,
+  options = { rewardsRootHash: '' }
+) {
   if (!root) root = ethUtils.keccak256(encode(start, end)) // dummy root
-  const extraData = ethUtils.bufferToHex(ethUtils.rlp.encode([
-    [proposer, start, end, root] // 0th element
-  ]))
+  const extraData = ethUtils.bufferToHex(
+    ethUtils.rlp.encode([
+      [proposer, start, end, root, options.rewardsRootHash] // 0th element
+    ])
+  )
   const vote = ethUtils.bufferToHex(
     // [chain, voteType, height, round, sha256(extraData)]
     ethUtils.rlp.encode([
-      'heimdall-P5rXwg', 2, 0, 0,
+      'heimdall-P5rXwg',
+      2,
+      0,
+      0,
       ethUtils.bufferToHex(ethUtils.sha256(extraData))
       // ethUtils.bufferToHex(ethUtils.sha256(extraData)).slice(0, 42)
     ])
@@ -73,7 +88,7 @@ export function buildSubmitHeaderBlockPaylod(proposer, start, end, root, wallets
   const sigs = ethUtils.bufferToHex(
     encodeSigs(getSigs(validators, ethUtils.keccak256(vote)))
   )
-  return {vote, sigs, extraData, root}
+  return { vote, sigs, extraData, root }
 }
 
 export function getWallets() {
@@ -86,31 +101,65 @@ export function getWallets() {
   return generateFirstWallets(mnemonics, Object.keys(stakes).length)
 }
 
-export async function depositOnRoot(depositManager, rootToken, user, amountOrToken, options = { erc20: true }) {
+export async function depositOnRoot(
+  depositManager,
+  rootToken,
+  user,
+  amountOrToken,
+  options = { erc20: true }
+) {
   let result
   if (options.erc20) {
     await rootToken.approve(depositManager.address, amountOrToken)
-    result = await depositManager.depositERC20ForUser(rootToken.address, user, amountOrToken)
+    result = await depositManager.depositERC20ForUser(
+      rootToken.address,
+      user,
+      amountOrToken
+    )
   } else if (options.erc721) {
     await rootToken.mint(amountOrToken)
     await rootToken.approve(depositManager.address, amountOrToken)
-    result = await depositManager.depositERC721ForUser(rootToken.address, user, amountOrToken)
+    result = await depositManager.depositERC721ForUser(
+      rootToken.address,
+      user,
+      amountOrToken
+    )
   }
   const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
   const NewDepositBlockEvent = logs.find(log => log.event === 'NewDepositBlock')
   return NewDepositBlockEvent.args.depositBlockId
 }
 
-export async function deposit(depositManager, childChain, rootContract, user, amountOrToken,
-  options = { rootDeposit: false, erc20: true }) {
+export async function deposit(
+  depositManager,
+  childChain,
+  rootContract,
+  user,
+  amountOrToken,
+  options = { rootDeposit: false, erc20: true }
+) {
   let depositBlockId
   if (options.rootDeposit) {
-    depositBlockId = await depositOnRoot(depositManager, rootContract, user, amountOrToken, options)
+    depositBlockId = await depositOnRoot(
+      depositManager,
+      rootContract,
+      user,
+      amountOrToken,
+      options
+    )
   } else {
     depositBlockId = '0x' + crypto.randomBytes(32).toString('hex')
   }
   // ACLed on onlyOwner
-  const deposit = await childChain.onStateReceive('0xa' /* dummy id */, encodeDepositStateSync(user, rootContract.address, amountOrToken, depositBlockId))
+  const deposit = await childChain.onStateReceive(
+    '0xa' /* dummy id */,
+    encodeDepositStateSync(
+      user,
+      rootContract.address,
+      amountOrToken,
+      depositBlockId
+    )
+  )
   if (options.writeToFile) {
     await writeToFile(options.writeToFile, deposit.receipt)
   }
@@ -127,7 +176,16 @@ function encodeDepositStateSync(user, rootToken, tokenIdOrAmount, depositId) {
   )
 }
 
-export function startExit(predicate, headerNumber, blockProof, blockNumber, blockTimestamp, reference, logIndex, exitTx) {
+export function startExit(
+  predicate,
+  headerNumber,
+  blockProof,
+  blockNumber,
+  blockTimestamp,
+  reference,
+  logIndex,
+  exitTx
+) {
   return predicate.startExit(
     ethUtils.bufferToHex(
       rlp.encode([
@@ -188,7 +246,17 @@ export function startExitForErc20Predicate(fn, inputs, exitTx, from) {
   )
 }
 
-export function startExitForErc20PredicateLegacy(fn, headerNumber, blockProof, blockNumber, blockTimestamp, reference, logIndex, exitTx, from) {
+export function startExitForErc20PredicateLegacy(
+  fn,
+  headerNumber,
+  blockProof,
+  blockNumber,
+  blockTimestamp,
+  reference,
+  logIndex,
+  exitTx,
+  from
+) {
   const options = { value: web3.utils.toWei('.1', 'ether') }
   if (from) options.from = from
   return fn(
@@ -211,7 +279,12 @@ export function startExitForErc20PredicateLegacy(fn, headerNumber, blockProof, b
   )
 }
 
-export function startExitForMarketplacePredicate(predicate, inputs, exitToken, exitTx) {
+export function startExitForMarketplacePredicate(
+  predicate,
+  inputs,
+  exitToken,
+  exitTx
+) {
   let _inputs = []
   inputs.forEach(input => {
     _inputs.push(
@@ -233,18 +306,33 @@ export function startExitForTransferWithSig(fn, inputs, exitTx, from) {
   const options = { value: web3.utils.toWei('.1', 'ether') }
   if (from) options.from = from
   return fn(
-    ethUtils.bufferToHex(rlp.encode(inputs.map(buildReferenceTxPayload).map(rlp.encode))),
+    ethUtils.bufferToHex(
+      rlp.encode(inputs.map(buildReferenceTxPayload).map(rlp.encode))
+    ),
     ethUtils.bufferToHex(exitTx),
     options
   )
 }
 
-export async function verifyDeprecation(withdrawManager, predicate, exitId, inputId, challengeData, options) {
+export async function verifyDeprecation(
+  withdrawManager,
+  predicate,
+  exitId,
+  inputId,
+  challengeData,
+  options
+) {
   const exit = await withdrawManager.exits(exitId)
   // console.log('exit', exit, exit.receiptAmountOrNFTId.toString(16))
   const exitData = web3.eth.abi.encodeParameters(
     ['address', 'address', 'uint256', 'bytes32', 'bool'],
-    [exit.owner, options.childToken, exit.receiptAmountOrNFTId.toString(16), exit.txHash, exit.isRegularExit]
+    [
+      exit.owner,
+      options.childToken,
+      exit.receiptAmountOrNFTId.toString(16),
+      exit.txHash,
+      exit.isRegularExit
+    ]
   )
   // console.log('exitData', exitData)
   const inputUtxoData = web3.eth.abi.encodeParameters(
@@ -256,7 +344,14 @@ export async function verifyDeprecation(withdrawManager, predicate, exitId, inpu
 }
 
 export function buildReferenceTxPayload(input) {
-  const { headerNumber, blockProof, blockNumber, blockTimestamp, reference, logIndex } = input
+  const {
+    headerNumber,
+    blockProof,
+    blockNumber,
+    blockTimestamp,
+    reference,
+    logIndex
+  } = input
   return [
     headerNumber,
     ethUtils.bufferToHex(Buffer.concat(blockProof)),
@@ -274,19 +369,24 @@ export function buildReferenceTxPayload(input) {
 export function buildChallengeData(input) {
   const data = buildReferenceTxPayload(input)
   const { reference } = input
-  return ethUtils.bufferToHex(rlp.encode(
-    data.concat([
-      ethUtils.bufferToHex(reference.tx),
-      ethUtils.bufferToHex(rlp.encode(reference.txParentNodes))
-    ])
-  ))
+  return ethUtils.bufferToHex(
+    rlp.encode(
+      data.concat([
+        ethUtils.bufferToHex(reference.tx),
+        ethUtils.bufferToHex(rlp.encode(reference.txParentNodes))
+      ])
+    )
+  )
 }
 
 export async function writeToFile(file, receipt) {
   const r = {
     tx: await web3Child.eth.getTransaction(receipt.transactionHash),
     receipt: await web3Child.eth.getTransactionReceipt(receipt.transactionHash),
-    block: await web3Child.eth.getBlock(receipt.blockHash, true /* returnTransactionObjects */)
+    block: await web3Child.eth.getBlock(
+      receipt.blockHash,
+      true /* returnTransactionObjects */
+    )
   }
   return fs.writeFileSync(
     path.join(__dirname, '..', 'mockResponses', file),

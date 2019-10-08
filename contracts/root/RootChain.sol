@@ -42,10 +42,11 @@ contract RootChain is RootChainStorage, IRootChain {
 
     RootChainHeader.HeaderBlock memory headerBlock = _buildHeaderBlock(txData);
     headerBlocks[_nextHeaderBlock] = headerBlock;
-
+    RLPReader.RLPItem[] memory extraData = txData.toRlpItem().toList();
+    extraData = extraData[0].toList();
     // check if it is better to keep it in local storage instead
     IStakeManager stakeManager = IStakeManager(registry.getStakeManagerAddress());
-    stakeManager.checkSignatures(keccak256(vote), bytes32(dataList[5].toUint()), sigs);
+    stakeManager.checkSignatures(keccak256(vote), bytes32(extraData[4].toUint()), sigs);
 
     emit NewHeaderBlock(headerBlock.proposer, _nextHeaderBlock, headerBlock.start, headerBlock.end, headerBlock.root);
     _nextHeaderBlock = _nextHeaderBlock.add(MAX_DEPOSITS);
