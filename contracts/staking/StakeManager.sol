@@ -73,7 +73,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
   constructor (address _registry, address _rootchain) ERC721Full("Matic Validator", "MV") public {
     registry = _registry;
-    changeRootChain(_rootchain);
+    rootChain = _rootchain;
   }
 
   modifier onlyStaker(uint256 validatorId) {

@@ -6,8 +6,11 @@ import utils from 'ethereumjs-util'
 import { StakeManager, DummyERC20 } from '../helpers/artifacts'
 import logDecoder from '../helpers/log-decoder.js'
 
+import { rewradsTree } from '../helpers/proofs.js'
+
 import {
   assertBigNumberEquality,
+  buildSubmitHeaderBlockPaylod,
   encodeSigs,
   getSigs
 } from '../helpers/utils.js'
@@ -465,12 +468,79 @@ contract('StakeManager', async function(accounts) {
       // 2/3 majority vote
       await stakeManager.checkSignatures(
         utils.bufferToHex(utils.keccak256(voteData)),
+        utils.bufferToHex(utils.keccak256('stateRoot')),
         sigs,
-        wallets[1].getAddressString(),
         {
           from: wallets[1].getAddressString()
         }
       )
+    })
+  })
+})
+
+contract('StakeManager<-> Rewards distribution', async function(accounts) {
+  let stakeToken
+  let stakeManager
+  let wallets
+  let accountState = {}
+  const rewardsAmount = 5
+
+  // staking
+  describe('Stake', async function() {
+    before(async function() {
+      wallets = generateFirstWallets(mnemonics, 2)
+      stakeToken = await DummyERC20.new('Stake Token', 'STAKE')
+      stakeManager = await StakeManager.new(
+        stakeToken.address,
+        wallets[0].getAddressString()
+      ) // dummy registry address
+      await stakeManager.setToken(stakeToken.address)
+
+      let amount = web3.utils.toWei('1000')
+      for (let i = 0; i < 2; i++) {
+        await stakeToken.mint(wallets[i].getAddressString(), amount)
+        await stakeToken.approve(stakeManager.address, amount, {
+          from: wallets[i].getAddressString()
+        })
+        await stakeManager.stake(amount, wallets[i].getAddressString(), false, {
+          from: wallets[i].getAddressString()
+        })
+        accountState[i + 1] = rewardsAmount
+      }
+    })
+
+    it('should get rewards for validator [1, 2]', async function() {
+      const validators = [1, 2]
+      let tree = await rewradsTree(validators, accountState)
+      const { vote, sigs } = buildSubmitHeaderBlockPaylod(
+        accounts[0],
+        0,
+        22,
+        '' /* root */,
+        wallets,
+        { rewardsRootHash: tree.getRoot(), allValidators: true }
+      )
+
+      // 2/3 majority vote
+      await stakeManager.checkSignatures(
+        utils.bufferToHex(utils.keccak256(vote)),
+        utils.bufferToHex(tree.getRoot()),
+        sigs
+      )
+      const leaf = utils.keccak256(
+        web3.eth.abi.encodeParameters(
+          ['uint256', 'uint256'],
+          [1, accountState[1]]
+        )
+      )
+      await stakeManager.claimRewards(
+        1,
+        rewardsAmount,
+        0,
+        utils.bufferToHex(Buffer.concat(tree.getProof(leaf)))
+      )
+      let validator = await stakeManager.validators(1)
+      assertBigNumberEquality(validator.reward, rewardsAmount)
     })
   })
 })
