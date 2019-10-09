@@ -518,7 +518,7 @@ contract('StakeManager<-> Rewards distribution', async function(accounts) {
         22,
         '' /* root */,
         wallets,
-        { rewardsRootHash: tree.getRoot(), allValidators: true }
+        { rewardsRootHash: tree.getRoot(), allValidators: true, getSigs: true }
       )
 
       // 2/3 majority vote

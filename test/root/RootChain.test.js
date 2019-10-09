@@ -64,7 +64,7 @@ contract('RootChain', async function(accounts) {
       22,
       '' /* root */,
       wallets,
-      { rewardsRootHash: tree.getRoot() }
+      { rewardsRootHash: tree.getRoot(), getSigs: true }
     )
     const result = await rootChain.submitHeaderBlock(vote, sigs, extraData)
     const logs = result.logs
@@ -82,7 +82,8 @@ contract('RootChain', async function(accounts) {
   it('submit multiple headerBlocks', async function() {
     let tree = await rewradsTree([1, 2, 3, 4], accountState)
     let payload = buildSubmitHeaderBlockPaylod(accounts[0], 0, 4, '', wallets, {
-      rewardsRootHash: tree.getRoot()
+      rewardsRootHash: tree.getRoot(),
+      getSigs: true
     })
     await rootChain.submitHeaderBlock(
       payload.vote,
@@ -91,7 +92,8 @@ contract('RootChain', async function(accounts) {
     )
 
     payload = buildSubmitHeaderBlockPaylod(accounts[0], 5, 9, '', wallets, {
-      rewardsRootHash: tree.getRoot()
+      rewardsRootHash: tree.getRoot(),
+      getSigs: true
     })
     await rootChain.submitHeaderBlock(
       payload.vote,
@@ -100,7 +102,8 @@ contract('RootChain', async function(accounts) {
     )
 
     payload = buildSubmitHeaderBlockPaylod(accounts[0], 10, 14, '', wallets, {
-      rewardsRootHash: tree.getRoot()
+      rewardsRootHash: tree.getRoot(),
+      getSigs: true
     })
     await rootChain.submitHeaderBlock(
       payload.vote,
