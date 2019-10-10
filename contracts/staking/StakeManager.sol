@@ -191,6 +191,13 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     totalRewardsLiquidated += validators[validatorId].reward;
     require(totalRewardsLiquidated <= totalRewards, "Oops this shouldn't have happened");// pos 2/3+1 is colluded
     validators[validatorId].totalReward = accountBalance;
+    emit ClaimRewards(validatorId, _reward, accountBalance);
+  }
+
+  function withdrawRewards(uint256 validatorId) public onlyStaker(validatorId) {
+    uint256 amount = validators[validatorId].reward;
+    validators[validatorId].reward = 0;
+    require(token.transfer(msg.sender, amount));
   }
 
   // if not jailed then in state of warning, else will be unstaking after x epoch
