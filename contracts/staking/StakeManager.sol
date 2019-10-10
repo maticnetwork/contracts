@@ -4,7 +4,6 @@ import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import { ERC721Full } from "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
 import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 
 import { BytesLib } from "../common/lib/BytesLib.sol";
 import { ECVerify } from "../common/lib/ECVerify.sol";
@@ -21,8 +20,6 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   using SafeMath for uint256;
   using ECVerify for bytes32;
   using Merkle for bytes32;
-  using RLPReader for bytes;
-  using RLPReader for RLPReader.RLPItem;
 
 
   IERC20 public token;
