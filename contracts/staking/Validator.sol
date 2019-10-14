@@ -115,6 +115,11 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
     return reward;
   }
 
+  function withdrawRewardsValidator() public onlyOwner returns(uint256 _rewards) {
+    uint256 _rewards = validatorRewards;
+    validatorRewards = 0;
+  }
+
   function totalDelegators() public view returns(uint256) {
     return delegators.length;
   }

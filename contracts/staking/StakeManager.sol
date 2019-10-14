@@ -31,7 +31,8 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   uint256 public EPOCH_LENGTH = 256; // unit : block
   uint256 public UNSTAKE_DELAY = DYNASTY.mul(2); // unit: epoch
 
-  uint256 public proposerToSignerRewards = 50; // will be used with fraud proof
+  // TODO: add events and gov. based update function
+  uint256 public proposerToSignerRewards = 10; // will be used with fraud proof
 
   uint256 public validatorThreshold = 10; //128
   uint256 public minLockInPeriod = 2; // unit: DYNASTY
@@ -188,7 +189,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       // otherwise validator can delay and get all the delegators reward
       ValidatorContract(_contract).updateRewards(_reward, currentEpoch, validators[validatorId].amount);
     }
-    totalRewardsLiquidated += validators[validatorId].reward;
+    totalRewardsLiquidated += _reward;
     require(totalRewardsLiquidated <= totalRewards, "Oops this shouldn't have happened");// pos 2/3+1 is colluded
     validators[validatorId].totalReward = accountBalance;
     emit ClaimRewards(validatorId, _reward, accountBalance);
@@ -196,8 +197,17 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
   function withdrawRewards(uint256 validatorId) public onlyStaker(validatorId) {
     uint256 amount = validators[validatorId].reward;
+    address _contract = validators[validatorId].contractAddress;
+    if (_contract != address(0x0)) {
+        amount = amount.add(ValidatorContract(_contract).withdrawRewardsValidator());
+    }
     validators[validatorId].reward = 0;
-    require(token.transfer(msg.sender, amount));
+    require(token.transfer(msg.sender, amount), "Insufficent rewards");
+  }
+
+  function delegationTransfer(uint256 amount, address delegator) public {
+    require(Registry(registry).getDelegationManagerAddress() == msg.sender);
+    require(token.transfer(delegator, amount), "Insufficent rewards");
   }
 
   // if not jailed then in state of warning, else will be unstaking after x epoch
@@ -417,10 +427,9 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       }
     }
 
-    // validatorId = tokenOfOwnerByIndex(proposer, 0);// get ValidatorId
     uint256 _totalStake = currentValidatorSetTotalStake();
     require(stakePower >= _totalStake.mul(2).div(3).add(1));
-    // update stateTrie root for accounts balance on heimdall chain
+    // update stateMerkleTree root for accounts balance on heimdall chain
     // for previous checkpoint rewards
     accountStateRoot = stateRoot;
     totalRewards = totalRewards.add(CHECKPOINT_REWARD.mul(stakePower).div(_totalStake));
