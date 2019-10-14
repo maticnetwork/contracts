@@ -199,7 +199,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     uint256 amount = validators[validatorId].reward;
     address _contract = validators[validatorId].contractAddress;
     if (_contract != address(0x0)) {
-        amount = amount.add(ValidatorContract(_contract).withdrawRewardsValidator());
+      amount = amount.add(ValidatorContract(_contract).withdrawRewardsValidator());
     }
     validators[validatorId].reward = 0;
     require(token.transfer(msg.sender, amount), "Insufficent rewards");
