@@ -24,6 +24,8 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   // genesis/governance variables
   uint256 public DYNASTY = 2**13;  // unit: epoch 50 days
   uint256 public CHECKPOINT_REWARD = 10000;
+  // 10% reward earmarked for proposer
+  uint256 SIGNER_REWARD = 9000;
   uint256 public MIN_DEPOSIT_SIZE = (10**18);  // in ERC20 token
   uint256 public EPOCH_LENGTH = 256; // unit : block
   uint256 public UNSTAKE_DELAY = DYNASTY.mul(2); // unit: epoch
@@ -370,12 +372,14 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     uint256 stakePower = 0;
     uint256 validatorId;
     address lastAdd = address(0x0); // cannot have address(0x0) as an owner
+    uint256 _totalStake = currentValidatorSetTotalStake();
+
     for (uint64 i = 0; i < sigs.length; i += 65) {
       bytes memory sigElement = BytesLib.slice(sigs, i, 65);
       address signer = voteHash.ecrecovery(sigElement);
 
       validatorId = signerToValidator[signer];
-      // check if signer is stacker and not proposer
+      // check if signer is staker and not proposer
       if (signer == lastAdd) {
         break;
       }
@@ -389,14 +393,15 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
         // add delegation power
         if (_contract != address(0x0)) {
           stakePower = stakePower.add(ValidatorContract(_contract).delegatedAmount());
+          uint256 _reward = SIGNER_REWARD.mul(stakePower).div(_totalStake);
+          validators[validatorId].reward += _reward;
         }
       }
     }
 
-    validatorId = tokenOfOwnerByIndex(proposer, 0);// get ValidatorId
-    uint256 _totalStake = currentValidatorSetTotalStake();
     require(stakePower >= _totalStake.mul(2).div(3).add(1));
-    rewardValidator(validatorId, stakePower, _totalStake);
+    validatorId = tokenOfOwnerByIndex(proposer, 0);// get ValidatorId
+    // Reward proposer
+    validators[validatorId].reward += (CHECKPOINT_REWARD - SIGNER_REWARD);
   }
-
 }
