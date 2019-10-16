@@ -1,4 +1,4 @@
-pragma solidity ^0.5.11;
+pragma solidity ^0.5.2;
 
 import { ChildToken, ERC20, LibTokenTransferOrder } from "./ChildChain.sol";
 
@@ -33,18 +33,22 @@ contract ChildERC20 is ChildToken, ERC20, LibTokenTransferOrder {
   );
 
   // mainnet Matic Token          0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0
-  address public constant TOKEN = 0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0;
+  address constant public TOKEN = 0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0;
 
   uint256 public currentSupply = 0;
   uint8 constant private _decimals = 18;
+  bool onlyOnce;
 
   constructor() public {}
 
   // can be called by anyone to set owner
-  function initConstructor ()
+  function initConstructor (address _childChain)
     public {
+    // require(msg.sender == address(0x1000));
+    require(!onlyOnce, "can't change ownership second time");
+    onlyOnce = true;
     // transfer Ownership to ChildChain @0x1002
-    _transferOwnership(address(0x0000000000000000000000000000000000001002));
+    _transferOwnership(_childChain);
   }
 
   function setParent(address /*_parent*/) public {

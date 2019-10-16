@@ -40,11 +40,8 @@ contract ChildChain is Ownable, StateSyncerVerifier, StateReceiver {
     uint256 withrawCount
   );
 
-  constructor () public {}
-
-  // can be called by anyone to set owner
-  function initConstructor ()
-    public {
+  constructor () public {
+    //Mapping matic Token
     tokens[0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0] = 0x0000000000000000000000000000000000001010;
   }
 
