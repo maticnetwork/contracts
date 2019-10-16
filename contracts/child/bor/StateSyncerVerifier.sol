@@ -27,7 +27,6 @@ contract StateSyncerVerifier is Ownable {
   }
   // TODO: replace onlyOwner ownership with 0x1000
 
-
   // initial setup
   constructor () public {
     // default state syncer contract

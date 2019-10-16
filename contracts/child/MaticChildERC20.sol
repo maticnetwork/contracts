@@ -42,16 +42,15 @@ contract ChildERC20 is ChildToken, ERC20, LibTokenTransferOrder {
   constructor() public {}
 
   // can be called by anyone to set owner
-  function initConstructor (address _childChain)
+  function init(address _childChain)
     public {
     // require(msg.sender == address(0x1000));
     require(!onlyOnce, "can't change ownership second time");
     onlyOnce = true;
-    // transfer Ownership to ChildChain @0x1002
     _transferOwnership(_childChain);
   }
 
-  function setParent(address /*_parent*/) public {
+  function setParent(address ) public {
     revert("disabled feature");
   }
 
@@ -63,13 +62,13 @@ contract ChildERC20 is ChildToken, ERC20, LibTokenTransferOrder {
     revert("disabled feature");
   }
 
-  function transferFrom(address from, address to, uint256 value) public returns (bool){
+  function transferFrom(address, address, uint256 ) public returns (bool){
     revert("disabled feature");
   }
 
   function deposit(address user, uint256 amount) public onlyOwner {
     // check for amount and user
-    require(amount > 0 && user != address(0x0));
+    require(amount > 0 && user != address(0x0), "Invalida deposit");
 
     // input balance
     uint256 input1 = balanceOf(user);
@@ -84,14 +83,14 @@ contract ChildERC20 is ChildToken, ERC20, LibTokenTransferOrder {
     emit Deposit(TOKEN, user, amount, input1, balanceOf(user));
   }
 
-  function withdraw(uint256 amount) payable public {
+  function withdraw(uint256 amount) public payable {
     address user = msg.sender;
     // input balance
     uint256 input = balanceOf(user);
 
     currentSupply = currentSupply.sub(amount);
     // check for amount
-    require(amount > 0 && input >= amount && msg.value == amount);
+    require(amount > 0 && input >= amount && msg.value == amount, "Insufficient amount");
 
     // withdraw event
     emit Withdraw(TOKEN, user, amount, input, balanceOf(user));

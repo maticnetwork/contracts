@@ -40,7 +40,7 @@ contract ChildChain is Ownable, StateSyncerVerifier, StateReceiver {
     uint256 withrawCount
   );
 
-  constructor () public {
+  constructor() public {
     //Mapping matic Token
     tokens[0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0] = 0x0000000000000000000000000000000000001010;
   }
@@ -54,7 +54,7 @@ contract ChildChain is Ownable, StateSyncerVerifier, StateReceiver {
     bool _isERC721
   ) public onlyOwner returns (address token) {
     // check if root token already exists
-    require(tokens[_rootToken] == address(0x0));
+    require(tokens[_rootToken] == address(0x0), "Token mapped already");
 
     // create new token contract
     if (_isERC721) {
@@ -71,6 +71,7 @@ contract ChildChain is Ownable, StateSyncerVerifier, StateReceiver {
     emit NewToken(_rootToken, token, _decimals);
   }
 
+  // for testnet updates remove for mainnet
   function mapToken(address rootToken, address token, bool isErc721) public onlyOwner {
     tokens[rootToken] = token;
     isERC721[rootToken] = isErc721;
