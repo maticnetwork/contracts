@@ -19,7 +19,7 @@ contract ChildToken is Ownable {
   }
 
   function deposit(address user, uint256 amountOrTokenId) public;
-  function withdraw(uint256 amountOrTokenId) public;
+  function withdraw(uint256 amountOrTokenId) public payable;
   function setParent(address _parent) public;
 
   function ecrecovery(

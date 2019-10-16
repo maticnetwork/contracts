@@ -42,6 +42,22 @@ contract ChildERC721 is ChildToken, LibTokenTransferOrder, ERC721Full {
     parent = _parent;
   }
 
+  function approve(address to, uint256 tokenId) public {
+    revert("disabled feature");
+  }
+
+  function getApproved(uint256 tokenId) public view returns (address operator) {
+    revert("disabled feature");
+  }
+
+  function setApprovalForAll(address operator, bool _approved) public {
+    revert("disabled feature");
+  }
+
+  function isApprovedForAll(address owner, address operator) public view returns (bool){
+    revert("disabled feature");
+  }
+
   /**
    * @notice Deposit tokens
    * @param user address for deposit
@@ -57,7 +73,7 @@ contract ChildERC721 is ChildToken, LibTokenTransferOrder, ERC721Full {
    * @notice Withdraw tokens
    * @param tokenId tokenId of the token to be withdrawn
    */
-  function withdraw(uint256 tokenId) public {
+  function withdraw(uint256 tokenId) payable public {
     require(ownerOf(tokenId) == msg.sender);
     _burn(msg.sender, tokenId);
     emit Withdraw(token, msg.sender, tokenId);

@@ -42,6 +42,12 @@ contract ChildChain is Ownable, StateSyncerVerifier, StateReceiver {
 
   constructor () public {}
 
+  // can be called by anyone to set owner
+  function initConstructor ()
+    public {
+    tokens[0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0] = 0x0000000000000000000000000000000000001010;
+  }
+
   function addToken(
     address _owner,
     address _rootToken,
