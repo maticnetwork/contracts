@@ -38,7 +38,7 @@ contract MaticChildERC20 is ERC20Mixin {
     currentSupply = currentSupply.add(amount);
 
     // deposit events
-    emit Deposit(TOKEN, user, amount, input1, balanceOf(user));
+    emit Deposit(token, user, amount, input1, balanceOf(user));
   }
 
   function withdraw(uint256 amount) public payable {
@@ -51,7 +51,7 @@ contract MaticChildERC20 is ERC20Mixin {
     require(amount > 0 && input >= amount && msg.value == amount, "Insufficient amount");
 
     // withdraw event
-    emit Withdraw(TOKEN, user, amount, input, balanceOf(user));
+    emit Withdraw(token, user, amount, input, balanceOf(user));
   }
 
   function name() public view returns (string memory) {
@@ -79,16 +79,15 @@ contract MaticChildERC20 is ERC20Mixin {
   /// @param value Number of tokens to transfer.
   /// @return Returns success of function call.
   function transfer(address to, uint256 value) public returns (bool) {
-    return _transferFrom(msg.sender, address(uint160(to)), value);
+    return _transferFrom(msg.sender, to, value);
   }
 
-  function _transferFrom(address from, address payable to, uint256 amount) internal returns (bool) {
+  function _transferFrom(address from, address to, uint256 amount) internal returns (bool) {
     if (msg.value != amount) {
       return false;
     }
-
-    // transfer amount to to
-    to.transfer(amount);
+    address payable _to = address(uint160(to));
+    _to.transfer(amount);
     emit Transfer(from, to, amount);
     return true;
   }

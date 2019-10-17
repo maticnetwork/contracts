@@ -69,7 +69,7 @@ contract ERC20Mixin is ChildMixin, ERC20 {
   /// @param to Address to where tokens are sent.
   /// @param value Number of tokens to transfer.
   /// @return Returns success of function call.
-  function _transferFrom(address from, address to, uint256 value) internal {
+  function _transferFrom(address from, address to, uint256 value) internal returns (bool) {
     uint256 input1 = balanceOf(from);
     uint256 input2 = balanceOf(to);
     _transfer(from, to, value);
@@ -83,6 +83,7 @@ contract ERC20Mixin is ChildMixin, ERC20 {
       balanceOf(from),
       balanceOf(to)
     );
+    return true;
   }
 
 }

@@ -3,6 +3,7 @@ pragma solidity ^0.5.2;
 import { ERC20Detailed } from "openzeppelin-solidity/contracts/token/ERC20/ERC20Detailed.sol";
 
 import "./ERC20Mixin.sol";
+import "./misc/IParentToken.sol";
 
 
 contract ChildERC20 is ERC20Mixin, ERC20Detailed {
@@ -68,8 +69,7 @@ contract ChildERC20 is ERC20Mixin, ERC20Detailed {
     if (parent != address(0x0) && !IParentToken(parent).beforeTransfer(msg.sender, to, value)) {
       return false;
     }
-    _transferFrom(msg.sender, to, value);
-    return true; // to be compliant with the standard ERC20.transfer function interface
+    return _transferFrom(msg.sender, to, value);
   }
 
 }
