@@ -25,7 +25,7 @@ contract StateSyncerVerifier is Ownable {
   function isOnlyStateSyncerContract() public view returns (bool) {
     return msg.sender == stateSyncer;
   }
-  // TODO: replace onlyOwner ownership with 0x1000
+  // TODO: replace onlyOwner ownership with 0x1000 for validator majority
 
   // initial setup
   constructor () public {

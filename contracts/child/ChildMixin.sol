@@ -3,7 +3,10 @@ pragma solidity ^0.5.2;
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
-contract ChildToken is Ownable {
+import "./misc/LibTokenTransferOrder.sol";
+
+
+contract ChildMixin is Ownable, LibTokenTransferOrder {
   using SafeMath for uint256;
 
   // ERC721/ERC20 contract token address on root chain

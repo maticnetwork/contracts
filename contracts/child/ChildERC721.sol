@@ -2,12 +2,11 @@ pragma solidity ^0.5.2;
 
 import { ERC721Full } from "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
 
-import "./ChildToken.sol";
+import "./ChildMixin.sol";
 import "./misc/IParentToken.sol";
-import "./misc/LibTokenTransferOrder.sol";
 
 
-contract ChildERC721 is ChildToken, LibTokenTransferOrder, ERC721Full {
+contract ChildERC721 is ChildMixin, ERC721Full {
 
   event Deposit(
     address indexed token,
@@ -37,25 +36,47 @@ contract ChildERC721 is ChildToken, LibTokenTransferOrder, ERC721Full {
     token = _token;
   }
 
+  function transferWithSig(bytes calldata sig, uint256 tokenId, bytes32 data, uint256 expiration, address to) external returns (address) {
+    require(expiration == 0 || block.number <= expiration, "Signature is expired");
+
+    bytes32 dataHash = getTokenTransferOrderHash(
+      msg.sender,
+      tokenId,
+      data,
+      expiration
+    );
+    require(disabledHashes[dataHash] == false, "Sig deactivated");
+    disabledHashes[dataHash] = true;
+
+    // recover address and send tokens
+    address from = ecrecovery(dataHash, sig);
+    _transferFrom(from, to, tokenId);
+    require(
+      _checkOnERC721Received(from, to, tokenId, ""),
+      "_checkOnERC721Received failed"
+    );
+    return from;
+  }
+
   function setParent(address _parent) public isParentOwner {
     require(_parent != address(0x0));
     parent = _parent;
   }
 
   function approve(address to, uint256 tokenId) public {
-    revert("disabled feature");
+    revert("Disabled feature");
   }
 
   function getApproved(uint256 tokenId) public view returns (address operator) {
-    revert("disabled feature");
+    revert("Disabled feature");
   }
 
   function setApprovalForAll(address operator, bool _approved) public {
-    revert("disabled feature");
+    revert("Disabled feature");
   }
 
   function isApprovedForAll(address owner, address operator) public view returns (bool){
-    revert("disabled feature");
+    revert("Disabled feature");
   }
 
   /**
@@ -87,28 +108,6 @@ contract ChildERC721 is ChildToken, LibTokenTransferOrder, ERC721Full {
       return;
     }
     _transferFrom(from, to, tokenId);
-  }
-
-  function transferWithSig(bytes calldata sig, uint256 tokenId, bytes32 data, uint256 expiration, address to) external returns (address) {
-    require(expiration == 0 || block.number <= expiration, "Signature is expired");
-
-    bytes32 dataHash = getTokenTransferOrderHash(
-      msg.sender,
-      tokenId,
-      data,
-      expiration
-    );
-    require(disabledHashes[dataHash] == false, "Sig deactivated");
-    disabledHashes[dataHash] = true;
-
-    // recover address and send tokens
-    address from = ecrecovery(dataHash, sig);
-    _transferFrom(from, to, tokenId);
-    require(
-      _checkOnERC721Received(from, to, tokenId, ""),
-      "_checkOnERC721Received failed"
-    );
-    return from;
   }
 
   function _transferFrom(address from, address to, uint256 tokenId) internal {
