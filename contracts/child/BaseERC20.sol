@@ -2,10 +2,10 @@ pragma solidity ^0.5.2;
 
 import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 
-import "./ChildMixin.sol";
+import "./ChildToken.sol";
 
 
-contract ERC20Mixin is ChildMixin, ERC20 {
+contract BaseERC20 is ChildToken, ERC20 {
 
   event Deposit(
     address indexed token,

@@ -5,7 +5,7 @@ import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { StateSyncerVerifier } from "./bor/StateSyncerVerifier.sol";
 import { StateReceiver } from "./bor/StateReceiver.sol";
 
-import "./ChildMixin.sol";
+import "./ChildToken.sol";
 import "./ChildERC20.sol";
 import "./ChildERC721.sol";
 
@@ -103,7 +103,7 @@ contract ChildChain is Ownable, StateSyncerVerifier, StateReceiver {
     // check if child token is mapped
     require(childToken != address(0x0));
 
-    ChildMixin obj;
+    ChildToken obj;
 
     if (isERC721[rootToken]) {
       obj = ChildERC721(childToken);
@@ -136,7 +136,7 @@ contract ChildChain is Ownable, StateSyncerVerifier, StateReceiver {
     // check if child token is mapped
     require(childToken != address(0x0));
 
-    ChildMixin obj;
+    ChildToken obj;
 
     if (isERC721[rootToken]) {
       obj = ChildERC721(childToken);

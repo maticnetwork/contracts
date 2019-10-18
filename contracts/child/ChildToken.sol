@@ -6,7 +6,7 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "./misc/LibTokenTransferOrder.sol";
 
 
-contract ChildMixin is Ownable, LibTokenTransferOrder {
+contract ChildToken is Ownable, LibTokenTransferOrder {
   using SafeMath for uint256;
 
   // ERC721/ERC20 contract token address on root chain

@@ -2,11 +2,11 @@ pragma solidity ^0.5.2;
 
 import { ERC721Full } from "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
 
-import "./ChildMixin.sol";
+import "./ChildToken.sol";
 import "./misc/IParentToken.sol";
 
 
-contract ChildERC721 is ChildMixin, ERC721Full {
+contract ChildERC721 is ChildToken, ERC721Full {
 
   event Deposit(
     address indexed token,
