@@ -1,9 +1,9 @@
 pragma solidity ^0.5.2;
 
-import "./ERC20Mixin.sol";
+import "./BaseERC20.sol";
 
 
-contract MaticChildERC20 is ERC20Mixin {
+contract MaticChildERC20 is BaseERC20 {
 
   uint256 public currentSupply = 0;
   uint8 constant private DECIMALS = 18;
