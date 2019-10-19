@@ -4,10 +4,9 @@ import { ERC721Full } from "openzeppelin-solidity/contracts/token/ERC721/ERC721F
 
 import "./ChildToken.sol";
 import "./misc/IParentToken.sol";
-import "./misc/LibTokenTransferOrder.sol";
 
 
-contract ChildERC721 is ChildToken, LibTokenTransferOrder, ERC721Full {
+contract ChildERC721 is ChildToken, ERC721Full {
 
   event Deposit(
     address indexed token,
@@ -37,42 +36,6 @@ contract ChildERC721 is ChildToken, LibTokenTransferOrder, ERC721Full {
     token = _token;
   }
 
-  function setParent(address _parent) public isParentOwner {
-    require(_parent != address(0x0));
-    parent = _parent;
-  }
-
-  /**
-   * @notice Deposit tokens
-   * @param user address for deposit
-   * @param tokenId tokenId to mint to user's account
-   */
-  function deposit(address user, uint256 tokenId) public onlyOwner {
-    require(user != address(0x0));
-    _mint(user, tokenId);
-    emit Deposit(token, user, tokenId);
-  }
-
-  /**
-   * @notice Withdraw tokens
-   * @param tokenId tokenId of the token to be withdrawn
-   */
-  function withdraw(uint256 tokenId) public {
-    require(ownerOf(tokenId) == msg.sender);
-    _burn(msg.sender, tokenId);
-    emit Withdraw(token, msg.sender, tokenId);
-  }
-
-  /**
-   * @dev Overriding the inherited method so that it emits LogTransfer
-   */
-  function transferFrom(address from, address to, uint256 tokenId) public {
-    if (parent != address(0x0) && !IParentToken(parent).beforeTransfer(msg.sender, to, tokenId)) {
-      return;
-    }
-    _transferFrom(from, to, tokenId);
-  }
-
   function transferWithSig(bytes calldata sig, uint256 tokenId, bytes32 data, uint256 expiration, address to) external returns (address) {
     require(expiration == 0 || block.number <= expiration, "Signature is expired");
 
@@ -93,6 +56,58 @@ contract ChildERC721 is ChildToken, LibTokenTransferOrder, ERC721Full {
       "_checkOnERC721Received failed"
     );
     return from;
+  }
+
+  function setParent(address _parent) public isParentOwner {
+    require(_parent != address(0x0));
+    parent = _parent;
+  }
+
+  function approve(address to, uint256 tokenId) public {
+    revert("Disabled feature");
+  }
+
+  function getApproved(uint256 tokenId) public view returns (address operator) {
+    revert("Disabled feature");
+  }
+
+  function setApprovalForAll(address operator, bool _approved) public {
+    revert("Disabled feature");
+  }
+
+  function isApprovedForAll(address owner, address operator) public view returns (bool){
+    revert("Disabled feature");
+  }
+
+  /**
+   * @notice Deposit tokens
+   * @param user address for deposit
+   * @param tokenId tokenId to mint to user's account
+   */
+  function deposit(address user, uint256 tokenId) public onlyOwner {
+    require(user != address(0x0));
+    _mint(user, tokenId);
+    emit Deposit(token, user, tokenId);
+  }
+
+  /**
+   * @notice Withdraw tokens
+   * @param tokenId tokenId of the token to be withdrawn
+   */
+  function withdraw(uint256 tokenId) payable public {
+    require(ownerOf(tokenId) == msg.sender);
+    _burn(msg.sender, tokenId);
+    emit Withdraw(token, msg.sender, tokenId);
+  }
+
+  /**
+   * @dev Overriding the inherited method so that it emits LogTransfer
+   */
+  function transferFrom(address from, address to, uint256 tokenId) public {
+    if (parent != address(0x0) && !IParentToken(parent).beforeTransfer(msg.sender, to, tokenId)) {
+      return;
+    }
+    _transferFrom(from, to, tokenId);
   }
 
   function _transferFrom(address from, address to, uint256 tokenId) internal {
