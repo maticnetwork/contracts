@@ -2,16 +2,20 @@ dist: xenial
 sudo: required
 group: beta
 language: node_js
+services:
+  - docker
 # Build fails if cache is enabled unless caches are manually cleared from travis settings
 # cache:
 #   directories:
 #     - node_modules
 matrix:
   fast_finish: true
-install:
-  - bash <(curl https://get.parity.io -L) -r v2.4.7
+before_install:
+  - docker pull maticnetwork/bor:develop
+# install:
+# - bash <(curl https://get.parity.io -L) -r v2.4.7
 before_script:
-  - export PATH=/snap/bin:${PATH}
+  # - export PATH=/snap/bin:${PATH}
   - npm install
 script:
   - npm run test:ci
