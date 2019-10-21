@@ -67,7 +67,7 @@ module.exports = {
   },
   compilers: {
     solc: {
-      version: '0.5.7',
+      version: '0.5.11',
       // docker: true,
       settings: {
         optimizer: {
