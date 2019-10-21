@@ -2,4 +2,4 @@
 
 CWD=$PWD
 
-pkill -f parity
+pkill -f geth
