@@ -15,11 +15,13 @@ const crypto = require('crypto')
 const BN = ethUtils.BN
 const rlp = ethUtils.rlp
 
+// constants
 export const web3Child = new web3.constructor(
   new web3.providers.HttpProvider('http://localhost:8546')
 )
 
 export const ZeroAddress = '0x0000000000000000000000000000000000000000'
+export const ChildMaticTokenAddress = '0x0000000000000000000000000000000000001010'
 
 export function getSigs(wallets, votedata) {
   wallets.sort((w1, w2) => {

@@ -1,20 +1,20 @@
-import utils from 'ethereumjs-util'
+import ethUtils from 'ethereumjs-util'
 
 import * as contracts from './artifacts'
-import { web3Child } from './utils'
+import * as utils from './utils'
 
 class Deployer {
   constructor() {
-    contracts.ChildChain.web3 = web3Child
-    contracts.ChildERC20.web3 = web3Child
-    contracts.ChildERC721.web3 = web3Child
-    contracts.ChildERC721Mintable.web3 = web3Child
-    contracts.Marketplace.web3 = web3Child
+    Object.keys(contracts.childContracts).forEach(c => {
+      // hack for quick fix
+      contracts[c] = contracts.childContracts[c]
+      contracts[c].web3 = utils.web3Child
+    })
   }
 
   async freshDeploy(options = {}) {
     this.registry = await contracts.Registry.new()
-    this.rootChain = await contracts.RootChain.new(this.registry.address)
+    await this.deployRootChain()
 
     this.SlashingManager = await contracts.SlashingManager.new(
       this.registry.address
@@ -42,23 +42,15 @@ class Deployer {
 
     await Promise.all([
       this.registry.updateContractMap(
-        utils.keccak256('depositManager'),
-        depositManager.address
-      ),
-      this.registry.updateContractMap(
-        utils.keccak256('withdrawManager'),
-        withdrawManager.address
-      ),
-      this.registry.updateContractMap(
-        utils.keccak256('stakeManager'),
+        ethUtils.keccak256('stakeManager'),
         this.stakeManager.address
       ),
       this.registry.updateContractMap(
-        utils.keccak256('delegationManager'),
+        ethUtils.keccak256('delegationManager'),
         this.delegationManager.address
       ),
       this.registry.updateContractMap(
-        utils.keccak256('slashingManager'),
+        ethUtils.keccak256('slashingManager'),
         this.SlashingManager.address
       )
     ])
@@ -81,12 +73,17 @@ class Deployer {
     return _contracts
   }
 
+  async deployRootChain() {
+    this.rootChain = await contracts.RootChain.new(this.registry.address)
+    return this.rootChain
+  }
+
   async deployMaticWeth() {
     const maticWeth = await contracts.MaticWETH.new()
     await Promise.all([
       this.mapToken(maticWeth.address, maticWeth.address, false /* isERC721 */),
       this.registry.updateContractMap(
-        utils.keccak256('wethToken'),
+        ethUtils.keccak256('wethToken'),
         maticWeth.address
       )
     ])
@@ -96,7 +93,7 @@ class Deployer {
   async deployStateSender() {
     this.stateSender = await contracts.StateSender.new()
     await this.registry.updateContractMap(
-      utils.keccak256('stateSender'),
+      ethUtils.keccak256('stateSender'),
       this.stateSender.address
     )
     return this.stateSender
@@ -110,7 +107,7 @@ class Deployer {
       this.rootChain.address
     )
     await this.registry.updateContractMap(
-      utils.keccak256('depositManager'),
+      ethUtils.keccak256('depositManager'),
       this.depositManagerProxy.address
     )
     this.depositManager = await contracts.DepositManager.at(
@@ -135,7 +132,7 @@ class Deployer {
       this.rootChain.address
     )
     await this.registry.updateContractMap(
-      utils.keccak256('withdrawManager'),
+      ethUtils.keccak256('withdrawManager'),
       this.withdrawManagerProxy.address
     )
     const w = await contracts.WithdrawManager.at(
@@ -200,6 +197,20 @@ class Deployer {
       )
     }
     return testToken
+  }
+
+  async deployMaticToken() {
+    const testToken = await this.deployTestErc20({
+      mapToken: true,
+      childTokenAdress: utils.ChildMaticTokenAddress
+    })
+    if (this.childChain) {
+      await this.childChain.mapToken(testToken.address, utils.ChildMaticTokenAddress)
+    }
+    return {
+      rootERC20: testToken,
+      childToken: await contracts.MaticChildERC20.at(utils.ChildMaticTokenAddress)
+    }
   }
 
   async deployTestErc721(options = { mapToken: true }) {
@@ -291,7 +302,7 @@ class Deployer {
     await this.childChain.changeStateSyncerAddress(owner)
     if (options.updateRegistry) {
       await this.registry.updateContractMap(
-        utils.keccak256('childChain'),
+        ethUtils.keccak256('childChain'),
         this.childChain.address
       )
       await this.stateSender.register(

@@ -28,11 +28,14 @@ export const TestToken = artifacts.require('TestToken')
 export const DummyERC20 = artifacts.require('DummyERC20')
 export const RootERC721 = artifacts.require('RootERC721')
 export const ERC721PlasmaMintable = artifacts.require('ERC721PlasmaMintable')
-export const ExitNFT = artifacts.require('ExitNFT.sol')
+export const ExitNFT = artifacts.require('ExitNFT')
 
 // child chain
-export const Marketplace = artifacts.require('Marketplace')
-export const ChildChain = artifacts.require('ChildChain')
-export const ChildERC20 = artifacts.require('ChildERC20')
-export const ChildERC721 = artifacts.require('ChildERC721')
-export const ChildERC721Mintable = artifacts.require('ChildERC721Mintable')
+export const childContracts = {
+  Marketplace: artifacts.require('Marketplace'),
+  ChildChain: artifacts.require('ChildChain'),
+  ChildERC20: artifacts.require('ChildERC20'),
+  ChildERC721: artifacts.require('ChildERC721'),
+  ChildERC721Mintable: artifacts.require('ChildERC721Mintable'),
+  MaticChildERC20: artifacts.require('MaticChildERC20')
+}
