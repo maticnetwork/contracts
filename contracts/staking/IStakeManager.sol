@@ -18,6 +18,7 @@ contract IStakeManager {
 
   uint256 public WITHDRAWAL_DELAY = (2**13)/2; // unit: epoch
   // Todo: fix WITHDRAWAL_DELAY with interface
+  function delegationTransfer(uint256 amount, address delegator) external;
   function stake(uint256 amount, address signer, bool isContract) external;
   function unstake(uint256 validatorId) external;
   function totalStakedFor(address addr) external view returns (uint256);

@@ -48,7 +48,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   struct Validator {
     uint256 amount;
     uint256 reward;
-    uint256 totalReward;
+    uint256 claimedRewards;
     uint256 activationEpoch;
     uint256 deactivationEpoch;
     uint256 jailTime;
@@ -100,7 +100,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     validators[NFTCounter] = Validator({
       reward: 0,
       amount: amount,
-      totalReward: 0,
+      claimedRewards: 0,
       activationEpoch: currentEpoch,
       deactivationEpoch: 0,
       jailTime: 0,
@@ -179,7 +179,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   function claimRewards(uint256 validatorId, uint256 accountBalance, uint256 index, bytes memory proof) public /*onlyStaker(validatorId) */ {
     // accountState = keccak256(abi.encodePacked(validatorId, accountBalance))
     require(keccak256(abi.encodePacked(validatorId, accountBalance)).checkMembership(index, accountStateRoot, proof));
-    uint256 _reward = accountBalance.sub(validators[validatorId].totalReward);
+    uint256 _reward = accountBalance.sub(validators[validatorId].claimedRewards);
     address _contract = validators[validatorId].contractAddress;
     if (_contract == address(0x0)) {
       validators[validatorId].reward = validators[validatorId].reward.add(_reward);
@@ -191,7 +191,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     }
     totalRewardsLiquidated += _reward;
     require(totalRewardsLiquidated <= totalRewards, "Oops this shouldn't have happened");// pos 2/3+1 is colluded
-    validators[validatorId].totalReward = accountBalance;
+    validators[validatorId].claimedRewards = accountBalance;
     emit ClaimRewards(validatorId, _reward, accountBalance);
   }
 
@@ -205,7 +205,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     require(token.transfer(msg.sender, amount), "Insufficent rewards");
   }
 
-  function delegationTransfer(uint256 amount, address delegator) public {
+  function delegationTransfer(uint256 amount, address delegator) external {
     require(Registry(registry).getDelegationManagerAddress() == msg.sender);
     require(token.transfer(delegator, amount), "Insufficent rewards");
   }

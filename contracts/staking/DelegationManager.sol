@@ -59,8 +59,9 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
   function claimRewards(uint256 delegatorId) public onlyDelegator(delegatorId) {
     _claimRewards(delegatorId);
     uint256 amount = delegators[delegatorId].reward;
+    StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
     delegators[delegatorId].reward = 0;
-    require(token.transfer(msg.sender, amount));
+    stakeManager.delegationTransfer(amount, msg.sender);
   }
 
   function _claimRewards(uint256 delegatorId) internal {
