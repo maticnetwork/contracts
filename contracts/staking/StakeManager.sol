@@ -190,7 +190,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       ValidatorContract(_contract).updateRewards(_reward, currentEpoch, validators[validatorId].amount);
     }
     totalRewardsLiquidated += _reward;
-    require(totalRewardsLiquidated <= totalRewards, "Oops this shouldn't have happened");// pos 2/3+1 is colluded
+    require(totalRewardsLiquidated <= totalRewards, "Liquidating more rewards then checkpoints submitted");// pos 2/3+1 is colluded
     validators[validatorId].claimedRewards = accountBalance;
     emit ClaimRewards(validatorId, _reward, accountBalance);
   }
