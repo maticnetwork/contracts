@@ -2,6 +2,7 @@ import Trie from 'merkle-patricia-tree'
 import utils from 'ethereumjs-util'
 import EthereumTx from 'ethereumjs-tx'
 import EthereumBlock from 'ethereumjs-block/from-rpc'
+import MerkleTree from '../helpers/merkle-tree.js'
 
 const rlp = utils.rlp
 
@@ -22,6 +23,20 @@ export function squanchTx(tx) {
   tx.gas = '0x' + parseInt(tx.gas).toString(16)
   tx.data = tx.input
   return tx
+}
+
+export async function rewradsTree(validators, accountState) {
+  let leafs = []
+  let i = 0
+  validators.map(key => {
+    leafs[i++] = utils.keccak256(
+      web3.eth.abi.encodeParameters(
+        ['uint256', 'uint256'],
+        [key, accountState[key]]
+      )
+    )
+  })
+  return new MerkleTree(leafs)
 }
 
 function nibblesToTraverse(encodedPartialPath, path, pathPtr) {
@@ -159,7 +174,9 @@ export function getReceiptBytes(receipt) {
   return rlp.encode([
     utils.toBuffer(
       receipt.status !== undefined && receipt.status != null
-        ? receipt.status ? 1 : 0
+        ? receipt.status
+          ? 1
+          : 0
         : receipt.root
     ),
     utils.toBuffer(receipt.cumulativeGasUsed),

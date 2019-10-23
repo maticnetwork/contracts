@@ -14,15 +14,17 @@ contract IStakeManager {
   event DynastyValueChange(uint256 newDynasty, uint256 oldDynasty);
   event RewardUpdate(uint256 newReward, uint256 oldReward);
   event StakeUpdate(uint256 indexed validatorId, uint256 indexed oldAmount, uint256 indexed newAmount);
+  event ClaimRewards(uint256 indexed validatorId, uint256 indexed amount, uint256 indexed totalAmount);
 
   uint256 public WITHDRAWAL_DELAY = (2**13)/2; // unit: epoch
   // Todo: fix WITHDRAWAL_DELAY with interface
+  function delegationTransfer(uint256 amount, address delegator) external;
   function stake(uint256 amount, address signer, bool isContract) external;
   function unstake(uint256 validatorId) external;
   function totalStakedFor(address addr) external view returns (uint256);
   function supportsHistory() external pure returns (bool);
   function stakeFor(address user, uint256 amount, address signer, bool isContract) public;
-  function checkSignatures(bytes32 voteHash, bytes memory sigs, address proposer) public;
+  function checkSignatures(bytes32 voteHash, bytes32 stateRoot, bytes memory sigs) public;
   function updateValidatorState(uint256 validatorId, uint256 epoch, int256 amount) public;
 
   // optional
