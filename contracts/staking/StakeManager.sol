@@ -41,6 +41,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   uint256 public NFTCounter = 1;
   uint256 public totalRewards;
   uint256 public totalRewardsLiquidated;
+  uint256 public auctionInterval;
   bytes32 public accountStateRoot;
 
   enum Status { Inactive, Active, Locked }
@@ -57,6 +58,12 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     Status status;
   }
 
+  struct Auction{
+    uint256 amount;
+    uint256 startEpoch;
+    address user;
+  }
+
   struct State {
     int256 amount;
     int256 stakerCount;
@@ -68,6 +75,8 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   mapping (uint256 => Validator) public validators;
   //Mapping for epoch to totalStake for that epoch
   mapping (uint256 => State) public validatorState;
+  //Ongoing auctions for validatorId
+  mapping (uint256 => Auction) public validatorAuction;
 
   constructor (address _registry, address _rootchain) ERC721Full("Matic Validator", "MV") public {
     registry = _registry;
@@ -95,6 +104,10 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     require(signerToValidator[signer] == 0);
 
     require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake failed");
+    _stakeFor(user, amount, signer, isContract);
+  }
+
+  function _stakeFor(address user, uint256 amount, address signer, bool isContract) internal {
     totalStaked = totalStaked.add(amount);
 
     validators[NFTCounter] = Validator({
@@ -113,20 +126,82 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
     signerToValidator[signer] = NFTCounter;
     updateTimeLine(currentEpoch, int256(amount), 1);
-
+    // no Auctions for 1 DYNASTY
+    validatorAuction[NFTCounter].startEpoch = currentEpoch.add(DYNASTY);
     emit Staked(signer, NFTCounter, currentEpoch, amount, totalStaked);
     NFTCounter = NFTCounter.add(1);
   }
 
+  function perceivedStakeFactor(uint256 validatorId) internal returns(uint256){
+    // TODO: use age, rewardRatio, and slashing/reward rate
+    return 1;
+  }
+
+  function startAuction(uint256 validatorId, uint256 amount) external {
+    require(isValidator(validatorId));
+    require(validatorAuction[validatorId].startEpoch <= currentEpoch);
+    require(token.transferFrom(msg.sender, address(this), amount), "Transfer auction amount failed");
+
+    uint256 perceivedStake = validators[validatorId].amount.mul(perceivedStakeFactor(validatorId));
+    perceivedStake = Math.max(perceivedStake, validatorAuction[validatorId].amount);
+
+    require(perceivedStake < amount, "Must bid higher amount");
+
+    // create new auction
+    if (validatorAuction[validatorId].amount == 0) {
+      validatorAuction[validatorId] = Auction({
+        amount: amount,
+        startEpoch: currentEpoch,
+        user: msg.sender
+      });
+    } else { //replace prev auction
+      Auction auction = validatorAuction[validatorId];
+      require(token.transfer(auction.user, auction.amount));
+      auction.amount = amount;
+      auction.user = msg.sender;
+    }
+    emit StartAuction(validatorId, validators[validatorId].amount, validatorAuction[validatorId].amount);
+  }
+
+  function confirmAuctionBid(uint256 validatorId, address signer, bool isContract) external onlyWhenUnlocked {
+    Auction auction = validatorAuction[validatorId];
+    Validator validator = validators[validatorId];
+    // TODO: handle inbetween unstaking of validator
+    require(auction.user == msg.sender);
+    require(auctionInterval.add(auction.startEpoch) <= currentEpoch, "Confirmation is not allowed before auctionInterval");
+
+    // validator is last auctioner
+    if (auction.user == ownerOf(validatorId)) {
+      uint256 refund = validator.amount;
+      require(token.transfer(auction.user, refund));
+      validator.amount = auction.amount;
+      emit StakeUpdate(validatorId, refund, validator.amount);
+      emit ConfirmAuction(validatorId, validatorId, validator.amount);
+    } else {
+      // dethrone
+      _unstake(validatorId);
+      _stakeFor(user, auction.amount, signer, isContract);
+      emit ConfirmAuction(validatorId, NFTCounter, validator.amount);
+    }
+
+    //cleanup auction data
+    auction.amount = 0;
+    auction.user = address(0x0);
+  }
+
   function unstake(uint256 validatorId) external onlyStaker(validatorId) {
-    //Todo: add state here consider jail
+    require(validatorAuction[validatorId].amount == 0, "Wait for auction completion");
+    uint256 exitEpoch = currentEpoch.add(UNSTAKE_DELAY);// notice period
     require(validators[validatorId].activationEpoch > 0 &&
       validators[validatorId].deactivationEpoch == 0 &&
       validators[validatorId].status == Status.Active);
+    _unstake(validatorId);
+  }
 
+  function _unstake(uint256 validatorId, uint256 exitEpoch) internal {
+    //Todo: add state here consider jail
     uint256 amount = validators[validatorId].amount;
 
-    uint256 exitEpoch = currentEpoch.add(UNSTAKE_DELAY);// notice period
     validators[validatorId].deactivationEpoch = exitEpoch;
 
     // unbond all delegators in future
