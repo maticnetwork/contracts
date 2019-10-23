@@ -16,8 +16,12 @@ contract IStakeManager {
   event StakeUpdate(uint256 indexed validatorId, uint256 indexed oldAmount, uint256 indexed newAmount);
   event ClaimRewards(uint256 indexed validatorId, uint256 indexed amount, uint256 indexed totalAmount);
 
-  uint256 public WITHDRAWAL_DELAY = (2**13)/2; // unit: epoch
   // Todo: fix WITHDRAWAL_DELAY with interface
+  uint256 public WITHDRAWAL_DELAY = (2**13)/2; // unit: epoch
+  // validator replacement
+  function startAuction(uint256 validatorId, uint256 amount) external;
+  function confirmAuctionBid(uint256 validatorId, address signer, bool isContract) external;
+
   function delegationTransfer(uint256 amount, address delegator) external;
   function stake(uint256 amount, address signer, bool isContract) external;
   function unstake(uint256 validatorId) external;
