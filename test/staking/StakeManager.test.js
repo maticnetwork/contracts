@@ -15,9 +15,7 @@ import { rewradsTree } from '../helpers/proofs.js'
 import {
   assertBigNumberEquality,
   buildSubmitHeaderBlockPaylod,
-  encodeSigs,
-  getSigs,
-  assertBigNumbergt
+  assertBigNumbergt,
   checkPoint
 } from '../helpers/utils.js'
 import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'

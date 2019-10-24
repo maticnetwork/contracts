@@ -45,7 +45,7 @@ export async function checkPoint(wallets, proposer, stakeManager) {
   const sigs = ethUtils.bufferToHex(
     encodeSigs(getSigs(wallets, ethUtils.keccak256(voteData)))
   )
-  const stateRoot = utils.bufferToHex(utils.keccak256('stateRoot')),
+  const stateRoot = ethUtils.bufferToHex(ethUtils.keccak256('stateRoot'))
   // 2/3 majority vote
   await stakeManager.checkSignatures(
     ethUtils.bufferToHex(ethUtils.keccak256(voteData)),
@@ -107,7 +107,8 @@ export function buildSubmitHeaderBlockPaylod(
   // in case of TestStakeManger use dummysig data
   const sigs = ethUtils.bufferToHex(
     options.getSigs
-      ? encodeSigs(getSigs(validators, ethUtils.keccak256(vote))) : 'dummySig'
+      ? encodeSigs(getSigs(validators, ethUtils.keccak256(vote)))
+      : 'dummySig'
   )
   return { vote, sigs, extraData, root }
 }
