@@ -41,7 +41,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   uint256 public NFTCounter = 1;
   uint256 public totalRewards;
   uint256 public totalRewardsLiquidated;
-  uint256 public auctionInterval;
+  uint256 public auctionInterval = DYNASTY.div(4); // 1 week in epochs
   bytes32 public accountStateRoot;
 
   enum Status { Inactive, Active, Locked }
@@ -155,7 +155,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
         user: msg.sender
       });
     } else { //replace prev auction
-      Auction auction = validatorAuction[validatorId];
+      Auction storage auction = validatorAuction[validatorId];
       require(token.transfer(auction.user, auction.amount));
       auction.amount = amount;
       auction.user = msg.sender;
@@ -164,9 +164,8 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   }
 
   function confirmAuctionBid(uint256 validatorId, address signer, bool isContract) external onlyWhenUnlocked {
-    Auction auction = validatorAuction[validatorId];
-    Validator validator = validators[validatorId];
-    // TODO: handle inbetween unstaking of validator
+    Auction storage auction = validatorAuction[validatorId];
+    Validator storage validator = validators[validatorId];
     require(auction.user == msg.sender);
     require(auctionInterval.add(auction.startEpoch) <= currentEpoch, "Confirmation is not allowed before auctionInterval");
 
@@ -175,19 +174,23 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       uint256 refund = validator.amount;
       require(token.transfer(auction.user, refund));
       validator.amount = auction.amount;
+
+      //cleanup auction data
+      auction.amount = 0;
+      auction.user = address(0x0);
+      auction.startEpoch = currentEpoch.add(DYNASTY);
       emit StakeUpdate(validatorId, refund, validator.amount);
       emit ConfirmAuction(validatorId, validatorId, validator.amount);
+
     } else {
       // dethrone
-      _unstake(validatorId);
-      _stakeFor(user, auction.amount, signer, isContract);
+      _unstake(validatorId, currentEpoch);
+      _stakeFor(auction.user, auction.amount, signer, isContract);
+
+      delete validatorAuction[validatorId];
       emit ConfirmAuction(validatorId, NFTCounter, validator.amount);
     }
-
-    //cleanup auction data
-    auction.amount = 0;
-    auction.user = address(0x0);
-  }
+}
 
   function unstake(uint256 validatorId) external onlyStaker(validatorId) {
     require(validatorAuction[validatorId].amount == 0, "Wait for auction completion");
@@ -195,7 +198,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     require(validators[validatorId].activationEpoch > 0 &&
       validators[validatorId].deactivationEpoch == 0 &&
       validators[validatorId].status == Status.Active);
-    _unstake(validatorId);
+    _unstake(validatorId, exitEpoch);
   }
 
   function _unstake(uint256 validatorId, uint256 exitEpoch) internal {
@@ -419,6 +422,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     DYNASTY = newDynasty;
     UNSTAKE_DELAY = DYNASTY.div(2);
     WITHDRAWAL_DELAY = DYNASTY.mul(2);
+    auctionInterval = DYNASTY.div(4);
   }
 
   function updateSigner(uint256 validatorId, address _signer) public onlyStaker(validatorId) {
