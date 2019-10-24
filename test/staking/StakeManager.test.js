@@ -652,3 +652,72 @@ contract(
     })
   }
 )
+
+contract('StakeManager', async function(accounts) {
+  let stakeToken
+  let stakeManager
+  let wallets
+  let accountState = {}
+  const rewardsAmount = 5
+
+  describe('validator replacement', async function() {
+    before(async function() {
+      wallets = generateFirstWallets(mnemonics, 5)
+      stakeToken = await DummyERC20.new('Stake Token', 'STAKE')
+      stakeManager = await StakeManager.new(
+        stakeToken.address,
+        wallets[0].getAddressString()
+      ) // dummy registry address
+      await stakeManager.setToken(stakeToken.address)
+      await stakeManager.updateDynastyValue(4)
+
+      let amount = web3.utils.toWei('1000')
+      for (let i = 0; i < 2; i++) {
+        await stakeToken.mint(wallets[i].getAddressString(), amount)
+        await stakeToken.approve(stakeManager.address, amount, {
+          from: wallets[i].getAddressString()
+        })
+        await stakeManager.stake(amount, wallets[i].getAddressString(), true, {
+          from: wallets[i].getAddressString()
+        })
+        accountState[i + 1] = rewardsAmount
+      }
+    })
+
+    it('should try Auction start in non-auction period and fail', async function() {
+      const amount = web3.utils.toWei('1200')
+      await stakeToken.mint(wallets[3].getAddressString(), amount)
+      await stakeToken.approve(stakeManager.address, amount, {
+        from: wallets[3].getAddressString()
+      })
+      try {
+        await stakeManager.startAuction(1, amount)
+      } catch (error) {
+        const invalidOpcode = error.message.search('revert') >= 0
+        assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
+      }
+    })
+
+    // it('should start Auction and bid multiple times', async function() {
+    //   const { vote, sigs } = buildSubmitHeaderBlockPaylod(
+    //     accounts[0],
+    //     0,
+    //     22,
+    //     '' /* root */,
+    //     wallets,
+    //     {
+    //       rewardsRootHash: '',
+    //       allValidators: true,
+    //       getSigs: true
+    //     }
+    //   )
+
+    //   // 2/3 majority vote
+    //   await stakeManager.checkSignatures(
+    //     utils.bufferToHex(utils.keccak256(vote)),
+    //     utils.bufferToHex(''),
+    //     sigs
+    //   )
+    // })
+  })
+})
