@@ -53,6 +53,7 @@ const libDeps = [
     lib: ECVerify,
     contracts: [
       StakeManager,
+      StakeManagerTest,
       SlashingManager,
       MarketplacePredicate,
       MarketplacePredicateTest,
@@ -61,7 +62,13 @@ const libDeps = [
   },
   {
     lib: Merkle,
-    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate]
+    contracts: [
+      WithdrawManager,
+      ERC20Predicate,
+      ERC721Predicate,
+      StakeManager,
+      StakeManagerTest
+    ]
   },
   {
     lib: MerklePatriciaProof,
