@@ -2,6 +2,6 @@
 
 CWD=$PWD
 
-pkill -f geth
+# pkill -f geth
 
-rm -rf $CWD/data
+sudo rm -rf $CWD/data
