@@ -13,8 +13,8 @@ cleanup() {
   echo "Cleaning up"
   pkill -f ganache-cli
   cd $PWD/test-blockchain
-  bash clean.sh
   bash stop-docker.sh
+  bash clean.sh
   cd ..
   echo "Done"
 }

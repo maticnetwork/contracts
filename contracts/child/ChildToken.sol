@@ -25,6 +25,17 @@ contract ChildToken is Ownable, LibTokenTransferOrder {
   function withdraw(uint256 amountOrTokenId) public payable;
   function setParent(address _parent) public;
 
+  event LogFeeTransfer(
+    address indexed token,
+    address indexed from,
+    address indexed to,
+    uint256 amount,
+    uint256 input1,
+    uint256 input2,
+    uint256 output1,
+    uint256 output2
+  );
+
   function ecrecovery(
     bytes32 hash,
     bytes memory sig
