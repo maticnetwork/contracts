@@ -38,11 +38,8 @@ export async function getRawInflightTx(fn, from, web3, gas) {
     await fn(options)
     assert.fail('should have failed')
   } catch (e) {
-    assert.ok(
-      e.message.includes('exited with an error (status 0) after consuming all gas'),
-      'Failed for the wrong reason'
-    )
-    return buildInFlight(await web3.eth.getTransaction(e.tx))
+    const txHash = /transactionHash": "(0[xX][0-9a-fA-F]+)"/g.exec(e.hijackedStack)[1]
+    return buildInFlight(await web3.eth.getTransaction(txHash))
   }
 }
 
