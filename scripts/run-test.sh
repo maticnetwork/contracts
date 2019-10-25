@@ -13,6 +13,7 @@ cleanup() {
   echo "Cleaning up"
   pkill -f ganache-cli
   cd $PWD/test-blockchain
+  bash stop-docker.sh
   bash clean.sh
   cd ..
   echo "Done"
@@ -24,8 +25,7 @@ start_testrpc() {
 
 start_blockchain() {
   cd $PWD/test-blockchain
-  bash clean.sh
-  bash start.sh
+  bash run-docker.sh
   cd ..
 }
 

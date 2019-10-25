@@ -54,6 +54,8 @@ export function assertBigNumbergt(num1, num2) {
   // num1.should.be.bignumber.greaterThan(num2)
 }
 
+export const toChecksumAddress = address => web3.utils.toChecksumAddress(address)
+
 export function buildSubmitHeaderBlockPaylod(
   proposer,
   start,
@@ -76,7 +78,6 @@ export function buildSubmitHeaderBlockPaylod(
       0,
       0,
       ethUtils.bufferToHex(ethUtils.sha256(extraData))
-      // ethUtils.bufferToHex(ethUtils.sha256(extraData)).slice(0, 42)
     ])
   )
 
