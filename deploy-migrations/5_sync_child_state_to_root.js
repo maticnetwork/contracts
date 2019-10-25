@@ -11,11 +11,11 @@ module.exports = async function(deployer, network, accounts) {
     const registry = await Registry.deployed()
 
     const contractAddresses = utils.getContractAddresses()
-    // await registry.mapToken(
-    //   contractAddresses.root.tokens.MaticWeth,
-    //   contractAddresses.child.tokens.MaticWeth,
-    //   false /* isERC721 */
-    // )
+    await registry.mapToken(
+      contractAddresses.root.tokens.MaticWeth,
+      contractAddresses.child.tokens.MaticWeth,
+      false /* isERC721 */
+    )
     await registry.mapToken(
       contractAddresses.root.tokens.TestToken,
       contractAddresses.child.tokens.TestToken,
