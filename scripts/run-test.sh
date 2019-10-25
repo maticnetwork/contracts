@@ -13,8 +13,8 @@ cleanup() {
   echo "Cleaning up"
   pkill -f ganache-cli
   cd $PWD/test-blockchain
-  bash clean.sh
   bash stop-docker.sh
+  bash clean.sh
   cd ..
   echo "Done"
 }
@@ -37,4 +37,4 @@ echo "Starting our own geth instance"
 start_blockchain
 
 npm run truffle:migrate "$@"
-npm run truffle:test "$@"
+# npm run truffle:test "$@"
