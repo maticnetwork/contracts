@@ -59,15 +59,16 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
   function claimRewards(uint256 delegatorId) public onlyDelegator(delegatorId) {
     _claimRewards(delegatorId);
     uint256 amount = delegators[delegatorId].reward;
+    StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
     delegators[delegatorId].reward = 0;
-    require(token.transfer(msg.sender, amount));
+    stakeManager.delegationTransfer(amount, msg.sender);
   }
 
   function _claimRewards(uint256 delegatorId) internal {
     address validator;
     StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
     uint256 currentEpoch = stakeManager.currentEpoch();
-    (,,,,,,validator,) = stakeManager.validators(delegators[delegatorId].bondedTo);
+    (,,,,,,,validator,) = stakeManager.validators(delegators[delegatorId].bondedTo);
     delegators[delegatorId].reward += ValidatorContract(validator).calculateRewards(
       delegatorId,
       delegators[delegatorId].amount,
@@ -85,7 +86,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     require(delegator.lastValidatorEpoch == 0 || delegator.lastValidatorEpoch.add(validatorHopLimit) <= currentEpoch, "Delegation_Limit_Reached");
 
     address validator;
-    (,,,,,,validator,) = stakeManager.validators(validatorId);
+    (,,,,,,,validator,) = stakeManager.validators(validatorId);
     require(validator != address(0x0), "Unknown validatorId or validator doesn't expect delegations");
 
     // for lazy unbonding
@@ -113,7 +114,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
     _claimRewards(delegatorId);
     uint256 currentEpoch = stakeManager.currentEpoch();
-    (,,,,,,validator,) = stakeManager.validators(delegators[delegatorId].bondedTo);
+    (,,,,,,,validator,) = stakeManager.validators(delegators[delegatorId].bondedTo);
     ValidatorContract(validator).unBond(delegatorId, index, delegators[delegatorId].amount, currentEpoch);
     stakeManager.updateValidatorState(delegators[delegatorId].bondedTo, currentEpoch, -int(delegators[delegatorId].amount));
     emit UnBonding(delegatorId, delegators[delegatorId].bondedTo);

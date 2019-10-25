@@ -3,7 +3,10 @@ pragma solidity ^0.5.2;
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
-contract ChildToken is Ownable {
+import "./misc/LibTokenTransferOrder.sol";
+
+
+contract ChildToken is Ownable, LibTokenTransferOrder {
   using SafeMath for uint256;
 
   // ERC721/ERC20 contract token address on root chain
@@ -19,7 +22,7 @@ contract ChildToken is Ownable {
   }
 
   function deposit(address user, uint256 amountOrTokenId) public;
-  function withdraw(uint256 amountOrTokenId) public;
+  function withdraw(uint256 amountOrTokenId) public payable;
   function setParent(address _parent) public;
 
   function ecrecovery(

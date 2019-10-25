@@ -7,6 +7,7 @@
   "scripts": {
     "testrpc": "ganache-cli -k constantinople --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' --gasLimit 13000000",
     "truffle": "truffle",
+    "stake": "truffle exec --network matic scripts/stake.js",
     "truffle:test": "truffle test",
     "truffle:compile": "truffle compile",
     "truffle:migrate": "truffle migrate",
