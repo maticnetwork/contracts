@@ -286,6 +286,26 @@ class Deployer {
     return { rootERC721, childErc721 }
   }
 
+  async deployChildErc721MetadataMintable(options = { mapToken: true }) {
+    const rootERC721 = await contracts.ERC721PlasmaMetadataMintable.new('E721MM', 'E721MM')
+    const childErc721 = await contracts.ChildERC721Mintable.new(
+      rootERC721.address
+    )
+    await this.childChain.mapToken(
+      rootERC721.address,
+      childErc721.address,
+      true /* isERC721 */
+    )
+    if (options.mapToken) {
+      await this.mapToken(
+        rootERC721.address,
+        childErc721.address,
+        true /* isERC721 */
+      )
+    }
+    return { rootERC721, childErc721 }
+  }
+
   async initializeChildChain(owner, options = { updateRegistry: true }) {
     this.childChain = await contracts.ChildChain.new()
     await this.childChain.changeStateSyncerAddress(owner)

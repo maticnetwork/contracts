@@ -338,10 +338,76 @@ contract('ERC721Predicate', async function(accounts) {
       utils.assertBigNumberEquality(log.args.amount, tokenId)
     })
   })
+
+  describe('ERC721PlasmaMetadataMintable', async function() {
+    beforeEach(async function() {
+      predicate = await deployer.deployErc721Predicate()
+      const { rootERC721, childErc721 } = await deployer.deployChildErc721MetadataMintable()
+      // add ERC721Predicate as a minter
+      await rootERC721.addMinter(predicate.address)
+      childContracts.rootERC721 = rootERC721
+      childContracts.childErc721 = childErc721
+      tokenId = '0x' + crypto.randomBytes(32).toString('hex')
+    })
+
+    it('startExitForMintWithTokenURITokens', async function() {
+      const uri = `https://tokens.com/${tokenId}`
+      const { receipt: r } = await childContracts.childErc721.mintWithTokenURI(alice, tokenId, uri)
+      // await utils.writeToFile('child/erc721-mintWithTokenURI.js', r)
+      let mintTx = await web3Child.eth.getTransaction(r.transactionHash)
+      mintTx = await buildInFlight(mintTx)
+      await childContracts.childErc721.transferFrom(alice, bob, tokenId)
+
+      const { receipt } = await childContracts.childErc721.withdraw(tokenId, { from: bob })
+      // the token doesnt exist on the root chain as yet
+      expect(await childContracts.rootERC721.exists(tokenId)).to.be.false
+
+      let { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
+      const startExitTx = await startExitForMintWithTokenURITokens(
+        { headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 },
+        mintTx,
+        bob // exitor - account to initiate the exit from
+      )
+      // console.log(startExitTx)
+      expect(await childContracts.rootERC721.exists(tokenId)).to.be.true
+      console.log(await childContracts.rootERC721.tokenURI(tokenId))
+      expect(await childContracts.rootERC721.tokenURI(tokenId)).to.equal(uri)
+      expect((await childContracts.rootERC721.ownerOf(tokenId)).toLowerCase()).to.equal(contracts.depositManager.address.toLowerCase())
+
+      const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+      const log = logs[1]
+      log.event.should.equal('ExitStarted')
+      expect(log.args).to.include({
+        exitor: bob,
+        token: childContracts.rootERC721.address,
+        isRegularExit: true
+      })
+      utils.assertBigNumberEquality(log.args.amount, tokenId)
+
+      const processExits = await predicateTestUtils.processExits(contracts.withdrawManager, childContracts.rootERC721.address)
+      processExits.logs.forEach(log => {
+        log.event.should.equal('Withdraw')
+        expect(log.args).to.include({
+          token: childContracts.rootERC721.address,
+          user: bob
+        })
+      })
+      assert.strictEqual(await childContracts.rootERC721.ownerOf(tokenId), bob)
+      expect(await childContracts.rootERC721.tokenURI(tokenId)).to.equal(uri)
+    })
+  })
 })
 
 function startExitWithBurntMintableToken(input, mintTx, from) {
   return predicate.startExitWithBurntTokens(
+    ethUtils.bufferToHex(ethUtils.rlp.encode(utils.buildReferenceTxPayload(input))),
+    ethUtils.bufferToHex(mintTx),
+    { from }
+  )
+}
+
+function startExitForMintWithTokenURITokens(input, mintTx, from) {
+  return predicate.startExitForMintWithTokenURITokens(
     ethUtils.bufferToHex(ethUtils.rlp.encode(utils.buildReferenceTxPayload(input))),
     ethUtils.bufferToHex(mintTx),
     { from }
