@@ -6,7 +6,6 @@ import { RLPEncode } from "../../common/lib/RLPEncode.sol";
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
-import { ERC721PlasmaMintable } from "../../common/tokens/ERC721PlasmaMintable.sol";
 import { IErcPredicate } from "./IPredicate.sol";
 
 contract ERC721Predicate is IErcPredicate {
@@ -31,7 +30,7 @@ contract ERC721Predicate is IErcPredicate {
 
   function startExitWithBurntTokens(bytes memory data)
     public
-    returns(address rootToken, uint256 tokenId)
+    returns(address rootToken, uint256 tokenId, uint256 exitId)
   {
     RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
     bytes memory receipt = referenceTxData[6].toBytes();
@@ -57,9 +56,10 @@ contract ERC721Predicate is IErcPredicate {
       "Withdrawer and burn exit tx do not match"
     );
     tokenId = BytesLib.toUint(logData, 0);
+    exitId = age << 1; // last bit is reserved for housekeeping in erc20Predicate
     withdrawManager.addExitToQueue(
       msg.sender, childToken, rootToken,
-      tokenId, bytes32(0x0) /* txHash */, true /* isRegularExit */, age << 1
+      tokenId, bytes32(0x0) /* txHash */, true /* isRegularExit */, exitId
     );
   }
 
@@ -115,7 +115,6 @@ contract ERC721Predicate is IErcPredicate {
     withdrawManager.addInput(exitId, ageOfUtxo.sub(1), msg.sender, rootToken);
     return (rootToken, exitTxData.amountOrToken);
   }
-
 
   /**
    * @notice Verify the deprecation of a state update
@@ -173,10 +172,11 @@ contract ERC721Predicate is IErcPredicate {
     return ageOfChallengeTx > age;
   }
 
-  function onFinalizeExit(address token, address exitor, uint256 tokenId)
+  function onFinalizeExit(bytes calldata data)
     external
     onlyWithdrawManager
   {
+    (, address token, address exitor, uint256 tokenId) = decodeExitForProcessExit(data);
     depositManager.transferAssets(token, exitor, tokenId);
   }
 
@@ -339,7 +339,7 @@ contract ERC721Predicate is IErcPredicate {
    */
   function processChallengeTx(bytes memory challengeTx)
     internal
-    view
+    pure
     returns(ExitTxData memory txData)
   {
     RLPReader.RLPItem[] memory txList = challengeTx.toRlpItem().toList();
@@ -384,24 +384,5 @@ contract ERC721Predicate is IErcPredicate {
       "Exit tx doesnt concern the exitor"
     );
     tokenId = BytesLib.toUint(txData, 68); // NFT ID
-  }
-
-  function processMintTx(bytes memory mintTx, address rootToken, uint256 tokenId)
-    internal
-  {
-    RLPReader.RLPItem[] memory txList = mintTx.toRlpItem().toList();
-    (address minter,) = getAddressFromTx(txList);
-    ERC721PlasmaMintable token = ERC721PlasmaMintable(rootToken);
-    require(
-      token.isMinter(minter),
-      "Not authorized to mint"
-    );
-    if (!token.exists(tokenId)) {
-      // this predicate contract should have been added to the token minter role
-      require(
-        token.mint(address(depositManager), tokenId),
-        "TOKEN_MINT_FAILED"
-      );
-    }
   }
 }

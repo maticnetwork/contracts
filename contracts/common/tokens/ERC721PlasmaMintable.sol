@@ -9,12 +9,27 @@ contract ERC721PlasmaMintable is ERC721Mintable, ERC721MetadataMintable {
     ERC721Metadata(name, symbol)
     public {}
 
-  // /**
-  //  * @dev Returns whether the specified token exists
-  //  * @param tokenId uint256 ID of the token to query the existence of
-  //  * @return bool whether the token exists
-  //  */
-  // function exists(uint256 tokenId) public view returns (bool) {
-  //   return _exists(tokenId);
-  // }
+  /**
+   * @dev Returns whether the specified token exists
+   * @param tokenId uint256 ID of the token to query the existence of
+   * @return bool whether the token exists
+   */
+  function exists(uint256 tokenId) public view returns (bool) {
+    return _exists(tokenId);
+  }
 }
+
+// contract ERC721PlasmaMetadataMintable is ERC721MetadataMintable {
+//   constructor (string memory name, string memory symbol)
+//     ERC721Metadata(name, symbol)
+//     public {}
+
+//   /**
+//    * @dev Returns whether the specified token exists
+//    * @param tokenId uint256 ID of the token to query the existence of
+//    * @return bool whether the token exists
+//    */
+//   function exists(uint256 tokenId) public view returns (bool) {
+//     return _exists(tokenId);
+//   }
+// }

@@ -286,10 +286,11 @@ contract ERC20Predicate is IErcPredicate {
     return true;
   }
 
-  function onFinalizeExit(address token, address exitor, uint256 tokenId)
+  function onFinalizeExit(bytes calldata data)
     external
     onlyWithdrawManager
   {
+    (, address token, address exitor, uint256 tokenId) = decodeExitForProcessExit(data);
     depositManager.transferAssets(token, exitor, tokenId);
   }
 
@@ -501,7 +502,7 @@ contract ERC20Predicate is IErcPredicate {
    */
   function processChallengeTx(bytes memory exitTx)
     internal
-    view
+    pure
     returns(ExitTxData memory txData)
   {
     RLPReader.RLPItem[] memory txList = exitTx.toRlpItem().toList();

@@ -156,10 +156,11 @@ contract MarketplacePredicate is PredicateUtils {
     withdrawManager.addInput(exitId, 0, msg.sender, reference3.rootToken);
   }
 
-  function onFinalizeExit(address token, address exitor, uint256 tokenId)
+  function onFinalizeExit(bytes calldata data)
     external
     onlyWithdrawManager
   {
+    (, address token, address exitor, uint256 tokenId) = decodeExitForProcessExit(data);
     depositManager.transferAssets(token, exitor, tokenId);
   }
 

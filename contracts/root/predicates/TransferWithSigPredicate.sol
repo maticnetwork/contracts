@@ -244,10 +244,11 @@ contract TransferWithSigPredicate is PredicateUtils {
     return true;
   }
 
-  function onFinalizeExit(address token, address exitor, uint256 tokenId)
+  function onFinalizeExit(bytes calldata data)
     external
     onlyWithdrawManager
   {
+    (, address token, address exitor, uint256 tokenId) = decodeExitForProcessExit(data);
     depositManager.transferAssets(token, exitor, tokenId);
   }
 
@@ -277,7 +278,7 @@ contract TransferWithSigPredicate is PredicateUtils {
    */
   function processExitTx(bytes memory exitTx)
     internal
-    view
+    pure
     returns(ExitTxData memory txData, uint256 expiration)
   {
     RLPReader.RLPItem[] memory txList = exitTx.toRlpItem().toList();

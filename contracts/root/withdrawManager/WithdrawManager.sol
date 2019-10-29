@@ -279,6 +279,15 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     return abi.encode(exit.owner, registry.rootToChildToken(exit.token), exit.receiptAmountOrNFTId, exit.txHash, exit.isRegularExit);
   }
 
+  function encodeExitForProcessExit(uint256 exitId)
+    internal
+    view
+    returns (bytes memory)
+  {
+    PlasmaExit storage exit = exits[exitId];
+    return abi.encode(exitId, exit.owner, exit.token, exit.receiptAmountOrNFTId);
+  }
+
   function encodeInputUtxo(uint256 age, Input storage input)
     internal
     view
@@ -313,7 +322,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       address exitor = currentExit.owner;
       uint256 amountOrNft = currentExit.receiptAmountOrNFTId;
       address predicate = currentExit.predicate;
-      IPredicate(predicate).onFinalizeExit(_token, exitor, amountOrNft);
+      IPredicate(predicate).onFinalizeExit(encodeExitForProcessExit(exitId));
       // getDepositManager().transferAssets(_token, exitor, amountOrNft);
       emit Withdraw(exitId, exitor, _token, amountOrNft);
 
