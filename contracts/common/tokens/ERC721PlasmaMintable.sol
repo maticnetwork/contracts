@@ -28,4 +28,6 @@ contract ERC721PlasmaMetadataMintable is ERC721MetadataMintable {
   function exists(uint256 tokenId) public view returns (bool) {
     return _exists(tokenId);
   }
+
+  function AddModerator(address _newModerator) public {}
 }

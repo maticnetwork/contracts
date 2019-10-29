@@ -287,7 +287,8 @@ class Deployer {
   }
 
   async deployChildErc721MetadataMintable(options = { mapToken: true }) {
-    const rootERC721 = await contracts.ERC721PlasmaMetadataMintable.new('E721MM', 'E721MM')
+    // const rootERC721 = await contracts.ERC721PlasmaMetadataMintable.new('E721MM', 'E721MM')
+    const rootERC721 = await contracts.ERC721PlasmaMetadataMintable.at('0x71E3316483b39830152D894B67eAE291F25Bd386')
     const childErc721 = await contracts.ChildERC721Mintable.new(
       rootERC721.address
     )
