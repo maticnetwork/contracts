@@ -39,6 +39,7 @@ interface IPredicate {
   function verifyDeprecation(bytes calldata exit, bytes calldata inputUtxo, bytes calldata challengeData) external returns (bool);
 
   function interpretStateUpdate(bytes calldata state) external view returns (bytes memory);
+  function onFinalizeExit(address token, address exitor, uint256 amountOrNft) external;
 }
 
 contract PredicateUtils is ExitsDataStructure, ChainIdMixin {
@@ -98,7 +99,7 @@ contract PredicateUtils is ExitsDataStructure, ChainIdMixin {
     returns (PlasmaExit memory)
   {
     (address owner, address token, uint256 amountOrTokenId, bytes32 txHash, bool isRegularExit) = abi.decode(data, (address, address, uint256, bytes32, bool));
-    return PlasmaExit(amountOrTokenId, txHash, owner, token, isRegularExit);
+    return PlasmaExit(amountOrTokenId, txHash, owner, token, isRegularExit, address(0) /* predicate value is not required */);
   }
 
   function decodeInputUtxo(bytes memory data)

@@ -21,10 +21,10 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
     _;
   }
 
-  modifier onlyWithdrawManager() {
+  modifier isPredicateAuthorized() {
     require(
-      msg.sender == registry.getWithdrawManagerAddress(),
-      "UNAUTHORIZED_WITHDRAW_MANAGER_ONLY"
+      uint8(registry.predicates(msg.sender)) != 0,
+      "Not a valid predicate"
     );
     _;
   }
@@ -49,7 +49,7 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
 
   function transferAssets(address _token, address _user, uint256 _amountOrNFTId)
     external
-    onlyWithdrawManager
+    isPredicateAuthorized
   {
     address wethToken = registry.getWethTokenAddress();
     if (registry.isERC721(_token)) {

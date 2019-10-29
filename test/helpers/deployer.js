@@ -161,6 +161,18 @@ class Deployer {
     return ERC721Predicate
   }
 
+  async deployMintableErc721Predicate() {
+    const predicate = await contracts.MintableERC721Predicate.new(
+      this.withdrawManagerProxy.address,
+      this.depositManagerProxy.address
+    )
+    await this.registry.addPredicate(
+      predicate.address,
+      2 /* Type.ERC721 */
+    )
+    return predicate
+  }
+
   async deployMarketplacePredicate() {
     const MarketplacePredicate = await contracts.MarketplacePredicate.new(
       this.rootChain.address,
@@ -276,9 +288,12 @@ class Deployer {
   }
 
   async deployChildErc721Mintable(options = { mapToken: true }) {
-    const rootERC721 = await contracts.ERC721PlasmaMintable.new()
+    const rootERC721 = await contracts.ERC721PlasmaMintable.new('Mintable721', 'M721')
+    // const rootERC721 = await contracts.ERC721PlasmaMintable.new()
     const childErc721 = await contracts.ChildERC721Mintable.new(
-      rootERC721.address
+      rootERC721.address,
+      'ERC721Mintable',
+      'M721'
     )
     await this.childChain.mapToken(
       rootERC721.address,

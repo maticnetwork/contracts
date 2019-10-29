@@ -116,32 +116,6 @@ contract ERC721Predicate is IErcPredicate {
     return (rootToken, exitTxData.amountOrToken);
   }
 
-  /**
-   * @notice Start an exit for a token that was minted and burnt on the side chain
-   * @param data RLP encoded data of the burn tx
-   * @param mintTx Signed mint transaction
-   */
-  function startExitWithBurntTokens(bytes calldata data, bytes calldata mintTx)
-    external
-  {
-    (address rootToken, uint256 tokenId) = startExitWithBurntTokens(data);
-    processMintTx(mintTx, rootToken, tokenId);
-  }
-
-  /**
-   * @notice Start a MoreVP style exit for a token that was minted on the side chain
-   * @param data RLP encoded data of the reference tx(s)
-   * @param exitTx Signed exit transaction
-   * @param mintTx Signed mint transaction
-   */
-  function startExitAndMint(bytes calldata data, bytes calldata exitTx, bytes calldata mintTx)
-    external
-    payable
-    isBondProvided
-  {
-    (address rootToken, uint256 tokenId) = startExit(data, exitTx);
-    processMintTx(mintTx, rootToken, tokenId);
-  }
 
   /**
    * @notice Verify the deprecation of a state update
@@ -199,12 +173,12 @@ contract ERC721Predicate is IErcPredicate {
     return ageOfChallengeTx > age;
   }
 
-  // function onFinalizeExit(address exitor, address token, uint256 tokenId)
-  //   external
-  //   onlyWithdrawManager
-  // {
-  //   depositManager.transferAssets(token, exitor, tokenId);
-  // }
+  function onFinalizeExit(address token, address exitor, uint256 tokenId)
+    external
+    onlyWithdrawManager
+  {
+    depositManager.transferAssets(token, exitor, tokenId);
+  }
 
   function interpretStateUpdate(bytes calldata state)
     external

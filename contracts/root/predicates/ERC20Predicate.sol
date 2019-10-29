@@ -286,12 +286,12 @@ contract ERC20Predicate is IErcPredicate {
     return true;
   }
 
-  // function onFinalizeExit(address exitor, address token, uint256 tokenId)
-  //   external
-  //   onlyWithdrawManager
-  // {
-  //   depositManager.transferAssets(token, exitor, tokenId);
-  // }
+  function onFinalizeExit(address token, address exitor, uint256 tokenId)
+    external
+    onlyWithdrawManager
+  {
+    depositManager.transferAssets(token, exitor, tokenId);
+  }
 
   /**
    * @notice Parse a ERC20 LogTransfer event in the receipt
