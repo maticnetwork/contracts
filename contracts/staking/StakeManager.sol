@@ -139,8 +139,8 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
   function startAuction(uint256 validatorId, uint256 amount) external {
     require(isValidator(validatorId));
-    require(validatorAuction[validatorId].startEpoch <= currentEpoch);
-    require(token.transferFrom(msg.sender, address(this), amount), "Transfer auction amount failed");
+    require(auctionInterval >= currentEpoch.sub(validatorAuction[validatorId].startEpoch), "Invalid auction period");
+    require(token.transferFrom(msg.sender, address(this), amount), "Transfer amount failed");
 
     uint256 perceivedStake = validators[validatorId].amount.mul(perceivedStakeFactor(validatorId));
     perceivedStake = Math.max(perceivedStake, validatorAuction[validatorId].amount);
@@ -181,16 +181,15 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       auction.startEpoch = currentEpoch.add(DYNASTY);
       emit StakeUpdate(validatorId, refund, validator.amount);
       emit ConfirmAuction(validatorId, validatorId, validator.amount);
-
     } else {
       // dethrone
       _unstake(validatorId, currentEpoch);
       _stakeFor(auction.user, auction.amount, signer, isContract);
 
+      emit ConfirmAuction(NFTCounter.sub(1), validatorId, auction.amount);
       delete validatorAuction[validatorId];
-      emit ConfirmAuction(validatorId, NFTCounter, validator.amount);
     }
-}
+  }
 
   function unstake(uint256 validatorId) external onlyStaker(validatorId) {
     require(validatorAuction[validatorId].amount == 0, "Wait for auction completion");
