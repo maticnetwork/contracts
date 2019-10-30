@@ -1,0 +1,24 @@
+{
+  "root": {
+    "Registry": "0x7Dd88045Fef824D4CF52fe370684C98A2cFA587b",
+    "RootChain": "0x6DA115cEAB83050F01e6b1Da19ECeD4167140a84",
+    "StakeManager": "0x1cbdC2862AE93f694782a2b0D7F135C3329FbDEE",
+    "StateSender": "0x7723864d6701E49CE697007146fE9B5902c6f3fb",
+    "DepositManager": "0x0b1E116e2e3848B863D770Bfd30411548Ba7fB03",
+    "DepositManagerProxy": "0x4Ed52c3c421f2B81b2Ce40BB95a4A6A6cF7D0D1b",
+    "WithdrawManager": "0x4DDAcD4b933168eB63E27F9AfF79F1743A03fb47",
+    "WithdrawManagerProxy": "0x35D97dDcA4b8e53C4A9717756DCa0ECBcfeD9B58",
+    "ERC721Predicate": "0xFaF18e4b4dA0d20a6fe9A09767e760b6127e419A",
+    "tokens": {
+      "TestToken": "0x135e2f287d09A705C3Fb1af3504345d6Ff1b4eA0",
+      "E721": "0x690C5241ED1A7caD50cf8d1B985Cb19dCc91A4E8"
+    }
+  },
+  "child": {
+    "ChildChain": "0x56E1dE8399dB98573c96a5639afAD4B99971029b",
+    "tokens": {
+      "TestToken": "0xC41e9D8a77BdD6bD3947957c791c1ed158D68c24",
+      "E721": "0x88CE9f18cE2cAcD833E05053cF405BFaB4F60Dc7"
+    }
+  }
+}
