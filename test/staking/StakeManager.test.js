@@ -8,15 +8,13 @@ import {
   DummyERC20,
   ValidatorContract
 } from '../helpers/artifacts'
-import logDecoder from '../helpers/log-decoder.js'
 
+import logDecoder from '../helpers/log-decoder.js'
 import { rewradsTree } from '../helpers/proofs.js'
 
 import {
   assertBigNumberEquality,
-  buildSubmitHeaderBlockPaylod,
-  assertBigNumbergt,
-  checkPoint
+  buildSubmitHeaderBlockPaylod
 } from '../helpers/utils.js'
 import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
 
@@ -668,14 +666,14 @@ contract('StakeManager', async function(accounts) {
 
   describe('validator replacement', async function() {
     before(async function() {
-      wallets = generateFirstWallets(mnemonics, 5)
+      wallets = generateFirstWallets(mnemonics, 10)
       stakeToken = await DummyERC20.new('Stake Token', 'STAKE')
       stakeManager = await StakeManager.new(
         stakeToken.address,
         wallets[0].getAddressString()
       ) // dummy registry address
       await stakeManager.setToken(stakeToken.address)
-      await stakeManager.updateDynastyValue(4)
+      await stakeManager.updateDynastyValue(8)
 
       let amount = web3.utils.toWei('1000')
       for (let i = 0; i < 2; i++) {
@@ -683,47 +681,165 @@ contract('StakeManager', async function(accounts) {
         await stakeToken.approve(stakeManager.address, amount, {
           from: wallets[i].getAddressString()
         })
-        await stakeManager.stake(amount, wallets[i].getAddressString(), true, {
+        await stakeManager.stake(amount, wallets[i].getAddressString(), false, {
           from: wallets[i].getAddressString()
         })
         accountState[i + 1] = rewardsAmount
       }
     })
 
-    it('should try Auction start in non-auction period and fail', async function() {
+    it('should try auction start in non-auction period and fail', async function() {
       const amount = web3.utils.toWei('1200')
       await stakeToken.mint(wallets[3].getAddressString(), amount)
       await stakeToken.approve(stakeManager.address, amount, {
         from: wallets[3].getAddressString()
       })
       try {
-        await stakeManager.startAuction(1, amount)
+        await stakeManager.startAuction(1, amount, {
+          from: wallets[3].getAddressString()
+        })
       } catch (error) {
         const invalidOpcode = error.message.search('revert') >= 0
         assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
       }
     })
 
-    // it('should start Auction and bid multiple times', async function() {
-    //   const { vote, sigs } = buildSubmitHeaderBlockPaylod(
-    //     accounts[0],
-    //     0,
-    //     22,
-    //     '' /* root */,
-    //     wallets,
-    //     {
-    //       rewardsRootHash: '',
-    //       allValidators: true,
-    //       getSigs: true
-    //     }
-    //   )
+    it('should start Auction and bid multiple times', async function() {
+      let amount = web3.utils.toWei('1200')
+      const { vote, sigs } = buildSubmitHeaderBlockPaylod(
+        accounts[0],
+        0,
+        22,
+        '' /* root */,
+        wallets,
+        {
+          rewardsRootHash: '',
+          allValidators: true,
+          getSigs: true
+        }
+      )
+      let auction = await stakeManager.validatorAuction(1)
+      let currentEpoch = await stakeManager.currentEpoch()
+      for (let i = currentEpoch; i <= auction.startEpoch; i++) {
+        // 2/3 majority vote
+        await stakeManager.checkSignatures(
+          utils.bufferToHex(utils.keccak256(vote)),
+          utils.bufferToHex(''),
+          sigs
+        )
+      }
 
-    //   // 2/3 majority vote
-    //   await stakeManager.checkSignatures(
-    //     utils.bufferToHex(utils.keccak256(vote)),
-    //     utils.bufferToHex(''),
-    //     sigs
-    //   )
-    // })
+      // start an auction from wallet[3]
+      await stakeToken.mint(wallets[3].getAddressString(), amount)
+      await stakeToken.approve(stakeManager.address, amount, {
+        from: wallets[3].getAddressString()
+      })
+      await stakeManager.startAuction(1, amount, {
+        from: wallets[3].getAddressString()
+      })
+
+      let auctionData = await stakeManager.validatorAuction(1)
+      assertBigNumberEquality(auctionData.amount, amount)
+      assert(
+        auctionData.user.toLowerCase ===
+          wallets[3].getAddressString().toLowerCase
+      )
+      amount = web3.utils.toWei('1250')
+      // outbid wallet[3] from wallet[4]
+      await stakeToken.mint(wallets[4].getAddressString(), amount)
+      await stakeToken.approve(stakeManager.address, amount, {
+        from: wallets[4].getAddressString()
+      })
+      await stakeManager.startAuction(1, amount, {
+        from: wallets[4].getAddressString()
+      })
+      auctionData = await stakeManager.validatorAuction(1)
+      assertBigNumberEquality(auctionData.amount, amount)
+      assert(
+        auctionData.user.toLowerCase() ===
+          wallets[4].getAddressString().toLowerCase()
+      )
+    })
+
+    it('should try to unstake in auction interval', async function() {
+      try {
+        await stakeManager.unstake(1, {
+          from: wallets[0].getAddressString()
+        })
+      } catch (error) {
+        const invalidOpcode = error.message.search('revert') >= 0
+        assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
+      }
+    })
+
+    it('should try auction start after auctionInterval period and fail', async function() {
+      const { vote, sigs } = buildSubmitHeaderBlockPaylod(
+        accounts[0],
+        0,
+        22,
+        '' /* root */,
+        wallets,
+        {
+          rewardsRootHash: '',
+          allValidators: true,
+          getSigs: true
+        }
+      )
+      let auctionData = await stakeManager.validatorAuction(1)
+      let auctionInterval = await stakeManager.auctionInterval()
+      let currentEpoch = await stakeManager.currentEpoch()
+
+      // fast forward to skip auctionInterval
+      for (
+        let i = currentEpoch;
+        i <= auctionInterval.add(auctionData.startEpoch);
+        i++
+      ) {
+        // 2/3 majority vote
+        await stakeManager.checkSignatures(
+          utils.bufferToHex(utils.keccak256(vote)),
+          utils.bufferToHex(''),
+          sigs
+        )
+      }
+      const amount = web3.utils.toWei('1300')
+      await stakeToken.mint(wallets[5].getAddressString(), amount)
+      await stakeToken.approve(stakeManager.address, amount, {
+        from: wallets[5].getAddressString()
+      })
+      try {
+        await stakeManager.startAuction(1, amount, {
+          from: wallets[5].getAddressString()
+        })
+      } catch (error) {
+        const invalidOpcode = error.message.search('revert') >= 0
+        const errorMessage = error.message.search('Invalid auction period') >= 0
+        assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
+        assert(
+          errorMessage,
+          "Expected 'Invalid auction period', got '" + error + "' instead"
+        )
+      }
+    })
+
+    it('should confrim auction and secure the place', async function() {
+      const result = await stakeManager.confirmAuctionBid(
+        1,
+        wallets[4].getAddressString(),
+        false,
+        {
+          from: wallets[4].getAddressString()
+        }
+      )
+      const logs = result.receipt.logs
+
+      logs[2].event.should.equal('Staked')
+      logs[3].event.should.equal('ConfirmAuction')
+
+      assertBigNumberEquality(logs[3].args.amount, web3.utils.toWei('1250'))
+      assert.ok(!(await stakeManager.isValidator(logs[3].args.oldValidatorId)))
+      assert.ok(await stakeManager.isValidator(logs[3].args.newValidatorId))
+    })
+    // TODO: add more tests with delegation enabled
   })
 })
