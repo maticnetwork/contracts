@@ -13,6 +13,8 @@ import logDecoder from '../helpers/log-decoder.js'
 import { rewradsTree } from '../helpers/proofs.js'
 
 import {
+  checkPoint,
+  assertBigNumbergt,
   assertBigNumberEquality,
   buildSubmitHeaderBlockPaylod
 } from '../helpers/utils.js'
