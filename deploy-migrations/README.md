@@ -15,7 +15,6 @@ Feel free to add your own. Update the chain url in `networks.matic` key in [truf
 ### :two: Export variables
 
 ```
-
 // (Optional) Only if you are using ethereum testnets
 export API_KEY=<infura api key>
 
@@ -42,7 +41,7 @@ mv migrations dev-migrations && cp -r deploy-migrations migrations
 // Root contracts are deployed on base chain
 npm run truffle:migrate -- --reset --network <base_chain_network_name> --to 3
 
-// Contracts like plasma ERC20's are deployed on child chain aka BOR chain
+// Contracts like ChildERC20Token are deployed on child chain aka BOR chain
 // NOTE: You need to deploy or simulate BOR before running the below command
 npm run truffle:migrate -- --reset --network <child_chain_network_name> -f 4 --to 4
 
