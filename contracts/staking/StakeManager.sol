@@ -7,6 +7,7 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { BytesLib } from "../common/lib/BytesLib.sol";
 import { ECVerify } from "../common/lib/ECVerify.sol";
+import { Merkle } from "../common/lib/Merkle.sol";
 import { Lockable } from "../common/mixin/Lockable.sol";
 import { RootChainable } from "../common/mixin/RootChainable.sol";
 import { Registry } from "../common/Registry.sol";
@@ -18,6 +19,8 @@ import { ValidatorContract } from "./Validator.sol";
 contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   using SafeMath for uint256;
   using ECVerify for bytes32;
+  using Merkle for bytes32;
+
 
   IERC20 public token;
   address public registry;
@@ -28,17 +31,24 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   uint256 public EPOCH_LENGTH = 256; // unit : block
   uint256 public UNSTAKE_DELAY = DYNASTY.mul(2); // unit: epoch
 
+  // TODO: add events and gov. based update function
+  uint256 public proposerToSignerRewards = 10; // will be used with fraud proof
+
   uint256 public validatorThreshold = 10; //128
   uint256 public minLockInPeriod = 2; // unit: DYNASTY
-  uint256 public totalStaked = 0;
+  uint256 public totalStaked;
   uint256 public currentEpoch = 1;
   uint256 public NFTCounter = 1;
+  uint256 public totalRewards;
+  uint256 public totalRewardsLiquidated;
+  bytes32 public accountStateRoot;
 
   enum Status { Inactive, Active, Locked }
 
   struct Validator {
     uint256 amount;
     uint256 reward;
+    uint256 claimedRewards;
     uint256 activationEpoch;
     uint256 deactivationEpoch;
     uint256 jailTime;
@@ -61,7 +71,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
   constructor (address _registry, address _rootchain) ERC721Full("Matic Validator", "MV") public {
     registry = _registry;
-    changeRootChain(_rootchain);
+    rootChain = _rootchain;
   }
 
   modifier onlyStaker(uint256 validatorId) {
@@ -90,11 +100,12 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     validators[NFTCounter] = Validator({
       reward: 0,
       amount: amount,
+      claimedRewards: 0,
       activationEpoch: currentEpoch,
       deactivationEpoch: 0,
       jailTime: 0,
       signer: signer,
-      contractAddress: isContract ? address(new ValidatorContract(user, registry)) :address(0x0),
+      contractAddress: isContract ? address(new ValidatorContract(user, registry)) : address(0x0),
       status : Status.Active
     });
 
@@ -163,6 +174,40 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
     emit StakeUpdate(validatorId, validators[validatorId].amount.sub(amount), validators[validatorId].amount);
     emit ReStaked(validatorId, validators[validatorId].amount, totalStaked);
+  }
+
+  function claimRewards(uint256 validatorId, uint256 accountBalance, uint256 index, bytes memory proof) public /*onlyStaker(validatorId) */ {
+    // accountState = keccak256(abi.encodePacked(validatorId, accountBalance))
+    require(keccak256(abi.encodePacked(validatorId, accountBalance)).checkMembership(index, accountStateRoot, proof));
+    uint256 _reward = accountBalance.sub(validators[validatorId].claimedRewards);
+    address _contract = validators[validatorId].contractAddress;
+    if (_contract == address(0x0)) {
+      validators[validatorId].reward = validators[validatorId].reward.add(_reward);
+    }
+    else {
+      // TODO: delegator bond/share rate if return needs to be updated periodically
+      // otherwise validator can delay and get all the delegators reward
+      ValidatorContract(_contract).updateRewards(_reward, currentEpoch, validators[validatorId].amount);
+    }
+    totalRewardsLiquidated += _reward;
+    require(totalRewardsLiquidated <= totalRewards, "Liquidating more rewards then checkpoints submitted");// pos 2/3+1 is colluded
+    validators[validatorId].claimedRewards = accountBalance;
+    emit ClaimRewards(validatorId, _reward, accountBalance);
+  }
+
+  function withdrawRewards(uint256 validatorId) public onlyStaker(validatorId) {
+    uint256 amount = validators[validatorId].reward;
+    address _contract = validators[validatorId].contractAddress;
+    if (_contract != address(0x0)) {
+      amount = amount.add(ValidatorContract(_contract).withdrawRewardsValidator());
+    }
+    validators[validatorId].reward = 0;
+    require(token.transfer(msg.sender, amount), "Insufficent rewards");
+  }
+
+  function delegationTransfer(uint256 amount, address delegator) external {
+    require(Registry(registry).getDelegationManagerAddress() == msg.sender);
+    require(token.transfer(delegator, amount), "Insufficent rewards");
   }
 
   // if not jailed then in state of warning, else will be unstaking after x epoch
@@ -354,18 +399,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     );
   }
 
-  function rewardValidator(uint256 validatorId, uint256 _totalStake, uint256 stakePower) internal {
-    uint256 _reward = CHECKPOINT_REWARD.mul(stakePower).div(_totalStake);
-    address _contract = validators[validatorId].contractAddress;
-    if (_contract == address(0x0)) {
-      validators[validatorId].reward += _reward;
-    }
-    else {
-      ValidatorContract(_contract).updateRewards(_reward, currentEpoch, validators[validatorId].amount);
-    }
-  }
-
-  function checkSignatures(bytes32 voteHash, bytes memory sigs, address proposer) public onlyRootChain {
+  function checkSignatures(bytes32 voteHash, bytes32 stateRoot, bytes memory sigs) public onlyRootChain {
     // total voting power
     uint256 stakePower = 0;
     uint256 validatorId;
@@ -393,10 +427,16 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       }
     }
 
-    validatorId = tokenOfOwnerByIndex(proposer, 0);// get ValidatorId
     uint256 _totalStake = currentValidatorSetTotalStake();
     require(stakePower >= _totalStake.mul(2).div(3).add(1));
-    rewardValidator(validatorId, stakePower, _totalStake);
+    // update stateMerkleTree root for accounts balance on heimdall chain
+    // for previous checkpoint rewards
+    accountStateRoot = stateRoot;
+    totalRewards = totalRewards.add(CHECKPOINT_REWARD.mul(stakePower).div(_totalStake));
+  }
+
+  function challangeStateRootUpdate(bytes memory checkpointTx /* txData from submitCheckpoint */) public {
+    // TODO: check for 2/3+1 sig and validate non-inclusion in newStateUpdate
   }
 
 }

@@ -2,8 +2,6 @@
 
 CWD=$PWD
 
-pkill -f parity
+# pkill -f geth
 
-rm -rf $CWD/data/*
-mkdir -p $CWD/data/keys/PrivatePoA
-cp -rf $CWD/keys/* $CWD/data/keys/PrivatePoA/
+sudo rm -rf $CWD/data
