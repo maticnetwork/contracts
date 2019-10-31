@@ -5,7 +5,7 @@
   "main": "index.js",
   "private": true,
   "scripts": {
-    "testrpc": "ganache-cli -k constantinople --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino'",
+    "testrpc": "ganache-cli -k constantinople --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' --gasLimit 13000000 --gasPrice 0",
     "truffle": "truffle",
     "stake": "truffle exec --network matic scripts/stake.js",
     "truffle:test": "truffle test",
@@ -16,6 +16,7 @@
     "truffle:migrate:deploy": "npm run truffle:migrate:deploy:1 && npm run truffle:migrate:deploy:2",
     "test": "truffle test",
     "test:ci": "scripts/run-test.sh",
+    "simulate-bor": "cd test-blockchain && bash run-docker.sh",
     "lint": "npm run lint:sol && npm run lint:js",
     "lint:js": "eslint test/**/*.js",
     "lint:sol:fix": "solium -d contracts/ --fix",
