@@ -62,7 +62,7 @@ const libDeps = [
   },
   {
     lib: Merkle,
-    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate]
+    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate, StakeManager]
   },
   {
     lib: MerklePatriciaProof,
