@@ -55,15 +55,15 @@ contract MaticChildERC20 is BaseERC20 {
     emit Withdraw(token, user, amount, input, balanceOf(user));
   }
 
-  function name() public view returns (string memory) {
+  function name() public pure returns (string memory) {
     return "Matic Token";
   }
 
-  function symbol() public view returns (string memory) {
+  function symbol() public pure returns (string memory) {
     return "MATIC";
   }
 
-  function decimals() public view returns (uint8) {
+  function decimals() public pure returns (uint8) {
     return DECIMALS;
   }
 

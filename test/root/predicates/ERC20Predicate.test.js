@@ -13,8 +13,8 @@ chai.use(chaiAsPromised).should()
 let contracts, childContracts, statefulUtils
 
 contract('ERC20Predicate', async function(accounts) {
-  const amount = web3.utils.toBN('10')
-  const halfAmount = web3.utils.toBN('5')
+  const amount = web3.utils.toBN('10').mul(utils.scalingFactor)
+  const halfAmount = web3.utils.toBN('5').mul(utils.scalingFactor)
   const user = accounts[0]
   const other = accounts[1]
 
@@ -28,12 +28,12 @@ contract('ERC20Predicate', async function(accounts) {
     beforeEach(async function() {
       contracts.withdrawManager = await deployer.deployWithdrawManager()
       contracts.ERC20Predicate = await deployer.deployErc20Predicate()
+    })
+
+    it('Exit with burnt tokens', async function() {
       const { rootERC20, childToken } = await deployer.deployChildErc20(accounts[0])
       childContracts.rootERC20 = rootERC20
       childContracts.childToken = childToken
-    })
-
-    it('Valid exit with burnt tokens', async function() {
       await utils.deposit(
         contracts.depositManager,
         childContracts.childChain,
@@ -42,6 +42,35 @@ contract('ERC20Predicate', async function(accounts) {
         amount
       )
       const { receipt } = await childContracts.childToken.withdraw(amount)
+      let { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
+      const startExitTx = await utils.startExitWithBurntTokens(
+        contracts.ERC20Predicate,
+        { headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 }
+      )
+      const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+      // console.log(startExitTx, logs)
+      let log = logs[1]
+      log.event.should.equal('ExitStarted')
+      expect(log.args).to.include({
+        exitor: user,
+        token: childContracts.rootERC20.address,
+        isRegularExit: true
+      })
+      utils.assertBigNumberEquality(log.args.amount, amount)
+    })
+
+    it.only('Exit with burnt Matic tokens', async function() {
+      const { rootERC20, childToken } = await deployer.deployMaticToken()
+      childContracts.rootERC20 = rootERC20
+      childContracts.childToken = childToken
+      await utils.deposit(
+        contracts.depositManager,
+        childContracts.childChain,
+        childContracts.rootERC20,
+        user,
+        amount
+      )
+      const { receipt } = await childContracts.childToken.withdraw(amount, { value: amount })
       let { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
       const startExitTx = await utils.startExitWithBurntTokens(
         contracts.ERC20Predicate,
@@ -67,7 +96,6 @@ contract('ERC20Predicate', async function(accounts) {
       const { rootERC20, childToken } = await deployer.deployChildErc20(accounts[0])
       childContracts.rootERC20 = rootERC20
       childContracts.childToken = childToken
-      // start = 0
     })
 
     it('reference: incomingTransfer - exitTx: fullBurn', async function() {

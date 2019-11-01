@@ -202,7 +202,22 @@ contract('DepositManager', async function(accounts) {
       utils.assertBigNumberEquality(await e20.childToken.balanceOf(bob), amount)
     })
 
-    it('deposit Matic Tokens');
+    it('deposit Matic Tokens', async function() {
+      const bob = '0x' + crypto.randomBytes(20).toString('hex')
+      const e20 = await deployer.deployMaticToken()
+      utils.assertBigNumberEquality(await e20.childToken.balanceOf(bob), 0)
+      await utils.deposit(
+        depositManager,
+        childContracts.childChain,
+        e20.rootERC20,
+        bob,
+        amount,
+        { rootDeposit: true, erc20: true }
+      )
+
+      // assert deposit on child chain
+      utils.assertBigNumberEquality(await e20.childToken.balanceOf(bob), amount)
+    })
   })
 })
 

@@ -145,7 +145,8 @@ class Deployer {
   async deployErc20Predicate() {
     const ERC20Predicate = await contracts.ERC20Predicate.new(
       this.withdrawManagerProxy.address,
-      this.depositManagerProxy.address
+      this.depositManagerProxy.address,
+      this.registry.address
     )
     await this.registry.addErc20Predicate(ERC20Predicate.address)
     return ERC20Predicate
@@ -199,20 +200,6 @@ class Deployer {
     return testToken
   }
 
-  async deployMaticToken() {
-    const testToken = await this.deployTestErc20({
-      mapToken: true,
-      childTokenAdress: utils.ChildMaticTokenAddress
-    })
-    if (this.childChain) {
-      await this.childChain.mapToken(testToken.address, utils.ChildMaticTokenAddress)
-    }
-    return {
-      rootERC20: testToken,
-      childToken: await contracts.MaticChildERC20.at(utils.ChildMaticTokenAddress)
-    }
-  }
-
   async deployTestErc721(options = { mapToken: true }) {
     const rootERC721 = await contracts.RootERC721.new('RootERC721', 'T721')
     if (options.mapToken) {
@@ -225,12 +212,8 @@ class Deployer {
     return rootERC721
   }
 
-  async mapToken(rootTokenAddress, childTokenAddress, isERC721 = false) {
-    await this.registry.mapToken(
-      rootTokenAddress.toLowerCase(),
-      childTokenAddress.toLowerCase(),
-      isERC721
-    )
+  mapToken(rootTokenAddress, childTokenAddress, isERC721 = false) {
+    return this.registry.mapToken(rootTokenAddress, childTokenAddress, isERC721)
   }
 
   async deployChildErc20(owner, options = { mapToken: true }) {
@@ -252,6 +235,17 @@ class Deployer {
         false /* isERC721 */
       )
     }
+    return { rootERC20, childToken }
+  }
+
+  async deployMaticToken() {
+    if (!this.globalMatic) throw Error('global matic token is not initialized')
+    if (!this.childChain) throw Error('child chain is not initialized')
+    const childToken = await contracts.TestMaticChildERC20.new()
+    const rootERC20 = await this.deployTestErc20({ mapToken: true, childTokenAdress: childToken.address })
+    await childToken.initialize(this.childChain.address, rootERC20.address)
+    await this.childChain.mapToken(rootERC20.address, childToken.address, false /* isERC721 */)
+    await this.globalMatic.deposit(childToken.address, web3.utils.toBN(100).mul(utils.scalingFactor))
     return { rootERC20, childToken }
   }
 
@@ -300,6 +294,16 @@ class Deployer {
   async initializeChildChain(owner, options = { updateRegistry: true }) {
     this.childChain = await contracts.ChildChain.new()
     await this.childChain.changeStateSyncerAddress(owner)
+    if (!this.globalMatic) {
+      this.globalMatic = await contracts.MaticChildERC20.at(utils.ChildMaticTokenAddress)
+      const maticOwner = await this.globalMatic.owner()
+      if (maticOwner == '0x0000000000000000000000000000000000000000') {
+        await this.globalMatic.initialize(
+          owner,
+          utils.ZeroAddress // supposed to be the root token but here it is ok to put any random value
+        )
+      }
+    }
     if (options.updateRegistry) {
       await this.registry.updateContractMap(
         ethUtils.keccak256('childChain'),

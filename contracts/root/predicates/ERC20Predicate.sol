@@ -8,6 +8,7 @@ import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { IErcPredicate } from "./IPredicate.sol";
+import { Registry } from "../../common/Registry.sol";
 import { WithdrawManagerHeader } from "../withdrawManager/WithdrawManagerStorage.sol";
 
 contract ERC20Predicate is IErcPredicate {
@@ -29,9 +30,14 @@ contract ERC20Predicate is IErcPredicate {
   // keccak256('transfer(address,uint256)').slice(0, 4)
   bytes4 constant TRANSFER_FUNC_SIG = 0xa9059cbb;
 
-  constructor(address _withdrawManager, address _depositManager)
+  Registry registry;
+
+  constructor(address _withdrawManager, address _depositManager, address _registry)
     IErcPredicate(_withdrawManager, _depositManager)
-    public {}
+    public
+  {
+    registry = Registry(_registry);
+  }
 
   function startExitWithBurntTokens(bytes calldata data)
     external
@@ -349,7 +355,7 @@ contract ERC20Predicate is IErcPredicate {
     address participant,
     bool isChallenge)
     internal
-    pure
+    view
     returns(ReferenceTxData memory data)
   {
     require(logIndex < MAX_LOGS, "Supporting a max of 10 logs");
@@ -359,9 +365,16 @@ contract ERC20Predicate is IErcPredicate {
     bytes memory logData = inputItems[2].toBytes();
     inputItems = inputItems[1].toList(); // topics
     // now, inputItems[i] refers to i-th (0-based) topic in the topics array
-    // inputItems[0] is the event signature
+    bytes32 eventSignature = bytes32(inputItems[0].toUint()); // inputItems[0] is the event signature
     data.rootToken = address(RLPReader.toUint(inputItems[1]));
-    // rootToken = RLPReader.toAddress(inputItems[1]); // investigate why this reverts
+
+    // When child chain is started, since child matic is a genenis contract at 0x1010,
+    // the root token corresponding to matic is not known, hence child token address is emitted in LogFeeTransfer events.
+    // Fix that anomaly here
+    if (eventSignature == LOG_FEE_TRANSFER_EVENT_SIG) {
+      data.rootToken = registry.childToRootToken(data.rootToken);
+    }
+
     if (isChallenge) {
       processChallenge(inputItems, participant);
     } else {
@@ -403,7 +416,7 @@ contract ERC20Predicate is IErcPredicate {
   {
     bytes32 eventSignature = bytes32(inputItems[0].toUint());
     // event Withdraw(address indexed token, address indexed from, uint256 amountOrTokenId, uint256 input1, uint256 output1)
-    // event LogTransfer(
+    // event Log(Fee)Transfer(
     //   address indexed token, address indexed from, address indexed to,
     //   uint256 amountOrTokenId, uint256 input1, uint256 input2, uint256 output1, uint256 output2)
     require(
