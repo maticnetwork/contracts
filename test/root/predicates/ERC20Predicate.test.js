@@ -1,10 +1,12 @@
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
+import ethUtils from 'ethereumjs-util'
 
 import deployer from '../../helpers/deployer.js'
 import logDecoder from '../../helpers/log-decoder.js'
 import { buildInFlight } from '../../mockResponses/utils'
 import StatefulUtils from '../../helpers/StatefulUtils'
+const predicateTestUtils = require('./predicateTestUtils')
 
 const utils = require('../../helpers/utils')
 const web3Child = utils.web3Child
@@ -49,7 +51,7 @@ contract('ERC20Predicate', async function(accounts) {
       )
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       // console.log(startExitTx, logs)
-      let log = logs[1]
+      let log = logs[utils.filterEvent(logs, 'ExitStarted')]
       log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
         exitor: user,
@@ -59,7 +61,7 @@ contract('ERC20Predicate', async function(accounts) {
       utils.assertBigNumberEquality(log.args.amount, amount)
     })
 
-    it.only('Exit with burnt Matic tokens', async function() {
+    it('Exit with burnt Matic tokens', async function() {
       const { rootERC20, childToken } = await deployer.deployMaticToken()
       childContracts.rootERC20 = rootERC20
       childContracts.childToken = childToken
@@ -78,7 +80,7 @@ contract('ERC20Predicate', async function(accounts) {
       )
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       // console.log(startExitTx, logs)
-      let log = logs[1]
+      let log = logs[utils.filterEvent(logs, 'ExitStarted')]
       log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
         exitor: user,
@@ -116,7 +118,7 @@ contract('ERC20Predicate', async function(accounts) {
         contracts.ERC20Predicate.startExitForOutgoingErc20Transfer, headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       // console.log(startExitTx, logs)
-      const log = logs[1]
+      const log = logs[utils.filterEvent(logs, 'ExitStarted')]
       log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
         exitor: user,
@@ -144,7 +146,7 @@ contract('ERC20Predicate', async function(accounts) {
       const startExitTx = await utils.startExitForErc20PredicateLegacy(contracts.ERC20Predicate.startExitForOutgoingErc20Transfer, headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       // console.log(startExitTx, logs)
-      const log = logs[1]
+      const log = logs[utils.filterEvent(logs, 'ExitStarted')]
       log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
         exitor: user,
@@ -172,7 +174,7 @@ contract('ERC20Predicate', async function(accounts) {
       const startExitTx = await utils.startExitForErc20PredicateLegacy(contracts.ERC20Predicate.startExitForOutgoingErc20Transfer, headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
       // console.log('startExitTx', startExitTx)
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
-      const log = logs[1]
+      const log = logs[utils.filterEvent(logs, 'ExitStarted')]
       log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
         exitor: user,
@@ -200,7 +202,7 @@ contract('ERC20Predicate', async function(accounts) {
       const startExitTx = await utils.startExitForErc20PredicateLegacy(contracts.ERC20Predicate.startExitForIncomingErc20Transfer, headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       // console.log(startExitTx, logs)
-      const log = logs[1]
+      const log = logs[utils.filterEvent(logs, 'ExitStarted')]
       log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
         exitor: user,
@@ -230,7 +232,7 @@ contract('ERC20Predicate', async function(accounts) {
       const startExitTx = await utils.startExitForErc20PredicateLegacy(contracts.ERC20Predicate.startExitForIncomingErc20Transfer, headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       // console.log(startExitTx, logs)
-      const log = logs[1]
+      const log = logs[utils.filterEvent(logs, 'ExitStarted')]
       log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
         exitor: user,
@@ -265,7 +267,7 @@ contract('ERC20Predicate', async function(accounts) {
       const startExitTx = await utils.startExitForErc20Predicate(contracts.ERC20Predicate.startExitForIncomingErc20Transfer, inputs, exitTx)
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       // console.log(startExitTx, logs)
-      let log = logs[1]
+      let log = logs[utils.filterEvent(logs, 'ExitStarted')]
       log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
         exitor: user,
@@ -319,13 +321,281 @@ contract('ERC20Predicate', async function(accounts) {
 
       const startExitTx = await utils.startExitForErc20Predicate(contracts.ERC20Predicate.startExitForIncomingErc20Transfer, inputs, exitTx)
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
-      let log = logs[1]
+      let log = logs[utils.filterEvent(logs, 'ExitStarted')]
       log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
         exitor: user,
         token: childContracts.rootERC20.address
       })
       utils.assertBigNumberEquality(log.args.amount, amount) // Exit starts with x tokens in total
+      const exitId = log.args.exitId
+
+      log = logs[2]
+      log.event.should.equal('ExitUpdated')
+      expect(log.args).to.include({
+        signer: other
+      })
+      utils.assertBigNumberEquality(log.args.exitId, exitId)
+      const age = log.args.age
+
+      log = logs[3]
+      log.event.should.equal('ExitUpdated')
+      expect(log.args).to.include({
+        signer: user
+      })
+      utils.assertBigNumberEquality(log.args.exitId, exitId)
+      utils.assertBigNumberEquality(
+        // Referenced inputs are adjacent UTXOs in the same LogTransfer log in a particular tx
+        web3.utils.toBN(log.args.age).add(web3.utils.toBN(1)),
+        age
+      )
+    })
+  })
+
+  describe('startExit for Matic Token', async function() {
+    beforeEach(async function() {
+      contracts.withdrawManager = await deployer.deployWithdrawManager()
+      contracts.ERC20Predicate = await deployer.deployErc20Predicate()
+      const { rootERC20, childToken } = await deployer.deployMaticToken()
+      childContracts.rootERC20 = rootERC20
+      childContracts.childToken = childToken
+    })
+
+    it('reference: incomingTransfer - exitTx: fullBurn', async function() {
+      await utils.deposit(
+        contracts.depositManager,
+        childContracts.childChain,
+        childContracts.rootERC20,
+        other,
+        amount
+      )
+      const { receipt } = await childContracts.childToken.transfer(user, amount, { from: other, value: amount })
+      const { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
+      let exitTx = await predicateTestUtils.getRawInflightTx(
+        childContracts.childToken.withdraw.bind(null, amount),
+        user /* from */, web3Child, null /* gas */, { value: amount }
+      )
+      const startExitTx = await utils.startExitForErc20PredicateLegacy(
+        contracts.ERC20Predicate.startExitForOutgoingErc20Transfer, headerNumber, blockProof, block.number, block.timestamp, reference, 3, /* logIndex */ exitTx, user
+      )
+      const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+      // console.log(startExitTx, logs)
+      const log = logs[utils.filterEvent(logs, 'ExitStarted')]
+      log.event.should.equal('ExitStarted')
+      expect(log.args).to.include({
+        exitor: user,
+        token: childContracts.rootERC20.address
+      })
+      // utils.assertBigNumberEquality(log.args.amount, amount)
+    })
+
+    it('reference: outgoingTransfer - exitTx: fullBurn', async function() {
+      await utils.deposit(
+        contracts.depositManager,
+        childContracts.childChain,
+        childContracts.rootERC20,
+        user,
+        amount
+      )
+
+      const { receipt } = await childContracts.childToken.transfer(other, halfAmount, { from: user, value: halfAmount })
+      const { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
+
+      let exitTx = await predicateTestUtils.getRawInflightTx(
+        childContracts.childToken.withdraw.bind(null, halfAmount),
+        user /* from */, web3Child, null /* gas */, { value: halfAmount }
+      )
+
+      const startExitTx = await utils.startExitForErc20PredicateLegacy(contracts.ERC20Predicate.startExitForOutgoingErc20Transfer, headerNumber, blockProof, block.number, block.timestamp, reference, 3, /* logIndex */ exitTx)
+      const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+      // console.log(startExitTx, logs)
+      const log = logs[utils.filterEvent(logs, 'ExitStarted')]
+      log.event.should.equal('ExitStarted')
+      expect(log.args).to.include({
+        exitor: user,
+        token: childContracts.rootERC20.address
+      })
+      // utils.assertBigNumberEquality(log.args.amount, halfAmount)
+    })
+
+    it('reference: deposit - exitTx: outgoingTransfer', async function() {
+      // Reference exitor's deposit which is the proof of exitor's balance
+      const { receipt } = await utils.deposit(
+        contracts.depositManager,
+        childContracts.childChain,
+        childContracts.rootERC20,
+        user,
+        amount
+      )
+      const { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
+      // Treating this tx as an in-flight outgoing transfer
+      const transferAmount = web3.utils.toBN('3')
+
+      let exitTx = await predicateTestUtils.getRawInflightTx(
+        childContracts.childToken.transfer.bind(null, other, transferAmount),
+        user /* from */, web3Child, null /* gas */, { value: transferAmount }
+      )
+
+      const startExitTx = await utils.startExitForErc20PredicateLegacy(contracts.ERC20Predicate.startExitForOutgoingErc20Transfer, headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
+      // console.log('startExitTx', startExitTx)
+      const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+      const log = logs[utils.filterEvent(logs, 'ExitStarted')]
+      log.event.should.equal('ExitStarted')
+      expect(log.args).to.include({
+        exitor: user,
+        token: childContracts.rootERC20.address
+      })
+      // utils.assertBigNumberEquality(log.args.amount, amount.sub(transferAmount))
+    })
+
+    it('reference: counterparty balance (Deposit) - exitTx: incomingTransfer', async function() {
+      // Reference the counterparty's deposit which is the proof of counterparty's balance
+      const { receipt } = await utils.deposit(
+        contracts.depositManager,
+        childContracts.childChain,
+        childContracts.rootERC20,
+        other,
+        amount
+      )
+      const { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
+
+      // Treating this tx as an in-flight incoming transfer
+      const transferAmount = halfAmount
+      let exitTx = await predicateTestUtils.getRawInflightTx(
+        childContracts.childToken.transfer.bind(null, user, transferAmount),
+        other /* from */, web3Child, null /* gas */, { value: transferAmount }
+      )
+      const startExitTx = await utils.startExitForErc20PredicateLegacy(contracts.ERC20Predicate.startExitForIncomingErc20Transfer, headerNumber, blockProof, block.number, block.timestamp, reference, 1, /* logIndex */ exitTx)
+      const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+      // console.log(startExitTx, logs)
+      const log = logs[utils.filterEvent(logs, 'ExitStarted')]
+      log.event.should.equal('ExitStarted')
+      expect(log.args).to.include({
+        exitor: user,
+        token: childContracts.rootERC20.address
+      })
+      // utils.assertBigNumberEquality(log.args.amount, halfAmount)
+    })
+
+    it('reference: counterparty balance (Transfer) - exitTx: incomingTransfer', async function() {
+      await utils.deposit(
+        contracts.depositManager,
+        childContracts.childChain,
+        childContracts.rootERC20,
+        user,
+        amount
+      )
+
+      // We will reference the following tx which is a proof of counterparty's balance
+      const { receipt } = await childContracts.childToken.transfer(other, amount, { value: amount })
+      const { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
+
+      // Treating this tx as an in-flight incoming transfer
+      let exitTx = await predicateTestUtils.getRawInflightTx(
+        childContracts.childToken.transfer.bind(null, user, halfAmount),
+        other /* from */, web3Child, null /* gas */, { value: halfAmount }
+      )
+      const startExitTx = await utils.startExitForErc20PredicateLegacy(contracts.ERC20Predicate.startExitForIncomingErc20Transfer, headerNumber, blockProof, block.number, block.timestamp, reference, 3, /* logIndex */ exitTx)
+      const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+      // console.log(startExitTx, logs)
+      const log = logs[utils.filterEvent(logs, 'ExitStarted')]
+      log.event.should.equal('ExitStarted')
+      expect(log.args).to.include({
+        exitor: user,
+        token: childContracts.rootERC20.address
+      })
+      // utils.assertBigNumberEquality(log.args.amount, halfAmount)
+    })
+
+    it('reference: own balance (Deposit) and counterparty balance (Deposit) - exitTx: incomingTransfer', async function() {
+      // Will reference user's pre-existing balance on the side-chain, currently this needs to given as the 2nd input so will process this later
+      const { receipt } = await utils.deposit(
+        contracts.depositManager,
+        childContracts.childChain,
+        childContracts.rootERC20,
+        user,
+        halfAmount
+      )
+      const inputs = []
+      let { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
+      inputs.push({ headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 })
+
+      // We will reference the following tx (Deposit) which is a proof of counterparty's balance
+      const { receipt: d } = await utils.deposit(null, childContracts.childChain, childContracts.rootERC20, other, halfAmount)
+      console.log('d.rawLogs', logDecoder.decodeLogs(d.rawLogs))
+      const i = await statefulUtils.submitCheckpoint(contracts.rootChain, d, accounts)
+      inputs.unshift({ headerNumber: i.headerNumber, blockProof: i.blockProof, blockNumber: i.block.number, blockTimestamp: i.block.timestamp, reference: i.reference, logIndex: 1 })
+
+      // Treating this tx as an in-flight incoming transfer
+      let exitTx = await predicateTestUtils.getRawInflightTx(
+        childContracts.childToken.transfer.bind(null, user, halfAmount),
+        other /* from */, web3Child, null /* gas */, { value: halfAmount }
+      )
+
+      const startExitTx = await utils.startExitForErc20Predicate(contracts.ERC20Predicate.startExitForIncomingErc20Transfer, inputs, exitTx)
+      const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+      // console.log(startExitTx, logs)
+      let log = logs[utils.filterEvent(logs, 'ExitStarted')]
+      log.event.should.equal('ExitStarted')
+      expect(log.args).to.include({
+        exitor: user,
+        token: childContracts.rootERC20.address
+      })
+      // utils.assertBigNumberEquality(log.args.amount, amount)
+      const exitId = log.args.exitId
+
+      log = logs[2]
+      log.event.should.equal('ExitUpdated')
+      expect(log.args).to.include({
+        signer: other
+      })
+      utils.assertBigNumberEquality(log.args.exitId, exitId)
+
+      log = logs[3]
+      log.event.should.equal('ExitUpdated')
+      expect(log.args).to.include({
+        signer: user
+      })
+      utils.assertBigNumberEquality(log.args.exitId, exitId)
+    })
+
+    it('reference: own balance (outgoingTransfer) and counterparty balance (incomingTransfer) - exitTx: incomingTransfer', async function() {
+      // This test case tests an interesting case.
+      // 1. I deposit x tokens.
+      await utils.deposit(
+        contracts.depositManager,
+        childContracts.childChain,
+        childContracts.rootERC20,
+        user,
+        amount
+      )
+
+      // 2. I transfer x/2 tokens to a user. Calling this tx A.
+      let { receipt } = await childContracts.childToken.transfer(other, halfAmount, { value: halfAmount })
+      const { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
+      const inputs = []
+      // We add an input which is the proof of counterparty's balance (x/2 amount)
+      inputs.push({ headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 3 })
+
+      // 3. The user transfers x/2 tokens back to me but this tx goes in-flight
+      let exitTx = await predicateTestUtils.getRawInflightTx(
+        childContracts.childToken.transfer.bind(null, user, halfAmount),
+        other /* from */, web3Child, null /* gas */, { value: halfAmount }
+      )
+
+      // 4. Now I would like to exit with x/2 (received) + x/2 (pre-existing balance) tokens
+      // What's interesting here is that tx A acts as proof-of-balance for both the counterparty and the user, so add the same input again
+      inputs.push({ headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 3 })
+
+      const startExitTx = await utils.startExitForErc20Predicate(contracts.ERC20Predicate.startExitForIncomingErc20Transfer, inputs, exitTx)
+      const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+      let log = logs[utils.filterEvent(logs, 'ExitStarted')]
+      log.event.should.equal('ExitStarted')
+      expect(log.args).to.include({
+        exitor: user,
+        token: childContracts.rootERC20.address
+      })
+      // utils.assertBigNumberEquality(log.args.amount, amount) // Exit starts with x tokens in total
       const exitId = log.args.exitId
 
       log = logs[2]
@@ -381,7 +651,7 @@ contract('ERC20Predicate', async function(accounts) {
       const startExitTx = await utils.startExitForErc20Predicate(contracts.ERC20Predicate.startExitForOutgoingErc20Transfer, inputs, exitTx)
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       // console.log(startExitTx, logs)
-      let log = logs[1]
+      let log = logs[utils.filterEvent(logs, 'ExitStarted')]
       log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
         exitor: user,

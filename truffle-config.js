@@ -16,7 +16,8 @@ module.exports = {
       host: 'localhost',
       port: 8545,
       network_id: '*', // match any network
-      skipDryRun: true
+      skipDryRun: true,
+      gas: 7000000
     },
     matic_dev: {
       host: 'localhost',

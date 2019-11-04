@@ -79,9 +79,8 @@ contract PredicateUtils is ExitsDataStructure, ChainIdMixin {
     for (uint8 i = 0; i <= 5; i++) {
       rawTx[i] = txList[i].toBytes();
     }
-    rawTx[4] = hex"";
     rawTx[6] = networkId;
-    rawTx[7] = hex"";
+    rawTx[7] = hex""; // [7] and [8] have something to do with v, r, s values
     rawTx[8] = hex"";
 
     txHash = keccak256(RLPEncode.encodeList(rawTx));

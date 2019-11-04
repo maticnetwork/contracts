@@ -30,5 +30,9 @@ export async function build(event) {
 }
 
 export function buildInFlight(tx) {
-  return Proofs.getTxBytes(tx)
+  const exitTx = Proofs.getTxBytes(tx)
+  // For debugging, use these
+  // console.log('exitTx', ethUtils.bufferToHex(exitTx))
+  // console.log('rlp.decode', ethUtils.rlp.decode(exitTx).map(ethUtils.bufferToHex))
+  return exitTx
 }

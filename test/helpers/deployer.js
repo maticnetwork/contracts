@@ -241,10 +241,13 @@ class Deployer {
   async deployMaticToken() {
     if (!this.globalMatic) throw Error('global matic token is not initialized')
     if (!this.childChain) throw Error('child chain is not initialized')
+    // Since we cannot initialize MaticChildERC20 repeatedly, deploy a dummy MaticChildERC20 to test it
     const childToken = await contracts.TestMaticChildERC20.new()
     const rootERC20 = await this.deployTestErc20({ mapToken: true, childTokenAdress: childToken.address })
+    // initialize this like we would have done for MaticChildERC20 once
     await childToken.initialize(this.childChain.address, rootERC20.address)
     await this.childChain.mapToken(rootERC20.address, childToken.address, false /* isERC721 */)
+    // send some ether to dummy MaticChildERC20, so that deposits can be processed
     await this.globalMatic.deposit(childToken.address, web3.utils.toBN(100).mul(utils.scalingFactor))
     return { rootERC20, childToken }
   }

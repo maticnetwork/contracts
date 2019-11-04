@@ -32,12 +32,13 @@ export function getAge(utxo) {
 
 // this is hack to generate a raw tx that is expected to be inflight
 // Fire the tx with less gas and get payload from the reverted tx
-export async function getRawInflightTx(fn, from, web3, gas) {
-  const options = { from, gas: gas || 30000 } // minimal: 26136 is required, not sure why
+export async function getRawInflightTx(fn, from, web3, gas, options = {}) {
+  Object.assign(options, { from: from || options.from, gas: gas || 30232 }) // minimal: 30232 is required, not sure why
   try {
     await fn(options)
     assert.fail('should have failed')
   } catch (e) {
+    // console.log(e)
     const txHash = /transactionHash": "(0[xX][0-9a-fA-F]+)"/g.exec(e.hijackedStack)[1]
     return buildInFlight(await web3.eth.getTransaction(txHash))
   }

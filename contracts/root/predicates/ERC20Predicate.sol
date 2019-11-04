@@ -525,11 +525,11 @@ contract ERC20Predicate is IErcPredicate {
   {
     bytes4 funcSig = BytesLib.toBytes4(BytesLib.slice(txData, 0, 4));
     if (funcSig == WITHDRAW_FUNC_SIG) {
-      require(txData.length == 36, "Invalid tx"); // 4 bytes for funcSig and a single bytes32 parameter
+      // require(txData.length == 36, "Invalid tx"); // 4 bytes for funcSig and a single bytes32 parameter
       amount = BytesLib.toUint(txData, 4);
       exitType = ExitType.Burnt;
     } else if (funcSig == TRANSFER_FUNC_SIG) {
-      require(txData.length == 68, "Invalid tx"); // 4 bytes for funcSig and a 2 bytes32 parameters (to, value)
+      // require(txData.length == 68, "Invalid tx"); // 4 bytes for funcSig and a 2 bytes32 parameters (to, value)
       amount = BytesLib.toUint(txData, 36);
       exitType = ExitType.OutgoingTransfer;
     } else {
@@ -547,7 +547,7 @@ contract ERC20Predicate is IErcPredicate {
     view
     returns (uint256 exitAmount)
   {
-    require(txData.length == 68, "Invalid tx"); // 4 bytes for funcSig and a 2 bytes32 parameters (to, value)
+    // require(txData.length == 68, "Invalid tx"); // 4 bytes for funcSig and a 2 bytes32 parameters (to, value)
     bytes4 funcSig = BytesLib.toBytes4(BytesLib.slice(txData, 0, 4));
     require(funcSig == TRANSFER_FUNC_SIG, "Only supports exiting from transfer txs");
     require(

@@ -1,9 +1,11 @@
-pragma solidity ^0.5.2;
+pragma solidity ^0.5.11;
 
 import "./BaseERC20.sol";
 
 
 contract MaticChildERC20 is BaseERC20 {
+
+  event Transfer(address indexed from, address indexed to, uint256 value);
 
   uint256 public currentSupply = 0;
   uint8 constant private DECIMALS = 18;
@@ -75,22 +77,19 @@ contract MaticChildERC20 is BaseERC20 {
     return account.balance;
   }
 
+  function _transfer(address sender, address recipient, uint256 amount) internal {
+    address(uint160(recipient)).transfer(amount);
+    emit Transfer(sender, recipient, amount);
+  }
+
   /// @dev Function that is called when a user or another contract wants to transfer funds.
   /// @param to Address of token receiver.
   /// @param value Number of tokens to transfer.
   /// @return Returns success of function call.
-  function transfer(address to, uint256 value) public returns (bool) {
-    return _transferFrom(msg.sender, to, value);
-  }
-
-  function _transferFrom(address from, address to, uint256 amount) internal returns (bool) {
-    if (msg.value != amount) {
+  function transfer(address to, uint256 value) public payable returns (bool) {
+    if (msg.value != value) {
       return false;
     }
-    address payable _to = address(uint160(to));
-    _to.transfer(amount);
-    emit Transfer(from, to, amount);
-    return true;
+    return _transferFrom(msg.sender, to, value);
   }
-
 }

@@ -5,7 +5,7 @@ import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "./ChildToken.sol";
 
 
-contract BaseERC20 is ChildToken, ERC20 {
+contract BaseERC20 is ChildToken {
 
   event Deposit(
     address indexed token,
@@ -53,25 +53,28 @@ contract BaseERC20 is ChildToken, ERC20 {
     _transferFrom(from, address(uint160(to)), amount);
   }
 
-  function allowance(address, address) public view returns (uint256) {
-    revert("Disabled feature");
-  }
+  // function allowance(address, address) external view returns (uint256) {
+  //   revert("Disabled feature");
+  // }
 
-  function approve(address, uint256) public returns (bool) {
-    revert("Disabled feature");
-  }
+  // function approve(address, uint256) external returns (bool) {
+  //   revert("Disabled feature");
+  // }
 
-  function transferFrom(address, address, uint256 ) public returns (bool){
-    revert("Disabled feature");
-  }
+  // function transferFrom(address, address, uint256 ) external returns (bool){
+  //   revert("Disabled feature");
+  // }
+
+  function balanceOf(address account) external view returns (uint256);
+  function _transfer(address sender, address recipient, uint256 amount) internal;
 
   /// @param from Address from where tokens are withdrawn.
   /// @param to Address to where tokens are sent.
   /// @param value Number of tokens to transfer.
   /// @return Returns success of function call.
   function _transferFrom(address from, address to, uint256 value) internal returns (bool) {
-    uint256 input1 = balanceOf(from);
-    uint256 input2 = balanceOf(to);
+    uint256 input1 = this.balanceOf(from);
+    uint256 input2 = this.balanceOf(to);
     _transfer(from, to, value);
     emit LogTransfer(
       token,
@@ -80,10 +83,9 @@ contract BaseERC20 is ChildToken, ERC20 {
       value,
       input1,
       input2,
-      balanceOf(from),
-      balanceOf(to)
+      this.balanceOf(from),
+      this.balanceOf(to)
     );
     return true;
   }
-
 }
