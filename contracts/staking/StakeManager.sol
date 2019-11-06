@@ -25,23 +25,23 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   IERC20 public token;
   address public registry;
   // genesis/governance variables
-  uint256 public DYNASTY = 2**13;  // unit: epoch 50 days
+  uint256 public dynasty = 2**13;  // unit: epoch 50 days
   uint256 public CHECKPOINT_REWARD = 10000;
   uint256 public MIN_DEPOSIT_SIZE = (10**18);  // in ERC20 token
   uint256 public EPOCH_LENGTH = 256; // unit : block
-  uint256 public UNSTAKE_DELAY = DYNASTY.mul(2); // unit: epoch
+  uint256 public UNSTAKE_DELAY = dynasty.mul(2); // unit: epoch
 
   // TODO: add events and gov. based update function
   uint256 public proposerToSignerRewards = 10; // will be used with fraud proof
 
   uint256 public validatorThreshold = 10; //128
-  uint256 public minLockInPeriod = 2; // unit: DYNASTY
+  uint256 public minLockInPeriod = 2; // unit: dynasty
   uint256 public totalStaked;
   uint256 public currentEpoch = 1;
   uint256 public NFTCounter = 1;
   uint256 public totalRewards;
   uint256 public totalRewardsLiquidated;
-  uint256 public auctionInterval = DYNASTY.div(4); // 1 week in epochs
+  uint256 public auctionPeriod = dynasty.div(4); // 1 week in epochs
   bytes32 public accountStateRoot;
 
   enum Status { Inactive, Active, Locked }
@@ -126,8 +126,8 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
     signerToValidator[signer] = NFTCounter;
     updateTimeLine(currentEpoch, int256(amount), 1);
-    // no Auctions for 1 DYNASTY
-    validatorAuction[NFTCounter].startEpoch = currentEpoch.add(DYNASTY);
+    // no Auctions for 1 dynasty
+    validatorAuction[NFTCounter].startEpoch = currentEpoch.add(dynasty);
     emit Staked(signer, NFTCounter, currentEpoch, amount, totalStaked);
     NFTCounter = NFTCounter.add(1);
   }
@@ -139,7 +139,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
   function startAuction(uint256 validatorId, uint256 amount) external {
     require(isValidator(validatorId));
-    require(auctionInterval >= currentEpoch.sub(validatorAuction[validatorId].startEpoch), "Invalid auction period");
+    require(auctionPeriod >= currentEpoch.sub(validatorAuction[validatorId].startEpoch), "Invalid auction period");
     require(token.transferFrom(msg.sender, address(this), amount), "Transfer amount failed");
 
     uint256 perceivedStake = validators[validatorId].amount.mul(perceivedStakeFactor(validatorId));
@@ -167,7 +167,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     Auction storage auction = validatorAuction[validatorId];
     Validator storage validator = validators[validatorId];
     require(auction.user == msg.sender);
-    require(auctionInterval.add(auction.startEpoch) <= currentEpoch, "Confirmation is not allowed before auctionInterval");
+    require(auctionPeriod.add(auction.startEpoch) <= currentEpoch, "Confirmation is not allowed before auctionPeriod");
 
     // validator is last auctioner
     if (auction.user == ownerOf(validatorId)) {
@@ -178,7 +178,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       //cleanup auction data
       auction.amount = 0;
       auction.user = address(0x0);
-      auction.startEpoch = currentEpoch.add(DYNASTY);
+      auction.startEpoch = currentEpoch.add(dynasty);
       emit StakeUpdate(validatorId, refund, validator.amount);
       emit ConfirmAuction(validatorId, validatorId, validator.amount);
     } else {
@@ -417,11 +417,11 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
   function updateDynastyValue(uint256 newDynasty) public onlyOwner {
     require(newDynasty > 0);
-    emit DynastyValueChange(newDynasty, DYNASTY);
-    DYNASTY = newDynasty;
-    UNSTAKE_DELAY = DYNASTY.div(2);
-    WITHDRAWAL_DELAY = DYNASTY.mul(2);
-    auctionInterval = DYNASTY.div(4);
+    emit DynastyValueChange(newDynasty, dynasty);
+    dynasty = newDynasty;
+    UNSTAKE_DELAY = dynasty.div(2);
+    WITHDRAWAL_DELAY = dynasty.mul(2);
+    auctionPeriod = dynasty.div(4);
   }
 
   function updateSigner(uint256 validatorId, address _signer) public onlyStaker(validatorId) {
