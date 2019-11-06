@@ -774,7 +774,7 @@ contract('StakeManager', async function(accounts) {
       }
     })
 
-    it('should try auction start after auctionInterval period and fail', async function() {
+    it('should try auction start after auctionPeriod period and fail', async function() {
       const { vote, sigs } = buildSubmitHeaderBlockPaylod(
         accounts[0],
         0,
@@ -788,13 +788,13 @@ contract('StakeManager', async function(accounts) {
         }
       )
       let auctionData = await stakeManager.validatorAuction(1)
-      let auctionInterval = await stakeManager.auctionInterval()
+      let auctionPeriod = await stakeManager.auctionPeriod()
       let currentEpoch = await stakeManager.currentEpoch()
 
-      // fast forward to skip auctionInterval
+      // fast forward to skip auctionPeriod
       for (
         let i = currentEpoch;
-        i <= auctionInterval.add(auctionData.startEpoch);
+        i <= auctionPeriod.add(auctionData.startEpoch);
         i++
       ) {
         // 2/3 majority vote
