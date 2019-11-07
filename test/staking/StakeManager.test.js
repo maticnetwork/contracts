@@ -8,16 +8,15 @@ import {
   DummyERC20,
   ValidatorContract
 } from '../helpers/artifacts'
-import logDecoder from '../helpers/log-decoder.js'
 
+import logDecoder from '../helpers/log-decoder.js'
 import { rewradsTree } from '../helpers/proofs.js'
 
 import {
+  checkPoint,
+  assertBigNumbergt,
   assertBigNumberEquality,
-  buildSubmitHeaderBlockPaylod,
-  encodeSigs,
-  getSigs,
-  assertBigNumbergt
+  buildSubmitHeaderBlockPaylod
 } from '../helpers/utils.js'
 import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
 
@@ -211,6 +210,7 @@ contract('StakeManager', async function(accounts) {
         await stakeManager.stake(amount, user, false, {
           from: user
         })
+        assert.fail('Should never allow second time staking')
       } catch (error) {
         const invalidOpcode = error.message.search('revert') >= 0
         assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
@@ -261,7 +261,10 @@ contract('StakeManager', async function(accounts) {
 
     it('should update and verify signer/pubkey', async function() {
       let user = wallets[5].getAddressString()
-      await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
+      let w = [wallets[1], wallets[2], wallets[3], wallets[4]]
+      await checkPoint(w, wallets[1], stakeManager)
+
+      // await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
 
       let signer = wallets[0].getAddressString()
       const validatorId = await stakeManager.getValidatorId(user)
@@ -301,6 +304,7 @@ contract('StakeManager', async function(accounts) {
         await stakeManager.stake(amount, user, false, {
           from: user
         })
+        assert.fail('Should not allow more validators then validator threshold')
       } catch (error) {
         const invalidOpcode = error.message.search('revert') >= 0
         assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
@@ -341,8 +345,12 @@ contract('StakeManager', async function(accounts) {
     it('should unstake via wallets[3] after 2 epoch', async function() {
       const user = wallets[3].getAddressString()
       const amount = web3.utils.toWei('300')
-      await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
-      await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
+      let w = [wallets[1], wallets[3], wallets[4], wallets[5]]
+
+      await checkPoint(w, wallets[1], stakeManager)
+      await checkPoint(w, wallets[1], stakeManager)
+      // await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
+      // await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
 
       const validatorId = await stakeManager.getValidatorId(user)
       // stake now
@@ -375,11 +383,17 @@ contract('StakeManager', async function(accounts) {
     it('should stake via wallets[6]', async function() {
       const user = wallets[6].getAddressString()
       const amount = web3.utils.toWei('400')
+      let w = [wallets[1], wallets[5], wallets[4]]
 
-      await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
-      await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
-      await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
-      await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
+      await checkPoint(w, wallets[1], stakeManager)
+      await checkPoint(w, wallets[1], stakeManager)
+      await checkPoint(w, wallets[1], stakeManager)
+      await checkPoint(w, wallets[1], stakeManager)
+
+      // await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
+      // await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
+      // await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
+      // await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
 
       // approve tranfer
       await stakeToken.approve(stakeManager.address, amount, {
@@ -413,7 +427,7 @@ contract('StakeManager', async function(accounts) {
       })
 
       // stake now
-      let result = await stakeManager.stake(amount, user, true, {
+      let result = await stakeManager.stake(amount, user, false, {
         from: user
       })
     })
@@ -428,7 +442,12 @@ contract('StakeManager', async function(accounts) {
       await stakeManager.unstakeClaim(ValidatorId2, {
         from: wallets[2].getAddressString()
       })
-      await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
+      let w = [wallets[1], wallets[5], wallets[6], wallets[7], wallets[4]]
+      await checkPoint(w, wallets[1], stakeManager, {
+        from: wallets[1].getAddressString()
+      })
+
+      // await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
       await stakeManager.unstakeClaim(ValidatorId3, {
         from: wallets[3].getAddressString()
       })
@@ -465,25 +484,14 @@ contract('StakeManager', async function(accounts) {
     it('should create sigs properly', async function() {
       // dummy vote data
       let w = [wallets[0], wallets[4], wallets[6], wallets[7], wallets[5]]
-
-      const voteData = 'dummyData'
-      const sigs = utils.bufferToHex(
-        encodeSigs(getSigs(w, utils.keccak256(voteData)))
-      )
-      // 2/3 majority vote
-      await stakeManager.checkSignatures(
-        utils.bufferToHex(utils.keccak256(voteData)),
-        utils.bufferToHex(utils.keccak256('stateRoot')),
-        sigs,
-        {
-          from: wallets[1].getAddressString()
-        }
-      )
+      await checkPoint(w, wallets[1], stakeManager, {
+        from: wallets[1].getAddressString()
+      })
     })
   })
 })
 
-contract('StakeManager<-> rewards distribution', async function(accounts) {
+contract('StakeManager:rewards distribution', async function(accounts) {
   let stakeToken
   let stakeManager
   let wallets
@@ -559,96 +567,345 @@ contract('StakeManager<-> rewards distribution', async function(accounts) {
   })
 })
 
-contract(
-  'StakeManager<-> validator contract rewards distribution',
-  async function(accounts) {
-    let stakeToken
-    let stakeManager
-    let wallets
-    let accountState = {}
-    const rewardsAmount = 5
+contract('StakeManager:validator contract rewards distribution', async function(
+  accounts
+) {
+  let stakeToken
+  let stakeManager
+  let wallets
+  let accountState = {}
+  const rewardsAmount = 5
 
-    describe('staking rewards', async function() {
-      before(async function() {
-        wallets = generateFirstWallets(mnemonics, 2)
-        stakeToken = await DummyERC20.new('Stake Token', 'STAKE')
-        stakeManager = await StakeManager.new(
-          stakeToken.address,
-          wallets[0].getAddressString()
-        ) // dummy registry address
-        await stakeManager.setToken(stakeToken.address)
+  describe('staking rewards', async function() {
+    before(async function() {
+      wallets = generateFirstWallets(mnemonics, 2)
+      stakeToken = await DummyERC20.new('Stake Token', 'STAKE')
+      stakeManager = await StakeManager.new(
+        stakeToken.address,
+        wallets[0].getAddressString()
+      ) // dummy registry address
+      await stakeManager.setToken(stakeToken.address)
 
-        let amount = web3.utils.toWei('1000')
-        for (let i = 0; i < 2; i++) {
-          await stakeToken.mint(wallets[i].getAddressString(), amount)
-          await stakeToken.approve(stakeManager.address, amount, {
-            from: wallets[i].getAddressString()
-          })
-          await stakeManager.stake(
-            amount,
-            wallets[i].getAddressString(),
-            true,
-            {
-              from: wallets[i].getAddressString()
-            }
-          )
-          accountState[i + 1] = rewardsAmount
+      let amount = web3.utils.toWei('1000')
+      for (let i = 0; i < 2; i++) {
+        await stakeToken.mint(wallets[i].getAddressString(), amount)
+        await stakeToken.approve(stakeManager.address, amount, {
+          from: wallets[i].getAddressString()
+        })
+        await stakeManager.stake(amount, wallets[i].getAddressString(), true, {
+          from: wallets[i].getAddressString()
+        })
+        accountState[i + 1] = rewardsAmount
+      }
+    })
+
+    it('should get rewards for validator 1 with ValidatorContract/delegation on', async function() {
+      const validators = [1, 2]
+      let tree = await rewradsTree(validators, accountState)
+      const { vote, sigs } = buildSubmitHeaderBlockPaylod(
+        accounts[0],
+        0,
+        22,
+        '' /* root */,
+        wallets,
+        {
+          rewardsRootHash: tree.getRoot(),
+          allValidators: true,
+          getSigs: true
         }
-      })
+      )
 
-      it('should get rewards for validator 1 with ValidatorContract/delegation on', async function() {
-        const validators = [1, 2]
-        let tree = await rewradsTree(validators, accountState)
-        const { vote, sigs } = buildSubmitHeaderBlockPaylod(
-          accounts[0],
-          0,
-          22,
-          '' /* root */,
-          wallets,
-          {
-            rewardsRootHash: tree.getRoot(),
-            allValidators: true,
-            getSigs: true
-          }
+      // 2/3 majority vote
+      await stakeManager.checkSignatures(
+        utils.bufferToHex(utils.keccak256(vote)),
+        utils.bufferToHex(tree.getRoot()),
+        sigs
+      )
+      const leaf = utils.keccak256(
+        web3.eth.abi.encodeParameters(
+          ['uint256', 'uint256'],
+          [1, accountState[1]]
         )
+      )
+      await stakeManager.claimRewards(
+        1,
+        rewardsAmount,
+        0,
+        utils.bufferToHex(Buffer.concat(tree.getProof(leaf)))
+      )
+      let validator = await stakeManager.validators(1)
+      let contractV = await ValidatorContract.at(validator.contractAddress)
 
+      assertBigNumberEquality(
+        accountState[1],
+        await contractV.validatorRewards()
+      )
+      const beforeBalance = await stakeToken.balanceOf(
+        wallets[1].getAddressString()
+      )
+
+      await stakeManager.withdrawRewards(1, {
+        from: wallets[1].getAddressString()
+      })
+      const afterBalance = await stakeToken.balanceOf(
+        wallets[1].getAddressString()
+      )
+      assertBigNumbergt(afterBalance, beforeBalance)
+    })
+  })
+})
+
+contract('StakeManager:validator replacement', async function(accounts) {
+  let stakeToken
+  let stakeManager
+  let wallets
+  let accountState = {}
+  const rewardsAmount = 5
+
+  describe('validator replacement', async function() {
+    before(async function() {
+      wallets = generateFirstWallets(mnemonics, 10)
+      stakeToken = await DummyERC20.new('Stake Token', 'STAKE')
+      stakeManager = await StakeManager.new(
+        stakeToken.address,
+        wallets[0].getAddressString()
+      ) // dummy registry address
+      await stakeManager.setToken(stakeToken.address)
+      await stakeManager.updateDynastyValue(8)
+
+      let amount = web3.utils.toWei('1000')
+      for (let i = 0; i < 2; i++) {
+        await stakeToken.mint(wallets[i].getAddressString(), amount)
+        await stakeToken.approve(stakeManager.address, amount, {
+          from: wallets[i].getAddressString()
+        })
+        await stakeManager.stake(amount, wallets[i].getAddressString(), false, {
+          from: wallets[i].getAddressString()
+        })
+        accountState[i + 1] = rewardsAmount
+      }
+    })
+
+    it('should try auction start in non-auction period and fail', async function() {
+      const amount = web3.utils.toWei('1200')
+      await stakeToken.mint(wallets[3].getAddressString(), amount)
+      await stakeToken.approve(stakeManager.address, amount, {
+        from: wallets[3].getAddressString()
+      })
+      try {
+        await stakeManager.startAuction(1, amount, {
+          from: wallets[3].getAddressString()
+        })
+        assert.fail('Auction started in non-auction period')
+      } catch (error) {
+        const invalidOpcode = error.message.search('revert') >= 0
+        assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
+      }
+    })
+
+    it('should start Auction and bid multiple times', async function() {
+      let amount = web3.utils.toWei('1200')
+      const { vote, sigs } = buildSubmitHeaderBlockPaylod(
+        accounts[0],
+        0,
+        22,
+        '' /* root */,
+        wallets,
+        {
+          rewardsRootHash: '',
+          allValidators: true,
+          getSigs: true
+        }
+      )
+      let auction = await stakeManager.validatorAuction(1)
+      let currentEpoch = await stakeManager.currentEpoch()
+      for (let i = currentEpoch; i <= auction.startEpoch; i++) {
         // 2/3 majority vote
         await stakeManager.checkSignatures(
           utils.bufferToHex(utils.keccak256(vote)),
-          utils.bufferToHex(tree.getRoot()),
+          utils.bufferToHex(''),
           sigs
         )
-        const leaf = utils.keccak256(
-          web3.eth.abi.encodeParameters(
-            ['uint256', 'uint256'],
-            [1, accountState[1]]
-          )
-        )
-        await stakeManager.claimRewards(
-          1,
-          rewardsAmount,
-          0,
-          utils.bufferToHex(Buffer.concat(tree.getProof(leaf)))
-        )
-        let validator = await stakeManager.validators(1)
-        let contractV = await ValidatorContract.at(validator.contractAddress)
+      }
 
-        assertBigNumberEquality(
-          accountState[1],
-          await contractV.validatorRewards()
-        )
-        const beforeBalance = await stakeToken.balanceOf(
-          wallets[1].getAddressString()
-        )
-
-        await stakeManager.withdrawRewards(1, {
-          from: wallets[1].getAddressString()
-        })
-        const afterBalance = await stakeToken.balanceOf(
-          wallets[1].getAddressString()
-        )
-        assertBigNumbergt(afterBalance, beforeBalance)
+      // start an auction from wallet[3]
+      await stakeToken.mint(wallets[3].getAddressString(), amount)
+      await stakeToken.approve(stakeManager.address, amount, {
+        from: wallets[3].getAddressString()
       })
+      await stakeManager.startAuction(1, amount, {
+        from: wallets[3].getAddressString()
+      })
+
+      let auctionData = await stakeManager.validatorAuction(1)
+      assertBigNumberEquality(auctionData.amount, amount)
+      assert(
+        auctionData.user.toLowerCase ===
+          wallets[3].getAddressString().toLowerCase
+      )
+      amount = web3.utils.toWei('1250')
+      // outbid wallet[3] from wallet[4]
+      await stakeToken.mint(wallets[4].getAddressString(), amount)
+      await stakeToken.approve(stakeManager.address, amount, {
+        from: wallets[4].getAddressString()
+      })
+      const oldAuctionerBalanceBefore = await stakeToken.balanceOf(
+        wallets[3].getAddressString()
+      )
+      await stakeManager.startAuction(1, amount, {
+        from: wallets[4].getAddressString()
+      })
+      // Balance transfer to stakeManager
+      assertBigNumberEquality(
+        await stakeToken.balanceOf(wallets[4].getAddressString()),
+        '0'
+      )
+      const oldAuctionerBalance = await stakeToken.balanceOf(
+        wallets[3].getAddressString()
+      )
+
+      assertBigNumberEquality(
+        auctionData.amount.add(oldAuctionerBalanceBefore),
+        oldAuctionerBalance
+      )
+      auctionData = await stakeManager.validatorAuction(1)
+      assertBigNumberEquality(auctionData.amount, amount)
+      assert(
+        auctionData.user.toLowerCase() ===
+          wallets[4].getAddressString().toLowerCase()
+      )
     })
-  }
-)
+
+    it('should start auction where validator is last bidder', async function() {
+      const amount = web3.utils.toWei('1250')
+      let validator = await stakeManager.validators(2)
+      assert(
+        validator.signer.toLowerCase(),
+        wallets[3].getAddressString().toLowerCase()
+      )
+
+      await stakeToken.mint(validator.signer, amount)
+      await stakeToken.approve(stakeManager.address, amount, {
+        from: validator.signer
+      })
+
+      await stakeManager.startAuction(2, amount, {
+        from: validator.signer
+      })
+      const auctionData = await stakeManager.validatorAuction(2)
+      assertBigNumberEquality(auctionData.amount, amount)
+      assert(auctionData.user.toLowerCase() === validator.signer.toLowerCase())
+    })
+
+    it('should try to unstake in auction interval and fail', async function() {
+      try {
+        await stakeManager.unstake(1, {
+          from: wallets[0].getAddressString()
+        })
+        assert.fail('Unstaked in auction interval')
+      } catch (error) {
+        const invalidOpcode = error.message.search('revert') >= 0
+        assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
+      }
+    })
+
+    it('should try auction start after auctionPeriod period and fail', async function() {
+      const { vote, sigs } = buildSubmitHeaderBlockPaylod(
+        accounts[0],
+        0,
+        22,
+        '' /* root */,
+        wallets,
+        {
+          rewardsRootHash: '',
+          allValidators: true,
+          getSigs: true
+        }
+      )
+      let auctionData = await stakeManager.validatorAuction(1)
+      let auctionPeriod = await stakeManager.auctionPeriod()
+      let currentEpoch = await stakeManager.currentEpoch()
+
+      // fast forward to skip auctionPeriod
+      for (
+        let i = currentEpoch;
+        i <= auctionPeriod.add(auctionData.startEpoch);
+        i++
+      ) {
+        // 2/3 majority vote
+        await stakeManager.checkSignatures(
+          utils.bufferToHex(utils.keccak256(vote)),
+          utils.bufferToHex(''),
+          sigs
+        )
+      }
+      const amount = web3.utils.toWei('1300')
+      await stakeToken.mint(wallets[5].getAddressString(), amount)
+      await stakeToken.approve(stakeManager.address, amount, {
+        from: wallets[5].getAddressString()
+      })
+      try {
+        await stakeManager.startAuction(1, amount, {
+          from: wallets[5].getAddressString()
+        })
+        assert.fail('Test should fail due to invalid auction period')
+      } catch (error) {
+        const invalidOpcode = error.message.search('revert') >= 0
+        const errorMessage = error.message.search('Invalid auction period') >= 0
+        assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
+        assert(
+          errorMessage,
+          "Expected 'Invalid auction period', got '" + error + "' instead"
+        )
+      }
+    })
+
+    it('should confrim auction and secure the place', async function() {
+      const result = await stakeManager.confirmAuctionBid(
+        1,
+        wallets[4].getAddressString(),
+        false,
+        {
+          from: wallets[4].getAddressString()
+        }
+      )
+      const logs = result.receipt.logs
+
+      logs[2].event.should.equal('Staked')
+      logs[3].event.should.equal('ConfirmAuction')
+
+      assertBigNumberEquality(logs[3].args.amount, web3.utils.toWei('1250'))
+      assert.ok(!(await stakeManager.isValidator(logs[3].args.oldValidatorId)))
+      assert.ok(await stakeManager.isValidator(logs[3].args.newValidatorId))
+    })
+
+    it('should confrim auction and secure the place for validator itself', async function() {
+      let validator = await stakeManager.validators(2)
+      let stake = validator.amount
+      let balanceBefore = await stakeToken.balanceOf(validator.signer)
+
+      const result = await stakeManager.confirmAuctionBid(
+        2,
+        validator.signer,
+        false,
+        {
+          from: validator.signer
+        }
+      )
+      const logs = result.receipt.logs
+
+      logs[1].event.should.equal('ConfirmAuction')
+
+      assertBigNumberEquality(logs[1].args.amount, web3.utils.toWei('1250'))
+      assertBigNumberEquality(
+        logs[1].args.oldValidatorId,
+        logs[1].args.newValidatorId
+      )
+
+      // test if validator got the diff balance back
+      let balanceAfter = await stakeToken.balanceOf(validator.signer)
+      assertBigNumberEquality(balanceAfter.sub(balanceBefore), stake)
+    })
+    // TODO: add more tests with delegation enabled
+  })
+})

@@ -40,6 +40,23 @@ export function encodeSigs(sigs = []) {
   return Buffer.concat(sigs.map(s => ethUtils.toBuffer(s)))
 }
 
+export async function checkPoint(wallets, proposer, stakeManager) {
+  const voteData = 'dummyData'
+  const sigs = ethUtils.bufferToHex(
+    encodeSigs(getSigs(wallets, ethUtils.keccak256(voteData)))
+  )
+  const stateRoot = ethUtils.bufferToHex(ethUtils.keccak256('stateRoot'))
+  // 2/3 majority vote
+  await stakeManager.checkSignatures(
+    ethUtils.bufferToHex(ethUtils.keccak256(voteData)),
+    stateRoot,
+    sigs,
+    {
+      from: proposer.getAddressString()
+    }
+  )
+}
+
 export function assertBigNumberEquality(num1, num2) {
   if (!BN.isBN(num1)) num1 = web3.utils.toBN(num1.toString())
   if (!BN.isBN(num2)) num2 = web3.utils.toBN(num2.toString())
@@ -91,9 +108,9 @@ export function buildSubmitHeaderBlockPaylod(
   // in case of TestStakeManger use dummysig data
   const sigs = ethUtils.bufferToHex(
     options.getSigs
-      ? encodeSigs(getSigs(validators, ethUtils.keccak256(vote))) : 'dummySig'
+      ? encodeSigs(getSigs(validators, ethUtils.keccak256(vote)))
+      : 'dummySig'
   )
-
   return { vote, sigs, extraData, root }
 }
 
