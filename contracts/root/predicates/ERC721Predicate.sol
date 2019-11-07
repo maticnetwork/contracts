@@ -348,7 +348,7 @@ contract ERC721Predicate is IErcPredicate {
     RLPReader.RLPItem[] memory txList = exitTx.toRlpItem().toList();
     require(txList.length == 9, "MALFORMED_WITHDRAW_TX");
     txData.childToken = RLPReader.toAddress(txList[3]); // corresponds to "to" field in tx
-    (txData.signer, txData.txHash) = getAddressFromTx(txList, withdrawManager.networkId());
+    (txData.signer, txData.txHash) = getAddressFromTx(txList);
     if (txData.signer == msg.sender) { // exit tx is signed by exitor himself
       (txData.amountOrToken, txData.exitType) = processExitTxSender(RLPReader.toBytes(txList[5]));
     } else {
@@ -371,7 +371,7 @@ contract ERC721Predicate is IErcPredicate {
     RLPReader.RLPItem[] memory txList = challengeTx.toRlpItem().toList();
     require(txList.length == 9, "MALFORMED_WITHDRAW_TX");
     txData.childToken = RLPReader.toAddress(txList[3]); // corresponds to "to" field in tx
-    (txData.signer, txData.txHash) = getAddressFromTx(txList, withdrawManager.networkId());
+    (txData.signer, txData.txHash) = getAddressFromTx(txList);
     // during a challenge, the tx signer must be the first party
     (txData.amountOrToken,) = processExitTxSender(RLPReader.toBytes(txList[5]));
   }
@@ -416,7 +416,7 @@ contract ERC721Predicate is IErcPredicate {
     internal
   {
     RLPReader.RLPItem[] memory txList = mintTx.toRlpItem().toList();
-    (address minter,) = getAddressFromTx(txList, withdrawManager.networkId());
+    (address minter,) = getAddressFromTx(txList);
     ERC721PlasmaMintable token = ERC721PlasmaMintable(rootToken);
     require(
       token.isMinter(minter),

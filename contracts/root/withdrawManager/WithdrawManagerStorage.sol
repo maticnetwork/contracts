@@ -53,7 +53,6 @@ contract WithdrawManagerStorage is ProxyStorage, WithdrawManagerHeader {
 
   // Bonded exits collaterized at 0.1 ETH
   uint256 constant internal BOND_AMOUNT = 10 ** 17;
-  bytes constant public networkId = hex"3A99";
 
   Registry internal registry;
   RootChain internal rootChain;

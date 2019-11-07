@@ -278,7 +278,7 @@ contract TransferWithSigPredicate is PredicateUtils {
     txData.childToken = RLPReader.toAddress(txList[3]); // corresponds to "to" field in tx
     address spender;
     // Signer of this tx is supposed to be the authorized spender
-    (spender, txData.txHash) = getAddressFromTx(txList, withdrawManager.networkId());
+    (spender, txData.txHash) = getAddressFromTx(txList);
 
     bytes memory txPayload = RLPReader.toBytes(txList[5]);
     bytes4 funcSig = BytesLib.toBytes4(BytesLib.slice(txPayload, 0, 4));
