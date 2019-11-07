@@ -1,12 +1,14 @@
 pragma solidity ^0.5.2;
 
-contract LibEIP712Domain {
+import { ChainIdMixin } from "../../common/mixin/ChainIdMixin.sol";
+
+contract LibEIP712Domain is ChainIdMixin {
   string constant internal EIP712_DOMAIN_SCHEMA = "EIP712Domain(string name,string version,uint256 chainId,address contract)";
   bytes32 constant public EIP712_DOMAIN_SCHEMA_HASH = keccak256(abi.encodePacked(EIP712_DOMAIN_SCHEMA));
 
   string constant internal EIP712_DOMAIN_NAME = "Matic Network";
   string constant internal EIP712_DOMAIN_VERSION = "1";
-  uint256 constant internal EIP712_DOMAIN_CHAINID = 15001;
+  uint256 constant internal EIP712_DOMAIN_CHAINID = CHAINID;
 
   bytes32 public EIP712_DOMAIN_HASH;
 

@@ -94,7 +94,7 @@ contract MarketplacePredicate is PredicateUtils {
       uint8(registry.predicates(predicate)) != 0,
       "Not a valid predicate"
     );
-    ExitTxData memory exitTxData = processExitTx(exitTx, withdrawManager.networkId(), msg.sender);
+    ExitTxData memory exitTxData = processExitTx(exitTx, msg.sender);
     require(
       exitTxData.expiration > rootChain.getLastChildBlock(),
       "The inflight exit is not valid, because the marketplace order has expired"
@@ -184,7 +184,7 @@ contract MarketplacePredicate is PredicateUtils {
     (uint256 age, address utxoOwner, address predicate, address childToken) = decodeInputUtxo(inputUtxo);
 
     RLPReader.RLPItem[] memory _challengeData = challengeData.toRlpItem().toList();
-    ExitTxData memory challengeTxData = processExitTx(_challengeData[10].toBytes(), withdrawManager.networkId(), utxoOwner);
+    ExitTxData memory challengeTxData = processExitTx(_challengeData[10].toBytes(), utxoOwner);
 
     // receipt alone is not enough for a challenge. It is required to check that the challenge tx was included as well
     // Challenge will be considered successful if a more recent LogTransfer event is found
@@ -261,7 +261,7 @@ contract MarketplacePredicate is PredicateUtils {
     (_referenceTx.closingBalance, _referenceTx.age, _referenceTx.childToken, _referenceTx.rootToken) = abi.decode(_preState, (uint256, uint256, address,address));
   }
 
-  function processExitTx(bytes memory exitTx, bytes memory networkId, address tradeParticipant)
+  function processExitTx(bytes memory exitTx, address tradeParticipant)
     internal
     pure
     returns(ExitTxData memory txData)
@@ -275,7 +275,7 @@ contract MarketplacePredicate is PredicateUtils {
       "Not executeOrder transaction"
     );
     txData = verifySignatures(executeOrder, marketplaceContract, tradeParticipant);
-    (,txData.txHash) = getAddressFromTx(txList, networkId);
+    (,txData.txHash) = getAddressFromTx(txList);
   }
 
   function verifySignatures(

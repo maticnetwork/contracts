@@ -6,6 +6,7 @@ import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 import { IWithdrawManager } from "../withdrawManager/IWithdrawManager.sol";
 import { IDepositManager } from "../depositManager/IDepositManager.sol";
 import { ExitsDataStructure } from "../withdrawManager/WithdrawManagerStorage.sol";
+import { ChainIdMixin } from "../../common/mixin/ChainIdMixin.sol";
 
 interface IPredicate {
   /**
@@ -40,7 +41,7 @@ interface IPredicate {
   function interpretStateUpdate(bytes calldata state) external view returns (bytes memory);
 }
 
-contract PredicateUtils is ExitsDataStructure {
+contract PredicateUtils is ExitsDataStructure, ChainIdMixin {
   using RLPReader for RLPReader.RLPItem;
 
   // Bonded exits collaterized at 0.1 ETH
@@ -69,7 +70,7 @@ contract PredicateUtils is ExitsDataStructure {
     address(uint160(address(withdrawManager))).transfer(BOND_AMOUNT);
   }
 
-  function getAddressFromTx(RLPReader.RLPItem[] memory txList, bytes memory networkId)
+  function getAddressFromTx(RLPReader.RLPItem[] memory txList)
     internal
     pure
     returns (address signer, bytes32 txHash)
