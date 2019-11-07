@@ -776,6 +776,27 @@ contract('StakeManager:validator replacement', async function(accounts) {
       )
     })
 
+    it('should start auction where validator is last bidder', async function() {
+      const amount = web3.utils.toWei('1250')
+      let validator = await stakeManager.validators(2)
+      assert(
+        validator.signer.toLowerCase(),
+        wallets[3].getAddressString().toLowerCase()
+      )
+
+      await stakeToken.mint(validator.signer, amount)
+      await stakeToken.approve(stakeManager.address, amount, {
+        from: validator.signer
+      })
+
+      await stakeManager.startAuction(2, amount, {
+        from: validator.signer
+      })
+      const auctionData = await stakeManager.validatorAuction(2)
+      assertBigNumberEquality(auctionData.amount, amount)
+      assert(auctionData.user.toLowerCase() === validator.signer.toLowerCase())
+    })
+
     it('should try to unstake in auction interval and fail', async function() {
       try {
         await stakeManager.unstake(1, {
@@ -856,6 +877,36 @@ contract('StakeManager:validator replacement', async function(accounts) {
       assertBigNumberEquality(logs[3].args.amount, web3.utils.toWei('1250'))
       assert.ok(!(await stakeManager.isValidator(logs[3].args.oldValidatorId)))
       assert.ok(await stakeManager.isValidator(logs[3].args.newValidatorId))
+    })
+
+    it('should confrim auction and secure the place for validator itself', async function() {
+      let validator = await stakeManager.validators(2)
+      let stake = validator.amount
+      let balanceBefore = await stakeToken.balanceOf(validator.signer)
+
+      const result = await stakeManager.confirmAuctionBid(
+        2,
+        validator.signer,
+        false,
+        {
+          from: validator.signer
+        }
+      )
+      const logs = result.receipt.logs
+
+      logs[1].event.should.equal('ConfirmAuction')
+
+      assertBigNumberEquality(logs[1].args.amount, web3.utils.toWei('1250'))
+      assertBigNumberEquality(
+        logs[1].args.oldValidatorId,
+        logs[1].args.newValidatorId
+      )
+
+      // test if validator got the diff balance back
+      let balanceAfter = await stakeToken.balanceOf(validator.signer)
+      let newStake = await stakeManager.validators(2)
+      newStake = newStake.amount
+      assertBigNumberEquality(balanceAfter.sub(balanceBefore), stake)
     })
     // TODO: add more tests with delegation enabled
   })
