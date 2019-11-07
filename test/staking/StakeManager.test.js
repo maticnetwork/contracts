@@ -904,8 +904,6 @@ contract('StakeManager:validator replacement', async function(accounts) {
 
       // test if validator got the diff balance back
       let balanceAfter = await stakeToken.balanceOf(validator.signer)
-      let newStake = await stakeManager.validators(2)
-      newStake = newStake.amount
       assertBigNumberEquality(balanceAfter.sub(balanceBefore), stake)
     })
     // TODO: add more tests with delegation enabled
