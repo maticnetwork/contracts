@@ -1,31 +1,55 @@
 # Deploy Contracts
-1. Use Infura to point to the main chain node (Ethereum ropsten)
+
+### :one: We have some network configrations available.
+
+| Network Name |                   URL                   | Network ID |
+| ------------ | :-------------------------------------: | ---------: |
+| ropsten      | https://ropsten.infura.io/v3/${API_KEY} |          3 |
+| mainnet      | https://mainnet.infura.io/v3/${API_KEY} |          1 |
+| bor_testnet2 |     https://testnet2.matic.network      |       8995 |
+| development  |          http://localhost:8545          |         \* |
+| matic_dev    |          http://localhost:8546          |         \* |
+
+Feel free to add your own. Update the chain url in `networks.matic` key in [truffle-config.js](../truffle-config.js).
+
+### :two: Export variables
+
 ```
+// (Optional) Only if you are using ethereum testnets
 export API_KEY=<infura api key>
+
+// For `developement` networks you can use the mnemonic present in package.json
 export MNEMONIC=<mnemonic>
 ```
-2. Use Bor node to point the matic chain
-Update the chain url in `networks.matic` key in [truffle-config.js](./truffle-config.js).
 
-3. Compile contracts
+### :three: Compile contracts
+
 ```
 npm run truffle:compile
 ```
 
-4. Check account that you are deploying from has ropsten ether.
+### :four: Deploy contracts
 
-5. Deploy contracts
+We need to deploy our set of contracts on 2 chains:
+
+- Base Chain: Ideally a higher security EVM chain which can be used for dispute resolution. For testing ganache or any other EVM chain should work.
+- Child Chain: EVM compatible chain to work as our sidechain. For testing note that using `ganache` for child-chain is not recommended, intead doing `npm run simuate-bor` would be better.
+
 ```
 mv migrations dev-migrations && cp -r deploy-migrations migrations
 
-(local)
-npm run truffle:migrate -- --reset --network development --to 3
-npm run truffle:migrate -- --reset --network matic_dev -f 4 --to 4
-npm run truffle:migrate -- --network development -f 5 --to 5
+// Root contracts are deployed on base chain
+npm run truffle:migrate -- --reset --network <base_chain_network_name> --to 3
 
-(ropsten)
-npm run truffle:migrate -- --network ropsten --to 2
-npm run truffle:migrate -- --network ropsten -f 3 --to 3
-npm run truffle:migrate -- --network matic -f 4 --to 4
-npm run truffle:migrate -- --network ropsten -f 5 --to 5
+// Contracts like ChildERC20Token are deployed on child chain aka BOR chain
+// NOTE: You need to deploy or simulate BOR before running the below command
+npm run truffle:migrate -- --reset --network <child_chain_network_name> -f 4 --to 4
+
+
+// Contracts deployed on BOR are mapped to the registry contract deployed on-chain
+npm run truffle:migrate -- --network <base_chain_network_name> -f 5 --to 5
 ```
+
+Post successfull deployment all contract addresses will be written to a `contractAddresses.json` file.
+
+> Check account that you are deploying from has ether for the network you are deploying on.

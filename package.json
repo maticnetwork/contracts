@@ -16,6 +16,7 @@
     "truffle:migrate:deploy": "npm run truffle:migrate:deploy:1 && npm run truffle:migrate:deploy:2",
     "test": "truffle test",
     "test:ci": "scripts/run-test.sh",
+    "simulate-bor": "cd test-blockchain && bash run-docker.sh",
     "lint": "npm run lint:sol && npm run lint:js",
     "lint:js": "eslint test/**/*.js",
     "lint:sol:fix": "solium -d contracts/ --fix",
@@ -67,7 +68,6 @@
     "web3-eth-abi": "^1.0.0-beta.51"
   },
   "dependencies": {
-    "eth-sig-util": "2.1.0",
     "ethereumjs-abi": "^0.6.5",
     "ethereumjs-block": "2.1.0",
     "ethereumjs-tx": "1.3.7",
