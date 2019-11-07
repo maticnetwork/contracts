@@ -32,10 +32,9 @@ export class LogDecoder {
               args: parsedLog.values
             }
           }
-        } catch (e) {}
+        } catch (e) {
+        }
       }
-
-      throw new Error("Log doesn't match")
     })
   }
 }
