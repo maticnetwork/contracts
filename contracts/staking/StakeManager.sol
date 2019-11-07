@@ -179,6 +179,8 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       auction.amount = 0;
       auction.user = address(0x0);
       auction.startEpoch = currentEpoch.add(dynasty);
+      //update total stake amount
+      totalStaked = totalStaked.add(validator.amount.sub(refund));
       emit StakeUpdate(validatorId, refund, validator.amount);
       emit ConfirmAuction(validatorId, validatorId, validator.amount);
     } else {

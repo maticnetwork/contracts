@@ -210,6 +210,7 @@ contract('StakeManager', async function(accounts) {
         await stakeManager.stake(amount, user, false, {
           from: user
         })
+        assert.fail('Should never allow second time staking')
       } catch (error) {
         const invalidOpcode = error.message.search('revert') >= 0
         assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
@@ -303,6 +304,7 @@ contract('StakeManager', async function(accounts) {
         await stakeManager.stake(amount, user, false, {
           from: user
         })
+        assert.fail('Should not allow more validators then validator threshold')
       } catch (error) {
         const invalidOpcode = error.message.search('revert') >= 0
         assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
@@ -489,7 +491,7 @@ contract('StakeManager', async function(accounts) {
   })
 })
 
-contract('StakeManager<-> rewards distribution', async function(accounts) {
+contract('StakeManager:rewards distribution', async function(accounts) {
   let stakeToken
   let stakeManager
   let wallets
@@ -565,101 +567,95 @@ contract('StakeManager<-> rewards distribution', async function(accounts) {
   })
 })
 
-contract(
-  'StakeManager<-> validator contract rewards distribution',
-  async function(accounts) {
-    let stakeToken
-    let stakeManager
-    let wallets
-    let accountState = {}
-    const rewardsAmount = 5
+contract('StakeManager:validator contract rewards distribution', async function(
+  accounts
+) {
+  let stakeToken
+  let stakeManager
+  let wallets
+  let accountState = {}
+  const rewardsAmount = 5
 
-    describe('staking rewards', async function() {
-      before(async function() {
-        wallets = generateFirstWallets(mnemonics, 2)
-        stakeToken = await DummyERC20.new('Stake Token', 'STAKE')
-        stakeManager = await StakeManager.new(
-          stakeToken.address,
-          wallets[0].getAddressString()
-        ) // dummy registry address
-        await stakeManager.setToken(stakeToken.address)
+  describe('staking rewards', async function() {
+    before(async function() {
+      wallets = generateFirstWallets(mnemonics, 2)
+      stakeToken = await DummyERC20.new('Stake Token', 'STAKE')
+      stakeManager = await StakeManager.new(
+        stakeToken.address,
+        wallets[0].getAddressString()
+      ) // dummy registry address
+      await stakeManager.setToken(stakeToken.address)
 
-        let amount = web3.utils.toWei('1000')
-        for (let i = 0; i < 2; i++) {
-          await stakeToken.mint(wallets[i].getAddressString(), amount)
-          await stakeToken.approve(stakeManager.address, amount, {
-            from: wallets[i].getAddressString()
-          })
-          await stakeManager.stake(
-            amount,
-            wallets[i].getAddressString(),
-            true,
-            {
-              from: wallets[i].getAddressString()
-            }
-          )
-          accountState[i + 1] = rewardsAmount
-        }
-      })
-
-      it('should get rewards for validator 1 with ValidatorContract/delegation on', async function() {
-        const validators = [1, 2]
-        let tree = await rewradsTree(validators, accountState)
-        const { vote, sigs } = buildSubmitHeaderBlockPaylod(
-          accounts[0],
-          0,
-          22,
-          '' /* root */,
-          wallets,
-          {
-            rewardsRootHash: tree.getRoot(),
-            allValidators: true,
-            getSigs: true
-          }
-        )
-
-        // 2/3 majority vote
-        await stakeManager.checkSignatures(
-          utils.bufferToHex(utils.keccak256(vote)),
-          utils.bufferToHex(tree.getRoot()),
-          sigs
-        )
-        const leaf = utils.keccak256(
-          web3.eth.abi.encodeParameters(
-            ['uint256', 'uint256'],
-            [1, accountState[1]]
-          )
-        )
-        await stakeManager.claimRewards(
-          1,
-          rewardsAmount,
-          0,
-          utils.bufferToHex(Buffer.concat(tree.getProof(leaf)))
-        )
-        let validator = await stakeManager.validators(1)
-        let contractV = await ValidatorContract.at(validator.contractAddress)
-
-        assertBigNumberEquality(
-          accountState[1],
-          await contractV.validatorRewards()
-        )
-        const beforeBalance = await stakeToken.balanceOf(
-          wallets[1].getAddressString()
-        )
-
-        await stakeManager.withdrawRewards(1, {
-          from: wallets[1].getAddressString()
+      let amount = web3.utils.toWei('1000')
+      for (let i = 0; i < 2; i++) {
+        await stakeToken.mint(wallets[i].getAddressString(), amount)
+        await stakeToken.approve(stakeManager.address, amount, {
+          from: wallets[i].getAddressString()
         })
-        const afterBalance = await stakeToken.balanceOf(
-          wallets[1].getAddressString()
-        )
-        assertBigNumbergt(afterBalance, beforeBalance)
-      })
+        await stakeManager.stake(amount, wallets[i].getAddressString(), true, {
+          from: wallets[i].getAddressString()
+        })
+        accountState[i + 1] = rewardsAmount
+      }
     })
-  }
-)
 
-contract('StakeManager', async function(accounts) {
+    it('should get rewards for validator 1 with ValidatorContract/delegation on', async function() {
+      const validators = [1, 2]
+      let tree = await rewradsTree(validators, accountState)
+      const { vote, sigs } = buildSubmitHeaderBlockPaylod(
+        accounts[0],
+        0,
+        22,
+        '' /* root */,
+        wallets,
+        {
+          rewardsRootHash: tree.getRoot(),
+          allValidators: true,
+          getSigs: true
+        }
+      )
+
+      // 2/3 majority vote
+      await stakeManager.checkSignatures(
+        utils.bufferToHex(utils.keccak256(vote)),
+        utils.bufferToHex(tree.getRoot()),
+        sigs
+      )
+      const leaf = utils.keccak256(
+        web3.eth.abi.encodeParameters(
+          ['uint256', 'uint256'],
+          [1, accountState[1]]
+        )
+      )
+      await stakeManager.claimRewards(
+        1,
+        rewardsAmount,
+        0,
+        utils.bufferToHex(Buffer.concat(tree.getProof(leaf)))
+      )
+      let validator = await stakeManager.validators(1)
+      let contractV = await ValidatorContract.at(validator.contractAddress)
+
+      assertBigNumberEquality(
+        accountState[1],
+        await contractV.validatorRewards()
+      )
+      const beforeBalance = await stakeToken.balanceOf(
+        wallets[1].getAddressString()
+      )
+
+      await stakeManager.withdrawRewards(1, {
+        from: wallets[1].getAddressString()
+      })
+      const afterBalance = await stakeToken.balanceOf(
+        wallets[1].getAddressString()
+      )
+      assertBigNumbergt(afterBalance, beforeBalance)
+    })
+  })
+})
+
+contract('StakeManager:validator replacement', async function(accounts) {
   let stakeToken
   let stakeManager
   let wallets
@@ -700,6 +696,7 @@ contract('StakeManager', async function(accounts) {
         await stakeManager.startAuction(1, amount, {
           from: wallets[3].getAddressString()
         })
+        assert.fail('Auction started in non-auction period')
       } catch (error) {
         const invalidOpcode = error.message.search('revert') >= 0
         assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
@@ -752,9 +749,25 @@ contract('StakeManager', async function(accounts) {
       await stakeToken.approve(stakeManager.address, amount, {
         from: wallets[4].getAddressString()
       })
+      const oldAuctionerBalanceBefore = await stakeToken.balanceOf(
+        wallets[3].getAddressString()
+      )
       await stakeManager.startAuction(1, amount, {
         from: wallets[4].getAddressString()
       })
+      // Balance transfer to stakeManager
+      assertBigNumberEquality(
+        await stakeToken.balanceOf(wallets[4].getAddressString()),
+        '0'
+      )
+      const oldAuctionerBalance = await stakeToken.balanceOf(
+        wallets[3].getAddressString()
+      )
+
+      assertBigNumberEquality(
+        auctionData.amount.add(oldAuctionerBalanceBefore),
+        oldAuctionerBalance
+      )
       auctionData = await stakeManager.validatorAuction(1)
       assertBigNumberEquality(auctionData.amount, amount)
       assert(
@@ -763,11 +776,12 @@ contract('StakeManager', async function(accounts) {
       )
     })
 
-    it('should try to unstake in auction interval', async function() {
+    it('should try to unstake in auction interval and fail', async function() {
       try {
         await stakeManager.unstake(1, {
           from: wallets[0].getAddressString()
         })
+        assert.fail('Unstaked in auction interval')
       } catch (error) {
         const invalidOpcode = error.message.search('revert') >= 0
         assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
@@ -813,6 +827,7 @@ contract('StakeManager', async function(accounts) {
         await stakeManager.startAuction(1, amount, {
           from: wallets[5].getAddressString()
         })
+        assert.fail('Test should fail due to invalid auction period')
       } catch (error) {
         const invalidOpcode = error.message.search('revert') >= 0
         const errorMessage = error.message.search('Invalid auction period') >= 0
