@@ -91,7 +91,7 @@ contract('ERC20Predicate', async function(accounts) {
     })
   })
 
-  describe('startExit', async function() {
+  describe('startExit (MoreVP style)', async function() {
     beforeEach(async function() {
       contracts.withdrawManager = await deployer.deployWithdrawManager()
       contracts.ERC20Predicate = await deployer.deployErc20Predicate()
@@ -352,7 +352,7 @@ contract('ERC20Predicate', async function(accounts) {
     })
   })
 
-  describe('startExit for Matic Token', async function() {
+  describe('startExit (MoreVP style) for Matic Token', async function() {
     beforeEach(async function() {
       contracts.withdrawManager = await deployer.deployWithdrawManager()
       contracts.ERC20Predicate = await deployer.deployErc20Predicate()
@@ -522,7 +522,6 @@ contract('ERC20Predicate', async function(accounts) {
 
       // We will reference the following tx (Deposit) which is a proof of counterparty's balance
       const { receipt: d } = await utils.deposit(null, childContracts.childChain, childContracts.rootERC20, other, halfAmount)
-      console.log('d.rawLogs', logDecoder.decodeLogs(d.rawLogs))
       const i = await statefulUtils.submitCheckpoint(contracts.rootChain, d, accounts)
       inputs.unshift({ headerNumber: i.headerNumber, blockProof: i.blockProof, blockNumber: i.block.number, blockTimestamp: i.block.timestamp, reference: i.reference, logIndex: 1 })
 
@@ -620,6 +619,64 @@ contract('ERC20Predicate', async function(accounts) {
     })
   })
 
+  describe('startExit by referencing LogFeeTransfer', async function() {
+    beforeEach(async function() {
+      contracts.withdrawManager = await deployer.deployWithdrawManager()
+      contracts.ERC20Predicate = await deployer.deployErc20Predicate()
+      // This is required to remap matic child at 0x1010 to a fresh root token, so that exits for it can be processed
+      childContracts = await deployer.initializeChildChain(accounts[0])
+      // statefulUtils = new StatefulUtils()
+    })
+
+    it('reference: LogFeeTransfer - exitTx: burn', async function() {
+      const receipt = await web3Child.eth.sendTransaction({ from: user, to: other, value: 0 })
+      const logIndex = 0
+      const { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
+
+      let exitTx = await predicateTestUtils.getRawInflightTx(
+        // cannot use a dummy MaticChildERC20 (deployed using deployer.deployMaticToken) because LogFeeTransfer emits token as 0x1010
+        // Hence we need to make use of corresponding mapped root token for adding exits to queue
+        deployer.globalMatic.childToken.withdraw.bind(null, halfAmount),
+        user /* from */, web3Child, null /* gas */, { value: halfAmount }
+      )
+
+      const startExitTx = await utils.startExitForErc20PredicateLegacy(contracts.ERC20Predicate.startExitForOutgoingErc20Transfer, headerNumber, blockProof, block.number, block.timestamp, reference, logIndex, exitTx)
+      const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+      // console.log(startExitTx, logs)
+      const log = logs[utils.filterEvent(logs, 'ExitStarted')]
+      log.event.should.equal('ExitStarted')
+      expect(log.args).to.include({
+        exitor: user,
+        token: deployer.globalMatic.rootERC20.address
+      })
+      // utils.assertBigNumberEquality(log.args.amount, halfAmount)
+    })
+
+    it('reference: LogFeeTransfer - exitTx: outgoingTransfer', async function() {
+      const receipt = await web3Child.eth.sendTransaction({ from: user, to: other, value: 0 })
+      const logIndex = 0
+      const { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
+
+      let exitTx = await predicateTestUtils.getRawInflightTx(
+        // cannot use a dummy MaticChildERC20 (deployed using deployer.deployMaticToken) because LogFeeTransfer emits token as 0x1010
+        // Hence we need to make use of corresponding mapped root token for adding exits to queue
+        deployer.globalMatic.childToken.transfer.bind(null, other, halfAmount),
+        user /* from */, web3Child, null /* gas */, { value: halfAmount }
+      )
+
+      const startExitTx = await utils.startExitForErc20PredicateLegacy(contracts.ERC20Predicate.startExitForOutgoingErc20Transfer, headerNumber, blockProof, block.number, block.timestamp, reference, logIndex, exitTx)
+      const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+      // console.log(startExitTx, logs)
+      const log = logs[utils.filterEvent(logs, 'ExitStarted')]
+      log.event.should.equal('ExitStarted')
+      expect(log.args).to.include({
+        exitor: user,
+        token: deployer.globalMatic.rootERC20.address
+      })
+      // utils.assertBigNumberEquality(log.args.amount, halfAmount)
+    })
+  })
+
   describe('verifyDeprecation', async function() {
     beforeEach(async function() {
       contracts.withdrawManager = await deployer.deployWithdrawManager()
@@ -644,7 +701,6 @@ contract('ERC20Predicate', async function(accounts) {
       let { receipt: i } = await childContracts.childToken.transfer(other, halfAmount)
       i = await statefulUtils.submitCheckpoint(contracts.rootChain, i, accounts)
       const challengeData = utils.buildChallengeData({ headerNumber: i.headerNumber, blockProof: i.blockProof, blockNumber: i.block.number, blockTimestamp: i.block.timestamp, reference: i.reference, logIndex: 1 })
-
       let { receipt: w } = await childContracts.childToken.transfer(other, halfAmount) // to make it evm compatible but still challengeable bcoz we are referencing an older input
       let exitTx = await web3Child.eth.getTransaction(w.transactionHash)
       exitTx = await buildInFlight(exitTx)
@@ -659,10 +715,7 @@ contract('ERC20Predicate', async function(accounts) {
       })
       utils.assertBigNumberEquality(log.args.amount, halfAmount)
 
-      log = logs[2]
-      // const exit = await contracts.withdrawManager.exits(log.args.exitId._hex)
-      // console.log(exit)
-
+      log = logs[utils.filterEvent(logs, 'ExitUpdated')]
       const verifyDeprecationTx = await utils.verifyDeprecation(
         contracts.withdrawManager, contracts.ERC20Predicate,
         log.args.exitId._hex, log.args.age._hex, challengeData,

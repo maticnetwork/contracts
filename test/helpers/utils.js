@@ -176,7 +176,6 @@ export async function deposit(
   } else {
     depositBlockId = '0x' + crypto.randomBytes(32).toString('hex')
   }
-  console.log('here 1')
   // ACLed on onlyOwner
   const deposit = await childChain.onStateReceive(
     '0xa' /* dummy id */,
@@ -187,7 +186,6 @@ export async function deposit(
       depositBlockId
     )
   )
-  console.log('here 2')
   if (options.writeToFile) {
     await writeToFile(options.writeToFile, deposit.receipt)
   }
@@ -357,7 +355,7 @@ export async function verifyDeprecation(
     [
       exit.owner,
       options.childToken,
-      exit.receiptAmountOrNFTId.toString(16),
+      '0x' + exit.receiptAmountOrNFTId.toString(16),
       exit.txHash,
       exit.isRegularExit
     ]

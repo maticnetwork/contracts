@@ -242,13 +242,14 @@ class Deployer {
     if (!this.globalMatic) throw Error('global matic token is not initialized')
     if (!this.childChain) throw Error('child chain is not initialized')
     // Since we cannot initialize MaticChildERC20 repeatedly, deploy a dummy MaticChildERC20 to test it
-    const childToken = await contracts.TestMaticChildERC20.new()
+    // not mentioning the gas limit fails with "The contract code couldn't be stored, please check your gas limit." intermittently which is super weird
+    const childToken = await contracts.TestMaticChildERC20.new({ gas: 7500000 })
     const rootERC20 = await this.deployTestErc20({ mapToken: true, childTokenAdress: childToken.address })
     // initialize this like we would have done for MaticChildERC20 once
     await childToken.initialize(this.childChain.address, rootERC20.address)
     await this.childChain.mapToken(rootERC20.address, childToken.address, false /* isERC721 */)
     // send some ether to dummy MaticChildERC20, so that deposits can be processed
-    await this.globalMatic.deposit(childToken.address, web3.utils.toBN(100).mul(utils.scalingFactor))
+    await this.globalMatic.childToken.deposit(childToken.address, web3.utils.toBN(100).mul(utils.scalingFactor))
     return { rootERC20, childToken }
   }
 
@@ -295,17 +296,22 @@ class Deployer {
   }
 
   async initializeChildChain(owner, options = { updateRegistry: true }) {
-    this.childChain = await contracts.ChildChain.new()
+    // not mentioning the gas limit fails with "The contract code couldn't be stored, please check your gas limit." intermittently which is super weird
+    this.childChain = await contracts.ChildChain.new({ gas: 7500000 })
     await this.childChain.changeStateSyncerAddress(owner)
     if (!this.globalMatic) {
-      this.globalMatic = await contracts.MaticChildERC20.at(utils.ChildMaticTokenAddress)
-      const maticOwner = await this.globalMatic.owner()
-      if (maticOwner == '0x0000000000000000000000000000000000000000') {
-        await this.globalMatic.initialize(
-          owner,
-          utils.ZeroAddress // supposed to be the root token but here it is ok to put any random value
-        )
+      // MaticChildERC20 comes as a genesis-contract at utils.ChildMaticTokenAddress
+      this.globalMatic = { childToken: await contracts.MaticChildERC20.at(utils.ChildMaticTokenAddress) }
+      const maticOwner = await this.globalMatic.childToken.owner()
+      if (maticOwner === '0x0000000000000000000000000000000000000000') {
+        // matic contract at 0x1010 can only be initialized once, after the bor image starts to run
+        console.log('initializing globalMatic ... ')
+        await this.globalMatic.childToken.initialize(owner, utils.ZeroAddress)
       }
+    }
+    if (this.registry) {
+      // When a new set of contracts is deployed, we should map MaticChildERC20 on root, though we cannot initialize it more than once in its lifetime
+      this.globalMatic.rootERC20 = await this.deployTestErc20({ mapToken: true, childTokenAdress: utils.ChildMaticTokenAddress })
     }
     if (options.updateRegistry) {
       await this.registry.updateContractMap(
