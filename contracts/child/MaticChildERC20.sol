@@ -77,6 +77,10 @@ contract MaticChildERC20 is BaseERC20 {
     return account.balance;
   }
 
+  /**
+   * @dev _transfer is invoked by _transferFrom method that is inherited from BaseERC20.
+   * This enables us to transfer MaticEth between users while keeping the interface same as that of an ERC20 Token.
+   */
   function _transfer(address sender, address recipient, uint256 amount) internal {
     address(uint160(recipient)).transfer(amount);
     emit Transfer(sender, recipient, amount);

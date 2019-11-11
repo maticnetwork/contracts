@@ -72,4 +72,16 @@ contract ChildERC20 is BaseERC20, ERC20, ERC20Detailed {
     }
     return _transferFrom(msg.sender, to, value);
   }
+
+  function allowance(address, address) public view returns (uint256) {
+    revert("Disabled feature");
+  }
+
+  function approve(address, uint256) public returns (bool) {
+    revert("Disabled feature");
+  }
+
+  function transferFrom(address, address, uint256 ) public returns (bool){
+    revert("Disabled feature");
+  }
 }

@@ -38,9 +38,7 @@ export async function getRawInflightTx(fn, from, web3, gas, options = {}) {
     await fn(options)
     assert.fail('should have failed')
   } catch (e) {
-    // console.log(e)
     const txHash = /transactionHash": "(0[xX][0-9a-fA-F]+)"/g.exec(e)[1]
-    // const txHash = /transactionHash": "(0[xX][0-9a-fA-F]+)"/g.exec(e.hijackedStack)[1]
     return buildInFlight(await web3.eth.getTransaction(txHash))
   }
 }

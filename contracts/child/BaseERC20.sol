@@ -53,18 +53,6 @@ contract BaseERC20 is ChildToken {
     _transferFrom(from, address(uint160(to)), amount);
   }
 
-  // function allowance(address, address) external view returns (uint256) {
-  //   revert("Disabled feature");
-  // }
-
-  // function approve(address, uint256) external returns (bool) {
-  //   revert("Disabled feature");
-  // }
-
-  // function transferFrom(address, address, uint256 ) external returns (bool){
-  //   revert("Disabled feature");
-  // }
-
   function balanceOf(address account) external view returns (uint256);
   function _transfer(address sender, address recipient, uint256 amount) internal;
 
