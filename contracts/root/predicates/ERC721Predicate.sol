@@ -30,7 +30,7 @@ contract ERC721Predicate is IErcPredicate {
 
   function startExitWithBurntTokens(bytes memory data)
     public
-    returns(address rootToken, uint256 tokenId, uint256 exitId)
+    returns(bytes memory)
   {
     RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
     bytes memory receipt = referenceTxData[6].toBytes();
@@ -50,17 +50,18 @@ contract ERC721Predicate is IErcPredicate {
       bytes32(inputItems[0].toUint()) == WITHDRAW_EVENT_SIG,
       "Not a withdraw event signature"
     );
-    rootToken = address(RLPReader.toUint(inputItems[1]));
+    address rootToken = address(RLPReader.toUint(inputItems[1]));
     require(
       msg.sender == address(inputItems[2].toUint()), // from
       "Withdrawer and burn exit tx do not match"
     );
-    tokenId = BytesLib.toUint(logData, 0);
-    exitId = age << 1; // last bit is reserved for housekeeping in erc20Predicate
+    uint256 tokenId = BytesLib.toUint(logData, 0);
+    uint256 exitId = age << 1; // last bit is reserved for housekeeping in erc20Predicate
     withdrawManager.addExitToQueue(
       msg.sender, childToken, rootToken,
       tokenId, bytes32(0x0) /* txHash */, true /* isRegularExit */, exitId
     );
+    return abi.encode(rootToken, tokenId, childToken, exitId);
   }
 
   /**
@@ -77,14 +78,17 @@ contract ERC721Predicate is IErcPredicate {
       * branchMask Merkle proof branchMask for the receipt
       * logIndex Log Index to read from the receipt
    * @param exitTx Signed exit transaction
-   * @return address rootToken that the exit corresponds to
-   * @return uint256 tokenId of the token that is being exited
+   * @return abi encoded bytes array that encodes the following fields
+      * address rootToken: Token that the exit corresponds to
+      * uint256 tokenId: TokenId being exited
+      * address childToken: Child token that the exit corresponds to
+      * uint256 exitId
    */
   function startExit(bytes memory data, bytes memory exitTx)
     public
     payable
     isBondProvided
-    returns(address /* rootToken */, uint256 /* tokenId */, uint256 /* exitId */)
+    returns(bytes memory)
   {
     // referenceTx is a proof-of-funds of the party who signed the exit tx
     RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
@@ -113,7 +117,7 @@ contract ERC721Predicate is IErcPredicate {
     withdrawManager.addInput(exitId, ageOfUtxo, exitTxData.signer, rootToken);
     // Adding a dummy input, owner being the exitor to challenge spends that the exitor made after the transaction being exited from
     withdrawManager.addInput(exitId, ageOfUtxo.sub(1), msg.sender, rootToken);
-    return (rootToken, exitTxData.amountOrToken, exitId);
+    return abi.encode(rootToken, exitTxData.amountOrToken, exitTxData.childToken, exitId);
   }
 
   /**

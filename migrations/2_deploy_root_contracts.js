@@ -27,7 +27,6 @@ const SlashingManager = artifacts.require('SlashingManager')
 const ERC20Predicate = artifacts.require('ERC20Predicate')
 const ERC721Predicate = artifacts.require('ERC721Predicate')
 const MintableERC721Predicate = artifacts.require('MintableERC721Predicate')
-const ERC721PlasmaMintable = artifacts.require('ERC721PlasmaMintable')
 const MarketplacePredicate = artifacts.require('MarketplacePredicate')
 const MarketplacePredicateTest = artifacts.require('MarketplacePredicateTest')
 const TransferWithSigPredicate = artifacts.require('TransferWithSigPredicate')
@@ -143,7 +142,6 @@ module.exports = async function(deployer, network) {
     })
 
     console.log('deploying contracts...')
-    await deployer.deploy(ERC721PlasmaMintable, 'yo', 'yo')
     await deployer.deploy(Registry)
     await Promise.all([
       deployer.deploy(RootChain, Registry.address),

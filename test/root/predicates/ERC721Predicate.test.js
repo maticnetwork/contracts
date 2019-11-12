@@ -14,7 +14,7 @@ const web3Child = utils.web3Child
 
 chai.use(chaiAsPromised).should()
 let contracts, childContracts
-let predicate, statefulUtils
+let statefulUtils
 
 contract('ERC721Predicate', async function(accounts) {
   let tokenId

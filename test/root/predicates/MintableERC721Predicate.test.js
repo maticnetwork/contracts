@@ -56,7 +56,6 @@ contract('MintableERC721Predicate', async function(accounts) {
       bob // exitor - account to initiate the exit from
     )
     let logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
-    console.log('startExitTx', startExitTx, logs)
     const log = logs[1]
     log.event.should.equal('ExitStarted')
     expect(log.args).to.include({
@@ -66,9 +65,7 @@ contract('MintableERC721Predicate', async function(accounts) {
     })
     utils.assertBigNumberEquality(log.args.amount, tokenId)
 
-    const p = await predicateTestUtils.processExits(contracts.withdrawManager, childContracts.rootERC721.address)
-    logs = logDecoder.decodeLogs(p.receipt.rawLogs)
-    console.log('processExits', p, logs)
+    await predicateTestUtils.processExits(contracts.withdrawManager, childContracts.rootERC721.address)
     expect(await childContracts.rootERC721.exists(tokenId)).to.be.true
     expect((await childContracts.rootERC721.ownerOf(tokenId)).toLowerCase()).to.equal(bob.toLowerCase())
   })
@@ -76,7 +73,7 @@ contract('MintableERC721Predicate', async function(accounts) {
   it('mintWithTokenURI and startExitForMetadataMintableBurntToken', async function() {
     const uri = `https://tokens.com/${tokenId}`
     const { receipt: r } = await childContracts.childErc721.mintWithTokenURI(alice, tokenId, uri)
-    await utils.writeToFile('child/erc721-mintWithTokenURI.js', r)
+    // await utils.writeToFile('child/erc721-mintWithTokenURI.js', r)
     let mintTx = await web3Child.eth.getTransaction(r.transactionHash)
     mintTx = await buildInFlight(mintTx)
     await childContracts.childErc721.transferFrom(alice, bob, tokenId)
