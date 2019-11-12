@@ -29,12 +29,7 @@ export const TestToken = artifacts.require('TestToken')
 export const DummyERC20 = artifacts.require('DummyERC20')
 export const RootERC721 = artifacts.require('RootERC721')
 export const ERC721PlasmaMintable = artifacts.require('ERC721PlasmaMintable')
-<<<<<<< HEAD
-export const ExitNFT = artifacts.require('ExitNFT')
-=======
-export const ERC721PlasmaMetadataMintable = artifacts.require('ERC721PlasmaMetadataMintable')
 export const ExitNFT = artifacts.require('ExitNFT.sol')
->>>>>>> 6f3fd0b... processMintWithTokenURI
 
 // child chain
 export const childContracts = {

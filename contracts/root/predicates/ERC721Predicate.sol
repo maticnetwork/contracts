@@ -84,7 +84,7 @@ contract ERC721Predicate is IErcPredicate {
     public
     payable
     isBondProvided
-    returns(address /* rootToken */, uint256 /* tokenId */)
+    returns(address /* rootToken */, uint256 /* tokenId */, uint256 /* exitId */)
   {
     // referenceTx is a proof-of-funds of the party who signed the exit tx
     RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
@@ -113,7 +113,7 @@ contract ERC721Predicate is IErcPredicate {
     withdrawManager.addInput(exitId, ageOfUtxo, exitTxData.signer, rootToken);
     // Adding a dummy input, owner being the exitor to challenge spends that the exitor made after the transaction being exited from
     withdrawManager.addInput(exitId, ageOfUtxo.sub(1), msg.sender, rootToken);
-    return (rootToken, exitTxData.amountOrToken);
+    return (rootToken, exitTxData.amountOrToken, exitId);
   }
 
   /**

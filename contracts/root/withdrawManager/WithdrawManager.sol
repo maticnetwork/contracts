@@ -285,7 +285,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     returns (bytes memory)
   {
     PlasmaExit storage exit = exits[exitId];
-    return abi.encode(exitId, exit.owner, exit.token, exit.receiptAmountOrNFTId);
+    return abi.encode(exitId, exit.token, exit.owner, exit.receiptAmountOrNFTId);
   }
 
   function encodeInputUtxo(uint256 age, Input storage input)
@@ -320,11 +320,8 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
 
       // limit the gas amount that predicate.onFinalizeExit() can use, to be able to make gas estimations for bulk process exits
       address exitor = currentExit.owner;
-      uint256 amountOrNft = currentExit.receiptAmountOrNFTId;
-      address predicate = currentExit.predicate;
-      IPredicate(predicate).onFinalizeExit(encodeExitForProcessExit(exitId));
-      // getDepositManager().transferAssets(_token, exitor, amountOrNft);
-      emit Withdraw(exitId, exitor, _token, amountOrNft);
+      IPredicate(currentExit.predicate).onFinalizeExit(encodeExitForProcessExit(exitId));
+      emit Withdraw(exitId, exitor, _token, currentExit.receiptAmountOrNFTId);
 
       if (!currentExit.isRegularExit) {
         // return the bond amount if this was a MoreVp style exit

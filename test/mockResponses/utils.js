@@ -1,3 +1,4 @@
+import ethUtils from 'ethereumjs-util'
 import MerkleTree from '../helpers/merkle-tree'
 
 const Proofs = require('../helpers/proofs')

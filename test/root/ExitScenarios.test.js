@@ -30,7 +30,7 @@ contract('Misc Predicates tests', async function(accounts) {
     childErc20 = e20.childToken
   })
 
-  it.only('Alice & Bob are honest and cooperating', async function() {
+  it('Alice & Bob are honest and cooperating', async function() {
     const alice = accounts[1]
     const bob = accounts[2]
     const aliceInitial = web3.utils.toBN('13')

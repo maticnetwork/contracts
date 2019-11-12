@@ -22,22 +22,63 @@ contract MintableERC721Predicate is ERC721Predicate {
     ERC721Predicate(_withdrawManager, _depositManager)
     public {}
 
+
   /**
    * @notice Start an exit for a token that was minted and burnt on the side chain
    * @param data RLP encoded data of the burn tx
    * @param mintTx Signed mint transaction
    */
-  function startExitForMintableBurntTokens(bytes calldata data, bytes calldata mintTx)
+  function startExitForMintableBurntToken(bytes calldata data, bytes calldata mintTx)
     external
   {
     (address rootToken, uint256 tokenId, uint256 exitId) = startExitWithBurntTokens(data);
     processMint(mintTx, rootToken, tokenId, exitId);
   }
 
-  function startExitForMetadataMintableBurntTokens(bytes calldata data, bytes calldata mintTx)
+  /**
+   * @notice Start an exit for a token that was minted and burnt on the side chain
+   * @param data RLP encoded data of the burn tx
+   * @param mintTx Signed mint transaction
+   */
+  function startExitForMintableToken(
+    bytes calldata data,
+    bytes calldata mintTx,
+    bytes calldata exitTx
+  )
+    external
+    payable
+  {
+    (address rootToken, uint256 tokenId, uint256 exitId) = startExit(data, exitTx);
+    processMint(mintTx, rootToken, tokenId, exitId);
+  }
+
+  /**
+   * @notice Start an exit for a token with metadata that was minted and burnt on the side chain
+   * @param data RLP encoded data of the burn tx
+   * @param mintTx Signed mint transaction
+   */
+  function startExitForMetadataMintableBurntToken(bytes calldata data, bytes calldata mintTx)
     external
   {
     (address rootToken, uint256 tokenId, uint256 exitId) = startExitWithBurntTokens(data);
+    processMintWithTokenURI(mintTx, rootToken, tokenId, exitId);
+  }
+
+  /**
+   * @notice Start a MoreVP style exit for a token with metadata that was minted on the side chain
+   * @param data RLP encoded data of the burn tx
+   * @param mintTx Signed mint transaction
+   * @param exitTx Signed exit transaction
+   */
+  function startExitForMetadataMintableToken(
+    bytes calldata data,
+    bytes calldata mintTx,
+    bytes calldata exitTx
+  )
+    external
+    payable
+  {
+    (address rootToken, uint256 tokenId, uint256 exitId) = startExit(data, exitTx);
     processMintWithTokenURI(mintTx, rootToken, tokenId, exitId);
   }
 
@@ -46,7 +87,6 @@ contract MintableERC721Predicate is ERC721Predicate {
     onlyWithdrawManager
   {
     (uint256 exitId, address token, address exitor, uint256 tokenId) = decodeExitForProcessExit(data);
-    // ERC721PlasmaMintable _token = ERC721PlasmaMintable(token);
     MintableTokenInfo storage info = exitToMintableTokenInfo[exitId];
 
     // check that the signer of the mint tx is a valid minter in the root contract

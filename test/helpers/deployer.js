@@ -168,7 +168,7 @@ class Deployer {
     )
     await this.registry.addPredicate(
       predicate.address,
-      2 /* Type.ERC721 */
+      3 /* Type.Custom */
     )
     return predicate
   }
@@ -289,7 +289,6 @@ class Deployer {
 
   async deployChildErc721Mintable(options = { mapToken: true }) {
     const rootERC721 = await contracts.ERC721PlasmaMintable.new('Mintable721', 'M721')
-    // const rootERC721 = await contracts.ERC721PlasmaMintable.new()
     const childErc721 = await contracts.ChildERC721Mintable.new(
       rootERC721.address,
       'ERC721Mintable',
@@ -311,7 +310,7 @@ class Deployer {
   }
 
   async deployChildErc721MetadataMintable(options = { mapToken: true }) {
-    const rootERC721 = await contracts.ERC721PlasmaMetadataMintable.new('E721MM', 'E721MM')
+    const rootERC721 = await contracts.ERC721PlasmaMintable.new('E721MM', 'E721MM')
     const childErc721 = await contracts.ChildERC721Mintable.new(
       rootERC721.address
     )
