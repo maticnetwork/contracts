@@ -74,7 +74,7 @@
     "ganache-cli": "6.5.0",
     "merkle-patricia-tree": "2.3.2",
     "moonwalker": "github:atvanguard/moonwalker#53e29e33c0f929ab96c882d4a680a0cce7ea5888",
-    "openzeppelin-solidity": "2.2.0",
+    "openzeppelin-solidity": "2.3.0",
     "solidity-rlp": "^2.0.0",
     "truffle-hdwallet-provider": "^1.0.17"
   }

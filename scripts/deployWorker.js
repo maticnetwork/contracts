@@ -1,7 +1,7 @@
 const EthDeployer = require('moonwalker').default
 const HDWalletProvider = require('truffle-hdwallet-provider')
 
-const MNEMONIC = process.env.MNEMONIC || 'clock radar mass judge dismiss just intact mind resemble fringe diary casino'
+const MNEMONIC = process.env.MNEMONIC
 const API_KEY = process.env.API_KEY
 
 // const url = `https://ropsten.infura.io/v3/${API_KEY}`
@@ -13,9 +13,9 @@ async function consume() {
   const q = await EthDeployer.getQueue()
   const worker = new EthDeployer.Worker(
     wallet, q, {
-      from: '0x9fB29AAc15b9A4B7F17c3385939b007540f4d791',
+      from: '0x78AE2fe5ab0b3f362890Bf88f4994d75405683f8',
       gas: 6000000,
-      gasPrice: '30000000000' // 30 gwei
+      gasPrice: '15000000000' // 15 gwei
     },
     `${process.cwd()}/build/contracts`,
     6 // blockConfirmation

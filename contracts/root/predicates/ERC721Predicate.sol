@@ -6,7 +6,7 @@ import { RLPEncode } from "../../common/lib/RLPEncode.sol";
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
-import { ERC721PlasmaMintable } from "../../common/tokens/ERC721PlasmaMintable.sol";
+import { ERC721PlasmaMintable, ERC721PlasmaMetadataMintable } from "../../common/tokens/ERC721PlasmaMintable.sol";
 import { IErcPredicate } from "./IPredicate.sol";
 
 contract ERC721Predicate is IErcPredicate {
@@ -126,6 +126,27 @@ contract ERC721Predicate is IErcPredicate {
   {
     (address rootToken, uint256 tokenId) = startExitWithBurntTokens(data);
     processMintTx(mintTx, rootToken, tokenId);
+  }
+
+  function startExitForMintWithTokenURITokens(bytes calldata data, bytes calldata mintTx)
+    external
+  {
+    (address rootToken, uint256 tokenId) = startExitWithBurntTokens(data);
+    processMintWithTokenURI(mintTx, rootToken, tokenId);
+  }
+
+  function startBulkExitForMintWithTokenURITokens(bytes calldata _withdrawls, bytes calldata _mintTxs)
+    external
+  {
+    RLPReader.RLPItem[] memory withdrawls = _withdrawls.toRlpItem().toList();
+    RLPReader.RLPItem[] memory mintTxs = _mintTxs.toRlpItem().toList();
+    require(withdrawls.length == mintTxs.length, "Array sizes don't match");
+    address rootToken;
+    uint256 tokenId;
+    for(uint256 i = 0; i < withdrawls.length; i++) {
+      (rootToken, tokenId) = startExitWithBurntTokens(withdrawls[i].toBytes());
+      processMintWithTokenURI(mintTxs[i].toBytes(), rootToken, tokenId);
+    }
   }
 
   /**
@@ -429,5 +450,39 @@ contract ERC721Predicate is IErcPredicate {
         "TOKEN_MINT_FAILED"
       );
     }
+  }
+
+  function processMintWithTokenURI(bytes memory mintTx, address rootToken, uint256 tokenId)
+    internal
+  {
+    RLPReader.RLPItem[] memory txList = mintTx.toRlpItem().toList();
+    (address minter,) = getAddressFromTx(txList, withdrawManager.networkId());
+    ERC721PlasmaMetadataMintable token = ERC721PlasmaMetadataMintable(rootToken);
+    require(
+      token.isMinter(minter),
+      "Not authorized to mint"
+    );
+    string memory uri = _processRawMintWithTokenURI(RLPReader.toBytes(txList[5]), tokenId);
+    if (!token.exists(tokenId)) {
+      // this predicate contract should have been added to the token minter role
+      require(
+        token.mintWithTokenURI(address(depositManager), tokenId, uri),
+        "TOKEN_MINT_FAILED"
+      );
+    }
+  }
+
+  function _processRawMintWithTokenURI(bytes memory txData, uint256 tokenId) internal returns (string memory uri) {
+    bytes4 funcSig = BytesLib.toBytes4(BytesLib.slice(txData, 0, 4));
+    require(
+      funcSig == 0x50bb4e7f,
+      "funcSig does not match mintWithTokenURI"
+    );
+    uint256 _tokenId;
+    (,_tokenId, uri) = abi.decode(
+      BytesLib.slice(txData, 4, txData.length - 4),
+      (address, uint256, string)
+    );
+    require(_tokenId == tokenId, "TokenIds in exit and mint tx do not match");
   }
 }

@@ -64,6 +64,10 @@ async function deploy() {
   await deployer.deploy(
     tx('StakeManager', 'setToken', ['TestToken'])
   )
+
+  id = 23
+  await deployer.deploy(transformArtifact('ERC721Predicate', ['WithdrawManagerProxy', 'DepositManagerProxy']))
+  await deployer.deploy(tx('Registry', 'addErc721Predicate', ['ERC721Predicate']))
 }
 
 function transformArtifact(contract, args, waitOnJob) {
