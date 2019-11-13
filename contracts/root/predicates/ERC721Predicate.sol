@@ -135,6 +135,20 @@ contract ERC721Predicate is IErcPredicate {
     processMintWithTokenURI(mintTx, rootToken, tokenId);
   }
 
+  function startBulkExitForMintWithTokenURITokens(bytes calldata _withdrawls, bytes calldata _mintTxs)
+    external
+  {
+    RLPReader.RLPItem[] memory withdrawls = _withdrawls.toRlpItem().toList();
+    RLPReader.RLPItem[] memory mintTxs = _mintTxs.toRlpItem().toList();
+    require(withdrawls.length == mintTxs.length, "Array sizes don't match");
+    address rootToken;
+    uint256 tokenId;
+    for(uint256 i = 0; i < withdrawls.length; i++) {
+      (rootToken, tokenId) = startExitWithBurntTokens(withdrawls[i].toBytes());
+      processMintWithTokenURI(mintTxs[i].toBytes(), rootToken, tokenId);
+    }
+  }
+
   /**
    * @notice Start a MoreVP style exit for a token that was minted on the side chain
    * @param data RLP encoded data of the reference tx(s)

@@ -395,6 +395,48 @@ contract('ERC721Predicate', async function(accounts) {
       assert.strictEqual(await childContracts.rootERC721.ownerOf(tokenId), bob)
       expect(await childContracts.rootERC721.tokenURI(tokenId)).to.equal(uri)
     })
+
+    it('startBulkExitForMintWithTokenURITokens', async function() {
+      const NUM_TOKENS = 2
+      const withdrawls = []
+      const mints = []
+      const tokenIds = []
+      for (let i = 0; i < NUM_TOKENS; i++) {
+        tokenId = '0x' + crypto.randomBytes(32).toString('hex')
+        const uri = `https://tokens.com/${tokenId}`
+        tokenIds.push({ tokenId, uri })
+        const mint = await childContracts.childErc721.mintWithTokenURI(alice, tokenId, uri)
+        let mintTx = await buildInFlight(await web3Child.eth.getTransaction(mint.receipt.transactionHash))
+        mints.push(ethUtils.bufferToHex(mintTx))
+        await childContracts.childErc721.transferFrom(alice, bob, tokenId)
+        const { receipt } = await childContracts.childErc721.withdraw(tokenId, { from: bob })
+        // the token doesnt exist on the root chain as yet
+        expect(await childContracts.rootERC721.exists(tokenId)).to.be.false
+        let { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
+        const input = { headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 }
+        withdrawls.push(ethUtils.bufferToHex(ethUtils.rlp.encode(utils.buildReferenceTxPayload(input))))
+      }
+
+      await predicate.startBulkExitForMintWithTokenURITokens(
+        ethUtils.rlp.encode(withdrawls),
+        ethUtils.rlp.encode(mints),
+        { from: bob }
+      )
+
+      for (let i = 0; i < NUM_TOKENS; i++) {
+        tokenId = tokenIds[i].tokenId
+        const uri = tokenIds[i].uri
+        expect(await childContracts.rootERC721.exists(tokenId)).to.be.true
+        expect(await childContracts.rootERC721.tokenURI(tokenId)).to.equal(uri)
+        expect((await childContracts.rootERC721.ownerOf(tokenId)).toLowerCase()).to.equal(contracts.depositManager.address.toLowerCase())
+      }
+
+      await predicateTestUtils.processExits(contracts.withdrawManager, childContracts.rootERC721.address)
+
+      for (let i = 0; i < NUM_TOKENS; i++) {
+        assert.strictEqual(await childContracts.rootERC721.ownerOf(tokenId), bob)
+      }
+    })
   })
 })
 
