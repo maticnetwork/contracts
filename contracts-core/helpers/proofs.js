@@ -82,7 +82,6 @@ async function getTxProof(tx, block) {
 }
 
 function getTxBytes(tx) {
-  console.log('in getTxBytes')
   const txObj = new EthereumTx(squanchTx(tx))
   return txObj.serialize()
 }
@@ -181,6 +180,7 @@ module.exports = {
   buildCheckpointRoot,
   buildBlockProof,
   getTxProof,
+  getTxBytes,
   getReceiptProof,
   getReceiptBytes
 }
