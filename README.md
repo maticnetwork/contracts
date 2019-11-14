@@ -10,35 +10,37 @@ Ethereum smart contracts that power the [Matic Network](https://matic.network).
 npm install
 ```
 
-### Start main chain and side chain
-
-Start Main chain
-```
-npm run testrpc
-```
-Start Matic side chain
-```
-# Install parity
-bash <(curl https://get.parity.io -L) -r stable
-cd test-blockchain
-bash start.sh
-
-# Tail logs
-tail -f data/node.log
-```
-
 ### Compile
 ```
 npm run truffle:compile
 ```
 
-### Migrate
-For development
+### Start main chain and side chain
+
+- Start Main chain
+```
+npm run testrpc
+```
+- Start Matic side chain. Requires docker.
+```
+npm run bor:simulate
+```
+- If you ran a bor instance before, a dead docker container might still be lying around, clean it with
+```
+npm run bor:clean
+```
+- Run a bor (our matic chain node) instance.
+
+
+### Deploy Contracts
+- For local development
 ```
 npm run truffle:migrate
 ```
 
+- For a properly initialized set of contracts, follow the instructions [here](./deploy-migrations/README.md).
+
 ### Run tests
 ```
-$ npm test
+npm test
 ```
