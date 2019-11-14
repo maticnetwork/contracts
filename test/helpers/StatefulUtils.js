@@ -51,4 +51,11 @@ export default class StatefulUtils {
       reference: await build(event)
     }
   }
+
+  // For this to work, rootChain should not assert on nextChildBlock == start (comment that thing out in the rootchain)
+  async submitCheckpoint2(rootChain, receipt, proposer) {
+    const tx = await web3Child.eth.getTransaction(receipt.transactionHash)
+    this.start = tx.blockNumber
+    return this.submitCheckpoint(rootChain, receipt, proposer)
+  }
 }

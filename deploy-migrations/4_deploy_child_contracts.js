@@ -4,6 +4,7 @@ const SafeMath = artifacts.require(
   'openzeppelin-solidity/contracts/math/SafeMath.sol'
 )
 const ChildChain = artifacts.require('ChildChain')
+const ChildERC721Mintable = artifacts.require('ChildERC721Mintable')
 
 module.exports = async function(deployer, network, accounts) {
   deployer.then(async() => {
@@ -14,14 +15,7 @@ module.exports = async function(deployer, network, accounts) {
     const childChain = await ChildChain.deployed()
     const contractAddresses = utils.getContractAddresses()
 
-    // let MaticWeth = await childChain.addToken(
-    //   accounts[0],
-    //   contractAddresses.root.tokens.MaticWeth,
-    //   'Matic WETH',
-    //   'MTX',
-    //   18,
-    //   false // _isERC721
-    // )
+    await deployer.deploy(ChildERC721Mintable, contractAddresses.root.tokens.ChainBreakersPets)
 
     let TestToken = await childChain.addToken(
       accounts[0],
@@ -35,8 +29,8 @@ module.exports = async function(deployer, network, accounts) {
     contractAddresses.child = {
       ChildChain: ChildChain.address,
       tokens: {
-        // MaticWeth: MaticWeth.logs.find(log => log.event === 'NewToken').args.token,
-        TestToken: TestToken.logs.find(log => log.event === 'NewToken').args.token
+        TestToken: TestToken.logs.find(log => log.event === 'NewToken').args.token,
+        ChainBreakersPets: ChildERC721Mintable.address
       }
     }
     utils.writeContractAddresses(contractAddresses)

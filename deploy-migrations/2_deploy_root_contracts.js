@@ -28,6 +28,7 @@ const DelegationManager = artifacts.require('DelegationManager')
 const SlashingManager = artifacts.require('SlashingManager')
 const ERC20Predicate = artifacts.require('ERC20Predicate')
 const ERC721Predicate = artifacts.require('ERC721Predicate')
+const ERC721PlasmaMetadataMintable = artifacts.require('ERC721PlasmaMetadataMintable')
 const MarketplacePredicate = artifacts.require('MarketplacePredicate')
 const TransferWithSigPredicate = artifacts.require('TransferWithSigPredicate')
 const ExitNFT = artifacts.require('ExitNFT')
@@ -169,6 +170,7 @@ module.exports = async function(deployer, network) {
     console.log('deploying tokens...')
     await deployer.deploy(MaticWeth)
     await deployer.deploy(TestToken, 'Test Token', 'TST')
+    await deployer.deploy(ERC721PlasmaMetadataMintable, 'Pets', 'PTS')
 
     console.log('writing contract addresses to file...')
     const contractAddresses = {
@@ -192,7 +194,8 @@ module.exports = async function(deployer, network) {
         },
         tokens: {
           MaticWeth: MaticWeth.address,
-          TestToken: TestToken.address
+          TestToken: TestToken.address,
+          ChainBreakersPets: ERC721PlasmaMetadataMintable.address
         }
       }
     }
