@@ -33,7 +33,7 @@ npm run truffle:compile
 We need to deploy our set of contracts on 2 chains:
 
 - Base Chain: Ideally a higher security EVM chain which can be used for dispute resolution. For testing ganache or any other EVM chain should work.
-- Child Chain: EVM compatible chain to work as our sidechain. For testing note that using `ganache` for child-chain is not recommended, intead doing `npm run simuate-bor` would be better.
+- Child Chain: EVM compatible chain to work as our sidechain. For testing note that using `ganache` for child-chain is not recommended, instead invoking `npm run bor:simulate` would be better.
 
 ```
 mv migrations dev-migrations && cp -r deploy-migrations migrations
