@@ -31,6 +31,45 @@ let predicate, statefulUtils
 //     statefulUtils = new StatefulUtils()
 //   })
 
+//   describe.only('ERC721PlasmaMetadataMintable', async function() {
+//     let maticClient
+
+//     beforeEach(async function() {
+//       maticClient = await initializeMaticClient(contracts)
+//     })
+
+//     it('deposit', async function() {
+//       const token = await deployer.deployChildErc721MetadataMintable()
+//       const tokenId = '0x' + crypto.randomBytes(32).toString('hex')
+//       const uri = `tokens.com/${tokenId}`
+//       await token.rootERC721.mintWithTokenURI(bob, tokenId, uri)
+//       await token.rootERC721.approve(contracts.depositManager.address, tokenId, { from: bob })
+//       const deposit = await maticClient.depositManager.depositERC721(token.rootERC721.address, tokenId, { from: bob })
+//       console.log('deposit', deposit)
+//       // deposit is not actaully processed here, because heimdall does the state sync
+//       assert.strictEqual(await token.rootERC721.ownerOf(tokenId), contracts.depositManager.address)
+//     })
+
+//     it('depositBulk', async function() {
+//       const token = await deployer.deployChildErc721MetadataMintable()
+//       const tokenIds = []
+//       const NUM_TOKENS = 3
+//       for (let i = 0; i < NUM_TOKENS; i++) {
+//         const tokenId = '0x' + crypto.randomBytes(32).toString('hex')
+//         tokenIds.push(tokenId)
+//         const uri = `tokens.com/${tokenId}`
+//         await token.rootERC721.mintWithTokenURI(bob, tokenId, uri)
+//       }
+//       const tokens = Array(NUM_TOKENS).fill(token.rootERC721.address)
+//       await token.rootERC721.setApprovalForAll(contracts.depositManager.address, true, { from: bob })
+//       const deposit = await maticClient.depositManager.depositBulk(tokens, tokenIds, bob, { from: bob })
+//       for (let i = 0; i < NUM_TOKENS; i++) {
+//         // deposit is not actaully processed here, because heimdall does the state sync
+//         assert.strictEqual(await token.rootERC721.ownerOf(tokenIds[i]), contracts.depositManager.address)
+//       }
+//     })
+//   })
+
 //   describe('ERC721PlasmaMetadataMintable', async function() {
 //     let maticClient
 
@@ -78,7 +117,7 @@ let predicate, statefulUtils
 //     })
 
 //     it('startBulkExitForMintWithTokenURITokens with maticjs', async function() {
-//       const NUM_TOKENS = 3
+//       const NUM_TOKENS = 5
 //       const withdrawls = []
 //       const tokenIds = []
 //       for (let i = 0; i < NUM_TOKENS; i++) {
@@ -116,6 +155,15 @@ let predicate, statefulUtils
 //       await maticClient.withdrawManager.processExits(childContracts.rootERC721.address, { from: alice })
 //       for (let i = 0; i < NUM_TOKENS; i++) {
 //         assert.strictEqual(await childContracts.rootERC721.ownerOf(tokenId), bob)
+//       }
+
+//       // depositBulk again
+//       const tokens = Array(NUM_TOKENS).fill(childContracts.rootERC721.address)
+//       await childContracts.rootERC721.setApprovalForAll(contracts.depositManager.address, true, { from: bob })
+//       await maticClient.depositManager.depositBulk(tokens, tokenIds.map(t => t.tokenId), bob, { from: bob })
+//       for (let i = 0; i < NUM_TOKENS; i++) {
+//         // deposit is not actaully processed here, because heimdall does the state sync
+//         assert.strictEqual(await childContracts.rootERC721.ownerOf(tokenIds[i].tokenId), contracts.depositManager.address)
 //       }
 //     })
 //   })
