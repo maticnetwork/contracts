@@ -52,7 +52,6 @@ contract('ERC20Predicate', async function(accounts) {
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       // console.log(startExitTx, logs)
       let log = logs[utils.filterEvent(logs, 'ExitStarted')]
-      log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
         exitor: user,
         token: childContracts.rootERC20.address,
@@ -81,7 +80,6 @@ contract('ERC20Predicate', async function(accounts) {
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       // console.log(startExitTx, logs)
       let log = logs[utils.filterEvent(logs, 'ExitStarted')]
-      log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
         exitor: user,
         token: childContracts.rootERC20.address,
@@ -268,7 +266,6 @@ contract('ERC20Predicate', async function(accounts) {
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       // console.log(startExitTx, logs)
       let log = logs[utils.filterEvent(logs, 'ExitStarted')]
-      log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
         exitor: user,
         token: childContracts.rootERC20.address
@@ -322,7 +319,6 @@ contract('ERC20Predicate', async function(accounts) {
       const startExitTx = await utils.startExitForErc20Predicate(contracts.ERC20Predicate.startExitForIncomingErc20Transfer, inputs, exitTx)
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       let log = logs[utils.filterEvent(logs, 'ExitStarted')]
-      log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
         exitor: user,
         token: childContracts.rootERC20.address
@@ -535,7 +531,6 @@ contract('ERC20Predicate', async function(accounts) {
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       // console.log(startExitTx, logs)
       let log = logs[utils.filterEvent(logs, 'ExitStarted')]
-      log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
         exitor: user,
         token: childContracts.rootERC20.address
@@ -589,7 +584,6 @@ contract('ERC20Predicate', async function(accounts) {
       const startExitTx = await utils.startExitForErc20Predicate(contracts.ERC20Predicate.startExitForIncomingErc20Transfer, inputs, exitTx)
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       let log = logs[utils.filterEvent(logs, 'ExitStarted')]
-      log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
         exitor: user,
         token: childContracts.rootERC20.address
@@ -708,7 +702,6 @@ contract('ERC20Predicate', async function(accounts) {
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
       // console.log(startExitTx, logs)
       let log = logs[utils.filterEvent(logs, 'ExitStarted')]
-      log.event.should.equal('ExitStarted')
       expect(log.args).to.include({
         exitor: user,
         token: childContracts.rootERC20.address
