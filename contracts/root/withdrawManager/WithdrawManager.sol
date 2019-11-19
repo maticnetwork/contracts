@@ -184,7 +184,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       exits[exitId].token == address(0x0),
       "EXIT_ALREADY_EXISTS"
     );
-    exits[exitId] = PlasmaExit(exitAmountOrTokenId, txHash, exitor, rootToken, isRegularExit);
+    exits[exitId] = PlasmaExit(exitAmountOrTokenId, txHash, exitor, rootToken, isRegularExit, msg.sender /* predicate */);
     PlasmaExit storage _exitObject = exits[exitId];
 
     bytes32 key = getKey(_exitObject.token, _exitObject.owner, _exitObject.receiptAmountOrNFTId);
@@ -279,6 +279,15 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     return abi.encode(exit.owner, registry.rootToChildToken(exit.token), exit.receiptAmountOrNFTId, exit.txHash, exit.isRegularExit);
   }
 
+  function encodeExitForProcessExit(uint256 exitId)
+    internal
+    view
+    returns (bytes memory)
+  {
+    PlasmaExit storage exit = exits[exitId];
+    return abi.encode(exitId, exit.token, exit.owner, exit.receiptAmountOrNFTId);
+  }
+
   function encodeInputUtxo(uint256 age, Input storage input)
     internal
     view
@@ -311,25 +320,8 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
 
       // limit the gas amount that predicate.onFinalizeExit() can use, to be able to make gas estimations for bulk process exits
       address exitor = currentExit.owner;
-      uint256 amountOrNft = currentExit.receiptAmountOrNFTId;
-      // address predicate = currentExit.predicate;
-      // uint256 _gas = ON_FINALIZE_GAS_LIMIT - ITERATION_GAS; // fixed while loop iteration cost. Can't read global vars in asm
-      // assembly {
-      //   let ptr := mload(64)
-      //   // keccak256('onFinalizeExit(address,address,uint256)') & 0xFFFFFFFF00000000000000000000000000000000000000000000000000000000
-      //   mstore(ptr, 0xfdd3d6bd00000000000000000000000000000000000000000000000000000000)
-      //   mstore(add(ptr, 4), exitor)
-      //   mstore(add(ptr, 36), _token)
-      //   mstore(add(ptr, 68), amountOrNft)
-      //   let ret := add(ptr, 100)
-      //   // call returns 0 on error (eg. out of gas) and 1 on success
-      //   let result := call(_gas, predicate, 0, ptr, 100, ret, 32)
-      //   if eq(result, 0) {
-      //     revert(0,0)
-      //   }
-      // }
-      getDepositManager().transferAssets(_token, exitor, amountOrNft);
-      emit Withdraw(exitId, exitor, _token, amountOrNft);
+      IPredicate(currentExit.predicate).onFinalizeExit(encodeExitForProcessExit(exitId));
+      emit Withdraw(exitId, exitor, _token, currentExit.receiptAmountOrNFTId);
 
       if (!currentExit.isRegularExit) {
         // return the bond amount if this was a MoreVp style exit

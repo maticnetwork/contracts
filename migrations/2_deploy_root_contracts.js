@@ -26,6 +26,7 @@ const DelegationManager = artifacts.require('DelegationManager')
 const SlashingManager = artifacts.require('SlashingManager')
 const ERC20Predicate = artifacts.require('ERC20Predicate')
 const ERC721Predicate = artifacts.require('ERC721Predicate')
+const MintableERC721Predicate = artifacts.require('MintableERC721Predicate')
 const MarketplacePredicate = artifacts.require('MarketplacePredicate')
 const MarketplacePredicateTest = artifacts.require('MarketplacePredicateTest')
 const TransferWithSigPredicate = artifacts.require('TransferWithSigPredicate')
@@ -36,7 +37,7 @@ const StakeManagerTest = artifacts.require('StakeManagerTest')
 const libDeps = [
   {
     lib: BytesLib,
-    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate]
+    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate, MintableERC721Predicate]
   },
   {
     lib: Common,
@@ -44,6 +45,7 @@ const libDeps = [
       WithdrawManager,
       ERC20Predicate,
       ERC721Predicate,
+      MintableERC721Predicate,
       MarketplacePredicate,
       MarketplacePredicateTest,
       TransferWithSigPredicate
@@ -66,13 +68,14 @@ const libDeps = [
       WithdrawManager,
       ERC20Predicate,
       ERC721Predicate,
+      MintableERC721Predicate,
       StakeManager,
       StakeManagerTest
     ]
   },
   {
     lib: MerklePatriciaProof,
-    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate]
+    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate, MintableERC721Predicate]
   },
   {
     lib: PriorityQueue,
@@ -84,6 +87,7 @@ const libDeps = [
       WithdrawManager,
       ERC20Predicate,
       ERC721Predicate,
+      MintableERC721Predicate,
       MarketplacePredicate,
       MarketplacePredicateTest
     ]
@@ -95,6 +99,7 @@ const libDeps = [
       RootChain,
       ERC20Predicate,
       ERC721Predicate,
+      MintableERC721Predicate,
       MarketplacePredicate,
       MarketplacePredicateTest
     ]
@@ -105,6 +110,7 @@ const libDeps = [
       RootChain,
       ERC20Predicate,
       ERC721Predicate,
+      MintableERC721Predicate,
       MarketplacePredicate,
       MarketplacePredicateTest,
       TransferWithSigPredicate,
@@ -158,6 +164,11 @@ module.exports = async function(deployer, network) {
       ),
       deployer.deploy(
         ERC721Predicate,
+        WithdrawManager.address,
+        DepositManager.address
+      ),
+      deployer.deploy(
+        MintableERC721Predicate,
         WithdrawManager.address,
         DepositManager.address
       ),

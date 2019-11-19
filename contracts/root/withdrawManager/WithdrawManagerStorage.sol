@@ -18,6 +18,7 @@ contract ExitsDataStructure {
     address owner;
     address token;
     bool isRegularExit;
+    address predicate;
     // Mapping from age of input to Input
     mapping(uint256 => Input) inputs;
   }

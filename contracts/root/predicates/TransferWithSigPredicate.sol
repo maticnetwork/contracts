@@ -270,7 +270,7 @@ contract TransferWithSigPredicate is PredicateUtils {
    */
   function processExitTx(bytes memory exitTx)
     internal
-    view
+    pure
     returns(ExitTxData memory txData, uint256 expiration)
   {
     RLPReader.RLPItem[] memory txList = exitTx.toRlpItem().toList();

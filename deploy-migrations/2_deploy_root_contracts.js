@@ -28,6 +28,7 @@ const DelegationManager = artifacts.require('DelegationManager')
 const SlashingManager = artifacts.require('SlashingManager')
 const ERC20Predicate = artifacts.require('ERC20Predicate')
 const ERC721Predicate = artifacts.require('ERC721Predicate')
+const MintableERC721Predicate = artifacts.require('MintableERC721Predicate')
 const MarketplacePredicate = artifacts.require('MarketplacePredicate')
 const TransferWithSigPredicate = artifacts.require('TransferWithSigPredicate')
 const ExitNFT = artifacts.require('ExitNFT')
@@ -39,7 +40,12 @@ const TestToken = artifacts.require('TestToken')
 const libDeps = [
   {
     lib: BytesLib,
-    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate]
+    contracts: [
+      WithdrawManager,
+      ERC20Predicate,
+      ERC721Predicate,
+      MintableERC721Predicate
+    ]
   },
   {
     lib: Common,
@@ -47,6 +53,7 @@ const libDeps = [
       WithdrawManager,
       ERC20Predicate,
       ERC721Predicate,
+      MintableERC721Predicate,
       MarketplacePredicate,
       TransferWithSigPredicate
     ]
@@ -62,11 +69,11 @@ const libDeps = [
   },
   {
     lib: Merkle,
-    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate, StakeManager]
+    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate, StakeManager, MintableERC721Predicate]
   },
   {
     lib: MerklePatriciaProof,
-    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate]
+    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate, MintableERC721Predicate]
   },
   {
     lib: PriorityQueue,
@@ -88,6 +95,7 @@ const libDeps = [
       SlashingManager,
       ERC20Predicate,
       ERC721Predicate,
+      MintableERC721Predicate,
       MarketplacePredicate,
       TransferWithSigPredicate
     ]

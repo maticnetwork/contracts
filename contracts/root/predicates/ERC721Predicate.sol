@@ -6,7 +6,6 @@ import { RLPEncode } from "../../common/lib/RLPEncode.sol";
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
-import { ERC721PlasmaMintable } from "../../common/tokens/ERC721PlasmaMintable.sol";
 import { IErcPredicate } from "./IPredicate.sol";
 
 contract ERC721Predicate is IErcPredicate {
@@ -31,7 +30,7 @@ contract ERC721Predicate is IErcPredicate {
 
   function startExitWithBurntTokens(bytes memory data)
     public
-    returns(address rootToken, uint256 tokenId)
+    returns(bytes memory)
   {
     RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
     bytes memory receipt = referenceTxData[6].toBytes();
@@ -51,16 +50,18 @@ contract ERC721Predicate is IErcPredicate {
       bytes32(inputItems[0].toUint()) == WITHDRAW_EVENT_SIG,
       "Not a withdraw event signature"
     );
-    rootToken = address(RLPReader.toUint(inputItems[1]));
+    address rootToken = address(RLPReader.toUint(inputItems[1]));
     require(
       msg.sender == address(inputItems[2].toUint()), // from
       "Withdrawer and burn exit tx do not match"
     );
-    tokenId = BytesLib.toUint(logData, 0);
+    uint256 tokenId = BytesLib.toUint(logData, 0);
+    uint256 exitId = age << 1; // last bit is reserved for housekeeping in erc20Predicate
     withdrawManager.addExitToQueue(
       msg.sender, childToken, rootToken,
-      tokenId, bytes32(0x0) /* txHash */, true /* isRegularExit */, age << 1
+      tokenId, bytes32(0x0) /* txHash */, true /* isRegularExit */, exitId
     );
+    return abi.encode(rootToken, tokenId, childToken, exitId);
   }
 
   /**
@@ -77,14 +78,17 @@ contract ERC721Predicate is IErcPredicate {
       * branchMask Merkle proof branchMask for the receipt
       * logIndex Log Index to read from the receipt
    * @param exitTx Signed exit transaction
-   * @return address rootToken that the exit corresponds to
-   * @return uint256 tokenId of the token that is being exited
+   * @return abi encoded bytes array that encodes the following fields
+      * address rootToken: Token that the exit corresponds to
+      * uint256 tokenId: TokenId being exited
+      * address childToken: Child token that the exit corresponds to
+      * uint256 exitId
    */
   function startExit(bytes memory data, bytes memory exitTx)
     public
     payable
     isBondProvided
-    returns(address /* rootToken */, uint256 /* tokenId */)
+    returns(bytes memory)
   {
     // referenceTx is a proof-of-funds of the party who signed the exit tx
     RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
@@ -113,34 +117,7 @@ contract ERC721Predicate is IErcPredicate {
     withdrawManager.addInput(exitId, ageOfUtxo, exitTxData.signer, rootToken);
     // Adding a dummy input, owner being the exitor to challenge spends that the exitor made after the transaction being exited from
     withdrawManager.addInput(exitId, ageOfUtxo.sub(1), msg.sender, rootToken);
-    return (rootToken, exitTxData.amountOrToken);
-  }
-
-  /**
-   * @notice Start an exit for a token that was minted and burnt on the side chain
-   * @param data RLP encoded data of the burn tx
-   * @param mintTx Signed mint transaction
-   */
-  function startExitWithBurntTokens(bytes calldata data, bytes calldata mintTx)
-    external
-  {
-    (address rootToken, uint256 tokenId) = startExitWithBurntTokens(data);
-    processMintTx(mintTx, rootToken, tokenId);
-  }
-
-  /**
-   * @notice Start a MoreVP style exit for a token that was minted on the side chain
-   * @param data RLP encoded data of the reference tx(s)
-   * @param exitTx Signed exit transaction
-   * @param mintTx Signed mint transaction
-   */
-  function startExitAndMint(bytes calldata data, bytes calldata exitTx, bytes calldata mintTx)
-    external
-    payable
-    isBondProvided
-  {
-    (address rootToken, uint256 tokenId) = startExit(data, exitTx);
-    processMintTx(mintTx, rootToken, tokenId);
+    return abi.encode(rootToken, exitTxData.amountOrToken, exitTxData.childToken, exitId);
   }
 
   /**
@@ -198,13 +175,6 @@ contract ERC721Predicate is IErcPredicate {
     );
     return ageOfChallengeTx > age;
   }
-
-  // function onFinalizeExit(address exitor, address token, uint256 tokenId)
-  //   external
-  //   onlyWithdrawManager
-  // {
-  //   depositManager.transferAssets(token, exitor, tokenId);
-  // }
 
   function interpretStateUpdate(bytes calldata state)
     external
@@ -365,7 +335,7 @@ contract ERC721Predicate is IErcPredicate {
    */
   function processChallengeTx(bytes memory challengeTx)
     internal
-    view
+    pure
     returns(ExitTxData memory txData)
   {
     RLPReader.RLPItem[] memory txList = challengeTx.toRlpItem().toList();
@@ -410,24 +380,5 @@ contract ERC721Predicate is IErcPredicate {
       "Exit tx doesnt concern the exitor"
     );
     tokenId = BytesLib.toUint(txData, 68); // NFT ID
-  }
-
-  function processMintTx(bytes memory mintTx, address rootToken, uint256 tokenId)
-    internal
-  {
-    RLPReader.RLPItem[] memory txList = mintTx.toRlpItem().toList();
-    (address minter,) = getAddressFromTx(txList);
-    ERC721PlasmaMintable token = ERC721PlasmaMintable(rootToken);
-    require(
-      token.isMinter(minter),
-      "Not authorized to mint"
-    );
-    if (!token.exists(tokenId)) {
-      // this predicate contract should have been added to the token minter role
-      require(
-        token.mint(address(depositManager), tokenId),
-        "TOKEN_MINT_FAILED"
-      );
-    }
   }
 }

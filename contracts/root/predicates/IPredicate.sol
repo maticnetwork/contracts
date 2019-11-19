@@ -10,14 +10,6 @@ import { ChainIdMixin } from "../../common/mixin/ChainIdMixin.sol";
 
 interface IPredicate {
   /**
-   * @notice Start an exit from the side chain by referencing the preceding (reference) transaction
-   * @dev This function could take various flavours in the inheriting contracts, hence commenting it out here
-   * @param data RLP encoded data of the reference tx(s) that encodes the following fields for each tx
-   * @param exitTx Signed exit transaction
-   */
-  // function startExit(bytes calldata data, bytes calldata exitTx) external payable;
-
-  /**
    * @notice Verify the deprecation of a state update
    * @param exit ABI encoded PlasmaExit data
    * @param inputUtxo ABI encoded Input UTXO data
@@ -39,6 +31,7 @@ interface IPredicate {
   function verifyDeprecation(bytes calldata exit, bytes calldata inputUtxo, bytes calldata challengeData) external returns (bool);
 
   function interpretStateUpdate(bytes calldata state) external view returns (bytes memory);
+  function onFinalizeExit(bytes calldata data) external;
 }
 
 contract PredicateUtils is ExitsDataStructure, ChainIdMixin {
@@ -70,6 +63,14 @@ contract PredicateUtils is ExitsDataStructure, ChainIdMixin {
     address(uint160(address(withdrawManager))).transfer(BOND_AMOUNT);
   }
 
+  function onFinalizeExit(bytes calldata data)
+    external
+    onlyWithdrawManager
+  {
+    (, address token, address exitor, uint256 tokenId) = decodeExitForProcessExit(data);
+    depositManager.transferAssets(token, exitor, tokenId);
+  }
+
   function getAddressFromTx(RLPReader.RLPItem[] memory txList)
     internal
     pure
@@ -98,7 +99,17 @@ contract PredicateUtils is ExitsDataStructure, ChainIdMixin {
     returns (PlasmaExit memory)
   {
     (address owner, address token, uint256 amountOrTokenId, bytes32 txHash, bool isRegularExit) = abi.decode(data, (address, address, uint256, bytes32, bool));
-    return PlasmaExit(amountOrTokenId, txHash, owner, token, isRegularExit);
+    return PlasmaExit(amountOrTokenId, txHash, owner, token, isRegularExit, address(0) /* predicate value is not required */);
+  }
+
+  function decodeExitForProcessExit(bytes memory data)
+    internal
+    pure
+    returns (uint256 exitId, address token, address exitor, uint256 tokenId)
+  {
+    (exitId, token, exitor, tokenId) = abi.decode(
+      data, (uint256, address, address, uint256)
+    );
   }
 
   function decodeInputUtxo(bytes memory data)
