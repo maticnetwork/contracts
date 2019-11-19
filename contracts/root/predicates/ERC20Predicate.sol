@@ -286,14 +286,6 @@ contract ERC20Predicate is IErcPredicate {
     return true;
   }
 
-  function onFinalizeExit(bytes calldata data)
-    external
-    onlyWithdrawManager
-  {
-    (, address token, address exitor, uint256 tokenId) = decodeExitForProcessExit(data);
-    depositManager.transferAssets(token, exitor, tokenId);
-  }
-
   /**
    * @notice Parse a ERC20 LogTransfer event in the receipt
    * @param state abi encoded (data, participant, verifyInclusion)

@@ -29,7 +29,7 @@ export const TestToken = artifacts.require('TestToken')
 export const DummyERC20 = artifacts.require('DummyERC20')
 export const RootERC721 = artifacts.require('RootERC721')
 export const ERC721PlasmaMintable = artifacts.require('ERC721PlasmaMintable')
-export const ExitNFT = artifacts.require('ExitNFT.sol')
+export const ExitNFT = artifacts.require('ExitNFT')
 
 // child chain
 export const childContracts = {

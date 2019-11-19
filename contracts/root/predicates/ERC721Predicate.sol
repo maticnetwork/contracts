@@ -176,14 +176,6 @@ contract ERC721Predicate is IErcPredicate {
     return ageOfChallengeTx > age;
   }
 
-  function onFinalizeExit(bytes calldata data)
-    external
-    onlyWithdrawManager
-  {
-    (, address token, address exitor, uint256 tokenId) = decodeExitForProcessExit(data);
-    depositManager.transferAssets(token, exitor, tokenId);
-  }
-
   function interpretStateUpdate(bytes calldata state)
     external
     view

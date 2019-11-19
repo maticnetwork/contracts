@@ -244,14 +244,6 @@ contract TransferWithSigPredicate is PredicateUtils {
     return true;
   }
 
-  function onFinalizeExit(bytes calldata data)
-    external
-    onlyWithdrawManager
-  {
-    (, address token, address exitor, uint256 tokenId) = decodeExitForProcessExit(data);
-    depositManager.transferAssets(token, exitor, tokenId);
-  }
-
   function getChildBlockNumberFromAge(uint256 age) internal pure returns(uint256) {
     // age is represented as (getExitableAt(createdAt) << 127) | (blockNumber << 32) | branchMask.toRlpItem().toUint();
     return (age << 129) >> 161;

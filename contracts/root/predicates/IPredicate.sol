@@ -63,6 +63,14 @@ contract PredicateUtils is ExitsDataStructure, ChainIdMixin {
     address(uint160(address(withdrawManager))).transfer(BOND_AMOUNT);
   }
 
+  function onFinalizeExit(bytes calldata data)
+    external
+    onlyWithdrawManager
+  {
+    (, address token, address exitor, uint256 tokenId) = decodeExitForProcessExit(data);
+    depositManager.transferAssets(token, exitor, tokenId);
+  }
+
   function getAddressFromTx(RLPReader.RLPItem[] memory txList)
     internal
     pure
