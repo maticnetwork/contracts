@@ -8,6 +8,7 @@ import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { IErcPredicate } from "./IPredicate.sol";
+import { Registry } from "../../common/Registry.sol";
 import { WithdrawManagerHeader } from "../withdrawManager/WithdrawManagerStorage.sol";
 
 contract ERC20Predicate is IErcPredicate {
@@ -15,17 +16,28 @@ contract ERC20Predicate is IErcPredicate {
   using RLPReader for RLPReader.RLPItem;
   using SafeMath for uint256;
 
+  // keccak256('Deposit(address,address,uint256,uint256,uint256)')
   bytes32 constant DEPOSIT_EVENT_SIG = 0x4e2ca0515ed1aef1395f66b5303bb5d6f1bf9d61a353fa53f73f8ac9973fa9f6;
+  // keccak256('Withdraw(address,address,uint256,uint256,uint256)')
   bytes32 constant WITHDRAW_EVENT_SIG = 0xebff2602b3f468259e1e99f613fed6691f3a6526effe6ef3e768ba7ae7a36c4f;
+  // keccak256('LogTransfer(address,address,address,uint256,uint256,uint256,uint256,uint256)')
   bytes32 constant LOG_TRANSFER_EVENT_SIG = 0xe6497e3ee548a3372136af2fcb0696db31fc6cf20260707645068bd3fe97f3c4;
-  // 0x2e1a7d4d = keccak256('withdraw(uint256)').slice(0, 4)
+  // keccak256('LogFeeTransfer(address,address,address,uint256,uint256,uint256,uint256,uint256)')
+  bytes32 constant LOG_FEE_TRANSFER_EVENT_SIG = 0x4dfe1bbbcf077ddc3e01291eea2d5c70c2b422b415d95645b9adcfd678cb1d63;
+
+  // keccak256('withdraw(uint256)').slice(0, 4)
   bytes4 constant WITHDRAW_FUNC_SIG = 0x2e1a7d4d;
-  // 0xa9059cbb = keccak256('transfer(address,uint256)').slice(0, 4)
+  // keccak256('transfer(address,uint256)').slice(0, 4)
   bytes4 constant TRANSFER_FUNC_SIG = 0xa9059cbb;
 
-  constructor(address _withdrawManager, address _depositManager)
+  Registry registry;
+
+  constructor(address _withdrawManager, address _depositManager, address _registry)
     IErcPredicate(_withdrawManager, _depositManager)
-    public {}
+    public
+  {
+    registry = Registry(_registry);
+  }
 
   function startExitWithBurntTokens(bytes calldata data)
     external
@@ -343,7 +355,7 @@ contract ERC20Predicate is IErcPredicate {
     address participant,
     bool isChallenge)
     internal
-    pure
+    view
     returns(ReferenceTxData memory data)
   {
     require(logIndex < MAX_LOGS, "Supporting a max of 10 logs");
@@ -353,9 +365,16 @@ contract ERC20Predicate is IErcPredicate {
     bytes memory logData = inputItems[2].toBytes();
     inputItems = inputItems[1].toList(); // topics
     // now, inputItems[i] refers to i-th (0-based) topic in the topics array
-    // inputItems[0] is the event signature
+    bytes32 eventSignature = bytes32(inputItems[0].toUint()); // inputItems[0] is the event signature
     data.rootToken = address(RLPReader.toUint(inputItems[1]));
-    // rootToken = RLPReader.toAddress(inputItems[1]); // investigate why this reverts
+
+    // When child chain is started, since child matic is a genenis contract at 0x1010,
+    // the root token corresponding to matic is not known, hence child token address is emitted in LogFeeTransfer events.
+    // Fix that anomaly here
+    if (eventSignature == LOG_FEE_TRANSFER_EVENT_SIG) {
+      data.rootToken = registry.childToRootToken(data.rootToken);
+    }
+
     if (isChallenge) {
       processChallenge(inputItems, participant);
     } else {
@@ -397,11 +416,13 @@ contract ERC20Predicate is IErcPredicate {
   {
     bytes32 eventSignature = bytes32(inputItems[0].toUint());
     // event Withdraw(address indexed token, address indexed from, uint256 amountOrTokenId, uint256 input1, uint256 output1)
-    // event LogTransfer(
+    // event Log(Fee)Transfer(
     //   address indexed token, address indexed from, address indexed to,
     //   uint256 amountOrTokenId, uint256 input1, uint256 input2, uint256 output1, uint256 output2)
     require(
-      eventSignature == WITHDRAW_EVENT_SIG || eventSignature == LOG_TRANSFER_EVENT_SIG,
+      eventSignature == WITHDRAW_EVENT_SIG
+        || eventSignature == LOG_TRANSFER_EVENT_SIG
+        || eventSignature == LOG_FEE_TRANSFER_EVENT_SIG,
       "Log signature doesnt qualify as a valid spend"
     );
     require(
@@ -433,8 +454,8 @@ contract ERC20Predicate is IErcPredicate {
         "Withdrawer and referenced tx do not match"
       );
       closingBalance = BytesLib.toUint(logData, 64); // output1
-    } else if (eventSignature == LOG_TRANSFER_EVENT_SIG) {
-      // event LogTransfer(
+    } else if (eventSignature == LOG_TRANSFER_EVENT_SIG || eventSignature == LOG_FEE_TRANSFER_EVENT_SIG) {
+      // event Log(Fee)Transfer(
       //   address indexed token, address indexed from, address indexed to,
       //   uint256 amountOrTokenId, uint256 input1, uint256 input2, uint256 output1, uint256 output2)
       if (participant == address(inputItems[2].toUint())) { // A. Participant transferred tokens
@@ -504,11 +525,9 @@ contract ERC20Predicate is IErcPredicate {
   {
     bytes4 funcSig = BytesLib.toBytes4(BytesLib.slice(txData, 0, 4));
     if (funcSig == WITHDRAW_FUNC_SIG) {
-      require(txData.length == 36, "Invalid tx"); // 4 bytes for funcSig and a single bytes32 parameter
       amount = BytesLib.toUint(txData, 4);
       exitType = ExitType.Burnt;
     } else if (funcSig == TRANSFER_FUNC_SIG) {
-      require(txData.length == 68, "Invalid tx"); // 4 bytes for funcSig and a 2 bytes32 parameters (to, value)
       amount = BytesLib.toUint(txData, 36);
       exitType = ExitType.OutgoingTransfer;
     } else {
@@ -526,7 +545,6 @@ contract ERC20Predicate is IErcPredicate {
     view
     returns (uint256 exitAmount)
   {
-    require(txData.length == 68, "Invalid tx"); // 4 bytes for funcSig and a 2 bytes32 parameters (to, value)
     bytes4 funcSig = BytesLib.toBytes4(BytesLib.slice(txData, 0, 4));
     require(funcSig == TRANSFER_FUNC_SIG, "Only supports exiting from transfer txs");
     require(

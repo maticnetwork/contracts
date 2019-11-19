@@ -15,11 +15,14 @@ const crypto = require('crypto')
 const BN = ethUtils.BN
 const rlp = ethUtils.rlp
 
+// constants
 export const web3Child = new web3.constructor(
   new web3.providers.HttpProvider('http://localhost:8546')
 )
 
 export const ZeroAddress = '0x0000000000000000000000000000000000000000'
+export const ChildMaticTokenAddress = '0x0000000000000000000000000000000000001010'
+export const scalingFactor = web3.utils.toBN(10).pow(web3.utils.toBN(18))
 
 export function getSigs(wallets, votedata) {
   wallets.sort((w1, w2) => {
@@ -352,7 +355,7 @@ export async function verifyDeprecation(
     [
       exit.owner,
       options.childToken,
-      exit.receiptAmountOrNFTId.toString(16),
+      '0x' + exit.receiptAmountOrNFTId.toString(16),
       exit.txHash,
       exit.isRegularExit
     ]
@@ -424,4 +427,12 @@ export function increaseBlockTime(seconds) {
     params: [seconds],
     id: new Date().getTime()
   })
+}
+
+export function filterEvent(events, event) {
+  const index = events.findIndex(e => {
+    return e.event === event
+  })
+  if (index === -1) throw new Error(`${event} not found in given events`)
+  return index
 }

@@ -1,12 +1,13 @@
 pragma solidity ^0.5.2;
 
 import { ERC20Detailed } from "openzeppelin-solidity/contracts/token/ERC20/ERC20Detailed.sol";
+import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 
 import "./BaseERC20.sol";
 import "./misc/IParentToken.sol";
 
 
-contract ChildERC20 is BaseERC20, ERC20Detailed {
+contract ChildERC20 is BaseERC20, ERC20, ERC20Detailed {
 
   constructor (address _owner, address _token, string memory _name, string memory _symbol, uint8 _decimals)
     public
@@ -72,4 +73,15 @@ contract ChildERC20 is BaseERC20, ERC20Detailed {
     return _transferFrom(msg.sender, to, value);
   }
 
+  function allowance(address, address) public view returns (uint256) {
+    revert("Disabled feature");
+  }
+
+  function approve(address, uint256) public returns (bool) {
+    revert("Disabled feature");
+  }
+
+  function transferFrom(address, address, uint256 ) public returns (bool){
+    revert("Disabled feature");
+  }
 }

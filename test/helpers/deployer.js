@@ -1,20 +1,20 @@
-import utils from 'ethereumjs-util'
+import ethUtils from 'ethereumjs-util'
 
 import * as contracts from './artifacts'
-import { web3Child } from './utils'
+import * as utils from './utils'
 
 class Deployer {
   constructor() {
-    contracts.ChildChain.web3 = web3Child
-    contracts.ChildERC20.web3 = web3Child
-    contracts.ChildERC721.web3 = web3Child
-    contracts.ChildERC721Mintable.web3 = web3Child
-    contracts.Marketplace.web3 = web3Child
+    Object.keys(contracts.childContracts).forEach(c => {
+      // hack for quick fix
+      contracts[c] = contracts.childContracts[c]
+      contracts[c].web3 = utils.web3Child
+    })
   }
 
   async freshDeploy(options = {}) {
     this.registry = await contracts.Registry.new()
-    this.rootChain = await contracts.RootChain.new(this.registry.address)
+    await this.deployRootChain()
 
     this.SlashingManager = await contracts.SlashingManager.new(
       this.registry.address
@@ -42,23 +42,15 @@ class Deployer {
 
     await Promise.all([
       this.registry.updateContractMap(
-        utils.keccak256('depositManager'),
-        depositManager.address
-      ),
-      this.registry.updateContractMap(
-        utils.keccak256('withdrawManager'),
-        withdrawManager.address
-      ),
-      this.registry.updateContractMap(
-        utils.keccak256('stakeManager'),
+        ethUtils.keccak256('stakeManager'),
         this.stakeManager.address
       ),
       this.registry.updateContractMap(
-        utils.keccak256('delegationManager'),
+        ethUtils.keccak256('delegationManager'),
         this.delegationManager.address
       ),
       this.registry.updateContractMap(
-        utils.keccak256('slashingManager'),
+        ethUtils.keccak256('slashingManager'),
         this.SlashingManager.address
       )
     ])
@@ -81,12 +73,17 @@ class Deployer {
     return _contracts
   }
 
+  async deployRootChain() {
+    this.rootChain = await contracts.RootChain.new(this.registry.address)
+    return this.rootChain
+  }
+
   async deployMaticWeth() {
     const maticWeth = await contracts.MaticWETH.new()
     await Promise.all([
       this.mapToken(maticWeth.address, maticWeth.address, false /* isERC721 */),
       this.registry.updateContractMap(
-        utils.keccak256('wethToken'),
+        ethUtils.keccak256('wethToken'),
         maticWeth.address
       )
     ])
@@ -96,7 +93,7 @@ class Deployer {
   async deployStateSender() {
     this.stateSender = await contracts.StateSender.new()
     await this.registry.updateContractMap(
-      utils.keccak256('stateSender'),
+      ethUtils.keccak256('stateSender'),
       this.stateSender.address
     )
     return this.stateSender
@@ -110,7 +107,7 @@ class Deployer {
       this.rootChain.address
     )
     await this.registry.updateContractMap(
-      utils.keccak256('depositManager'),
+      ethUtils.keccak256('depositManager'),
       this.depositManagerProxy.address
     )
     this.depositManager = await contracts.DepositManager.at(
@@ -135,7 +132,7 @@ class Deployer {
       this.rootChain.address
     )
     await this.registry.updateContractMap(
-      utils.keccak256('withdrawManager'),
+      ethUtils.keccak256('withdrawManager'),
       this.withdrawManagerProxy.address
     )
     const w = await contracts.WithdrawManager.at(
@@ -148,7 +145,8 @@ class Deployer {
   async deployErc20Predicate() {
     const ERC20Predicate = await contracts.ERC20Predicate.new(
       this.withdrawManagerProxy.address,
-      this.depositManagerProxy.address
+      this.depositManagerProxy.address,
+      this.registry.address
     )
     await this.registry.addErc20Predicate(ERC20Predicate.address)
     return ERC20Predicate
@@ -214,12 +212,8 @@ class Deployer {
     return rootERC721
   }
 
-  async mapToken(rootTokenAddress, childTokenAddress, isERC721 = false) {
-    await this.registry.mapToken(
-      rootTokenAddress.toLowerCase(),
-      childTokenAddress.toLowerCase(),
-      isERC721
-    )
+  mapToken(rootTokenAddress, childTokenAddress, isERC721 = false) {
+    return this.registry.mapToken(rootTokenAddress, childTokenAddress, isERC721)
   }
 
   async deployChildErc20(owner, options = { mapToken: true }) {
@@ -241,6 +235,21 @@ class Deployer {
         false /* isERC721 */
       )
     }
+    return { rootERC20, childToken }
+  }
+
+  async deployMaticToken() {
+    if (!this.globalMatic) throw Error('global matic token is not initialized')
+    if (!this.childChain) throw Error('child chain is not initialized')
+    // Since we cannot initialize MaticChildERC20 repeatedly, deploy a dummy MaticChildERC20 to test it
+    // not mentioning the gas limit fails with "The contract code couldn't be stored, please check your gas limit." intermittently which is super weird
+    const childToken = await contracts.TestMaticChildERC20.new({ gas: 7500000 })
+    const rootERC20 = await this.deployTestErc20({ mapToken: true, childTokenAdress: childToken.address })
+    // initialize this like we would have done for MaticChildERC20 once
+    await childToken.initialize(this.childChain.address, rootERC20.address)
+    await this.childChain.mapToken(rootERC20.address, childToken.address, false /* isERC721 */)
+    // send some ether to dummy MaticChildERC20, so that deposits can be processed
+    await this.globalMatic.childToken.deposit(childToken.address, web3.utils.toBN(100).mul(utils.scalingFactor))
     return { rootERC20, childToken }
   }
 
@@ -287,11 +296,26 @@ class Deployer {
   }
 
   async initializeChildChain(owner, options = { updateRegistry: true }) {
-    this.childChain = await contracts.ChildChain.new()
+    // not mentioning the gas limit fails with "The contract code couldn't be stored, please check your gas limit." intermittently which is super weird
+    this.childChain = await contracts.ChildChain.new({ gas: 7500000 })
     await this.childChain.changeStateSyncerAddress(owner)
+    if (!this.globalMatic) {
+      // MaticChildERC20 comes as a genesis-contract at utils.ChildMaticTokenAddress
+      this.globalMatic = { childToken: await contracts.MaticChildERC20.at(utils.ChildMaticTokenAddress) }
+      const maticOwner = await this.globalMatic.childToken.owner()
+      if (maticOwner === '0x0000000000000000000000000000000000000000') {
+        // matic contract at 0x1010 can only be initialized once, after the bor image starts to run
+        console.log('initializing globalMatic ... ')
+        await this.globalMatic.childToken.initialize(owner, utils.ZeroAddress)
+      }
+    }
+    if (this.registry) {
+      // When a new set of contracts is deployed, we should map MaticChildERC20 on root, though we cannot initialize it more than once in its lifetime
+      this.globalMatic.rootERC20 = await this.deployTestErc20({ mapToken: true, childTokenAdress: utils.ChildMaticTokenAddress })
+    }
     if (options.updateRegistry) {
       await this.registry.updateContractMap(
-        utils.keccak256('childChain'),
+        ethUtils.keccak256('childChain'),
         this.childChain.address
       )
       await this.stateSender.register(

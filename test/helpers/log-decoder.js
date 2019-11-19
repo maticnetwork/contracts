@@ -39,8 +39,17 @@ export class LogDecoder {
   }
 }
 
-const abis = Object.keys(contracts).map(c => {
-  return contracts[c]._json.abi
+const abis = []
+
+Object.keys(contracts).forEach(c => {
+  if (c === 'childContracts') {
+    Object.keys(contracts[c]).forEach(_c => {
+      abis.push(contracts[c][_c]._json.abi)
+    })
+  } else {
+    abis.push(contracts[c]._json.abi)
+  }
 })
+
 const logDecoder = new LogDecoder(abis)
 export default logDecoder
