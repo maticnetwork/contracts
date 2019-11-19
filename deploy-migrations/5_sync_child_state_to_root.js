@@ -1,5 +1,6 @@
 const ethUtils = require('ethereumjs-util')
 const utils = require('./utils')
+const fs = require('fs')
 
 const Registry = artifacts.require('Registry')
 const StateSender = artifacts.require('StateSender')
@@ -8,14 +9,9 @@ const DepositManagerProxy = artifacts.require('DepositManagerProxy')
 
 module.exports = async function(deployer, network, accounts) {
   deployer.then(async() => {
-    const registry = await Registry.deployed()
-
     const contractAddresses = utils.getContractAddresses()
-    await registry.mapToken(
-      contractAddresses.root.tokens.MaticWeth,
-      contractAddresses.child.tokens.MaticWeth,
-      false /* isERC721 */
-    )
+    const registry = await Registry.at(contractAddresses.root.Registry) // deployed()
+
     await registry.mapToken(
       contractAddresses.root.tokens.TestToken,
       contractAddresses.child.tokens.TestToken,
@@ -25,8 +21,8 @@ module.exports = async function(deployer, network, accounts) {
       ethUtils.keccak256('childChain'),
       contractAddresses.child.ChildChain
     )
-    await (await StateSender.deployed()).register(contractAddresses.root.DepositManagerProxy, contractAddresses.child.ChildChain)
-    let depositManager = await DepositManager.at(DepositManagerProxy.address)
+    await (await StateSender.at(contractAddresses.root.StateSender)).register(contractAddresses.root.DepositManagerProxy, contractAddresses.child.ChildChain)
+    let depositManager = await DepositManager.at(contractAddresses.root.DepositManagerProxy)
     await depositManager.updateChildChainAndStateSender()
   })
 }
