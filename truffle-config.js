@@ -28,12 +28,11 @@ module.exports = {
       provider: () =>
         new HDWalletProvider(
           MNEMONIC,
-          `https://ropsten.infura.io/v3/${API_KEY}`,
-          1
+          `https://ropsten.infura.io/v3/${API_KEY}`
         ),
       network_id: 3,
-      gas: 8000000,
-      gasPrice: 100000000000,
+      gas: 7000000,
+      gasPrice: 10000000000, // 10 gwei
       skipDryRun: true
       // confirmations: 5
     },
