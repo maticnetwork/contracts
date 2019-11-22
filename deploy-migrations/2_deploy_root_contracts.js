@@ -154,7 +154,8 @@ module.exports = async function(deployer, network) {
     await deployer.deploy(
       ERC20Predicate,
       WithdrawManagerProxy.address,
-      DepositManagerProxy.address
+      DepositManagerProxy.address,
+      Registry.address
     )
     await deployer.deploy(
       ERC721Predicate,
