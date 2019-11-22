@@ -53,3 +53,15 @@ npm run truffle:migrate -- --network <base_chain_network_name> -f 5 --to 5
 Post successfull deployment all contract addresses will be written to a `contractAddresses.json` file.
 
 > Check account that you are deploying from has ether for the network you are deploying on.
+
+### :five: Stake to become a validator
+```
+// (Optional) Export mnemonic or the private key (without the 0x prefix)
+// This account needs to have test token
+export MNEMONIC=<>
+
+// (Optional) Infura PROJECT ID, if required
+export API_KEY=<PROJECT_ID>
+
+npm run truffle exec scripts/stake.js -- --network <base_chain_network_name>
+```
