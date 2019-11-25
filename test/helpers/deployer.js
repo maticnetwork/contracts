@@ -74,7 +74,7 @@ class Deployer {
   }
 
   async deployRootChain() {
-    this.rootChain = await contracts.RootChain.new(this.registry.address)
+    this.rootChain = await contracts.RootChain.new(this.registry.address, 'heimdall-P5rXwg')
     return this.rootChain
   }
 

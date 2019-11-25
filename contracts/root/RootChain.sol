@@ -23,8 +23,9 @@ contract RootChain is RootChainStorage, IRootChain {
     _;
   }
 
-  constructor (address _registry) public {
+  constructor (address _registry, string memory _heimdallId) public {
     registry = Registry(_registry);
+    heimdallId = keccak256(abi.encodePacked(_heimdallId));
   }
 
   function submitHeaderBlock(
@@ -34,7 +35,7 @@ contract RootChain is RootChainStorage, IRootChain {
     external
   {
     RLPReader.RLPItem[] memory dataList = vote.toRlpItem().toList();
-    require(keccak256(dataList[0].toBytes()) == HEIMDALL_ID, "Chain ID is invalid");
+    require(keccak256(dataList[0].toBytes()) == heimdallId, "Chain ID is invalid");
     require(dataList[1].toUint() == VOTE_TYPE, "Vote type is invalid");
 
     // validate hash of txData was signed as part of the vote

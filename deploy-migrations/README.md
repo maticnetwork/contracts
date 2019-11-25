@@ -16,10 +16,13 @@ Feel free to add your own. Update the chain url in `networks.matic` key in [truf
 
 ```
 // (Optional) Only if you are using ethereum testnets
-export API_KEY=<infura api key>
+export API_KEY=<Infura PROJECT ID>
 
 // For `developement` networks you can use the mnemonic present in package.json
 export MNEMONIC=<mnemonic>
+
+export HEIMDALL_ID=<>
+e.g. export HEIMDALL_ID="heimdall-P5rXwg"
 ```
 
 ### :three: Compile contracts
@@ -39,15 +42,15 @@ We need to deploy our set of contracts on 2 chains:
 mv migrations dev-migrations && cp -r deploy-migrations migrations
 
 // Root contracts are deployed on base chain
-npm run truffle:migrate -- --reset --network <base_chain_network_name> --to 3
+npm run truffle:migrate -- --reset --to 3 --network <base_chain_network_name>
 
 // Contracts like ChildERC20Token are deployed on child chain aka BOR chain
 // NOTE: You need to deploy or simulate BOR before running the below command
-npm run truffle:migrate -- --reset --network <child_chain_network_name> -f 4 --to 4
+npm run truffle:migrate -- --reset -f 4 --to 4 --network <child_chain_network_name>
 
 
 // Contracts deployed on BOR are mapped to the registry contract deployed on-chain
-npm run truffle:migrate -- --network <base_chain_network_name> -f 5 --to 5
+npm run truffle:migrate -- -f 5 --to 5 --network <base_chain_network_name>
 ```
 
 Post successfull deployment all contract addresses will be written to a `contractAddresses.json` file.
