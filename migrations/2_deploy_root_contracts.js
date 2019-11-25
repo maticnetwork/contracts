@@ -144,7 +144,7 @@ module.exports = async function(deployer, network) {
     console.log('deploying contracts...')
     await deployer.deploy(Registry)
     await Promise.all([
-      deployer.deploy(RootChain, Registry.address),
+      deployer.deploy(RootChain, Registry.address, 'heimdall-P5rXwg'),
       deployer.deploy(SlashingManager, Registry.address),
       deployer.deploy(DelegationManager, Registry.address),
 

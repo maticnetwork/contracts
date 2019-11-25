@@ -20,8 +20,9 @@ async function stake(address, amount) {
 }
 
 module.exports = async function(callback) {
-  const stakeFor = '0xE0938d9fd679bB6B83bf31fA62c433646B9F749e'
-  const amount = web3.utils.toWei('50')
+  const stakeFor = process.argv[6]
+  const amount = web3.utils.toWei(process.argv[7])
+  console.log(`Staking ${amount} for ${stakeFor}...`)
   await stake(stakeFor, amount)
   callback()
 }
