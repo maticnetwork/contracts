@@ -12,16 +12,17 @@ async function stake(address, amount) {
     console.log('Sender accounts has a balanceOf', (await rootToken.balanceOf(accounts[0])).toString())
     await rootToken.approve(stakeManager.address, amount)
     console.log('approved, staking now...')
-    await stakeManager.stakeFor(address, amount, address, false)
-    console.log('staked')
+    const stake = await stakeManager.stakeFor(address, amount, address, false)
+    console.log('staked; txHash is', stake.tx)
   } catch (err) {
     console.log(err)
   }
 }
 
 module.exports = async function(callback) {
-  const stakeFor = '0xE0938d9fd679bB6B83bf31fA62c433646B9F749e'
-  const amount = web3.utils.toWei('50')
+  const stakeFor = process.argv[6]
+  const amount = web3.utils.toWei(process.argv[7])
+  console.log(`Staking ${amount} for ${stakeFor}...`)
   await stake(stakeFor, amount)
   callback()
 }

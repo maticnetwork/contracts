@@ -116,7 +116,11 @@ const libDeps = [
   }
 ]
 
-module.exports = async function(deployer, network) {
+module.exports = async function(deployer) {
+  if (!process.env.HEIMDALL_ID) {
+    throw new Error('Please export HEIMDALL_ID environment variable')
+  }
+
   deployer.then(async() => {
     console.log('linking libs...')
     await bluebird.map(libDeps, async e => {
@@ -126,7 +130,7 @@ module.exports = async function(deployer, network) {
 
     console.log('deploying contracts...')
     await deployer.deploy(Registry)
-    await deployer.deploy(RootChain, Registry.address)
+    await deployer.deploy(RootChain, Registry.address, process.env.HEIMDALL_ID)
     await deployer.deploy(StakeManager, Registry.address, RootChain.address)
     await deployer.deploy(SlashingManager, Registry.address)
     await deployer.deploy(DelegationManager, Registry.address)
