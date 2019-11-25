@@ -12,8 +12,8 @@ async function stake(address, amount) {
     console.log('Sender accounts has a balanceOf', (await rootToken.balanceOf(accounts[0])).toString())
     await rootToken.approve(stakeManager.address, amount)
     console.log('approved, staking now...')
-    await stakeManager.stakeFor(address, amount, address, false)
-    console.log('staked')
+    const stake = await stakeManager.stakeFor(address, amount, address, false)
+    console.log('staked; txHash is', stake.tx)
   } catch (err) {
     console.log(err)
   }
