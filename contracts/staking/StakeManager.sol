@@ -44,6 +44,9 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   uint256 public auctionPeriod = dynasty.div(4); // 1 week in epochs
   bytes32 public accountStateRoot;
 
+  // on dynasty update certain amount of cooldown period where there is no validator auction
+  uint256 replacementCoolDown;
+
   enum Status { Inactive, Active, Locked }
 
   struct Validator {
@@ -139,7 +142,13 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
   function startAuction(uint256 validatorId, uint256 amount) external {
     require(isValidator(validatorId));
+    // when dynasty period is updated validators are in cool down period
+    require(replacementCoolDown == 0 || replacementCoolDown <= currentEpoch, "Cool down period");
     require(auctionPeriod >= currentEpoch.sub(validatorAuction[validatorId].startEpoch), "Invalid auction period");
+    // dynasty--auctionPeriod--dynasty--auctionPeriod--dynasty
+    // make sure that its `auctionPeriod` window
+    require((validators[validatorId].activationEpoch % dynasty.add(auctionPeriod)) > dynasty, "Not an auction time");
+
     require(token.transferFrom(msg.sender, address(this), amount), "Transfer amount failed");
 
     uint256 perceivedStake = validators[validatorId].amount.mul(perceivedStakeFactor(validatorId));
@@ -424,6 +433,8 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     UNSTAKE_DELAY = dynasty.div(2);
     WITHDRAWAL_DELAY = dynasty.mul(2);
     auctionPeriod = dynasty.div(4);
+    // set cool down period
+    replacementCoolDown = currentEpoch.add(auctionPeriod);
   }
 
   function updateSigner(uint256 validatorId, address _signer) public onlyStaker(validatorId) {
