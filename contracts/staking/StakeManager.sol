@@ -26,7 +26,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   address public registry;
   // genesis/governance variables
   uint256 public dynasty = 2**13;  // unit: epoch 50 days
-  uint256 public CHECKPOINT_REWARD = 10000;
+  uint256 public checkpointReward = 10000;
   uint256 public MIN_DEPOSIT_SIZE = (10**18);  // in ERC20 token
   uint256 public EPOCH_LENGTH = 256; // unit : block
   uint256 public UNSTAKE_DELAY = dynasty.mul(2); // unit: epoch
@@ -58,7 +58,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     Status status;
   }
 
-  struct Auction{
+  struct Auction {
     uint256 amount;
     uint256 startEpoch;
     address user;
@@ -405,8 +405,8 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   // Change reward for each checkpoint
   function updateCheckpointReward(uint256 newReward) public onlyOwner {
     require(newReward > 0);
-    emit RewardUpdate(newReward, CHECKPOINT_REWARD);
-    CHECKPOINT_REWARD = newReward;
+    emit RewardUpdate(newReward, checkpointReward);
+    checkpointReward = newReward;
   }
 
   function updateValidatorState(uint256 validatorId, uint256 epoch, int256 amount) public {
@@ -480,6 +480,15 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   }
 
   function checkSignatures(bytes32 voteHash, bytes32 stateRoot, bytes memory sigs) public onlyRootChain {
+    require(checkTwoByThreeMajority(voteHash, sigs));
+    // update stateMerkleTree root for accounts balance on heimdall chain
+    // for previous checkpoint rewards
+    accountStateRoot = stateRoot;
+    totalRewards = totalRewards.add(checkpointReward.mul(stakePower).div(_totalStake));
+    finalizeCommit();
+  }
+
+  function checkTwoByThreeMajority(bytes32 voteHash, bytes memory sigs) public view returns(bool) {
     // total voting power
     uint256 stakePower = 0;
     uint256 validatorId;
@@ -508,12 +517,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     }
 
     uint256 _totalStake = currentValidatorSetTotalStake();
-    require(stakePower >= _totalStake.mul(2).div(3).add(1));
-    // update stateMerkleTree root for accounts balance on heimdall chain
-    // for previous checkpoint rewards
-    accountStateRoot = stateRoot;
-    totalRewards = totalRewards.add(CHECKPOINT_REWARD.mul(stakePower).div(_totalStake));
-    finalizeCommit();
+    return (stakePower >= _totalStake.mul(2).div(3).add(1));
   }
 
   function challangeStateRootUpdate(bytes memory checkpointTx /* txData from submitCheckpoint */) public {
