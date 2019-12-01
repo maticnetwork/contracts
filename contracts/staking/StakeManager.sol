@@ -30,6 +30,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   uint256 public MIN_DEPOSIT_SIZE = (10**18);  // in ERC20 token
   uint256 public EPOCH_LENGTH = 256; // unit : block
   uint256 public UNSTAKE_DELAY = dynasty.mul(2); // unit: epoch
+  uint256 public checkPointBlockInterval = 255;
 
   // TODO: add events and gov. based update function
   uint256 public proposerToSignerRewards = 10; // will be used with fraud proof
@@ -411,6 +412,11 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     validatorThreshold = newThreshold;
   }
 
+  function updateCheckPointBlockInterval(uint256 _blocks) public onlyOwner {
+    require(_blocks > 0, "Blocks interval must be non-zero");
+    checkPointBlockInterval = _blocks;
+  }
+
   // Change reward for each checkpoint
   function updateCheckpointReward(uint256 newReward) public onlyOwner {
     require(newReward > 0);
@@ -490,8 +496,9 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     );
   }
 
-  function checkSignatures(bytes32 voteHash, bytes32 stateRoot, bytes memory sigs) public onlyRootChain {
-    require(checkTwoByThreeMajority(voteHash, sigs));
+  function checkSignatures(uint256 blockInterval, bytes32 voteHash, bytes32 stateRoot, bytes memory sigs) public onlyRootChain {
+    require(checkPointBlockInterval <= blockInterval,"Smaller checkpoint not allowed");
+    uint256 _totalStake = checkTwoByThreeMajority(voteHash, sigs);
     // update stateMerkleTree root for accounts balance on heimdall chain
     // for previous checkpoint rewards
     accountStateRoot = stateRoot;
@@ -499,7 +506,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     finalizeCommit();
   }
 
-  function checkTwoByThreeMajority(bytes32 voteHash, bytes memory sigs) public view returns(bool) {
+  function checkTwoByThreeMajority(bytes32 voteHash, bytes memory sigs) public view returns(uint256) {
     // total voting power
     uint256 stakePower = 0;
     uint256 validatorId;
@@ -528,7 +535,8 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     }
 
     uint256 _totalStake = currentValidatorSetTotalStake();
-    return (stakePower >= _totalStake.mul(2).div(3).add(1));
+    require(stakePower >= _totalStake.mul(2).div(3).add(1));
+    return _totalStake;
   }
 
   function challangeStateRootUpdate(bytes memory checkpointTx /* txData from submitCheckpoint */) public {
