@@ -205,7 +205,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
   function unstake(uint256 validatorId) external onlyStaker(validatorId) {
     require(validatorAuction[validatorId].amount == 0, "Wait for auction completion");
-    uint256 exitEpoch = currentEpoch.add(UNSTAKE_DELAY);// notice period
+    uint256 exitEpoch = currentEpoch.add(1);// notice period
     require(validators[validatorId].activationEpoch > 0 &&
       validators[validatorId].deactivationEpoch == 0 &&
       validators[validatorId].status == Status.Active);
@@ -497,8 +497,11 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   }
 
   function checkSignatures(uint256 blockInterval, bytes32 voteHash, bytes32 stateRoot, bytes memory sigs) public onlyRootChain {
+    uint256 stakePower;
+    uint256 _totalStake;
     require(checkPointBlockInterval <= blockInterval,"Smaller checkpoint not allowed");
-    uint256 _totalStake = checkTwoByThreeMajority(voteHash, sigs);
+
+    (stakePower, _totalStake) = checkTwoByThreeMajority(voteHash, sigs);
     // update stateMerkleTree root for accounts balance on heimdall chain
     // for previous checkpoint rewards
     accountStateRoot = stateRoot;
@@ -506,9 +509,9 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     finalizeCommit();
   }
 
-  function checkTwoByThreeMajority(bytes32 voteHash, bytes memory sigs) public view returns(uint256) {
+  function checkTwoByThreeMajority(bytes32 voteHash, bytes memory sigs) public view returns(uint256, uint256) {
     // total voting power
-    uint256 stakePower = 0;
+    uint256 stakePower;
     uint256 validatorId;
     address lastAdd = address(0x0); // cannot have address(0x0) as an owner
     for (uint64 i = 0; i < sigs.length; i += 65) {
@@ -533,10 +536,9 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
         }
       }
     }
-
     uint256 _totalStake = currentValidatorSetTotalStake();
     require(stakePower >= _totalStake.mul(2).div(3).add(1));
-    return _totalStake;
+    return (stakePower, _totalStake);
   }
 
   function challangeStateRootUpdate(bytes memory checkpointTx /* txData from submitCheckpoint */) public {
