@@ -12,7 +12,7 @@ contract StakeManagerTest is StakeManager {
     checkPointBlockInterval = 1;
   }
 
-  function checkSignatures(bytes32 voteHash, bytes32 stateRoot, bytes memory sigs) public onlyRootChain {
+  function checkSignatures(uint256 blockInterval, bytes32 voteHash, bytes32 stateRoot, bytes memory sigs) public onlyRootChain {
     return;
   }
 }

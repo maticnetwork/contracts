@@ -41,6 +41,7 @@ contract('RootChain', async function(accounts) {
     stakeToken = await DummyERC20.new('Stake Token', 'STAKE')
     await stakeManager.setToken(stakeToken.address)
     await stakeManager.changeRootChain(rootChain.address)
+    await stakeManager.updateCheckPointBlockInterval(1)
 
     let amount = web3.utils.toWei('1000')
     for (let i = 0; i < 4; i++) {
