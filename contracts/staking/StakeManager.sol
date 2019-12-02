@@ -499,7 +499,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   function checkSignatures(uint256 blockInterval, bytes32 voteHash, bytes32 stateRoot, bytes memory sigs) public onlyRootChain {
     uint256 stakePower;
     uint256 _totalStake;
-    require(checkPointBlockInterval <= blockInterval,"Smaller checkpoint not allowed");
+    require(checkPointBlockInterval <= blockInterval, "Smaller checkpoint not allowed");
 
     (stakePower, _totalStake) = checkTwoByThreeMajority(voteHash, sigs);
     // update stateMerkleTree root for accounts balance on heimdall chain

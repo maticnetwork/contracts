@@ -37,6 +37,7 @@ contract('StakeManager<->DelegationManager', async function(accounts) {
     await stakeManager.changeRootChain(wallets[0].getAddressString())
     await delegationManager.setToken(stakeToken.address)
     await stakeManager.updateValidatorThreshold(3)
+    await stakeManager.updateCheckPointBlockInterval(1)
 
     await stakeManager.updateDynastyValue(2)
     // transfer tokens to other accounts
