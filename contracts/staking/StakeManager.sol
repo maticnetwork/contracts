@@ -148,7 +148,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     require(auctionPeriod >= currentEpoch.sub(validatorAuction[validatorId].startEpoch), "Invalid auction period");
     // dynasty--auctionPeriod--dynasty--auctionPeriod--dynasty
     // make sure that its `auctionPeriod` window
-    require((validators[validatorId].activationEpoch % dynasty.add(auctionPeriod)) > dynasty, "Not an auction time");
+    require((currentEpoch.sub(validators[validatorId].activationEpoch) % dynasty.add(auctionPeriod)) > dynasty, "Not an auction time");
 
     require(token.transferFrom(msg.sender, address(this), amount), "Transfer amount failed");
 
