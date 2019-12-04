@@ -26,7 +26,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   address public registry;
   // genesis/governance variables
   uint256 public dynasty = 2**13;  // unit: epoch 50 days
-  uint256 public checkpointReward = 10000;
+  uint256 public checkpointReward = 10000 * (10**18); // @todo update according to Chain
   uint256 public MIN_DEPOSIT_SIZE = (10**18);  // in ERC20 token
   uint256 public EPOCH_LENGTH = 256; // unit : block
   uint256 public UNSTAKE_DELAY = dynasty.mul(2); // unit: epoch
