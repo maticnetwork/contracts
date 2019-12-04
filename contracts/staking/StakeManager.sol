@@ -507,7 +507,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     // with actual `blockInterval`
     // eg. checkpointReward = 10 Tokens, checkPointBlockInterval = 250, blockInterval = 500 then reward
     // for this checkpoint is 20 Tokens
-    uint256 _reward = checkPointBlockInterval.mul(checkpointReward).div(blockInterval);
+    uint256 _reward = blockInterval.mul(checkpointReward).div(checkPointBlockInterval);
     _reward = Math.min(checkpointReward, _reward).mul(stakePower).div(_totalStake);
     totalRewards = totalRewards.add(_reward);
 
