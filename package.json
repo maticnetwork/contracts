@@ -60,6 +60,7 @@
     "eth-sig-util": "^2.1.1",
     "ethereumjs-wallet": "0.6.2",
     "ethers": "4.0.13",
+    "moonwalker": "github:atvanguard/moonwalker#53e29e33c0f929ab96c882d4a680a0cce7ea5888",
     "pre-commit": "^1.2.2",
     "safe-buffer": "5.1.2",
     "solium": "^1.1.8",

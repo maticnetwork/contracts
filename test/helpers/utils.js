@@ -176,20 +176,24 @@ export async function deposit(
   } else {
     depositBlockId = '0x' + crypto.randomBytes(32).toString('hex')
   }
-  // ACLed on onlyOwner
-  const deposit = await childChain.onStateReceive(
-    '0xa' /* dummy id */,
-    encodeDepositStateSync(
-      user,
-      rootContract.address,
-      amountOrToken,
-      depositBlockId
-    )
-  )
+  const deposit = await fireDepositFromMainToMatic(childChain, '0xa' /* dummy id */, user, rootContract.address, amountOrToken, depositBlockId)
   if (options.writeToFile) {
     await writeToFile(options.writeToFile, deposit.receipt)
   }
   return deposit
+}
+
+export function fireDepositFromMainToMatic(childChain, eventId, user, tokenAddress, amountOrToken, depositBlockId) {
+  // ACLed on onlyOwner
+  return childChain.onStateReceive(
+    eventId,
+    encodeDepositStateSync(
+      user,
+      tokenAddress,
+      amountOrToken,
+      depositBlockId
+    )
+  )
 }
 
 function encodeDepositStateSync(user, rootToken, tokenIdOrAmount, depositId) {
