@@ -39,7 +39,7 @@ contract('StakeManager', async function(accounts) {
         wallets[1].getAddressString()
       ) // dummy registry address
       await stakeManager.setToken(stakeToken.address)
-
+      await stakeManager.updateCheckPointBlockInterval(1)
       // transfer tokens to other accounts
       await stakeToken.mint(
         wallets[0].getAddressString(),
@@ -507,7 +507,7 @@ contract('StakeManager:rewards distribution', async function(accounts) {
         wallets[0].getAddressString()
       ) // dummy registry address
       await stakeManager.setToken(stakeToken.address)
-
+      await stakeManager.updateCheckPointBlockInterval(1)
       let amount = web3.utils.toWei('1000')
       for (let i = 0; i < 2; i++) {
         await stakeToken.mint(wallets[i].getAddressString(), amount)
@@ -535,6 +535,7 @@ contract('StakeManager:rewards distribution', async function(accounts) {
 
       // 2/3 majority vote
       await stakeManager.checkSignatures(
+        1,
         utils.bufferToHex(utils.keccak256(vote)),
         utils.bufferToHex(tree.getRoot()),
         sigs
@@ -585,6 +586,7 @@ contract('StakeManager:validator contract rewards distribution', async function(
         wallets[0].getAddressString()
       ) // dummy registry address
       await stakeManager.setToken(stakeToken.address)
+      await stakeManager.updateCheckPointBlockInterval(1)
 
       let amount = web3.utils.toWei('1000')
       for (let i = 0; i < 2; i++) {
@@ -617,6 +619,7 @@ contract('StakeManager:validator contract rewards distribution', async function(
 
       // 2/3 majority vote
       await stakeManager.checkSignatures(
+        1,
         utils.bufferToHex(utils.keccak256(vote)),
         utils.bufferToHex(tree.getRoot()),
         sigs
@@ -672,6 +675,7 @@ contract('StakeManager:validator replacement', async function(accounts) {
       ) // dummy registry address
       await stakeManager.setToken(stakeToken.address)
       await stakeManager.updateDynastyValue(8)
+      await stakeManager.updateCheckPointBlockInterval(1)
 
       let amount = web3.utils.toWei('1000')
       for (let i = 0; i < 2; i++) {
@@ -722,6 +726,7 @@ contract('StakeManager:validator replacement', async function(accounts) {
       for (let i = currentEpoch; i <= auction.startEpoch; i++) {
         // 2/3 majority vote
         await stakeManager.checkSignatures(
+          1,
           utils.bufferToHex(utils.keccak256(vote)),
           utils.bufferToHex(''),
           sigs
@@ -741,7 +746,7 @@ contract('StakeManager:validator replacement', async function(accounts) {
       assertBigNumberEquality(auctionData.amount, amount)
       assert(
         auctionData.user.toLowerCase ===
-          wallets[3].getAddressString().toLowerCase
+        wallets[3].getAddressString().toLowerCase
       )
       amount = web3.utils.toWei('1250')
       // outbid wallet[3] from wallet[4]
@@ -772,7 +777,7 @@ contract('StakeManager:validator replacement', async function(accounts) {
       assertBigNumberEquality(auctionData.amount, amount)
       assert(
         auctionData.user.toLowerCase() ===
-          wallets[4].getAddressString().toLowerCase()
+        wallets[4].getAddressString().toLowerCase()
       )
     })
 
@@ -834,6 +839,7 @@ contract('StakeManager:validator replacement', async function(accounts) {
       ) {
         // 2/3 majority vote
         await stakeManager.checkSignatures(
+          1,
           utils.bufferToHex(utils.keccak256(vote)),
           utils.bufferToHex(''),
           sigs

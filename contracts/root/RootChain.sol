@@ -47,9 +47,9 @@ contract RootChain is RootChainStorage, IRootChain {
     headerBlocks[_nextHeaderBlock] = headerBlock;
     // check if it is better to keep it in local storage instead
     IStakeManager stakeManager = IStakeManager(registry.getStakeManagerAddress());
-    stakeManager.checkSignatures(keccak256(vote), bytes32(extraData[4].toUint()), sigs);
+    uint256 _reward = stakeManager.checkSignatures(headerBlock.end.sub(headerBlock.start), keccak256(vote), bytes32(extraData[4].toUint()), sigs);
 
-    emit NewHeaderBlock(headerBlock.proposer, _nextHeaderBlock, headerBlock.start, headerBlock.end, headerBlock.root);
+    emit NewHeaderBlock(headerBlock.proposer, _nextHeaderBlock, _reward, headerBlock.start, headerBlock.end, headerBlock.root);
     _nextHeaderBlock = _nextHeaderBlock.add(MAX_DEPOSITS);
     _blockDepositId = 1;
   }
@@ -104,10 +104,6 @@ contract RootChain is RootChainStorage, IRootChain {
     );
     headerBlock.start = nextChildBlock;
     headerBlock.end = dataList[2].toUint();
-    require(
-      headerBlock.end >= headerBlock.start,
-      "NOT_ADDING_BLOCKS"
-    );
 
     // toUintStrict returns the encoded uint. Encoded data must be padded to 32 bytes.
     headerBlock.root = bytes32(dataList[3].toUintStrict());

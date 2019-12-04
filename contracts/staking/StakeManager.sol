@@ -26,10 +26,11 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   address public registry;
   // genesis/governance variables
   uint256 public dynasty = 2**13;  // unit: epoch 50 days
-  uint256 public CHECKPOINT_REWARD = 10000;
+  uint256 public checkpointReward = 10000;
   uint256 public MIN_DEPOSIT_SIZE = (10**18);  // in ERC20 token
   uint256 public EPOCH_LENGTH = 256; // unit : block
   uint256 public UNSTAKE_DELAY = dynasty.mul(2); // unit: epoch
+  uint256 public checkPointBlockInterval = 255;
 
   // TODO: add events and gov. based update function
   uint256 public proposerToSignerRewards = 10; // will be used with fraud proof
@@ -43,6 +44,9 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   uint256 public totalRewardsLiquidated;
   uint256 public auctionPeriod = dynasty.div(4); // 1 week in epochs
   bytes32 public accountStateRoot;
+
+  // on dynasty update certain amount of cooldown period where there is no validator auction
+  uint256 replacementCoolDown;
 
   enum Status { Inactive, Active, Locked }
 
@@ -58,7 +62,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     Status status;
   }
 
-  struct Auction{
+  struct Auction {
     uint256 amount;
     uint256 startEpoch;
     address user;
@@ -139,7 +143,16 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
   function startAuction(uint256 validatorId, uint256 amount) external {
     require(isValidator(validatorId));
+    // when dynasty period is updated validators are in cool down period
+    require(replacementCoolDown == 0 || replacementCoolDown <= currentEpoch, "Cool down period");
     require(auctionPeriod >= currentEpoch.sub(validatorAuction[validatorId].startEpoch), "Invalid auction period");
+    // (dynasty--auctionPeriod)--(dynasty--auctionPeriod)--(dynasty--auctionPeriod)
+    // if it's auctionPeriod then will get residue from (CurrentPeriod of validator )%(dynasty--auctionPeriod)
+    // make sure that its `auctionPeriod` window
+    // dynasty = 30, auctionPeriod = 7, activationEpoch = 1, currentEpoch = 39
+    // residue 1 = (39-1)% (30+7), if residue-dynasty  > 0 it's `auctionPeriod`
+    require((currentEpoch.sub(validators[validatorId].activationEpoch) % dynasty.add(auctionPeriod)) > dynasty, "Not an auction time");
+
     require(token.transferFrom(msg.sender, address(this), amount), "Transfer amount failed");
 
     uint256 perceivedStake = validators[validatorId].amount.mul(perceivedStakeFactor(validatorId));
@@ -195,7 +208,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
   function unstake(uint256 validatorId) external onlyStaker(validatorId) {
     require(validatorAuction[validatorId].amount == 0, "Wait for auction completion");
-    uint256 exitEpoch = currentEpoch.add(UNSTAKE_DELAY);// notice period
+    uint256 exitEpoch = currentEpoch.add(1);// notice period
     require(validators[validatorId].activationEpoch > 0 &&
       validators[validatorId].deactivationEpoch == 0 &&
       validators[validatorId].status == Status.Active);
@@ -402,11 +415,16 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     validatorThreshold = newThreshold;
   }
 
+  function updateCheckPointBlockInterval(uint256 _blocks) public onlyOwner {
+    require(_blocks > 0, "Blocks interval must be non-zero");
+    checkPointBlockInterval = _blocks;
+  }
+
   // Change reward for each checkpoint
   function updateCheckpointReward(uint256 newReward) public onlyOwner {
     require(newReward > 0);
-    emit RewardUpdate(newReward, CHECKPOINT_REWARD);
-    CHECKPOINT_REWARD = newReward;
+    emit RewardUpdate(newReward, checkpointReward);
+    checkpointReward = newReward;
   }
 
   function updateValidatorState(uint256 validatorId, uint256 epoch, int256 amount) public {
@@ -424,6 +442,8 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     UNSTAKE_DELAY = dynasty.div(2);
     WITHDRAWAL_DELAY = dynasty.mul(2);
     auctionPeriod = dynasty.div(4);
+    // set cool down period
+    replacementCoolDown = currentEpoch.add(auctionPeriod);
   }
 
   function updateSigner(uint256 validatorId, address _signer) public onlyStaker(validatorId) {
@@ -479,9 +499,28 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     );
   }
 
-  function checkSignatures(bytes32 voteHash, bytes32 stateRoot, bytes memory sigs) public onlyRootChain {
+  function checkSignatures(uint256 blockInterval, bytes32 voteHash, bytes32 stateRoot, bytes memory sigs) public onlyRootChain returns(uint256) {
+    uint256 stakePower;
+    uint256 _totalStake;
+    (stakePower, _totalStake) = checkTwoByThreeMajority(voteHash, sigs);
+    // checkpoint rewards are based on BlockInterval multiplied on `checkpointReward`
+    // with actual `blockInterval`
+    // eg. checkpointReward = 10 Tokens, checkPointBlockInterval = 250, blockInterval = 500 then reward
+    // for this checkpoint is 20 Tokens
+    uint256 _reward = checkPointBlockInterval.mul(checkpointReward).div(blockInterval);
+    _reward = Math.min(checkpointReward, _reward).mul(stakePower).div(_totalStake);
+    totalRewards = totalRewards.add(_reward);
+
+    // update stateMerkleTree root for accounts balance on heimdall chain
+    // for previous checkpoint rewards
+    accountStateRoot = stateRoot;
+    finalizeCommit();
+    return _reward;
+  }
+
+  function checkTwoByThreeMajority(bytes32 voteHash, bytes memory sigs) public view returns(uint256, uint256) {
     // total voting power
-    uint256 stakePower = 0;
+    uint256 stakePower;
     uint256 validatorId;
     address lastAdd = address(0x0); // cannot have address(0x0) as an owner
     for (uint64 i = 0; i < sigs.length; i += 65) {
@@ -506,14 +545,9 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
         }
       }
     }
-
     uint256 _totalStake = currentValidatorSetTotalStake();
     require(stakePower >= _totalStake.mul(2).div(3).add(1));
-    // update stateMerkleTree root for accounts balance on heimdall chain
-    // for previous checkpoint rewards
-    accountStateRoot = stateRoot;
-    totalRewards = totalRewards.add(CHECKPOINT_REWARD.mul(stakePower).div(_totalStake));
-    finalizeCommit();
+    return (stakePower, _totalStake);
   }
 
   function challangeStateRootUpdate(bytes memory checkpointTx /* txData from submitCheckpoint */) public {
