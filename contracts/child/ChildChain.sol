@@ -101,7 +101,7 @@ contract ChildChain is Ownable, StateSyncerVerifier, StateReceiver {
     address childToken = tokens[rootToken];
 
     // check if child token is mapped
-    require(childToken != address(0x0));
+    require(childToken != address(0x0), "child token is not mapped");
 
     ChildToken obj;
 

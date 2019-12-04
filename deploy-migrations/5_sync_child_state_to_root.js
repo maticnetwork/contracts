@@ -1,17 +1,19 @@
 const ethUtils = require('ethereumjs-util')
 const utils = require('./utils')
-const fs = require('fs')
 
 const Registry = artifacts.require('Registry')
 const StateSender = artifacts.require('StateSender')
 const DepositManager = artifacts.require('DepositManager')
-const DepositManagerProxy = artifacts.require('DepositManagerProxy')
 
 module.exports = async function(deployer, network, accounts) {
   deployer.then(async() => {
     const contractAddresses = utils.getContractAddresses()
-    const registry = await Registry.at(contractAddresses.root.Registry) // deployed()
-
+    const registry = await Registry.at(contractAddresses.root.Registry)
+    await registry.mapToken(
+      contractAddresses.root.tokens.MaticWeth,
+      contractAddresses.child.tokens.MaticWeth,
+      false /* isERC721 */
+    )
     await registry.mapToken(
       contractAddresses.root.tokens.TestToken,
       contractAddresses.child.tokens.TestToken,

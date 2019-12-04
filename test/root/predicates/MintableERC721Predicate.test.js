@@ -37,6 +37,7 @@ contract('MintableERC721Predicate', async function(accounts) {
     tokenId = '0x' + crypto.randomBytes(32).toString('hex')
   })
 
+
   it('mint and startExitForMintableBurntTokens', async function() {
     const { receipt: r } = await childContracts.childErc721.mint(alice, tokenId)
     // await utils.writeToFile('child/erc721-mint.js', r)
@@ -180,6 +181,58 @@ contract('MintableERC721Predicate', async function(accounts) {
     expect((await childContracts.rootERC721.ownerOf(tokenId)).toLowerCase()).to.equal(alice.toLowerCase())
     expect(await childContracts.rootERC721.tokenURI(tokenId)).to.equal(uri)
   })
+
+  it('mint -> startExitForMintableBurntTokens -> depositERC721 -> startExitWithBurntTokens', async function() {
+    const { receipt: r } = await childContracts.childErc721.mint(alice, tokenId)
+    let mintTx = await web3Child.eth.getTransaction(r.transactionHash)
+    mintTx = await buildInFlight(mintTx)
+    await childContracts.childErc721.transferFrom(alice, bob, tokenId)
+
+    let withdraw = await childContracts.childErc721.withdraw(tokenId, { from: bob })
+    // the token doesnt exist on the root chain as yet
+    expect(await childContracts.rootERC721.exists(tokenId)).to.be.false
+
+    let { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, withdraw.receipt, accounts)
+    let startExitTx = await startExit(
+      predicate.startExitForMintableBurntToken.bind(null),
+      { headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 },
+      mintTx,
+      bob // exitor - account to initiate the exit from
+    )
+    assertStartExit(startExitTx, bob, childContracts.rootERC721.address, true, tokenId)
+
+    await predicateTestUtils.processExits(contracts.withdrawManager, childContracts.rootERC721.address)
+    expect(await childContracts.rootERC721.exists(tokenId)).to.be.true
+    expect((await childContracts.rootERC721.ownerOf(tokenId)).toLowerCase()).to.equal(bob.toLowerCase())
+
+    // deposit again
+    const depositManager = contracts.depositManager
+    await childContracts.rootERC721.approve(depositManager.address, tokenId, { from: bob })
+    const result = await depositManager.depositERC721(childContracts.rootERC721.address, tokenId, { from: bob })
+    const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
+    const NewDepositBlockEvent = logs.find(log => log.event === 'NewDepositBlock')
+    expect((await childContracts.rootERC721.ownerOf(tokenId))).to.equal(depositManager.address)
+    const deposit = await utils.fireDepositFromMainToMatic(
+      childContracts.childChain,
+      '0xa' /* dummy id */,
+      bob,
+      childContracts.rootERC721.address,
+      tokenId,
+      NewDepositBlockEvent.args.depositBlockId._hex
+    )
+    // burn and withdraw
+    withdraw = await childContracts.childErc721.withdraw(tokenId, { from: bob })
+    let checkpoint = await statefulUtils.submitCheckpoint(contracts.rootChain, withdraw.receipt, accounts)
+    block = checkpoint.block
+    startExitTx = await utils.startExitWithBurntTokens(
+      await deployer.deployErc721Predicate(),
+      { headerNumber: checkpoint.headerNumber, blockProof: checkpoint.blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference: checkpoint.reference, logIndex: 1 },
+      bob
+    )
+    assertStartExit(startExitTx, bob, childContracts.rootERC721.address, true, tokenId)
+    await predicateTestUtils.processExits(contracts.withdrawManager, childContracts.rootERC721.address)
+    expect((await childContracts.rootERC721.ownerOf(tokenId)).toLowerCase()).to.equal(bob.toLowerCase())
+  })
 })
 
 function startExit(fn, input, mintTx, from) {
@@ -197,4 +250,12 @@ function startExitMoreVp(fn, input, mintTx, exitTx, from) {
     ethUtils.bufferToHex(exitTx),
     { from, value: web3.utils.toWei('.1', 'ether') }
   )
+}
+
+function assertStartExit(startExitTx, exitor, token, isRegularExit, tokenId) {
+  let logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+  const log = logs[1]
+  log.event.should.equal('ExitStarted')
+  expect(log.args).to.include({ exitor, token, isRegularExit })
+  utils.assertBigNumberEquality(log.args.amount, tokenId)
 }
