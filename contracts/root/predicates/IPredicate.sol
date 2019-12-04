@@ -1,8 +1,10 @@
 pragma solidity ^0.5.2;
 
+import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
+
 import { Common } from "../../common/lib/Common.sol";
 import { RLPEncode } from "../../common/lib/RLPEncode.sol";
-import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
+
 import { IWithdrawManager } from "../withdrawManager/IWithdrawManager.sol";
 import { IDepositManager } from "../depositManager/IDepositManager.sol";
 import { ExitsDataStructure } from "../withdrawManager/WithdrawManagerStorage.sol";
@@ -34,6 +36,7 @@ interface IPredicate {
   function onFinalizeExit(bytes calldata data) external;
 }
 
+
 contract PredicateUtils is ExitsDataStructure, ChainIdMixin {
   using RLPReader for RLPReader.RLPItem;
 
@@ -59,16 +62,16 @@ contract PredicateUtils is ExitsDataStructure, ChainIdMixin {
     _;
   }
 
-  function sendBond() internal {
-    address(uint160(address(withdrawManager))).transfer(BOND_AMOUNT);
-  }
-
   function onFinalizeExit(bytes calldata data)
     external
     onlyWithdrawManager
   {
     (, address token, address exitor, uint256 tokenId) = decodeExitForProcessExit(data);
     depositManager.transferAssets(token, exitor, tokenId);
+  }
+
+  function sendBond() internal {
+    address(uint160(address(withdrawManager))).transfer(BOND_AMOUNT);
   }
 
   function getAddressFromTx(RLPReader.RLPItem[] memory txList)
@@ -98,7 +101,11 @@ contract PredicateUtils is ExitsDataStructure, ChainIdMixin {
     pure
     returns (PlasmaExit memory)
   {
-    (address owner, address token, uint256 amountOrTokenId, bytes32 txHash, bool isRegularExit) = abi.decode(data, (address, address, uint256, bytes32, bool));
+    (address owner,
+      address token,
+      uint256 amountOrTokenId,
+      bytes32 txHash,
+      bool isRegularExit) = abi.decode(data, (address, address, uint256, bytes32, bool));
     return PlasmaExit(amountOrTokenId, txHash, owner, token, isRegularExit, address(0) /* predicate value is not required */);
   }
 
@@ -119,7 +126,9 @@ contract PredicateUtils is ExitsDataStructure, ChainIdMixin {
   {
     (age, signer, predicate, token) = abi.decode(data, (uint256, address, address, address));
   }
+
 }
+
 
 contract IErcPredicate is IPredicate, PredicateUtils {
   enum ExitType { Invalid, OutgoingTransfer, IncomingTransfer, Burnt }

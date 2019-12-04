@@ -1,5 +1,6 @@
 pragma solidity ^0.5.2;
 
+
 library TransferWithSigUtils {
   function getTokenTransferOrderHash(address token, address spender, uint256 amount, bytes32 data, uint256 expiration)
     public
@@ -14,7 +15,7 @@ library TransferWithSigUtils {
     pure
     returns (bytes32 result)
   {
-    string memory EIP712_TOKEN_TRANSFER_ORDER_SCHEMA = "TokenTransferOrder(address spender,uint256 tokenIdOrAmount,bytes32 data,uint256 expiration)";
+    string memory EIP712_TOKEN_TRANSFER_ORDER_SCHEMA =  "TokenTransferOrder(address spender,uint256 tokenIdOrAmount,bytes32 data,uint256 expiration)";
     bytes32 EIP712_TOKEN_TRANSFER_ORDER_SCHEMA_HASH = keccak256(abi.encodePacked(EIP712_TOKEN_TRANSFER_ORDER_SCHEMA));
     bytes32 schemaHash = EIP712_TOKEN_TRANSFER_ORDER_SCHEMA_HASH;
     assembly {

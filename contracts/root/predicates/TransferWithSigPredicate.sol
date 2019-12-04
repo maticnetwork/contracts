@@ -1,16 +1,18 @@
 pragma solidity ^0.5.2;
 
-import { BytesLib } from "../../common/lib/BytesLib.sol";
-import { ECVerify } from "../../common/lib/ECVerify.sol";
 import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+
+import { BytesLib } from "../../common/lib/BytesLib.sol";
+import { ECVerify } from "../../common/lib/ECVerify.sol";
 
 import { IPredicate, PredicateUtils } from "./IPredicate.sol";
 import { IRootChain } from "../IRootChain.sol";
 import { IWithdrawManager } from "../withdrawManager/IWithdrawManager.sol";
 import { Registry } from "../../common/Registry.sol";
 import { TransferWithSigUtils } from "./TransferWithSigUtils.sol";
+
 
 contract TransferWithSigPredicate is PredicateUtils {
   using RLPReader for bytes;
@@ -22,7 +24,6 @@ contract TransferWithSigPredicate is PredicateUtils {
 
   Registry public registry;
   IRootChain public rootChain;
-
 
   struct ReferenceTxData {
     uint256 closingBalance;
@@ -79,7 +80,12 @@ contract TransferWithSigPredicate is PredicateUtils {
       "Should be an outgoing transfer"
     );
     address erc20Predicate = registry.erc20Predicate();
-    ReferenceTxData memory referenceTxData = processLogTransferReceipt(erc20Predicate, preState, msg.sender, true /* verifyInclusionInCheckpoint */, false /* isChallenge */);
+    ReferenceTxData memory referenceTxData = processLogTransferReceipt(
+      erc20Predicate,
+      preState,
+      msg.sender,
+      true, /* verifyInclusionInCheckpoint */
+      false /* isChallenge */);
     require(
       exitTxData.childToken == referenceTxData.childToken,
       "Reference and exit tx do not correspond to the same child token"
@@ -97,10 +103,14 @@ contract TransferWithSigPredicate is PredicateUtils {
     exitId |= 1; // since msg.sender == exitTxData.signer
     withdrawManager.addExitToQueue(
       msg.sender, referenceTxData.childToken, referenceTxData.rootToken,
-      referenceTxData.closingBalance.sub(exitTxData.amountOrToken), exitTxData.txHash, false /* isRegularExit */,
+      referenceTxData.closingBalance.sub(exitTxData.amountOrToken), exitTxData.txHash, false, /* isRegularExit */
       exitId
     );
-    withdrawManager.addInput(exitId, referenceTxData.age, msg.sender, referenceTxData.rootToken);
+    withdrawManager.addInput(
+      exitId,
+      referenceTxData.age,
+      msg.sender,
+      referenceTxData.rootToken);
   }
 
   /**
@@ -139,7 +149,12 @@ contract TransferWithSigPredicate is PredicateUtils {
     );
     address erc20Predicate = registry.erc20Predicate();
     // Process the receipt (i.e. proof-of-funds of the counterparty) of the referenced tx
-    ReferenceTxData memory referenceTxData = processLogTransferReceipt(erc20Predicate, preState, exitTxData.signer, true /* verifyInclusionInCheckpoint */, false /* isChallenge */);
+    ReferenceTxData memory referenceTxData = processLogTransferReceipt(
+      erc20Predicate,
+      preState,
+      exitTxData.signer,
+      true,/* verifyInclusionInCheckpoint */
+      false /* isChallenge */);
     require(
       exitTxData.childToken == referenceTxData.childToken,
       "Reference and exit tx do not correspond to the same child token"
@@ -155,7 +170,12 @@ contract TransferWithSigPredicate is PredicateUtils {
     ReferenceTxData memory _referenceTxData;
     if (referenceTx.length > 1) {
       preState = referenceTx[1].toBytes();
-      _referenceTxData = processLogTransferReceipt(erc20Predicate, preState, msg.sender, true /* verifyInclusionInCheckpoint */, false /* isChallenge */);
+      _referenceTxData = processLogTransferReceipt(
+        erc20Predicate,
+        preState,
+        msg.sender,
+        true, /* verifyInclusionInCheckpoint */
+        false /* isChallenge */);
       require(
         _referenceTxData.childToken == referenceTxData.childToken,
         "child tokens in the referenced txs do not match"
@@ -172,9 +192,11 @@ contract TransferWithSigPredicate is PredicateUtils {
     uint256 exitId = Math.max(referenceTxData.age, _referenceTxData.age) << 1;
     withdrawManager.addExitToQueue(
       msg.sender, referenceTxData.childToken, referenceTxData.rootToken,
-      exitTxData.amountOrToken.add(_referenceTxData.closingBalance), exitTxData.txHash, false /* isRegularExit */,
-      exitId
-    );
+      exitTxData.amountOrToken.add(
+      _referenceTxData.closingBalance),
+      exitTxData.txHash,
+      false, /* isRegularExit */
+      exitId);
     withdrawManager.addInput(exitId, referenceTxData.age, exitTxData.signer, referenceTxData.rootToken);
     // Even if referenceTx.length == 1, the following input acts as a "dummy" input UTXO to challenge token spends by the exitor
     withdrawManager.addInput(exitId, _referenceTxData.age, msg.sender, referenceTxData.rootToken);
@@ -216,7 +238,12 @@ contract TransferWithSigPredicate is PredicateUtils {
     // receipt alone is not enough for a challenge. It is required to check that the challenge tx was included as well
     // Challenge will be considered successful if a more recent LogTransfer event is found
     // Interestingly, that will be determined by erc20/721 predicate
-    ReferenceTxData memory referenceTxData = processLogTransferReceipt(predicate, challengeData, utxoOwner, true /* verifyInclusionInCheckpoint */, true /* isChallenge */);
+    ReferenceTxData memory referenceTxData = processLogTransferReceipt(
+      predicate,
+      challengeData,
+      utxoOwner,
+      true, /* verifyInclusionInCheckpoint */
+      true /* isChallenge */);
     // this assertion is required only for erc721 because the spend should correspond to the same NFT
     if (registry.predicates(predicate) == Registry.Type.ERC721) {
       require(
@@ -259,8 +286,16 @@ contract TransferWithSigPredicate is PredicateUtils {
     view
     returns(ReferenceTxData memory _referenceTx)
   {
-    bytes memory _preState = IPredicate(predicate).interpretStateUpdate(abi.encode(preState, participant, verifyInclusionInCheckpoint, isChallenge));
-    (_referenceTx.closingBalance, _referenceTx.age, _referenceTx.childToken, _referenceTx.rootToken) = abi.decode(_preState, (uint256, uint256, address,address));
+    bytes memory _preState = IPredicate(predicate).interpretStateUpdate(
+      abi.encode(
+      preState,
+      participant,
+      verifyInclusionInCheckpoint,
+      isChallenge));
+    (_referenceTx.closingBalance,
+      _referenceTx.age,
+      _referenceTx.childToken,
+      _referenceTx.rootToken) = abi.decode(_preState, (uint256, uint256, address,address));
   }
 
   /**

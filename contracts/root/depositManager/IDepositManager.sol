@@ -1,5 +1,6 @@
 pragma solidity ^0.5.2;
 
+
 interface IDepositManager {
   function depositEther() external payable;
   function transferAssets(address _token, address  _user, uint256 _amountOrNFTId) external;

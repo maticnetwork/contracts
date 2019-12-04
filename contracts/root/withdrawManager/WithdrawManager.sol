@@ -17,6 +17,7 @@ import { RootChainHeader } from "../RootChainStorage.sol";
 import { Registry } from "../../common/Registry.sol";
 import { WithdrawManagerStorage } from "./WithdrawManagerStorage.sol";
 
+
 contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;
@@ -145,12 +146,13 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     uint256 ageOfInput = getExitableAt(createdAt) << 127;
     uint256 exitId = ageOfInput << 1;
     address predicate = registry.isTokenMappedAndGetPredicate(token);
-    _addExitToQueue(msg.sender, token, amountOrToken, bytes32(0) /* txHash */, false /* isRegularExit */, exitId);
-    _addInput(exitId, ageOfInput, msg.sender /* utxoOwner */, predicate, token);
-  }
-
-  function getDepositManager() internal view returns (DepositManager) {
-    return DepositManager(address(uint160(registry.getDepositManagerAddress())));
+    _addExitToQueue(msg.sender,
+      token,
+      amountOrToken,
+      bytes32(0), /* txHash */
+      false,/* isRegularExit */
+      exitId);
+    _addInput(exitId, ageOfInput, msg.sender, /* utxoOwner */ predicate, token);
   }
 
   function addExitToQueue(
@@ -330,20 +332,6 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     }
   }
 
-  function getKey(address token, address exitor, uint256 amountOrToken)
-    internal
-    view
-    returns (bytes32 key)
-  {
-    if (registry.isERC721(token)) {
-      key = keccak256(abi.encodePacked(token, exitor, amountOrToken));
-    } else {
-      // validate amount
-      require(amountOrToken > 0, "CANNOT_EXIT_ZERO_AMOUNTS");
-      key = keccak256(abi.encodePacked(token, exitor));
-    }
-  }
-
   /**
    * @dev Receive bond for bonded exits
    */
@@ -373,6 +361,24 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       "WITHDRAW_BLOCK_NOT_A_PART_OF_SUBMITTED_HEADER"
     );
     return createdAt;
+  }
+
+  function getKey(address token, address exitor, uint256 amountOrToken)
+    internal
+    view
+    returns (bytes32 key)
+  {
+    if (registry.isERC721(token)) {
+      key = keccak256(abi.encodePacked(token, exitor, amountOrToken));
+    } else {
+      // validate amount
+      require(amountOrToken > 0, "CANNOT_EXIT_ZERO_AMOUNTS");
+      key = keccak256(abi.encodePacked(token, exitor));
+    }
+  }
+
+  function getDepositManager() internal view returns (DepositManager) {
+    return DepositManager(address(uint160(registry.getDepositManagerAddress())));
   }
 
   function getExitableAt(uint256 createdAt) internal view returns (uint256) {

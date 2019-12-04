@@ -64,20 +64,6 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     stakeManager.delegationTransfer(amount, msg.sender);
   }
 
-  function _claimRewards(uint256 delegatorId) internal {
-    address validator;
-    StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
-    uint256 currentEpoch = stakeManager.currentEpoch();
-    (,,,,,,,validator,) = stakeManager.validators(delegators[delegatorId].bondedTo);
-    delegators[delegatorId].reward += ValidatorContract(validator).calculateRewards(
-      delegatorId,
-      delegators[delegatorId].amount,
-      delegators[delegatorId].delegationStartEpoch,
-      delegators[delegatorId].delegationStopEpoch,
-      currentEpoch);
-    delegators[delegatorId].delegationStartEpoch = currentEpoch;
-  }
-
   function bond(uint256 delegatorId, uint256 validatorId) public onlyDelegator(delegatorId) {
     StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
     uint256 currentEpoch = stakeManager.currentEpoch(); //TODO add 1
@@ -208,7 +194,10 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
   function unstakeClaim(uint256 delegatorId) public onlyDelegator(delegatorId) {
     StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
     // WITHDRAWAL_DELAY should match with validator's WITHDRAWAL_DELAY for perfect slashing
-    require(delegators[delegatorId].deactivationEpoch > 0 && delegators[delegatorId].deactivationEpoch.add(stakeManager.WITHDRAWAL_DELAY()) <= stakeManager.currentEpoch());
+    require(delegators[delegatorId].deactivationEpoch > 0 &&
+          delegators[delegatorId].deactivationEpoch.add(
+          stakeManager.WITHDRAWAL_DELAY()) <= stakeManager.currentEpoch());
+
     uint256 amount = delegators[delegatorId].amount;
     totalStaked = totalStaked.sub(amount);
 
@@ -221,10 +210,24 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
   }
 
   function slash(uint256[] memory _delegators, uint256 slashRate) public onlyValidatorContract(_delegators[0]) {
-      for (uint256 i; i < _delegators.length; i++) {
-        Delegator storage delegator = delegators[_delegators[i]];
-        delegator.amount = delegator.amount.sub(delegator.amount.mul(slashRate).div(100));
-      }
+    for (uint256 i; i < _delegators.length; i++) {
+      Delegator storage delegator = delegators[_delegators[i]];
+      delegator.amount = delegator.amount.sub(delegator.amount.mul(slashRate).div(100));
+    }
+  }
+
+  function _claimRewards(uint256 delegatorId) internal {
+    address validator;
+    StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
+    uint256 currentEpoch = stakeManager.currentEpoch();
+    (,,,,,,,validator,) = stakeManager.validators(delegators[delegatorId].bondedTo);
+    delegators[delegatorId].reward += ValidatorContract(validator).calculateRewards(
+      delegatorId,
+      delegators[delegatorId].amount,
+      delegators[delegatorId].delegationStartEpoch,
+      delegators[delegatorId].delegationStopEpoch,
+      currentEpoch);
+    delegators[delegatorId].delegationStartEpoch = currentEpoch;
   }
 
 }

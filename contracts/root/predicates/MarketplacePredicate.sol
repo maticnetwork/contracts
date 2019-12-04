@@ -101,8 +101,18 @@ contract MarketplacePredicate is PredicateUtils {
     );
 
     // process the first input, which is the proof-of-exitor's funds for token t1 which exitor transferred to counterparty as part of the marketplace tx
-    ReferenceTxData memory reference1 = processLogTransferReceipt(predicate, preState, msg.sender, true /* verifyInclusionInCheckpoint */, false /* isChallenge */);
-    validateTokenBalance(reference1.childToken, exitTxData.token1, reference1.closingBalance, exitTxData.amount1);
+    ReferenceTxData memory reference1 = processLogTransferReceipt(
+      predicate,
+      preState,
+      msg.sender,
+      true, /* verifyInclusionInCheckpoint */
+      false /* isChallenge */);
+
+    validateTokenBalance(
+      reference1.childToken,
+      exitTxData.token1,
+      reference1.closingBalance,
+      exitTxData.amount1);
 
     // process the second input, which is the proof-of-counterparty's funds for token t2 which the counterparty transferred to exitor as part of the marketplace tx
     (predicate, preState) = abi.decode(referenceTx[1].toBytes(), (address, bytes));
@@ -110,8 +120,17 @@ contract MarketplacePredicate is PredicateUtils {
       uint8(registry.predicates(predicate)) != 0,
       "Not a valid predicate"
     );
-    ReferenceTxData memory reference2 = processLogTransferReceipt(predicate, preState, exitTxData.counterParty, true /* verifyInclusionInCheckpoint */, false /* isChallenge */);
-    validateTokenBalance(reference2.childToken, exitTxData.token2, reference2.closingBalance, exitTxData.amount2);
+    ReferenceTxData memory reference2 = processLogTransferReceipt(
+      predicate,
+      preState,
+      exitTxData.counterParty,
+      true,/*verifyInclusionInCheckpoint*/
+      false/* isChallenge */);
+    validateTokenBalance(
+      reference2.childToken,
+      exitTxData.token2,
+      reference2.closingBalance,
+      exitTxData.amount2);
 
     // The last element in referenceTx array refers to the child token being exited
     address exitChildToken = address(RLPReader.toUint(referenceTx[referenceTx.length - 1]));
@@ -121,7 +140,12 @@ contract MarketplacePredicate is PredicateUtils {
     // @todo This part is untested
     if (referenceTx.length == 4) {
       (predicate, preState) = abi.decode(referenceTx[3].toBytes(), (address, bytes));
-      reference3 = processLogTransferReceipt(predicate, preState, msg.sender, true /* verifyInclusionInCheckpoint */, false /* isChallenge */);
+      reference3 = processLogTransferReceipt(
+        predicate,
+        preState,
+        msg.sender,
+        true, /* verifyInclusionInCheckpoint */
+        false /* isChallenge */);
       require(
         reference2.childToken == reference3.childToken,
         "Child token doesnt match"
@@ -137,20 +161,27 @@ contract MarketplacePredicate is PredicateUtils {
       withdrawManager.addExitToQueue(
         msg.sender, exitChildToken, reference1.rootToken,
         reference1.closingBalance.sub(exitTxData.amount1),
-        exitTxData.txHash, false /* isRegularExit */,
+        exitTxData.txHash, false, /* isRegularExit */
         exitId
       );
     } else if (exitChildToken == reference2.childToken) {
       withdrawManager.addExitToQueue(
         msg.sender, exitChildToken, reference2.rootToken,
         exitTxData.amount2.add(reference3.closingBalance),
-        exitTxData.txHash, false /* isRegularExit */,
+        exitTxData.txHash, false,/* isRegularExit */
         exitId
       );
     }
     // @todo Support batch
-    withdrawManager.addInput(exitId, reference1.age /* age of input */, msg.sender /* party whom this utxo belongs to */, reference1.rootToken);
-    withdrawManager.addInput(exitId, reference2.age, exitTxData.counterParty, reference2.rootToken);
+    withdrawManager.addInput(exitId,
+    reference1.age, /* age of input */
+    msg.sender, /* party whom this utxo belongs to */
+    reference1.rootToken);
+    withdrawManager.addInput(
+      exitId,
+      reference2.age,
+      exitTxData.counterParty,
+      reference2.rootToken);
     // If exitor did not have pre=exiting balance on the chain for token t2
     // In that case, the following input acts as a "dummy" input UTXO to challenge token t2 spends by the exitor
     withdrawManager.addInput(exitId, 0, msg.sender, reference3.rootToken);
@@ -189,7 +220,13 @@ contract MarketplacePredicate is PredicateUtils {
     // receipt alone is not enough for a challenge. It is required to check that the challenge tx was included as well
     // Challenge will be considered successful if a more recent LogTransfer event is found
     // Interestingly, that will be determined by erc20/721 predicate
-    ReferenceTxData memory referenceTxData = processLogTransferReceipt(predicate, challengeData, utxoOwner, true /* verifyInclusionInCheckpoint */, true /* isChallenge */);
+    ReferenceTxData memory referenceTxData = processLogTransferReceipt(
+      predicate,
+      challengeData,
+      utxoOwner,
+      true, /* verifyInclusionInCheckpoint */
+      true /* isChallenge */);
+
     // this assertion is required only for erc721 because the spend should correspond to the same NFT
     if (registry.predicates(predicate) == Registry.Type.ERC721) {
       require(
@@ -257,8 +294,14 @@ contract MarketplacePredicate is PredicateUtils {
     view
     returns(ReferenceTxData memory _referenceTx)
   {
-    bytes memory _preState = IPredicate(predicate).interpretStateUpdate(abi.encode(preState, participant, verifyInclusionInCheckpoint, isChallenge));
-    (_referenceTx.closingBalance, _referenceTx.age, _referenceTx.childToken, _referenceTx.rootToken) = abi.decode(_preState, (uint256, uint256, address,address));
+    bytes memory _preState = IPredicate(predicate).interpretStateUpdate(
+      abi.encode(preState, participant,
+      verifyInclusionInCheckpoint,
+      isChallenge));
+    (_referenceTx.closingBalance,
+    _referenceTx.age,
+    _referenceTx.childToken,
+    _referenceTx.rootToken) = abi.decode(_preState, (uint256, uint256, address,address));
   }
 
   function processExitTx(bytes memory exitTx, address tradeParticipant)
@@ -309,10 +352,24 @@ contract MarketplacePredicate is PredicateUtils {
     require(executeOrder.taker == tradeParticipant2, "Orders are not complimentary");
     // token1 and amount1 in ExitTxData should correspond to what the tradeParticipant signed over (spent in the trade)
     if (tradeParticipant1 == tradeParticipant) {
-      return ExitTxData(order1.amount, order2.amount, order1.token, order2.token, tradeParticipant2, bytes32(0), executeOrder.expiration);
+      return ExitTxData(
+        order1.amount,
+        order2.amount,
+        order1.token,
+        order2.token,
+        tradeParticipant2,
+        bytes32(0),
+        executeOrder.expiration);
     }
     else if (tradeParticipant2 == tradeParticipant) {
-      return ExitTxData(order2.amount, order1.amount, order2.token, order1.token, tradeParticipant1, bytes32(0), executeOrder.expiration);
+      return ExitTxData(
+        order2.amount,
+        order1.amount,
+        order2.token,
+        order1.token,
+        tradeParticipant1,
+        bytes32(0),
+        executeOrder.expiration);
     }
     revert("Provided tx doesnt concern the exitor (tradeParticipant)");
   }

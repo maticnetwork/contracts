@@ -34,19 +34,6 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
     depositEther();
   }
 
-  /**
-   * @dev Caches childChain and stateSender (frequently used variables) from registry
-   */
-  function updateChildChainAndStateSender() public {
-    (address _childChain, address _stateSender) = registry.getChildChainAndStateSender();
-    require(
-      _stateSender != address(stateSender) || _childChain != childChain,
-      "Atleast one of stateSender or childChain address should change"
-    );
-    childChain = _childChain;
-    stateSender = StateSender(_stateSender);
-  }
-
   function transferAssets(address _token, address _user, uint256 _amountOrNFTId)
     external
     isPredicateAuthorized
@@ -99,6 +86,19 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
       _createDepositBlock(_user, _tokens[i], _amountOrTokens[i], depositId);
       depositId = depositId.add(1);
     }
+  }
+
+  /**
+   * @dev Caches childChain and stateSender (frequently used variables) from registry
+   */
+  function updateChildChainAndStateSender() public {
+    (address _childChain, address _stateSender) = registry.getChildChainAndStateSender();
+    require(
+      _stateSender != address(stateSender) || _childChain != childChain,
+      "Atleast one of stateSender or childChain address should change"
+    );
+    childChain = _childChain;
+    stateSender = StateSender(_stateSender);
   }
 
   function depositERC20ForUser(address _token, address _user, uint256 _amount)
