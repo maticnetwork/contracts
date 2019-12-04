@@ -146,8 +146,11 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     // when dynasty period is updated validators are in cool down period
     require(replacementCoolDown == 0 || replacementCoolDown <= currentEpoch, "Cool down period");
     require(auctionPeriod >= currentEpoch.sub(validatorAuction[validatorId].startEpoch), "Invalid auction period");
-    // dynasty--auctionPeriod--dynasty--auctionPeriod--dynasty
+    // (dynasty--auctionPeriod)--(dynasty--auctionPeriod)--(dynasty--auctionPeriod)
+    // if it's auctionPeriod then will get residue from (CurrentPeriod of validator )%(dynasty--auctionPeriod)
     // make sure that its `auctionPeriod` window
+    // dynasty = 30, auctionPeriod = 7, activationEpoch = 1, currentEpoch = 39
+    // residue 1 = (39-1)% (30+7), if residue-dynasty  > 0 it's `auctionPeriod`
     require((currentEpoch.sub(validators[validatorId].activationEpoch) % dynasty.add(auctionPeriod)) > dynasty, "Not an auction time");
 
     require(token.transferFrom(msg.sender, address(this), amount), "Transfer amount failed");
