@@ -508,7 +508,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     // eg. checkpointReward = 10 Tokens, checkPointBlockInterval = 250, blockInterval = 500 then reward
     // for this checkpoint is 20 Tokens
     uint256 _reward = checkPointBlockInterval.mul(checkpointReward).div(blockInterval);
-    _reward = Math.max(checkpointReward, _reward.mul(stakePower).div(_totalStake));
+    _reward = Math.min(checkpointReward, _reward).mul(stakePower).div(_totalStake);
     totalRewards = totalRewards.add(_reward);
 
     // update stateMerkleTree root for accounts balance on heimdall chain
