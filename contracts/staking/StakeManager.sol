@@ -496,17 +496,23 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     );
   }
 
-  function checkSignatures(uint256 blockInterval, bytes32 voteHash, bytes32 stateRoot, bytes memory sigs) public onlyRootChain {
+  function checkSignatures(uint256 blockInterval, bytes32 voteHash, bytes32 stateRoot, bytes memory sigs) public onlyRootChain returns(uint256) {
     uint256 stakePower;
     uint256 _totalStake;
-    require(checkPointBlockInterval <= blockInterval, "Smaller checkpoint not allowed");
+    // checkpoint rewards are based on BlockInterval multiplied on `checkpointReward`
+    // with actual `blockInterval`
+    // eg. checkpointReward = 10 Tokens, checkPointBlockInterval = 250, blockInterval = 500 then reward
+    // for this checkpoint is 20 Tokens
+    uint256 _reward = checkPointBlockInterval.mul(checkpointReward).div(blockInterval);
+    _reward = Math.max(checkpointReward, _reward.mul(stakePower).div(_totalStake));
+    totalRewards = totalRewards.add(_reward);
 
     (stakePower, _totalStake) = checkTwoByThreeMajority(voteHash, sigs);
     // update stateMerkleTree root for accounts balance on heimdall chain
     // for previous checkpoint rewards
     accountStateRoot = stateRoot;
-    totalRewards = totalRewards.add(checkpointReward.mul(stakePower).div(_totalStake));
     finalizeCommit();
+    return _reward;
   }
 
   function checkTwoByThreeMajority(bytes32 voteHash, bytes memory sigs) public view returns(uint256, uint256) {
