@@ -37,7 +37,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
   }
 
   modifier checkPredicateAndTokenMapping(address rootToken) {
-    (Registry.Type, _type) = registry.predicates(msg.sender);
+    Registry.Type _type = registry.predicates(msg.sender);
     require(
       registry.rootToChildToken(rootToken) != address(0x0),
       "rootToken not supported"
