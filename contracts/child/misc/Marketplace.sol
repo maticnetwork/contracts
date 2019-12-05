@@ -4,15 +4,12 @@ interface MarketplaceToken {
   function transferWithSig(bytes calldata sig, uint256 tokenIdOrAmount, bytes32 data, uint256 expiration, address to) external returns (address);
 }
 
+
 contract Marketplace {
   struct Order {
     address token;
     bytes sig;
     uint256 tokenIdOrAmount;
-  }
-
-  function decode(bytes memory data) internal pure returns(Order memory order) {
-    (order.token, order.sig, order.tokenIdOrAmount) = abi.decode(data, (address, bytes, uint256));
   }
 
   function executeOrder(
@@ -43,5 +40,9 @@ contract Marketplace {
       tradeParticipant1
     );
     require(taker == tradeParticipant2, "Orders are not complimentary");
+  }
+
+  function decode(bytes memory data) internal pure returns(Order memory order) {
+    (order.token, order.sig, order.tokenIdOrAmount) = abi.decode(data, (address, bytes, uint256));
   }
 }

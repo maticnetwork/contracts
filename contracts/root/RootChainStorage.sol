@@ -3,6 +3,7 @@ pragma solidity ^0.5.2;
 import { Registry } from "../common/Registry.sol";
 import { ProxyStorage } from "../common/misc/ProxyStorage.sol";
 
+
 contract RootChainHeader {
   event NewHeaderBlock(
     address indexed proposer,
@@ -20,6 +21,7 @@ contract RootChainHeader {
     address proposer;
   }
 }
+
 
 contract RootChainStorage is ProxyStorage, RootChainHeader {
   bytes32 public heimdallId;

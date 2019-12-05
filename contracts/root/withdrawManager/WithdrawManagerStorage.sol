@@ -5,6 +5,7 @@ import { Registry } from "../../common/Registry.sol";
 import { RootChain } from "../RootChain.sol";
 import { ExitNFT } from "./ExitNFT.sol";
 
+
 contract ExitsDataStructure {
   struct Input {
     address utxoOwner;
@@ -23,6 +24,7 @@ contract ExitsDataStructure {
     mapping(uint256 => Input) inputs;
   }
 }
+
 
 contract WithdrawManagerHeader is ExitsDataStructure {
   event Withdraw(
@@ -48,6 +50,7 @@ contract WithdrawManagerHeader is ExitsDataStructure {
 
   event ExitCancelled(uint256 indexed exitId);
 }
+
 
 contract WithdrawManagerStorage is ProxyStorage, WithdrawManagerHeader {
   uint256 internal constant HALF_EXIT_PERIOD = 1 weeks;

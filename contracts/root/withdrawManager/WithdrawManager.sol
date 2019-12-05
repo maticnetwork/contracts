@@ -28,6 +28,42 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     _;
   }
 
+  modifier isPredicateAuthorized() {
+    require(
+      registry.predicates(msg.sender) != Registry.Type.Invalid,
+      "PREDICATE_NOT_AUTHORIZED"
+    );
+    _;
+  }
+
+  modifier checkPredicateAndTokenMapping(address rootToken) {
+    (Registry.Type, _type) = registry.predicates(msg.sender);
+    require(
+      registry.rootToChildToken(rootToken) != address(0x0),
+      "rootToken not supported"
+    );
+    if (_type == Registry.Type.ERC20) {
+      require(
+        registry.isERC721(rootToken) == false,
+        "Predicate supports only ERC20 tokens"
+      );
+    } else if (_type == Registry.Type.ERC721) {
+      require(
+        registry.isERC721(rootToken) == true,
+        "Predicate supports only ERC721 tokens"
+      );
+    } else if (_type == Registry.Type.Custom) {
+    } else {
+      revert("PREDICATE_NOT_AUTHORIZED");
+    }
+    _;
+  }
+
+    /**
+   * @dev Receive bond for bonded exits
+   */
+  function () external payable {}
+
   function createExitQueue(address token)
     external
   {
@@ -70,7 +106,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       "INVALID_RECEIPT_MERKLE_PROOF"
     );
 
-    if(verifyTxInclusion) {
+    if (verifyTxInclusion) {
       require(
         MerklePatriciaProof.verify(
           referenceTxData[offset + 10].toBytes(), // tx
@@ -102,37 +138,6 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     return (getExitableAt(createdAt) << 127) | (blockNumber << 32) | branchMask.toRlpItem().toUint();
   }
 
-  modifier isPredicateAuthorized() {
-    require(
-      registry.predicates(msg.sender) != Registry.Type.Invalid,
-      "PREDICATE_NOT_AUTHORIZED"
-    );
-    _;
-  }
-
-  modifier checkPredicateAndTokenMapping(address rootToken) {
-    (Registry.Type _type) = registry.predicates(msg.sender);
-    require(
-      registry.rootToChildToken(rootToken) != address(0x0),
-      "rootToken not supported"
-    );
-    if (_type == Registry.Type.ERC20) {
-      require(
-        registry.isERC721(rootToken) == false,
-        "Predicate supports only ERC20 tokens"
-      );
-    } else if (_type == Registry.Type.ERC721) {
-      require(
-        registry.isERC721(rootToken) == true,
-        "Predicate supports only ERC721 tokens"
-      );
-    } else if (_type == Registry.Type.Custom) {
-    } else {
-      revert("PREDICATE_NOT_AUTHORIZED");
-    }
-    _;
-  }
-
   function startExitWithDepositedTokens(uint256 depositId, address token, uint256 amountOrToken)
     external
     payable
@@ -146,7 +151,8 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     uint256 ageOfInput = getExitableAt(createdAt) << 127;
     uint256 exitId = ageOfInput << 1;
     address predicate = registry.isTokenMappedAndGetPredicate(token);
-    _addExitToQueue(msg.sender,
+    _addExitToQueue(
+      msg.sender,
       token,
       amountOrToken,
       bytes32(0), /* txHash */
@@ -171,71 +177,6 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       "INVALID_ROOT_TO_CHILD_TOKEN_MAPPING"
     );
     _addExitToQueue(exitor, rootToken, exitAmountOrTokenId, txHash, isRegularExit, priority);
-  }
-
-  function _addExitToQueue(
-    address exitor,
-    address rootToken,
-    uint256 exitAmountOrTokenId,
-    bytes32 txHash,
-    bool isRegularExit,
-    uint256 exitId)
-    internal
-  {
-    require(
-      exits[exitId].token == address(0x0),
-      "EXIT_ALREADY_EXISTS"
-    );
-    exits[exitId] = PlasmaExit(exitAmountOrTokenId, txHash, exitor, rootToken, isRegularExit, msg.sender /* predicate */);
-    PlasmaExit storage _exitObject = exits[exitId];
-
-    bytes32 key = getKey(_exitObject.token, _exitObject.owner, _exitObject.receiptAmountOrNFTId);
-
-    if (!isRegularExit) {
-      // a user cannot start 2 MoreVP exits for the same erc20 token or nft
-      require(ownerExits[key] == 0, "EXIT_ALREADY_IN_PROGRESS");
-      ownerExits[key] = exitId;
-    }
-
-    PriorityQueue queue = PriorityQueue(exitsQueues[_exitObject.token]);
-
-    // Way priority queue is implemented is such that it expects 2 uint256 params with most significant 128 bits masked out
-    // This is a workaround to split exitId, which otherwise is conclusive in itself
-    // exitId >> 128 gives 128 most significant bits
-    // uint256(uint128(exitId)) gives 128 least significant bits
-    // @todo Fix this mess
-    queue.insert(exitId >> 128, uint256(uint128(exitId)));
-
-    // create exit nft
-    exitNft.mint(_exitObject.owner, exitId);
-    emit ExitStarted(exitor, exitId, rootToken, exitAmountOrTokenId, isRegularExit);
-  }
-
-  /**
-   * @dev Add a state update (UTXO style input) to an exit
-   * @param exitId Exit ID
-   * @param age age of the UTXO style input
-   * @param utxoOwner User for whom the input acts as a proof-of-funds
-      * (alternate expression) User who could have potentially spent this UTXO
-   * @param token Token (Think of it like Utxo color)
-   */
-  function addInput(uint256 exitId, uint256 age, address utxoOwner, address token)
-    external
-    isPredicateAuthorized
-  {
-    PlasmaExit storage exitObject = exits[exitId];
-    require(
-      exitObject.owner != address(0x0),
-      "INVALID_EXIT_ID"
-    );
-    _addInput(exitId, age, utxoOwner, msg.sender /* predicate */, token);
-  }
-
-  function _addInput(uint256 exitId, uint256 age, address utxoOwner, address predicate, address token)
-    internal
-  {
-    exits[exitId].inputs[age] = Input(utxoOwner, predicate, token);
-    emit ExitUpdated(exitId, age, utxoOwner);
   }
 
   function challengeExit(
@@ -273,31 +214,6 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     emit ExitCancelled(exitId);
   }
 
-  function encodeExit(PlasmaExit storage exit)
-    internal
-    view
-    returns (bytes memory)
-  {
-    return abi.encode(exit.owner, registry.rootToChildToken(exit.token), exit.receiptAmountOrNFTId, exit.txHash, exit.isRegularExit);
-  }
-
-  function encodeExitForProcessExit(uint256 exitId)
-    internal
-    view
-    returns (bytes memory)
-  {
-    PlasmaExit storage exit = exits[exitId];
-    return abi.encode(exitId, exit.token, exit.owner, exit.receiptAmountOrNFTId);
-  }
-
-  function encodeInputUtxo(uint256 age, Input storage input)
-    internal
-    view
-    returns (bytes memory)
-  {
-    return abi.encode(age, input.utxoOwner, input.predicate, registry.rootToChildToken(input.token));
-  }
-
   function processExits(address _token)
     external
   {
@@ -306,7 +222,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
 
     PriorityQueue exitQueue = PriorityQueue(exitsQueues[_token]);
 
-    while(exitQueue.currentSize() > 0 && gasleft() > ON_FINALIZE_GAS_LIMIT) {
+    while (exitQueue.currentSize() > 0 && gasleft() > ON_FINALIZE_GAS_LIMIT) {
       (exitableAt, exitId) = exitQueue.getMin();
       exitId = exitableAt << 128 | exitId;
       PlasmaExit memory currentExit = exits[exitId];
@@ -332,17 +248,102 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     }
   }
 
-  /**
-   * @dev Receive bond for bonded exits
-   */
-  function () external payable {}
-
   function setExitNFTContract(address _nftContract)
     external
     onlyOwner
   {
     require(_nftContract != address(0));
     exitNft = ExitNFT(_nftContract);
+  }
+
+  /**
+   * @dev Add a state update (UTXO style input) to an exit
+   * @param exitId Exit ID
+   * @param age age of the UTXO style input
+   * @param utxoOwner User for whom the input acts as a proof-of-funds
+      * (alternate expression) User who could have potentially spent this UTXO
+   * @param token Token (Think of it like Utxo color)
+   */
+  function addInput(uint256 exitId, uint256 age, address utxoOwner, address token)
+    external
+    isPredicateAuthorized
+  {
+    PlasmaExit storage exitObject = exits[exitId];
+    require(
+      exitObject.owner != address(0x0),
+      "INVALID_EXIT_ID"
+    );
+    _addInput(exitId, age, utxoOwner, /* predicate */ msg.sender, token);
+  }
+
+  function _addInput(uint256 exitId, uint256 age, address utxoOwner, address predicate, address token)
+    internal
+  {
+    exits[exitId].inputs[age] = Input(utxoOwner, predicate, token);
+    emit ExitUpdated(exitId, age, utxoOwner);
+  }
+
+  function encodeExit(PlasmaExit storage exit)
+    internal
+    view
+    returns (bytes memory)
+  {
+    return abi.encode(exit.owner, registry.rootToChildToken(exit.token), exit.receiptAmountOrNFTId, exit.txHash, exit.isRegularExit);
+  }
+
+  function encodeExitForProcessExit(uint256 exitId)
+    internal
+    view
+    returns (bytes memory)
+  {
+    PlasmaExit storage exit = exits[exitId];
+    return abi.encode(exitId, exit.token, exit.owner, exit.receiptAmountOrNFTId);
+  }
+
+  function encodeInputUtxo(uint256 age, Input storage input)
+    internal
+    view
+    returns (bytes memory)
+  {
+    return abi.encode(age, input.utxoOwner, input.predicate, registry.rootToChildToken(input.token));
+  }
+
+  function _addExitToQueue(
+    address exitor,
+    address rootToken,
+    uint256 exitAmountOrTokenId,
+    bytes32 txHash,
+    bool isRegularExit,
+    uint256 exitId)
+    internal
+  {
+    require(
+      exits[exitId].token == address(0x0),
+      "EXIT_ALREADY_EXISTS"
+    );
+    exits[exitId] = PlasmaExit(exitAmountOrTokenId, txHash, exitor, rootToken, isRegularExit,  /* predicate */msg.sender);
+    PlasmaExit storage _exitObject = exits[exitId];
+
+    bytes32 key = getKey(_exitObject.token, _exitObject.owner, _exitObject.receiptAmountOrNFTId);
+
+    if (!isRegularExit) {
+      // a user cannot start 2 MoreVP exits for the same erc20 token or nft
+      require(ownerExits[key] == 0, "EXIT_ALREADY_IN_PROGRESS");
+      ownerExits[key] = exitId;
+    }
+
+    PriorityQueue queue = PriorityQueue(exitsQueues[_exitObject.token]);
+
+    // Way priority queue is implemented is such that it expects 2 uint256 params with most significant 128 bits masked out
+    // This is a workaround to split exitId, which otherwise is conclusive in itself
+    // exitId >> 128 gives 128 most significant bits
+    // uint256(uint128(exitId)) gives 128 least significant bits
+    // @todo Fix this mess
+    queue.insert(exitId >> 128, uint256(uint128(exitId)));
+
+    // create exit nft
+    exitNft.mint(_exitObject.owner, exitId);
+    emit ExitStarted(exitor, exitId, rootToken, exitAmountOrTokenId, isRegularExit);
   }
 
   function checkBlockMembershipInCheckpoint(

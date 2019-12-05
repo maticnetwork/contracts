@@ -5,11 +5,12 @@ import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 import { MarketplacePredicate } from "../root/predicates/MarketplacePredicate.sol";
 import { ERC20Predicate } from "../root/predicates/ERC20Predicate.sol";
 
+
 contract MarketplacePredicateTest is MarketplacePredicate {
 
   constructor()
     MarketplacePredicate(address(0x0), address(0x0), address(0x0))
-    public {}
+  public {}
 
   function processLogTransferReceiptTest(
     address predicate,

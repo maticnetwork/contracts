@@ -144,7 +144,7 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
     returns (bytes4)
   {
     // the ERC721 contract address is the message sender
-    _safeCreateDepositBlock(_user, msg.sender /* token */, _tokenId);
+    _safeCreateDepositBlock(_user, msg.sender, /* token */ _tokenId);
     return 0x150b7a02;
   }
 
@@ -152,7 +152,7 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
   function tokenFallback(address _user, uint256 _amount, bytes memory /* _data */)
   public
   {
-    _safeCreateDepositBlock(_user, msg.sender /* token */, _amount);
+    _safeCreateDepositBlock(_user, msg.sender, /* token */ _amount);
   }
 
   function _safeCreateDepositBlock(address _user, address _token, uint256 _amountOrToken)

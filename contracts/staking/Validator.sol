@@ -67,9 +67,11 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
   }
 
   function bond(uint256 delegatorId, uint256 amount, uint256 currentEpoch) public onlyDelegatorContract {
-    require(delegation);
-    require(delegatorHistory[delegatorId][1] == 0 ||
-      delegatorHistory[delegatorId][1] <= currentEpoch.sub(IStakeManager(owner()).WITHDRAWAL_DELAY()));
+    require(delegation, "Validator is not accepting delegations");
+    require(
+      delegatorHistory[delegatorId][1] == 0 ||
+      delegatorHistory[delegatorId][1] <= currentEpoch.sub(IStakeManager(owner()).WITHDRAWAL_DELAY())
+      );
 
     delegators.push(delegatorId);
     delegatorHistory[delegatorId][0] = currentEpoch;
@@ -101,7 +103,13 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
     return int(delegationManager.revertLazyUnBond(_delegators, exitEpoch, validator));
   }
 
-  function calculateRewards(uint256 delegatorId, uint256 delegationAmount, uint256 startEpoch, uint256 endEpoch, uint256 currentEpoch) public view returns(uint256) {
+  function calculateRewards(
+    uint256 delegatorId,
+    uint256 delegationAmount,
+    uint256 startEpoch,
+    uint256 endEpoch,
+    uint256 currentEpoch
+    ) public view returns(uint256) {
     // TODO: use struct as param
     uint256 reward = 0;
     if (endEpoch == 0) {
@@ -133,5 +141,4 @@ contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
       // TODO: add slashing for old delegators with Proofs
     }
   }
-
 }

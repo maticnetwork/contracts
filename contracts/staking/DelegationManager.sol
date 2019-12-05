@@ -69,11 +69,18 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     uint256 currentEpoch = stakeManager.currentEpoch(); //TODO add 1
     Delegator storage delegator = delegators[delegatorId];
 
-    require(delegator.lastValidatorEpoch == 0 || delegator.lastValidatorEpoch.add(validatorHopLimit) <= currentEpoch, "Delegation_Limit_Reached");
+    require(
+      delegator.lastValidatorEpoch == 0 ||
+       delegator.lastValidatorEpoch.add(validatorHopLimit) <= currentEpoch,
+      "Delegation_Limit_Reached"
+      );
 
     address validator;
     (,,,,,,,validator,) = stakeManager.validators(validatorId);
-    require(validator != address(0x0), "Unknown validatorId or validator doesn't expect delegations");
+    require(
+      validator != address(0x0),
+      "Unknown validatorId or validator doesn't expect delegations"
+      );
 
     // for lazy unbonding
     if (delegator.delegationStopEpoch != 0 && delegator.delegationStopEpoch < currentEpoch ) {
@@ -81,7 +88,8 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
       delegator.delegationStopEpoch = 0;
       delegator.delegationStartEpoch = 0;
     } else {
-      require((delegator.delegationStopEpoch == 0 && // TODO: handle !0
+      require(
+        (delegator.delegationStopEpoch == 0 && // TODO: handle !0
         delegator.delegationStartEpoch == 0) &&
         delegators[delegatorId].bondedTo == 0,
         "Already_Bonded");
@@ -110,7 +118,11 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     delegators[delegatorId].bondedTo = 0;
   }
 
-  function unBondLazy(uint256[] memory _delegators, uint256 epoch, address validator) public onlyValidatorContract(_delegators[0]) returns(uint256) {
+  function unBondLazy(
+    uint256[] memory _delegators,
+    uint256 epoch,
+    address validator
+    ) public onlyValidatorContract(_delegators[0]) returns(uint256) {
     uint256 amount;
     uint256 delegatorId;
     for (uint256 i; i < _delegators.length; i++) {
@@ -121,20 +133,28 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     return amount;
   }
 
-  function revertLazyUnBond(uint256[] memory _delegators, uint256 epoch, address validator) public onlyValidatorContract(_delegators[0]) returns(uint256) {
+  function revertLazyUnBond(
+    uint256[] memory _delegators,
+    uint256 epoch,
+    address validator
+    ) public onlyValidatorContract(_delegators[0]) returns(uint256) {
     uint256 amount;
     uint256 delegatorId;
     for (uint256 i; i < _delegators.length; i++) {
       delegatorId = _delegators[i];
-        if (delegators[delegatorId].delegationStopEpoch == epoch) {
-          delegators[delegatorId].delegationStopEpoch = 0;
-          amount = amount.add(delegators[delegatorId].amount);
-       }
+      if (delegators[delegatorId].delegationStopEpoch == epoch) {
+        delegators[delegatorId].delegationStopEpoch = 0;
+        amount = amount.add(delegators[delegatorId].amount);
+      }
     }
     return amount;
   }
 
-  function reStake(uint256 delegatorId, uint256 amount, bool stakeRewards) public onlyDelegator(delegatorId) {
+  function reStake(
+    uint256 delegatorId,
+    uint256 amount,
+    bool stakeRewards
+    ) public onlyDelegator(delegatorId) {
     if (delegators[delegatorId].bondedTo != 0) {
       // Todo before getting rewards update validator state
       _claimRewards(delegatorId);
@@ -194,9 +214,11 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
   function unstakeClaim(uint256 delegatorId) public onlyDelegator(delegatorId) {
     StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
     // WITHDRAWAL_DELAY should match with validator's WITHDRAWAL_DELAY for perfect slashing
-    require(delegators[delegatorId].deactivationEpoch > 0 &&
-          delegators[delegatorId].deactivationEpoch.add(
-          stakeManager.WITHDRAWAL_DELAY()) <= stakeManager.currentEpoch());
+    require(
+      delegators[delegatorId].deactivationEpoch > 0 &&
+      delegators[delegatorId].deactivationEpoch.add(
+      stakeManager.WITHDRAWAL_DELAY()) <= stakeManager.currentEpoch(),
+      "Incomplete withdraw period");
 
     uint256 amount = delegators[delegatorId].amount;
     totalStaked = totalStaked.sub(amount);
@@ -229,5 +251,4 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
       currentEpoch);
     delegators[delegatorId].delegationStartEpoch = currentEpoch;
   }
-
 }

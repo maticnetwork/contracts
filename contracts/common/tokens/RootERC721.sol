@@ -5,7 +5,7 @@ import { ERC721Full } from "openzeppelin-solidity/contracts/token/ERC721/ERC721F
 
 contract RootERC721 is ERC721Full {
   constructor (string memory name, string memory symbol) ERC721Full(name, symbol)
-    public 
+    public
     {
   }
 

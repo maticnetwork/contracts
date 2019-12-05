@@ -22,7 +22,7 @@ contract MintableERC721Predicate is ERC721Predicate {
 
   constructor(address _withdrawManager, address _depositManager)
     ERC721Predicate(_withdrawManager, _depositManager)
-    public {}
+  public {}
 
   /**
    * @notice Start an exit for a token that was minted and burnt on the side chain
