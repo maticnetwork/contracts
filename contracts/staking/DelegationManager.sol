@@ -22,6 +22,13 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
   uint256 public validatorHopLimit = 2; // checkpoint/epochs
   uint256 public WITHDRAWAL_DELAY = 0; // todo: remove if not needed use from stakeManager
 
+  //@todo combine both roots
+  // mapping for delegator accounts root on heimdall
+  mapping (uint256 => bytes32) public accRoot;
+
+  // mapping for delegators withdraw root on heimdall
+  mapping (uint256 => bytes32) public withdrawRoot;
+
   struct Delegator {
     // unstaking delegator
     uint256 amount;
@@ -79,23 +86,55 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
   }
 
   // after unstaking wait for WITHDRAWAL_DELAY, in order to claim stake back
-  function unstakeClaim(uint256 delegatorId, bytes proof) public onlyDelegator(delegatorId) {
-    // TODO: complete me
+  function unstakeClaim(
+    uint256 checkpointId,// checkpoint Id  with root of proofs
+    uint256 delegatorId,
+    uint256 rewardAmount,
+    uint256 slashedAmount,
+    uint256 accIndex,
+    uint256 withdrawIndex,
+    bytes accProof,
+    bytes withdrawProof
+    ) public onlyDelegator(delegatorId) {
     StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
-    // WITHDRAWAL_DELAY should match with validator's WITHDRAWAL_DELAY for perfect slashing
+    require(
+      keccak256(
+        abi.encodePacked(
+          delegatorId,
+          rewardAmount,
+          slashedAmount)
+          ).checkMembership(
+            accIndex,
+            accRoot[checkpointId],
+            accProof),
+      "Wrong account proof"
+      );
+    require(
+      keccak256(
+        abi.encodePacked(
+          delegatorId)
+          ).checkMembership(
+            withdrawIndex,
+            withdrawRoot[checkpointId],
+            withdrawProof),
+      "Wrong withdraw proof"
+      );
+
     require(
       delegators[delegatorId].deactivationEpoch > 0 &&
       delegators[delegatorId].deactivationEpoch.add(
       stakeManager.WITHDRAWAL_DELAY()) <= stakeManager.currentEpoch(),
-      ""
+      "Incomplete withdraw Period"
       );
+
     uint256 amount = delegators[delegatorId].amount;
     totalStaked = totalStaked.sub(amount);
+    amount = amount.add(rewardAmount).add(delegators[delegatorId].reward).sub(slashedAmount);
 
-    // TODO :add slashing
+    //@todo :add slashing, take slashedAmount into account for totalStaked
     _burn(delegatorId);
 
-    require(token.transfer(msg.sender, amount + delegators[delegatorId].reward));
+    require(token.transfer(msg.sender, amount));
     delete delegators[delegatorId];
     emit Unstaked(msg.sender, delegatorId, amount, totalStaked);
   }
@@ -138,30 +177,6 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
 
     delegators[delegatorId].delegationStopEpoch = 0;
     delegators[delegatorId].bondedTo = 0;
-  }
-
-  function unBondLazy(uint256[] memory _delegators, uint256 epoch, address validator) public onlyValidatorContract(_delegators[0]) returns(uint256) {
-    uint256 amount;
-    uint256 delegatorId;
-    for (uint256 i; i < _delegators.length; i++) {
-      delegatorId = _delegators[i];
-      delegators[delegatorId].delegationStopEpoch = epoch;
-      amount = amount.add(delegators[delegatorId].amount);
-    }
-    return amount;
-  }
-
-  function revertLazyUnBond(uint256[] memory _delegators, uint256 epoch, address validator) public onlyValidatorContract(_delegators[0]) returns(uint256) {
-    uint256 amount;
-    uint256 delegatorId;
-    for (uint256 i; i < _delegators.length; i++) {
-      delegatorId = _delegators[i];
-      if (delegators[delegatorId].delegationStopEpoch == epoch) {
-        delegators[delegatorId].delegationStopEpoch = 0;
-        amount = amount.add(delegators[delegatorId].amount);
-      }
-    }
-    return amount;
   }
 
   function reStake(uint256 delegatorId, uint256 amount, bool stakeRewards) public onlyDelegator(delegatorId) {
