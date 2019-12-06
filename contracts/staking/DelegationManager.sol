@@ -30,11 +30,11 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
   mapping (uint256 => bytes32) public withdrawRoot;
 
   struct Delegator {
-    // unstaking delegator
     uint256 amount;
     uint256 reward;
+    uint256 claimedRewards;
     uint256 bondedTo; // validatorId
-    uint256 deactivationEpoch;
+    uint256 deactivationEpoch;// unstaking delegator
   }
 
   // Delegator metadata
@@ -193,33 +193,50 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     emit ReStaked(delegatorId, amount, totalStaked);
   }
 
-  function slash(uint256[] memory _delegators, uint256 slashRate) public onlyValidatorContract(_delegators[0]) {
+  function slash(uint256[] memory _delegators, uint256 slashRate) public  {
+      // Validate
       for (uint256 i; i < _delegators.length; i++) {
         Delegator storage delegator = delegators[_delegators[i]];
         delegator.amount = delegator.amount.sub(delegator.amount.mul(slashRate).div(100));
       }
   }
 
-  function claimRewards(uint256 delegatorId) public onlyDelegator(delegatorId) {
-    _claimRewards(delegatorId);
-    uint256 amount = delegators[delegatorId].reward;
+  function claimRewards(
+    uint256 delegatorId,
+    uint256 rewardAmount,
+    uint256 slashedAmount,
+    uint256 accIndex,
+    bool withdraw,
+    bytes accProof
+    ) public /*onlyDelegator(delegatorId) */ {
     StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
-    delegators[delegatorId].reward = 0;
-    stakeManager.delegationTransfer(amount, msg.sender);
+    require(
+      keccak256(
+        abi.encodePacked(
+          delegatorId,
+          rewardAmount,
+          slashedAmount)
+          ).checkMembership(
+            accIndex,
+            accRoot[checkpointId],
+            accProof),
+      "Wrong account proof"
+      );
+    if (rewardAmount <= slashedAmount) {
+      delegators[delegatorId].amount = delegators[delegatorId].amount.sub(slashedAmount.sub(rewardAmount));
+      // emit stakeUpdate
+      } else {
+      delegators[delegatorId].reward = delegators[delegatorId].reward.add(rewardAmount.sub(slashedAmount));
+      }
+    if (withdraw) {
+      withdrawRewards(delegatorId);
+    }
   }
 
-  function _claimRewards(uint256 delegatorId) internal {
-    address validator;
+  function withdrawRewards(uint256 delegatorId) public {
     StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
-    uint256 currentEpoch = stakeManager.currentEpoch();
-    (,,,,,,,validator,) = stakeManager.validators(delegators[delegatorId].bondedTo);
-    delegators[delegatorId].reward += ValidatorContract(validator).calculateRewards(
-      delegatorId,
-      delegators[delegatorId].amount,
-      delegators[delegatorId].delegationStartEpoch,
-      delegators[delegatorId].delegationStopEpoch,
-      currentEpoch);
-    delegators[delegatorId].delegationStartEpoch = currentEpoch;
+    delegators[delegatorId].reward = 0;
+    stakeManager.delegationTransfer(amount, ownerOf(delegatorId));
   }
 
 }
