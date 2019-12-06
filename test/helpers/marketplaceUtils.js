@@ -81,7 +81,7 @@ function getTransferTypedData({
     domain: {
       name: "Matic Network",
       version: "1",
-      chainId: 15001,
+      chainId: 15004,
       contract: tokenAddress
     },
     primaryType: "TokenTransferOrder",
