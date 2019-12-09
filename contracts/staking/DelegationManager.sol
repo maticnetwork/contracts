@@ -222,12 +222,14 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
             accProof),
       "Wrong account proof"
       );
-    if (rewardAmount <= slashedAmount) {
-      delegators[delegatorId].amount = delegators[delegatorId].amount.sub(slashedAmount.sub(rewardAmount));
+    uint256 _rewardAmount = rewardAmount.sub(claimedRewards);
+    if (_rewardAmount <= slashedAmount) {
+      delegators[delegatorId].amount = delegators[delegatorId].amount.sub(slashedAmount.sub(_rewardAmount));
       // emit stakeUpdate
       } else {
-      delegators[delegatorId].reward = delegators[delegatorId].reward.add(rewardAmount.sub(slashedAmount));
+      delegators[delegatorId].reward = delegators[delegatorId].reward.add(_rewardAmount.sub(slashedAmount));
       }
+    claimedRewards = rewardAmount;
     if (withdraw) {
       withdrawRewards(delegatorId);
     }
