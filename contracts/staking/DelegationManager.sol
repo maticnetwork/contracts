@@ -29,6 +29,9 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
   // mapping for delegators withdraw root on heimdall
   mapping (uint256 => bytes32) public withdrawRoot;
 
+  // each validators delegation amount
+  mapping (uint256 => uint256) public validatorDelegation;
+
   struct Delegator {
     uint256 amount;
     uint256 reward;
@@ -36,6 +39,9 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     uint256 bondedTo; // validatorId
     uint256 deactivationEpoch;// unstaking delegator
   }
+
+  // all delegators of one validator
+  mapping (uint256 => bool) public validatorUnbonding;
 
   // Delegator metadata
   mapping (uint256 => Delegator) public delegators;
@@ -48,6 +54,18 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
   constructor (Registry _registry, IERC20 _token) ERC721Full("Matic Delegator", "MD") public {
     registry = _registry;
     token = _token;
+  }
+
+  function unbondAll(uint256 validatorId) public /* onlyStakeManager*/ {
+    validatorUnbonding[validatorId] = true;
+  }
+
+  function bondAll(uint256 validatorId) public /* onlyStakeManager*/ {
+    validatorUnbonding[validatorId] = false;
+  }
+
+  function validatorUnstake(uint256 validatorId) public /* onlyStakeManager*/ {
+    delete validatorDelegation[validatorId];
   }
 
   function stake(uint256 amount, uint256 validatorId) public onlyWhenUnlocked {
@@ -142,8 +160,6 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
   function bond(uint256 delegatorId, uint256 validatorId) public onlyDelegator(delegatorId) {
     StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
     uint256 currentEpoch = stakeManager.currentEpoch(); //TODO add 1
-    // TODO: add validator is accepting delegation check
-    require(stakeManager.isValidator(validatorId), "Unknown validatorId or validator doesn't expect delegations");
 
     if (delegators[delegatorId].bondedTo != 0) {
       emit ReBonding(delegatorId, delegators[delegatorId].bondedTo, validatorId);
@@ -155,10 +171,13 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
   }
 
   function _bond(uint256 delegatorId, uint256 validatorId, uint256 epoch, StakeManager stakeManager) private {
-    // delegator.delegationStartEpoch = currentEpoch;
+    require(stakeManager.validatorAcceptsDelegation(validatorId) && !validatorUnbonding[validatorId], "Validator is not accepting delegation");
+    require(stakeManager.isValidator(validatorId), "Unknown validatorId or validator doesn't expect delegations");
+
     // require(delegator.lastValidatorEpoch.add(validatorHopLimit) <= currentEpoch, "Delegation_Limit_Reached");
     Delegator storage delegator = delegators[delegatorId];
     delegator.bondedTo = validatorId;
+    validatorDelegation[validatorId] = validatorDelegation[validatorId].add(delegator.amount);
     stakeManager.updateValidatorState(validatorId, currentEpoch, int(delegator.amount));
     delegator.lastValidatorEpoch = currentEpoch;
   }
@@ -174,31 +193,37 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
 
   function _unbond(uint256 delegatorId, uint256 epoch,  StakeManager stakeManager) private {
     stakeManager.updateValidatorState(delegators[delegatorId].bondedTo, epoch, -int(delegators[delegatorId].amount));
-
+    validatorDelegation[validatorId] = validatorDelegation[validatorId].sub(delegator.amount);
     delegators[delegatorId].delegationStopEpoch = 0;
     delegators[delegatorId].bondedTo = 0;
   }
 
   function reStake(uint256 delegatorId, uint256 amount, bool stakeRewards) public onlyDelegator(delegatorId) {
+    Delegator storage delegator = delegators[delegatorId];
     if (amount > 0) {
       require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");
     }
     if (stakeRewards) {
-      amount += delegators[delegatorId].reward;
-      delegators[delegatorId].reward = 0;
+      amount += delegator.reward;
+      delegator.reward = 0;
     }
     totalStaked = totalStaked.add(amount);
+    if (delegator.bondedTo != 0) {
+      validatorDelegation[validatorId] = validatorDelegation[validatorId].add(delegator.amount);
+    }
 
-    delegators[delegatorId].amount += amount;
+    delegator.amount = delegator.amount.add(amount);
     emit ReStaked(delegatorId, amount, totalStaked);
   }
 
   function slash(uint256[] memory _delegators, uint256 slashRate) public  {
       // Validate
-      for (uint256 i; i < _delegators.length; i++) {
-        Delegator storage delegator = delegators[_delegators[i]];
-        delegator.amount = delegator.amount.sub(delegator.amount.mul(slashRate).div(100));
-      }
+      // for (uint256 i; i < _delegators.length; i++) {
+      //   Delegator storage delegator = delegators[_delegators[i]];
+      //   delegator.amount = delegator.amount.sub(delegator.amount.mul(slashRate).div(100));
+      // }
+      // uint256 slashedAmount = 0
+      // validatorDelegation[validatorId] = validatorDelegation[validatorId].sub(amount);
   }
 
   function claimRewards(
