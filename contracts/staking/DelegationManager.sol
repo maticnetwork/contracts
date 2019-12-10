@@ -4,18 +4,22 @@ import { ERC721Full } from "openzeppelin-solidity/contracts/token/ERC721/ERC721F
 import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
-import { StakeManager } from "./StakeManager.sol";
+
+import { IStakeManager } from "./IStakeManager.sol";
+import { Merkle } from "../common/lib/Merkle.sol";
 import { Registry } from "../common/Registry.sol";
 import { IDelegationManager } from "./IDelegationManager.sol";
 import { Lockable } from "../common/mixin/Lockable.sol";
-import { ValidatorContract } from "./Validator.sol";
+import { Staker } from "./Validator.sol";
 
 
-contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
+contract DelegationManager is IDelegationManager, Lockable {
   using SafeMath for uint256;
+  using Merkle for bytes32;
 
   IERC20 public token;
   Registry public registry;
+  Staker public stakerNFT;
   uint256 public NFTCounter = 1;
   uint256 public MIN_DEPOSIT_SIZE = 0;
   uint256 public totalStaked;
@@ -47,13 +51,14 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
   mapping (uint256 => Delegator) public delegators;
 
   modifier onlyDelegator(uint256 delegatorId) {
-    require(ownerOf(delegatorId) == msg.sender);
+    require(stakerNFT.ownerOf(delegatorId) == msg.sender);
     _;
   }
 
-  constructor (Registry _registry, IERC20 _token) ERC721Full("Matic Delegator", "MD") public {
+  constructor (Registry _registry, IERC20 _token, Staker _stakerNFT) public {
     registry = _registry;
     token = _token;
+    stakerNFT = _stakerNFT;
   }
 
   function unbondAll(uint256 validatorId) public /* onlyStakeManager*/ {
@@ -69,10 +74,10 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
   }
 
   function stake(uint256 amount, uint256 validatorId) public onlyWhenUnlocked {
-    require(balanceOf(msg.sender) == 0, "No second time staking");
+    require(stakerNFT.balanceOf(msg.sender) == 0, "No second time staking");
     require(amount >= MIN_DEPOSIT_SIZE);
     require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");
-    StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
+    IStakeManager stakeManager = IStakeManager(registry.getStakeManagerAddress());
 
     totalStaked = totalStaked.add(amount);
     uint256 currentEpoch = stakeManager.currentEpoch();
@@ -80,18 +85,19 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     delegators[NFTCounter] = Delegator({
       deactivationEpoch: 0,
       amount: amount,
+      claimedRewards: 0,
       reward: 0,
       bondedTo: 0
       });
 
-    _mint(msg.sender, NFTCounter);
+    stakerNFT.mint(msg.sender, NFTCounter);
     _bond(NFTCounter, validatorId, currentEpoch, stakeManager);
     emit Staked(msg.sender, NFTCounter, currentEpoch, amount, totalStaked);
     NFTCounter = NFTCounter.add(1);
   }
 
   function unstake(uint256 delegatorId, uint256 index) public onlyDelegator(delegatorId) {
-    StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
+    IStakeManager stakeManager = IStakeManager(registry.getStakeManagerAddress());
     uint256 currentEpoch = stakeManager.currentEpoch();
 
     if (delegators[delegatorId].bondedTo != 0) {
@@ -111,10 +117,10 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     uint256 slashedAmount,
     uint256 accIndex,
     uint256 withdrawIndex,
-    bytes accProof,
-    bytes withdrawProof
+    bytes memory accProof,
+    bytes memory withdrawProof
     ) public onlyDelegator(delegatorId) {
-    StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
+    IStakeManager stakeManager = IStakeManager(registry.getStakeManagerAddress());
     require(
       keccak256(
         abi.encodePacked(
@@ -150,7 +156,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     amount = amount.add(rewardAmount).add(delegators[delegatorId].reward).sub(slashedAmount);
 
     //@todo :add slashing, take slashedAmount into account for totalStaked
-    _burn(delegatorId);
+    stakerNFT.burn(delegatorId);
 
     require(token.transfer(msg.sender, amount));
     delete delegators[delegatorId];
@@ -158,43 +164,41 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
   }
 
   function bond(uint256 delegatorId, uint256 validatorId) public onlyDelegator(delegatorId) {
-    StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
+    IStakeManager stakeManager = IStakeManager(registry.getStakeManagerAddress());
     uint256 currentEpoch = stakeManager.currentEpoch(); //TODO add 1
 
     if (delegators[delegatorId].bondedTo != 0) {
       emit ReBonding(delegatorId, delegators[delegatorId].bondedTo, validatorId);
       _unbond(delegatorId, currentEpoch, stakeManager);
      } else {
-      emit Bonding(delegatorId, validatorId, validator);
+      emit Bonding(delegatorId, validatorId, delegators[delegatorId].amount);
      }
     _bond(delegatorId, validatorId, currentEpoch, stakeManager);
   }
 
-  function _bond(uint256 delegatorId, uint256 validatorId, uint256 epoch, StakeManager stakeManager) private {
-    require(stakeManager.validatorAcceptsDelegation(validatorId) && !validatorUnbonding[validatorId], "Validator is not accepting delegation");
+  function _bond(uint256 delegatorId, uint256 validatorId, uint256 epoch, IStakeManager stakeManager) private {
+    require(!validatorUnbonding[validatorId], "Validator is not accepting delegation");
     require(stakeManager.isValidator(validatorId), "Unknown validatorId or validator doesn't expect delegations");
 
     // require(delegator.lastValidatorEpoch.add(validatorHopLimit) <= currentEpoch, "Delegation_Limit_Reached");
     Delegator storage delegator = delegators[delegatorId];
     delegator.bondedTo = validatorId;
     validatorDelegation[validatorId] = validatorDelegation[validatorId].add(delegator.amount);
-    stakeManager.updateValidatorState(validatorId, currentEpoch, int(delegator.amount));
-    delegator.lastValidatorEpoch = currentEpoch;
+    stakeManager.updateValidatorState(validatorId, epoch, int(delegator.amount));
   }
 
   function unBond(uint256 delegatorId) public onlyDelegator(delegatorId) {
     // TODO: validator amount update
-    StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
+    IStakeManager stakeManager = IStakeManager(registry.getStakeManagerAddress());
     // _claimRewards(delegatorId);
     uint256 currentEpoch = stakeManager.currentEpoch();
     _unbond(delegatorId, currentEpoch, stakeManager);
     emit UnBonding(delegatorId, delegators[delegatorId].bondedTo);
   }
 
-  function _unbond(uint256 delegatorId, uint256 epoch,  StakeManager stakeManager) private {
+  function _unbond(uint256 delegatorId, uint256 epoch,  IStakeManager stakeManager) private {
     stakeManager.updateValidatorState(delegators[delegatorId].bondedTo, epoch, -int(delegators[delegatorId].amount));
-    validatorDelegation[validatorId] = validatorDelegation[validatorId].sub(delegator.amount);
-    delegators[delegatorId].delegationStopEpoch = 0;
+    validatorDelegation[delegators[delegatorId].bondedTo] = validatorDelegation[delegators[delegatorId].bondedTo].sub(delegators[delegatorId].amount);
     delegators[delegatorId].bondedTo = 0;
   }
 
@@ -209,7 +213,7 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
     }
     totalStaked = totalStaked.add(amount);
     if (delegator.bondedTo != 0) {
-      validatorDelegation[validatorId] = validatorDelegation[validatorId].add(delegator.amount);
+      validatorDelegation[delegators[delegatorId].bondedTo] = validatorDelegation[delegators[delegatorId].bondedTo].add(delegator.amount);
     }
 
     delegator.amount = delegator.amount.add(amount);
@@ -227,14 +231,15 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
   }
 
   function claimRewards(
+    uint256 checkpointId,// checkpoint Id  with root of proofs
     uint256 delegatorId,
     uint256 rewardAmount,
     uint256 slashedAmount,
     uint256 accIndex,
     bool withdraw,
-    bytes accProof
+    bytes memory accProof
     ) public /*onlyDelegator(delegatorId) */ {
-    StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
+    IStakeManager stakeManager = IStakeManager(registry.getStakeManagerAddress());
     require(
       keccak256(
         abi.encodePacked(
@@ -247,23 +252,24 @@ contract DelegationManager is IDelegationManager, ERC721Full, Lockable {
             accProof),
       "Wrong account proof"
       );
-    uint256 _rewardAmount = rewardAmount.sub(claimedRewards);
+    uint256 _rewardAmount = rewardAmount.sub(delegators[delegatorId].claimedRewards);
     if (_rewardAmount <= slashedAmount) {
       delegators[delegatorId].amount = delegators[delegatorId].amount.sub(slashedAmount.sub(_rewardAmount));
       // emit stakeUpdate
       } else {
       delegators[delegatorId].reward = delegators[delegatorId].reward.add(_rewardAmount.sub(slashedAmount));
       }
-    claimedRewards = rewardAmount;
+    delegators[delegatorId].claimedRewards = rewardAmount;
     if (withdraw) {
       withdrawRewards(delegatorId);
     }
   }
 
   function withdrawRewards(uint256 delegatorId) public {
-    StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
+    IStakeManager stakeManager = IStakeManager(registry.getStakeManagerAddress());
+    uint256 amount = delegators[delegatorId].reward;
     delegators[delegatorId].reward = 0;
-    stakeManager.delegationTransfer(amount, ownerOf(delegatorId));
+    stakeManager.delegationTransfer(amount, stakerNFT.ownerOf(delegatorId));
   }
 
 }

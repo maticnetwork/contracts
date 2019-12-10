@@ -13,18 +13,18 @@ import { RootChainable } from "../common/mixin/RootChainable.sol";
 import { Registry } from "../common/Registry.sol";
 
 import { IStakeManager } from "./IStakeManager.sol";
-import { IDelegationManager } from "./IDelegationManager.sol";
+import { DelegationManager } from "./DelegationManager.sol";
 
-import { Validator } from "./Validator.sol";
-import { ValidatorContract } from "./Validator.sol";
+import { Staker } from "./Validator.sol";
+// import { ValidatorContract } from "./Validator.sol";
 
 
-contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
+contract StakeManager is IStakeManager, RootChainable, Lockable {
   using SafeMath for uint256;
   using ECVerify for bytes32;
   using Merkle for bytes32;
 
-
+  Staker public stakerNFT;
   IERC20 public token;
   address public registry;
   // genesis/governance variables
@@ -40,7 +40,6 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   uint256 public validatorThreshold = 10; //128
   uint256 public minLockInPeriod = 2; // unit: dynasty
   uint256 public totalStaked;
-  uint256 public currentEpoch = 1;
   uint256 public NFTCounter = 1;
   uint256 public totalRewards;
   uint256 public totalRewardsLiquidated;
@@ -80,13 +79,14 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   //Ongoing auctions for validatorId
   mapping (uint256 => Auction) public validatorAuction;
 
-  constructor (address _registry, address _rootchain) ERC721Full("Matic Validator", "MV") public {
+  constructor (address _registry, address _rootchain, address _stakerNFT) public {
     registry = _registry;
     rootChain = _rootchain;
+    stakerNFT = Staker(_stakerNFT);
   }
 
   modifier onlyStaker(uint256 validatorId) {
-    require(ownerOf(validatorId) == msg.sender);
+    require(stakerNFT.ownerOf(validatorId) == msg.sender);
     _;
   }
 
@@ -101,7 +101,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
   function stakeFor(address user, uint256 amount, address signer, bool acceptDelegation) public onlyWhenUnlocked {
     require(currentValidatorSetSize() < validatorThreshold);
-    require(balanceOf(user) == 0, "Only one time staking is allowed");
+    require(stakerNFT.balanceOf(user) == 0, "Only one time staking is allowed");
     require(amount > MIN_DEPOSIT_SIZE);
     require(signerToValidator[signer] == 0);
 
@@ -123,9 +123,9 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       status : Status.Active
     });
 
-    _mint(user, NFTCounter);
+    stakerNFT.mint(user, NFTCounter);
     if (_acceptDelegation) {
-      IDelegationManager(Registry(registry).getDelegationManagerAddress()).bondAll(NFTCounter);
+      DelegationManager(Registry(registry).getDelegationManagerAddress()).bondAll(NFTCounter);
     }
 
     signerToValidator[signer] = NFTCounter;
@@ -174,7 +174,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     require(auctionPeriod.add(auction.startEpoch) <= currentEpoch, "Confirmation is not allowed before auctionPeriod");
 
     // validator is last auctioner
-    if (auction.user == ownerOf(validatorId)) {
+    if (auction.user == stakerNFT.ownerOf(validatorId)) {
       uint256 refund = validator.amount;
       require(token.transfer(auction.user, refund));
       validator.amount = auction.amount;
@@ -214,7 +214,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
     // unbond all delegators in future
     int256 delegationAmount = 0;
-    IDelegationManager(Registry(registry).getDelegationManagerAddress()).unbondAll(validatorId);
+    DelegationManager(Registry(registry).getDelegationManagerAddress()).unbondAll(validatorId);
     //  update future
     updateTimeLine(exitEpoch,  -(int256(amount) + delegationAmount ), -1);
 
@@ -228,8 +228,8 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     totalStaked = totalStaked.sub(amount);
 
     // TODO :add slashing here use soft slashing in slash amt variable
-    _burn(validatorId);
-    IDelegationManager(Registry(registry).getDelegationManagerAddress()).validatorUnstake(validatorId);
+    stakerNFT.burn(validatorId);
+    DelegationManager(Registry(registry).getDelegationManagerAddress()).validatorUnstake(validatorId);
     delete signerToValidator[validators[validatorId].signer];
     // delete validators[validatorId];
 
@@ -261,15 +261,8 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     // accountState = keccak256(abi.encodePacked(validatorId, accountBalance))
     require(keccak256(abi.encodePacked(validatorId, accountBalance)).checkMembership(index, accountStateRoot, proof));
     uint256 _reward = accountBalance.sub(validators[validatorId].claimedRewards);
-    address _contract = validators[validatorId].contractAddress;
-    if (_contract == address(0x0)) {
-      validators[validatorId].reward = validators[validatorId].reward.add(_reward);
-    }
-    else {
-      // TODO: delegator bond/share rate if return needs to be updated periodically
-      // otherwise validator can delay and get all the delegators reward
-      ValidatorContract(_contract).updateRewards(_reward, currentEpoch, validators[validatorId].amount);
-    }
+
+    validators[validatorId].reward = validators[validatorId].reward.add(_reward);
     totalRewardsLiquidated += _reward;
     require(totalRewardsLiquidated <= totalRewards, "Liquidating more rewards then checkpoints submitted");// pos 2/3+1 is colluded
     validators[validatorId].claimedRewards = accountBalance;
@@ -290,7 +283,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   // if not jailed then in state of warning, else will be unstaking after x epoch
   function slash(uint256 validatorId, uint256 slashingRate, uint256 jailCheckpoints) public onlySlashingMananger {
     // if contract call contract.slash
-    if (validators[validatorId].acceptDelegation) {
+    if (acceptsDelegation(validatorId)) {
       //TODO: slashing 
       // ValidatorContract(validators[validatorId].contractAddress).slash(slashingRate, currentEpoch, currentEpoch);
     }
@@ -311,7 +304,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     uint256 amount = validators[validatorId].amount;
     require(amount >= MIN_DEPOSIT_SIZE);
     uint256 exitEpoch = validators[validatorId].deactivationEpoch;
-    IDelegationManager(Registry(registry).getDelegationManagerAddress()).bondAll(NFTCounter);
+    DelegationManager(Registry(registry).getDelegationManagerAddress()).bondAll(NFTCounter);
     // undo timline so that validator is normal validator
     updateTimeLine(exitEpoch,int256(amount), 1);
 
@@ -328,7 +321,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     uint256 exitEpoch = currentEpoch.add(UNSTAKE_DELAY);  // jail period
 
     validators[validatorId].jailTime = jailCheckpoints;
-    IDelegationManager(Registry(registry).getDelegationManagerAddress()).unbondAll(validatorId);
+    DelegationManager(Registry(registry).getDelegationManagerAddress()).unbondAll(validatorId);
     // update future in case of no `unJail`
     updateTimeLine(exitEpoch, -(int256(amount)), -1);
     validators[validatorId].deactivationEpoch = exitEpoch;
@@ -346,8 +339,8 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     uint256[] memory _validators = new uint256[](validatorThreshold);
     uint256 validator;
     uint256 k = 0;
-    for (uint96 i = 0;i < totalSupply() ;i++) {
-      validator = tokenByIndex(i);
+    for (uint96 i = 0;i < stakerNFT.totalSupply() ;i++) {
+      validator = stakerNFT.tokenByIndex(i);
       if (isValidator(validator)) {
         _validators[k++] = validator;
       }
@@ -366,14 +359,14 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   }
 
   function getValidatorId(address user) public view returns(uint256) {
-    return tokenOfOwnerByIndex(user, 0);
+    return stakerNFT.tokenOfOwnerByIndex(user, 0);
   }
 
   function totalStakedFor(address user) external view returns (uint256) {
-    if (user == address(0x0) || balanceOf(user) == 0) {
+    if (user == address(0x0) || stakerNFT.balanceOf(user) == 0) {
       return 0;
     }
-    return validators[tokenOfOwnerByIndex(user, 0)].amount;
+    return validators[stakerNFT.tokenOfOwnerByIndex(user, 0)].amount;
   }
 
   function supportsHistory() external pure returns (bool) {
@@ -455,8 +448,8 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     return uint256(validatorState[currentEpoch].amount);
   }
 
-  function validatorAcceptsDelegation(uint256 validatorId) public view returns(bool) {
-    return validators[validatorId].acceptDelegation;
+  function acceptsDelegation(uint256 validatorId) public view returns(bool) {
+    return DelegationManager(Registry(registry).getDelegationManagerAddress()).validatorUnbonding(validatorId);
   }
 
   function isValidator(uint256 validatorId) public view returns (bool) {
@@ -491,9 +484,9 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
         lastAdd = signer;
         stakePower = stakePower.add(validators[validatorId].amount);
         // add delegation power
-        if (validators[validatorId].acceptDelegation) {
+        if (acceptsDelegation(validatorId)) {
           // @Todo batch sum of delegation power
-          stakePower = stakePower.add(IDelegationManager(Registry(registry).getDelegationManagerAddress()).validatorDelegation(validatorId));
+          stakePower = stakePower.add(DelegationManager(Registry(registry).getDelegationManagerAddress()).validatorDelegation(validatorId));
         }
       }
     }

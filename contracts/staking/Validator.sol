@@ -1,6 +1,6 @@
 pragma solidity ^0.5.2;
 
-import { ERC721Metadata } from "openzeppelin-solidity/contracts/token/ERC721/ERC721Metadata.sol";
+import { ERC721Full } from "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
@@ -9,10 +9,12 @@ import { IDelegationManager } from "./IDelegationManager.sol";
 import { IStakeManager } from "./IStakeManager.sol";
 
 
-contract Staker is ERC721Metadata {
+contract Staker is ERC721Full {
   //@todo refactor validator delegator and pull common here
+  // @todo: add method to get amount of Matic tokens and delegator/validator type
+
   Registry registry;
-  constructor (address _registry) ERC721Metadata("Matic Staker", "MS") public {
+  constructor (address _registry) ERC721Full("Matic Staker", "MS") public {
     registry = Registry(_registry);
   }
 
@@ -24,6 +26,10 @@ contract Staker is ERC721Metadata {
   function mint(address user, uint256 id) public onlyStakingManagers {
     require(balanceOf(user) == 0,"Stakers shall stake only once");
     _mint(user, id);
+  }
+
+  function burn(uint256 id) public onlyStakingManagers {
+    _burn(id);
   }
 
   function _transferFrom(address from, address to, uint256 tokenId) internal {
