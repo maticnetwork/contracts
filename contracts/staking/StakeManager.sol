@@ -489,11 +489,11 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
         signer > lastAdd
       ) {
         lastAdd = signer;
-        address _contract = validators[validatorId].contractAddress;
         stakePower = stakePower.add(validators[validatorId].amount);
         // add delegation power
-        if (_contract != address(0x0)) {
-          stakePower = stakePower.add(ValidatorContract(_contract).delegatedAmount());
+        if (validators[validatorId].acceptDelegation) {
+          // @Todo batch sum of delegation power
+          stakePower = stakePower.add(IDelegationManager(Registry(registry).getDelegationManagerAddress()).validatorDelegation(validatorId));
         }
       }
     }
