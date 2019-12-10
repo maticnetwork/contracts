@@ -11,7 +11,10 @@ import { Merkle } from "../common/lib/Merkle.sol";
 import { Lockable } from "../common/mixin/Lockable.sol";
 import { RootChainable } from "../common/mixin/RootChainable.sol";
 import { Registry } from "../common/Registry.sol";
+
 import { IStakeManager } from "./IStakeManager.sol";
+import { IDelegationManager } from "./IDelegationManager.sol";
+
 import { Validator } from "./Validator.sol";
 import { ValidatorContract } from "./Validator.sol";
 
@@ -31,7 +34,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   uint256 public EPOCH_LENGTH = 256; // unit : block
   uint256 public UNSTAKE_DELAY = dynasty.mul(2); // unit: epoch
 
-  // TODO: add events and gov. based update function
+  // @todo: add events and gov. based update function
   uint256 public proposerToSignerRewards = 10; // will be used with fraud proof
 
   uint256 public validatorThreshold = 10; //128
@@ -54,7 +57,6 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     uint256 deactivationEpoch;
     uint256 jailTime;
     address signer;
-    address contractAddress;
     Status status;
   }
 
@@ -93,21 +95,21 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     _;
   }
 
-  function stake(uint256 amount, address signer, bool isContract) external {
-    stakeFor(msg.sender, amount, signer, isContract);
+  function stake(uint256 amount, address signer, bool acceptDelegation) external {
+    stakeFor(msg.sender, amount, signer, acceptDelegation);
   }
 
-  function stakeFor(address user, uint256 amount, address signer, bool isContract) public onlyWhenUnlocked {
+  function stakeFor(address user, uint256 amount, address signer, bool acceptDelegation) public onlyWhenUnlocked {
     require(currentValidatorSetSize() < validatorThreshold);
     require(balanceOf(user) == 0, "Only one time staking is allowed");
     require(amount > MIN_DEPOSIT_SIZE);
     require(signerToValidator[signer] == 0);
 
     require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake failed");
-    _stakeFor(user, amount, signer, isContract);
+    _stakeFor(user, amount, signer, acceptDelegation);
   }
 
-  function _stakeFor(address user, uint256 amount, address signer, bool isContract) internal {
+  function _stakeFor(address user, uint256 amount, address signer, bool _acceptDelegation) internal {
     totalStaked = totalStaked.add(amount);
 
     validators[NFTCounter] = Validator({
@@ -118,11 +120,13 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       deactivationEpoch: 0,
       jailTime: 0,
       signer: signer,
-      contractAddress: isContract ? address(new ValidatorContract(user, registry)) : address(0x0),
       status : Status.Active
     });
 
     _mint(user, NFTCounter);
+    if (_acceptDelegation) {
+      IDelegationManager(Registry(registry).getDelegationManagerAddress()).bondAll(NFTCounter);
+    }
 
     signerToValidator[signer] = NFTCounter;
     updateTimeLine(currentEpoch, int256(amount), 1);
@@ -210,10 +214,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
     // unbond all delegators in future
     int256 delegationAmount = 0;
-    if (validators[validatorId].contractAddress != address(0x0)) {
-      delegationAmount = ValidatorContract(validators[validatorId].contractAddress).unBondAllLazy(exitEpoch);
-    }
-
+    IDelegationManager(Registry(registry).getDelegationManagerAddress()).unbondAll(validatorId);
     //  update future
     updateTimeLine(exitEpoch,  -(int256(amount) + delegationAmount ), -1);
 
@@ -228,6 +229,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
     // TODO :add slashing here use soft slashing in slash amt variable
     _burn(validatorId);
+    IDelegationManager(Registry(registry).getDelegationManagerAddress()).validatorUnstake(validatorId);
     delete signerToValidator[validators[validatorId].signer];
     // delete validators[validatorId];
 
@@ -276,10 +278,6 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
   function withdrawRewards(uint256 validatorId) public onlyStaker(validatorId) {
     uint256 amount = validators[validatorId].reward;
-    address _contract = validators[validatorId].contractAddress;
-    if (_contract != address(0x0)) {
-      amount = amount.add(ValidatorContract(_contract).withdrawRewardsValidator());
-    }
     validators[validatorId].reward = 0;
     require(token.transfer(msg.sender, amount), "Insufficent rewards");
   }
@@ -292,8 +290,9 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   // if not jailed then in state of warning, else will be unstaking after x epoch
   function slash(uint256 validatorId, uint256 slashingRate, uint256 jailCheckpoints) public onlySlashingMananger {
     // if contract call contract.slash
-    if (validators[validatorId].contractAddress != address(0x0)) {
-      ValidatorContract(validators[validatorId].contractAddress).slash(slashingRate, currentEpoch, currentEpoch);
+    if (validators[validatorId].acceptDelegation) {
+      //TODO: slashing 
+      // ValidatorContract(validators[validatorId].contractAddress).slash(slashingRate, currentEpoch, currentEpoch);
     }
     uint256 amount = validators[validatorId].amount.mul(slashingRate).div(100);
     validators[validatorId].amount = validators[validatorId].amount.sub(amount);
@@ -312,14 +311,9 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     uint256 amount = validators[validatorId].amount;
     require(amount >= MIN_DEPOSIT_SIZE);
     uint256 exitEpoch = validators[validatorId].deactivationEpoch;
-
-    int256 delegationAmount = 0;
-    if (validators[validatorId].contractAddress != address(0x0)) {
-      delegationAmount = ValidatorContract(validators[validatorId].contractAddress).revertLazyUnBonding(exitEpoch);
-    }
-
+    IDelegationManager(Registry(registry).getDelegationManagerAddress()).bondAll(NFTCounter);
     // undo timline so that validator is normal validator
-    updateTimeLine(exitEpoch,  (int256(amount) + delegationAmount ), 1);
+    updateTimeLine(exitEpoch,int256(amount), 1);
 
     validators[validatorId].deactivationEpoch = 0;
     validators[validatorId].status = Status.Active;
@@ -333,13 +327,10 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     // should unbond instantly
     uint256 exitEpoch = currentEpoch.add(UNSTAKE_DELAY);  // jail period
 
-    int256 delegationAmount = 0;
     validators[validatorId].jailTime = jailCheckpoints;
-    if (validators[validatorId].contractAddress != address(0x0)) {
-      delegationAmount = ValidatorContract(validators[validatorId].contractAddress).unBondAllLazy(exitEpoch);
-    }
+    IDelegationManager(Registry(registry).getDelegationManagerAddress()).unbondAll(validatorId);
     // update future in case of no `unJail`
-    updateTimeLine(exitEpoch,  -(int256(amount) + delegationAmount ), -1);
+    updateTimeLine(exitEpoch, -(int256(amount)), -1);
     validators[validatorId].deactivationEpoch = exitEpoch;
     validators[validatorId].status = Status.Locked;
     emit Jailed(validatorId, exitEpoch);
@@ -464,8 +455,8 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     return uint256(validatorState[currentEpoch].amount);
   }
 
-  function getValidatorContract(uint256 validatorId) public view returns(address) {
-    return validators[validatorId].contractAddress;
+  function validatorAcceptsDelegation(uint256 validatorId) public view returns(bool) {
+    return validators[validatorId].acceptDelegation;
   }
 
   function isValidator(uint256 validatorId) public view returns (bool) {
