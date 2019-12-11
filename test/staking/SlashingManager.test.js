@@ -26,6 +26,8 @@ contract('SlashingManager', async function(accounts) {
     await stakeManager.setToken(stakeToken.address)
 
     await stakeManager.updateValidatorThreshold(3)
+    await stakeManager.updateCheckPointBlockInterval(1)
+
     await stakeManager.changeRootChain(wallets[0].getAddressString())
     SlashingManager = contracts.SlashingManager
 

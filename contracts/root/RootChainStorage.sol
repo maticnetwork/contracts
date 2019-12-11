@@ -3,10 +3,12 @@ pragma solidity ^0.5.2;
 import { Registry } from "../common/Registry.sol";
 import { ProxyStorage } from "../common/misc/ProxyStorage.sol";
 
+
 contract RootChainHeader {
   event NewHeaderBlock(
     address indexed proposer,
     uint256 indexed headerBlockId,
+    uint256 indexed reward,
     uint256 start,
     uint256 end,
     bytes32 root
