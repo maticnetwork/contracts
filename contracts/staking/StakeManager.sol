@@ -15,8 +15,7 @@ import { Registry } from "../common/Registry.sol";
 import { IStakeManager } from "./IStakeManager.sol";
 import { DelegationManager } from "./DelegationManager.sol";
 
-import { Staker } from "./Validator.sol";
-// import { ValidatorContract } from "./Validator.sol";
+import { Staker } from "./Staker.sol";
 
 
 contract StakeManager is IStakeManager, RootChainable, Lockable {

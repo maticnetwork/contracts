@@ -10,7 +10,7 @@ import { Merkle } from "../common/lib/Merkle.sol";
 import { Registry } from "../common/Registry.sol";
 import { IDelegationManager } from "./IDelegationManager.sol";
 import { Lockable } from "../common/mixin/Lockable.sol";
-import { Staker } from "./Validator.sol";
+import { Staker } from "./Staker.sol";
 
 
 contract DelegationManager is IDelegationManager, Lockable {
