@@ -61,6 +61,18 @@ contract DelegationManager is IDelegationManager, Lockable {
     stakerNFT = _stakerNFT;
   }
 
+  function updateAccWithdrawRoot(uint256 checkpointId, bytes32 _accRoot, bytes32 _withdrawRoot) public /* onlyStakeManager*/ {
+    bytes32 emptyRoot = keccak256("0"); // keccak256 of empty data
+    if (accRoot != emptyRoot) {
+      accRoot[checkpointId] = _accRoot;
+    }
+
+    if (withdrawRoot != emptyRoot) {
+      withdrawRoot[checkpointId] = _withdrawRoot;
+    }
+
+  }
+
   function unbondAll(uint256 validatorId) public /* onlyStakeManager*/ {
     validatorUnbonding[validatorId] = true;
   }
