@@ -482,10 +482,25 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
     );
   }
 
-  function checkSignatures(uint256 blockInterval, bytes32 voteHash, bytes32 stateRoot, bytes memory sigs) public onlyRootChain returns(uint256) {
+  function checkSignatures(
+    uint256 blockInterval,
+    bytes32 voteHash,
+    bytes32 stateRoot,
+    bytes32 delegationAccRoot,
+    bytes32 delegationWithdrawRoot,
+    bytes memory sigs) public onlyRootChain returns(uint256) {
     uint256 stakePower;
     uint256 _totalStake;
     (stakePower, _totalStake) = checkTwoByThreeMajority(voteHash, sigs);
+
+    DelegationManager(
+      Registry(registry).getDelegationManagerAddress()
+      ).updateAccWithdrawRoot(
+        currentEpoch,
+        delegationAccRoot,
+        delegationWithdrawRoot
+      );
+
     // checkpoint rewards are based on BlockInterval multiplied on `checkpointReward`
     // with actual `blockInterval`
     // eg. checkpointReward = 10 Tokens, checkPointBlockInterval = 250, blockInterval = 500 then reward
