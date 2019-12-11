@@ -55,19 +55,19 @@ contract DelegationManager is IDelegationManager, Lockable {
     _;
   }
 
-  constructor (Registry _registry, IERC20 _token, Staker _stakerNFT) public {
-    registry = _registry;
-    token = _token;
-    stakerNFT = _stakerNFT;
+  constructor (address _registry, address _token, address _stakerNFT) public {
+    registry = Registry(_registry);
+    token = IERC20(_token);
+    stakerNFT = Staker(_stakerNFT);
   }
 
   function updateAccWithdrawRoot(uint256 checkpointId, bytes32 _accRoot, bytes32 _withdrawRoot) public /* onlyStakeManager*/ {
     bytes32 emptyRoot = keccak256("0"); // keccak256 of empty data
-    if (accRoot != emptyRoot) {
+    if (_accRoot != emptyRoot) {
       accRoot[checkpointId] = _accRoot;
     }
 
-    if (withdrawRoot != emptyRoot) {
+    if (_withdrawRoot != emptyRoot) {
       withdrawRoot[checkpointId] = _withdrawRoot;
     }
 
