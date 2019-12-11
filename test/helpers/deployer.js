@@ -15,31 +15,34 @@ class Deployer {
   async freshDeploy(options = {}) {
     this.registry = await contracts.Registry.new()
     await this.deployRootChain()
-
+    await contracts.DummyERC20.new('Matic', 'MATIC')
+    await contracts.Staker.new(this.registry.address)
     this.SlashingManager = await contracts.SlashingManager.new(
       this.registry.address
     )
-    this.delegationManager = await contracts.DelegationManager.new(
-      this.registry.address
-    )
 
+    this.delegationManager = await contracts.DelegationManager.new(
+      this.registry.address,
+      contracts.DummyERC20.address,
+      contracts.Staker.address
+    )
     if (options.stakeManager) {
       this.stakeManager = await contracts.StakeManager.new(
         this.registry.address,
-        this.rootChain.address
+        this.rootChain.address,
+        contracts.Staker.address
       )
     } else {
       this.stakeManager = await contracts.StakeManagerTest.new(
         this.registry.address,
-        this.rootChain.address
+        this.rootChain.address,
+        contracts.Staker.address
       )
     }
     this.exitNFT = await contracts.ExitNFT.new(this.registry.address)
-
     await this.deployStateSender()
     const depositManager = await this.deployDepositManager()
     const withdrawManager = await this.deployWithdrawManager()
-
     await Promise.all([
       this.registry.updateContractMap(
         ethUtils.keccak256('stakeManager'),
@@ -294,7 +297,7 @@ class Deployer {
       'ERC721Mintable',
       'M721'
     )
-    await childErc721.transferOwnership(this.childChain.address); // required to process deposits via childChain
+    await childErc721.transferOwnership(this.childChain.address) // required to process deposits via childChain
     await this.childChain.mapToken(
       rootERC721.address,
       childErc721.address,
@@ -315,7 +318,7 @@ class Deployer {
     const childErc721 = await contracts.ChildERC721Mintable.new(
       rootERC721.address
     )
-    await childErc721.transferOwnership(this.childChain.address); // required to process deposits via childChain
+    await childErc721.transferOwnership(this.childChain.address) // required to process deposits via childChain
     await this.childChain.mapToken(
       rootERC721.address,
       childErc721.address,

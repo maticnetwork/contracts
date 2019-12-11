@@ -16,12 +16,13 @@ const MerklePatriciaProof = artifacts.require('MerklePatriciaProof')
 const PriorityQueue = artifacts.require('PriorityQueue')
 const RLPEncode = artifacts.require('RLPEncode')
 
+const DummyERC20 = artifacts.require('DummyERC20')
 const Registry = artifacts.require('Registry')
 const RootChain = artifacts.require('RootChain')
 const DepositManager = artifacts.require('DepositManager')
 const WithdrawManager = artifacts.require('WithdrawManager')
 const StakeManager = artifacts.require('StakeManager')
-const ValidatorContract = artifacts.require('ValidatorContract')
+const Staker = artifacts.require('Staker')
 const DelegationManager = artifacts.require('DelegationManager')
 const SlashingManager = artifacts.require('SlashingManager')
 const ERC20Predicate = artifacts.require('ERC20Predicate')
@@ -70,7 +71,8 @@ const libDeps = [
       ERC721Predicate,
       MintableERC721Predicate,
       StakeManager,
-      StakeManagerTest
+      StakeManagerTest,
+      DelegationManager
     ]
   },
   {
@@ -114,7 +116,6 @@ const libDeps = [
       MarketplacePredicate,
       MarketplacePredicateTest,
       TransferWithSigPredicate,
-      ValidatorContract,
       StakeManager,
       DelegationManager
     ]
@@ -143,17 +144,20 @@ module.exports = async function(deployer, network) {
 
     console.log('deploying contracts...')
     await deployer.deploy(Registry)
+    await deployer.deploy(DummyERC20, 'Matic', 'MATIC')
+    await deployer.deploy(Staker, Registry.address)
+
     await Promise.all([
       deployer.deploy(RootChain, Registry.address, 'heimdall-P5rXwg'),
       deployer.deploy(SlashingManager, Registry.address),
-      deployer.deploy(DelegationManager, Registry.address),
+      deployer.deploy(DelegationManager, Registry.address, DummyERC20.address, Staker.address),
 
       deployer.deploy(WithdrawManager),
       deployer.deploy(DepositManager)
     ])
 
-    await deployer.deploy(StakeManager, Registry.address, RootChain.address)
-    await deployer.deploy(StakeManagerTest, Registry.address, RootChain.address)
+    await deployer.deploy(StakeManager, Registry.address, RootChain.address, Staker.address)
+    await deployer.deploy(StakeManagerTest, Registry.address, RootChain.address, Staker.address)
 
     await Promise.all([
       deployer.deploy(
