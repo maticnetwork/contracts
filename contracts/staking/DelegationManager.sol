@@ -108,7 +108,7 @@ contract DelegationManager is IDelegationManager, Lockable {
     NFTCounter = NFTCounter.add(1);
   }
 
-  function unstake(uint256 delegatorId, uint256 index) public onlyDelegator(delegatorId) {
+  function unstake(uint256 delegatorId) public onlyDelegator(delegatorId) {
     IStakeManager stakeManager = IStakeManager(registry.getStakeManagerAddress());
     uint256 currentEpoch = stakeManager.currentEpoch();
 
