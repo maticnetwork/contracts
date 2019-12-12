@@ -99,7 +99,7 @@ contract DelegationManager is IDelegationManager, Lockable {
       amount: amount,
       claimedRewards: 0,
       reward: 0,
-      bondedTo: 0
+      bondedTo: validatorId
       });
 
     stakerNFT.mint(msg.sender, NFTCounter);
@@ -189,8 +189,10 @@ contract DelegationManager is IDelegationManager, Lockable {
   }
 
   function _bond(uint256 delegatorId, uint256 validatorId, uint256 epoch, IStakeManager stakeManager) private {
-    require(!validatorUnbonding[validatorId], "Validator is not accepting delegation");
-    require(stakeManager.isValidator(validatorId), "Unknown validatorId or validator doesn't expect delegations");
+    if (validatorId > 0) {
+      require(!validatorUnbonding[validatorId], "Validator is not accepting delegation");
+      require(stakeManager.isValidator(validatorId), "Unknown validatorId or validator doesn't expect delegations");
+    }
 
     // require(delegator.lastValidatorEpoch.add(validatorHopLimit) <= currentEpoch, "Delegation_Limit_Reached");
     Delegator storage delegator = delegators[delegatorId];
