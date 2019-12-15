@@ -20,7 +20,6 @@ contract DelegationManager is IDelegationManager, Lockable {
   IERC20 public token;
   Registry public registry;
   Staker public stakerNFT;
-  uint256 public NFTCounter = 1;
   uint256 public MIN_DEPOSIT_SIZE = 0;
   uint256 public totalStaked;
   uint256 public validatorHopLimit = 2; // checkpoint/epochs
@@ -93,8 +92,8 @@ contract DelegationManager is IDelegationManager, Lockable {
 
     totalStaked = totalStaked.add(amount);
     uint256 currentEpoch = stakeManager.currentEpoch();
-
-    delegators[NFTCounter] = Delegator({
+    uint256 delegatorId = stakerNFT.NFTCounter();
+    delegators[delegatorId] = Delegator({
       deactivationEpoch: 0,
       amount: amount,
       claimedRewards: 0,
@@ -102,10 +101,9 @@ contract DelegationManager is IDelegationManager, Lockable {
       bondedTo: validatorId
       });
 
-    stakerNFT.mint(msg.sender, NFTCounter);
-    _bond(NFTCounter, validatorId, currentEpoch, stakeManager);
-    emit Staked(msg.sender, NFTCounter, currentEpoch, amount, totalStaked);
-    NFTCounter = NFTCounter.add(1);
+    stakerNFT.mint(msg.sender);
+    _bond(delegatorId, validatorId, currentEpoch, stakeManager);
+    emit Staked(msg.sender, delegatorId, currentEpoch, amount, totalStaked);
   }
 
   function unstake(uint256 delegatorId) public onlyDelegator(delegatorId) {

@@ -12,6 +12,7 @@ import { IStakeManager } from "./IStakeManager.sol";
 contract Staker is ERC721Full {
   //@todo refactor validator delegator and pull common here
   // @todo: add method to get amount of Matic tokens and delegator/validator type
+  uint256 public NFTCounter = 1;
 
   Registry registry;
   constructor (address _registry) ERC721Full("Matic Staker", "MS") public {
@@ -23,9 +24,9 @@ contract Staker is ERC721Full {
     _;
   }
 
-  function mint(address user, uint256 id) public onlyStakingManagers {
+  function mint(address user) public onlyStakingManagers {
     require(balanceOf(user) == 0,"Stakers shall stake only once");
-    _mint(user, id);
+    _mint(user, NFTCounter++);
   }
 
   function burn(uint256 id) public onlyStakingManagers {

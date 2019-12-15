@@ -40,7 +40,6 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
   uint256 public validatorThreshold = 10; //128
   uint256 public minLockInPeriod = 2; // unit: dynasty
   uint256 public totalStaked;
-  uint256 public NFTCounter = 1;
   uint256 public totalRewards;
   uint256 public totalRewardsLiquidated;
   uint256 public auctionPeriod = dynasty.div(4); // 1 week in epochs
@@ -114,8 +113,8 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
 
   function _stakeFor(address user, uint256 amount, address signer, bool _acceptDelegation) internal {
     totalStaked = totalStaked.add(amount);
-
-    validators[NFTCounter] = Validator({
+    uint256 validatorId = stakerNFT.NFTCounter();
+    validators[validatorId] = Validator({
       reward: 0,
       amount: amount,
       claimedRewards: 0,
@@ -126,17 +125,16 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
       status : Status.Active
     });
 
-    stakerNFT.mint(user, NFTCounter);
+    stakerNFT.mint(user);
     if (_acceptDelegation) {
-      DelegationManager(Registry(registry).getDelegationManagerAddress()).bondAll(NFTCounter);
+      DelegationManager(Registry(registry).getDelegationManagerAddress()).bondAll(validatorId);
     }
 
-    signerToValidator[signer] = NFTCounter;
+    signerToValidator[signer] = validatorId;
     updateTimeLine(currentEpoch, int256(amount), 1);
     // no Auctions for 1 dynasty
-    validatorAuction[NFTCounter].startEpoch = currentEpoch.add(dynasty);
-    emit Staked(signer, NFTCounter, currentEpoch, amount, totalStaked);
-    NFTCounter = NFTCounter.add(1);
+    validatorAuction[validatorId].startEpoch = currentEpoch.add(dynasty);
+    emit Staked(signer, validatorId, currentEpoch, amount, totalStaked);
   }
 
   function perceivedStakeFactor(uint256 validatorId) internal returns(uint256){
@@ -204,7 +202,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
       _unstake(validatorId, currentEpoch);
       _stakeFor(auction.user, auction.amount, signer, isContract);
 
-      emit ConfirmAuction(NFTCounter.sub(1), validatorId, auction.amount);
+      emit ConfirmAuction(stakerNFT.NFTCounter().sub(1) /* new validator*/, validatorId, auction.amount);
       delete validatorAuction[validatorId];
     }
   }
@@ -316,7 +314,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
     uint256 amount = validators[validatorId].amount;
     require(amount >= MIN_DEPOSIT_SIZE);
     uint256 exitEpoch = validators[validatorId].deactivationEpoch;
-    DelegationManager(Registry(registry).getDelegationManagerAddress()).bondAll(NFTCounter);
+    DelegationManager(Registry(registry).getDelegationManagerAddress()).bondAll(validatorId);
     // undo timline so that validator is normal validator
     updateTimeLine(exitEpoch,int256(amount), 1);
 
