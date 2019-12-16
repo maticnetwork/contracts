@@ -4,11 +4,9 @@ import chaiAsPromised from 'chai-as-promised'
 import utils from 'ethereumjs-util'
 
 import {
-  StakeManager,
-  DummyERC20,
-  ValidatorContract
+  DummyERC20
 } from '../helpers/artifacts'
-
+import deployer from '../helpers/deployer.js'
 import logDecoder from '../helpers/log-decoder.js'
 import { rewradsTree } from '../helpers/proofs.js'
 
@@ -33,13 +31,15 @@ contract('StakeManager', async function (accounts) {
   describe('Stake', async function () {
     before(async function () {
       wallets = generateFirstWallets(mnemonics, 10)
-      stakeToken = await DummyERC20.new('Stake Token', 'STAKE')
-      stakeManager = await StakeManager.new(
-        stakeToken.address,
-        wallets[1].getAddressString()
-      ) // dummy registry address
+      const contracts = await deployer.freshDeploy({ stakeManager: true })
+      stakeManager = contracts.stakeManager
+      let delegationManager = contracts.delegationManager
+      stakeToken = await DummyERC20.at(await delegationManager.token())
+
+      await stakeManager.changeRootChain(wallets[1].getAddressString())
       await stakeManager.setToken(stakeToken.address)
       await stakeManager.updateCheckPointBlockInterval(1)
+
       // transfer tokens to other accounts
       await stakeToken.mint(
         wallets[0].getAddressString(),
@@ -502,11 +502,12 @@ contract('StakeManager:rewards distribution', async function (accounts) {
   describe('staking rewards', async function () {
     before(async function () {
       wallets = generateFirstWallets(mnemonics, 2)
-      stakeToken = await DummyERC20.new('Stake Token', 'STAKE')
-      stakeManager = await StakeManager.new(
-        stakeToken.address,
-        wallets[0].getAddressString()
-      ) // dummy registry address
+      const contracts = await deployer.freshDeploy({ stakeManager: true })
+      stakeManager = contracts.stakeManager
+      let delegationManager = contracts.delegationManager
+      stakeToken = await DummyERC20.at(await delegationManager.token())
+      await stakeManager.changeRootChain(wallets[0].getAddressString())
+
       await stakeManager.setToken(stakeToken.address)
       await stakeManager.updateCheckPointBlockInterval(1)
       let amount = web3.utils.toWei('1000')
@@ -539,6 +540,8 @@ contract('StakeManager:rewards distribution', async function (accounts) {
         1,
         utils.bufferToHex(utils.keccak256(vote)),
         utils.bufferToHex(tree.getRoot()),
+        utils.bufferToHex(''),
+        utils.bufferToHex(''),
         sigs
       )
       const leaf = utils.keccak256(
@@ -581,11 +584,13 @@ contract('StakeManager:validator contract rewards distribution', async function 
   describe('staking rewards', async function () {
     before(async function () {
       wallets = generateFirstWallets(mnemonics, 2)
-      stakeToken = await DummyERC20.new('Stake Token', 'STAKE')
-      stakeManager = await StakeManager.new(
-        stakeToken.address,
-        wallets[0].getAddressString()
-      ) // dummy registry address
+      const contracts = await deployer.freshDeploy({ stakeManager: true })
+      stakeManager = contracts.stakeManager
+      let delegationManager = contracts.delegationManager
+      stakeToken = await DummyERC20.at(await delegationManager.token())
+
+      await stakeManager.changeRootChain(wallets[0].getAddressString())
+
       await stakeManager.setToken(stakeToken.address)
       await stakeManager.updateCheckPointBlockInterval(4)
 
@@ -600,61 +605,6 @@ contract('StakeManager:validator contract rewards distribution', async function 
         })
         accountState[i + 1] = rewardsAmount
       }
-    })
-
-    it('should get rewards for validator 1 with ValidatorContract/delegation on', async function () {
-      const validators = [1, 2]
-      let tree = await rewradsTree(validators, accountState)
-      const { vote, sigs } = buildSubmitHeaderBlockPaylod(
-        accounts[0],
-        0,
-        22,
-        '' /* root */,
-        wallets,
-        {
-          rewardsRootHash: tree.getRoot(),
-          allValidators: true,
-          getSigs: true
-        }
-      )
-
-      // 2/3 majority vote
-      await stakeManager.checkSignatures(
-        1,
-        utils.bufferToHex(utils.keccak256(vote)),
-        utils.bufferToHex(tree.getRoot()),
-        sigs
-      )
-      const leaf = utils.keccak256(
-        web3.eth.abi.encodeParameters(
-          ['uint256', 'uint256'],
-          [1, accountState[1]]
-        )
-      )
-      await stakeManager.claimRewards(
-        1,
-        rewardsAmount,
-        0,
-        utils.bufferToHex(Buffer.concat(tree.getProof(leaf)))
-      )
-      let validator = await stakeManager.validators(1)
-      let contractV = await ValidatorContract.at(validator.contractAddress)
-
-      assertBigNumberEquality(
-        accountState[1],
-        await contractV.validatorRewards()
-      )
-      const beforeBalance = await stakeToken.balanceOf(
-        wallets[1].getAddressString()
-      )
-
-      await stakeManager.withdrawRewards(1, {
-        from: wallets[1].getAddressString()
-      })
-      const afterBalance = await stakeToken.balanceOf(
-        wallets[1].getAddressString()
-      )
-      assertBigNumbergt(afterBalance, beforeBalance)
     })
 
     it('should get rewards bigger checkpoint and normal checkpoint', async function () {
@@ -679,6 +629,8 @@ contract('StakeManager:validator contract rewards distribution', async function 
         1,
         utils.bufferToHex(utils.keccak256(vote)),
         utils.bufferToHex(tree.getRoot()),
+        utils.bufferToHex(''),
+        utils.bufferToHex(''),
         sigs
       )
       const totalRewards1 = await stakeManager.totalRewards()
@@ -690,6 +642,8 @@ contract('StakeManager:validator contract rewards distribution', async function 
         4,
         utils.bufferToHex(utils.keccak256(vote)),
         utils.bufferToHex(tree.getRoot()),
+        utils.bufferToHex(''),
+        utils.bufferToHex(''),
         sigs
       )
       const totalRewards2 = await stakeManager.totalRewards()
@@ -711,11 +665,13 @@ contract('StakeManager:validator replacement', async function (accounts) {
   describe('validator replacement', async function () {
     before(async function () {
       wallets = generateFirstWallets(mnemonics, 10)
-      stakeToken = await DummyERC20.new('Stake Token', 'STAKE')
-      stakeManager = await StakeManager.new(
-        stakeToken.address,
-        wallets[0].getAddressString()
-      ) // dummy registry address
+      const contracts = await deployer.freshDeploy({ stakeManager: true })
+      stakeManager = contracts.stakeManager
+      let delegationManager = contracts.delegationManager
+      stakeToken = await DummyERC20.at(await delegationManager.token())
+
+      await stakeManager.changeRootChain(wallets[0].getAddressString())
+
       await stakeManager.setToken(stakeToken.address)
       await stakeManager.updateDynastyValue(8)
       await stakeManager.updateCheckPointBlockInterval(1)
@@ -771,6 +727,8 @@ contract('StakeManager:validator replacement', async function (accounts) {
         await stakeManager.checkSignatures(
           1,
           utils.bufferToHex(utils.keccak256(vote)),
+          utils.bufferToHex(''),
+          utils.bufferToHex(''),
           utils.bufferToHex(''),
           sigs
         )
@@ -885,6 +843,8 @@ contract('StakeManager:validator replacement', async function (accounts) {
           1,
           utils.bufferToHex(utils.keccak256(vote)),
           utils.bufferToHex(''),
+          utils.bufferToHex(''),
+          utils.bufferToHex(''),
           sigs
         )
       }
@@ -918,8 +878,8 @@ contract('StakeManager:validator replacement', async function (accounts) {
           from: wallets[4].getAddressString()
         }
       )
-      const logs = result.receipt.logs
 
+      const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
       logs[2].event.should.equal('Staked')
       logs[3].event.should.equal('ConfirmAuction')
 

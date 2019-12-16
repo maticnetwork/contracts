@@ -29,6 +29,7 @@ contract('DelegationManager', async function (accounts) {
     stakeManager = contracts.stakeManager
     delegationManager = contracts.delegationManager
     stakeToken = await DummyERC20.at(await delegationManager.token())
+
     await stakeManager.updateValidatorThreshold(3)
     await stakeManager.updateCheckPointBlockInterval(1)
     await stakeManager.changeRootChain(wallets[0].getAddressString())
