@@ -85,7 +85,7 @@ contract('DelegationManager', async function (accounts) {
       result = await delegationManager.stake(amount, 1, {
         from: delegator
       })
-      let logs = logDecoder.decodeLogs(result.receipt.rawLogs)å
+      let logs = logDecoder.decodeLogs(result.receipt.rawLogs)
       logs[1].event.should.equal('Bonding')
     }
 
