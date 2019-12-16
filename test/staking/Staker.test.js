@@ -31,18 +31,15 @@ contract('Staker', async function (accounts) {
   })
 
   beforeEach(async function () {
-    staker = await Staker.new(
-      registry.address, {
-      from: wallets[1].getAddressString()
-    }
-    )
+    staker = await Staker.new(registry.address, { from: wallets[1].getAddressString() })
   })
 
   it('Mint single NFT', async function () {
     let result = await staker.mint(wallets[1].getAddressString(), {
       from: wallets[1].getAddressString()
     })
-    const logs = logDecoder.decodeLogs(result.receipt.logs)
+
+    let logs = await logDecoder.decodeLogs(result.receipt.rawLogs)
     logs.should.have.lengthOf(1)
 
     logs[0].event.should.equal('Transfer')
@@ -54,12 +51,12 @@ contract('Staker', async function (accounts) {
     let result = await staker.mint(wallets[1].getAddressString(), {
       from: wallets[2].getAddressString()
     })
-    const logs = logDecoder.decodeLogs(result.receipt.logs)
+    const logs = await logDecoder.decodeLogs(result.receipt.rawLogs)
     logs.should.have.lengthOf(1)
 
     logs[0].event.should.equal('Transfer')
     logs[0].args.from.toLowerCase().should.equal(ZeroAddress)
-    logs[0].args.to.toLowerCase().should.equal(wallets[2].getAddressString().toLowerCase())
+    logs[0].args.to.toLowerCase().should.equal(wallets[1].getAddressString().toLowerCase())
   })
 
   it('Try to mint second NFT and fail', async function () {
@@ -70,6 +67,7 @@ contract('Staker', async function (accounts) {
       await staker.mint(wallets[1].getAddressString(), {
         from: wallets[1].getAddressString()
       })
+      assert.fail('Should never allow second time minting')
     } catch (error) {
       const invalidOpcode = error.message.search('revert') >= 0 && error.message.search('Stakers shall stake only once') >= 0
       assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
@@ -87,6 +85,7 @@ contract('Staker', async function (accounts) {
       await staker.transferFrom(wallets[2].getAddressString(), wallets[1].getAddressString(), 2, {
         from: wallets[2].getAddressString()
       })
+      assert.fail('Should never allow second NFT transfer')
     } catch (error) {
       const invalidOpcode = error.message.search('revert') >= 0 && error.message.search('Stakers shall own single MS NFT') >= 0
       assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
@@ -100,7 +99,7 @@ contract('Staker', async function (accounts) {
     let result = await staker.burn(1, {
       from: wallets[1].getAddressString()
     })
-    const logs = logDecoder.decodeLogs(result.receipt.logs)
+    const logs = await logDecoder.decodeLogs(result.receipt.rawLogs)
     logs.should.have.lengthOf(1)
 
     logs[0].event.should.equal('Transfer')

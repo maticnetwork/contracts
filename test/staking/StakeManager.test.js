@@ -366,6 +366,7 @@ contract('StakeManager', async function (accounts) {
       // logs[0].args.validatorId.should.be.bignumber.equal(validatorId)
       assertBigNumberEquality(logs[0].args.validatorId, validatorId)
     })
+
     it('should set the validator threshold to 6, dynasty value to 2 epochs', async function () {
       const thresholdReceipt = await stakeManager.updateValidatorThreshold(6, {
         from: owner
