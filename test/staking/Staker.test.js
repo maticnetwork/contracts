@@ -39,7 +39,7 @@ contract('Staker', async function (accounts) {
   })
 
   it('Mint single NFT', async function () {
-    let result = await staker.mint(wallets[1].getAddressString(), 1, {
+    let result = await staker.mint(wallets[1].getAddressString(), {
       from: wallets[1].getAddressString()
     })
     const logs = logDecoder.decodeLogs(result.receipt.logs)
@@ -51,7 +51,7 @@ contract('Staker', async function (accounts) {
   })
 
   it('Mint single NFT from delegation manager', async function () {
-    let result = await staker.mint(wallets[1].getAddressString(), 1, {
+    let result = await staker.mint(wallets[1].getAddressString(), {
       from: wallets[2].getAddressString()
     })
     const logs = logDecoder.decodeLogs(result.receipt.logs)
@@ -64,10 +64,10 @@ contract('Staker', async function (accounts) {
 
   it('Try to mint second NFT and fail', async function () {
     try {
-      await staker.mint(wallets[1].getAddressString(), 1, {
+      await staker.mint(wallets[1].getAddressString(), {
         from: wallets[1].getAddressString()
       })
-      await staker.mint(wallets[1].getAddressString(), 2, {
+      await staker.mint(wallets[1].getAddressString(), {
         from: wallets[1].getAddressString()
       })
     } catch (error) {
@@ -77,10 +77,10 @@ contract('Staker', async function (accounts) {
   })
 
   it('Try to transfer second NFT to same user and fail', async function () {
-    await staker.mint(wallets[1].getAddressString(), 1, {
+    await staker.mint(wallets[1].getAddressString(), {
       from: wallets[1].getAddressString()
     })
-    await staker.mint(wallets[2].getAddressString(), 2, {
+    await staker.mint(wallets[2].getAddressString(), {
       from: wallets[1].getAddressString()
     })
     try {
@@ -94,7 +94,7 @@ contract('Staker', async function (accounts) {
   })
 
   it('Burn single NFT', async function () {
-    await staker.mint(wallets[1].getAddressString(), 1, {
+    await staker.mint(wallets[1].getAddressString(), {
       from: wallets[1].getAddressString()
     })
     let result = await staker.burn(1, {
