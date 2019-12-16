@@ -101,7 +101,9 @@ contract DelegationManager is IDelegationManager, Lockable {
       });
 
     stakerNFT.mint(msg.sender);
-    _bond(delegatorId, validatorId, currentEpoch, stakeManager);
+    if (validatorId > 0) {
+      _bond(delegatorId, validatorId, currentEpoch, stakeManager);
+    }
     emit Staked(msg.sender, delegatorId, currentEpoch, amount, totalStaked);
   }
 
@@ -186,16 +188,15 @@ contract DelegationManager is IDelegationManager, Lockable {
   }
 
   function _bond(uint256 delegatorId, uint256 validatorId, uint256 epoch, IStakeManager stakeManager) private {
-    if (validatorId > 0) {
-      require(!validatorUnbonding[validatorId], "Validator is not accepting delegation");
-      require(stakeManager.isValidator(validatorId), "Unknown validatorId or validator doesn't expect delegations");
-    }
+    require(!validatorUnbonding[validatorId], "Validator is not accepting delegation");
+    require(stakeManager.isValidator(validatorId), "Unknown validatorId or validator doesn't expect delegations");
 
     // require(delegator.lastValidatorEpoch.add(validatorHopLimit) <= currentEpoch, "Delegation_Limit_Reached");
     Delegator storage delegator = delegators[delegatorId];
     delegator.bondedTo = validatorId;
     validatorDelegation[validatorId] = validatorDelegation[validatorId].add(delegator.amount);
     stakeManager.updateValidatorState(validatorId, epoch, int(delegator.amount));
+    emit Bonding(delegatorId, validatorId, delegator.amount);
   }
 
   function unBond(uint256 delegatorId) public onlyDelegator(delegatorId) {
