@@ -13,7 +13,7 @@ import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
 
 chai.use(chaiAsPromised).should()
 
-contract('RootChain', async function(accounts) {
+contract('RootChain', async function (accounts) {
   let rootChain
 
   let wallets
@@ -24,7 +24,7 @@ contract('RootChain', async function(accounts) {
 
   let accountState = {}
 
-  before(async function() {
+  before(async function () {
     const stakes = {
       1: web3.utils.toWei('101'),
       2: web3.utils.toWei('100'),
@@ -34,7 +34,7 @@ contract('RootChain', async function(accounts) {
     wallets = generateFirstWallets(mnemonics, Object.keys(stakes).length)
   })
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     const contracts = await deployer.freshDeploy({ stakeManager: true })
     rootChain = contracts.rootChain
     stakeManager = contracts.stakeManager
@@ -56,7 +56,7 @@ contract('RootChain', async function(accounts) {
     }
   })
 
-  it('submitHeaderBlock', async function() {
+  it('submitHeaderBlock', async function () {
     const validators = [1, 2, 3, 4]
     let tree = await rewradsTree(validators, accountState)
     const { vote, sigs, extraData, root } = buildSubmitHeaderBlockPaylod(
@@ -80,7 +80,7 @@ contract('RootChain', async function(accounts) {
     assertBigNumberEquality(logs[0].args.end, '22')
   })
 
-  it('submit multiple headerBlocks', async function() {
+  it('submit multiple headerBlocks', async function () {
     let tree = await rewradsTree([1, 2, 3, 4], accountState)
     let payload = buildSubmitHeaderBlockPaylod(accounts[0], 0, 4, '', wallets, {
       rewardsRootHash: tree.getRoot(),
@@ -131,7 +131,7 @@ contract('RootChain', async function(accounts) {
     assertBigNumberEquality(block.createdAt, '0')
   })
 
-  it('updateDepositId is ACLed on onlyDepositManager', async function() {
+  it('updateDepositId is ACLed on onlyDepositManager', async function () {
     try {
       await rootChain.updateDepositId(1)
       assert.fail('should have failed with UNAUTHORIZED_DEPOSIT_MANAGER_ONLY')
@@ -141,31 +141,32 @@ contract('RootChain', async function(accounts) {
   })
 })
 
-contract('submitHeaderBlock hardcoded params', async function(accounts) {
+contract('submitHeaderBlock hardcoded params', async function (accounts) {
   let rootChain
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     const contracts = await deployer.freshDeploy()
     rootChain = contracts.rootChain
   })
 
-  it('submitHeaderBlock (with hardcoded data)', async function() {
+  it('submitHeaderBlock (with hardcoded data)', async function () {
     const vote =
-      '0xf48f6865696d64616c6c2d503572587767020d80a0f7225d5fbdaeec3e35d970c4d36bc0f2945241ac5de2f53a8b0703a318d6c892'
+      '0xf48f6865696d64616c6c2d503572587767028080a0d34d582f79dc6c53d990ba3b79adfdfa7358aca85e24b1364db305dcb1b08844'
     const sigs =
-      '0xd61890e6167518b0352515d45381be76508e6fb1d3abef80c9944e910984b14014d82f12eb133f613c1378efceb50356b5509a14b82f7715e9a0f48dbc8a432001'
+      '0xc5d86b8969b78d3df7274454528f031de03e00c85799a818fa6ad58289f6bc0d4d16a49c1428ebe922bf50e10ed5159f2405ab50ef4cd033eb841707673d8ec51b08a35bf3f6cee1058bdb33d3ab02c0dda5d866c46429ea2ad5030f8534b41f5c14372c716a39745515513145d6b2f659cc30ad8e44193944b305fd3f2755edb51c2af28eb238574b44a9a4c68125fa38bd5cb8dbec4ff5598a5dcce0f1dc3cd4a65c43bbb4cd9c7fb1e64242329a34bc5c876620b1ce787d0c5e176d319aab3f351c'
     const txData =
-      '0xf885f83f946c468cf8c9879006e22ec4029696e005c2319c9d808203ffa0fcaf3d0b2e32e20916c9f8c8bc2e8d89838fba5ea20885406e78767061305d4e845d7f51cfb841c3cd61fb7bb74b2ab89690be137d545418e9756fde4742fc2770edc5558ece682d3bf1ba90c11dfbaa1f84c0fa0c35af2ebfdd4632b7e69ab73f70aed1511a460080'
+      '0xf85df85b949fb29aac15b9a4b7f17c3385939b007540f4d7918016a0c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470a0106892eb745427a56784350628942f5a3188adf722a7cf7b319cb59d43c23cc48080'
     const result = await rootChain.submitHeaderBlock(vote, sigs, txData)
     const logs = result.logs
     logs.should.have.lengthOf(1)
     logs[0].event.should.equal('NewHeaderBlock')
     expect(logs[0].args).to.include({
-      proposer: '0x6c468CF8c9879006E22EC4029696E005C2319C9D',
-      root: '0xfcaf3d0b2e32e20916c9f8c8bc2e8d89838fba5ea20885406e78767061305d4e'
+      proposer: '0x9fB29AAc15b9A4B7F17c3385939b007540f4d791',
+      root: '0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470'
     })
+
     assertBigNumberEquality(logs[0].args.headerBlockId, '10000')
     assertBigNumberEquality(logs[0].args.start, '0')
-    assertBigNumberEquality(logs[0].args.end, '1023')
+    assertBigNumberEquality(logs[0].args.end, '22')
   })
 })

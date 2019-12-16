@@ -5,17 +5,17 @@ import utils from 'ethereumjs-util'
 import { ZeroAddress } from '../helpers/utils'
 import deployer from '../helpers/deployer.js'
 import { Staker } from '../helpers/artifacts'
-import LogDecoder from '../helpers/log-decoder'
+import { LogDecoder } from '../helpers/log-decoder'
 
 import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
 
 chai.use(chaiAsPromised).should()
 
-contract('Staker', async function(accounts) {
+contract('Staker', async function (accounts) {
   let staker, wallets, registry
   let logDecoder = new LogDecoder([Staker._json.abi])
 
-  before(async function() {
+  before(async function () {
     wallets = generateFirstWallets(mnemonics, 4)
     const contracts = await deployer.freshDeploy({ stakeManager: true })
     registry = contracts.registry
@@ -30,15 +30,15 @@ contract('Staker', async function(accounts) {
     )
   })
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     staker = await Staker.new(
       registry.address, {
-        from: wallets[1].getAddressString()
-      }
+      from: wallets[1].getAddressString()
+    }
     )
   })
 
-  it('Mint single NFT', async function() {
+  it('Mint single NFT', async function () {
     let result = await staker.mint(wallets[1].getAddressString(), 1, {
       from: wallets[1].getAddressString()
     })
@@ -50,7 +50,7 @@ contract('Staker', async function(accounts) {
     logs[0].args.to.toLowerCase().should.equal(wallets[1].getAddressString().toLowerCase())
   })
 
-  it('Mint single NFT from delegation manager', async function() {
+  it('Mint single NFT from delegation manager', async function () {
     let result = await staker.mint(wallets[1].getAddressString(), 1, {
       from: wallets[2].getAddressString()
     })
@@ -62,7 +62,7 @@ contract('Staker', async function(accounts) {
     logs[0].args.to.toLowerCase().should.equal(wallets[2].getAddressString().toLowerCase())
   })
 
-  it('Try to mint second NFT and fail', async function() {
+  it('Try to mint second NFT and fail', async function () {
     try {
       await staker.mint(wallets[1].getAddressString(), 1, {
         from: wallets[1].getAddressString()
@@ -76,7 +76,7 @@ contract('Staker', async function(accounts) {
     }
   })
 
-  it('Try to transfer second NFT to same user and fail', async function() {
+  it('Try to transfer second NFT to same user and fail', async function () {
     await staker.mint(wallets[1].getAddressString(), 1, {
       from: wallets[1].getAddressString()
     })
@@ -93,7 +93,7 @@ contract('Staker', async function(accounts) {
     }
   })
 
-  it('Burn single NFT', async function() {
+  it('Burn single NFT', async function () {
     await staker.mint(wallets[1].getAddressString(), 1, {
       from: wallets[1].getAddressString()
     })

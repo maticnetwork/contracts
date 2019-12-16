@@ -94,7 +94,8 @@ export function buildSubmitHeaderBlockPaylod(
   if (!root) root = ethUtils.keccak256(encode(start, end)) // dummy root
   const extraData = ethUtils.bufferToHex(
     ethUtils.rlp.encode([
-      [proposer, start, end, root, options.rewardsRootHash] // 0th element
+      [proposer, start, end, root, options.rewardsRootHash, ethUtils.bufferToHex(''),
+        ethUtils.bufferToHex('')] // 0th element
     ])
   )
   const vote = ethUtils.bufferToHex(
