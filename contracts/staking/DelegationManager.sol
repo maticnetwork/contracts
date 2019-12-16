@@ -61,12 +61,11 @@ contract DelegationManager is IDelegationManager, Lockable {
   }
 
   function updateAccWithdrawRoot(uint256 checkpointId, bytes32 _accRoot, bytes32 _withdrawRoot) public /* onlyStakeManager*/ {
-    bytes32 emptyRoot = keccak256("0"); // keccak256 of empty data
-    if (_accRoot != emptyRoot) {
+    if (_accRoot != "") {
       accRoot[checkpointId] = _accRoot;
     }
 
-    if (_withdrawRoot != emptyRoot) {
+    if (_withdrawRoot != "") {
       withdrawRoot[checkpointId] = _withdrawRoot;
     }
 
