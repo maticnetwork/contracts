@@ -15,15 +15,15 @@ import logDecoder from '../helpers/log-decoder'
 
 chai.use(chaiAsPromised).should()
 
-contract('DelegationManager', async function(accounts) {
+contract('DelegationManager', async function (accounts) {
   let stakeManager, delegationManager, wallets, stakeToken
   // let logDecoder = new LogDecoder([DelegationManager._json.abi])
 
-  before(async function() {
+  before(async function () {
     wallets = generateFirstWallets(mnemonics, 10)
   })
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     const contracts = await deployer.freshDeploy({ stakeManager: true })
     // setToken
     stakeManager = contracts.stakeManager
@@ -41,7 +41,7 @@ contract('DelegationManager', async function(accounts) {
     }
   })
 
-  it('stake', async function() {
+  it('stake', async function () {
     const amount = web3.utils.toWei('200')
     const delegator = wallets[1].getAddressString()
     // approve tranfer
@@ -59,7 +59,7 @@ contract('DelegationManager', async function(accounts) {
     // assertBigNumberEquality(logs[1].args.amount, amount)
   })
 
-  it('stake and bond/unbond', async function() {
+  it('stake and bond/unbond', async function () {
     const amount = web3.utils.toWei('200')
     for (let i = 0; i < 3; i++) {
       const user = wallets[i].getAddressString()
@@ -96,7 +96,7 @@ contract('DelegationManager', async function(accounts) {
     // logs[0].event.should.equal('UnBonding')
   })
 
-  it('reStake', async function() {
+  it('reStake', async function () {
     const amount = web3.utils.toWei('200')
     const user = wallets[1].getAddressString()
     // approve tranfer
@@ -156,10 +156,10 @@ contract('DelegationManager', async function(accounts) {
     assertBigNumberEquality(data.amount, web3.utils.toWei('600'))
   })
 
-  it('claimRewards and withdrawRewards', async function() {
+  it('claimRewards and withdrawRewards', async function () {
   })
 
-  it('unstake and unstakeClaim', async function() {
+  it('unstake and unstakeClaim', async function () {
     const amount = web3.utils.toWei('200')
     const user = wallets[1].getAddressString()
     await stakeManager.updateDynastyValue(2)
@@ -192,12 +192,12 @@ contract('DelegationManager', async function(accounts) {
     // let logs = logDecoder.decodeLogs(result.receipt.rawLogs)
     // logs[0].event.should.equal('UnBonding') // unstaking without unbonding
     // unstakeClaim
-    // let withdrawDelay = await stakeManager.WITHDRAWAL_DELAY()
-    // let w = [wallets[1]]
-    // for (let i = 0; i < withdrawDelay; i++) {
-    //   await checkPoint(w, wallets[0], stakeManager)
-    // }
-    // result = await delegationManager.unstakeClaim(1, { from: delegator })
+    let withdrawDelay = await stakeManager.WITHDRAWAL_DELAY()
+    let w = [wallets[1]]
+    for (let i = 0; i < withdrawDelay; i++) {
+      await checkPoint(w, wallets[0], stakeManager)
+    }
+    // result = await delegationManager.unstakeClaim(2, { from: delegator })
     // console.log(result.receipt.rawLogs)
     // logs = logDecoder.decodeLogs(result.receipt.rawLogs)
     // logs[0].event.should.equal('Transfer')
