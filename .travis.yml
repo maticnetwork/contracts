@@ -12,14 +12,8 @@ matrix:
   fast_finish: true
 before_install:
   - docker pull maticnetwork/bor:develop
-# install:
-# - bash <(curl https://get.parity.io -L) -r v2.4.7
 before_script:
-  # - export PATH=/snap/bin:${PATH}
   - npm install
 script:
+  - npm run template:process
   - npm run test:ci
-# safelist
-# branches:
-#   only:
-#   - master
