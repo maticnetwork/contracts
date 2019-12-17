@@ -17,14 +17,14 @@ import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
 
 chai.use(chaiAsPromised).should()
 
-contract('StakeManager<->DelegationManager', async function(accounts) {
+contract('StakeManager<->DelegationManager', async function (accounts) {
   let stakeManager, delegationManager, wallets, stakeToken
 
-  before(async function() {
+  before(async function () {
     wallets = generateFirstWallets(mnemonics, 10)
   })
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     const contracts = await deployer.freshDeploy({ stakeManager: true })
     const amount = web3.utils.toWei('200')
     const validatorContracts = [true, true, false]
@@ -32,7 +32,7 @@ contract('StakeManager<->DelegationManager', async function(accounts) {
     // setToken
     stakeManager = contracts.stakeManager
     delegationManager = contracts.delegationManager
-    stakeToken = await DummyERC20.new('Stake Token', 'STAKE')
+    stakeToken = await DummyERC20.at(await delegationManager.token())
     await stakeManager.setToken(stakeToken.address)
     await stakeManager.changeRootChain(wallets[0].getAddressString())
 
@@ -80,60 +80,55 @@ contract('StakeManager<->DelegationManager', async function(accounts) {
       await stakeToken.approve(delegationManager.address, amount, {
         from: delegator
       })
-      await delegationManager.stake(amount, {
+      await delegationManager.stake(amount, 0, {
         from: delegator
       })
     }
   })
 
-  it('unBondLazy', async function() {
-    await delegationManager.bond(1 /** delegatorId */, 1 /** validatorId */, {
+  it('unBondLazy', async function () {
+    await delegationManager.bond(4 /** delegatorId */, 1 /** validatorId */, {
       from: wallets[3].getAddressString()
     })
-    await delegationManager.bond(2 /** delegatorId */, 1 /** validatorId */, {
+    await delegationManager.bond(5 /** delegatorId */, 1 /** validatorId */, {
       from: wallets[4].getAddressString()
     })
-    await delegationManager.bond(3 /** delegatorId */, 1 /** validatorId */, {
+    await delegationManager.bond(6 /** delegatorId */, 1 /** validatorId */, {
       from: wallets[5].getAddressString()
     })
     let result = await stakeManager.unstake(1, {
       from: wallets[0].getAddressString()
     })
     let logs = logDecoder.decodeLogs(result.receipt.rawLogs)
-    let validatorExitEpoch = logs[0].args.deactivationEpoch
-    let delegator = await delegationManager.delegators('1')
-    assertBigNumberEquality(validatorExitEpoch, delegator.delegationStopEpoch)
-
-    delegator = await delegationManager.delegators('2')
-    assertBigNumberEquality(validatorExitEpoch, delegator.delegationStopEpoch)
-
-    delegator = await delegationManager.delegators('3')
-    assertBigNumberEquality(validatorExitEpoch, delegator.delegationStopEpoch)
+    logs[0].event.should.equal('UnstakeInit')
+    let validatorState = await delegationManager.validatorUnbonding(1)
+    expect(validatorState).to.be.true
   })
 
-  it('revertLazyUnBond', async function() {
-    await delegationManager.bond(1 /** delegatorId */, 1 /** validatorId */, {
+  it('revertLazyUnBond', async function () {
+    await delegationManager.bond(4 /** delegatorId */, 1 /** validatorId */, {
       from: wallets[3].getAddressString()
     })
-    await delegationManager.bond(2 /** delegatorId */, 1 /** validatorId */, {
+    await delegationManager.bond(5 /** delegatorId */, 1 /** validatorId */, {
       from: wallets[4].getAddressString()
     })
-    await delegationManager.bond(3 /** delegatorId */, 1 /** validatorId */, {
+    await delegationManager.bond(6 /** delegatorId */, 1 /** validatorId */, {
       from: wallets[5].getAddressString()
     })
     let result = await stakeManager.jail(1, 0, {
       from: wallets[0].getAddressString()
     })
     let logs = logDecoder.decodeLogs(result.receipt.rawLogs)
-    let validatorExitEpoch = logs[0].args.exitEpoch
-    let delegator = await delegationManager.delegators('1')
-    assertBigNumberEquality(validatorExitEpoch, delegator.delegationStopEpoch)
+    logs[0].event.should.equal('Jailed')
+    let validatorState = await delegationManager.validatorUnbonding(1)
+    expect(validatorState).to.be.true
 
     await stakeManager.unJail(1, {
       from: wallets[0].getAddressString()
     })
-    delegator = await delegationManager.delegators('1')
-    assertBigNumberEquality('0', delegator.delegationStopEpoch)
+
+    validatorState = await delegationManager.validatorUnbonding(1)
+    expect(validatorState).to.be.false
   })
 
   // TODO: fix me once delegation voucher is done
