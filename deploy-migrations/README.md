@@ -24,14 +24,18 @@ export MNEMONIC=<mnemonic>
 export HEIMDALL_ID=<>
 e.g. export HEIMDALL_ID="heimdall-P5rXwg"
 ```
-
-### :three: Compile contracts
+### :three: Choose Bor Chain Id
+```
+npm run template:process -- --bor-chain-id <bor-chain-id>
+for instance, npm run template:process -- --bor-chain-id 15001
+```
+### :four: Compile contracts
 
 ```
 npm run truffle:compile
 ```
 
-### :four: Deploy contracts
+### :five: Deploy contracts
 
 We need to deploy our set of contracts on 2 chains:
 
@@ -57,7 +61,7 @@ Post successfull deployment all contract addresses will be written to a `contrac
 
 > Check account that you are deploying from has ether for the network you are deploying on.
 
-### :five: Stake to become a validator
+### :six: Stake to become a validator
 ```
 // (Optional) Export mnemonic or the private key (without the 0x prefix)
 // This account needs to have test token
