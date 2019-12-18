@@ -89,13 +89,25 @@ export function buildSubmitHeaderBlockPaylod(
   end,
   root,
   wallets,
-  options = { rewardsRootHash: '', allValidators: false, getSigs: false } // false vars are to show expected vars
+  options = {
+    rewardsRootHash: '',
+    delegationAccRoot: ethUtils.bufferToHex(''),
+    delegationWithdrawRoot: ethUtils.bufferToHex(''),
+    allValidators: false,
+    getSigs: false
+  } // false vars are to show expected vars
 ) {
   if (!root) root = ethUtils.keccak256(encode(start, end)) // dummy root
   const extraData = ethUtils.bufferToHex(
-    ethUtils.rlp.encode([
-      [proposer, start, end, root, options.rewardsRootHash, ethUtils.bufferToHex(''),
-        ethUtils.bufferToHex('')] // 0th element
+    ethUtils.rlp.encode([[
+      proposer,
+      start,
+      end,
+      root,
+      options.rewardsRootHash,
+      options.delegationAccRoot,
+      options.delegationWithdrawRoot
+    ] // 0th element
     ])
   )
   const vote = ethUtils.bufferToHex(

@@ -39,6 +39,20 @@ export async function rewradsTree(validators, accountState) {
   return new MerkleTree(leafs)
 }
 
+export async function accTree(stakers, accountState) {
+  let leafs = []
+  let i = 0
+  stakers.map(key => {
+    leafs[i] = utils.keccak256(
+      web3.eth.abi.encodeParameters(
+        ['uint256', 'uint256', 'uint256'], // [delegatorId, rewardAmount, slashedAmount]
+        accountState[i++]
+      )
+    )
+  })
+  return new MerkleTree(leafs)
+}
+
 function nibblesToTraverse(encodedPartialPath, path, pathPtr) {
   let partialPath
   if (

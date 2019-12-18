@@ -264,6 +264,7 @@ contract DelegationManager is IDelegationManager, Lockable {
             accProof),
       "Wrong account proof"
       );
+
     uint256 _rewardAmount = rewardAmount.sub(delegators[delegatorId].claimedRewards);
     if (_rewardAmount <= slashedAmount) {
       delegators[delegatorId].amount = delegators[delegatorId].amount.sub(slashedAmount.sub(_rewardAmount));

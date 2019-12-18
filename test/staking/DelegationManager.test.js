@@ -3,10 +3,13 @@ import utils from 'ethereumjs-util'
 import chaiAsPromised from 'chai-as-promised'
 
 import deployer from '../helpers/deployer.js'
+import { accTree } from '../helpers/proofs.js'
 import { DummyERC20, DelegationManager, Staker } from '../helpers/artifacts'
 
 import {
+  assertBigNumbergt,
   assertBigNumberEquality,
+  buildSubmitHeaderBlockPaylod,
   checkPoint,
   ZeroAddress
 } from '../helpers/utils.js'
@@ -15,15 +18,15 @@ import { LogDecoder } from '../helpers/log-decoder'
 
 chai.use(chaiAsPromised).should()
 
-contract('DelegationManager', async function (accounts) {
+contract('DelegationManager', async function(accounts) {
   let stakeManager, delegationManager, wallets, stakeToken
   let logDecoder = new LogDecoder([DelegationManager._json.abi, DummyERC20._json.abi, Staker._json.abi])
 
-  before(async function () {
+  before(async function() {
     wallets = generateFirstWallets(mnemonics, 10)
   })
 
-  beforeEach(async function () {
+  beforeEach(async function() {
     const contracts = await deployer.freshDeploy({ stakeManager: true })
     // setToken
     stakeManager = contracts.stakeManager
@@ -42,7 +45,7 @@ contract('DelegationManager', async function (accounts) {
     }
   })
 
-  it('stake', async function () {
+  it('stake', async function() {
     const amount = web3.utils.toWei('200')
     const delegator = wallets[1].getAddressString()
     // approve tranfer
@@ -60,7 +63,7 @@ contract('DelegationManager', async function (accounts) {
     assertBigNumberEquality(logs[1].args.amount, amount)
   })
 
-  it('stake and bond/unbond', async function () {
+  it('stake and bond/unbond', async function() {
     const amount = web3.utils.toWei('200')
     for (let i = 0; i < 3; i++) {
       const user = wallets[i].getAddressString()
@@ -97,7 +100,7 @@ contract('DelegationManager', async function (accounts) {
     logs[0].event.should.equal('UnBonding')
   })
 
-  it('reStake', async function () {
+  it('reStake', async function() {
     const amount = web3.utils.toWei('200')
     const user = wallets[1].getAddressString()
     // approve tranfer
@@ -157,10 +160,74 @@ contract('DelegationManager', async function (accounts) {
     assertBigNumberEquality(data.amount, web3.utils.toWei('600'))
   })
 
-  it('claimRewards and withdrawRewards', async function () {
+  it('claimRewards and withdrawRewards', async function() {
+    const amount = web3.utils.toWei('200')
+    const user = wallets[1].getAddressString()
+    // approve tranfer
+    await stakeToken.approve(stakeManager.address, amount, {
+      from: user
+    })
+    // stake now
+    await stakeManager.stake(amount, user, true, {
+      from: user
+    })
+    const delegator = wallets[2].getAddressString()
+    // approve tranfer
+    await stakeToken.approve(delegationManager.address, amount, {
+      from: delegator
+    })
+    // stake now
+    await delegationManager.stake(amount, 1, {
+      from: delegator
+    })
+
+    const stakers = [1, 2]
+    const accountState = [[1, 10, 0], [2, 30, 0]] // [delegatorId, rewardAmount, slashedAmount]
+    console.log(stakers)
+    let tree = await accTree(stakers, accountState)
+
+    const { vote, sigs } = buildSubmitHeaderBlockPaylod(
+      accounts[0],
+      0,
+      22,
+      '' /* root */,
+      [wallets[1]],
+      { delegationAccRoot: tree.getRoot(), allValidators: true, getSigs: true }
+    )
+
+    const checkPoint = await stakeManager.currentEpoch()
+
+    // 2/3 majority vote
+    await stakeManager.checkSignatures(
+      1,
+      utils.bufferToHex(utils.keccak256(vote)),
+      utils.bufferToHex(''),
+      utils.bufferToHex(tree.getRoot()),
+      utils.bufferToHex(''),
+      sigs, { from: wallets[0].getAddressString() }
+    )
+
+    const leaf = utils.keccak256(
+      web3.eth.abi.encodeParameters(
+        ['uint256', 'uint256', 'uint256'],
+        accountState[0]
+      )
+    )
+    const delegatorState = await delegationManager.delegators(1)
+    await delegationManager.claimRewards(
+      checkPoint,
+      1, // delegatorId
+      accountState[0][1], // rewardAmount
+      accountState[0][2], // slashedAmount
+      0,
+      false, // toWithdraw
+      utils.bufferToHex(Buffer.concat(tree.getProof(leaf))) // accProof
+    )
+    let delegatorStateNew = await delegationManager.delegators(1)
+    assertBigNumbergt(delegatorStateNew.claimedRewards, delegatorState.claimedRewards)
   })
 
-  it('unstake and unstakeClaim', async function () {
+  it('unstake and unstakeClaim', async function() {
     const amount = web3.utils.toWei('200')
     const user = wallets[1].getAddressString()
     await stakeManager.updateDynastyValue(2)
@@ -198,6 +265,18 @@ contract('DelegationManager', async function (accounts) {
     for (let i = 0; i < withdrawDelay; i++) {
       await checkPoint(w, wallets[0], stakeManager)
     }
+
+    // function unstakeClaim(
+    //   uint256 checkpointId,// checkpoint Id  with root of proofs
+    //   uint256 delegatorId,
+    //   uint256 rewardAmount,
+    //   uint256 slashedAmount,
+    //   uint256 accIndex,
+    //   uint256 withdrawIndex,
+    //   bytes memory accProof,
+    //   bytes memory withdrawProof
+    //   ) public onlyDelegator(delegatorId) {
+
     // result = await delegationManager.unstakeClaim(2, { from: delegator })
     // console.log(result.receipt.rawLogs)
     // logs = logDecoder.decodeLogs(result.receipt.rawLogs)
