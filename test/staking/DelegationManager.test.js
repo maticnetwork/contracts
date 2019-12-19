@@ -19,7 +19,7 @@ import { LogDecoder } from '../helpers/log-decoder'
 chai.use(chaiAsPromised).should()
 
 contract('DelegationManager', async function(accounts) {
-  let stakeManager, delegationManager, wallets, stakeToken
+  let stakeManager, delegationManager, wallets, stakeToken, registry
   let logDecoder = new LogDecoder([DelegationManager._json.abi, DummyERC20._json.abi, Staker._json.abi])
 
   before(async function() {
@@ -31,6 +31,7 @@ contract('DelegationManager', async function(accounts) {
     // setToken
     stakeManager = contracts.stakeManager
     delegationManager = contracts.delegationManager
+    registry = contracts.registry
     stakeToken = await DummyERC20.at(await delegationManager.token())
 
     await stakeManager.updateValidatorThreshold(3)
@@ -151,7 +152,6 @@ contract('DelegationManager', async function(accounts) {
     result = await delegationManager.reStake(2, amount, false, {
       from: delegator
     })
-    // console.log(result.receipt.rawLogs)
     logs = logDecoder.decodeLogs(result.receipt.rawLogs)
     logs[0].event.should.equal('ReStaked')
     assertBigNumberEquality(logs[0].args.amount, amount)
@@ -171,7 +171,17 @@ contract('DelegationManager', async function(accounts) {
     await stakeManager.stake(amount, user, true, {
       from: user
     })
-    const delegator = wallets[2].getAddressString()
+    let delegator = wallets[2].getAddressString()
+    // approve tranfer
+    await stakeToken.approve(delegationManager.address, amount, {
+      from: delegator
+    })
+
+    // stake now
+    await delegationManager.stake(amount, 1, {
+      from: delegator
+    })
+    delegator = wallets[3].getAddressString()
     // approve tranfer
     await stakeToken.approve(delegationManager.address, amount, {
       from: delegator
@@ -181,9 +191,8 @@ contract('DelegationManager', async function(accounts) {
       from: delegator
     })
 
-    const stakers = [1, 2]
-    const accountState = [[1, 10, 0], [2, 30, 0]] // [delegatorId, rewardAmount, slashedAmount]
-    console.log(stakers)
+    const stakers = [2, 3]
+    let accountState = [[2, 10, 0], [3, 20, 0]] // [delegatorId, rewardAmount, slashedAmount]
     let tree = await accTree(stakers, accountState)
 
     const { vote, sigs } = buildSubmitHeaderBlockPaylod(
@@ -196,7 +205,6 @@ contract('DelegationManager', async function(accounts) {
     )
 
     const checkPoint = await stakeManager.currentEpoch()
-
     // 2/3 majority vote
     await stakeManager.checkSignatures(
       1,
@@ -213,18 +221,101 @@ contract('DelegationManager', async function(accounts) {
         accountState[0]
       )
     )
-    const delegatorState = await delegationManager.delegators(1)
+
+    const delegatorState = await delegationManager.delegators(2)
+
     await delegationManager.claimRewards(
       checkPoint,
-      1, // delegatorId
+      2, // delegatorId
       accountState[0][1], // rewardAmount
       accountState[0][2], // slashedAmount
       0,
       false, // toWithdraw
       utils.bufferToHex(Buffer.concat(tree.getProof(leaf))) // accProof
     )
-    let delegatorStateNew = await delegationManager.delegators(1)
+
+    const delegatorStateNew = await delegationManager.delegators(2)
     assertBigNumbergt(delegatorStateNew.claimedRewards, delegatorState.claimedRewards)
+    const beforeBalance = await stakeToken.balanceOf(wallets[2].getAddressString())
+    await delegationManager.withdrawRewards(2)
+    const afterBalance = await stakeToken.balanceOf(wallets[2].getAddressString())
+    assertBigNumbergt(afterBalance, beforeBalance)
+  })
+
+  it('claimRewards with withdrawRewards flag', async function() {
+    const amount = web3.utils.toWei('200')
+    const user = wallets[1].getAddressString()
+    // approve tranfer
+    await stakeToken.approve(stakeManager.address, amount, {
+      from: user
+    })
+    // stake now
+    await stakeManager.stake(amount, user, true, {
+      from: user
+    })
+    let delegator = wallets[2].getAddressString()
+    // approve tranfer
+    await stakeToken.approve(delegationManager.address, amount, {
+      from: delegator
+    })
+
+    // stake now
+    await delegationManager.stake(amount, 1, {
+      from: delegator
+    })
+    delegator = wallets[3].getAddressString()
+    // approve tranfer
+    await stakeToken.approve(delegationManager.address, amount, {
+      from: delegator
+    })
+    // stake now
+    await delegationManager.stake(amount, 1, {
+      from: delegator
+    })
+
+    const stakers = [2, 3]
+    let accountState = [[2, 10, 0], [3, 20, 0]] // [delegatorId, rewardAmount, slashedAmount]
+    let tree = await accTree(stakers, accountState)
+
+    const { vote, sigs } = buildSubmitHeaderBlockPaylod(
+      accounts[0],
+      0,
+      22,
+      '' /* root */,
+      [wallets[1]],
+      { delegationAccRoot: tree.getRoot(), allValidators: true, getSigs: true }
+    )
+
+    const checkPoint = await stakeManager.currentEpoch()
+    // 2/3 majority vote
+    await stakeManager.checkSignatures(
+      1,
+      utils.bufferToHex(utils.keccak256(vote)),
+      utils.bufferToHex(''),
+      utils.bufferToHex(tree.getRoot()),
+      utils.bufferToHex(''),
+      sigs, { from: wallets[0].getAddressString() }
+    )
+
+    const leaf = utils.keccak256(
+      web3.eth.abi.encodeParameters(
+        ['uint256', 'uint256', 'uint256'],
+        accountState[0]
+      )
+    )
+    const beforeBalance = await stakeToken.balanceOf(wallets[2].getAddressString())
+    await delegationManager.claimRewards(
+      checkPoint,
+      2, // delegatorId
+      accountState[0][1], // rewardAmount
+      accountState[0][2], // slashedAmount
+      0,
+      true, // toWithdraw
+      utils.bufferToHex(Buffer.concat(tree.getProof(leaf))) // accProof
+    )
+
+    const afterBalance = await stakeToken.balanceOf(wallets[2].getAddressString())
+    assertBigNumbergt(afterBalance, beforeBalance)
   })
 
   it('unstake and unstakeClaim', async function() {
@@ -244,6 +335,7 @@ contract('DelegationManager', async function(accounts) {
     await stakeToken.approve(delegationManager.address, amount, {
       from: delegator
     })
+
     // stake now
     await delegationManager.stake(amount, 1, {
       from: delegator
