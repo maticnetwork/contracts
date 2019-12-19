@@ -345,11 +345,12 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
   }
 
   // returns valid validator for current epoch
-  function getCurrentValidatorSet() public view returns (uint256[] memory) {
+  function getCurrentValidatorSet() external view returns (uint256[] memory) {
+    // Warning: This function is For external use only.
     uint256[] memory _validators = new uint256[](validatorThreshold);
     uint256 validator;
     uint256 k = 0;
-    for (uint96 i = 0;i < stakerNFT.totalSupply() ;i++) {
+    for (uint96 i = 0; i < stakerNFT.totalSupply(); i++) {
       validator = stakerNFT.tokenByIndex(i);
       if (isValidator(validator)) {
         _validators[k++] = validator;
@@ -485,7 +486,6 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
     bytes32 voteHash,
     bytes32 stateRoot,
     bytes32 delegationAccRoot,
-    bytes32 delegationWithdrawRoot,
     bytes memory sigs) public onlyRootChain returns(uint256) {
     uint256 stakePower;
     uint256 _totalStake;
@@ -493,10 +493,9 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
 
     DelegationManager(
       Registry(registry).getDelegationManagerAddress()
-      ).updateAccWithdrawRoot(
+      ).updateAccRoot(
         currentEpoch,
-        delegationAccRoot,
-        delegationWithdrawRoot
+        delegationAccRoot
       );
 
     // checkpoint rewards are based on BlockInterval multiplied on `checkpointReward`

@@ -29,9 +29,6 @@ contract DelegationManager is IDelegationManager, Lockable {
   // mapping for delegator accounts root on heimdall
   mapping (uint256 => bytes32) public accRoot;
 
-  // mapping for delegators withdraw root on heimdall
-  mapping (uint256 => bytes32) public withdrawRoot;
-
   // each validators delegation amount
   mapping (uint256 => uint256) public validatorDelegation;
 
@@ -65,15 +62,10 @@ contract DelegationManager is IDelegationManager, Lockable {
     stakerNFT = Staker(_stakerNFT);
   }
 
-  function updateAccWithdrawRoot(uint256 checkpointId, bytes32 _accRoot, bytes32 _withdrawRoot) public /* onlyStakeManager*/ {
+  function updateAccRoot(uint256 checkpointId, bytes32 _accRoot) public /* onlyStakeManager*/ {
     if (_accRoot != "") {
       accRoot[checkpointId] = _accRoot;
     }
-
-    if (_withdrawRoot != "") {
-      withdrawRoot[checkpointId] = _withdrawRoot;
-    }
-
   }
 
   function unbondAll(uint256 validatorId) public /* onlyStakeManager*/ {
@@ -132,9 +124,7 @@ contract DelegationManager is IDelegationManager, Lockable {
     uint256 rewardAmount,
     uint256 slashedAmount,
     uint256 accIndex,
-    uint256 withdrawIndex,
-    bytes memory accProof,
-    bytes memory withdrawProof
+    bytes memory accProof
     ) public onlyDelegator(delegatorId) {
     IStakeManager stakeManager = IStakeManager(registry.getStakeManagerAddress());
     require(
@@ -148,16 +138,6 @@ contract DelegationManager is IDelegationManager, Lockable {
             accRoot[checkpointId],
             accProof),
       "Wrong account proof"
-      );
-    require(
-      keccak256(
-        abi.encodePacked(
-          delegatorId)
-          ).checkMembership(
-            withdrawIndex,
-            withdrawRoot[checkpointId],
-            withdrawProof),
-      "Wrong withdraw proof"
       );
 
     require(

@@ -52,7 +52,6 @@ contract RootChain is RootChainStorage, IRootChain {
       keccak256(vote),
       bytes32(extraData[4].toUint()),
       bytes32(extraData[5].toUint()),
-      bytes32(extraData[6].toUint()),
       sigs);
 
     emit NewHeaderBlock(headerBlock.proposer, _nextHeaderBlock, _reward, headerBlock.start, headerBlock.end, headerBlock.root);

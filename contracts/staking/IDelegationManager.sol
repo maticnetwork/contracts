@@ -21,9 +21,7 @@ contract IDelegationManager {
     uint256 rewardAmount,
     uint256 slashedAmount,
     uint256 accIndex,
-    uint256 withdrawIndex,
-    bytes memory accProof,
-    bytes memory withdrawProof) public;
+    bytes memory accProof) public;
 
   function claimRewards(
     uint256 checkpointId,// checkpoint Id  with root of proofs

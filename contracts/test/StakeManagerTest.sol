@@ -17,7 +17,6 @@ contract StakeManagerTest is StakeManager {
     bytes32 voteHash,
     bytes32 stateRoot,
     bytes32 delegationAccRoot,
-    bytes32 delegationWithdrawRoot,
     bytes memory sigs
     ) public onlyRootChain returns(uint256) {
     return checkpointReward; // for dummy tests return full reward
