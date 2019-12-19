@@ -1,0 +1,1086 @@
+{
+  "contractName": "DepositManagerHeader",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amountOrNFTId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "depositBlockId",
+          "type": "uint256"
+        }
+      ],
+      "name": "NewDepositBlock",
+      "type": "event"
+    }
+  ],
+  "metadata": "{\"compiler\":{\"version\":\"0.5.11+commit.c082d0b4\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amountOrNFTId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"depositBlockId\",\"type\":\"uint256\"}],\"name\":\"NewDepositBlock\",\"type\":\"event\"}],\"devdoc\":{\"methods\":{}},\"userdoc\":{\"methods\":{}}},\"settings\":{\"compilationTarget\":{\"/Users/atvanguard/matic/contracts/contracts/root/depositManager/DepositManagerStorage.sol\":\"DepositManagerHeader\"},\"evmVersion\":\"constantinople\",\"libraries\":{},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"/Users/atvanguard/matic/contracts/contracts/common/Registry.sol\":{\"keccak256\":\"0x30ea66346649b9e1f5264290f67e2619e6fb058f3f25a3b4ae9803023a4cdd67\",\"urls\":[\"bzz-raw://adf1d4709d548ed9f9d7873ff453fc7d3e2668364d646c9b2366ba91312a2f5c\",\"dweb:/ipfs/QmadVUhC1npw8BXgcxA1gGPbuAdVov4d5sXW4dBRo2a9C8\"]},\"/Users/atvanguard/matic/contracts/contracts/common/misc/ProxyStorage.sol\":{\"keccak256\":\"0x0648b0e0e84be908da595e3a79baaa978f5b57af15598523b2da9515b128f6fd\",\"urls\":[\"bzz-raw://959f8dd118fb88066825b09ac49b66c04a0442a9420806ff14046ce8ae93f806\",\"dweb:/ipfs/QmfZJPLFUusDdwWZV1pSPL5dab9y8Zzs7sbXgWtDx7mG3C\"]},\"/Users/atvanguard/matic/contracts/contracts/root/IRootChain.sol\":{\"keccak256\":\"0x930b45080e0caccf097e33e3e558b8d31015c42decf0c419bf4bfa76afbdace0\",\"urls\":[\"bzz-raw://21c1382fa51b4a3b5ca8a96f80d35410e50d230353104b8806a73d42b19e2963\",\"dweb:/ipfs/QmZJgDHe1LBvc8cdvK9viU5ujk8ULvcyGKbjcBu6EFXC4V\"]},\"/Users/atvanguard/matic/contracts/contracts/root/RootChain.sol\":{\"keccak256\":\"0x7b4111195d97b5a2a929382b8f68480b2abaf5a765fcc120539e62059f52bc61\",\"urls\":[\"bzz-raw://d0f8ed61684b217a6fd4e0343a9b0df2262d09ebc2d515bb6db9d5101516d8f5\",\"dweb:/ipfs/QmWXw7KijN7v8kdLQDzUrGSnxJujn89qiQ9UEBHahXxHLN\"]},\"/Users/atvanguard/matic/contracts/contracts/root/RootChainStorage.sol\":{\"keccak256\":\"0xb14ba0310cf03d696370316e60ccd21fbe9fbff5a2e48d48e619c0d75e631167\",\"urls\":[\"bzz-raw://b56a12ad678ee472d0856c22ec10c285800f5110bc94fe66e7adb9dca9012ced\",\"dweb:/ipfs/QmY41ZYodQyGvYqj92tx9ux6tqksbcywEQESqHF95n919F\"]},\"/Users/atvanguard/matic/contracts/contracts/root/depositManager/DepositManagerStorage.sol\":{\"keccak256\":\"0xe96d236fc05ae23437cb00f078cfe4f066e82d4a6996840a4d9548a14f0ff643\",\"urls\":[\"bzz-raw://da552f353af5b7bc02bea69de49636a932dfa8d387e0cd93097e2f974354b4c2\",\"dweb:/ipfs/QmavF66cW8gq1DK8CzPVSXPwViadxdxS1sV4NBjEvgE4jq\"]},\"/Users/atvanguard/matic/contracts/contracts/root/stateSyncer/StateSender.sol\":{\"keccak256\":\"0x31004fa38857512be0d19e2c2462b91d907d653e1ed38d3f2c11859c9a33b65a\",\"urls\":[\"bzz-raw://04543b022578a8d24f1c50fc35d08e7f2b70acaa0234629c664da9e51c3b1cd6\",\"dweb:/ipfs/QmS5maMrk3rTMRRSRAJaVehToZTZBat7ZKiv2vmqDusdgu\"]},\"/Users/atvanguard/matic/contracts/contracts/root/withdrawManager/IWithdrawManager.sol\":{\"keccak256\":\"0x934dbb0fcfe8b19019fe3829aca9bd7bcf02d928ff0d12ebb29c391f3bd926a7\",\"urls\":[\"bzz-raw://da429a9c82382c35c335c530adea1904ab582b3e95d3fc96c509c8c37caa1375\",\"dweb:/ipfs/QmXo1XjTW2apcKBkFsibzsD9ytvWnd5NLuBYM6sMAJoyaB\"]},\"/Users/atvanguard/matic/contracts/contracts/staking/IStakeManager.sol\":{\"keccak256\":\"0x22f331e8c38096f677c5101dfc60d7c22289e0d21c0bba5bbea91456db9b6fa5\",\"urls\":[\"bzz-raw://60e7732d8b3ae3cdaaff8510878764c9f9db7790530d918d22002f20c3342afd\",\"dweb:/ipfs/QmPuCxVwrjEf1uCMSqLJhwxMkXX1owERGtckHRtVV9GgjG\"]},\"openzeppelin-solidity/contracts/math/SafeMath.sol\":{\"keccak256\":\"0xc2a200a877c4a9b2475c246c54ffecc69ffde3e11af83319c63c2dc5458bac80\",\"urls\":[\"bzz-raw://d6ee2095166a8fc1dbaff1949d786b91b8ef8ce41a7b5801a81dd2453220e770\",\"dweb:/ipfs/QmYBLFvCr9zKndkP8e7nFoKuZGcQEQtbHdwttC1MqckCgv\"]},\"openzeppelin-solidity/contracts/ownership/Ownable.sol\":{\"keccak256\":\"0xcb16adc00dcf0d75e0bdf94379f4d5a6d74dca7c74e4183b94e15721159f8a30\",\"urls\":[\"bzz-raw://e7de373f0bd92068fa1173a1bc2f65e80fdc4d929a339796636f65d6ef901005\",\"dweb:/ipfs/Qme26FWF1Ea8f7snvRo1Q3x6JkqHqoWVqYif3qzDGE8JEC\"]},\"solidity-rlp/contracts/RLPReader.sol\":{\"keccak256\":\"0xe2df62ba34ab569e097c58eee30eb9fdab120d4df1c572c6ceae1bec3faa2c2a\",\"urls\":[\"bzz-raw://46988aac4691b498d4c6983c7617de6d29cd5d7fe4e3ecfb7f8c0d00e33e9a12\",\"dweb:/ipfs/QmdWF9ti9UJSP2E7XYkdUPRV9yfmxEmuRgzpNtt3Ex57Ar\"]}},\"version\":1}",
+  "bytecode": "0x6080604052348015600f57600080fd5b50603e80601d6000396000f3fe6080604052600080fdfea265627a7a7231582016aa23226a615dffa68db843a1a6515ce083ff80f976a076ac906a0c639a018364736f6c634300050b0032",
+  "deployedBytecode": "0x6080604052600080fdfea265627a7a7231582016aa23226a615dffa68db843a1a6515ce083ff80f976a076ac906a0c639a018364736f6c634300050b0032",
+  "sourceMap": "255:248:42:-;;;;8:9:-1;5:2;;;30:1;27;20:12;5:2;255:248:42;;;;;;;",
+  "deployedSourceMap": "255:248:42:-;;;;;",
+  "source": "pragma solidity ^0.5.2;\n\nimport { Registry } from \"../../common/Registry.sol\";\nimport { RootChain } from \"../RootChain.sol\";\nimport { ProxyStorage } from \"../../common/misc/ProxyStorage.sol\";\nimport { StateSender } from \"../stateSyncer/StateSender.sol\";\n\ncontract DepositManagerHeader {\n  event NewDepositBlock(\n    address indexed owner,\n    address indexed token,\n    uint256 amountOrNFTId,\n    uint256 depositBlockId\n  );\n\n  struct DepositBlock {\n    bytes32 depositHash;\n    uint256 createdAt;\n  }\n}\n\n\ncontract DepositManagerStorage is ProxyStorage, DepositManagerHeader {\n  Registry internal registry;\n  RootChain internal rootChain;\n  StateSender public stateSender;\n\n  mapping(uint256 => DepositBlock) public deposits;\n\n  address public childChain;\n}\n",
+  "sourcePath": "/Users/atvanguard/matic/contracts/contracts/root/depositManager/DepositManagerStorage.sol",
+  "ast": {
+    "absolutePath": "/Users/atvanguard/matic/contracts/contracts/root/depositManager/DepositManagerStorage.sol",
+    "exportedSymbols": {
+      "DepositManagerHeader": [
+        6232
+      ],
+      "DepositManagerStorage": [
+        6249
+      ]
+    },
+    "id": 6250,
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 6208,
+        "literals": [
+          "solidity",
+          "^",
+          "0.5",
+          ".2"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "0:23:42"
+      },
+      {
+        "absolutePath": "/Users/atvanguard/matic/contracts/contracts/common/Registry.sol",
+        "file": "../../common/Registry.sol",
+        "id": 6210,
+        "nodeType": "ImportDirective",
+        "scope": 6250,
+        "sourceUnit": 2590,
+        "src": "25:53:42",
+        "symbolAliases": [
+          {
+            "foreign": 6209,
+            "local": null
+          }
+        ],
+        "unitAlias": ""
+      },
+      {
+        "absolutePath": "/Users/atvanguard/matic/contracts/contracts/root/RootChain.sol",
+        "file": "../RootChain.sol",
+        "id": 6212,
+        "nodeType": "ImportDirective",
+        "scope": 6250,
+        "sourceUnit": 5600,
+        "src": "79:45:42",
+        "symbolAliases": [
+          {
+            "foreign": 6211,
+            "local": null
+          }
+        ],
+        "unitAlias": ""
+      },
+      {
+        "absolutePath": "/Users/atvanguard/matic/contracts/contracts/common/misc/ProxyStorage.sol",
+        "file": "../../common/misc/ProxyStorage.sol",
+        "id": 6214,
+        "nodeType": "ImportDirective",
+        "scope": 6250,
+        "sourceUnit": 4395,
+        "src": "125:66:42",
+        "symbolAliases": [
+          {
+            "foreign": 6213,
+            "local": null
+          }
+        ],
+        "unitAlias": ""
+      },
+      {
+        "absolutePath": "/Users/atvanguard/matic/contracts/contracts/root/stateSyncer/StateSender.sol",
+        "file": "../stateSyncer/StateSender.sol",
+        "id": 6216,
+        "nodeType": "ImportDirective",
+        "scope": 6250,
+        "sourceUnit": 11966,
+        "src": "192:61:42",
+        "symbolAliases": [
+          {
+            "foreign": 6215,
+            "local": null
+          }
+        ],
+        "unitAlias": ""
+      },
+      {
+        "baseContracts": [],
+        "contractDependencies": [],
+        "contractKind": "contract",
+        "documentation": null,
+        "fullyImplemented": true,
+        "id": 6232,
+        "linearizedBaseContracts": [
+          6232
+        ],
+        "name": "DepositManagerHeader",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "anonymous": false,
+            "documentation": null,
+            "id": 6226,
+            "name": "NewDepositBlock",
+            "nodeType": "EventDefinition",
+            "parameters": {
+              "id": 6225,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 6218,
+                  "indexed": true,
+                  "name": "owner",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 6226,
+                  "src": "316:21:42",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 6217,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "316:7:42",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 6220,
+                  "indexed": true,
+                  "name": "token",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 6226,
+                  "src": "343:21:42",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 6219,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "343:7:42",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 6222,
+                  "indexed": false,
+                  "name": "amountOrNFTId",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 6226,
+                  "src": "370:21:42",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 6221,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "370:7:42",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 6224,
+                  "indexed": false,
+                  "name": "depositBlockId",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 6226,
+                  "src": "397:22:42",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 6223,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "397:7:42",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "310:113:42"
+            },
+            "src": "289:135:42"
+          },
+          {
+            "canonicalName": "DepositManagerHeader.DepositBlock",
+            "id": 6231,
+            "members": [
+              {
+                "constant": false,
+                "id": 6228,
+                "name": "depositHash",
+                "nodeType": "VariableDeclaration",
+                "scope": 6231,
+                "src": "454:19:42",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_bytes32",
+                  "typeString": "bytes32"
+                },
+                "typeName": {
+                  "id": 6227,
+                  "name": "bytes32",
+                  "nodeType": "ElementaryTypeName",
+                  "src": "454:7:42",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes32",
+                    "typeString": "bytes32"
+                  }
+                },
+                "value": null,
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 6230,
+                "name": "createdAt",
+                "nodeType": "VariableDeclaration",
+                "scope": 6231,
+                "src": "479:17:42",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_uint256",
+                  "typeString": "uint256"
+                },
+                "typeName": {
+                  "id": 6229,
+                  "name": "uint256",
+                  "nodeType": "ElementaryTypeName",
+                  "src": "479:7:42",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  }
+                },
+                "value": null,
+                "visibility": "internal"
+              }
+            ],
+            "name": "DepositBlock",
+            "nodeType": "StructDefinition",
+            "scope": 6232,
+            "src": "428:73:42",
+            "visibility": "public"
+          }
+        ],
+        "scope": 6250,
+        "src": "255:248:42"
+      },
+      {
+        "baseContracts": [
+          {
+            "arguments": null,
+            "baseName": {
+              "contractScope": null,
+              "id": 6233,
+              "name": "ProxyStorage",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 4394,
+              "src": "540:12:42",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_ProxyStorage_$4394",
+                "typeString": "contract ProxyStorage"
+              }
+            },
+            "id": 6234,
+            "nodeType": "InheritanceSpecifier",
+            "src": "540:12:42"
+          },
+          {
+            "arguments": null,
+            "baseName": {
+              "contractScope": null,
+              "id": 6235,
+              "name": "DepositManagerHeader",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 6232,
+              "src": "554:20:42",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_DepositManagerHeader_$6232",
+                "typeString": "contract DepositManagerHeader"
+              }
+            },
+            "id": 6236,
+            "nodeType": "InheritanceSpecifier",
+            "src": "554:20:42"
+          }
+        ],
+        "contractDependencies": [
+          4394,
+          6232,
+          18512
+        ],
+        "contractKind": "contract",
+        "documentation": null,
+        "fullyImplemented": true,
+        "id": 6249,
+        "linearizedBaseContracts": [
+          6249,
+          6232,
+          4394,
+          18512
+        ],
+        "name": "DepositManagerStorage",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "constant": false,
+            "id": 6238,
+            "name": "registry",
+            "nodeType": "VariableDeclaration",
+            "scope": 6249,
+            "src": "579:26:42",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_contract$_Registry_$2589",
+              "typeString": "contract Registry"
+            },
+            "typeName": {
+              "contractScope": null,
+              "id": 6237,
+              "name": "Registry",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 2589,
+              "src": "579:8:42",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_Registry_$2589",
+                "typeString": "contract Registry"
+              }
+            },
+            "value": null,
+            "visibility": "internal"
+          },
+          {
+            "constant": false,
+            "id": 6240,
+            "name": "rootChain",
+            "nodeType": "VariableDeclaration",
+            "scope": 6249,
+            "src": "609:28:42",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_contract$_RootChain_$5599",
+              "typeString": "contract RootChain"
+            },
+            "typeName": {
+              "contractScope": null,
+              "id": 6239,
+              "name": "RootChain",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 5599,
+              "src": "609:9:42",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_RootChain_$5599",
+                "typeString": "contract RootChain"
+              }
+            },
+            "value": null,
+            "visibility": "internal"
+          },
+          {
+            "constant": false,
+            "id": 6242,
+            "name": "stateSender",
+            "nodeType": "VariableDeclaration",
+            "scope": 6249,
+            "src": "641:30:42",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_contract$_StateSender_$11965",
+              "typeString": "contract StateSender"
+            },
+            "typeName": {
+              "contractScope": null,
+              "id": 6241,
+              "name": "StateSender",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 11965,
+              "src": "641:11:42",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_StateSender_$11965",
+                "typeString": "contract StateSender"
+              }
+            },
+            "value": null,
+            "visibility": "public"
+          },
+          {
+            "constant": false,
+            "id": 6246,
+            "name": "deposits",
+            "nodeType": "VariableDeclaration",
+            "scope": 6249,
+            "src": "676:48:42",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_mapping$_t_uint256_$_t_struct$_DepositBlock_$6231_storage_$",
+              "typeString": "mapping(uint256 => struct DepositManagerHeader.DepositBlock)"
+            },
+            "typeName": {
+              "id": 6245,
+              "keyType": {
+                "id": 6243,
+                "name": "uint256",
+                "nodeType": "ElementaryTypeName",
+                "src": "684:7:42",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_uint256",
+                  "typeString": "uint256"
+                }
+              },
+              "nodeType": "Mapping",
+              "src": "676:32:42",
+              "typeDescriptions": {
+                "typeIdentifier": "t_mapping$_t_uint256_$_t_struct$_DepositBlock_$6231_storage_$",
+                "typeString": "mapping(uint256 => struct DepositManagerHeader.DepositBlock)"
+              },
+              "valueType": {
+                "contractScope": null,
+                "id": 6244,
+                "name": "DepositBlock",
+                "nodeType": "UserDefinedTypeName",
+                "referencedDeclaration": 6231,
+                "src": "695:12:42",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_struct$_DepositBlock_$6231_storage_ptr",
+                  "typeString": "struct DepositManagerHeader.DepositBlock"
+                }
+              }
+            },
+            "value": null,
+            "visibility": "public"
+          },
+          {
+            "constant": false,
+            "id": 6248,
+            "name": "childChain",
+            "nodeType": "VariableDeclaration",
+            "scope": 6249,
+            "src": "729:25:42",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_address",
+              "typeString": "address"
+            },
+            "typeName": {
+              "id": 6247,
+              "name": "address",
+              "nodeType": "ElementaryTypeName",
+              "src": "729:7:42",
+              "stateMutability": "nonpayable",
+              "typeDescriptions": {
+                "typeIdentifier": "t_address",
+                "typeString": "address"
+              }
+            },
+            "value": null,
+            "visibility": "public"
+          }
+        ],
+        "scope": 6250,
+        "src": "506:251:42"
+      }
+    ],
+    "src": "0:758:42"
+  },
+  "legacyAST": {
+    "absolutePath": "/Users/atvanguard/matic/contracts/contracts/root/depositManager/DepositManagerStorage.sol",
+    "exportedSymbols": {
+      "DepositManagerHeader": [
+        6232
+      ],
+      "DepositManagerStorage": [
+        6249
+      ]
+    },
+    "id": 6250,
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 6208,
+        "literals": [
+          "solidity",
+          "^",
+          "0.5",
+          ".2"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "0:23:42"
+      },
+      {
+        "absolutePath": "/Users/atvanguard/matic/contracts/contracts/common/Registry.sol",
+        "file": "../../common/Registry.sol",
+        "id": 6210,
+        "nodeType": "ImportDirective",
+        "scope": 6250,
+        "sourceUnit": 2590,
+        "src": "25:53:42",
+        "symbolAliases": [
+          {
+            "foreign": 6209,
+            "local": null
+          }
+        ],
+        "unitAlias": ""
+      },
+      {
+        "absolutePath": "/Users/atvanguard/matic/contracts/contracts/root/RootChain.sol",
+        "file": "../RootChain.sol",
+        "id": 6212,
+        "nodeType": "ImportDirective",
+        "scope": 6250,
+        "sourceUnit": 5600,
+        "src": "79:45:42",
+        "symbolAliases": [
+          {
+            "foreign": 6211,
+            "local": null
+          }
+        ],
+        "unitAlias": ""
+      },
+      {
+        "absolutePath": "/Users/atvanguard/matic/contracts/contracts/common/misc/ProxyStorage.sol",
+        "file": "../../common/misc/ProxyStorage.sol",
+        "id": 6214,
+        "nodeType": "ImportDirective",
+        "scope": 6250,
+        "sourceUnit": 4395,
+        "src": "125:66:42",
+        "symbolAliases": [
+          {
+            "foreign": 6213,
+            "local": null
+          }
+        ],
+        "unitAlias": ""
+      },
+      {
+        "absolutePath": "/Users/atvanguard/matic/contracts/contracts/root/stateSyncer/StateSender.sol",
+        "file": "../stateSyncer/StateSender.sol",
+        "id": 6216,
+        "nodeType": "ImportDirective",
+        "scope": 6250,
+        "sourceUnit": 11966,
+        "src": "192:61:42",
+        "symbolAliases": [
+          {
+            "foreign": 6215,
+            "local": null
+          }
+        ],
+        "unitAlias": ""
+      },
+      {
+        "baseContracts": [],
+        "contractDependencies": [],
+        "contractKind": "contract",
+        "documentation": null,
+        "fullyImplemented": true,
+        "id": 6232,
+        "linearizedBaseContracts": [
+          6232
+        ],
+        "name": "DepositManagerHeader",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "anonymous": false,
+            "documentation": null,
+            "id": 6226,
+            "name": "NewDepositBlock",
+            "nodeType": "EventDefinition",
+            "parameters": {
+              "id": 6225,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 6218,
+                  "indexed": true,
+                  "name": "owner",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 6226,
+                  "src": "316:21:42",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 6217,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "316:7:42",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 6220,
+                  "indexed": true,
+                  "name": "token",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 6226,
+                  "src": "343:21:42",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 6219,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "343:7:42",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 6222,
+                  "indexed": false,
+                  "name": "amountOrNFTId",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 6226,
+                  "src": "370:21:42",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 6221,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "370:7:42",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 6224,
+                  "indexed": false,
+                  "name": "depositBlockId",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 6226,
+                  "src": "397:22:42",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 6223,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "397:7:42",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "310:113:42"
+            },
+            "src": "289:135:42"
+          },
+          {
+            "canonicalName": "DepositManagerHeader.DepositBlock",
+            "id": 6231,
+            "members": [
+              {
+                "constant": false,
+                "id": 6228,
+                "name": "depositHash",
+                "nodeType": "VariableDeclaration",
+                "scope": 6231,
+                "src": "454:19:42",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_bytes32",
+                  "typeString": "bytes32"
+                },
+                "typeName": {
+                  "id": 6227,
+                  "name": "bytes32",
+                  "nodeType": "ElementaryTypeName",
+                  "src": "454:7:42",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes32",
+                    "typeString": "bytes32"
+                  }
+                },
+                "value": null,
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 6230,
+                "name": "createdAt",
+                "nodeType": "VariableDeclaration",
+                "scope": 6231,
+                "src": "479:17:42",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_uint256",
+                  "typeString": "uint256"
+                },
+                "typeName": {
+                  "id": 6229,
+                  "name": "uint256",
+                  "nodeType": "ElementaryTypeName",
+                  "src": "479:7:42",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  }
+                },
+                "value": null,
+                "visibility": "internal"
+              }
+            ],
+            "name": "DepositBlock",
+            "nodeType": "StructDefinition",
+            "scope": 6232,
+            "src": "428:73:42",
+            "visibility": "public"
+          }
+        ],
+        "scope": 6250,
+        "src": "255:248:42"
+      },
+      {
+        "baseContracts": [
+          {
+            "arguments": null,
+            "baseName": {
+              "contractScope": null,
+              "id": 6233,
+              "name": "ProxyStorage",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 4394,
+              "src": "540:12:42",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_ProxyStorage_$4394",
+                "typeString": "contract ProxyStorage"
+              }
+            },
+            "id": 6234,
+            "nodeType": "InheritanceSpecifier",
+            "src": "540:12:42"
+          },
+          {
+            "arguments": null,
+            "baseName": {
+              "contractScope": null,
+              "id": 6235,
+              "name": "DepositManagerHeader",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 6232,
+              "src": "554:20:42",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_DepositManagerHeader_$6232",
+                "typeString": "contract DepositManagerHeader"
+              }
+            },
+            "id": 6236,
+            "nodeType": "InheritanceSpecifier",
+            "src": "554:20:42"
+          }
+        ],
+        "contractDependencies": [
+          4394,
+          6232,
+          18512
+        ],
+        "contractKind": "contract",
+        "documentation": null,
+        "fullyImplemented": true,
+        "id": 6249,
+        "linearizedBaseContracts": [
+          6249,
+          6232,
+          4394,
+          18512
+        ],
+        "name": "DepositManagerStorage",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "constant": false,
+            "id": 6238,
+            "name": "registry",
+            "nodeType": "VariableDeclaration",
+            "scope": 6249,
+            "src": "579:26:42",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_contract$_Registry_$2589",
+              "typeString": "contract Registry"
+            },
+            "typeName": {
+              "contractScope": null,
+              "id": 6237,
+              "name": "Registry",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 2589,
+              "src": "579:8:42",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_Registry_$2589",
+                "typeString": "contract Registry"
+              }
+            },
+            "value": null,
+            "visibility": "internal"
+          },
+          {
+            "constant": false,
+            "id": 6240,
+            "name": "rootChain",
+            "nodeType": "VariableDeclaration",
+            "scope": 6249,
+            "src": "609:28:42",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_contract$_RootChain_$5599",
+              "typeString": "contract RootChain"
+            },
+            "typeName": {
+              "contractScope": null,
+              "id": 6239,
+              "name": "RootChain",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 5599,
+              "src": "609:9:42",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_RootChain_$5599",
+                "typeString": "contract RootChain"
+              }
+            },
+            "value": null,
+            "visibility": "internal"
+          },
+          {
+            "constant": false,
+            "id": 6242,
+            "name": "stateSender",
+            "nodeType": "VariableDeclaration",
+            "scope": 6249,
+            "src": "641:30:42",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_contract$_StateSender_$11965",
+              "typeString": "contract StateSender"
+            },
+            "typeName": {
+              "contractScope": null,
+              "id": 6241,
+              "name": "StateSender",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 11965,
+              "src": "641:11:42",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_StateSender_$11965",
+                "typeString": "contract StateSender"
+              }
+            },
+            "value": null,
+            "visibility": "public"
+          },
+          {
+            "constant": false,
+            "id": 6246,
+            "name": "deposits",
+            "nodeType": "VariableDeclaration",
+            "scope": 6249,
+            "src": "676:48:42",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_mapping$_t_uint256_$_t_struct$_DepositBlock_$6231_storage_$",
+              "typeString": "mapping(uint256 => struct DepositManagerHeader.DepositBlock)"
+            },
+            "typeName": {
+              "id": 6245,
+              "keyType": {
+                "id": 6243,
+                "name": "uint256",
+                "nodeType": "ElementaryTypeName",
+                "src": "684:7:42",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_uint256",
+                  "typeString": "uint256"
+                }
+              },
+              "nodeType": "Mapping",
+              "src": "676:32:42",
+              "typeDescriptions": {
+                "typeIdentifier": "t_mapping$_t_uint256_$_t_struct$_DepositBlock_$6231_storage_$",
+                "typeString": "mapping(uint256 => struct DepositManagerHeader.DepositBlock)"
+              },
+              "valueType": {
+                "contractScope": null,
+                "id": 6244,
+                "name": "DepositBlock",
+                "nodeType": "UserDefinedTypeName",
+                "referencedDeclaration": 6231,
+                "src": "695:12:42",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_struct$_DepositBlock_$6231_storage_ptr",
+                  "typeString": "struct DepositManagerHeader.DepositBlock"
+                }
+              }
+            },
+            "value": null,
+            "visibility": "public"
+          },
+          {
+            "constant": false,
+            "id": 6248,
+            "name": "childChain",
+            "nodeType": "VariableDeclaration",
+            "scope": 6249,
+            "src": "729:25:42",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_address",
+              "typeString": "address"
+            },
+            "typeName": {
+              "id": 6247,
+              "name": "address",
+              "nodeType": "ElementaryTypeName",
+              "src": "729:7:42",
+              "stateMutability": "nonpayable",
+              "typeDescriptions": {
+                "typeIdentifier": "t_address",
+                "typeString": "address"
+              }
+            },
+            "value": null,
+            "visibility": "public"
+          }
+        ],
+        "scope": 6250,
+        "src": "506:251:42"
+      }
+    ],
+    "src": "0:758:42"
+  },
+  "compiler": {
+    "name": "solc",
+    "version": "0.5.11+commit.c082d0b4.Emscripten.clang"
+  },
+  "networks": {},
+  "schemaVersion": "3.0.14",
+  "updatedAt": "2019-12-17T06:13:10.770Z",
+  "devdoc": {
+    "methods": {}
+  },
+  "userdoc": {
+    "methods": {}
+  }
+}

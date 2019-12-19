@@ -1,0 +1,1396 @@
+{
+  "contractName": "WithdrawManagerProxy",
+  "abi": [
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_newProxyTo",
+          "type": "address"
+        }
+      ],
+      "name": "updateImplementation",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "exitWindow",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "exits",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "receiptAmountOrNFTId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "txHash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "internalType": "bool",
+          "name": "isRegularExit",
+          "type": "bool"
+        },
+        {
+          "internalType": "address",
+          "name": "predicate",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "proxyType",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "proxyTypeId",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "implementation",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "name": "ownerExits",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [],
+      "name": "renounceOwnership",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "isOwner",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "exitsQueues",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "exitNft",
+      "outputs": [
+        {
+          "internalType": "contract ExitNFT",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "transferOwnership",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_proxyTo",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_registry",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_rootChain",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "payable": true,
+      "stateMutability": "payable",
+      "type": "fallback"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "exitId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "Withdraw",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "exitor",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "exitId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "bool",
+          "name": "isRegularExit",
+          "type": "bool"
+        }
+      ],
+      "name": "ExitStarted",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "exitId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "age",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "signer",
+          "type": "address"
+        }
+      ],
+      "name": "ExitUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "exitId",
+          "type": "uint256"
+        }
+      ],
+      "name": "ExitCancelled",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "_new",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "_old",
+          "type": "address"
+        }
+      ],
+      "name": "ProxyUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "_prevOwner",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "_newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "OwnerUpdate",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "previousOwner",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "OwnershipTransferred",
+      "type": "event"
+    }
+  ],
+  "metadata": "{\"compiler\":{\"version\":\"0.5.11+commit.c082d0b4\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"_newProxyTo\",\"type\":\"address\"}],\"name\":\"updateImplementation\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"exitWindow\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"exits\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"receiptAmountOrNFTId\",\"type\":\"uint256\"},{\"internalType\":\"bytes32\",\"name\":\"txHash\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"isRegularExit\",\"type\":\"bool\"},{\"internalType\":\"address\",\"name\":\"predicate\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"proxyType\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"proxyTypeId\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"pure\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"implementation\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"name\":\"ownerExits\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"isOwner\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"exitsQueues\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"exitNft\",\"outputs\":[{\"internalType\":\"contract ExitNFT\",\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_proxyTo\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_registry\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_rootChain\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"fallback\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"exitId\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"user\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Withdraw\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"exitor\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"exitId\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"isRegularExit\",\"type\":\"bool\"}],\"name\":\"ExitStarted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"exitId\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"age\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"signer\",\"type\":\"address\"}],\"name\":\"ExitUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"exitId\",\"type\":\"uint256\"}],\"name\":\"ExitCancelled\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"_new\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"_old\",\"type\":\"address\"}],\"name\":\"ProxyUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"_prevOwner\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"_newOwner\",\"type\":\"address\"}],\"name\":\"OwnerUpdate\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"}],\"devdoc\":{\"methods\":{\"isOwner()\":{\"return\":\"true if `msg.sender` is the owner of the contract.\"},\"owner()\":{\"return\":\"the address of the owner.\"},\"renounceOwnership()\":{\"details\":\"Allows the current owner to relinquish control of the contract. It will not be possible to call the functions with the `onlyOwner` modifier anymore.\"},\"transferOwnership(address)\":{\"details\":\"Allows the current owner to transfer control of the contract to a newOwner.\",\"params\":{\"newOwner\":\"The address to transfer ownership to.\"}}}},\"userdoc\":{\"methods\":{\"renounceOwnership()\":{\"notice\":\"Renouncing ownership will leave the contract without an owner, thereby removing any functionality that is only available to the owner.\"}}}},\"settings\":{\"compilationTarget\":{\"/Users/atvanguard/matic/contracts/contracts/root/withdrawManager/WithdrawManagerProxy.sol\":\"WithdrawManagerProxy\"},\"evmVersion\":\"constantinople\",\"libraries\":{},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"/Users/atvanguard/matic/contracts/contracts/common/Registry.sol\":{\"keccak256\":\"0x30ea66346649b9e1f5264290f67e2619e6fb058f3f25a3b4ae9803023a4cdd67\",\"urls\":[\"bzz-raw://adf1d4709d548ed9f9d7873ff453fc7d3e2668364d646c9b2366ba91312a2f5c\",\"dweb:/ipfs/QmadVUhC1npw8BXgcxA1gGPbuAdVov4d5sXW4dBRo2a9C8\"]},\"/Users/atvanguard/matic/contracts/contracts/common/misc/DelegateProxy.sol\":{\"keccak256\":\"0x4944c432bca69e0f81940835945af4e9dbea4573f4352d58dd37d598ac77a998\",\"urls\":[\"bzz-raw://483cd337fe65edde9d48f38d2bcbbd4f1563e97d6a7cb69573d4958927693656\",\"dweb:/ipfs/QmXQZcJSoqof2Ktj3r9vPMAzZUxVzNaMkomT9FZHTXi5vx\"]},\"/Users/atvanguard/matic/contracts/contracts/common/misc/ERCProxy.sol\":{\"keccak256\":\"0xf827f3e519a1a42782dd227b06459b594f0e58a2c266d865c451764e8b37fb32\",\"urls\":[\"bzz-raw://60d9fae986abfaaf8854501f2907cb8fa55421d22636d89c6c18bcc3c97e2ae9\",\"dweb:/ipfs/QmVbSMyCcPKE2PaBZ4UnoVZeWKk1qsyegRCNYUQZNDUixj\"]},\"/Users/atvanguard/matic/contracts/contracts/common/misc/Proxy.sol\":{\"keccak256\":\"0xa0fd74d57e17858197349c6d3a2dadc70ff1016bacabbc2309addb6f2dea6cb1\",\"urls\":[\"bzz-raw://c133653b9e85171490ed1b481f528629e13d86c9556e627d0b8e87bfe1a2a28d\",\"dweb:/ipfs/QmYGPFgD33iSLaDaWVy9aPiBEm8mJLzKpqcG2tfVx9iZJq\"]},\"/Users/atvanguard/matic/contracts/contracts/common/misc/ProxyStorage.sol\":{\"keccak256\":\"0x0648b0e0e84be908da595e3a79baaa978f5b57af15598523b2da9515b128f6fd\",\"urls\":[\"bzz-raw://959f8dd118fb88066825b09ac49b66c04a0442a9420806ff14046ce8ae93f806\",\"dweb:/ipfs/QmfZJPLFUusDdwWZV1pSPL5dab9y8Zzs7sbXgWtDx7mG3C\"]},\"/Users/atvanguard/matic/contracts/contracts/root/IRootChain.sol\":{\"keccak256\":\"0x930b45080e0caccf097e33e3e558b8d31015c42decf0c419bf4bfa76afbdace0\",\"urls\":[\"bzz-raw://21c1382fa51b4a3b5ca8a96f80d35410e50d230353104b8806a73d42b19e2963\",\"dweb:/ipfs/QmZJgDHe1LBvc8cdvK9viU5ujk8ULvcyGKbjcBu6EFXC4V\"]},\"/Users/atvanguard/matic/contracts/contracts/root/RootChain.sol\":{\"keccak256\":\"0x7b4111195d97b5a2a929382b8f68480b2abaf5a765fcc120539e62059f52bc61\",\"urls\":[\"bzz-raw://d0f8ed61684b217a6fd4e0343a9b0df2262d09ebc2d515bb6db9d5101516d8f5\",\"dweb:/ipfs/QmWXw7KijN7v8kdLQDzUrGSnxJujn89qiQ9UEBHahXxHLN\"]},\"/Users/atvanguard/matic/contracts/contracts/root/RootChainStorage.sol\":{\"keccak256\":\"0xb14ba0310cf03d696370316e60ccd21fbe9fbff5a2e48d48e619c0d75e631167\",\"urls\":[\"bzz-raw://b56a12ad678ee472d0856c22ec10c285800f5110bc94fe66e7adb9dca9012ced\",\"dweb:/ipfs/QmY41ZYodQyGvYqj92tx9ux6tqksbcywEQESqHF95n919F\"]},\"/Users/atvanguard/matic/contracts/contracts/root/withdrawManager/ExitNFT.sol\":{\"keccak256\":\"0xec9183449d33f70201df5dcfa99dfd0e618dcdf101dada88811e7072171fce20\",\"urls\":[\"bzz-raw://a1e618a29c49bd8def3a1e305f7d0a25e333f6dcd2b4f48ef1126293b758a225\",\"dweb:/ipfs/QmUrgkBk5QWv8otx4cKRsS3ZsCi7PtAnAsgsALgbFVuKYW\"]},\"/Users/atvanguard/matic/contracts/contracts/root/withdrawManager/IWithdrawManager.sol\":{\"keccak256\":\"0x934dbb0fcfe8b19019fe3829aca9bd7bcf02d928ff0d12ebb29c391f3bd926a7\",\"urls\":[\"bzz-raw://da429a9c82382c35c335c530adea1904ab582b3e95d3fc96c509c8c37caa1375\",\"dweb:/ipfs/QmXo1XjTW2apcKBkFsibzsD9ytvWnd5NLuBYM6sMAJoyaB\"]},\"/Users/atvanguard/matic/contracts/contracts/root/withdrawManager/WithdrawManagerProxy.sol\":{\"keccak256\":\"0xd82d17defac30933873c7339c9c73b6dd196b45cf90371b7490632e94eb8f741\",\"urls\":[\"bzz-raw://e921d5a380326ed49eba66b3d0e079b7c87324fe38beea6b11041dfb2667c57b\",\"dweb:/ipfs/QmepWmBBpAx87Uy2k3GhhGMjAz48n5S7XyNu796Byvvmoh\"]},\"/Users/atvanguard/matic/contracts/contracts/root/withdrawManager/WithdrawManagerStorage.sol\":{\"keccak256\":\"0xa425aabb507be6d4ef7d5caf1b896c8b64500a793c3a54c17c5c17af64404faf\",\"urls\":[\"bzz-raw://5e16cab4358554c1f1273e7c1fb8dce950ccce800ae3e157e2691792097472f7\",\"dweb:/ipfs/QmNWBZgXqzWRrBajyBLXP1Z1ZUZE1sDGR5onvwsES9X2Fr\"]},\"/Users/atvanguard/matic/contracts/contracts/staking/IStakeManager.sol\":{\"keccak256\":\"0x22f331e8c38096f677c5101dfc60d7c22289e0d21c0bba5bbea91456db9b6fa5\",\"urls\":[\"bzz-raw://60e7732d8b3ae3cdaaff8510878764c9f9db7790530d918d22002f20c3342afd\",\"dweb:/ipfs/QmPuCxVwrjEf1uCMSqLJhwxMkXX1owERGtckHRtVV9GgjG\"]},\"openzeppelin-solidity/contracts/drafts/Counters.sol\":{\"keccak256\":\"0x982e18d2e3df98e3339f70f955a4d1fb78411a29963d0ea34621759eef67e86d\",\"urls\":[\"bzz-raw://b51463c381bc5ad8ad1c2a0b15bfbcab7810a35f0cd33e00a85c67d5526f97e8\",\"dweb:/ipfs/Qmb51F78kH7ifaW9CbkfZhprpkbY7T16gkarbscX6E7h2f\"]},\"openzeppelin-solidity/contracts/introspection/ERC165.sol\":{\"keccak256\":\"0xd86c61f2e7e78c88716b5591bbf2d6cce8fe1a68320484994810d54f82605a7a\",\"urls\":[\"bzz-raw://aa27a9f095b9d061be9fb54082de2d76c89c127ae4e3bbf565fb3a6ddc3991a1\",\"dweb:/ipfs/QmRZaZ6czUGKAHTN3y9LokejfFCSwVPfVz6Vk6YrEuxeN7\"]},\"openzeppelin-solidity/contracts/introspection/IERC165.sol\":{\"keccak256\":\"0xc48ee580d20820cc0ef122b2acc9bf8836731dd8b9671cc03d21a12e3ab14976\",\"urls\":[\"bzz-raw://2fa424de1b3f2f31c57af99e87a0ec76e355bbf336f8db8f1238230a897c8bc8\",\"dweb:/ipfs/QmREEQFeAuyWQr27AfcvLG7qXYf6JiwZXxf5AmHT7on7cU\"]},\"openzeppelin-solidity/contracts/math/SafeMath.sol\":{\"keccak256\":\"0xc2a200a877c4a9b2475c246c54ffecc69ffde3e11af83319c63c2dc5458bac80\",\"urls\":[\"bzz-raw://d6ee2095166a8fc1dbaff1949d786b91b8ef8ce41a7b5801a81dd2453220e770\",\"dweb:/ipfs/QmYBLFvCr9zKndkP8e7nFoKuZGcQEQtbHdwttC1MqckCgv\"]},\"openzeppelin-solidity/contracts/ownership/Ownable.sol\":{\"keccak256\":\"0xcb16adc00dcf0d75e0bdf94379f4d5a6d74dca7c74e4183b94e15721159f8a30\",\"urls\":[\"bzz-raw://e7de373f0bd92068fa1173a1bc2f65e80fdc4d929a339796636f65d6ef901005\",\"dweb:/ipfs/Qme26FWF1Ea8f7snvRo1Q3x6JkqHqoWVqYif3qzDGE8JEC\"]},\"openzeppelin-solidity/contracts/token/ERC721/ERC721.sol\":{\"keccak256\":\"0x07029cbf047f6559e30862f33be2ee323c763e2fc251bca5de44177d29cf15e2\",\"urls\":[\"bzz-raw://d898f3b89f15102cd113de447538b699de959bebd840149c2cdef9102dbbf73a\",\"dweb:/ipfs/QmTb4v4g9GZgdm2ksA7q2xc4EbyPxX3fsqUWU5Y2StN3RA\"]},\"openzeppelin-solidity/contracts/token/ERC721/IERC721.sol\":{\"keccak256\":\"0x44fd7c58fc1323f8481f160f2fd4c34b1653d0cc5def45c2381898d32bcc023e\",\"urls\":[\"bzz-raw://6bf189ee544432d2323a6049361cb4695ae980d11c747d4e5afb3b08537b2424\",\"dweb:/ipfs/QmeBG5Jge1QGy6rUVMpaosbqbDdZAC8jefQEnx9unWSEfF\"]},\"openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol\":{\"keccak256\":\"0xeb8a266ef2da0aa60eea704031902ffd28b2d13dd0e8f5b69bcfb8415f2dad85\",\"urls\":[\"bzz-raw://3d69bbdaef9e7beb4919fed4f5aaca68cf3ecbf8f0932959fee720110daffaba\",\"dweb:/ipfs/QmdLwrPjDbhWBzkBMiRFbz3muLr5KQ5HQoiFk8EPkTMwRh\"]},\"openzeppelin-solidity/contracts/utils/Address.sol\":{\"keccak256\":\"0xea16b9933153c647242ba50b3e494fb133063d49f1fa81823f35a8c28754142e\",\"urls\":[\"bzz-raw://95b3b4b5c8008b6d8a862a797bf2550e8017cbff25d0e36be86cff48b1a9bbf2\",\"dweb:/ipfs/QmZWK9sD6V3jwSarEyheM8PjHFVcuA11W65FgAZ2fsu9sq\"]},\"solidity-rlp/contracts/RLPReader.sol\":{\"keccak256\":\"0xe2df62ba34ab569e097c58eee30eb9fdab120d4df1c572c6ceae1bec3faa2c2a\",\"urls\":[\"bzz-raw://46988aac4691b498d4c6983c7617de6d29cd5d7fe4e3ecfb7f8c0d00e33e9a12\",\"dweb:/ipfs/QmdWF9ti9UJSP2E7XYkdUPRV9yfmxEmuRgzpNtt3Ex57Ar\"]}},\"version\":1}",
+  "bytecode": "0x608060405234801561001057600080fd5b506040516108d53803806108d58339818101604052606081101561003357600080fd5b5080516020820151604092830151600080546001600160a01b0319163317808255945193949293919285926001600160a01b039190911691907f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0908290a36100a3816001600160e01b036100d616565b50600280546001600160a01b039384166001600160a01b031991821617909155600380549290931691161790555061025d565b6100e76001600160e01b0361022916565b6100f057600080fd5b6001600160a01b03811661016557604080517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601560248201527f494e56414c49445f50524f58595f414444524553530000000000000000000000604482015290519081900360640190fd5b610177816001600160e01b0361023a16565b6101cc576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004018080602001828103825260258152602001806108b06025913960400191505060405180910390fd5b6001546040516001600160a01b03918216918316907fd32d24edea94f55e932d9a008afc425a8561462d1b1f57bc6e508e9a6b9509e190600090a3600180546001600160a01b0319166001600160a01b0392909216919091179055565b6000546001600160a01b0316331490565b60006001600160a01b03821661025257506000610258565b50803b15155b919050565b6106448061026c6000396000f3fe6080604052600436106100a75760003560e01c8063715018a611610064578063715018a6146102255780638da5cb5b1461023a5780638f32d59b1461024f578063d11f045c14610278578063edeca09b146102ab578063f2fde38b146102c0576100a7565b8063025b22bc146100f35780631e29848b14610126578063342de1791461014d5780634555d5c9146101b55780635c60da1b146101ca578063661429c8146101fb575b60015460408051602036601f81018290048202830182019093528282526100f1936001600160a01b031692600091819084018382808284376000920191909152506102f392505050565b005b3480156100ff57600080fd5b506100f16004803603602081101561011657600080fd5b50356001600160a01b031661031b565b34801561013257600080fd5b5061013b610420565b60408051918252519081900360200190f35b34801561015957600080fd5b506101776004803603602081101561017057600080fd5b5035610426565b6040805196875260208701959095526001600160a01b03938416868601529183166060860152151560808501521660a0830152519081900360c00190f35b3480156101c157600080fd5b5061013b610471565b3480156101d657600080fd5b506101df610476565b604080516001600160a01b039092168252519081900360200190f35b34801561020757600080fd5b5061013b6004803603602081101561021e57600080fd5b5035610485565b34801561023157600080fd5b506100f1610497565b34801561024657600080fd5b506101df6104f2565b34801561025b57600080fd5b50610264610501565b604080519115158252519081900360200190f35b34801561028457600080fd5b506101df6004803603602081101561029b57600080fd5b50356001600160a01b0316610512565b3480156102b757600080fd5b506101df61052d565b3480156102cc57600080fd5b506100f1600480360360208110156102e357600080fd5b50356001600160a01b031661053c565b600080825160208401856127105a03f43d604051816000823e828015610317578282f35b8282fd5b610323610501565b61032c57600080fd5b6001600160a01b03811661037f576040805162461bcd60e51b8152602060048201526015602482015274494e56414c49445f50524f58595f4144445245535360581b604482015290519081900360640190fd5b61038881610559565b6103c35760405162461bcd60e51b81526004018080602001828103825260258152602001806105eb6025913960400191505060405180910390fd5b6001546040516001600160a01b03918216918316907fd32d24edea94f55e932d9a008afc425a8561462d1b1f57bc6e508e9a6b9509e190600090a3600180546001600160a01b0319166001600160a01b0392909216919091179055565b60085481565b600460208190526000918252604090912080546001820154600283015460038401549390940154919390926001600160a01b039182169282821692600160a01b90920460ff16911686565b600290565b6001546001600160a01b031690565b60056020526000908152604090205481565b61049f610501565b6104a857600080fd5b600080546040516001600160a01b03909116907f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0908390a3600080546001600160a01b0319169055565b6000546001600160a01b031690565b6000546001600160a01b0316331490565b6006602052600090815260409020546001600160a01b031681565b6007546001600160a01b031681565b610544610501565b61054d57600080fd5b6105568161057c565b50565b60006001600160a01b03821661057157506000610577565b50803b15155b919050565b6001600160a01b03811661058f57600080fd5b600080546040516001600160a01b03808516939216917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e091a3600080546001600160a01b0319166001600160a01b039290921691909117905556fe44455354494e4154494f4e5f414444524553535f49535f4e4f545f415f434f4e5452414354a265627a7a723158203c1b6e84b5bbaa25c5d9a7c3f9b6d2dac4a74ad7e5ef3c4af471a097511cf9d364736f6c634300050b003244455354494e4154494f4e5f414444524553535f49535f4e4f545f415f434f4e5452414354",
+  "deployedBytecode": "0x6080604052600436106100a75760003560e01c8063715018a611610064578063715018a6146102255780638da5cb5b1461023a5780638f32d59b1461024f578063d11f045c14610278578063edeca09b146102ab578063f2fde38b146102c0576100a7565b8063025b22bc146100f35780631e29848b14610126578063342de1791461014d5780634555d5c9146101b55780635c60da1b146101ca578063661429c8146101fb575b60015460408051602036601f81018290048202830182019093528282526100f1936001600160a01b031692600091819084018382808284376000920191909152506102f392505050565b005b3480156100ff57600080fd5b506100f16004803603602081101561011657600080fd5b50356001600160a01b031661031b565b34801561013257600080fd5b5061013b610420565b60408051918252519081900360200190f35b34801561015957600080fd5b506101776004803603602081101561017057600080fd5b5035610426565b6040805196875260208701959095526001600160a01b03938416868601529183166060860152151560808501521660a0830152519081900360c00190f35b3480156101c157600080fd5b5061013b610471565b3480156101d657600080fd5b506101df610476565b604080516001600160a01b039092168252519081900360200190f35b34801561020757600080fd5b5061013b6004803603602081101561021e57600080fd5b5035610485565b34801561023157600080fd5b506100f1610497565b34801561024657600080fd5b506101df6104f2565b34801561025b57600080fd5b50610264610501565b604080519115158252519081900360200190f35b34801561028457600080fd5b506101df6004803603602081101561029b57600080fd5b50356001600160a01b0316610512565b3480156102b757600080fd5b506101df61052d565b3480156102cc57600080fd5b506100f1600480360360208110156102e357600080fd5b50356001600160a01b031661053c565b600080825160208401856127105a03f43d604051816000823e828015610317578282f35b8282fd5b610323610501565b61032c57600080fd5b6001600160a01b03811661037f576040805162461bcd60e51b8152602060048201526015602482015274494e56414c49445f50524f58595f4144445245535360581b604482015290519081900360640190fd5b61038881610559565b6103c35760405162461bcd60e51b81526004018080602001828103825260258152602001806105eb6025913960400191505060405180910390fd5b6001546040516001600160a01b03918216918316907fd32d24edea94f55e932d9a008afc425a8561462d1b1f57bc6e508e9a6b9509e190600090a3600180546001600160a01b0319166001600160a01b0392909216919091179055565b60085481565b600460208190526000918252604090912080546001820154600283015460038401549390940154919390926001600160a01b039182169282821692600160a01b90920460ff16911686565b600290565b6001546001600160a01b031690565b60056020526000908152604090205481565b61049f610501565b6104a857600080fd5b600080546040516001600160a01b03909116907f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0908390a3600080546001600160a01b0319169055565b6000546001600160a01b031690565b6000546001600160a01b0316331490565b6006602052600090815260409020546001600160a01b031681565b6007546001600160a01b031681565b610544610501565b61054d57600080fd5b6105568161057c565b50565b60006001600160a01b03821661057157506000610577565b50803b15155b919050565b6001600160a01b03811661058f57600080fd5b600080546040516001600160a01b03808516939216917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e091a3600080546001600160a01b0319166001600160a01b039290921691909117905556fe44455354494e4154494f4e5f414444524553535f49535f4e4f545f415f434f4e5452414354a265627a7a723158203c1b6e84b5bbaa25c5d9a7c3f9b6d2dac4a74ad7e5ef3c4af471a097511cf9d364736f6c634300050b0032",
+  "sourceMap": "251:251:55:-;;;318:182;8:9:-1;5:2;;;30:1;27;20:12;5:2;318:182:55;;;;;;;;;;;;;;;13:2:-1;8:3;5:11;2:2;;;29:1;26;19:12;2:2;-1:-1;318:182:55;;;;;;;;;;;515:6:73;:19;;-1:-1:-1;;;;;;515:19:73;524:10;515:19;;;;549:40;;318:182:55;;;;;;;;-1:-1:-1;;;;;582:6:73;;;;;515;549:40;;515:6;;549:40;352:30:26;373:8;-1:-1:-1;;;;;352:20:26;:30;:::i;:::-;-1:-1:-1;426:8:55;:30;;-1:-1:-1;;;;;426:30:55;;;-1:-1:-1;;;;;;426:30:55;;;;;;;462:9;:33;;;;;;;;;;;-1:-1:-1;251:251:55;;718:297:26;863:9:73;-1:-1:-1;;;;;863:7:73;:9;:::i;:::-;855:18;;;;;;-1:-1:-1;;;;;806:27:26;;798:61;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;873:23;884:11;-1:-1:-1;;;;;873:10:26;:23;:::i;:::-;865:73;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;975:7;;949:34;;-1:-1:-1;;;;;975:7:26;;;;949:34;;;;;975:7;;949:34;989:7;:21;;-1:-1:-1;;;;;;989:21:26;-1:-1:-1;;;;;989:21:26;;;;;;;;;;718:297::o;979:90:73:-;1019:4;1056:6;-1:-1:-1;;;;;1056:6:73;1042:10;:20;;979:90::o;1019:229:26:-;1090:4;-1:-1:-1;;;;;1108:21:26;;1104:54;;-1:-1:-1;1146:5:26;1139:12;;1104:54;-1:-1:-1;1201:20:26;;1235:8;;1019:229;;;;:::o;251:251:55:-;;;;;;;",
+  "deployedSourceMap": "251:251:55:-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;591:7:26;;578:31;;;;600:8;578:31;;;;;;;;;;;;;;;;;;;;-1:-1:-1;;;;;591:7:26;;-1:-1:-1;;600:8:26;;578:31;;-1:-1:-1;600:8:26;;-1:-1:-1;578:31:26;1:33:-1;99:1;81:16;;74:27;;;;-1:-1;578:12:26;;-1:-1:-1;;;578:31:26:i;:::-;251:251:55;718:297:26;;8:9:-1;5:2;;;30:1;27;20:12;5:2;718:297:26;;;;;;13:2:-1;8:3;5:11;2:2;;;29:1;26;19:12;2:2;-1:-1;718:297:26;-1:-1:-1;;;;;718:297:26;;:::i;1998:25:56:-;;8:9:-1;5:2;;;30:1;27;20:12;5:2;1998:25:56;;;:::i;:::-;;;;;;;;;;;;;;;;1370:44;;8:9:-1;5:2;;;30:1;27;20:12;5:2;1370:44:56;;;;;;13:2:-1;8:3;5:11;2:2;;;29:1;26;19:12;2:2;-1:-1;1370:44:56;;:::i;:::-;;;;;;;;;;;;;;-1:-1:-1;;;;;1370:44:56;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;161:116:24;;8:9:-1;5:2;;;30:1;27;20:12;5:2;161:116:24;;;:::i;618:96:26:-;;8:9:-1;5:2;;;30:1;27;20:12;5:2;618:96:26;;;:::i;:::-;;;;-1:-1:-1;;;;;618:96:26;;;;;;;;;;;;;;1511:46:56;;8:9:-1;5:2;;;30:1;27;20:12;5:2;1511:46:56;;;;;;13:2:-1;8:3;5:11;2:2;;;29:1;26;19:12;2:2;-1:-1;1511:46:56;;:::i;1423:137:73:-;;8:9:-1;5:2;;;30:1;27;20:12;5:2;1423:137:73;;;:::i;659:77::-;;8:9:-1;5:2;;;30:1;27;20:12;5:2;659:77:73;;;:::i;979:90::-;;8:9:-1;5:2;;;30:1;27;20:12;5:2;979:90:73;;;:::i;:::-;;;;;;;;;;;;;;;;;;1561:47:56;;8:9:-1;5:2;;;30:1;27;20:12;5:2;1561:47:56;;;;;;13:2:-1;8:3;5:11;2:2;;;29:1;26;19:12;2:2;-1:-1;1561:47:56;-1:-1:-1;;;;;1561:47:56;;:::i;1612:22::-;;8:9:-1;5:2;;;30:1;27;20:12;5:2;1612:22:56;;;:::i;1731:107:73:-;;8:9:-1;5:2;;;30:1;27;20:12;5:2;1731:107:73;;;;;;13:2:-1;8:3;5:11;2:2;;;29:1;26;19:12;2:2;-1:-1;1731:107:73;-1:-1:-1;;;;;1731:107:73;;:::i;342:603:24:-;588:1;585;573:9;567:16;560:4;549:9;545:20;539:4;531:5;526:3;522:15;509:81;609:14;648:4;642:11;683:4;680:1;675:3;660:28;864:6;871:28;;;;928:4;923:3;916:17;871:28;892:4;887:3;880:17;718:297:26;863:9:73;:7;:9::i;:::-;855:18;;;;;;-1:-1:-1;;;;;806:27:26;;798:61;;;;;-1:-1:-1;;;798:61:26;;;;;;;;;;;;-1:-1:-1;;;798:61:26;;;;;;;;;;;;;;;873:23;884:11;873:10;:23::i;:::-;865:73;;;;-1:-1:-1;;;865:73:26;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;975:7;;949:34;;-1:-1:-1;;;;;975:7:26;;;;949:34;;;;;975:7;;949:34;989:7;:21;;-1:-1:-1;;;;;;989:21:26;-1:-1:-1;;;;;989:21:26;;;;;;;;;;718:297::o;1998:25:56:-;;;;:::o;1370:44::-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;-1:-1:-1;;;;;1370:44:56;;;;;;;;-1:-1:-1;;;1370:44:56;;;;;;;;:::o;161:116:24:-;271:1;;161:116::o;618:96:26:-;702:7;;-1:-1:-1;;;;;702:7:26;618:96;:::o;1511:46:56:-;;;;;;;;;;;;;:::o;1423:137:73:-;863:9;:7;:9::i;:::-;855:18;;;;;;1521:1;1505:6;;1484:40;;-1:-1:-1;;;;;1505:6:73;;;;1484:40;;1521:1;;1484:40;1551:1;1534:19;;-1:-1:-1;;;;;;1534:19:73;;;1423:137::o;659:77::-;697:7;723:6;-1:-1:-1;;;;;723:6:73;659:77;:::o;979:90::-;1019:4;1056:6;-1:-1:-1;;;;;1056:6:73;1042:10;:20;;979:90::o;1561:47:56:-;;;;;;;;;;;;-1:-1:-1;;;;;1561:47:56;;:::o;1612:22::-;;;-1:-1:-1;;;;;1612:22:56;;:::o;1731:107:73:-;863:9;:7;:9::i;:::-;855:18;;;;;;1803:28;1822:8;1803:18;:28::i;:::-;1731:107;:::o;1019:229:26:-;1090:4;-1:-1:-1;;;;;1108:21:26;;1104:54;;-1:-1:-1;1146:5:26;1139:12;;1104:54;-1:-1:-1;1201:20:26;;1235:8;;1019:229;;;;:::o;1982:183:73:-;-1:-1:-1;;;;;2055:22:73;;2047:31;;;;;;2114:6;;;2093:38;;-1:-1:-1;;;;;2093:38:73;;;;2114:6;;;2093:38;;;2141:6;:17;;-1:-1:-1;;;;;;2141:17:73;-1:-1:-1;;;;;2141:17:73;;;;;;;;;;1982:183::o",
+  "source": "pragma solidity ^0.5.2;\n\nimport { Registry } from \"../../common/Registry.sol\";\nimport { Proxy } from \"../../common/misc/Proxy.sol\";\nimport { WithdrawManagerStorage } from \"./WithdrawManagerStorage.sol\";\nimport { RootChain } from \"../RootChain.sol\";\n\n\ncontract WithdrawManagerProxy is Proxy, WithdrawManagerStorage {\n  constructor(address _proxyTo, address _registry, address _rootChain)\n    public\n    Proxy(_proxyTo)\n  {\n    registry = Registry(_registry);\n    rootChain = RootChain(_rootChain);\n  }\n}\n",
+  "sourcePath": "/Users/atvanguard/matic/contracts/contracts/root/withdrawManager/WithdrawManagerProxy.sol",
+  "ast": {
+    "absolutePath": "/Users/atvanguard/matic/contracts/contracts/root/withdrawManager/WithdrawManagerProxy.sol",
+    "exportedSymbols": {
+      "WithdrawManagerProxy": [
+        13231
+      ]
+    },
+    "id": 13232,
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 13193,
+        "literals": [
+          "solidity",
+          "^",
+          "0.5",
+          ".2"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "0:23:55"
+      },
+      {
+        "absolutePath": "/Users/atvanguard/matic/contracts/contracts/common/Registry.sol",
+        "file": "../../common/Registry.sol",
+        "id": 13195,
+        "nodeType": "ImportDirective",
+        "scope": 13232,
+        "sourceUnit": 2590,
+        "src": "25:53:55",
+        "symbolAliases": [
+          {
+            "foreign": 13194,
+            "local": null
+          }
+        ],
+        "unitAlias": ""
+      },
+      {
+        "absolutePath": "/Users/atvanguard/matic/contracts/contracts/common/misc/Proxy.sol",
+        "file": "../../common/misc/Proxy.sol",
+        "id": 13197,
+        "nodeType": "ImportDirective",
+        "scope": 13232,
+        "sourceUnit": 4386,
+        "src": "79:52:55",
+        "symbolAliases": [
+          {
+            "foreign": 13196,
+            "local": null
+          }
+        ],
+        "unitAlias": ""
+      },
+      {
+        "absolutePath": "/Users/atvanguard/matic/contracts/contracts/root/withdrawManager/WithdrawManagerStorage.sol",
+        "file": "./WithdrawManagerStorage.sol",
+        "id": 13199,
+        "nodeType": "ImportDirective",
+        "scope": 13232,
+        "sourceUnit": 13340,
+        "src": "132:70:55",
+        "symbolAliases": [
+          {
+            "foreign": 13198,
+            "local": null
+          }
+        ],
+        "unitAlias": ""
+      },
+      {
+        "absolutePath": "/Users/atvanguard/matic/contracts/contracts/root/RootChain.sol",
+        "file": "../RootChain.sol",
+        "id": 13201,
+        "nodeType": "ImportDirective",
+        "scope": 13232,
+        "sourceUnit": 5600,
+        "src": "203:45:55",
+        "symbolAliases": [
+          {
+            "foreign": 13200,
+            "local": null
+          }
+        ],
+        "unitAlias": ""
+      },
+      {
+        "baseContracts": [
+          {
+            "arguments": null,
+            "baseName": {
+              "contractScope": null,
+              "id": 13202,
+              "name": "Proxy",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 4385,
+              "src": "284:5:55",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_Proxy_$4385",
+                "typeString": "contract Proxy"
+              }
+            },
+            "id": 13203,
+            "nodeType": "InheritanceSpecifier",
+            "src": "284:5:55"
+          },
+          {
+            "arguments": null,
+            "baseName": {
+              "contractScope": null,
+              "id": 13204,
+              "name": "WithdrawManagerStorage",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 13339,
+              "src": "291:22:55",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_WithdrawManagerStorage_$13339",
+                "typeString": "contract WithdrawManagerStorage"
+              }
+            },
+            "id": 13205,
+            "nodeType": "InheritanceSpecifier",
+            "src": "291:22:55"
+          }
+        ],
+        "contractDependencies": [
+          4263,
+          4276,
+          4385,
+          4394,
+          13266,
+          13303,
+          13339,
+          18512
+        ],
+        "contractKind": "contract",
+        "documentation": null,
+        "fullyImplemented": true,
+        "id": 13231,
+        "linearizedBaseContracts": [
+          13231,
+          13339,
+          13303,
+          13266,
+          4385,
+          4263,
+          4276,
+          4394,
+          18512
+        ],
+        "name": "WithdrawManagerProxy",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "body": {
+              "id": 13229,
+              "nodeType": "Block",
+              "src": "420:80:55",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "id": 13221,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "argumentTypes": null,
+                      "id": 13217,
+                      "name": "registry",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 13317,
+                      "src": "426:8:55",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_contract$_Registry_$2589",
+                        "typeString": "contract Registry"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "argumentTypes": null,
+                      "arguments": [
+                        {
+                          "argumentTypes": null,
+                          "id": 13219,
+                          "name": "_registry",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 13209,
+                          "src": "446:9:55",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_address",
+                            "typeString": "address"
+                          }
+                        }
+                      ],
+                      "expression": {
+                        "argumentTypes": [
+                          {
+                            "typeIdentifier": "t_address",
+                            "typeString": "address"
+                          }
+                        ],
+                        "id": 13218,
+                        "name": "Registry",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 2589,
+                        "src": "437:8:55",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_type$_t_contract$_Registry_$2589_$",
+                          "typeString": "type(contract Registry)"
+                        }
+                      },
+                      "id": 13220,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": false,
+                      "kind": "typeConversion",
+                      "lValueRequested": false,
+                      "names": [],
+                      "nodeType": "FunctionCall",
+                      "src": "437:19:55",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_contract$_Registry_$2589",
+                        "typeString": "contract Registry"
+                      }
+                    },
+                    "src": "426:30:55",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_contract$_Registry_$2589",
+                      "typeString": "contract Registry"
+                    }
+                  },
+                  "id": 13222,
+                  "nodeType": "ExpressionStatement",
+                  "src": "426:30:55"
+                },
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "id": 13227,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "argumentTypes": null,
+                      "id": 13223,
+                      "name": "rootChain",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 13319,
+                      "src": "462:9:55",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_contract$_RootChain_$5599",
+                        "typeString": "contract RootChain"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "argumentTypes": null,
+                      "arguments": [
+                        {
+                          "argumentTypes": null,
+                          "id": 13225,
+                          "name": "_rootChain",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 13211,
+                          "src": "484:10:55",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_address",
+                            "typeString": "address"
+                          }
+                        }
+                      ],
+                      "expression": {
+                        "argumentTypes": [
+                          {
+                            "typeIdentifier": "t_address",
+                            "typeString": "address"
+                          }
+                        ],
+                        "id": 13224,
+                        "name": "RootChain",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 5599,
+                        "src": "474:9:55",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_type$_t_contract$_RootChain_$5599_$",
+                          "typeString": "type(contract RootChain)"
+                        }
+                      },
+                      "id": 13226,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": false,
+                      "kind": "typeConversion",
+                      "lValueRequested": false,
+                      "names": [],
+                      "nodeType": "FunctionCall",
+                      "src": "474:21:55",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_contract$_RootChain_$5599",
+                        "typeString": "contract RootChain"
+                      }
+                    },
+                    "src": "462:33:55",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_contract$_RootChain_$5599",
+                      "typeString": "contract RootChain"
+                    }
+                  },
+                  "id": 13228,
+                  "nodeType": "ExpressionStatement",
+                  "src": "462:33:55"
+                }
+              ]
+            },
+            "documentation": null,
+            "id": 13230,
+            "implemented": true,
+            "kind": "constructor",
+            "modifiers": [
+              {
+                "arguments": [
+                  {
+                    "argumentTypes": null,
+                    "id": 13214,
+                    "name": "_proxyTo",
+                    "nodeType": "Identifier",
+                    "overloadedDeclarations": [],
+                    "referencedDeclaration": 13207,
+                    "src": "408:8:55",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  }
+                ],
+                "id": 13215,
+                "modifierName": {
+                  "argumentTypes": null,
+                  "id": 13213,
+                  "name": "Proxy",
+                  "nodeType": "Identifier",
+                  "overloadedDeclarations": [],
+                  "referencedDeclaration": 4385,
+                  "src": "402:5:55",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_type$_t_contract$_Proxy_$4385_$",
+                    "typeString": "type(contract Proxy)"
+                  }
+                },
+                "nodeType": "ModifierInvocation",
+                "src": "402:15:55"
+              }
+            ],
+            "name": "",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 13212,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 13207,
+                  "name": "_proxyTo",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 13230,
+                  "src": "330:16:55",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 13206,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "330:7:55",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 13209,
+                  "name": "_registry",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 13230,
+                  "src": "348:17:55",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 13208,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "348:7:55",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 13211,
+                  "name": "_rootChain",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 13230,
+                  "src": "367:18:55",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 13210,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "367:7:55",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "329:57:55"
+            },
+            "returnParameters": {
+              "id": 13216,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "420:0:55"
+            },
+            "scope": 13231,
+            "src": "318:182:55",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          }
+        ],
+        "scope": 13232,
+        "src": "251:251:55"
+      }
+    ],
+    "src": "0:503:55"
+  },
+  "legacyAST": {
+    "absolutePath": "/Users/atvanguard/matic/contracts/contracts/root/withdrawManager/WithdrawManagerProxy.sol",
+    "exportedSymbols": {
+      "WithdrawManagerProxy": [
+        13231
+      ]
+    },
+    "id": 13232,
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 13193,
+        "literals": [
+          "solidity",
+          "^",
+          "0.5",
+          ".2"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "0:23:55"
+      },
+      {
+        "absolutePath": "/Users/atvanguard/matic/contracts/contracts/common/Registry.sol",
+        "file": "../../common/Registry.sol",
+        "id": 13195,
+        "nodeType": "ImportDirective",
+        "scope": 13232,
+        "sourceUnit": 2590,
+        "src": "25:53:55",
+        "symbolAliases": [
+          {
+            "foreign": 13194,
+            "local": null
+          }
+        ],
+        "unitAlias": ""
+      },
+      {
+        "absolutePath": "/Users/atvanguard/matic/contracts/contracts/common/misc/Proxy.sol",
+        "file": "../../common/misc/Proxy.sol",
+        "id": 13197,
+        "nodeType": "ImportDirective",
+        "scope": 13232,
+        "sourceUnit": 4386,
+        "src": "79:52:55",
+        "symbolAliases": [
+          {
+            "foreign": 13196,
+            "local": null
+          }
+        ],
+        "unitAlias": ""
+      },
+      {
+        "absolutePath": "/Users/atvanguard/matic/contracts/contracts/root/withdrawManager/WithdrawManagerStorage.sol",
+        "file": "./WithdrawManagerStorage.sol",
+        "id": 13199,
+        "nodeType": "ImportDirective",
+        "scope": 13232,
+        "sourceUnit": 13340,
+        "src": "132:70:55",
+        "symbolAliases": [
+          {
+            "foreign": 13198,
+            "local": null
+          }
+        ],
+        "unitAlias": ""
+      },
+      {
+        "absolutePath": "/Users/atvanguard/matic/contracts/contracts/root/RootChain.sol",
+        "file": "../RootChain.sol",
+        "id": 13201,
+        "nodeType": "ImportDirective",
+        "scope": 13232,
+        "sourceUnit": 5600,
+        "src": "203:45:55",
+        "symbolAliases": [
+          {
+            "foreign": 13200,
+            "local": null
+          }
+        ],
+        "unitAlias": ""
+      },
+      {
+        "baseContracts": [
+          {
+            "arguments": null,
+            "baseName": {
+              "contractScope": null,
+              "id": 13202,
+              "name": "Proxy",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 4385,
+              "src": "284:5:55",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_Proxy_$4385",
+                "typeString": "contract Proxy"
+              }
+            },
+            "id": 13203,
+            "nodeType": "InheritanceSpecifier",
+            "src": "284:5:55"
+          },
+          {
+            "arguments": null,
+            "baseName": {
+              "contractScope": null,
+              "id": 13204,
+              "name": "WithdrawManagerStorage",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 13339,
+              "src": "291:22:55",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_WithdrawManagerStorage_$13339",
+                "typeString": "contract WithdrawManagerStorage"
+              }
+            },
+            "id": 13205,
+            "nodeType": "InheritanceSpecifier",
+            "src": "291:22:55"
+          }
+        ],
+        "contractDependencies": [
+          4263,
+          4276,
+          4385,
+          4394,
+          13266,
+          13303,
+          13339,
+          18512
+        ],
+        "contractKind": "contract",
+        "documentation": null,
+        "fullyImplemented": true,
+        "id": 13231,
+        "linearizedBaseContracts": [
+          13231,
+          13339,
+          13303,
+          13266,
+          4385,
+          4263,
+          4276,
+          4394,
+          18512
+        ],
+        "name": "WithdrawManagerProxy",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "body": {
+              "id": 13229,
+              "nodeType": "Block",
+              "src": "420:80:55",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "id": 13221,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "argumentTypes": null,
+                      "id": 13217,
+                      "name": "registry",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 13317,
+                      "src": "426:8:55",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_contract$_Registry_$2589",
+                        "typeString": "contract Registry"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "argumentTypes": null,
+                      "arguments": [
+                        {
+                          "argumentTypes": null,
+                          "id": 13219,
+                          "name": "_registry",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 13209,
+                          "src": "446:9:55",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_address",
+                            "typeString": "address"
+                          }
+                        }
+                      ],
+                      "expression": {
+                        "argumentTypes": [
+                          {
+                            "typeIdentifier": "t_address",
+                            "typeString": "address"
+                          }
+                        ],
+                        "id": 13218,
+                        "name": "Registry",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 2589,
+                        "src": "437:8:55",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_type$_t_contract$_Registry_$2589_$",
+                          "typeString": "type(contract Registry)"
+                        }
+                      },
+                      "id": 13220,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": false,
+                      "kind": "typeConversion",
+                      "lValueRequested": false,
+                      "names": [],
+                      "nodeType": "FunctionCall",
+                      "src": "437:19:55",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_contract$_Registry_$2589",
+                        "typeString": "contract Registry"
+                      }
+                    },
+                    "src": "426:30:55",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_contract$_Registry_$2589",
+                      "typeString": "contract Registry"
+                    }
+                  },
+                  "id": 13222,
+                  "nodeType": "ExpressionStatement",
+                  "src": "426:30:55"
+                },
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "id": 13227,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "argumentTypes": null,
+                      "id": 13223,
+                      "name": "rootChain",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 13319,
+                      "src": "462:9:55",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_contract$_RootChain_$5599",
+                        "typeString": "contract RootChain"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "argumentTypes": null,
+                      "arguments": [
+                        {
+                          "argumentTypes": null,
+                          "id": 13225,
+                          "name": "_rootChain",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 13211,
+                          "src": "484:10:55",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_address",
+                            "typeString": "address"
+                          }
+                        }
+                      ],
+                      "expression": {
+                        "argumentTypes": [
+                          {
+                            "typeIdentifier": "t_address",
+                            "typeString": "address"
+                          }
+                        ],
+                        "id": 13224,
+                        "name": "RootChain",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 5599,
+                        "src": "474:9:55",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_type$_t_contract$_RootChain_$5599_$",
+                          "typeString": "type(contract RootChain)"
+                        }
+                      },
+                      "id": 13226,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": false,
+                      "kind": "typeConversion",
+                      "lValueRequested": false,
+                      "names": [],
+                      "nodeType": "FunctionCall",
+                      "src": "474:21:55",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_contract$_RootChain_$5599",
+                        "typeString": "contract RootChain"
+                      }
+                    },
+                    "src": "462:33:55",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_contract$_RootChain_$5599",
+                      "typeString": "contract RootChain"
+                    }
+                  },
+                  "id": 13228,
+                  "nodeType": "ExpressionStatement",
+                  "src": "462:33:55"
+                }
+              ]
+            },
+            "documentation": null,
+            "id": 13230,
+            "implemented": true,
+            "kind": "constructor",
+            "modifiers": [
+              {
+                "arguments": [
+                  {
+                    "argumentTypes": null,
+                    "id": 13214,
+                    "name": "_proxyTo",
+                    "nodeType": "Identifier",
+                    "overloadedDeclarations": [],
+                    "referencedDeclaration": 13207,
+                    "src": "408:8:55",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  }
+                ],
+                "id": 13215,
+                "modifierName": {
+                  "argumentTypes": null,
+                  "id": 13213,
+                  "name": "Proxy",
+                  "nodeType": "Identifier",
+                  "overloadedDeclarations": [],
+                  "referencedDeclaration": 4385,
+                  "src": "402:5:55",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_type$_t_contract$_Proxy_$4385_$",
+                    "typeString": "type(contract Proxy)"
+                  }
+                },
+                "nodeType": "ModifierInvocation",
+                "src": "402:15:55"
+              }
+            ],
+            "name": "",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 13212,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 13207,
+                  "name": "_proxyTo",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 13230,
+                  "src": "330:16:55",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 13206,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "330:7:55",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 13209,
+                  "name": "_registry",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 13230,
+                  "src": "348:17:55",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 13208,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "348:7:55",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 13211,
+                  "name": "_rootChain",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 13230,
+                  "src": "367:18:55",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 13210,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "367:7:55",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "329:57:55"
+            },
+            "returnParameters": {
+              "id": 13216,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "420:0:55"
+            },
+            "scope": 13231,
+            "src": "318:182:55",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          }
+        ],
+        "scope": 13232,
+        "src": "251:251:55"
+      }
+    ],
+    "src": "0:503:55"
+  },
+  "compiler": {
+    "name": "solc",
+    "version": "0.5.11+commit.c082d0b4.Emscripten.clang"
+  },
+  "networks": {},
+  "schemaVersion": "3.0.14",
+  "updatedAt": "2019-12-17T06:13:10.897Z",
+  "devdoc": {
+    "methods": {
+      "isOwner()": {
+        "return": "true if `msg.sender` is the owner of the contract."
+      },
+      "owner()": {
+        "return": "the address of the owner."
+      },
+      "renounceOwnership()": {
+        "details": "Allows the current owner to relinquish control of the contract. It will not be possible to call the functions with the `onlyOwner` modifier anymore."
+      },
+      "transferOwnership(address)": {
+        "details": "Allows the current owner to transfer control of the contract to a newOwner.",
+        "params": {
+          "newOwner": "The address to transfer ownership to."
+        }
+      }
+    }
+  },
+  "userdoc": {
+    "methods": {
+      "renounceOwnership()": {
+        "notice": "Renouncing ownership will leave the contract without an owner, thereby removing any functionality that is only available to the owner."
+      }
+    }
+  }
+}
