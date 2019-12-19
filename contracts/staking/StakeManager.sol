@@ -285,9 +285,9 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
     require(token.transfer(msg.sender, amount), "Insufficent rewards");
   }
 
-  function delegationTransfer(uint256 amount, address delegator) external {
+  function delegationTransfer(uint256 amount, address delegator) external returns (bool) {
     require(Registry(registry).getDelegationManagerAddress() == msg.sender);
-    require(token.transfer(delegator, amount), "Insufficent rewards");
+    return token.transfer(delegator, amount);
   }
 
   // if not jailed then in state of warning, else will be unstaking after x epoch
@@ -466,7 +466,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
   }
 
   function acceptsDelegation(uint256 validatorId) public view returns(bool) {
-    return DelegationManager(Registry(registry).getDelegationManagerAddress()).validatorUnbonding(validatorId);
+    return !DelegationManager(Registry(registry).getDelegationManagerAddress()).validatorUnbonding(validatorId);
   }
 
   function isValidator(uint256 validatorId) public view returns (bool) {
@@ -513,6 +513,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
     finalizeCommit();
     return _reward;
   }
+
 
   function checkTwoByThreeMajority(bytes32 voteHash, bytes memory sigs) public view returns(uint256, uint256) {
     // total voting power

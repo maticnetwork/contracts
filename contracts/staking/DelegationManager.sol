@@ -54,6 +54,11 @@ contract DelegationManager is IDelegationManager, Lockable {
     _;
   }
 
+  modifier isDelegator(uint256 delegatorId) {
+    require(stakerNFT.ownerOf(delegatorId) != address(0x0) && delegators[delegatorId].amount > 0);
+    _;
+  }
+
   constructor (address _registry, address _token, address _stakerNFT) public {
     registry = Registry(_registry);
     token = IERC20(_token);
@@ -250,7 +255,7 @@ contract DelegationManager is IDelegationManager, Lockable {
     uint256 accIndex,
     bool withdraw,
     bytes memory accProof
-    ) public /*onlyDelegator(delegatorId) */ {
+    ) public isDelegator(delegatorId) /*onlyDelegator(delegatorId) */ {
     IStakeManager stakeManager = IStakeManager(registry.getStakeManagerAddress());
     require(
       keccak256(
@@ -281,8 +286,9 @@ contract DelegationManager is IDelegationManager, Lockable {
   function withdrawRewards(uint256 delegatorId) public {
     IStakeManager stakeManager = IStakeManager(registry.getStakeManagerAddress());
     uint256 amount = delegators[delegatorId].reward;
+    require(amount > 0, "Witdraw amount must be non-zero");
     delegators[delegatorId].reward = 0;
-    stakeManager.delegationTransfer(amount, stakerNFT.ownerOf(delegatorId));
+    require(stakeManager.delegationTransfer(amount, stakerNFT.ownerOf(delegatorId)),"Amount transfer failed");
   }
 
 }

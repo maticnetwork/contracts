@@ -25,7 +25,7 @@ contract IStakeManager {
   function startAuction(uint256 validatorId, uint256 amount) external;
   function confirmAuctionBid(uint256 validatorId, address signer, bool isContract) external;
 
-  function delegationTransfer(uint256 amount, address delegator) external;
+  function delegationTransfer(uint256 amount, address delegator) external returns(bool);
   function stake(uint256 amount, address signer, bool isContract) external;
   function unstake(uint256 validatorId) external;
   function totalStakedFor(address addr) external view returns (uint256);
