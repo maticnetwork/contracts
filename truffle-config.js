@@ -54,15 +54,17 @@ module.exports = {
         )
       },
       network_id: 1,
-      gas: 4000000
+      gas: 1000000,
+      skipDryRun: true,
+      confirmations: 1
     },
-    bor_testnet2: {
+    bor_betav2: {
       provider: function() {
-        return new HDWalletProvider(MNEMONIC, `https://testnet2.matic.network`)
+        return new HDWalletProvider(MNEMONIC, `https://betav2.matic.network/`)
       },
-      network_id: 8995,
-      gas: 8000000,
-      confirmations: 2
+      network_id: 16110,
+      gas: 7000000,
+      confirmations: 1
     }
   },
   compilers: {
