@@ -90,7 +90,6 @@ export function buildSubmitHeaderBlockPaylod(
   options = {
     rewardsRootHash: '',
     delegationAccRoot: ethUtils.bufferToHex(''),
-    delegationWithdrawRoot: ethUtils.bufferToHex(''),
     allValidators: false,
     getSigs: false
   } // false vars are to show expected vars
@@ -103,8 +102,7 @@ export function buildSubmitHeaderBlockPaylod(
       end,
       root,
       options.rewardsRootHash,
-      options.delegationAccRoot,
-      options.delegationWithdrawRoot
+      options.delegationAccRoot
     ] // 0th element
     ])
   )
