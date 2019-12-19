@@ -211,7 +211,6 @@ contract('DelegationManager', async function(accounts) {
       utils.bufferToHex(utils.keccak256(vote)),
       utils.bufferToHex(''),
       utils.bufferToHex(tree.getRoot()),
-      utils.bufferToHex(''),
       sigs, { from: wallets[0].getAddressString() }
     )
 
@@ -293,7 +292,6 @@ contract('DelegationManager', async function(accounts) {
       utils.bufferToHex(utils.keccak256(vote)),
       utils.bufferToHex(''),
       utils.bufferToHex(tree.getRoot()),
-      utils.bufferToHex(''),
       sigs, { from: wallets[0].getAddressString() }
     )
 
