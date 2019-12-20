@@ -24,8 +24,8 @@ contract MockParentToken is ISapienParentToken, Ownable {
     return true;
   }
 
-  function updatePermission(address user) public onlyOwner {
+  function updatePermission(address user, bool permission) public onlyOwner {
     require(user != address(0x0));
-    isAllowed[user] = !isAllowed[user];
+    isAllowed[user] = permission;
   }
 }
