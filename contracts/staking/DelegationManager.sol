@@ -251,12 +251,15 @@ contract DelegationManager is IDelegationManager, Lockable {
       );
 
     uint256 _rewardAmount = rewardAmount.sub(delegators[delegatorId].claimedRewards);
+    uint256 _amount;
     if (_rewardAmount <= slashedAmount) {
-      delegators[delegatorId].amount = delegators[delegatorId].amount.sub(slashedAmount.sub(_rewardAmount));
+      _amount = slashedAmount.sub(_rewardAmount);
+      delegators[delegatorId].amount = delegators[delegatorId].amount.sub();
+      totalStaked = totalStaked.sub(_amount);
       // emit stakeUpdate
-      } else {
+    } else {
       delegators[delegatorId].reward = delegators[delegatorId].reward.add(_rewardAmount.sub(slashedAmount));
-      }
+    }
     delegators[delegatorId].claimedRewards = rewardAmount;
     if (withdraw) {
       withdrawRewards(delegatorId);

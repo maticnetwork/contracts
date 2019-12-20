@@ -54,6 +54,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
     uint256 amount;
     uint256 reward;
     uint256 claimedRewards;
+    uint256 slashedAmount;
     uint256 activationEpoch;
     uint256 deactivationEpoch;
     uint256 jailTime;
@@ -118,6 +119,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
       reward: 0,
       amount: amount,
       claimedRewards: 0,
+      slashedAmount: 0,
       activationEpoch: currentEpoch,
       deactivationEpoch: 0,
       jailTime: 0,
@@ -216,37 +218,6 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
     _unstake(validatorId, exitEpoch);
   }
 
-  function _unstake(uint256 validatorId, uint256 exitEpoch) internal {
-    //Todo: add state here consider jail
-    uint256 amount = validators[validatorId].amount;
-
-    validators[validatorId].deactivationEpoch = exitEpoch;
-
-    // unbond all delegators in future
-    int256 delegationAmount = 0;
-    DelegationManager(Registry(registry).getDelegationManagerAddress()).unbondAll(validatorId);
-    //  update future
-    updateTimeLine(exitEpoch,  -(int256(amount) + delegationAmount ), -1);
-
-    emit UnstakeInit(msg.sender, validatorId, exitEpoch, amount);
-  }
-
-  function unstakeClaim(uint256 validatorId) public onlyStaker(validatorId) {
-    // can only claim stake back after WITHDRAWAL_DELAY
-    require(validators[validatorId].deactivationEpoch > 0 && validators[validatorId].deactivationEpoch.add(WITHDRAWAL_DELAY) <= currentEpoch);
-    uint256 amount = validators[validatorId].amount;
-    totalStaked = totalStaked.sub(amount);
-
-    // TODO :add slashing here use soft slashing in slash amt variable
-    stakerNFT.burn(validatorId);
-    DelegationManager(Registry(registry).getDelegationManagerAddress()).validatorUnstake(validatorId);
-    delete signerToValidator[validators[validatorId].signer];
-    // delete validators[validatorId];
-
-    require(token.transfer(msg.sender, amount + validators[validatorId].reward));
-    emit Unstaked(msg.sender, validatorId, amount, totalStaked);
-  }
-
   // slashing and jail interface
   function restake(uint256 validatorId, uint256 amount, bool stakeRewards) public onlyStaker(validatorId) {
     require(validators[validatorId].deactivationEpoch < currentEpoch, "No use of restaking");
@@ -267,16 +238,71 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
     emit ReStaked(validatorId, validators[validatorId].amount, totalStaked);
   }
 
-  function claimRewards(uint256 validatorId, uint256 accountBalance, uint256 index, bytes memory proof) public /*onlyStaker(validatorId) */ {
-    // accountState = keccak256(abi.encodePacked(validatorId, accountBalance))
-    require(keccak256(abi.encodePacked(validatorId, accountBalance)).checkMembership(index, accountStateRoot, proof));
-    uint256 _reward = accountBalance.sub(validators[validatorId].claimedRewards);
+  function _unstake(uint256 validatorId, uint256 exitEpoch) internal {
+    //Todo: add state here consider jail
+    uint256 amount = validators[validatorId].amount;
 
-    validators[validatorId].reward = validators[validatorId].reward.add(_reward);
+    validators[validatorId].deactivationEpoch = exitEpoch;
+
+    // unbond all delegators in future
+    int256 delegationAmount = 0;
+    DelegationManager(Registry(registry).getDelegationManagerAddress()).unbondAll(validatorId);
+    //  update future
+    updateTimeLine(exitEpoch,  -(int256(amount) + delegationAmount ), -1);
+
+    emit UnstakeInit(msg.sender, validatorId, exitEpoch, amount);
+  }
+
+  function unstakeClaim(uint256 validatorId, uint256 accumBalance, uint256 accumSlashedAmount, uint256 index, bytes memory proof) public onlyStaker(validatorId) {
+    require(
+      validators[validatorId].deactivationEpoch > 0 &&
+      validators[validatorId].deactivationEpoch.add(
+        WITHDRAWAL_DELAY) <= currentEpoch,
+      "WITHDRAWAL_DELAY is not complete");
+    require(keccak256(abi.encodePacked(validatorId, accumBalance, accumSlashedAmount)).checkMembership(index, accountStateRoot, proof));
+    DelegationManager(Registry(registry).getDelegationManagerAddress()).validatorUnstake(validatorId);
+
+    Validator validator = validators[validatorId];
+    uint256 _reward = accumBalance.sub(validator.claimedRewards);
+    uint256 slashedAmount = accumSlashedAmount.sub(validator.slashedAmount);
+
+    uint256 amount = validators[validatorId].amount.sub(slashedAmount).add(_reward);
+    totalStaked = totalStaked.sub(amount);
+
+    stakerNFT.burn(validatorId);
+    delete signerToValidator[validators[validatorId].signer];
+    // delete validators[validatorId]; keeping for heimdall/bor sync varification(week subjectivity attaks)
+
+    require(token.transfer(msg.sender, amount));
+    emit Unstaked(msg.sender, validatorId, amount, totalStaked);
+  }
+
+  function claimRewards(uint256 validatorId, uint256 accumBalance, uint256 accumSlashedAmount, uint256 index, bool transferRewards, bytes memory proof) public {
+    require(keccak256(abi.encodePacked(validatorId, accumBalance, accumSlashedAmount)).checkMembership(index, accountStateRoot, proof));
+    Validator validator = validators[validatorId];
+    uint256 _reward = accumBalance.sub(validator.claimedRewards);
+    uint256 slashedAmount = accumSlashedAmount.sub(validator.slashedAmount);
+    uint256 _amount;
+
+    if (_reward < slashedAmount) {
+      _amount = slashedAmount.sub(_reward);
+      totalStaked = totalStaked.sub(amount);
+      validator.amount = validator.amount.sub(_amount);
+      emit StakeUpdate(validatorId, _amount, validator.amount);
+    } else {
+      _amount = _reward.sub(slashedAmount);
+      if (transferRewards) {
+        require(token.transfer(msg.sender, _amount), "Insufficent rewards in StakeManager");
+      } else {
+        validator.reward = validator.reward.add(_amount);
+      }
+    }
+
     totalRewardsLiquidated += _reward;
     require(totalRewardsLiquidated <= totalRewards, "Liquidating more rewards then checkpoints submitted");// pos 2/3+1 is colluded
-    validators[validatorId].claimedRewards = accountBalance;
-    emit ClaimRewards(validatorId, _reward, accountBalance);
+    validator.claimedRewards = accumBalance;
+    validator.slashedAmount = accumSlashedAmount;
+    emit ClaimRewards(validatorId, _reward, accumBalance);
   }
 
   function withdrawRewards(uint256 validatorId) public onlyStaker(validatorId) {
@@ -294,7 +320,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
   function slash(uint256 validatorId, uint256 slashingRate, uint256 jailCheckpoints) public onlySlashingMananger {
     // if contract call contract.slash
     if (acceptsDelegation(validatorId)) {
-      //TODO: slashing 
+      //TODO: slashing
       // ValidatorContract(validators[validatorId].contractAddress).slash(slashingRate, currentEpoch, currentEpoch);
     }
     uint256 amount = validators[validatorId].amount.mul(slashingRate).div(100);
