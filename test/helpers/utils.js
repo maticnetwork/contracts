@@ -1,15 +1,11 @@
-/* global web3 */
-
 import ethUtils from 'ethereumjs-util'
 import { Buffer } from 'safe-buffer'
 import encode from 'ethereumjs-abi'
 import fs from 'fs'
 import path from 'path'
-
+import Matic from '@maticnetwork/maticjs'
 import { generateFirstWallets, mnemonics } from './wallets.js'
 import logDecoder from './log-decoder'
-
-// console.log(ethUtils.keccak256('depositTokens(address,address,uint256,uint256)').slice(0, 4))
 
 const crypto = require('crypto')
 const BN = ethUtils.BN
@@ -444,4 +440,18 @@ export function filterEvent(events, event) {
   })
   if (index === -1) throw new Error(`${event} not found in given events`)
   return index
+}
+
+export async function initializeMaticClient(contracts) {
+  const options = {
+    parentProvider: web3,
+    maticProvider: web3Child,
+    registry: contracts.registry.address,
+    rootChain: contracts.rootChain.address,
+    depositManager: contracts.depositManager.address,
+    withdrawManager: contracts.withdrawManager.address
+  }
+  const maticClient = new Matic(options)
+  await maticClient.initialize()
+  return maticClient
 }

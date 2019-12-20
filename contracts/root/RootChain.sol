@@ -98,11 +98,11 @@ contract RootChain is RootChainStorage, IRootChain {
     if (_nextHeaderBlock > MAX_DEPOSITS) {
       nextChildBlock = headerBlocks[currentHeaderBlock()].end + 1;
     }
-    require(
-      nextChildBlock == dataList[1].toUint(),
-      "INCORRECT_START_BLOCK"
-    );
-    headerBlock.start = nextChildBlock;
+    // require(
+    //   nextChildBlock == dataList[1].toUint(),
+    //   "INCORRECT_START_BLOCK"
+    // );
+    headerBlock.start = dataList[1].toUint();
     headerBlock.end = dataList[2].toUint();
 
     // toUintStrict returns the encoded uint. Encoded data must be padded to 32 bytes.

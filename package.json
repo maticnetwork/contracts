@@ -8,7 +8,7 @@
     "testrpc": "ganache-cli --hardfork istanbul --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' --gasLimit 8000000 --gasPrice 0",
     "template:process": "node scripts/process-templates.js",
     "truffle": "truffle",
-    "truffle:test": "truffle test",
+    "truffle:test": "DEBUG=maticjs:* truffle test",
     "truffle:compile": "truffle compile",
     "truffle:migrate": "truffle migrate",
     "truffle:migrate:deploy:1": "truffle migrate --network development --to 2",
@@ -40,6 +40,7 @@
     "mnemonics": "clock radar mass judge dismiss just intact mind resemble fringe diary casino"
   },
   "devDependencies": {
+    "@maticnetwork/maticjs": "^2.0.0-beta.0",
     "babel-cli": "^6.26.0",
     "babel-eslint": "10.0.1",
     "babel-polyfill": "^6.26.0",

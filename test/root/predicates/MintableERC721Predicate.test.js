@@ -26,6 +26,7 @@ contract('MintableERC721Predicate', async function(accounts) {
     predicate = await deployer.deployMintableErc721Predicate()
     childContracts = await deployer.initializeChildChain(accounts[0])
     statefulUtils = new StatefulUtils()
+    this.maticClient = await utils.initializeMaticClient(contracts)
   })
 
   beforeEach(async function() {
@@ -71,28 +72,20 @@ contract('MintableERC721Predicate', async function(accounts) {
     expect((await childContracts.rootERC721.ownerOf(tokenId)).toLowerCase()).to.equal(bob.toLowerCase())
   })
 
-  it('mintWithTokenURI and startExitForMetadataMintableBurntToken', async function() {
+  it.only('mintWithTokenURI and startExitForMetadataMintableBurntToken', async function() {
     const uri = `https://tokens.com/${tokenId}`
-    const { receipt: r } = await childContracts.childErc721.mintWithTokenURI(alice, tokenId, uri)
-    // await utils.writeToFile('child/erc721-mintWithTokenURI.js', r)
-    let mintTx = await web3Child.eth.getTransaction(r.transactionHash)
-    mintTx = await buildInFlight(mintTx)
+    await childContracts.childErc721.mintWithTokenURI(alice, tokenId, uri)
     await childContracts.childErc721.transferFrom(alice, bob, tokenId)
 
-    const { receipt } = await childContracts.childErc721.withdraw(tokenId, { from: bob })
+    const burn = await this.maticClient.startWithdrawForNFT(childContracts.childErc721.address, tokenId, { from: bob })
     // the token doesnt exist on the root chain as yet
     expect(await childContracts.rootERC721.exists(tokenId)).to.be.false
 
-    let { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
-    const startExitTx = await startExit(
-      predicate.startExitForMetadataMintableBurntToken.bind(null),
-      { headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 },
-      mintTx,
-      bob // exitor - account to initiate the exit from
-    )
-    let logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
+    await statefulUtils.submitCheckpoint(contracts.rootChain, burn, accounts)
+    let receipt = await this.maticClient.withdrawManager.startExitForMetadataMintableBurntToken(burn.transactionHash, predicate.address, { from: bob })
+    receipt = await web3.eth.getTransactionReceipt(receipt.transactionHash)
+    let logs = logDecoder.decodeLogs(receipt.logs)
     const log = logs[1]
-    log.event.should.equal('ExitStarted')
     expect(log.args).to.include({
       exitor: bob,
       token: childContracts.rootERC721.address,
@@ -100,7 +93,8 @@ contract('MintableERC721Predicate', async function(accounts) {
     })
     utils.assertBigNumberEquality(log.args.amount, tokenId)
 
-    await predicateTestUtils.processExits(contracts.withdrawManager, childContracts.rootERC721.address)
+    await predicateTestUtils.timeTravel()
+    await this.maticClient.withdrawManager.processExits(childContracts.rootERC721.address, { from: alice })
     expect(await childContracts.rootERC721.exists(tokenId)).to.be.true
     expect((await childContracts.rootERC721.ownerOf(tokenId)).toLowerCase()).to.equal(bob.toLowerCase())
     expect(await childContracts.rootERC721.tokenURI(tokenId)).to.equal(uri)
