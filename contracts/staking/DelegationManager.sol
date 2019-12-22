@@ -26,8 +26,6 @@ contract DelegationManager is IDelegationManager, Lockable {
   uint256 public WITHDRAWAL_DELAY = 0; // todo: remove if not needed use from stakeManager
 
   //@todo combine both roots
-  // mapping for delegator accounts root on heimdall
-  mapping (uint256 => bytes32) public accRoot;
 
   // each validators delegation amount
   mapping (uint256 => uint256) public validatorDelegation;
@@ -60,12 +58,6 @@ contract DelegationManager is IDelegationManager, Lockable {
     registry = Registry(_registry);
     token = IERC20(_token);
     stakerNFT = Staker(_stakerNFT);
-  }
-
-  function updateAccRoot(uint256 checkpointId, bytes32 _accRoot) public /* onlyStakeManager*/ {
-    if (_accRoot != "") {
-      accRoot[checkpointId] = _accRoot;
-    }
   }
 
   function unbondAll(uint256 validatorId) public /* onlyStakeManager*/ {
@@ -119,7 +111,6 @@ contract DelegationManager is IDelegationManager, Lockable {
 
   // after unstaking wait for WITHDRAWAL_DELAY, in order to claim stake back
   function unstakeClaim(
-    uint256 checkpointId,// checkpoint Id  with root of proofs
     uint256 delegatorId,
     uint256 rewardAmount,
     uint256 slashedAmount,
@@ -135,7 +126,7 @@ contract DelegationManager is IDelegationManager, Lockable {
           slashedAmount)
           ).checkMembership(
             accIndex,
-            accRoot[checkpointId],
+            stakeManager.accountStateRoot(),
             accProof),
       "Wrong account proof"
       );
@@ -228,7 +219,6 @@ contract DelegationManager is IDelegationManager, Lockable {
   }
 
   function claimRewards(
-    uint256 checkpointId,// checkpoint Id  with root of proofs
     uint256 delegatorId,
     uint256 rewardAmount,
     uint256 slashedAmount,
@@ -245,7 +235,7 @@ contract DelegationManager is IDelegationManager, Lockable {
           slashedAmount)
           ).checkMembership(
             accIndex,
-            accRoot[checkpointId],
+            stakeManager.accountStateRoot(),
             accProof),
       "Wrong account proof"
       );

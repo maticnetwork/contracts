@@ -16,7 +16,6 @@ contract IDelegationManager {
   function reStake(uint256 delegatorId, uint256 amount, bool stakeRewards) public;
   function unstake(uint256 delegatorId) public;
   function unstakeClaim(
-    uint256 checkpointId,// checkpoint Id  with root of proofs
     uint256 delegatorId,
     uint256 rewardAmount,
     uint256 slashedAmount,
@@ -24,7 +23,6 @@ contract IDelegationManager {
     bytes memory accProof) public;
 
   function claimRewards(
-    uint256 checkpointId,// checkpoint Id  with root of proofs
     uint256 delegatorId,
     uint256 rewardAmount,
     uint256 slashedAmount,

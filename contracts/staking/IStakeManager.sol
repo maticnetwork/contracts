@@ -21,6 +21,7 @@ contract IStakeManager {
   // Todo: fix WITHDRAWAL_DELAY with interface
   uint256 public WITHDRAWAL_DELAY = (2**13)/2; // unit: epoch
   uint256 public currentEpoch = 1;
+  bytes32 public accountStateRoot;
   // validator replacement
   function startAuction(uint256 validatorId, uint256 amount) external;
   function confirmAuctionBid(uint256 validatorId, address signer, bool isContract) external;
@@ -31,7 +32,7 @@ contract IStakeManager {
   function totalStakedFor(address addr) external view returns (uint256);
   function supportsHistory() external pure returns (bool);
   function stakeFor(address user, uint256 amount, address signer, bool isContract) public;
-  function checkSignatures(uint256 blockInterval, bytes32 voteHash, bytes32 stateRoot, bytes32 delegationAccRoot, bytes memory sigs) public returns(uint256);
+  function checkSignatures(uint256 blockInterval, bytes32 voteHash, bytes32 stateRoot, bytes memory sigs) public returns(uint256);
   function updateValidatorState(uint256 validatorId, uint256 epoch, int256 amount) public;
   function isValidator(uint256 validatorId) public view returns (bool);
 

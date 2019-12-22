@@ -43,7 +43,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
   uint256 public totalRewards;
   uint256 public totalRewardsLiquidated;
   uint256 public auctionPeriod = dynasty.div(4); // 1 week in epochs
-  bytes32 public accountStateRoot;
+  // bytes32 public accountStateRoot;
 
   // on dynasty update certain amount of cooldown period where there is no validator auction
   uint256 replacementCoolDown;
@@ -511,18 +511,10 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
     uint256 blockInterval,
     bytes32 voteHash,
     bytes32 stateRoot,
-    bytes32 delegationAccRoot,
     bytes memory sigs) public onlyRootChain returns(uint256) {
     uint256 stakePower;
     uint256 _totalStake;
     (stakePower, _totalStake) = checkTwoByThreeMajority(voteHash, sigs);
-
-    DelegationManager(
-      Registry(registry).getDelegationManagerAddress()
-      ).updateAccRoot(
-        currentEpoch,
-        delegationAccRoot
-      );
 
     // checkpoint rewards are based on BlockInterval multiplied on `checkpointReward`
     // with actual `blockInterval`
