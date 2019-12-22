@@ -311,7 +311,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
     require(token.transfer(msg.sender, amount), "Insufficent rewards");
   }
 
-  function delegationTransfer(uint256 amount, address delegator) external returns (bool) {
+  function delegatorWithdrawal(uint256 amount, address delegator) external returns (bool) {
     require(Registry(registry).getDelegationManagerAddress() == msg.sender);
     return token.transfer(delegator, amount);
   }

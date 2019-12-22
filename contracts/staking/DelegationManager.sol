@@ -275,7 +275,7 @@ contract DelegationManager is IDelegationManager, Lockable {
     uint256 amount = delegators[delegatorId].reward;
     require(amount > 0, "Witdraw amount must be non-zero");
     delegators[delegatorId].reward = 0;
-    require(stakeManager.delegationTransfer(amount, stakerNFT.ownerOf(delegatorId)),"Amount transfer failed");
+    require(stakeManager.delegatorWithdrawal(amount, stakerNFT.ownerOf(delegatorId)),"Amount transfer failed");
   }
 
 }
