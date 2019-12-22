@@ -34,6 +34,7 @@ contract DelegationManager is IDelegationManager, Lockable {
     uint256 amount;
     uint256 reward;
     uint256 claimedRewards;
+    uint256 slashedAmount;
     uint256 bondedTo; // validatorId
     uint256 deactivationEpoch;// unstaking delegator
   }
@@ -85,6 +86,7 @@ contract DelegationManager is IDelegationManager, Lockable {
       deactivationEpoch: 0,
       amount: amount,
       claimedRewards: 0,
+      slashedAmount: 0,
       reward: 0,
       bondedTo: validatorId
       });
@@ -130,7 +132,7 @@ contract DelegationManager is IDelegationManager, Lockable {
             accProof),
       "Wrong account proof"
       );
-
+    Delegator delegator = delegators[delegatorId];
     require(
       delegators[delegatorId].deactivationEpoch > 0 &&
       delegators[delegatorId].deactivationEpoch.add(
@@ -138,13 +140,16 @@ contract DelegationManager is IDelegationManager, Lockable {
       "Incomplete withdraw Period"
       );
 
-    uint256 amount = delegators[delegatorId].amount;
-    totalStaked = totalStaked.sub(amount);
-    amount = amount.add(rewardAmount).add(delegators[delegatorId].reward).sub(slashedAmount);
+    uint256 _reward = accumBalance.sub(delegator.claimedRewards);
+    uint256 slashedAmount = accumSlashedAmount.sub(delegator.slashedAmount);
+
+    uint256 amount = delegator.amount.sub(slashedAmount);
+    totalStaked = totalStaked.sub(delegator.amount);
 
     //@todo :add slashing, take slashedAmount into account for totalStaked
     stakerNFT.burn(delegatorId);
-
+    // @todo merge delegationManager/stakeManager capital and rewards
+    require(stakeManager.delegationTransfer(delegator.reward.add(_reward), stakerNFT.ownerOf(delegatorId)),"Amount transfer failed");
     require(token.transfer(msg.sender, amount));
     delete delegators[delegatorId];
     emit Unstaked(msg.sender, delegatorId, amount, totalStaked);
@@ -220,8 +225,8 @@ contract DelegationManager is IDelegationManager, Lockable {
 
   function claimRewards(
     uint256 delegatorId,
-    uint256 rewardAmount,
-    uint256 slashedAmount,
+    uint256 accumBalance,
+    uint256 accumSlashedAmount,
     uint256 accIndex,
     bool withdraw,
     bytes memory accProof
@@ -231,8 +236,8 @@ contract DelegationManager is IDelegationManager, Lockable {
       keccak256(
         abi.encodePacked(
           delegatorId,
-          rewardAmount,
-          slashedAmount)
+          accumBalance,
+          accumSlashedAmount)
           ).checkMembership(
             accIndex,
             stakeManager.accountStateRoot(),
@@ -240,17 +245,26 @@ contract DelegationManager is IDelegationManager, Lockable {
       "Wrong account proof"
       );
 
-    uint256 _rewardAmount = rewardAmount.sub(delegators[delegatorId].claimedRewards);
+    Delegator delegator = delegators[delegatorId];
+
+    uint256 _reward = accumBalance.sub(delegator.claimedRewards);
+    uint256 slashedAmount = accumSlashedAmount.sub(delegator.slashedAmount);
     uint256 _amount;
-    if (_rewardAmount <= slashedAmount) {
-      _amount = slashedAmount.sub(_rewardAmount);
-      delegators[delegatorId].amount = delegators[delegatorId].amount.sub();
-      totalStaked = totalStaked.sub(_amount);
-      // emit stakeUpdate
+
+    if (_reward < slashedAmount) {
+      _amount = slashedAmount.sub(_reward);
+      totalStaked = totalStaked.sub(amount);
+      delegator.amount = delegator.amount.sub(_amount);
+      // emit StakeUpdate(delegatorId, _amount, delegator.amount);
     } else {
-      delegators[delegatorId].reward = delegators[delegatorId].reward.add(_rewardAmount.sub(slashedAmount));
+      delegator.reward = delegator.reward.add(_reward.sub(slashedAmount));
     }
-    delegators[delegatorId].claimedRewards = rewardAmount;
+
+    totalRewardsLiquidated += _reward;
+    require(totalRewardsLiquidated <= totalRewards, "Liquidating more rewards then checkpoints submitted");// pos 2/3+1 is colluded
+    delegator.claimedRewards = accumBalance;
+    delegator.slashedAmount = accumSlashedAmount;
+
     if (withdraw) {
       withdrawRewards(delegatorId);
     }
