@@ -388,6 +388,7 @@ class Deployer {
       "SAP",
       18
     )
+    await childToken.transferOwnership(this.childChain.address)
     await this.childChain.mapToken(
       rootERC20.address, 
       childToken.address, 
