@@ -41,3 +41,5 @@ export const childContracts = {
   MaticChildERC20: artifacts.require('MaticChildERC20'),
   TestMaticChildERC20: artifacts.require('TestMaticChildERC20')
 }
+
+export const SapienChildERC20 = artifacts.require('SapienChildERC20')
