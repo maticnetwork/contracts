@@ -99,7 +99,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
   }
 
   function stake(uint256 amount, uint256 commissionRate, address signer, bool acceptDelegation) external {
-    stakeFor(msg.sender, amount, signer, acceptDelegation);
+    stakeFor(msg.sender, amount, commissionRate, signer, acceptDelegation);
   }
 
   function stakeFor(address user, uint256 amount, uint256 commissionRate, address signer, bool acceptDelegation) public onlyWhenUnlocked {
