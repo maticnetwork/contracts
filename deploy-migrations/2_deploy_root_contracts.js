@@ -23,6 +23,7 @@ const DepositManagerProxy = artifacts.require('DepositManagerProxy')
 const WithdrawManager = artifacts.require('WithdrawManager')
 const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
 const StateSender = artifacts.require('StateSender')
+const Staker = artifacts.require('Staker')
 const StakeManager = artifacts.require('StakeManager')
 const DelegationManager = artifacts.require('DelegationManager')
 const SlashingManager = artifacts.require('SlashingManager')
@@ -116,12 +117,12 @@ const libDeps = [
   }
 ]
 
-module.exports = async function(deployer) {
+module.exports = async function (deployer) {
   if (!process.env.HEIMDALL_ID) {
     throw new Error('Please export HEIMDALL_ID environment variable')
   }
 
-  deployer.then(async() => {
+  deployer.then(async () => {
     console.log('linking libs...')
     await bluebird.map(libDeps, async e => {
       await deployer.deploy(e.lib)
@@ -130,10 +131,11 @@ module.exports = async function(deployer) {
 
     console.log('deploying contracts...')
     await deployer.deploy(Registry)
+    await deployer.deploy(Staker, Registry.address)
     await deployer.deploy(RootChain, Registry.address, process.env.HEIMDALL_ID)
-    await deployer.deploy(StakeManager, Registry.address, RootChain.address)
+    await deployer.deploy(StakeManager, Registry.address, RootChain.address, Staker.address)
     await deployer.deploy(SlashingManager, Registry.address)
-    await deployer.deploy(DelegationManager, Registry.address)
+    await deployer.deploy(DelegationManager, Registry.address, Staker.address)
 
     await deployer.deploy(StateSender)
 
