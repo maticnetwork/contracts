@@ -101,8 +101,8 @@ contract('StakeManager<->DelegationManager', async function (accounts) {
     })
     let logs = logDecoder.decodeLogs(result.receipt.rawLogs)
     logs[0].event.should.equal('UnstakeInit')
-    let validatorState = await delegationManager.validatorUnbonding(1)
-    expect(validatorState).to.be.true
+    let validatorState = await delegationManager.acceptsDelegation(1)
+    expect(validatorState).to.be.false
   })
 
   it('revertLazyUnBond', async function () {
@@ -120,15 +120,15 @@ contract('StakeManager<->DelegationManager', async function (accounts) {
     })
     let logs = logDecoder.decodeLogs(result.receipt.rawLogs)
     logs[0].event.should.equal('Jailed')
-    let validatorState = await delegationManager.validatorUnbonding(1)
-    expect(validatorState).to.be.true
+    let validatorState = await delegationManager.acceptsDelegation(1)
+    expect(validatorState).to.be.false
 
     await stakeManager.unJail(1, {
       from: wallets[0].getAddressString()
     })
 
-    validatorState = await delegationManager.validatorUnbonding(1)
-    expect(validatorState).to.be.false
+    validatorState = await delegationManager.acceptsDelegation(1)
+    expect(validatorState).to.be.true
   })
 
   // TODO: fix me once delegation voucher is done
