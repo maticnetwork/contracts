@@ -67,6 +67,7 @@ contract DelegationManager is IDelegationManager, Lockable {
 
   function updateCommissionRate(uint256 validatorId, uint256 rate) public {
     require(registry.getStakeManagerAddress() == msg.sender || stakerNFT.ownerOf(validatorId) == msg.sender);
+    emit UpdateCommission(validatorId, rate);
     validators[validatorId].commissionRate = rate;// add time limit?
   }
 
