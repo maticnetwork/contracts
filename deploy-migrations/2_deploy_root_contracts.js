@@ -70,7 +70,7 @@ const libDeps = [
   },
   {
     lib: Merkle,
-    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate, StakeManager, MintableERC721Predicate]
+    contracts: [WithdrawManager, DelegationManager, ERC20Predicate, ERC721Predicate, StakeManager, MintableERC721Predicate]
   },
   {
     lib: MerklePatriciaProof,
@@ -135,7 +135,8 @@ module.exports = async function (deployer) {
     await deployer.deploy(RootChain, Registry.address, process.env.HEIMDALL_ID)
     await deployer.deploy(StakeManager, Registry.address, RootChain.address, Staker.address)
     await deployer.deploy(SlashingManager, Registry.address)
-    await deployer.deploy(DelegationManager, Registry.address, Staker.address)
+    // TODO: replace when actual migration with proper matic erc20 contract
+    await deployer.deploy(DelegationManager, Registry.address, Staker.address,/**Matic staking token */ Staker.address)
 
     await deployer.deploy(StateSender)
 
