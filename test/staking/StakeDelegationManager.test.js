@@ -71,7 +71,7 @@ contract('StakeManager<->DelegationManager', async function (accounts) {
       await stakeToken.approve(stakeManager.address, amount, {
         from: user
       })
-      await stakeManager.stake(amount, user, validatorContracts[i], {
+      await stakeManager.stake(amount, 0, user, validatorContracts[i], {
         from: user
       })
     }

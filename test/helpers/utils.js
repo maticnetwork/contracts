@@ -50,13 +50,11 @@ export async function checkPoint(wallets, proposer, stakeManager) {
     encodeSigs(getSigs(wallets, ethUtils.keccak256(voteData)))
   )
   const stateRoot = ethUtils.bufferToHex(ethUtils.keccak256('stateRoot'))
-  const delegationAccRoot = ethUtils.bufferToHex('')
   // 2/3 majority vote
   await stakeManager.checkSignatures(
     1,
     ethUtils.bufferToHex(ethUtils.keccak256(voteData)),
     stateRoot,
-    delegationAccRoot,
     sigs,
     {
       from: proposer.getAddressString()

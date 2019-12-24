@@ -11,14 +11,14 @@ import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
 
 chai.use(chaiAsPromised).should()
 
-contract('SlashingManager', async function(accounts) {
+contract('SlashingManager', async function (accounts) {
   let stakeManager, wallets, stakeToken, SlashingManager
 
-  before(async function() {
+  before(async function () {
     wallets = generateFirstWallets(mnemonics, 10)
   })
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     const contracts = await deployer.freshDeploy({ stakeManager: true })
     // setToken
     stakeManager = contracts.stakeManager
@@ -46,13 +46,13 @@ contract('SlashingManager', async function(accounts) {
     )
   })
 
-  it('should slash validator', async function() {
+  it('should slash validator', async function () {
     const user = wallets[2].getAddressString()
     const amount = web3.utils.toWei('250')
     await stakeToken.approve(stakeManager.address, amount, {
       from: user
     })
-    await stakeManager.stake(amount, user, false, {
+    await stakeManager.stake(amount, 0, user, false, {
       from: user
     })
     const beforeStake = await stakeManager.totalStakedFor(user)
@@ -82,14 +82,14 @@ contract('SlashingManager', async function(accounts) {
     assertBigNumbergt(beforeStake, afterStake)
   })
 
-  it('should not slash validator', async function() {
+  it('should not slash validator', async function () {
     const user = wallets[2].getAddressString()
     const amount = web3.utils.toWei('250')
     await stakeToken.approve(stakeManager.address, amount, {
       from: user
     })
 
-    await stakeManager.stake(amount, user, false, {
+    await stakeManager.stake(amount, 0, user, false, {
       from: user
     })
 
