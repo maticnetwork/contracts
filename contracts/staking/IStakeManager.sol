@@ -24,7 +24,7 @@ contract IStakeManager {
   bytes32 public accountStateRoot;
   // validator replacement
   function startAuction(uint256 validatorId, uint256 amount) external;
-  function confirmAuctionBid(uint256 validatorId, address signer, bool isContract) external;
+  function confirmAuctionBid(uint256 validatorId, uint256 commissionRate, address signer, bool isContract) external;
 
   function delegatorWithdrawal(uint256 amount, address delegator) external returns(bool);
   function stake(uint256 amount, uint256 commissionRate, address signer, bool acceptDelegation) external;
