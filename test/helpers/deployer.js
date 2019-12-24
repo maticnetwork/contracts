@@ -377,6 +377,37 @@ class Deployer {
   async deployMarketplace(owner) {
     return contracts.Marketplace.new()
   }
+
+  async deploySapienChildErc20(owner, options = { mapToken: false }) {
+    const rootERC20 = await this.deployTestErc20({ mapToken: false })
+    const childToken = await contracts.SapienChildERC20.new(
+      owner,
+      rootERC20.address,
+      "SapienToken",
+      "SAP",
+      18
+    )
+    await childToken.transferOwnership(this.childChain.address)
+    await this.childChain.mapToken(
+      rootERC20.address,
+      childToken.address,
+      false /* isERC721 */)
+
+    if (options.mapToken) {
+      await this.mapToken(
+        rootERC20.address,
+        childToken.address,
+        false /* isERC721 */
+      )
+    }
+
+    return { rootERC20, childToken }
+  }
+
+  async deployMockSapienParentToken(options = {}) {
+    const parentToken = await contracts.MockSapienParentToken.new()
+    return parentToken
+  }
 }
 
 const deployer = new Deployer()
