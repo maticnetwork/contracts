@@ -39,7 +39,6 @@ export const childContracts = {
   ChildERC721: artifacts.require('ChildERC721'),
   ChildERC721Mintable: artifacts.require('ChildERC721Mintable'),
   MaticChildERC20: artifacts.require('MaticChildERC20'),
-  TestMaticChildERC20: artifacts.require('TestMaticChildERC20')
+  TestMaticChildERC20: artifacts.require('TestMaticChildERC20'),
+  SapienChildERC20: artifacts.require('SapienChildERC20')
 }
-
-export const SapienChildERC20 = artifacts.require('SapienChildERC20')

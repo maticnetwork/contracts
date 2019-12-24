@@ -13,7 +13,7 @@ contract MockParentToken is ISapienParentToken, Ownable {
   mapping (address => bool) isAllowed;
 
   function beforeTransfer(address sender, address to, uint256 value, bytes calldata purpose) external returns(bool) {
-    if (!isAllowed[sender]){
+    if (!isAllowed[sender]) {
       return false;
     }
 
