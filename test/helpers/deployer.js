@@ -380,7 +380,6 @@ class Deployer {
 
   async deploySapienChildErc20(owner, options = { mapToken: false }) {
     const rootERC20 = await this.deployTestErc20({ mapToken: false })
-    console.log(contracts.SapienChildERC20)
     const childToken = await contracts.SapienChildERC20.new(
       owner,
       rootERC20.address,
@@ -390,10 +389,10 @@ class Deployer {
     )
     await childToken.transferOwnership(this.childChain.address)
     await this.childChain.mapToken(
-      rootERC20.address, 
-      childToken.address, 
+      rootERC20.address,
+      childToken.address,
       false /* isERC721 */)
-      
+
     if (options.mapToken) {
       await this.mapToken(
         rootERC20.address,
