@@ -3,7 +3,6 @@ import chaiAsPromised from 'chai-as-promised'
 
 import deployer from '../../helpers/deployer.js'
 import { generateFirstWallets, mnemonics } from '../../helpers/wallets.js'
-import logDecoder from '../../helpers/log-decoder.js'
 import * as utils from '../../helpers/utils'
 
 const crypto = require('crypto')
@@ -19,10 +18,11 @@ const charlie = utils.toChecksumAddress('0x' + crypto.randomBytes(20).toString('
 
 contract.only('SapienChildERC20', async function(accounts) {
   let childContracts, erc20
+  const maticOwner = accounts[0]
   const sapienOwner = accounts[1]
 
   before(async function() {
-    childContracts = await deployer.initializeChildChain(accounts[0], { updateRegistry: false });
+    childContracts = await deployer.initializeChildChain(maticOwner, { updateRegistry: false });
   })
 
   beforeEach(async function() {
@@ -67,7 +67,7 @@ contract.only('SapienChildERC20', async function(accounts) {
     assert.strictEqual((await erc20.childToken.balanceOf(charlie)).toString(), charlieBalance.toString())
   })
 
-  it('transferBatchIdempotent - transfer to non zero', async function() {
+  it('transferBatchIdempotent - transfer to non zero only', async function() {
     const depositToAliceAmount = web3.utils.toBN('10')
     const depositToBobAmount = web3.utils.toBN('11')
     const transferToBobAmount = web3.utils.toBN('2')

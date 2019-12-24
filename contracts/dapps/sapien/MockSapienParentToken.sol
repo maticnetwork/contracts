@@ -6,7 +6,7 @@ import "./ISapienParentToken.sol";
 // demo token parent contract
 
 
-contract MockParentToken is ISapienParentToken, Ownable {
+contract MockSapienParentToken is ISapienParentToken, Ownable {
 
   event Purpose(address indexed sender, address indexed to, uint256 amount, bytes purpose);
 

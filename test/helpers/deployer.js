@@ -403,6 +403,11 @@ class Deployer {
 
     return { rootERC20, childToken }
   }
+
+  async deployMockSapienParentToken(options = {}) {
+    const parentToken = await contracts.MockSapienParentToken.new()
+    return parentToken
+  }
 }
 
 const deployer = new Deployer()
