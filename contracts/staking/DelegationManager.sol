@@ -25,11 +25,6 @@ contract DelegationManager is IDelegationManager, Lockable {
   uint256 public validatorHopLimit = 2; // checkpoint/epochs
   uint256 public WITHDRAWAL_DELAY = 0; // todo: remove if not needed use from stakeManager
 
-  //@todo combine both roots
-
-  // each validators delegation amount
-  mapping (uint256 => uint256) public validatorDelegation;
-
   struct Delegator {
     uint256 amount;
     uint256 reward;
@@ -39,11 +34,16 @@ contract DelegationManager is IDelegationManager, Lockable {
     uint256 deactivationEpoch;// unstaking delegator
   }
 
-  // all delegators of one validator
-  mapping (uint256 => bool) public validatorUnbonding;
+  struct ValMetaData {
+    uint256 delegatedAmount;
+    uint256 commissionRate;
+    bool isUnBonding;
+  }
 
   // Delegator metadata
   mapping (uint256 => Delegator) public delegators;
+
+  mapping (uint256 => ValMetaData) public validators;
 
   modifier onlyDelegator(uint256 delegatorId) {
     require(stakerNFT.ownerOf(delegatorId) == msg.sender);
@@ -62,15 +62,23 @@ contract DelegationManager is IDelegationManager, Lockable {
   }
 
   function unbondAll(uint256 validatorId) public /* onlyStakeManager*/ {
-    validatorUnbonding[validatorId] = true;
+    validators[validatorId].isUnBonding = true;
   }
 
   function bondAll(uint256 validatorId) public /* onlyStakeManager*/ {
-    validatorUnbonding[validatorId] = false;
+    validators[validatorId].isUnBonding = false;
   }
 
   function validatorUnstake(uint256 validatorId) public /* onlyStakeManager*/ {
-    delete validatorDelegation[validatorId];
+    delete validators[validatorId];
+  }
+
+  function validatorDelegation(uint256 validatorId) public view returns(uint256) {
+    return validators[validatorId].delegatedAmount;
+  }
+
+  function acceptsDelegation(uint256 validatorId) public view returns(bool) {
+    return !validators[validatorId].isUnBonding;
   }
 
   function stake(uint256 amount, uint256 validatorId) public onlyWhenUnlocked {
@@ -114,8 +122,8 @@ contract DelegationManager is IDelegationManager, Lockable {
   // after unstaking wait for WITHDRAWAL_DELAY, in order to claim stake back
   function unstakeClaim(
     uint256 delegatorId,
-    uint256 rewardAmount,
-    uint256 slashedAmount,
+    uint256 accumBalance,
+    uint256 accumSlashedAmount,
     uint256 accIndex,
     bytes memory accProof
     ) public onlyDelegator(delegatorId) {
@@ -124,15 +132,15 @@ contract DelegationManager is IDelegationManager, Lockable {
       keccak256(
         abi.encodePacked(
           delegatorId,
-          rewardAmount,
-          slashedAmount)
+          accumBalance,
+          accumSlashedAmount)
           ).checkMembership(
             accIndex,
             stakeManager.accountStateRoot(),
             accProof),
       "Wrong account proof"
       );
-    Delegator delegator = delegators[delegatorId];
+    Delegator storage delegator = delegators[delegatorId];
     require(
       delegators[delegatorId].deactivationEpoch > 0 &&
       delegators[delegatorId].deactivationEpoch.add(
@@ -141,15 +149,15 @@ contract DelegationManager is IDelegationManager, Lockable {
       );
 
     uint256 _reward = accumBalance.sub(delegator.claimedRewards);
-    uint256 slashedAmount = accumSlashedAmount.sub(delegator.slashedAmount);
+    uint256 _slashedAmount = accumSlashedAmount.sub(delegator.slashedAmount);
 
-    uint256 amount = delegator.amount.sub(slashedAmount);
+    uint256 amount = delegator.amount.sub(_slashedAmount);
     totalStaked = totalStaked.sub(delegator.amount);
 
     //@todo :add slashing, take slashedAmount into account for totalStaked
     stakerNFT.burn(delegatorId);
     // @todo merge delegationManager/stakeManager capital and rewards
-    require(stakeManager.delegationTransfer(delegator.reward.add(_reward), stakerNFT.ownerOf(delegatorId)),"Amount transfer failed");
+    require(stakeManager.delegatorWithdrawal(delegator.reward.add(_reward), stakerNFT.ownerOf(delegatorId)),"Amount transfer failed");
     require(token.transfer(msg.sender, amount));
     delete delegators[delegatorId];
     emit Unstaked(msg.sender, delegatorId, amount, totalStaked);
@@ -169,13 +177,13 @@ contract DelegationManager is IDelegationManager, Lockable {
   }
 
   function _bond(uint256 delegatorId, uint256 validatorId, uint256 epoch, IStakeManager stakeManager) private {
-    require(!validatorUnbonding[validatorId], "Validator is not accepting delegation");
+    require(!validators[validatorId].isUnBonding, "Validator is not accepting delegation");
     require(stakeManager.isValidator(validatorId), "Unknown validatorId or validator doesn't expect delegations");
 
     // require(delegator.lastValidatorEpoch.add(validatorHopLimit) <= currentEpoch, "Delegation_Limit_Reached");
     Delegator storage delegator = delegators[delegatorId];
     delegator.bondedTo = validatorId;
-    validatorDelegation[validatorId] = validatorDelegation[validatorId].add(delegator.amount);
+    validators[validatorId].delegatedAmount = validators[validatorId].delegatedAmount.add(delegator.amount);
     stakeManager.updateValidatorState(validatorId, epoch, int(delegator.amount));
     emit Bonding(delegatorId, validatorId, delegator.amount);
   }
@@ -190,8 +198,9 @@ contract DelegationManager is IDelegationManager, Lockable {
   }
 
   function _unbond(uint256 delegatorId, uint256 epoch,  IStakeManager stakeManager) private {
-    stakeManager.updateValidatorState(delegators[delegatorId].bondedTo, epoch, -int(delegators[delegatorId].amount));
-    validatorDelegation[delegators[delegatorId].bondedTo] = validatorDelegation[delegators[delegatorId].bondedTo].sub(delegators[delegatorId].amount);
+    uint256 validatorId = delegators[delegatorId].bondedTo;
+    stakeManager.updateValidatorState(validatorId, epoch, -int(delegators[delegatorId].amount));
+    validators[validatorId].delegatedAmount = validators[validatorId].delegatedAmount.sub(delegators[delegatorId].amount);
     delegators[delegatorId].bondedTo = 0;
   }
 
@@ -206,7 +215,7 @@ contract DelegationManager is IDelegationManager, Lockable {
     }
     totalStaked = totalStaked.add(amount);
     if (delegator.bondedTo != 0) {
-      validatorDelegation[delegators[delegatorId].bondedTo] = validatorDelegation[delegators[delegatorId].bondedTo].add(delegator.amount);
+      validators[delegators[delegatorId].bondedTo].delegatedAmount = validators[delegators[delegatorId].bondedTo].delegatedAmount.add(delegator.amount);
     }
 
     delegator.amount = delegator.amount.add(amount);
@@ -245,23 +254,24 @@ contract DelegationManager is IDelegationManager, Lockable {
       "Wrong account proof"
       );
 
-    Delegator delegator = delegators[delegatorId];
+    Delegator storage delegator = delegators[delegatorId];
 
     uint256 _reward = accumBalance.sub(delegator.claimedRewards);
-    uint256 slashedAmount = accumSlashedAmount.sub(delegator.slashedAmount);
+    uint256 _slashedAmount = accumSlashedAmount.sub(delegator.slashedAmount);
     uint256 _amount;
 
-    if (_reward < slashedAmount) {
-      _amount = slashedAmount.sub(_reward);
-      totalStaked = totalStaked.sub(amount);
+    if (_reward < _slashedAmount) {
+      _amount = _slashedAmount.sub(_reward);
       delegator.amount = delegator.amount.sub(_amount);
+      totalStaked = totalStaked.sub(_amount);
+      //@todo slashed amount distribution/ add to staking reward pool
       // emit StakeUpdate(delegatorId, _amount, delegator.amount);
     } else {
-      delegator.reward = delegator.reward.add(_reward.sub(slashedAmount));
+      delegator.reward = delegator.reward.add(_reward.sub(_slashedAmount));
     }
 
-    totalRewardsLiquidated += _reward;
-    require(totalRewardsLiquidated <= totalRewards, "Liquidating more rewards then checkpoints submitted");// pos 2/3+1 is colluded
+    // totalRewardsLiquidated += _reward; // StakeManager calls
+    // require(totalRewardsLiquidated <= totalRewards, "Liquidating more rewards then checkpoints submitted");// pos 2/3+1 is colluded
     delegator.claimedRewards = accumBalance;
     delegator.slashedAmount = accumSlashedAmount;
 

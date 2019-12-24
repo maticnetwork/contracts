@@ -262,7 +262,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
     require(keccak256(abi.encodePacked(validatorId, accumBalance, accumSlashedAmount)).checkMembership(index, accountStateRoot, proof));
     DelegationManager(Registry(registry).getDelegationManagerAddress()).validatorUnstake(validatorId);
 
-    Validator validator = validators[validatorId];
+    Validator storage validator = validators[validatorId];
     uint256 _reward = accumBalance.sub(validator.claimedRewards);
     uint256 slashedAmount = accumSlashedAmount.sub(validator.slashedAmount);
 
@@ -279,14 +279,14 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
 
   function claimRewards(uint256 validatorId, uint256 accumBalance, uint256 accumSlashedAmount, uint256 index, bool transferRewards, bytes memory proof) public {
     require(keccak256(abi.encodePacked(validatorId, accumBalance, accumSlashedAmount)).checkMembership(index, accountStateRoot, proof));
-    Validator validator = validators[validatorId];
+    Validator storage validator = validators[validatorId];
     uint256 _reward = accumBalance.sub(validator.claimedRewards);
     uint256 slashedAmount = accumSlashedAmount.sub(validator.slashedAmount);
     uint256 _amount;
 
     if (_reward < slashedAmount) {
       _amount = slashedAmount.sub(_reward);
-      totalStaked = totalStaked.sub(amount);
+      totalStaked = totalStaked.sub(_amount);
       validator.amount = validator.amount.sub(_amount);
       emit StakeUpdate(validatorId, _amount, validator.amount);
     } else {
@@ -319,7 +319,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
   // if not jailed then in state of warning, else will be unstaking after x epoch
   function slash(uint256 validatorId, uint256 slashingRate, uint256 jailCheckpoints) public onlySlashingMananger {
     // if contract call contract.slash
-    if (acceptsDelegation(validatorId)) {
+    if (DelegationManager(Registry(registry).getDelegationManagerAddress()).acceptsDelegation(validatorId)) {
       //TODO: slashing
       // ValidatorContract(validators[validatorId].contractAddress).slash(slashingRate, currentEpoch, currentEpoch);
     }
@@ -492,10 +492,6 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
     return uint256(validatorState[currentEpoch].amount);
   }
 
-  function acceptsDelegation(uint256 validatorId) public view returns(bool) {
-    return !DelegationManager(Registry(registry).getDelegationManagerAddress()).validatorUnbonding(validatorId);
-  }
-
   function isValidator(uint256 validatorId) public view returns (bool) {
     return (
       validators[validatorId].amount > 0 &&
@@ -553,7 +549,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
         lastAdd = signer;
         stakePower = stakePower.add(validators[validatorId].amount);
         // add delegation power
-        if (acceptsDelegation(validatorId)) {
+        if (DelegationManager(Registry(registry).getDelegationManagerAddress()).acceptsDelegation(validatorId)) {
           // @Todo batch sum of delegation power
           stakePower = stakePower.add(DelegationManager(Registry(registry).getDelegationManagerAddress()).validatorDelegation(validatorId));
         }
