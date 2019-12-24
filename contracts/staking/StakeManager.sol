@@ -98,21 +98,21 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
     _;
   }
 
-  function stake(uint256 amount, address signer, bool acceptDelegation) external {
+  function stake(uint256 amount, uint256 commissionRate, address signer, bool acceptDelegation) external {
     stakeFor(msg.sender, amount, signer, acceptDelegation);
   }
 
-  function stakeFor(address user, uint256 amount, address signer, bool acceptDelegation) public onlyWhenUnlocked {
+  function stakeFor(address user, uint256 amount, uint256 commissionRate, address signer, bool acceptDelegation) public onlyWhenUnlocked {
     require(currentValidatorSetSize() < validatorThreshold);
     require(stakerNFT.balanceOf(user) == 0, "Only one time staking is allowed");
     require(amount > MIN_DEPOSIT_SIZE);
     require(signerToValidator[signer] == 0);
 
     require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake failed");
-    _stakeFor(user, amount, signer, acceptDelegation);
+    _stakeFor(user, amount, commissionRate, signer, acceptDelegation);
   }
 
-  function _stakeFor(address user, uint256 amount, address signer, bool _acceptDelegation) internal {
+  function _stakeFor(address user, uint256 amount, uint256 commissionRate, address signer, bool _acceptDelegation) internal {
     totalStaked = totalStaked.add(amount);
     uint256 validatorId = stakerNFT.NFTCounter();
     validators[validatorId] = Validator({
@@ -129,7 +129,9 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
 
     stakerNFT.mint(user);
     if (_acceptDelegation) {
-      DelegationManager(Registry(registry).getDelegationManagerAddress()).bondAll(validatorId);
+      DelegationManager delegationManager = DelegationManager(Registry(registry).getDelegationManagerAddress());
+      delegationManager.bondAll(validatorId);
+      delegationManager.updateCommissionRate(validatorId, commissionRate);
     }
 
     signerToValidator[signer] = validatorId;
@@ -179,7 +181,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
     emit StartAuction(validatorId, validators[validatorId].amount, validatorAuction[validatorId].amount);
   }
 
-  function confirmAuctionBid(uint256 validatorId, address signer, bool isContract) external onlyWhenUnlocked {
+  function confirmAuctionBid(uint256 validatorId, uint256 commissionRate, address signer, bool acceptDelegation) external onlyWhenUnlocked {
     Auction storage auction = validatorAuction[validatorId];
     Validator storage validator = validators[validatorId];
     require(auction.user == msg.sender);
@@ -202,7 +204,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
     } else {
       // dethrone
       _unstake(validatorId, currentEpoch);
-      _stakeFor(auction.user, auction.amount, signer, isContract);
+      _stakeFor(auction.user, auction.amount, commissionRate, signer, acceptDelegation);
 
       emit ConfirmAuction(stakerNFT.NFTCounter().sub(1) /* new validator*/, validatorId, auction.amount);
       delete validatorAuction[validatorId];
@@ -316,6 +318,12 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
     return token.transfer(delegator, amount);
   }
 
+  function updateTotalRewardsLiquidated(uint256 _reward) external returns (bool) {
+    require(Registry(registry).getDelegationManagerAddress() == msg.sender);
+    totalRewardsLiquidated += _reward;
+    return (totalRewardsLiquidated <= totalRewards);
+  }
+    
   // if not jailed then in state of warning, else will be unstaking after x epoch
   function slash(uint256 validatorId, uint256 slashingRate, uint256 jailCheckpoints) public onlySlashingMananger {
     // if contract call contract.slash

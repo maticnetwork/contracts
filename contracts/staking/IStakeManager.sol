@@ -27,13 +27,14 @@ contract IStakeManager {
   function confirmAuctionBid(uint256 validatorId, address signer, bool isContract) external;
 
   function delegatorWithdrawal(uint256 amount, address delegator) external returns(bool);
-  function stake(uint256 amount, address signer, bool isContract) external;
+  function stake(uint256 amount, uint256 commissionRate, address signer, bool acceptDelegation) external;
   function unstake(uint256 validatorId) external;
   function totalStakedFor(address addr) external view returns (uint256);
   function supportsHistory() external pure returns (bool);
-  function stakeFor(address user, uint256 amount, address signer, bool isContract) public;
+  function stakeFor(address user, uint256 amount, uint256 commissionRate, address signer, bool acceptDelegation) public;
   function checkSignatures(uint256 blockInterval, bytes32 voteHash, bytes32 stateRoot, bytes memory sigs) public returns(uint256);
   function updateValidatorState(uint256 validatorId, uint256 epoch, int256 amount) public;
+  function updateTotalRewardsLiquidated(uint256 _reward) external returns (bool);
   function isValidator(uint256 validatorId) public view returns (bool);
 
   // optional

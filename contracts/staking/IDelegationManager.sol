@@ -35,5 +35,6 @@ contract IDelegationManager {
   function unbondAll(uint256 validatorId) public;
   function bondAll(uint256 validatorId) public;
   function validatorUnstake(uint256 validatorId) public;
+  function updateCommissionRate(uint256 validatorId, uint256 rate) public;
 
 }

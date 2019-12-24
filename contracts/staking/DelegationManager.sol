@@ -65,6 +65,11 @@ contract DelegationManager is IDelegationManager, Lockable {
     validators[validatorId].isUnBonding = true;
   }
 
+  function updateCommissionRate(uint256 validatorId, uint256 rate) public {
+    require(registry.getStakeManagerAddress() == msg.sender || stakerNFT.ownerOf(validatorId) == msg.sender);
+    validators[validatorId].commissionRate = rate;// add time limit?
+  }
+
   function bondAll(uint256 validatorId) public /* onlyStakeManager*/ {
     validators[validatorId].isUnBonding = false;
   }
@@ -150,6 +155,8 @@ contract DelegationManager is IDelegationManager, Lockable {
 
     uint256 _reward = accumBalance.sub(delegator.claimedRewards);
     uint256 _slashedAmount = accumSlashedAmount.sub(delegator.slashedAmount);
+
+    require(stakeManager.updateTotalRewardsLiquidated(_reward), "Liquidating more rewards then checkpoints submitted");
 
     uint256 amount = delegator.amount.sub(_slashedAmount);
     totalStaked = totalStaked.sub(delegator.amount);
@@ -259,6 +266,7 @@ contract DelegationManager is IDelegationManager, Lockable {
     uint256 _reward = accumBalance.sub(delegator.claimedRewards);
     uint256 _slashedAmount = accumSlashedAmount.sub(delegator.slashedAmount);
     uint256 _amount;
+    require(stakeManager.updateTotalRewardsLiquidated(_reward), "Liquidating more rewards then checkpoints submitted");
 
     if (_reward < _slashedAmount) {
       _amount = _slashedAmount.sub(_reward);
@@ -270,8 +278,6 @@ contract DelegationManager is IDelegationManager, Lockable {
       delegator.reward = delegator.reward.add(_reward.sub(_slashedAmount));
     }
 
-    // totalRewardsLiquidated += _reward; // StakeManager calls
-    // require(totalRewardsLiquidated <= totalRewards, "Liquidating more rewards then checkpoints submitted");// pos 2/3+1 is colluded
     delegator.claimedRewards = accumBalance;
     delegator.slashedAmount = accumSlashedAmount;
 
