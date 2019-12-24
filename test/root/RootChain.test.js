@@ -49,7 +49,7 @@ contract('RootChain', async function (accounts) {
       await stakeToken.approve(stakeManager.address, amount, {
         from: wallets[i].getAddressString()
       })
-      await stakeManager.stake(amount, wallets[i].getAddressString(), false, {
+      await stakeManager.stake(amount, 0, wallets[i].getAddressString(), false, {
         from: wallets[i].getAddressString()
       })
       accountState[i + 1] = 0
@@ -151,11 +151,11 @@ contract('submitHeaderBlock hardcoded params', async function (accounts) {
 
   it('submitHeaderBlock (with hardcoded data)', async function () {
     const vote =
-      '0xf48f6865696d64616c6c2d503572587767028080a0d34d582f79dc6c53d990ba3b79adfdfa7358aca85e24b1364db305dcb1b08844'
+      '0xf48f6865696d64616c6c2d503572587767028080a0cfa2cdbd860e93a65fa5195b9ea9a0e3a7247c9be95349c004c7e55091266209'
     const sigs =
-      '0xc5d86b8969b78d3df7274454528f031de03e00c85799a818fa6ad58289f6bc0d4d16a49c1428ebe922bf50e10ed5159f2405ab50ef4cd033eb841707673d8ec51b08a35bf3f6cee1058bdb33d3ab02c0dda5d866c46429ea2ad5030f8534b41f5c14372c716a39745515513145d6b2f659cc30ad8e44193944b305fd3f2755edb51c2af28eb238574b44a9a4c68125fa38bd5cb8dbec4ff5598a5dcce0f1dc3cd4a65c43bbb4cd9c7fb1e64242329a34bc5c876620b1ce787d0c5e176d319aab3f351c'
+      '0x8c011c04810e7ad6a48520bc2ef99b208d49f6e3763476b72b8050c4d4448b4038ad4455645ca7f36d20ea320337594b6d788c56b6a95317d89714e0a648aa091ce820957f29f8d1cffe2fe6d42cc07301cdc3b8d2a408a55558d0151a4aa85b544bcba1d502433d3d0c1d4fff6c4d794e82f1107dec13ba18815c954b9b268fd81cfcbc315d906515f2a0aacd19574e0cafcc76ca3c63bf0291618c227e03ce9b7f163f509c8e68bcc7e31b81fe7aab81ec591d4338da8906a466c1d8b2b7538de61c'
     const txData =
-      '0xf85df85b949fb29aac15b9a4b7f17c3385939b007540f4d7918016a0c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470a0106892eb745427a56784350628942f5a3188adf722a7cf7b319cb59d43c23cc48080'
+      '0xf85bf859949fb29aac15b9a4b7f17c3385939b007540f4d7918016a0c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470a0106892eb745427a56784350628942f5a3188adf722a7cf7b319cb59d43c23cc4'
     const result = await rootChain.submitHeaderBlock(vote, sigs, txData)
     const logs = result.logs
     logs.should.have.lengthOf(1)

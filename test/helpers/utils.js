@@ -89,7 +89,6 @@ export function buildSubmitHeaderBlockPaylod(
   wallets,
   options = {
     rewardsRootHash: '',
-    delegationAccRoot: ethUtils.bufferToHex(''),
     allValidators: false,
     getSigs: false
   } // false vars are to show expected vars
@@ -101,8 +100,7 @@ export function buildSubmitHeaderBlockPaylod(
       start,
       end,
       root,
-      options.rewardsRootHash,
-      options.delegationAccRoot
+      options.rewardsRootHash
     ] // 0th element
     ])
   )
