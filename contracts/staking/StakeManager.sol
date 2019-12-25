@@ -82,6 +82,13 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
   //Ongoing auctions for validatorId
   mapping (uint256 => Auction) public validatorAuction;
 
+  struct Fee {
+    uint256 amount;
+    uint256 fee;
+  }
+  // mapping to maintain validator's topped amount and given fee
+  mapping (uint256 => Fee) public valAmountToFee;
+
   constructor (address _registry, address _rootchain, address _stakerNFT) public {
     registry = _registry;
     rootChain = _rootchain;
@@ -138,7 +145,29 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
     updateTimeLine(currentEpoch, int256(amount), 1);
     // no Auctions for 1 dynasty
     validatorAuction[validatorId].startEpoch = currentEpoch.add(dynasty);
+    topUpForFee(validatorId, amount);
     emit Staked(signer, validatorId, currentEpoch, amount, totalStaked);
+  }
+
+  function topUpForFee(uint256 validatorId, uint256 amount) public onlyStaker(validatorId) {
+    uint256 inflationRate = 10;// TODO: add inflation control mech here
+
+    if (validators[validatorId].activationEpoch == currentEpoch) {
+      valAmountToFee[validatorId] = Fee({
+        amount: 0,
+        fee: amount.mul(inflationRate)
+      });
+    } else {
+        valAmountToFee[validatorId].amount = amount;
+        valAmountToFee[validatorId].fee = amount.mul(inflationRate);
+    }
+    emit TopUpFee(validatorId, valAmountToFee[validatorId].fee);
+  }
+
+  function _feeToAmount(uint256 validatorId, uint256 fee) private view returns (uint256 _amount) {
+    _amount = valAmountToFee[validatorId].amount;
+    //TODO: emit fee burned !?
+    delete valAmountToFee[validatorId];
   }
 
   function perceivedStakeFactor(uint256 validatorId) internal returns(uint256){
@@ -255,13 +284,13 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
     emit UnstakeInit(msg.sender, validatorId, exitEpoch, amount);
   }
 
-  function unstakeClaim(uint256 validatorId, uint256 accumBalance, uint256 accumSlashedAmount, uint256 index, bytes memory proof) public onlyStaker(validatorId) {
+  function unstakeClaim(uint256 validatorId, uint256 accumBalance, uint256 accumSlashedAmount, uint256 fee, uint256 index, bytes memory proof) public onlyStaker(validatorId) {
     require(
       validators[validatorId].deactivationEpoch > 0 &&
       validators[validatorId].deactivationEpoch.add(
         WITHDRAWAL_DELAY) <= currentEpoch,
       "WITHDRAWAL_DELAY is not complete");
-    require(keccak256(abi.encodePacked(validatorId, accumBalance, accumSlashedAmount)).checkMembership(index, accountStateRoot, proof));
+    require(keccak256(abi.encodePacked(validatorId, accumBalance, accumSlashedAmount, fee)).checkMembership(index, accountStateRoot, proof));
     DelegationManager(Registry(registry).getDelegationManagerAddress()).validatorUnstake(validatorId);
 
     Validator storage validator = validators[validatorId];
@@ -269,6 +298,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
     uint256 slashedAmount = accumSlashedAmount.sub(validator.slashedAmount);
 
     uint256 amount = validators[validatorId].amount.sub(slashedAmount).add(_reward);
+    amount = amount.add(_feeToAmount(validatorId, fee));
     totalStaked = totalStaked.sub(amount);
 
     stakerNFT.burn(validatorId);

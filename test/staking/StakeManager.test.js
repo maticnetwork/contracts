@@ -127,15 +127,15 @@ contract('StakeManager', async function (accounts) {
       // decode logs
       const logs = logDecoder.decodeLogs(stakeReceipt.receipt.rawLogs)
 
-      logs.should.have.lengthOf(2)
-
+      logs.should.have.lengthOf(3)
       // logs[0].event.should.equal('Transfer')
       // logs[0].args.from.toLowerCase().should.equal(user)
       // logs[0].args.to.toLowerCase().should.equal(stakeManager.address)
       // assertBigNumberEquality(logs[0].args.value, amount)
 
-      logs[1].event.should.equal('Staked')
-      logs[1].args.signer.toLowerCase().should.equal(user)
+      logs[1].event.should.equal('TopUpFee')
+      logs[2].event.should.equal('Staked')
+      logs[2].args.signer.toLowerCase().should.equal(user)
       // logs[2].args.amount.should.be.bignumber.equal(amount)
     })
 
@@ -155,7 +155,7 @@ contract('StakeManager', async function (accounts) {
 
       // decode logs
       const logs = logDecoder.decodeLogs(stakeReceipt.receipt.rawLogs)
-      logs.should.have.lengthOf(2)
+      logs.should.have.lengthOf(3)
 
       // logs[0].event.should.equal('Transfer')
       // logs[0].args.from.toLowerCase().should.equal(user)
@@ -163,10 +163,10 @@ contract('StakeManager', async function (accounts) {
       // logs[0].args.value.should.be.bignumber.equal(amount)
       // assertBigNumberEquality(logs[0].args.value, amount)
 
-      logs[1].event.should.equal('Staked')
-      logs[1].args.signer.toLowerCase().should.equal(user)
+      logs[2].event.should.equal('Staked')
+      logs[2].args.signer.toLowerCase().should.equal(user)
       // logs[2].args.amount.should.be.bignumber.equal(amount)
-      assertBigNumberEquality(logs[1].args.amount, amount)
+      assertBigNumberEquality(logs[2].args.amount, amount)
 
       // staked for
       const stakedFor = await stakeManager.totalStakedFor(user)
@@ -385,16 +385,9 @@ contract('StakeManager', async function (accounts) {
       const user = wallets[6].getAddressString()
       const amount = web3.utils.toWei('400')
       let w = [wallets[1], wallets[5], wallets[4]]
-
-      await checkPoint(w, wallets[1], stakeManager)
-      await checkPoint(w, wallets[1], stakeManager)
-      await checkPoint(w, wallets[1], stakeManager)
-      await checkPoint(w, wallets[1], stakeManager)
-
-      // await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
-      // await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
-      // await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
-      // await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
+      for (let i = 0; i < 4; i++) {
+        await checkPoint(w, wallets[1], stakeManager)
+      }
 
       // approve tranfer
       await stakeToken.approve(stakeManager.address, amount, {
@@ -434,6 +427,43 @@ contract('StakeManager', async function (accounts) {
     })
 
     it('should verify unstaked amount', async function () {
+      let validators = await stakeManager.getCurrentValidatorSet()
+      validators = validators.map(value => {
+        return +value
+      })
+      console.log(validators)
+      console.log(JSON.stringify(validators))
+      // let tree = await rewradsTree(validators, accountState)
+      // const { vote, sigs } = buildSubmitHeaderBlockPaylod(
+      //   accounts[0],
+      //   0,
+      //   22,
+      //   '' /* root */,
+      //   wallets,
+      //   { rewardsRootHash: tree.getRoot(), allValidators: true, getSigs: true }
+      // )
+
+      // 2/3 majority vote
+      // await stakeManager.checkSignatures(
+      //   1,
+      //   utils.bufferToHex(utils.keccak256(vote)),
+      //   utils.bufferToHex(tree.getRoot()),
+      //   sigs
+      // )
+      // const leaf = utils.keccak256(
+      //   web3.eth.abi.encodeParameters(
+      //     ['uint256', 'uint256'],
+      //     [1, accountState[1]]
+      //   )
+      // )
+      // await stakeManager.claimRewards(
+      //   1,
+      //   rewardsAmount,
+      //   0,
+      //   0,
+      //   false,
+      //   utils.bufferToHex(Buffer.concat(tree.getProof(leaf)))
+      // )
       const ValidatorId2 = await stakeManager.getValidatorId(
         wallets[2].getAddressString()
       )
@@ -873,12 +903,12 @@ contract('StakeManager:validator replacement', async function (accounts) {
       )
 
       const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
-      logs[2].event.should.equal('Staked')
-      logs[3].event.should.equal('ConfirmAuction')
+      logs[3].event.should.equal('Staked')
+      logs[4].event.should.equal('ConfirmAuction')
 
-      assertBigNumberEquality(logs[3].args.amount, web3.utils.toWei('1250'))
-      assert.ok(!(await stakeManager.isValidator(logs[3].args.oldValidatorId)))
-      assert.ok(await stakeManager.isValidator(logs[3].args.newValidatorId))
+      assertBigNumberEquality(logs[4].args.amount, web3.utils.toWei('1250'))
+      assert.ok(!(await stakeManager.isValidator(logs[4].args.oldValidatorId)))
+      assert.ok(await stakeManager.isValidator(logs[4].args.newValidatorId))
     })
 
     it('should confrim auction and secure the place for validator itself', async function () {
