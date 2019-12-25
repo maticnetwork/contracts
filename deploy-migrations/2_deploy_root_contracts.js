@@ -131,12 +131,12 @@ module.exports = async function (deployer) {
 
     console.log('deploying contracts...')
     await deployer.deploy(Registry)
+    await deployer.deploy(TestToken, 'Test Token', 'TST')
     await deployer.deploy(Staker, Registry.address)
     await deployer.deploy(RootChain, Registry.address, process.env.HEIMDALL_ID)
     await deployer.deploy(StakeManager, Registry.address, RootChain.address, Staker.address)
     await deployer.deploy(SlashingManager, Registry.address)
-    // TODO: replace when actual migration with proper matic erc20 contract
-    await deployer.deploy(DelegationManager, Registry.address, Staker.address,/**Matic staking token */ Staker.address)
+    await deployer.deploy(DelegationManager, Registry.address, TestToken.address,/**Matic staking token */ Staker.address)
 
     await deployer.deploy(StateSender)
 
@@ -184,7 +184,6 @@ module.exports = async function (deployer) {
 
     console.log('deploying tokens...')
     await deployer.deploy(MaticWeth)
-    await deployer.deploy(TestToken, 'Test Token', 'TST')
 
     console.log('writing contract addresses to file...')
     const contractAddresses = {
