@@ -164,7 +164,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
     emit TopUpFee(validatorId, valAmountToFee[validatorId].fee);
   }
 
-  function _feeToAmount(uint256 validatorId, uint256 fee) private view returns (uint256 _amount) {
+  function _feeToAmount(uint256 validatorId, uint256 fee) private returns (uint256 _amount) {
     _amount = valAmountToFee[validatorId].amount;
     //TODO: emit fee burned !?
     delete valAmountToFee[validatorId];
@@ -285,24 +285,24 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
   }
 
   function unstakeClaim(uint256 validatorId, uint256 accumBalance, uint256 accumSlashedAmount, uint256 fee, uint256 index, bytes memory proof) public onlyStaker(validatorId) {
+    Validator storage validator = validators[validatorId];
     require(
-      validators[validatorId].deactivationEpoch > 0 &&
-      validators[validatorId].deactivationEpoch.add(
+      validator.deactivationEpoch > 0 &&
+      validator.deactivationEpoch.add(
         WITHDRAWAL_DELAY) <= currentEpoch,
       "WITHDRAWAL_DELAY is not complete");
     require(keccak256(abi.encodePacked(validatorId, accumBalance, accumSlashedAmount, fee)).checkMembership(index, accountStateRoot, proof));
     DelegationManager(Registry(registry).getDelegationManagerAddress()).validatorUnstake(validatorId);
 
-    Validator storage validator = validators[validatorId];
     uint256 _reward = accumBalance.sub(validator.claimedRewards);
     uint256 slashedAmount = accumSlashedAmount.sub(validator.slashedAmount);
 
-    uint256 amount = validators[validatorId].amount.sub(slashedAmount).add(_reward);
+    uint256 amount = validator.amount.sub(slashedAmount).add(_reward);
     amount = amount.add(_feeToAmount(validatorId, fee));
     totalStaked = totalStaked.sub(amount);
 
     stakerNFT.burn(validatorId);
-    delete signerToValidator[validators[validatorId].signer];
+    delete signerToValidator[validator.signer];
     // delete validators[validatorId]; keeping for heimdall/bor sync varification(week subjectivity attaks)
 
     require(token.transfer(msg.sender, amount));
