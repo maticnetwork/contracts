@@ -52,7 +52,7 @@ contract('RootChain', async function (accounts) {
       await stakeManager.stake(amount, 0, wallets[i].getAddressString(), false, {
         from: wallets[i].getAddressString()
       })
-      accountState[i + 1] = 0
+      accountState[i + 1] = [0, 0]
     }
   })
 
