@@ -23,7 +23,6 @@ contract DelegationManager is IDelegationManager, Lockable {
   uint256 public MIN_DEPOSIT_SIZE = 0;
   uint256 public totalStaked;
   uint256 public validatorHopLimit = 2; // checkpoint/epochs
-  uint256 public WITHDRAWAL_DELAY = 0; // todo: remove if not needed use from stakeManager
 
   struct Delegator {
     uint256 amount;
@@ -121,7 +120,7 @@ contract DelegationManager is IDelegationManager, Lockable {
     }
 
     require(delegators[delegatorId].deactivationEpoch == 0);
-    delegators[delegatorId].deactivationEpoch = currentEpoch.add(WITHDRAWAL_DELAY);
+    delegators[delegatorId].deactivationEpoch = currentEpoch.add(stakeManager.WITHDRAWAL_DELAY());
     emit UnstakeInit(msg.sender, delegatorId, delegators[delegatorId].deactivationEpoch);
   }
 
@@ -202,7 +201,7 @@ contract DelegationManager is IDelegationManager, Lockable {
     // _claimRewards(delegatorId);
     uint256 currentEpoch = stakeManager.currentEpoch();
     _unbond(delegatorId, currentEpoch, stakeManager);
-    emit UnBonding(delegatorId, delegators[delegatorId].bondedTo);
+    emit UnBonding(delegatorId, delegators[delegatorId].bondedTo, delegators[delegatorId].amount);
   }
 
   function _unbond(uint256 delegatorId, uint256 epoch,  IStakeManager stakeManager) private {
