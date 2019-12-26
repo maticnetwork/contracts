@@ -107,6 +107,7 @@ contract DelegationManager is IDelegationManager, Lockable {
     stakerNFT.mint(msg.sender);
     if (validatorId > 0) {
       _bond(delegatorId, validatorId, currentEpoch, stakeManager);
+      emit Bonding(delegatorId, validatorId, amount);
     }
     emit Staked(msg.sender, delegatorId, currentEpoch, amount, totalStaked);
   }
@@ -117,6 +118,7 @@ contract DelegationManager is IDelegationManager, Lockable {
 
     if (delegators[delegatorId].bondedTo != 0) {
       _unbond(delegatorId, currentEpoch, stakeManager);
+      emit UnBonding(delegatorId, delegators[delegatorId].bondedTo, delegators[delegatorId].amount);
     }
 
     require(delegators[delegatorId].deactivationEpoch == 0);
@@ -192,7 +194,6 @@ contract DelegationManager is IDelegationManager, Lockable {
     delegator.bondedTo = validatorId;
     validators[validatorId].delegatedAmount = validators[validatorId].delegatedAmount.add(delegator.amount);
     stakeManager.updateValidatorState(validatorId, epoch, int(delegator.amount));
-    emit Bonding(delegatorId, validatorId, delegator.amount);
   }
 
   function unBond(uint256 delegatorId) public onlyDelegator(delegatorId) {
