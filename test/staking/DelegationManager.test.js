@@ -344,7 +344,7 @@ contract('DelegationManager', async function (accounts) {
     // unstake
     result = await delegationManager.unstake(2, { from: delegator })
     let logs = logDecoder.decodeLogs(result.receipt.rawLogs)
-    logs[0].event.should.equal('UnstakeInit')
+    logs[0].event.should.equal('UnBonding')
     // unstaking without unbonding
     let withdrawDelay = await stakeManager.WITHDRAWAL_DELAY()
     let w = [wallets[1]]
