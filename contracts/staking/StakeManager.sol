@@ -145,11 +145,15 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
     updateTimeLine(currentEpoch, int256(amount), 1);
     // no Auctions for 1 dynasty
     validatorAuction[validatorId].startEpoch = currentEpoch.add(dynasty);
-    topUpForFee(validatorId, amount);
+    _topUpForFee(validatorId, amount);
     emit Staked(signer, validatorId, currentEpoch, amount, totalStaked);
   }
 
   function topUpForFee(uint256 validatorId, uint256 amount) public onlyStaker(validatorId) {
+    _topUpForFee(validatorId, amount);
+  }
+
+  function _topUpForFee(uint256 validatorId, uint256 amount) private {
     uint256 inflationRate = 10;// TODO: add inflation control mech here
 
     if (validators[validatorId].activationEpoch == currentEpoch) {
