@@ -291,7 +291,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
       validator.deactivationEpoch.add(
         WITHDRAWAL_DELAY) <= currentEpoch,
       "WITHDRAWAL_DELAY is not complete");
-    require(keccak256(abi.encodePacked(validatorId, accumBalance, accumSlashedAmount, fee)).checkMembership(index, accountStateRoot, proof));
+    require(keccak256(abi.encodePacked(validatorId, accumBalance, accumSlashedAmount, fee)).checkMembership(index, accountStateRoot, proof), "Wrong acc proof");
     DelegationManager(Registry(registry).getDelegationManagerAddress()).validatorUnstake(validatorId);
 
     uint256 _reward = accumBalance.sub(validator.claimedRewards);

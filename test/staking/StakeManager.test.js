@@ -323,6 +323,7 @@ contract('StakeManager', async function (accounts) {
       const validators = await stakeManager.getCurrentValidatorSet()
       validators.should.have.lengthOf(5)
     })
+
     it('should unstake via wallets[2]', async function () {
       const user = wallets[2].getAddressString()
       const amount = web3.utils.toWei('250')
@@ -402,7 +403,6 @@ contract('StakeManager', async function (accounts) {
     it('should stake via wallets[7]', async function () {
       let user = wallets[7].getAddressString()
       let amount = web3.utils.toWei('450')
-
       // approve tranfer
       await stakeToken.approve(stakeManager.address, amount, {
         from: user
@@ -426,70 +426,6 @@ contract('StakeManager', async function (accounts) {
       })
     })
 
-    it('should verify unstaked amount', async function () {
-      let validators = await stakeManager.getCurrentValidatorSet()
-      validators = validators.map(value => {
-        return +value
-      })
-      console.log(validators)
-      console.log(JSON.stringify(validators))
-      // let tree = await rewradsTree(validators, accountState)
-      // const { vote, sigs } = buildSubmitHeaderBlockPaylod(
-      //   accounts[0],
-      //   0,
-      //   22,
-      //   '' /* root */,
-      //   wallets,
-      //   { rewardsRootHash: tree.getRoot(), allValidators: true, getSigs: true }
-      // )
-
-      // 2/3 majority vote
-      // await stakeManager.checkSignatures(
-      //   1,
-      //   utils.bufferToHex(utils.keccak256(vote)),
-      //   utils.bufferToHex(tree.getRoot()),
-      //   sigs
-      // )
-      // const leaf = utils.keccak256(
-      //   web3.eth.abi.encodeParameters(
-      //     ['uint256', 'uint256'],
-      //     [1, accountState[1]]
-      //   )
-      // )
-      // await stakeManager.claimRewards(
-      //   1,
-      //   rewardsAmount,
-      //   0,
-      //   0,
-      //   false,
-      //   utils.bufferToHex(Buffer.concat(tree.getProof(leaf)))
-      // )
-      const ValidatorId2 = await stakeManager.getValidatorId(
-        wallets[2].getAddressString()
-      )
-      const ValidatorId3 = await stakeManager.getValidatorId(
-        wallets[3].getAddressString()
-      )
-      await stakeManager.unstakeClaim(ValidatorId2, {
-        from: wallets[2].getAddressString()
-      })
-      let w = [wallets[1], wallets[5], wallets[6], wallets[7], wallets[4]]
-      await checkPoint(w, wallets[1], stakeManager, {
-        from: wallets[1].getAddressString()
-      })
-
-      // await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
-      await stakeManager.unstakeClaim(ValidatorId3, {
-        from: wallets[3].getAddressString()
-      })
-      let balance = await stakeToken.balanceOf(wallets[2].getAddressString())
-      // balance.should.be.bignumber.equal(web3.utils.toWei(805))
-      assertBigNumberEquality(balance, web3.utils.toWei('805'))
-      balance = await stakeToken.balanceOf(wallets[3].getAddressString())
-      // balance.should.be.bignumber.equal(web3.utils.toWei(850))
-      assertBigNumberEquality(balance, web3.utils.toWei('850'))
-    })
-
     it('should verify running total stake to be correct', async function () {
       const amount = web3.utils.toWei('3390')
       //   const currentEpoch = await stakeManager.currentEpoch()
@@ -498,18 +434,77 @@ contract('StakeManager', async function (accounts) {
       assertBigNumberEquality(stake, amount)
       const validators = await stakeManager.getCurrentValidatorSet()
       validators.should.have.lengthOf(6)
-      // validators.sort()
-      // console.log(validators)
-      // const users = [
-      //   await stakeManager.getValidatorId(wallets[1].getAddressString()),
-      //   await stakeManager.getValidatorId(wallets[4].getAddressString()),
-      //   await stakeManager.getValidatorId(wallets[5].getAddressString()),
-      //   await stakeManager.getValidatorId(wallets[6].getAddressString()),
-      //   await stakeManager.getValidatorId(wallets[7].getAddressString()),
-      //   await stakeManager.getValidatorId(wallets[0].getAddressString())
-      // ]
-      // console.log(users)
-      // expect(validators).to.equal(users)
+    })
+
+    it('should unstake and claim amount using UnstakeClaim', async function () {
+      let w = [wallets[1], wallets[5], wallets[6], wallets[4], wallets[0]]
+      let accountState = {}
+      let validators = await stakeManager.getCurrentValidatorSet()
+
+      validators = validators.map(value => {
+        return +value
+      })
+      validators.forEach(element => {
+        accountState[element] = [100, 0]
+      })
+      accountState[7] = [100, 0, /**heimdall fee*/5]
+
+      await stakeManager.unstake(7, { from: wallets[7].getAddressString() })
+
+      let validator = await stakeManager.validators(7)
+      let currentEpoch = await stakeManager.currentEpoch()
+      for (let i = currentEpoch; i <= validator.deactivationEpoch + +await stakeManager.WITHDRAWAL_DELAY(); i++) {
+        await checkPoint(w, wallets[1], stakeManager, {
+          from: wallets[1].getAddressString()
+        })
+      }
+
+      const leaf = utils.keccak256(
+        web3.eth.abi.encodeParameters(
+          ['uint256', 'uint256', 'uint256', 'uint256'],
+          [7, accountState[7][0], accountState[7][1], accountState[7][2]]
+        )
+      )
+
+      let tree = await rewradsTree(validators, accountState)
+      const { vote, sigs } = buildSubmitHeaderBlockPaylod(
+        accounts[0],
+        0,
+        22,
+        '' /* root */,
+        w,
+        { rewardsRootHash: tree.getRoot(), allValidators: true, getSigs: true }
+      )
+
+      // 2/3 majority vote
+      await stakeManager.checkSignatures(
+        1,
+        utils.bufferToHex(utils.keccak256(vote)),
+        utils.bufferToHex(tree.getRoot()),
+        sigs, { from: wallets[1].getAddressString() }
+      )
+      const balanceBefore = await stakeToken.balanceOf(wallets[7].getAddressString())
+      // uint256 validatorId, uint256 accumBalance, uint256 accumSlashedAmount, uint256 fee, uint256 index, bytes memory proof
+      let result = await stakeManager.unstakeClaim(
+        7,
+        accountState[7][0],
+        accountState[7][1],
+        accountState[7][2],
+        4,
+        utils.bufferToHex(Buffer.concat(tree.getProof(leaf))),
+        {
+          from: wallets[7].getAddressString()
+        }
+      )
+      const balanceAfter = await stakeToken.balanceOf(wallets[7].getAddressString())
+      const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
+
+      logs[0].event.should.equal('Transfer')// NFT BURN
+      logs[1].event.should.equal('Unstaked')
+      // logs[0].args.to.toLowerCase().should.equal(wallets[7].getAddressString())
+      // logs[0].args.from.toLowerCase().should.equal(stakeManager.address)
+
+      assertBigNumberEquality(balanceAfter, balanceBefore.add(validator.amount.add(web3.utils.toBN(100))))
     })
 
     it('should create sigs properly', async function () {
@@ -549,7 +544,7 @@ contract('StakeManager:rewards distribution', async function (accounts) {
         await stakeManager.stake(amount, 0, wallets[i].getAddressString(), false, {
           from: wallets[i].getAddressString()
         })
-        accountState[i + 1] = rewardsAmount
+        accountState[i + 1] = [rewardsAmount, 0]
       }
     })
 
@@ -572,10 +567,12 @@ contract('StakeManager:rewards distribution', async function (accounts) {
         utils.bufferToHex(tree.getRoot()),
         sigs
       )
+
       const leaf = utils.keccak256(
         web3.eth.abi.encodeParameters(
-          ['uint256', 'uint256'],
-          [1, accountState[1]]
+          // validatorId, accumBalance, accumSlashedAmount
+          ['uint256', 'uint256', 'uint256'],
+          [1, accountState[1][0], accountState[1][1]]
         )
       )
       await stakeManager.claimRewards(
@@ -633,7 +630,7 @@ contract('StakeManager:validator contract rewards distribution', async function 
         await stakeManager.stake(amount, 0, wallets[i].getAddressString(), true, {
           from: wallets[i].getAddressString()
         })
-        accountState[i + 1] = rewardsAmount
+        accountState[i + 1] = [rewardsAmount, 0]
       }
     })
 
@@ -711,7 +708,7 @@ contract('StakeManager:validator replacement', async function (accounts) {
         await stakeManager.stake(amount, 0, wallets[i].getAddressString(), false, {
           from: wallets[i].getAddressString()
         })
-        accountState[i + 1] = rewardsAmount
+        accountState[i + 1] = [rewardsAmount, 0]
       }
     })
 

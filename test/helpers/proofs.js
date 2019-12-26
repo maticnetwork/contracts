@@ -29,12 +29,21 @@ export async function rewradsTree(validators, accountState) {
   let leafs = []
   let i = 0
   validators.map(key => {
-    leafs[i++] = utils.keccak256(
-      web3.eth.abi.encodeParameters(
-        ['uint256', 'uint256'],
-        [key, accountState[key]]
+    if (accountState[key][2]) {
+      leafs[i++] = utils.keccak256(
+        web3.eth.abi.encodeParameters(
+          ['uint256', 'uint256', 'uint256', 'uint256'],
+          [key, accountState[key][0], accountState[key][1], accountState[key][2]]
+        )
       )
-    )
+    } else {
+      leafs[i++] = utils.keccak256(
+        web3.eth.abi.encodeParameters(
+          ['uint256', 'uint256', 'uint256'],
+          [key, accountState[key][0], accountState[key][1]]
+        )
+      )
+    }
   })
   return new MerkleTree(leafs)
 }
