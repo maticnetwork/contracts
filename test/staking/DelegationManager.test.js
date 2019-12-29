@@ -59,7 +59,7 @@ contract('DelegationManager', async function (accounts) {
     })
     const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
 
-    logs[1].event.should.equal('Staked')
+    logs[1].event.should.equal('DelStaked')
     logs[1].args.user.toLowerCase().should.equal(delegator)
     assertBigNumberEquality(logs[1].args.amount, amount)
   })
@@ -135,7 +135,7 @@ contract('DelegationManager', async function (accounts) {
 
     let logs = logDecoder.decodeLogs(result.receipt.rawLogs)
     // TODO: once dummyToken is gone logs[0] =transfer event
-    logs[0].event.should.equal('ReStaked')
+    logs[0].event.should.equal('DelReStaked')
     assertBigNumberEquality(logs[0].args.amount, amount)
 
     data = await delegationManager.delegators('2')
@@ -153,7 +153,7 @@ contract('DelegationManager', async function (accounts) {
       from: delegator
     })
     logs = logDecoder.decodeLogs(result.receipt.rawLogs)
-    logs[0].event.should.equal('ReStaked')
+    logs[0].event.should.equal('DelReStaked')
     assertBigNumberEquality(logs[0].args.amount, amount)
 
     data = await delegationManager.delegators('2')

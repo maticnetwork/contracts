@@ -109,7 +109,7 @@ contract DelegationManager is IDelegationManager, Lockable {
       _bond(delegatorId, validatorId, currentEpoch, stakeManager);
       emit Bonding(delegatorId, validatorId, amount);
     }
-    emit Staked(msg.sender, delegatorId, currentEpoch, amount, totalStaked);
+    emit DelStaked(msg.sender, delegatorId, currentEpoch, amount, totalStaked);
   }
 
   function unstake(uint256 delegatorId) public onlyDelegator(delegatorId) {
@@ -123,7 +123,7 @@ contract DelegationManager is IDelegationManager, Lockable {
 
     require(delegators[delegatorId].deactivationEpoch == 0);
     delegators[delegatorId].deactivationEpoch = currentEpoch.add(stakeManager.WITHDRAWAL_DELAY());
-    emit UnstakeInit(msg.sender, delegatorId, delegators[delegatorId].deactivationEpoch);
+    emit DelUnstakeInit(msg.sender, delegatorId, delegators[delegatorId].deactivationEpoch);
   }
 
   // after unstaking wait for WITHDRAWAL_DELAY, in order to claim stake back
@@ -169,7 +169,7 @@ contract DelegationManager is IDelegationManager, Lockable {
     require(stakeManager.delegatorWithdrawal(delegator.reward.add(_reward), stakerNFT.ownerOf(delegatorId)),"Amount transfer failed");
     require(token.transfer(msg.sender, amount));
     delete delegators[delegatorId];
-    emit Unstaked(msg.sender, delegatorId, amount, totalStaked);
+    emit DelUnstaked(msg.sender, delegatorId, amount, totalStaked);
   }
 
   function bond(uint256 delegatorId, uint256 validatorId) public onlyDelegator(delegatorId) {
@@ -227,7 +227,7 @@ contract DelegationManager is IDelegationManager, Lockable {
     }
 
     delegator.amount = delegator.amount.add(amount);
-    emit ReStaked(delegatorId, amount, totalStaked);
+    emit DelReStaked(delegatorId, amount, totalStaked);
   }
 
   function slash(uint256[] memory _delegators, uint256 slashRate) public  {
