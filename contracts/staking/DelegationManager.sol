@@ -214,6 +214,8 @@ contract DelegationManager is IDelegationManager, Lockable {
 
   function reStake(uint256 delegatorId, uint256 amount, bool stakeRewards) public onlyDelegator(delegatorId) {
     Delegator storage delegator = delegators[delegatorId];
+    uint256 oldAmount = delegator.amount;
+
     if (amount > 0) {
       require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");
     }
@@ -228,6 +230,7 @@ contract DelegationManager is IDelegationManager, Lockable {
 
     delegator.amount = delegator.amount.add(amount);
     emit DelReStaked(delegatorId, amount, totalStaked);
+    emit DelStakeUpdate(delegatorId, oldAmount, delegator.amount);
   }
 
   function slash(uint256[] memory _delegators, uint256 slashRate) public  {
@@ -238,6 +241,7 @@ contract DelegationManager is IDelegationManager, Lockable {
       // }
       // uint256 slashedAmount = 0
       // validatorDelegation[validatorId] = validatorDelegation[validatorId].sub(amount);
+      // emit DelStakeUpdate(delegatorId, oldAmount, newAmount);
   }
 
   function claimRewards(
