@@ -177,7 +177,7 @@ contract DelegationManager is IDelegationManager, Lockable {
     uint256 currentEpoch = stakeManager.currentEpoch(); //TODO add 1
 
     if (delegators[delegatorId].bondedTo != 0) {
-      emit ReBonding(delegatorId, delegators[delegatorId].bondedTo, validatorId);
+      emit ReBonding(delegatorId, delegators[delegatorId].bondedTo, validatorId, delegators[delegatorId].amount);
       _unbond(delegatorId, currentEpoch, stakeManager);
      } else {
       emit Bonding(delegatorId, validatorId, delegators[delegatorId].amount);
