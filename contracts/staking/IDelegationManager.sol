@@ -5,7 +5,7 @@ contract IDelegationManager {
   event DelStaked(address indexed user, uint256 indexed delegatorId, uint256 indexed activatonEpoch, uint256 amount, uint256 total);
   event DelUnstaked(address indexed user, uint256 indexed delegatorId, uint256 amount, uint256 total);
   event DelUnstakeInit(address indexed user, uint256 indexed delegatorId, uint256 indexed deactivationEpoch);
-  event DelStakeUpdate(uint256 indexed delegatorId, uint256 indexed oldAmount, uint256 indexed newAmount);
+  event DelStakeUpdate(uint256 indexed delegatorId, uint256 indexed validatorId, uint256 indexed oldAmount, uint256 newAmount);
   event Bonding(uint256 indexed delegatorId, uint256 indexed validatorId, uint256 indexed amount);
   event UnBonding(uint256 indexed delegatorId, uint256 indexed validatorId, uint256 indexed amount);
   event UpdateCommission(uint256 indexed validatorId, uint256 indexed rate);

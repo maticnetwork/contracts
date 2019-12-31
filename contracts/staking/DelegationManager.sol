@@ -230,7 +230,7 @@ contract DelegationManager is IDelegationManager, Lockable {
 
     delegator.amount = delegator.amount.add(amount);
     emit DelReStaked(delegatorId, amount, totalStaked);
-    emit DelStakeUpdate(delegatorId, oldAmount, delegator.amount);
+    emit DelStakeUpdate(delegatorId, delegators[delegatorId].bondedTo, oldAmount, delegator.amount);
   }
 
   function slash(uint256[] memory _delegators, uint256 slashRate) public  {
@@ -241,7 +241,7 @@ contract DelegationManager is IDelegationManager, Lockable {
       // }
       // uint256 slashedAmount = 0
       // validatorDelegation[validatorId] = validatorDelegation[validatorId].sub(amount);
-      // emit DelStakeUpdate(delegatorId, oldAmount, newAmount);
+      // emit DelStakeUpdate(delegatorId, validatorId, oldAmount, newAmount);
   }
 
   function claimRewards(
