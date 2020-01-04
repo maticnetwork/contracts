@@ -4,5 +4,5 @@ interface IRootChain {
   function slash() external;
   function submitHeaderBlock(bytes calldata vote, bytes calldata sigs, bytes calldata extradata) external;
   function getLastChildBlock() external view returns(uint256);
-  function currentHeaderBlock() public view returns(uint256);
+  function currentHeaderBlock() external view returns(uint256);
 }
