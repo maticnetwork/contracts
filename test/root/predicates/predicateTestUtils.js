@@ -87,7 +87,11 @@ export async function assertChallengeBondReceived(challenge, originalBalance) {
 }
 
 export async function processExits(withdrawManager, token) {
+  await timeTravel()
+  return withdrawManager.processExits(token, { gas: 5000000 })
+}
+
+export async function timeTravel() {
   await increaseBlockTime(14 * 86400)
   await mineOneBlock()
-  return withdrawManager.processExits(token, { gas: 5000000 })
 }

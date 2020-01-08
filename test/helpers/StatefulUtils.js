@@ -36,7 +36,8 @@ export default class StatefulUtils {
     const root = ethUtils.bufferToHex(tree.getRoot())
     const end = event.tx.blockNumber
     const blockProof = await tree.getProof(blockHeader)
-    this.start = Math.min(this.start, end)
+    this.start = end
+    console.log({ start: this.start, end })
     // tree
     //   .verify(blockHeader, event.block.number - start, tree.getRoot(), blockProof)
     //   .should.equal(true)
