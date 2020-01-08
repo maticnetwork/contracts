@@ -445,7 +445,7 @@ export function filterEvent(events, event) {
 export async function initializeMaticClient(contracts) {
   const options = {
     parentProvider: web3,
-    maticProvider: web3Child,
+    maticProvider: new web3.constructor(new web3.providers.WebsocketProvider('ws://localhost:8547')),
     registry: contracts.registry.address,
     rootChain: contracts.rootChain.address,
     depositManager: contracts.depositManager.address,
