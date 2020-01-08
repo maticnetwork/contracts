@@ -98,6 +98,8 @@ contract RootChain is RootChainStorage, IRootChain {
     if (_nextHeaderBlock > MAX_DEPOSITS) {
       nextChildBlock = headerBlocks[currentHeaderBlock()].end + 1;
     }
+
+    // Commenting this out to make life easier to run tests using matic.js
     // require(
     //   nextChildBlock == dataList[1].toUint(),
     //   "INCORRECT_START_BLOCK"
