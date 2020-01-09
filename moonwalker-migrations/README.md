@@ -9,6 +9,9 @@ docker run -d -p 5672:5672 -p 15672:15672 rabbitmq:3-management
 
 2. Compile contracts
 ```
+npm run template:process -- --bor-chain-id <bor-chain-id>
+for instance, npm run template:process -- --bor-chain-id 15001
+
 npm run truffle:compile
 ```
 
@@ -39,4 +42,3 @@ node moonwalker-migrations/addressClipper.js
 
 Notes:
 If you had to stop deployment in the middle for some reason, remember to purge the Q in rabbit and `rm build/contracts/status.json`
-
