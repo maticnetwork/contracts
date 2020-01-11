@@ -26,7 +26,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   address public registry;
   // genesis/governance variables
   uint256 public dynasty = 2**13;  // unit: epoch 50 days
-  uint256 public checkpointReward = 10000 * (10**18); // @todo update according to Chain
+  uint256 public CHECKPOINT_REWARD = 10000 * (10**18); // @todo update according to Chain
   uint256 public MIN_DEPOSIT_SIZE = (10**18);  // in ERC20 token
   uint256 public EPOCH_LENGTH = 256; // unit : block
   uint256 public UNSTAKE_DELAY = dynasty.mul(2); // unit: epoch
@@ -380,8 +380,8 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   // Change reward for each checkpoint
   function updateCheckpointReward(uint256 newReward) public onlyOwner {
     require(newReward > 0);
-    emit RewardUpdate(newReward, checkpointReward);
-    checkpointReward = newReward;
+    emit RewardUpdate(newReward, CHECKPOINT_REWARD);
+    CHECKPOINT_REWARD = newReward;
   }
 
   function updateValidatorState(uint256 validatorId, uint256 epoch, int256 amount) public {
@@ -445,18 +445,18 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     uint256 stakePower;
     uint256 _totalStake;
     (stakePower, _totalStake) = checkTwoByThreeMajority(voteHash, sigs);
-    // checkpoint rewards are based on BlockInterval multiplied on `checkpointReward`
+    // checkpoint rewards are based on BlockInterval multiplied on `CHECKPOINT_REWARD`
     // with actual `blockInterval`
-    // eg. checkpointReward = 10 Tokens, checkPointBlockInterval = 250, blockInterval = 500 then reward
+    // eg. CHECKPOINT_REWARD = 10 Tokens, checkPointBlockInterval = 250, blockInterval = 500 then reward
     // for this checkpoint is 20 Tokens
-    uint256 _reward = blockInterval.mul(checkpointReward).div(checkPointBlockInterval);
-    _reward = Math.min(checkpointReward, _reward).mul(stakePower).div(_totalStake);
+    uint256 _reward = blockInterval.mul(CHECKPOINT_REWARD).div(checkPointBlockInterval);
+    _reward = Math.min(CHECKPOINT_REWARD, _reward).mul(stakePower).div(_totalStake);
     totalRewards = totalRewards.add(_reward);
 
     // update stateMerkleTree root for accounts balance on heimdall chain
     // for previous checkpoint rewards
     accountStateRoot = stateRoot;
-    finalizeCommit();
+    _finalizeCommit();
     return _reward;
   }
 
@@ -489,11 +489,6 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     }
     uint256 _totalStake = currentValidatorSetTotalStake();
     require(stakePower >= _totalStake.mul(2).div(3).add(1));
-    // update stateMerkleTree root for accounts balance on heimdall chain
-    // for previous checkpoint rewards
-    accountStateRoot = stateRoot;
-    totalRewards = totalRewards.add(CHECKPOINT_REWARD.mul(stakePower).div(_totalStake));
-    _finalizeCommit();
     return (stakePower, _totalStake);
   }
 

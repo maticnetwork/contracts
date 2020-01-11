@@ -13,6 +13,6 @@ contract StakeManagerTest is StakeManager {
   }
 
   function checkSignatures(uint256 blockInterval, bytes32 voteHash, bytes32 stateRoot, bytes memory sigs) public onlyRootChain returns(uint256) {
-    return checkpointReward; // for dummy tests return full reward
+    return CHECKPOINT_REWARD; // for dummy tests return full reward
   }
 }
