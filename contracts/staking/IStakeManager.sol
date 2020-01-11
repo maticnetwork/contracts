@@ -20,6 +20,7 @@ contract IStakeManager {
 
   // Todo: fix WITHDRAWAL_DELAY with interface
   uint256 public WITHDRAWAL_DELAY = (2**13)/2; // unit: epoch
+  uint256 public currentEpoch = 1;
   // validator replacement
   function startAuction(uint256 validatorId, uint256 amount) external;
   function confirmAuctionBid(uint256 validatorId, address signer, bool isContract) external;

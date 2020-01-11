@@ -38,7 +38,6 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   uint256 public validatorThreshold = 10; //128
   uint256 public minLockInPeriod = 2; // unit: dynasty
   uint256 public totalStaked;
-  uint256 public currentEpoch = 1;
   uint256 public NFTCounter = 1;
   uint256 public totalRewards;
   uint256 public totalRewardsLiquidated;

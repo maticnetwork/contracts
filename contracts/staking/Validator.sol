@@ -1,6 +1,7 @@
 pragma solidity ^0.5.2;
 
 import { ERC721Full } from "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
+import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
@@ -16,6 +17,81 @@ contract Validator is ERC721Full {
   //
 }
 
+contract ValidatorShare is ERC20, Ownable {
+  using SafeMath for uint256;
+  IERC20 public token;
+
+  uint256 public validatorDelegatorRatio = 10;
+  // uint256 public totalShare;
+  uint256 public totalAmount;
+  uint256 public activeAmount;
+  uint256 public inActiveAmount;
+  uint256 public withdrawPool;
+  uint256 public withdrawShares;
+
+  struct Delegator {
+    uint256 share;
+    uint256 withdrawEpoch;
+  }
+
+  mapping (address=> Delegator) public delegators;
+
+  event ShareMinted(address indexed user, uint256 indexed amount, uint256 indexed tokens);
+  event ShareBurned(address indexed user, uint256 indexed amount, uint256 indexed tokens);
+
+  function udpateS(uint256 _amount) public {
+    //  = _amount;
+    activeAmount += _amount;
+    _mint(address(0x1), 1);
+  }
+
+  function udpateRewards(uint256 _amount) public /** onlyOwnerContract*/ {
+    activeAmount = activeAmount.add(_amount);
+  }
+
+  function exchangeRate() public view returns(uint256) {
+    return activeAmount.mul(100).div(totalSupply());
+  }
+
+  function withdrawExchangeRate() public view returns(uint256) {
+    return withdrawPool.mul(100).div(withdrawShares);
+  }
+
+  function buyVoucher(address user, uint256 _amount) public {
+    uint256 share = _amount.mul(100).div(exchangeRate());
+    totalAmount = totalAmount.add(_amount);
+    require(token.transferFrom(msg.sender, address(this), _amount), "Transfer amount failed");
+    _mint(user, share);
+    emit ShareMinted(user, _amount, share);
+    activeAmount = activeAmount.add(_amount);
+  }
+
+  function sellVoucher(address user) public {
+    uint256 share = balanceOf(msg.sender);
+    require(share > 0, "Zero balance");
+    uint256 _amount = exchangeRate().mul(share).div(100);
+    _burn(msg.sender, share);
+    IStakeManager stakeManager = IStakeManager(owner);
+    activeAmount = activeAmount.sub(_amount);
+    share = _amount.mul(100).div(withdrawExchangeRate());
+
+    withdrawPool = withdrawPool.add(_amount);
+    withdrawShares = withdrawShares.add(share);
+    delegators[msg.sender] = Delegator({
+        share: share,
+        withdrawEpoch: stakeManager.currentEpoch().add(stakeManager.WITHDRAWAL_DELAY)
+      });
+    emit ShareBurned(msg.sender, _amount, share);
+  }
+
+  function claimTokens(user) public {
+    Delegator delegator = delegators[user];
+    require(delegator.withdrawEpoch <= stakeManager.currentEpoch(), "Incomplete withdrawal period");
+    uint256 _amount = withdrawExchangeRate().mul(delegator.share).div(100);
+    require(token.transfer(user, _amount), "Transfer amount failed");
+  }
+
+}
 
 contract ValidatorContract is Ownable { // is rootchainable/stakeMgChainable
   using SafeMath for uint256;
