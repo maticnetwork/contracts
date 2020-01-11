@@ -658,7 +658,7 @@ contract('StakeManager:validator contract rewards distribution', async function 
 
     it('should get rewards bigger checkpoint and normal checkpoint', async function () {
       const validators = [1, 2]
-      const checkPointReward = await stakeManager.checkpointReward()
+      const checkPointReward = await stakeManager.CHECKPOINT_REWARD()
       let tree = await rewradsTree(validators, accountState)
       const { vote, sigs } = buildSubmitHeaderBlockPaylod(
         accounts[0],
