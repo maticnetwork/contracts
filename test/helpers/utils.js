@@ -21,7 +21,8 @@ export const web3Child = new web3.constructor(
 )
 
 export const ZeroAddress = '0x0000000000000000000000000000000000000000'
-export const ChildMaticTokenAddress = '0x0000000000000000000000000000000000001010'
+export const ChildMaticTokenAddress =
+  '0x0000000000000000000000000000000000001010'
 export const scalingFactor = web3.utils.toBN(10).pow(web3.utils.toBN(18))
 
 export function getSigs(wallets, votedata) {
@@ -51,6 +52,7 @@ export async function checkPoint(wallets, proposer, stakeManager) {
   const stateRoot = ethUtils.bufferToHex(ethUtils.keccak256('stateRoot'))
   // 2/3 majority vote
   await stakeManager.checkSignatures(
+    1,
     ethUtils.bufferToHex(ethUtils.keccak256(voteData)),
     stateRoot,
     sigs,
@@ -74,7 +76,8 @@ export function assertBigNumbergt(num1, num2) {
   // num1.should.be.bignumber.greaterThan(num2)
 }
 
-export const toChecksumAddress = address => web3.utils.toChecksumAddress(address)
+export const toChecksumAddress = address =>
+  web3.utils.toChecksumAddress(address)
 
 export function buildSubmitHeaderBlockPaylod(
   proposer,
@@ -152,7 +155,9 @@ export async function depositOnRoot(
     )
   }
   const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
-  const NewDepositBlockEvent = logs.find(log => log.event === 'NewDepositBlock')
+  const NewDepositBlockEvent = logs.find(
+    log => log.event === 'NewDepositBlock'
+  )
   return NewDepositBlockEvent.args.depositBlockId
 }
 
@@ -176,20 +181,24 @@ export async function deposit(
   } else {
     depositBlockId = '0x' + crypto.randomBytes(32).toString('hex')
   }
-  // ACLed on onlyOwner
-  const deposit = await childChain.onStateReceive(
-    '0xa' /* dummy id */,
-    encodeDepositStateSync(
-      user,
-      rootContract.address,
-      amountOrToken,
-      depositBlockId
-    )
-  )
+  const deposit = await fireDepositFromMainToMatic(childChain, '0xa' /* dummy id */, user, rootContract.address, amountOrToken, depositBlockId)
   if (options.writeToFile) {
     await writeToFile(options.writeToFile, deposit.receipt)
   }
   return deposit
+}
+
+export function fireDepositFromMainToMatic(childChain, eventId, user, tokenAddress, amountOrToken, depositBlockId) {
+  // ACLed on onlyOwner
+  return childChain.onStateReceive(
+    eventId,
+    encodeDepositStateSync(
+      user,
+      tokenAddress,
+      amountOrToken,
+      depositBlockId
+    )
+  )
 }
 
 function encodeDepositStateSync(user, rootToken, tokenIdOrAmount, depositId) {

@@ -12,6 +12,7 @@ npm install
 
 ### Compile
 ```
+npm run template:process
 npm run truffle:compile
 ```
 

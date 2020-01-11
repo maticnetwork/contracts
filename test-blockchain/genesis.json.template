@@ -1,6 +1,6 @@
 {
   "config": {
-    "chainId": 15001,
+    "chainId": {{ borChainId }},
     "homesteadBlock": 1,
     "eip150Block": 0,
     "eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",

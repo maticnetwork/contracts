@@ -23,6 +23,11 @@ module.exports = async function(callback) {
   const stakeFor = process.argv[6]
   const amount = web3.utils.toWei(process.argv[7])
   console.log(`Staking ${amount} for ${stakeFor}...`)
-  await stake(stakeFor, amount)
+  try {
+    await stake(stakeFor, amount)
+  } catch(e) {
+    // truffle exec <script> doesn't throw errors, so handling it in a verbose manner here
+    console.log(e)
+  }
   callback()
 }
