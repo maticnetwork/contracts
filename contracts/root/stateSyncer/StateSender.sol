@@ -3,6 +3,7 @@ pragma solidity ^0.5.2;
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
+
 contract StateSender is Ownable {
   using SafeMath for uint256;
 
@@ -18,6 +19,11 @@ contract StateSender is Ownable {
     _;
   }
 
+  function syncState(address receiver, bytes calldata data) external onlyRegistered(receiver) {
+    counter = counter.add(1);
+    emit StateSynced(counter, receiver, data);
+  }
+
   // register new contract for state sync
   function register(address sender, address receiver) public {
     require(
@@ -30,10 +36,5 @@ contract StateSender is Ownable {
     } else {
       emit RegistrationUpdated(msg.sender, sender, receiver);
     }
-  }
-
-  function syncState(address receiver, bytes calldata data) external onlyRegistered(receiver) {
-    counter = counter.add(1);
-    emit StateSynced(counter, receiver, data);
   }
 }

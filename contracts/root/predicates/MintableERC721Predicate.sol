@@ -1,13 +1,15 @@
 pragma solidity ^0.5.2;
 
-import { BytesLib } from "../../common/lib/BytesLib.sol";
-import { Common } from "../../common/lib/Common.sol";
-import { RLPEncode } from "../../common/lib/RLPEncode.sol";
 import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
+import { BytesLib } from "../../common/lib/BytesLib.sol";
+import { Common } from "../../common/lib/Common.sol";
+import { RLPEncode } from "../../common/lib/RLPEncode.sol";
+
 import { ERC721Predicate } from "./ERC721Predicate.sol";
 import { ERC721PlasmaMintable } from "../../common/tokens/ERC721PlasmaMintable.sol";
+
 
 contract MintableERC721Predicate is ERC721Predicate {
   struct MintableTokenInfo {
@@ -20,8 +22,7 @@ contract MintableERC721Predicate is ERC721Predicate {
 
   constructor(address _withdrawManager, address _depositManager)
     ERC721Predicate(_withdrawManager, _depositManager)
-    public {}
-
+  public {}
 
   /**
    * @notice Start an exit for a token that was minted and burnt on the side chain
@@ -98,7 +99,10 @@ contract MintableERC721Predicate is ERC721Predicate {
     external
     onlyWithdrawManager
   {
-    (uint256 exitId, address token, address exitor, uint256 tokenId) = decodeExitForProcessExit(data);
+    (uint256 exitId,
+      address token,
+      address exitor,
+      uint256 tokenId) = decodeExitForProcessExit(data);
     MintableTokenInfo storage info = exitToMintableTokenInfo[exitId];
 
     // check that the signer of the mint tx is a valid minter in the root contract
@@ -136,7 +140,7 @@ contract MintableERC721Predicate is ERC721Predicate {
 
     // Will lazily (at the time of processExits) check that the signer of the mint tx is a valid minter in the root contract
     (address minter,) = getAddressFromTx(txList);
-    exitToMintableTokenInfo[exitId] = MintableTokenInfo('' /* uri */, minter, true /* isVanillaMint */);
+    exitToMintableTokenInfo[exitId] = MintableTokenInfo('',/* uri */ minter, true /* isVanillaMint */);
     address _childToken = RLPReader.toAddress(txList[3]); // corresponds to "to" field in tx
     require(
       childToken == _childToken,

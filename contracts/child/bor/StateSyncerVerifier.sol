@@ -19,14 +19,6 @@ contract StateSyncerVerifier is Ownable {
     _;
   }
 
-  /**
-   * @dev Returns true if the caller is the state syncer contract
-   * TODO: replace onlyOwner ownership with 0x1000 for validator majority
-   */
-  function isOnlyStateSyncerContract() public view returns (bool) {
-    return msg.sender == stateSyncer;
-  }
-
   // initial setup
   constructor () public {
     // default state syncer contract
@@ -34,6 +26,14 @@ contract StateSyncerVerifier is Ownable {
 
     // emit event for first change
     emit StateSyncerAddressChanged(address(0), stateSyncer);
+  }
+
+  /**
+   * @dev Returns true if the caller is the state syncer contract
+   * TODO: replace onlyOwner ownership with 0x1000 for validator majority
+   */
+  function isOnlyStateSyncerContract() public view returns (bool) {
+    return msg.sender == stateSyncer;
   }
 
   // change state syncer address

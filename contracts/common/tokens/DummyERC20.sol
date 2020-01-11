@@ -106,8 +106,8 @@ contract DummyERC20 is IERC20 {
      * @param value The amount to be transferred.
      */
     function transfer(address to, uint256 value) public returns (bool) {
-        _transfer(msg.sender, to, value);
-        return true;
+      _transfer(msg.sender, to, value);
+      return true;
     }
 
     /**

@@ -5,6 +5,7 @@ import { RootChain } from "../RootChain.sol";
 import { ProxyStorage } from "../../common/misc/ProxyStorage.sol";
 import { StateSender } from "../stateSyncer/StateSender.sol";
 
+
 contract DepositManagerHeader {
   event NewDepositBlock(
     address indexed owner,

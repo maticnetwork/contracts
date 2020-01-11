@@ -3,7 +3,7 @@ pragma solidity ^0.5.2;
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 import "./IParentToken.sol";
-// demo token parent contract  
+// demo token parent contract
 
 
 contract ParentTokenMock is IParentToken, Ownable {

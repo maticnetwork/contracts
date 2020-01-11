@@ -94,7 +94,7 @@ contract ChildERC721 is ChildToken, ERC721Full {
    * @notice Withdraw tokens
    * @param tokenId tokenId of the token to be withdrawn
    */
-  function withdraw(uint256 tokenId) payable public {
+  function withdraw(uint256 tokenId) public payable  {
     require(ownerOf(tokenId) == msg.sender);
     _burn(msg.sender, tokenId);
     emit Withdraw(token, msg.sender, tokenId);

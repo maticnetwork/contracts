@@ -11,6 +11,7 @@ import { IErcPredicate } from "./IPredicate.sol";
 import { Registry } from "../../common/Registry.sol";
 import { WithdrawManagerHeader } from "../withdrawManager/WithdrawManagerStorage.sol";
 
+
 contract ERC20Predicate is IErcPredicate {
   using RLPReader for bytes;
   using RLPReader for RLPReader.RLPItem;

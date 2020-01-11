@@ -69,16 +69,16 @@ contract RootChain is RootChainStorage, IRootChain {
     );
   }
 
-  function currentHeaderBlock() public view returns(uint256) {
-    return _nextHeaderBlock.sub(MAX_DEPOSITS);
-  }
-
   function getLastChildBlock() external view returns(uint256) {
     return headerBlocks[currentHeaderBlock()].end;
   }
 
   function slash() external {
     //TODO: future implementation
+  }
+
+  function currentHeaderBlock() public view returns(uint256) {
+    return _nextHeaderBlock.sub(MAX_DEPOSITS);
   }
 
   function _buildHeaderBlock(RLPReader.RLPItem[] memory dataList)

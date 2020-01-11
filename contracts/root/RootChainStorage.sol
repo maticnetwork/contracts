@@ -23,6 +23,7 @@ contract RootChainHeader {
   }
 }
 
+
 contract RootChainStorage is ProxyStorage, RootChainHeader {
   bytes32 public heimdallId;
   uint8 public constant VOTE_TYPE = 2;

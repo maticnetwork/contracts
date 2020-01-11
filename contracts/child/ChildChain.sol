@@ -45,6 +45,14 @@ contract ChildChain is Ownable, StateSyncerVerifier, StateReceiver {
     tokens[0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0] = 0x0000000000000000000000000000000000001010;
   }
 
+  function onStateReceive(
+    uint256 /* id */,
+    bytes calldata data
+  ) external onlyStateSyncer {
+    (address user, address rootToken, uint256 amountOrTokenId, uint256 depositId) = abi.decode(data, (address, address, uint256, uint256));
+    depositTokens(rootToken, user, amountOrTokenId, depositId);
+  }
+
   function addToken(
     address _owner,
     address _rootToken,
@@ -77,12 +85,36 @@ contract ChildChain is Ownable, StateSyncerVerifier, StateReceiver {
     isERC721[rootToken] = isErc721;
   }
 
-  function onStateReceive(
-    uint256 /* id */,
-    bytes calldata data
-  ) external onlyStateSyncer {
-    (address user, address rootToken, uint256 amountOrTokenId, uint256 depositId) = abi.decode(data, (address, address, uint256, uint256));
-    depositTokens(rootToken, user, amountOrTokenId, depositId);
+  function withdrawTokens(
+    address rootToken,
+    address user,
+    uint256 amountOrTokenId,
+    uint256 withdrawCount
+  ) public onlyOwner {
+    // check if withdrawal happens only once
+    require(withdraws[withdrawCount] == false);
+
+    // set withdrawal flag
+    withdraws[withdrawCount] = true;
+
+    // retrieve child tokens
+    address childToken = tokens[rootToken];
+
+    // check if child token is mapped
+    require(childToken != address(0x0), "child token is not mapped");
+
+    ChildToken obj;
+
+    if (isERC721[rootToken]) {
+      obj = ChildERC721(childToken);
+    } else {
+      obj = ChildERC20(childToken);
+    }
+    // withdraw tokens
+    obj.withdraw(amountOrTokenId);
+
+    // Emit TokenWithdrawn event
+    emit TokenWithdrawn(rootToken, childToken, user, amountOrTokenId, withdrawCount);
   }
 
   function depositTokens(
@@ -101,7 +133,7 @@ contract ChildChain is Ownable, StateSyncerVerifier, StateReceiver {
     address childToken = tokens[rootToken];
 
     // check if child token is mapped
-    require(childToken != address(0x0), "child token is not mapped");
+    require(childToken != address(0x0));
 
     ChildToken obj;
 
@@ -118,35 +150,4 @@ contract ChildChain is Ownable, StateSyncerVerifier, StateReceiver {
     emit TokenDeposited(rootToken, childToken, user, amountOrTokenId, depositId);
   }
 
-  function withdrawTokens(
-    address rootToken,
-    address user,
-    uint256 amountOrTokenId,
-    uint256 withdrawCount
-  ) public onlyOwner {
-    // check if withdrawal happens only once
-    require(withdraws[withdrawCount] == false);
-
-    // set withdrawal flag
-    withdraws[withdrawCount] = true;
-
-    // retrieve child tokens
-    address childToken = tokens[rootToken];
-
-    // check if child token is mapped
-    require(childToken != address(0x0));
-
-    ChildToken obj;
-
-    if (isERC721[rootToken]) {
-      obj = ChildERC721(childToken);
-    } else {
-      obj = ChildERC20(childToken);
-    }
-    // withdraw tokens
-    obj.withdraw(amountOrTokenId);
-
-    // Emit TokenWithdrawn event
-    emit TokenWithdrawn(rootToken, childToken, user, amountOrTokenId, withdrawCount);
-  }
 }

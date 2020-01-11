@@ -34,19 +34,6 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
     depositEther();
   }
 
-  /**
-   * @dev Caches childChain and stateSender (frequently used variables) from registry
-   */
-  function updateChildChainAndStateSender() public {
-    (address _childChain, address _stateSender) = registry.getChildChainAndStateSender();
-    require(
-      _stateSender != address(stateSender) || _childChain != childChain,
-      "Atleast one of stateSender or childChain address should change"
-    );
-    childChain = _childChain;
-    stateSender = StateSender(_stateSender);
-  }
-
   function transferAssets(address _token, address _user, uint256 _amountOrNFTId)
     external
     isPredicateAuthorized
@@ -101,6 +88,19 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
     }
   }
 
+  /**
+   * @dev Caches childChain and stateSender (frequently used variables) from registry
+   */
+  function updateChildChainAndStateSender() public {
+    (address _childChain, address _stateSender) = registry.getChildChainAndStateSender();
+    require(
+      _stateSender != address(stateSender) || _childChain != childChain,
+      "Atleast one of stateSender or childChain address should change"
+    );
+    childChain = _childChain;
+    stateSender = StateSender(_stateSender);
+  }
+
   function depositERC20ForUser(address _token, address _user, uint256 _amount)
     public
   {
@@ -144,7 +144,7 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
     returns (bytes4)
   {
     // the ERC721 contract address is the message sender
-    _safeCreateDepositBlock(_user, msg.sender /* token */, _tokenId);
+    _safeCreateDepositBlock(_user, msg.sender, /* token */ _tokenId);
     return 0x150b7a02;
   }
 
@@ -152,7 +152,7 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
   function tokenFallback(address _user, uint256 _amount, bytes memory /* _data */)
   public
   {
-    _safeCreateDepositBlock(_user, msg.sender /* token */, _amount);
+    _safeCreateDepositBlock(_user, msg.sender, /* token */ _amount);
   }
 
   function _safeCreateDepositBlock(address _user, address _token, uint256 _amountOrToken)
