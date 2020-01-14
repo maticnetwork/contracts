@@ -11,7 +11,7 @@ import { IStakeManager } from "./IStakeManager.sol";
 
 contract ValidatorShare is ERC20, Lockable {
   using SafeMath for uint256;
-  IERC20 public token;
+  ERC20 public token;
   ERC721Full validator;
   uint256 public validatorId;
   uint256 public validatorRewards;
@@ -50,7 +50,7 @@ contract ValidatorShare is ERC20, Lockable {
     activeAmount = activeAmount.add(_amount);
   }
 
-  function withdrawRewardsValidator() external { //} onlyOwner {
+  function withdrawRewardsValidator() external returns(uint256) { //} onlyOwner {
     return validatorRewards;
   }
 
@@ -77,7 +77,7 @@ contract ValidatorShare is ERC20, Lockable {
     uint256 _amount = exchangeRate().mul(share).div(100);
     _burn(msg.sender, share);
     totalAmount = totalAmount.sub(_amount);
-    IStakeManager stakeManager = IStakeManager(owner);
+    IStakeManager stakeManager = IStakeManager(owner());
     activeAmount = activeAmount.sub(_amount);
     share = _amount.mul(100).div(withdrawExchangeRate());
 
@@ -85,20 +85,21 @@ contract ValidatorShare is ERC20, Lockable {
     withdrawShares = withdrawShares.add(share);
     delegators[msg.sender] = Delegator({
         share: share,
-        withdrawEpoch: stakeManager.currentEpoch().add(stakeManager.WITHDRAWAL_DELAY)
+        withdrawEpoch: stakeManager.currentEpoch().add(stakeManager.WITHDRAWAL_DELAY())
       });
     emit ShareBurned(msg.sender, _amount, share);
   }
 
-  function claimTokens(user) public {
-    Delegator delegator = delegators[user];
+  function claimTokens(address user) public {
+    Delegator storage delegator = delegators[user];
+    IStakeManager stakeManager = IStakeManager(owner());
     require(delegator.withdrawEpoch <= stakeManager.currentEpoch() && delegator.share > 0, "Incomplete withdrawal period");
     uint256 _amount = withdrawExchangeRate().mul(delegator.share).div(100);
     require(token.transfer(user, _amount), "Transfer amount failed");
-    delete delegator;
+    delete delegators[user];
   }
 
-  // function slash() public {}
+  function slash(uint256 slashRate, uint256 startEpoch, uint256 endEpoch) public {}
   // function _slashActive() internal {}
   // function _slashInActive() internal {}
 
