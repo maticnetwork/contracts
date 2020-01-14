@@ -12,15 +12,13 @@ import { Lockable } from "../common/mixin/Lockable.sol";
 import { RootChainable } from "../common/mixin/RootChainable.sol";
 import { Registry } from "../common/Registry.sol";
 import { IStakeManager } from "./IStakeManager.sol";
-import { Validator } from "./Validator.sol";
-import { ValidatorContract } from "./Validator.sol";
+import { ValidatorShare } from "./Validator.sol";
 
 
-contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
+contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
   using SafeMath for uint256;
   using ECVerify for bytes32;
   using Merkle for bytes32;
-
 
   IERC20 public token;
   address public registry;
@@ -244,31 +242,13 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     emit ReStaked(validatorId, validators[validatorId].amount, totalStaked);
   }
 
-  function claimRewards(uint256 validatorId, uint256 accountBalance, uint256 index, bytes memory proof) public /*onlyStaker(validatorId) */ {
-    // accountState = keccak256(abi.encodePacked(validatorId, accountBalance))
-    require(keccak256(abi.encodePacked(validatorId, accountBalance)).checkMembership(index, accountStateRoot, proof));
-    uint256 _reward = accountBalance.sub(validators[validatorId].claimedRewards);
-    address _contract = validators[validatorId].contractAddress;
-    if (_contract == address(0x0)) {
-      validators[validatorId].reward = validators[validatorId].reward.add(_reward);
-    }
-    else {
-      // TODO: delegator bond/share rate if return needs to be updated periodically
-      // otherwise validator can delay and get all the delegators reward
-      ValidatorContract(_contract).updateRewards(_reward, currentEpoch, validators[validatorId].amount);
-    }
-    totalRewardsLiquidated += _reward;
-    require(totalRewardsLiquidated <= totalRewards, "Liquidating more rewards then checkpoints submitted");// pos 2/3+1 is colluded
-    validators[validatorId].claimedRewards = accountBalance;
-    emit ClaimRewards(validatorId, _reward, accountBalance);
-  }
-
   function withdrawRewards(uint256 validatorId) public onlyStaker(validatorId) {
     uint256 amount = validators[validatorId].reward;
     address _contract = validators[validatorId].contractAddress;
     if (_contract != address(0x0)) {
-      amount = amount.add(ValidatorContract(_contract).withdrawRewardsValidator());
+      amount = amount.add(ValidatorShare(_contract).withdrawRewardsValidator());
     }
+    totalRewardsLiquidated += _reward;
     validators[validatorId].reward = 0;
     require(token.transfer(msg.sender, amount), "Insufficent rewards");
   }
@@ -277,7 +257,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
   function slash(uint256 validatorId, uint256 slashingRate, uint256 jailCheckpoints) public onlySlashingMananger {
     // if contract call contract.slash
     if (validators[validatorId].contractAddress != address(0x0)) {
-      ValidatorContract(validators[validatorId].contractAddress).slash(slashingRate, currentEpoch, currentEpoch);
+      ValidatorShare(validators[validatorId].contractAddress).slash(slashingRate, currentEpoch, currentEpoch);
     }
     uint256 amount = validators[validatorId].amount.mul(slashingRate).div(100);
     validators[validatorId].amount = validators[validatorId].amount.sub(amount);
@@ -300,7 +280,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
 
     int256 delegationAmount = 0;
     if (validators[validatorId].contractAddress != address(0x0)) {
-      delegationAmount = ValidatorContract(validators[validatorId].contractAddress).revertLazyUnBonding(exitEpoch);
+      delegationAmount = ValidatorShare(validators[validatorId].contractAddress).unLock();
     }
 
     // undo timline so that validator is normal validator
@@ -321,7 +301,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     int256 delegationAmount = 0;
     validators[validatorId].jailTime = jailCheckpoints;
     if (validators[validatorId].contractAddress != address(0x0)) {
-      delegationAmount = ValidatorContract(validators[validatorId].contractAddress).unBondAllLazy(exitEpoch);
+      delegationAmount = ValidatorShare(validators[validatorId].contractAddress).lock();
     }
     // update future in case of no `unJail`
     updateTimeLine(exitEpoch,  -(int256(amount) + delegationAmount ), -1);
@@ -440,30 +420,23 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     );
   }
 
-  function checkSignatures(uint256 blockInterval, bytes32 voteHash, bytes32 stateRoot, bytes memory sigs) public onlyRootChain returns(uint256) {
-    uint256 stakePower;
-    uint256 _totalStake;
-    (stakePower, _totalStake) = checkTwoByThreeMajority(voteHash, sigs);
+  function checkSignatures(uint256 stakePower, uint256 blockInterval, bytes32 voteHash, bytes32 stateRoot, bytes memory sigs) public onlyRootChain returns(uint256, uint256) {
+    // total voting power
+    uint256 _stakePower;
+    uint256 _totalStake = currentValidatorSetTotalStake();
+    require(stakePower >= _totalStake.mul(2).div(3).add(1));
     // checkpoint rewards are based on BlockInterval multiplied on `CHECKPOINT_REWARD`
     // with actual `blockInterval`
     // eg. CHECKPOINT_REWARD = 10 Tokens, checkPointBlockInterval = 250, blockInterval = 500 then reward
     // for this checkpoint is 20 Tokens
     uint256 _reward = blockInterval.mul(CHECKPOINT_REWARD).div(checkPointBlockInterval);
-    _reward = Math.min(CHECKPOINT_REWARD, _reward).mul(stakePower).div(_totalStake);
+    _reward = Math.min(CHECKPOINT_REWARD, _reward).mul(votePower).div(_totalStake);
     totalRewards = totalRewards.add(_reward);
-
-    // update stateMerkleTree root for accounts balance on heimdall chain
-    // for previous checkpoint rewards
-    accountStateRoot = stateRoot;
-    _finalizeCommit();
-    return _reward;
-  }
-
-  function checkTwoByThreeMajority(bytes32 voteHash, bytes memory sigs) public view returns(uint256, uint256) {
-    // total voting power
-    uint256 stakePower;
+    //TODO: add proposer bonus
     uint256 validatorId;
     address lastAdd = address(0x0); // cannot have address(0x0) as an owner
+    address _contract;
+    uint256 valPow;
     for (uint64 i = 0; i < sigs.length; i += 65) {
       bytes memory sigElement = BytesLib.slice(sigs, i, 65);
       address signer = voteHash.ecrecovery(sigElement);
@@ -478,17 +451,25 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
         signer > lastAdd
       ) {
         lastAdd = signer;
-        address _contract = validators[validatorId].contractAddress;
-        stakePower = stakePower.add(validators[validatorId].amount);
+        _contract = validators[validatorId].contractAddress;
+        valPow = validators[validatorId].amount;
         // add delegation power
         if (_contract != address(0x0)) {
-          stakePower = stakePower.add(ValidatorContract(_contract).delegatedAmount());
+          valPow = valPow.add(ValidatorShare(_contract).totalAmount());
+          ValidatorShare(_contract).udpateRewards(valPow.mul(_reward).div(stakePower));
+        } else {
+          //TODO: check for div leaks in rewards amount
+          validators[validatorId].reward = validators[validatorId].reward.add(valPow.mul(_reward).div(stakePower));
         }
+        _stakePower = _stakePower.add(valPow);
       }
     }
-    uint256 _totalStake = currentValidatorSetTotalStake();
-    require(stakePower >= _totalStake.mul(2).div(3).add(1));
-    return (stakePower, _totalStake);
+
+    require(stakePower <= _stakePower, "Invalid stake Power");
+    // update stateMerkleTree root for accounts balance on heimdall chain
+    accountStateRoot = stateRoot;
+    _finalizeCommit();
+    return _reward;
   }
 
   function challangeStateRootUpdate(bytes memory checkpointTx /* txData from submitCheckpoint */) public {
@@ -506,7 +487,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
       deactivationEpoch: 0,
       jailTime: 0,
       signer: signer,
-      contractAddress: isContract ? address(new ValidatorContract(user, registry)) : address(0x0),
+      contractAddress: isContract ? address(new ValidatorShare(user, NFTCounter)) : address(0x0),
       status : Status.Active
     });
 
@@ -529,7 +510,7 @@ contract StakeManager is Validator, IStakeManager, RootChainable, Lockable {
     // unbond all delegators in future
     int256 delegationAmount = 0;
     if (validators[validatorId].contractAddress != address(0x0)) {
-      delegationAmount = ValidatorContract(validators[validatorId].contractAddress).unBondAllLazy(exitEpoch);
+      delegationAmount = ValidatorShare(validators[validatorId].contractAddress).lock();
     }
 
     //  update future
