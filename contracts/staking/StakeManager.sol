@@ -45,12 +45,11 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
   // on dynasty update certain amount of cooldown period where there is no validator auction
   uint256 replacementCoolDown;
 
-  enum Status { Inactive, Active, Locked }
+  enum Status { Inactive, Active, Locked, Unstaked}
 
   struct Validator {
     uint256 amount;
     uint256 reward;
-    uint256 claimedRewards;
     uint256 activationEpoch;
     uint256 deactivationEpoch;
     uint256 jailTime;
@@ -209,7 +208,9 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
 
   function unstakeClaim(uint256 validatorId) public onlyStaker(validatorId) {
     // can only claim stake back after WITHDRAWAL_DELAY
-    require(validators[validatorId].deactivationEpoch > 0 && validators[validatorId].deactivationEpoch.add(WITHDRAWAL_DELAY) <= currentEpoch);
+    require(validators[validatorId].deactivationEpoch > 0 &&
+     validators[validatorId].deactivationEpoch.add(WITHDRAWAL_DELAY) <= currentEpoch &&
+     validators[validatorId].status != Status.Unstaked);
     uint256 amount = validators[validatorId].amount;
     totalStaked = totalStaked.sub(amount);
 
@@ -217,6 +218,7 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
     _burn(validatorId);
     delete signerToValidator[validators[validatorId].signer];
     // delete validators[validatorId];
+    validators[validatorId].status = Status.Unstaked;
 
     require(token.transfer(msg.sender, amount + validators[validatorId].reward));
     emit Unstaked(msg.sender, validatorId, amount, totalStaked);
@@ -482,7 +484,6 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
     validators[NFTCounter] = Validator({
       reward: 0,
       amount: amount,
-      claimedRewards: 0,
       activationEpoch: currentEpoch,
       deactivationEpoch: 0,
       jailTime: 0,
