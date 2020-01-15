@@ -19,9 +19,6 @@ class Deployer {
     this.SlashingManager = await contracts.SlashingManager.new(
       this.registry.address
     )
-    this.delegationManager = await contracts.DelegationManager.new(
-      this.registry.address
-    )
 
     if (options.stakeManager) {
       this.stakeManager = await contracts.StakeManager.new(
@@ -46,10 +43,6 @@ class Deployer {
         this.stakeManager.address
       ),
       this.registry.updateContractMap(
-        ethUtils.keccak256('delegationManager'),
-        this.delegationManager.address
-      ),
-      this.registry.updateContractMap(
         ethUtils.keccak256('slashingManager'),
         this.SlashingManager.address
       )
@@ -61,7 +54,6 @@ class Deployer {
       depositManager,
       withdrawManager,
       exitNFT: this.exitNFT,
-      delegationManager: this.delegationManager,
       stakeManager: this.stakeManager,
       SlashingManager: this.SlashingManager
     }

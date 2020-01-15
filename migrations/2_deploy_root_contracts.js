@@ -22,7 +22,6 @@ const DepositManager = artifacts.require('DepositManager')
 const WithdrawManager = artifacts.require('WithdrawManager')
 const StakeManager = artifacts.require('StakeManager')
 const ValidatorContract = artifacts.require('ValidatorContract')
-const DelegationManager = artifacts.require('DelegationManager')
 const SlashingManager = artifacts.require('SlashingManager')
 const ERC20Predicate = artifacts.require('ERC20Predicate')
 const ERC721Predicate = artifacts.require('ERC721Predicate')
@@ -115,8 +114,7 @@ const libDeps = [
       MarketplacePredicateTest,
       TransferWithSigPredicate,
       ValidatorContract,
-      StakeManager,
-      DelegationManager
+      StakeManager
     ]
   },
   {
@@ -133,8 +131,8 @@ const libDeps = [
   }
 ]
 
-module.exports = async function(deployer, network) {
-  deployer.then(async() => {
+module.exports = async function (deployer, network) {
+  deployer.then(async () => {
     console.log('linking libs...')
     await bluebird.map(libDeps, async e => {
       await deployer.deploy(e.lib)
@@ -146,7 +144,6 @@ module.exports = async function(deployer, network) {
     await Promise.all([
       deployer.deploy(RootChain, Registry.address, 'heimdall-P5rXwg'),
       deployer.deploy(SlashingManager, Registry.address),
-      deployer.deploy(DelegationManager, Registry.address),
 
       deployer.deploy(WithdrawManager),
       deployer.deploy(DepositManager)
