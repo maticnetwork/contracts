@@ -31,7 +31,7 @@ contract IStakeManager {
   function totalStakedFor(address addr) external view returns (uint256);
   function supportsHistory() external pure returns (bool);
   function stakeFor(address user, uint256 amount, address signer, bool isContract) public;
-  function checkSignatures(uint256 blockInterval, bytes32 voteHash, bytes32 stateRoot, bytes memory sigs) public returns(uint256);
+  function checkSignatures(uint256 stakePower, uint256 blockInterval, bytes32 voteHash, bytes32 stateRoot, bytes memory sigs) public returns(uint256);
   function updateValidatorState(uint256 validatorId, uint256 epoch, int256 amount) public;
   function getStakerDetails(uint256 validatorId) public view returns(uint256, uint256, uint256, address, uint256);
 
