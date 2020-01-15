@@ -1,44 +1,43 @@
 pragma solidity ^0.5.2;
 
-import { ERC20 } from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
-import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import { ERC721Full } from "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
+import { Registry } from "../common/Registry.sol";
+import { StakeManager } from "./StakeManager.sol";
 
-import { Lockable } from "../common/mixin/Lockable.sol";
-
-import { IStakeManager } from "./IStakeManager.sol";
+import { IValidatorShare } from "./IValidatorShare.sol";
 
 // TODO: refactor each function to buy/sell internal functions
-contract ValidatorShare is ERC20, Lockable {
-  using SafeMath for uint256;
-  ERC20 public token;
-  uint256 public validatorId;
-  uint256 public validatorRewards;
-  uint256 public commissionRate;
-  uint256 public validatorDelegatorRatio = 10;
+contract ValidatorShare is IValidatorShare {
+  // using SafeMath for uint256;
+  // ERC20 public token;
+  // StakingLogger public stakingLogger;
+  // uint256 public validatorId;
+  // uint256 public validatorRewards;
+  // uint256 public commissionRate;
+  // uint256 public validatorDelegatorRatio = 10;
 
-  uint256 public totalAmount;
-  uint256 public activeAmount;
-  uint256 public withdrawPool;
-  uint256 public withdrawShares;
-  bool public delegation = true;
+  // uint256 public totalAmount;
+  // uint256 public activeAmount;
+  // uint256 public withdrawPool;
+  // uint256 public withdrawShares;
+  // bool public delegation = true;
 
-  struct Delegator {
-    uint256 share;
-    uint256 withdrawEpoch;
-  }
+  // struct Delegator {
+  //   uint256 share;
+  //   uint256 withdrawEpoch;
+  // }
 
-  mapping (address => uint256) public amountStaked;
-  mapping (address=> Delegator) public delegators;
+  // mapping (address => uint256) public amountStaked;
+  // mapping (address=> Delegator) public delegators;
 
-  event ShareMinted(address indexed user, uint256 indexed amount, uint256 indexed tokens);
-  event ShareBurned(address indexed user, uint256 indexed amount, uint256 indexed tokens);
-  event ClaimRewards(uint256 indexed rewards, uint256 indexed shares);
+  // event ShareMinted(address indexed user, uint256 indexed amount, uint256 indexed tokens);
+  // event ShareBurned(address indexed user, uint256 indexed amount, uint256 indexed tokens);
+  // event ClaimRewards(uint256 indexed rewards, uint256 indexed shares);
 
-  constructor (uint256 _validatorId, address tokenAddress) public {
-    validatorId = _validatorId;
-    token = ERC20(tokenAddress);
-  }
+  // constructor (uint256 _validatorId, address tokenAddress, address _stakingLogger) public {
+  //   validatorId = _validatorId;
+  //   token = ERC20(tokenAddress);
+  //   stakingLogger = StakingLogger(_stakingLogger);
+  // }
 
   function udpateRewards(uint256 valPow, uint256 _reward, uint256 totalStake) external onlyOwner returns(uint256) {
     /**
@@ -81,8 +80,10 @@ contract ValidatorShare is ERC20, Lockable {
     amountStaked[msg.sender] = amountStaked[msg.sender].add(_amount);
     require(token.transferFrom(msg.sender, address(this), _amount), "Transfer amount failed");
     _mint(msg.sender, share);
-    emit ShareMinted(msg.sender, _amount, share);
     activeAmount = activeAmount.add(_amount);
+
+    emit ShareMinted(msg.sender, _amount, share);
+    stakingLogger.logStakeUpdates(validatorId, activeAmount.sub(_amount), activeAmount);
   }
 
   function sellVoucher(uint256 shares) public {
@@ -104,6 +105,7 @@ contract ValidatorShare is ERC20, Lockable {
         withdrawEpoch: stakeManager.currentEpoch().add(stakeManager.WITHDRAWAL_DELAY())
       });
     emit ShareBurned(msg.sender, _amount, share);
+    stakingLogger.logStakeUpdates(validatorId, activeAmount.add(_amount), activeAmount);
   }
 
   function ClaimRewards() public {
@@ -131,5 +133,9 @@ contract ValidatorShare is ERC20, Lockable {
   function slash(uint256 slashRate, uint256 startEpoch, uint256 endEpoch) public {}
   // function _slashActive() internal {}
   // function _slashInActive() internal {}
+  
+  function _transfer(address from, address to, uint256 value) internal {
+    revert("Disabled");
+  }
 
 }
