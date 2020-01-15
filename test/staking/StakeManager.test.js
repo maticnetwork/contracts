@@ -6,7 +6,7 @@ import utils from 'ethereumjs-util'
 import {
   StakeManager,
   DummyERC20,
-  ValidatorContract
+  ValidatorShare
 } from '../helpers/artifacts'
 
 import logDecoder from '../helpers/log-decoder.js'
@@ -601,7 +601,7 @@ contract('StakeManager:validator contract rewards distribution', async function 
       }
     })
 
-    it('should get rewards for validator 1 with ValidatorContract/delegation on', async function () {
+    it('should get rewards for validator 1 with ValidatorShare/delegation on', async function () {
       const validators = [1, 2]
       let tree = await rewradsTree(validators, accountState)
       const { vote, sigs } = buildSubmitHeaderBlockPaylod(
@@ -637,7 +637,7 @@ contract('StakeManager:validator contract rewards distribution', async function 
         utils.bufferToHex(Buffer.concat(tree.getProof(leaf)))
       )
       let validator = await stakeManager.validators(1)
-      let contractV = await ValidatorContract.at(validator.contractAddress)
+      let contractV = await ValidatorShare.at(validator.contractAddress)
 
       assertBigNumberEquality(
         accountState[1],

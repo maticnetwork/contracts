@@ -11,7 +11,7 @@ import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
 
 chai.use(chaiAsPromised).should()
 
-contract('ValidatorContract', async function (accounts) {
+contract('ValidatorShare', async function (accounts) {
   let validatorContract, wallets, stakeToken, registry, stakeManager
 
   before(async function () {
@@ -20,6 +20,9 @@ contract('ValidatorContract', async function (accounts) {
     registry = contracts.registry
     stakeManager = contracts.stakeManager
     stakeToken = await TestToken.new("MATIC", "MATIC")
+    await stakeManager.updateCheckPointBlockInterval(1)
+    await stakeManager.updateValidatorThreshold(2)
+    await stakeManager.changeRootChain(wallets[0].getAddressString())
     await stakeManager.setToken(stakeToken.address)
   })
 
@@ -66,6 +69,21 @@ contract('ValidatorContract', async function (accounts) {
   })
 
   it('Pull rewards', async function () {
+    const user = wallets[2].getAddressString()
+    await stakeToken.mint(
+      user,
+      web3.utils.toWei('250')
+    )
+    await stakeToken.approve(validatorContract.address, web3.utils.toWei('250'))
+    await validatorContract.buyVoucher(user, web3.utils.toWei('100'))
+    await validatorContract.transferOwnership(stakeManager.address)
+    let result = await validatorContract.sellVoucher(web3.utils.toWei('100'), {
+      from: user
+    })
+    let logs = logDecoder.decodeLogs(result.receipt.rawLogs)
+    assertBigNumberEquality(logs[1].args.tokens, web3.utils.toWei('100'))
+    let delegator = await validatorContract.delegators(user)
+    assertBigNumberEquality(delegator.share, web3.utils.toWei('100'))
 
   })
 

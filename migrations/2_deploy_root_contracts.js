@@ -21,7 +21,6 @@ const RootChain = artifacts.require('RootChain')
 const DepositManager = artifacts.require('DepositManager')
 const WithdrawManager = artifacts.require('WithdrawManager')
 const StakeManager = artifacts.require('StakeManager')
-const ValidatorContract = artifacts.require('ValidatorContract')
 const SlashingManager = artifacts.require('SlashingManager')
 const ERC20Predicate = artifacts.require('ERC20Predicate')
 const ERC721Predicate = artifacts.require('ERC721Predicate')
@@ -113,7 +112,6 @@ const libDeps = [
       MarketplacePredicate,
       MarketplacePredicateTest,
       TransferWithSigPredicate,
-      ValidatorContract,
       StakeManager
     ]
   },
