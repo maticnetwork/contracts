@@ -12,7 +12,6 @@ import { IStakeManager } from "./IStakeManager.sol";
 contract ValidatorShare is ERC20, Lockable {
   using SafeMath for uint256;
   ERC20 public token;
-  ERC721Full validator;
   uint256 public validatorId;
   uint256 public validatorRewards;
   uint256 public validatorDelegatorRatio = 10;
@@ -33,9 +32,9 @@ contract ValidatorShare is ERC20, Lockable {
   event ShareMinted(address indexed user, uint256 indexed amount, uint256 indexed tokens);
   event ShareBurned(address indexed user, uint256 indexed amount, uint256 indexed tokens);
 
-  constructor (address _validator, uint256 _validatorId) public {
-    validator = validator;
+  constructor (uint256 _validatorId, address tokenAddress) public {
     validatorId = _validatorId;
+    token = ERC20(tokenAddress);
   }
 
   // Temp helper function
@@ -55,11 +54,11 @@ contract ValidatorShare is ERC20, Lockable {
   }
 
   function exchangeRate() public view returns(uint256) {
-    return activeAmount.mul(100).div(totalSupply());
+    return totalSupply() == 0 ? 100 : activeAmount.mul(100).div(totalSupply());
   }
 
   function withdrawExchangeRate() public view returns(uint256) {
-    return withdrawPool.mul(100).div(withdrawShares);
+    return withdrawShares == 0 ? 100 : withdrawPool.mul(100).div(withdrawShares);
   }
 
   function buyVoucher(address user, uint256 _amount) public onlyWhenUnlocked {
@@ -71,8 +70,9 @@ contract ValidatorShare is ERC20, Lockable {
     activeAmount = activeAmount.add(_amount);
   }
 
-  function sellVoucher(address user) public {
+  function sellVoucher(uint256 shares) public {
     uint256 share = balanceOf(msg.sender);
+    //shares
     require(share > 0, "Zero balance");
     uint256 _amount = exchangeRate().mul(share).div(100);
     _burn(msg.sender, share);

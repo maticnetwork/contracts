@@ -496,7 +496,7 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
       deactivationEpoch: 0,
       jailTime: 0,
       signer: signer,
-      contractAddress: isContract ? address(new ValidatorShare(user, NFTCounter)) : address(0x0),
+      contractAddress: isContract ? address(new ValidatorShare(NFTCounter,address(token))) : address(0x0),
       status : Status.Active
     });
 
