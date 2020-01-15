@@ -17,7 +17,8 @@ contract IStakeManager {
   event ClaimRewards(uint256 indexed validatorId, uint256 indexed amount, uint256 indexed totalAmount);
   event StartAuction(uint256 indexed validatorId, uint256 indexed amount, uint256 indexed auctionAmount);
   event ConfirmAuction(uint256 indexed newValidatorId, uint256 indexed oldValidatorId, uint256 indexed amount);
-
+  event TopUpFee(uint256 indexed validatorId, uint256 indexed fee);
+  event ClaimFee(uint256 indexed validatorId, uint256 indexed fee);
   // Todo: fix WITHDRAWAL_DELAY with interface
   uint256 public WITHDRAWAL_DELAY = (2**13)/2; // unit: epoch
   uint256 public currentEpoch = 1;
