@@ -12,7 +12,7 @@ import { Lockable } from "../common/mixin/Lockable.sol";
 import { RootChainable } from "../common/mixin/RootChainable.sol";
 import { Registry } from "../common/Registry.sol";
 import { IStakeManager } from "./IStakeManager.sol";
-import { ValidatorShare } from "./Validator.sol";
+import { IValidatorShare } from "./IValidatorShare.sol";
 
 
 contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
@@ -22,6 +22,7 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
 
   IERC20 public token;
   address public registry;
+  address public stakingLogger;
   // genesis/governance variables
   uint256 public dynasty = 2**13;  // unit: epoch 50 days
   uint256 public CHECKPOINT_REWARD = 10000 * (10**18); // @todo update according to Chain
@@ -78,9 +79,17 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
   //Ongoing auctions for validatorId
   mapping (uint256 => Auction) public validatorAuction;
 
-  constructor (address _registry, address _rootchain) ERC721Full("Matic Validator", "MV") public {
+  struct Fee {
+    uint256 amount;
+    uint256 fee;
+  }
+  // mapping to maintain validator's topped amount and given fee
+  mapping (uint256 => Fee) public valAmountToFee;
+
+  constructor (address _registry, address _rootchain, address _stakingLogger) ERC721Full("Matic Validator", "MV") public {
     registry = _registry;
     rootChain = _rootchain;
+    stakingLogger = _stakingLogger;
   }
 
   modifier onlyStaker(uint256 validatorId) {
@@ -91,6 +100,42 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
   modifier onlySlashingMananger() {
     require(Registry(registry).getSlashingManagerAddress() == msg.sender);
     _;
+  }
+
+  // TopUp heimdall fee
+  function topUpForFee(uint256 validatorId, uint256 amount) public onlyStaker(validatorId) {
+    _topUpForFee(validatorId, amount);
+  }
+
+  function _topUpForFee(uint256 validatorId, uint256 amount) private {
+    uint256 inflationRate = 10;// TODO: add inflation control mech here
+
+    if (validators[validatorId].activationEpoch == currentEpoch) {
+      valAmountToFee[validatorId] = Fee({
+        amount: 0,
+        fee: amount.mul(inflationRate)
+      });
+    } else {
+        valAmountToFee[validatorId].amount = amount;
+        valAmountToFee[validatorId].fee = amount.mul(inflationRate);
+    }
+    emit TopUpFee(validatorId, valAmountToFee[validatorId].fee);
+  }
+
+  function _feeToAmount(uint256 validatorId, uint256 fee) private returns (uint256 _amount) {
+    _amount = valAmountToFee[validatorId].amount;
+    //TODO: emit fee burned !?
+    delete valAmountToFee[validatorId];
+  }
+
+  function claimRewards(uint256 validatorId, uint256 accumBalance, uint256 accumSlashedAmount, uint256 fee, uint256 index, bytes memory proof) public onlyStaker(validatorId) {
+    Validator storage validator = validators[validatorId];
+    require(keccak256(abi.encodePacked(validatorId, accumBalance, accumSlashedAmount, fee)).checkMembership(index, accountStateRoot, proof), "Wrong acc proof");
+    //Ignoring other params becuase rewards distribution is on chain
+    uint256 amount = _feeToAmount(validatorId, fee);
+  
+    require(token.transfer(msg.sender, amount));
+    emit ClaimFee(validatorId, fee);
   }
 
   function stake(uint256 amount, address signer, bool isContract) external {
@@ -248,7 +293,7 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
     uint256 amount = validators[validatorId].reward;
     address _contract = validators[validatorId].contractAddress;
     if (_contract != address(0x0)) {
-      amount = amount.add(ValidatorShare(_contract).withdrawRewardsValidator());
+      amount = amount.add(IValidatorShare(_contract).withdrawRewardsValidator());
     }
     totalRewardsLiquidated = totalRewardsLiquidated.add(amount);
     validators[validatorId].reward = 0;
@@ -259,7 +304,7 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
   function slash(uint256 validatorId, uint256 slashingRate, uint256 jailCheckpoints) public onlySlashingMananger {
     // if contract call contract.slash
     if (validators[validatorId].contractAddress != address(0x0)) {
-      ValidatorShare(validators[validatorId].contractAddress).slash(slashingRate, currentEpoch, currentEpoch);
+      IValidatorShare(validators[validatorId].contractAddress).slash(slashingRate, currentEpoch, currentEpoch);
     }
     uint256 amount = validators[validatorId].amount.mul(slashingRate).div(100);
     validators[validatorId].amount = validators[validatorId].amount.sub(amount);
@@ -282,8 +327,8 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
 
     int256 delegationAmount = 0;
     if (validators[validatorId].contractAddress != address(0x0)) {
-      delegationAmount = int256(ValidatorShare(validators[validatorId].contractAddress).activeAmount());
-      ValidatorShare(validators[validatorId].contractAddress).unlock();
+      delegationAmount = int256(IValidatorShare(validators[validatorId].contractAddress).activeAmount());
+      IValidatorShare(validators[validatorId].contractAddress).unlock();
     }
 
     // undo timline so that validator is normal validator
@@ -304,8 +349,8 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
     int256 delegationAmount = 0;
     validators[validatorId].jailTime = jailCheckpoints;
     if (validators[validatorId].contractAddress != address(0x0)) {
-      delegationAmount = int256(ValidatorShare(validators[validatorId].contractAddress).activeAmount());
-      ValidatorShare(validators[validatorId].contractAddress).lock();
+      delegationAmount = int256(IValidatorShare(validators[validatorId].contractAddress).activeAmount());
+      IValidatorShare(validators[validatorId].contractAddress).lock();
     }
     // update future in case of no `unJail`
     updateTimeLine(exitEpoch,  -(int256(amount) + delegationAmount ), -1);
@@ -467,7 +512,7 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
         uint256 valPow;
         // add delegation power
         if (validator.contractAddress != address(0x0)) {
-          valPow = ValidatorShare(validator.contractAddress).udpateRewards(validator.amount, _reward, stakePower);
+          valPow = IValidatorShare(validator.contractAddress).udpateRewards(validator.amount, _reward, stakePower);
           } else {
           //TODO: check for div leaks in rewards amount
           valPow = validator.amount;
@@ -493,7 +538,7 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
       deactivationEpoch: 0,
       jailTime: 0,
       signer: signer,
-      contractAddress: isContract ? address(new ValidatorShare(NFTCounter,address(token))) : address(0x0),
+      contractAddress: isContract ? address(new IValidatorShare(NFTCounter,address(token))) : address(0x0),
       status : Status.Active
     });
 
@@ -516,8 +561,8 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
     // unbond all delegators in future
     int256 delegationAmount = 0;
     if (validators[validatorId].contractAddress != address(0x0)) {
-      delegationAmount = int256(ValidatorShare(validators[validatorId].contractAddress).activeAmount());
-      ValidatorShare(validators[validatorId].contractAddress).lock();
+      delegationAmount = int256(IValidatorShare(validators[validatorId].contractAddress).activeAmount());
+      IValidatorShare(validators[validatorId].contractAddress).lock();
     }
 
     //  update future
@@ -545,4 +590,5 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
     validatorState[epoch].amount += amount;
     validatorState[epoch].stakerCount += stakerCount;
   }
+
 }
