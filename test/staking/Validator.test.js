@@ -3,101 +3,87 @@ import chaiAsPromised from 'chai-as-promised'
 import utils from 'ethereumjs-util'
 
 import deployer from '../helpers/deployer.js'
-import { ValidatorContract } from '../helpers/artifacts'
+import { TestToken, ValidatorShare } from '../helpers/artifacts'
+import logDecoder from '../helpers/log-decoder.js'
 
 import { assertBigNumberEquality } from '../helpers/utils.js'
 import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
 
 chai.use(chaiAsPromised).should()
 
-contract('ValidatorContract', async function(accounts) {
-  let validatorContract, wallets, registry
+contract('ValidatorContract', async function (accounts) {
+  let validatorContract, wallets, stakeToken, registry, stakeManager
 
-  before(async function() {
-    wallets = generateFirstWallets(mnemonics, 4)
+  before(async function () {
+    wallets = generateFirstWallets(mnemonics, 10)
     const contracts = await deployer.freshDeploy({ stakeManager: true })
     registry = contracts.registry
-    await registry.updateContractMap(
-      utils.keccak256('delegationManager'),
-      wallets[2].getAddressString()
+    stakeManager = contracts.stakeManager
+    stakeToken = await TestToken.new("MATIC", "MATIC")
+    await stakeManager.setToken(stakeToken.address)
+  })
+
+  beforeEach(async function () {
+    validatorContract = await ValidatorShare.new(
+      1,
+      stakeToken.address
     )
   })
 
-  beforeEach(async function() {
-    validatorContract = await ValidatorContract.new(
-      wallets[1].getAddressString(),
-      registry.address
+  it('Buy shares and test exchange rate', async function () {
+    const user = wallets[2].getAddressString()
+    await stakeToken.mint(
+      user,
+      web3.utils.toWei('250')
     )
+    await stakeToken.approve(validatorContract.address, web3.utils.toWei('250'))
+    let result = await validatorContract.buyVoucher(user, web3.utils.toWei('100'))
+    let logs = logDecoder.decodeLogs(result.receipt.rawLogs)
+    assertBigNumberEquality(logs[3].args.amount, logs[3].args.tokens)
+    await validatorContract.udpateRewards(web3.utils.toWei('50'))
+    result = await validatorContract.buyVoucher(user, web3.utils.toWei('150'))
+    logs = logDecoder.decodeLogs(result.receipt.rawLogs)
+    // exchange rate is 150
+    assertBigNumberEquality(logs[3].args.amount, web3.utils.toWei('150'))
   })
 
-  it('write history for checkpoint rewards and get rewards for delegator/validator', async function() {
-    const validatorStake = web3.utils.toWei('100')
-    const delegatorStake = web3.utils.toWei('100')
-    const checkpointReward = web3.utils.toWei('1')
-
-    await validatorContract.bond(1, delegatorStake, '1', {
-      from: wallets[2].getAddressString()
+  it('Sell share and test exchange rate and withdraw pool', async function () {
+    const user = wallets[2].getAddressString()
+    await stakeToken.mint(
+      user,
+      web3.utils.toWei('250')
+    )
+    await stakeToken.approve(validatorContract.address, web3.utils.toWei('250'))
+    await validatorContract.buyVoucher(user, web3.utils.toWei('100'))
+    await validatorContract.transferOwnership(stakeManager.address)
+    let result = await validatorContract.sellVoucher(web3.utils.toWei('100'), {
+      from: user
     })
-    for (let checkpoint = 1; checkpoint < 10; checkpoint++) {
-      await validatorContract.updateRewards(
-        checkpointReward,
-        checkpoint,
-        validatorStake
-      )
-    }
-    let validatorRewards = await validatorContract.validatorRewards()
-    // claimRewards(delegatorId, delegationAmount, startEpoch, endEpoch, currentEpoch)
-    //  delegatorId,  delegationAmount,  startEpoch,  endEpoch,  currentEpoch
-    let delegatorRewards = await validatorContract.calculateRewards(
-      '1',
-      delegatorStake,
-      '1',
-      '10',
-      '10',
-      { from: wallets[2].getAddressString() }
-    )
-    let totalReward = web3.utils
-      .toBN(checkpointReward)
-      .mul(web3.utils.toBN('9'))
-    assertBigNumberEquality(validatorRewards.add(delegatorRewards), totalReward)
+    let logs = logDecoder.decodeLogs(result.receipt.rawLogs)
+    assertBigNumberEquality(logs[1].args.tokens, web3.utils.toWei('100'))
+    let delegator = await validatorContract.delegators(user)
+    assertBigNumberEquality(delegator.share, web3.utils.toWei('100'))
   })
 
-  it('bond unBond properly', async function() {
-    const delegatorStake = web3.utils.toWei('100')
-    const delegators = 10
-    for (let i = 0; i < delegators; i++) {
-      await validatorContract.bond(i, delegatorStake, '1', {
-        from: wallets[2].getAddressString()
-      })
-    }
-    const delegator2 = web3.utils.toBN(2)
-    const n = await validatorContract.totalDelegators()
-    const totalDelegation = await validatorContract.delegatedAmount()
-    assertBigNumberEquality(n, delegators)
-    let delegatorIndex
-    for (let i = 0; i < n; i++) {
-      let delegatorId = await validatorContract.delegators(i)
-      if (delegator2.eq(delegatorId)) {
-        delegatorIndex = i
-        i = n
-      }
-    }
-    await validatorContract.unBond(
-      delegator2,
-      delegatorIndex,
-      delegatorStake,
-      '10',
-      {
-        from: wallets[2].getAddressString()
-      }
-    )
-    assertBigNumberEquality(
-      await validatorContract.delegatedAmount(),
-      totalDelegation.sub(web3.utils.toBN(delegatorStake))
-    )
-    assertBigNumberEquality(
-      await validatorContract.totalDelegators(),
-      delegators - 1
-    )
+  it('Pull rewards', async function () {
+
+  })
+
+  it('Partial withdraw', async function () {
+    // function claimTokens(address user) public {
+  })
+
+  it('Complete withdraw', async function () {
+    // const user = wallets[2].getAddressString()
+    // await stakeToken.mint(
+    //   user,
+    //   web3.utils.toWei('250')
+    // )
+    // await stakeToken.approve(validatorContract.address, web3.utils.toWei('250'))
+    // await validatorContract.buyVoucher(user, web3.utils.toWei('100'))
+    // await validatorContract.transferOwnership(stakeManager.address)
+    // let result = await validatorContract.sellVoucher(web3.utils.toWei('100'), {
+    //   from: user
+    // })
   })
 })
