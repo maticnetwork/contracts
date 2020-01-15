@@ -449,7 +449,6 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
     uint256 _stakePower;
     //TODO: add proposer bonus
     address lastAdd; // cannot have address(0x0) as an owner
-    // address _contract;
     for (uint64 i = 0; i < sigs.length; i += 65) {
       bytes memory sigElement = BytesLib.slice(sigs, i, 65);
       address signer = voteHash.ecrecovery(sigElement);
@@ -465,15 +464,13 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
       ) {
         lastAdd = signer;
         Validator storage validator = validators[validatorId];
-        uint256 valPow = validator.amount;
+        uint256 valPow;
         // add delegation power
         if (validator.contractAddress != address(0x0)) {
-          ValidatorShare valContract = ValidatorShare(validator.contractAddress);
-          valPow = valPow.add(valContract.activeAmount());
-          //TODO: use safeMath, move logic to udpateRewards function
-          valContract.udpateRewards((valPow*_reward)/stakePower);
-        } else {
+          valPow = ValidatorShare(validator.contractAddress).udpateRewards(validator.amount, _reward, stakePower);
+          } else {
           //TODO: check for div leaks in rewards amount
+          valPow = validator.amount;
           validator.reward = validator.reward.add(valPow.mul(_reward).div(stakePower));
         }
         _stakePower = _stakePower.add(valPow);
