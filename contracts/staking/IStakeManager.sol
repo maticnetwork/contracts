@@ -22,6 +22,19 @@ contract IStakeManager {
   // Todo: fix WITHDRAWAL_DELAY with interface
   uint256 public WITHDRAWAL_DELAY = (2**13)/2; // unit: epoch
   uint256 public currentEpoch = 1;
+
+  enum Status { Inactive, Active, Locked, Unstaked}
+  struct Validator {
+    uint256 amount;
+    uint256 reward;
+    uint256 activationEpoch;
+    uint256 deactivationEpoch;
+    uint256 jailTime;
+    address signer;
+    address contractAddress;
+    Status status;
+  }
+  mapping (uint256 => Validator) public validators;
   // validator replacement
   function startAuction(uint256 validatorId, uint256 amount) external;
   function confirmAuctionBid(uint256 validatorId, address signer, bool isContract) external;

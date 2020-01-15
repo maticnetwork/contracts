@@ -8,7 +8,7 @@ contract StakeManagerTest is StakeManager {
     _;
   }
 
-  constructor (address _registry, address _rootChain) StakeManager(_registry, _rootChain) public {
+  constructor (address _registry, address _rootChain) StakeManager(_registry, _rootChain, address(0x0)) public {
     checkPointBlockInterval = 1;
   }
 

@@ -1,16 +1,16 @@
 pragma solidity ^0.5.2;
 
 import { Registry } from "../common/Registry.sol";
-import { StakeManager } from "./StakeManager.sol";
+import { IStakeManager } from "./IStakeManager.sol";
 
-//TODO: use it in stakeManager as well
+//TODO: use it in StakeManager as well
 contract StakingLogger {
   event DelStakeUpdate(uint256 indexed validatorId, uint256 indexed oldAmount, uint256 indexed newAmount);
   Registry registry;
 
   modifier onlyValidatorContract(uint256 validatorId) {
     address _contract;
-    (,,,,,,_contract,) = StakeManager(registry.getStakeManagerAddress()).validators[validatorId];
+    (,,,,,,_contract,) = IStakeManager(registry.getStakeManagerAddress()).validators(validatorId);
     require(_contract == msg.sender);
     _;
   }

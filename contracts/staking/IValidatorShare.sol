@@ -47,7 +47,7 @@ contract IValidatorShare is ERC20, Lockable {
   function withdrawExchangeRate() public view returns(uint256);
   function buyVoucher(uint256 _amount) public;
   function sellVoucher(uint256 shares) public;
-  function ClaimRewards() public;
+  function withdrawRewards() public;
   function unStakeClaimTokens(address user) public;
   function slash(uint256 slashRate, uint256 startEpoch, uint256 endEpoch) public;
   // function _slashActive() internal {}

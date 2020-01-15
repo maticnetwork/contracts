@@ -1,43 +1,19 @@
 pragma solidity ^0.5.2;
 
 import { Registry } from "../common/Registry.sol";
-import { StakeManager } from "./StakeManager.sol";
+import { IStakeManager } from "./IStakeManager.sol";
 
 import { IValidatorShare } from "./IValidatorShare.sol";
 
 // TODO: refactor each function to buy/sell internal functions
 contract ValidatorShare is IValidatorShare {
-  // using SafeMath for uint256;
-  // ERC20 public token;
-  // StakingLogger public stakingLogger;
-  // uint256 public validatorId;
-  // uint256 public validatorRewards;
-  // uint256 public commissionRate;
-  // uint256 public validatorDelegatorRatio = 10;
-
-  // uint256 public totalAmount;
-  // uint256 public activeAmount;
-  // uint256 public withdrawPool;
-  // uint256 public withdrawShares;
-  // bool public delegation = true;
-
-  // struct Delegator {
-  //   uint256 share;
-  //   uint256 withdrawEpoch;
-  // }
-
-  // mapping (address => uint256) public amountStaked;
-  // mapping (address=> Delegator) public delegators;
-
-  // event ShareMinted(address indexed user, uint256 indexed amount, uint256 indexed tokens);
-  // event ShareBurned(address indexed user, uint256 indexed amount, uint256 indexed tokens);
-  // event ClaimRewards(uint256 indexed rewards, uint256 indexed shares);
-
-  // constructor (uint256 _validatorId, address tokenAddress, address _stakingLogger) public {
-  //   validatorId = _validatorId;
-  //   token = ERC20(tokenAddress);
-  //   stakingLogger = StakingLogger(_stakingLogger);
-  // }
+ //TODO: totalAmount and active ammount issue
+  constructor (
+    uint256 _validatorId,
+    address tokenAddress,
+    address _stakingLogger) public 
+    IValidatorShare(_validatorId, tokenAddress, _stakingLogger) {
+  }
 
   function udpateRewards(uint256 valPow, uint256 _reward, uint256 totalStake) external onlyOwner returns(uint256) {
     /**
@@ -58,7 +34,7 @@ contract ValidatorShare is IValidatorShare {
     _valRewards = _valRewards.add(rewards.sub(_valRewards).mul(commissionRate).div(100));
     rewards = rewards.sub(_valRewards);
     validatorRewards = validatorRewards.add(rewards.mul(commissionRate).div(100)).add(_valRewards);
-    activeAmount = activeAmount.add(rewards);
+    totalAmount = totalAmount.add(rewards);
     return stakePower;
   }
 
@@ -108,7 +84,7 @@ contract ValidatorShare is IValidatorShare {
     stakingLogger.logStakeUpdates(validatorId, activeAmount.add(_amount), activeAmount);
   }
 
-  function ClaimRewards() public {
+  function withdrawRewards() public {
     uint256 share = balanceOf(msg.sender);
     uint256 _exchangeRate = exchangeRate();
     require(share > 0, "Zero balance");
@@ -121,6 +97,8 @@ contract ValidatorShare is IValidatorShare {
     emit ClaimRewards(liquidRewards, sharesToBurn);
   }
 
+  // function reStake() public {}
+
   function unStakeClaimTokens(address user) public {
     Delegator storage delegator = delegators[user];
     IStakeManager stakeManager = IStakeManager(owner());
@@ -129,6 +107,7 @@ contract ValidatorShare is IValidatorShare {
     require(token.transfer(user, _amount), "Transfer amount failed");
     delete delegators[user];
   }
+
 
   function slash(uint256 slashRate, uint256 startEpoch, uint256 endEpoch) public {}
   // function _slashActive() internal {}
