@@ -38,6 +38,7 @@ contract IValidatorShare is ERC20, Lockable {
   }
 
   function udpateRewards(uint256 valPow, uint256 _reward, uint256 totalStake) external returns(uint256);
+  function updateCommissionRate(uint256 newCommissionRate) external;
   function withdrawRewardsValidator() external returns(uint256);
   function exchangeRate() public view returns(uint256);
   function withdrawExchangeRate() public view returns(uint256);

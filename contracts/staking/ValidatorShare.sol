@@ -16,6 +16,11 @@ contract ValidatorShare is IValidatorShare {
     IValidatorShare(_validatorId, tokenAddress, _stakingLogger) {
   }
 
+  modifier onlyValidator() {
+    require(IStakeManager(registry.getStakeManagerAddress()).ownerOf(validatorId) == msg.sender);
+    _;
+  }
+
   function udpateRewards(uint256 valPow, uint256 _reward, uint256 totalStake) external onlyOwner returns(uint256) {
     /**
     TODO: check for no revert on 0 commission and reduce logic for calculations
@@ -39,6 +44,12 @@ contract ValidatorShare is IValidatorShare {
     return stakePower;
   }
 
+  function updateCommissionRate(uint256 newCommissionRate) external onlyValidator {
+    //todo: constrains on updates, coolDown period
+    stakingLogger.logUpdateCommissionRate(validatorId, commissionRate, oldCommissionRate);
+    commissionRate = newCommissionRate;
+  }
+
   function withdrawRewardsValidator() external returns(uint256) { //} onlyOwner {
     return validatorRewards;
   }
@@ -59,7 +70,7 @@ contract ValidatorShare is IValidatorShare {
     _mint(msg.sender, share);
     activeAmount = activeAmount.add(_amount);
 
-    stakingLogger.logShareMinted(msg.sender, _amount, share);
+    stakingLogger.logShareMinted(validatorId, msg.sender, _amount, share);
     stakingLogger.logStakeUpdate(validatorId);
   }
 
@@ -82,7 +93,7 @@ contract ValidatorShare is IValidatorShare {
         withdrawEpoch: stakeManager.currentEpoch().add(stakeManager.WITHDRAWAL_DELAY())
       });
     
-    stakingLogger.logShareBurned(msg.sender, _amount, share);
+    stakingLogger.logShareBurned(validatorId, msg.sender, _amount, share);
     stakingLogger.logStakeUpdate(validatorId);
   }
 
@@ -92,7 +103,7 @@ contract ValidatorShare is IValidatorShare {
     // if (sharesToBurn > 0)
     _burn(msg.sender, sharesToBurn);
     rewards = rewards.sub(liquidRewards);
-    stakingLogger.logClaimRewards(liquidRewards, sharesToBurn);
+    stakingLogger.logClaimRewards(validatorId, liquidRewards, sharesToBurn);
   }
 
   function reStake() public {
@@ -129,7 +140,7 @@ contract ValidatorShare is IValidatorShare {
   function slash(uint256 slashRate, uint256 startEpoch, uint256 endEpoch) public {}
   // function _slashActive() internal {}
   // function _slashInActive() internal {}
-  
+
   function _transfer(address from, address to, uint256 value) internal {
     revert("Disabled");
   }
