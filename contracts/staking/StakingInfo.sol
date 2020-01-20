@@ -43,9 +43,10 @@ contract StakingInfo {
   event TopUpFee(uint256 indexed validatorId, uint256 indexed fee);
   event ClaimFee(uint256 indexed validatorId, uint256 indexed fee);
   // Delegator events
-  event ShareMinted(address indexed user, uint256 indexed amount, uint256 indexed tokens);
-  event ShareBurned(address indexed user, uint256 indexed amount, uint256 indexed tokens);
-  event ClaimRewards(uint256 indexed rewards, uint256 indexed tokens);
+  event ShareMinted(uint256 indexed validatorId, address indexed user, uint256 indexed amount, uint256 tokens);
+  event ShareBurned(uint256 indexed validatorId, address indexed user, uint256 indexed amount, uint256 tokens);
+  event ClaimRewards(uint256 indexed validatorId, uint256 indexed rewards, uint256 indexed tokens);
+  event UpdateCommissionRate(uint256 indexed validatorId, uint256 indexed newCommissionRate, uint256 indexed oldCommissionRate);
 
   Registry registry;
 
@@ -142,16 +143,20 @@ contract StakingInfo {
     accountStateRoot = IStakeManager(registry.getStakeManagerAddress()).accountStateRoot();
   }
 
-  function logShareMinted(address user, uint256 amount, uint256 tokens) {
-    emit ShareMinted(user, amount, tokens);
+  function logShareMinted(uint256 validatorId, address user, uint256 amount, uint256 tokens) public onlyValidatorContract(validatorId) {
+    emit ShareMinted(validatorId, user, amount, tokens);
   }
 
-  function logShareBurned(address user, uint256 amount, uint256 tokens) {
-    emit ShareBurned(user, amount, tokens);
+  function logShareBurned(uint256 validatorId, address user, uint256 amount, uint256 tokens) public onlyValidatorContract(validatorId) {
+    emit ShareBurned(validatorId, user, amount, tokens);
   }
 
-  function logClaimRewards(uint256 rewards, uint256 tokens) {
-    emit ClaimRewards(rewards, tokens);
+  function logClaimRewards(uint256 validatorId, uint256 rewards, uint256 tokens) public onlyValidatorContract(validatorId) {
+    emit ClaimRewards(validatorId, rewards, tokens);
+  }
+
+  function logUpdateCommissionRate(uint256 validatorId, uint256 newCommissionRate, uint256 oldCommissionRate) public onlyValidatorContract(validatorId) {
+    emit UpdateCommissionRate(validatorId, newCommissionRate, oldCommissionRate);
   }
 
 }
