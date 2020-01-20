@@ -13,6 +13,7 @@ import { RootChainable } from "../common/mixin/RootChainable.sol";
 import { Registry } from "../common/Registry.sol";
 import { IStakeManager } from "./IStakeManager.sol";
 import { ValidatorShare } from "./ValidatorShare.sol";
+import { StakingInfo } from "./StakingInfo.sol";
 
 
 contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
@@ -22,7 +23,7 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
 
   IERC20 public token;
   address public registry;
-  address public stakingLogger;
+  StakingInfo public logger;
   // genesis/governance variables
   uint256 public dynasty = 2**13;  // unit: epoch 50 days
   uint256 public CHECKPOINT_REWARD = 10000 * (10**18); // @todo update according to Chain
@@ -89,7 +90,7 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
   constructor (address _registry, address _rootchain, address _stakingLogger) ERC721Full("Matic Validator", "MV") public {
     registry = _registry;
     rootChain = _rootchain;
-    stakingLogger = _stakingLogger;
+    logger = StakingInfo(_stakingLogger);
   }
 
   modifier onlyStaker(uint256 validatorId) {
@@ -119,12 +120,12 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
         valAmountToFee[validatorId].amount = amount;
         valAmountToFee[validatorId].fee = amount.mul(inflationRate);
     }
-    emit TopUpFee(validatorId, valAmountToFee[validatorId].fee);
+    logger.logTopUpFee(validatorId, valAmountToFee[validatorId].fee);
   }
 
   function _feeToAmount(uint256 validatorId, uint256 fee) private returns (uint256 _amount) {
     _amount = valAmountToFee[validatorId].amount;
-    //TODO: emit fee burned !?
+    //TODO: logger.logfee burned !?
     delete valAmountToFee[validatorId];
   }
 
@@ -135,7 +136,7 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
     uint256 amount = _feeToAmount(validatorId, fee);
   
     require(token.transfer(msg.sender, amount));
-    emit ClaimFee(validatorId, fee);
+    logger.logClaimFee(validatorId, fee);
   }
 
   function stake(uint256 amount, address signer, bool isContract) external {
@@ -185,7 +186,7 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
       auction.amount = amount;
       auction.user = msg.sender;
     }
-    emit StartAuction(validatorId, validators[validatorId].amount, validatorAuction[validatorId].amount);
+    logger.logStartAuction(validatorId, validators[validatorId].amount, validatorAuction[validatorId].amount);
   }
 
   function confirmAuctionBid(
@@ -210,14 +211,14 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
       auction.startEpoch = currentEpoch.add(dynasty);
       //update total stake amount
       totalStaked = totalStaked.add(validator.amount.sub(refund));
-      emit StakeUpdate(validatorId, refund, validator.amount);
-      emit ConfirmAuction(validatorId, validatorId, validator.amount);
+      logger.logStakeUpdate(validatorId);
+      logger.logConfirmAuction(validatorId, validatorId, validator.amount);
     } else {
       // dethrone
       _unstake(validatorId, currentEpoch);
       _stakeFor(auction.user, auction.amount, signer, isContract);
 
-      emit ConfirmAuction(NFTCounter.sub(1), validatorId, auction.amount);
+      logger.logConfirmAuction(NFTCounter.sub(1), validatorId, auction.amount);
       delete validatorAuction[validatorId];
     }
   }
@@ -266,7 +267,7 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
     validators[validatorId].status = Status.Unstaked;
 
     require(token.transfer(msg.sender, amount + validators[validatorId].reward));
-    emit Unstaked(msg.sender, validatorId, amount, totalStaked);
+    logger.logUnstaked(msg.sender, validatorId, amount, totalStaked);
   }
 
   // slashing and jail interface
@@ -285,8 +286,8 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
     validatorState[currentEpoch].amount = (
       validatorState[currentEpoch].amount + int256(amount));
 
-    emit StakeUpdate(validatorId, validators[validatorId].amount.sub(amount), validators[validatorId].amount);
-    emit ReStaked(validatorId, validators[validatorId].amount, totalStaked);
+    logger.logStakeUpdate(validatorId);
+    logger.logReStaked(validatorId, validators[validatorId].amount, totalStaked);
   }
 
   function withdrawRewards(uint256 validatorId) public onlyStaker(validatorId) {
@@ -312,7 +313,7 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
       jail(validatorId, jailCheckpoints);
     }
     // todo: slash event
-    emit StakeUpdate(validatorId, validators[validatorId].amount.add(amount), validators[validatorId].amount);
+    logger.logStakeUpdate(validatorId);
   }
 
   function unJail(uint256 validatorId) public onlyStaker(validatorId) {
@@ -356,7 +357,7 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
     updateTimeLine(exitEpoch,  -(int256(amount) + delegationAmount ), -1);
     validators[validatorId].deactivationEpoch = exitEpoch;
     validators[validatorId].status = Status.Locked;
-    emit Jailed(validatorId, exitEpoch);
+    logger.logJailed(validatorId, exitEpoch);
   }
 
   // returns valid validator for current epoch
@@ -373,16 +374,6 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
     return _validators;
   }
 
-  function getStakerDetails(uint256 validatorId) public view returns(uint256, uint256, uint256, address, uint256) {
-    return (
-      validators[validatorId].amount,
-      validators[validatorId].activationEpoch,
-      validators[validatorId].deactivationEpoch,
-      validators[validatorId].signer,
-      uint256(validators[validatorId].status)
-      );
-  }
-
   function getValidatorId(address user) public view returns(uint256) {
     return tokenOfOwnerByIndex(user, 0);
   }
@@ -396,7 +387,7 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
   // Change the number of validators required to allow a passed header root
   function updateValidatorThreshold(uint256 newThreshold) public onlyOwner {
     require(newThreshold > 0);
-    emit ThresholdChange(newThreshold, validatorThreshold);
+    logger.logThresholdChange(newThreshold, validatorThreshold);
     validatorThreshold = newThreshold;
   }
 
@@ -408,7 +399,7 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
   // Change reward for each checkpoint
   function updateCheckpointReward(uint256 newReward) public onlyOwner {
     require(newReward > 0);
-    emit RewardUpdate(newReward, CHECKPOINT_REWARD);
+    logger.logRewardUpdate(newReward, CHECKPOINT_REWARD);
     CHECKPOINT_REWARD = newReward;
   }
 
@@ -422,7 +413,7 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
 
   function updateDynastyValue(uint256 newDynasty) public onlyOwner {
     require(newDynasty > 0);
-    emit DynastyValueChange(newDynasty, dynasty);
+    logger.logDynastyValueChange(newDynasty, dynasty);
     dynasty = newDynasty;
     UNSTAKE_DELAY = dynasty.div(2);
     WITHDRAWAL_DELAY = dynasty.mul(2);
@@ -435,7 +426,7 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
     require(_signer != address(0x0) && signerToValidator[_signer] == 0);
 
     // update signer event
-    emit SignerChange(validatorId, validators[validatorId].signer, _signer);
+    logger.logSignerChange(validatorId, validators[validatorId].signer, _signer);
 
     delete signerToValidator[validators[validatorId].signer];
     signerToValidator[_signer] = validatorId;
@@ -538,7 +529,7 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
       deactivationEpoch: 0,
       jailTime: 0,
       signer: signer,
-      contractAddress: isContract ? address(new ValidatorShare(NFTCounter, address(token), stakingLogger)) : address(0x0),
+      contractAddress: isContract ? address(new ValidatorShare(NFTCounter, address(token), address(logger))) : address(0x0),
       status : Status.Active
     });
 
@@ -548,7 +539,7 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
     updateTimeLine(currentEpoch, int256(amount), 1);
     // no Auctions for 1 dynasty
     validatorAuction[NFTCounter].startEpoch = currentEpoch.add(dynasty);
-    emit Staked(signer, NFTCounter, currentEpoch, amount, totalStaked);
+    logger.logStaked(signer, NFTCounter, currentEpoch, amount, totalStaked);
     NFTCounter = NFTCounter.add(1);
   }
 
@@ -568,7 +559,7 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
     //  update future
     updateTimeLine(exitEpoch,  -(int256(amount) + delegationAmount), -1);
 
-    emit UnstakeInit(msg.sender, validatorId, exitEpoch, amount);
+    logger.logUnstakeInit(msg.sender, validatorId, exitEpoch, amount);
   }
 
   function _finalizeCommit() internal {

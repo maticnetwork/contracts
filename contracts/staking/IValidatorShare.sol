@@ -5,12 +5,12 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { ERC721Full } from "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
 
 import { Lockable } from "../common/mixin/Lockable.sol";
-import { StakingLogger } from "./StakingLogger.sol";
+import { StakingInfo } from "./StakingInfo.sol";
 
 contract IValidatorShare is ERC20, Lockable {
   using SafeMath for uint256;
   ERC20 public token;
-  StakingLogger public stakingLogger;
+  StakingInfo public stakingLogger;
   uint256 public validatorId;
   uint256 public validatorRewards;
   uint256 public commissionRate;
@@ -37,7 +37,7 @@ contract IValidatorShare is ERC20, Lockable {
   constructor (uint256 _validatorId, address tokenAddress, address _stakingLogger) public {
     validatorId = _validatorId;
     token = ERC20(tokenAddress);
-    stakingLogger = StakingLogger(_stakingLogger);
+    stakingLogger = StakingInfo(_stakingLogger);
   }
 
 

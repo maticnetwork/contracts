@@ -59,7 +59,7 @@ contract ValidatorShare is IValidatorShare {
     activeAmount = activeAmount.add(_amount);
 
     emit ShareMinted(msg.sender, _amount, share);
-    stakingLogger.logStakeUpdates(validatorId, activeAmount.sub(_amount), activeAmount);
+    stakingLogger.logStakeUpdate(validatorId);
   }
 
   function sellVoucher(uint256 shares) public {
@@ -81,7 +81,7 @@ contract ValidatorShare is IValidatorShare {
         withdrawEpoch: stakeManager.currentEpoch().add(stakeManager.WITHDRAWAL_DELAY())
       });
     emit ShareBurned(msg.sender, _amount, share);
-    stakingLogger.logStakeUpdates(validatorId, activeAmount.add(_amount), activeAmount);
+    stakingLogger.logStakeUpdate(validatorId);
   }
 
   function withdrawRewards() public {
