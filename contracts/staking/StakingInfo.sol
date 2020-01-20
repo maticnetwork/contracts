@@ -17,6 +17,7 @@ contract IStakeManager {
     address contractAddress;
     Status status;
   }
+
   mapping (uint256 => Validator) public validators;
   bytes32 public accountStateRoot;
   uint256 public activeAmount;// delegation amount from validator contract
@@ -139,6 +140,18 @@ contract StakingInfo {
 
   function getAccountStateRoot() public view returns(bytes32 accountStateRoot) {
     accountStateRoot = IStakeManager(registry.getStakeManagerAddress()).accountStateRoot();
+  }
+
+  function logShareMinted(address user, uint256 amount, uint256 tokens) {
+    emit ShareMinted(user, amount, tokens);
+  }
+
+  function logShareBurned(address user, uint256 amount, uint256 tokens) {
+    emit ShareBurned(user, amount, tokens);
+  }
+
+  function logClaimRewards(uint256 rewards, uint256 tokens) {
+    emit ClaimRewards(rewards, tokens);
   }
 
 }

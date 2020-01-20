@@ -17,6 +17,7 @@ contract IStakeManager {
     address contractAddress;
     Status status;
   }
+
   mapping (uint256 => Validator) public validators;
   // validator replacement
   function startAuction(uint256 validatorId, uint256 amount) external;

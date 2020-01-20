@@ -48,19 +48,6 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
   // on dynasty update certain amount of cooldown period where there is no validator auction
   uint256 replacementCoolDown;
 
-  // enum Status { Inactive, Active, Locked, Unstaked}
-
-  // struct Validator {
-  //   uint256 amount;
-  //   uint256 reward;
-  //   uint256 activationEpoch;
-  //   uint256 deactivationEpoch;
-  //   uint256 jailTime;
-  //   address signer;
-  //   address contractAddress;
-  //   Status status;
-  // }
-
   struct Auction {
     uint256 amount;
     uint256 startEpoch;

@@ -16,7 +16,8 @@ contract IValidatorShare is ERC20, Lockable {
   uint256 public commissionRate;
   uint256 public validatorDelegatorRatio = 10;
 
-  uint256 public totalAmount;
+  uint256 public totalStake;
+  uint256 public rewards;
   uint256 public activeAmount;
   uint256 public withdrawPool;
   uint256 public withdrawShares;
@@ -30,16 +31,11 @@ contract IValidatorShare is ERC20, Lockable {
   mapping (address => uint256) public amountStaked;
   mapping (address=> Delegator) public delegators;
 
-  event ShareMinted(address indexed user, uint256 indexed amount, uint256 indexed tokens);
-  event ShareBurned(address indexed user, uint256 indexed amount, uint256 indexed tokens);
-  event ClaimRewards(uint256 indexed rewards, uint256 indexed shares);
-
   constructor (uint256 _validatorId, address tokenAddress, address _stakingLogger) public {
     validatorId = _validatorId;
     token = ERC20(tokenAddress);
     stakingLogger = StakingInfo(_stakingLogger);
   }
-
 
   function udpateRewards(uint256 valPow, uint256 _reward, uint256 totalStake) external returns(uint256);
   function withdrawRewardsValidator() external returns(uint256);
