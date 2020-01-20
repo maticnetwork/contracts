@@ -3,7 +3,7 @@ pragma solidity ^0.5.2;
 import { Registry } from "../common/Registry.sol";
 
 
-// dummy interface to avoic cyclic dependency
+// dummy interface to avoid cyclic dependency
 contract IStakeManager {
   enum Status { Inactive, Active, Locked, Unstaked }
 
@@ -22,7 +22,7 @@ contract IStakeManager {
   uint256 public activeAmount;// delegation amount from validator contract
 }
 
-//TODO: use it in StakeManager as well
+
 contract StakingInfo {
   event Staked(address indexed signer, uint256 indexed validatorId, uint256 indexed activationEpoch, uint256 amount, uint256 total);
   event Unstaked(address indexed user, uint256 indexed validatorId, uint256 amount, uint256 total);

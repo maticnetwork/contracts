@@ -42,6 +42,7 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
   uint256 public totalRewards;
   uint256 public totalRewardsLiquidated;
   uint256 public auctionPeriod = dynasty.div(4); // 1 week in epochs
+  uint256 public auctionCancelPeriod = dynasty.div(4); // can be made shorter
   bytes32 public accountStateRoot;
 
   // on dynasty update certain amount of cooldown period where there is no validator auction
@@ -187,6 +188,15 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
       auction.user = msg.sender;
     }
     logger.logStartAuction(validatorId, validators[validatorId].amount, validatorAuction[validatorId].amount);
+  }
+
+  function cancelAuctionBid(uint256 validatorId) public {
+    //TODO: check for same owner mech and overall flow
+    Auction storage auction = validatorAuction[validatorId];
+    require(auctionPeriod.add(auction.startEpoch).add(auctionCancelPeriod) <= currentEpoch, "Incomplete cancellation period");
+    require(auction.user != ownerOf(validatorId));
+    require(token.transfer(auction.user, auction.amount));
+    delete validatorAuction[validatorId];
   }
 
   function confirmAuctionBid(
