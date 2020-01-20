@@ -45,7 +45,7 @@ contract StakingInfo {
   // Delegator events
   event ShareMinted(uint256 indexed validatorId, address indexed user, uint256 indexed amount, uint256 tokens);
   event ShareBurned(uint256 indexed validatorId, address indexed user, uint256 indexed amount, uint256 tokens);
-  event ClaimRewards(uint256 indexed validatorId, uint256 indexed rewards, uint256 indexed tokens);
+  event DelClaimRewards(uint256 indexed validatorId, uint256 indexed rewards, uint256 indexed tokens);
   event UpdateCommissionRate(uint256 indexed validatorId, uint256 indexed newCommissionRate, uint256 indexed oldCommissionRate);
 
   Registry registry;
@@ -107,7 +107,7 @@ contract StakingInfo {
   }
 
   function logClaimRewards(uint256 validatorId, uint256 amount, uint256 totalAmount) public onlyStakeManager {
-    emit ClaimRewards(validatorId, totalAmount);
+    emit ClaimRewards(validatorId, amount, totalAmount);
   }
 
   function logStartAuction(uint256 validatorId, uint256 amount, uint256 auctionAmount) public onlyStakeManager {
@@ -143,6 +143,11 @@ contract StakingInfo {
     accountStateRoot = IStakeManager(registry.getStakeManagerAddress()).accountStateRoot();
   }
 
+  function getValidatorContractAddress(uint256 validatorId) public view returns(address ValidatorContract) {
+    (,,,,,,ValidatorContract,) = IStakeManager(registry.getStakeManagerAddress()).validators(validatorId);
+  }
+
+  // validator Share contract logging func
   function logShareMinted(uint256 validatorId, address user, uint256 amount, uint256 tokens) public onlyValidatorContract(validatorId) {
     emit ShareMinted(validatorId, user, amount, tokens);
   }
@@ -151,8 +156,8 @@ contract StakingInfo {
     emit ShareBurned(validatorId, user, amount, tokens);
   }
 
-  function logClaimRewards(uint256 validatorId, uint256 rewards, uint256 tokens) public onlyValidatorContract(validatorId) {
-    emit ClaimRewards(validatorId, rewards, tokens);
+  function logDelClaimRewards(uint256 validatorId, uint256 rewards, uint256 tokens) public onlyValidatorContract(validatorId) {
+    emit DelClaimRewards(validatorId, rewards, tokens);
   }
 
   function logUpdateCommissionRate(uint256 validatorId, uint256 newCommissionRate, uint256 oldCommissionRate) public onlyValidatorContract(validatorId) {

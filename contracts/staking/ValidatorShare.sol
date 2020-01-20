@@ -17,7 +17,7 @@ contract ValidatorShare is IValidatorShare {
   }
 
   modifier onlyValidator() {
-    require(IStakeManager(registry.getStakeManagerAddress()).ownerOf(validatorId) == msg.sender);
+    require(IStakeManager(owner()).ownerOf(validatorId) == msg.sender);
     _;
   }
 
@@ -46,7 +46,7 @@ contract ValidatorShare is IValidatorShare {
 
   function updateCommissionRate(uint256 newCommissionRate) external onlyValidator {
     //todo: constrains on updates, coolDown period
-    stakingLogger.logUpdateCommissionRate(validatorId, commissionRate, oldCommissionRate);
+    stakingLogger.logUpdateCommissionRate(validatorId, newCommissionRate, commissionRate);
     commissionRate = newCommissionRate;
   }
 
@@ -99,11 +99,11 @@ contract ValidatorShare is IValidatorShare {
 
   function withdrawRewards() public {
     uint256 liquidRewards = getLiquidRewards(msg.sender);
-    uint256 sharesToBurn = liquidRewards.mul(100).div(_exchangeRate);
+    uint256 sharesToBurn = liquidRewards.mul(100).div(exchangeRate());
     // if (sharesToBurn > 0)
     _burn(msg.sender, sharesToBurn);
     rewards = rewards.sub(liquidRewards);
-    stakingLogger.logClaimRewards(validatorId, liquidRewards, sharesToBurn);
+    stakingLogger.logDelClaimRewards(validatorId, liquidRewards, sharesToBurn);
   }
 
   function reStake() public {
