@@ -5,6 +5,7 @@ export const StakingInfo = artifacts.require('StakingInfo')
 export const SlashingManager = artifacts.require('SlashingManager')
 export const ValidatorShare = artifacts.require('ValidatorShare')
 export const StakeManagerTest = artifacts.require('StakeManagerTest')
+export const ValidatorShareFactory = artifacts.require('ValidatorShareFactory')
 
 export const DepositManager = artifacts.require('DepositManager')
 export const DepositManagerProxy = artifacts.require('DepositManagerProxy')
