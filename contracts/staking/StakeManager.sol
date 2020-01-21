@@ -16,7 +16,7 @@ import { ValidatorShare } from "./ValidatorShare.sol";
 import { StakingInfo } from "./StakingInfo.sol";
 
 
-contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
+contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
   using SafeMath for uint256;
   using ECVerify for bytes32;
   using Merkle for bytes32;
@@ -500,7 +500,7 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
         uint256 valPow;
         // add delegation power
         if (validator.contractAddress != address(0x0)) {
-          valPow = ValidatorShare(validator.contractAddress).udpateRewards(validator.amount, _reward, stakePower);
+          valPow = ValidatorShare(validator.contractAddress).udpateRewards( _reward, stakePower);
           } else {
           //TODO: check for div leaks in rewards amount
           valPow = validator.amount;
@@ -526,7 +526,7 @@ contract StakeManager is ERC721Full, IStakeManager, RootChainable, Lockable {
       deactivationEpoch: 0,
       jailTime: 0,
       signer: signer,
-      contractAddress: isContract ? address(new ValidatorShare(NFTCounter, address(token), address(logger))) : address(0x0),
+      contractAddress: address(0x0), //isContract ? address(new ValidatorShare(NFTCounter, address(token), address(logger))) : address(0x0),
       status : Status.Active
     });
 

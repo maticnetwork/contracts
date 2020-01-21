@@ -1,8 +1,8 @@
 pragma solidity ^0.5.2;
 
-import { IERC721 } from "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
+import { IERC721Full } from "openzeppelin-solidity/contracts/token/ERC721/IERC721Full.sol";
 
-contract IStakeManager is IERC721 {
+contract IStakeManager is IERC721Full {
   // Todo: fix WITHDRAWAL_DELAY with interface
   uint256 public WITHDRAWAL_DELAY = (2**13)/2; // unit: epoch
   uint256 public currentEpoch = 1;
@@ -32,7 +32,6 @@ contract IStakeManager is IERC721 {
   function stakeFor(address user, uint256 amount, address signer, bool isContract) public;
   function checkSignatures(uint256 stakePower, uint256 blockInterval, bytes32 voteHash, bytes32 stateRoot, bytes memory sigs) public returns(uint256);
   function updateValidatorState(uint256 validatorId, uint256 epoch, int256 amount) public;
-  function getStakerDetails(uint256 validatorId) public view returns(uint256, uint256, uint256, address, uint256);
 
   // optional
   // function lastStakedFor(address addr) external view returns (uint256);
