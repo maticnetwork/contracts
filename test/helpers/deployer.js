@@ -14,6 +14,7 @@ class Deployer {
 
   async freshDeploy(options = {}) {
     this.registry = await contracts.Registry.new()
+    this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
     await this.deployRootChain()
 
     this.SlashingManager = await contracts.SlashingManager.new(
@@ -23,12 +24,14 @@ class Deployer {
     if (options.stakeManager) {
       this.stakeManager = await contracts.StakeManager.new(
         this.registry.address,
-        this.rootChain.address
+        this.rootChain.address,
+        this.stakingInfo.address
       )
     } else {
       this.stakeManager = await contracts.StakeManagerTest.new(
         this.registry.address,
-        this.rootChain.address
+        this.rootChain.address,
+        this.stakingInfo.address
       )
     }
     this.exitNFT = await contracts.ExitNFT.new(this.registry.address)

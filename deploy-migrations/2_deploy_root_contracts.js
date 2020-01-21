@@ -24,6 +24,7 @@ const WithdrawManager = artifacts.require('WithdrawManager')
 const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
 const StateSender = artifacts.require('StateSender')
 const StakeManager = artifacts.require('StakeManager')
+const StakingInfo = artifacts.require('StakingInfo')
 const SlashingManager = artifacts.require('SlashingManager')
 const ERC20Predicate = artifacts.require('ERC20Predicate')
 const ERC721Predicate = artifacts.require('ERC721Predicate')
@@ -128,8 +129,9 @@ module.exports = async function (deployer) {
 
     console.log('deploying contracts...')
     await deployer.deploy(Registry)
+    await deployer.deploy(StakingInfo, Registry.address)
     await deployer.deploy(RootChain, Registry.address, process.env.HEIMDALL_ID)
-    await deployer.deploy(StakeManager, Registry.address, RootChain.address)
+    await deployer.deploy(StakeManager, Registry.address, RootChain.address, StakingInfo.address)
     await deployer.deploy(SlashingManager, Registry.address)
 
     await deployer.deploy(StateSender)

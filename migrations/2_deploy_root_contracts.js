@@ -21,6 +21,7 @@ const RootChain = artifacts.require('RootChain')
 const DepositManager = artifacts.require('DepositManager')
 const WithdrawManager = artifacts.require('WithdrawManager')
 const StakeManager = artifacts.require('StakeManager')
+const StakingInfo = artifacts.require('StakingInfo')
 const SlashingManager = artifacts.require('SlashingManager')
 const ERC20Predicate = artifacts.require('ERC20Predicate')
 const ERC721Predicate = artifacts.require('ERC721Predicate')
@@ -139,6 +140,7 @@ module.exports = async function (deployer, network) {
 
     console.log('deploying contracts...')
     await deployer.deploy(Registry)
+    await deployer.deploy(StakingInfo, Registry.address)
     await Promise.all([
       deployer.deploy(RootChain, Registry.address, 'heimdall-P5rXwg'),
       deployer.deploy(SlashingManager, Registry.address),
@@ -147,8 +149,8 @@ module.exports = async function (deployer, network) {
       deployer.deploy(DepositManager)
     ])
 
-    await deployer.deploy(StakeManager, Registry.address, RootChain.address)
-    await deployer.deploy(StakeManagerTest, Registry.address, RootChain.address)
+    await deployer.deploy(StakeManager, Registry.address, RootChain.address, StakingInfo.address)
+    await deployer.deploy(StakeManagerTest, Registry.address, RootChain.address, StakingInfo.address)
 
     await Promise.all([
       deployer.deploy(

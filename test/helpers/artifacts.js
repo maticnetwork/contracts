@@ -1,6 +1,7 @@
 export const RootChain = artifacts.require('RootChain')
 export const Registry = artifacts.require('Registry')
 export const StakeManager = artifacts.require('StakeManager')
+export const StakingInfo = artifacts.require('StakingInfo')
 export const SlashingManager = artifacts.require('SlashingManager')
 export const ValidatorShare = artifacts.require('ValidatorShare')
 export const StakeManagerTest = artifacts.require('StakeManagerTest')
