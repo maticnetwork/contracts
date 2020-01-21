@@ -21,7 +21,7 @@ contract ValidatorShare is IValidatorShare {
     _;
   }
 
-  function udpateRewards(uint256 valPow, uint256 _reward, uint256 totalStake) external onlyOwner returns(uint256) {
+  function udpateRewards(uint256 _reward, uint256 totalStake) external onlyOwner returns(uint256) {
     /**
     TODO: check for no revert on 0 commission and reduce logic for calculations
     TODO: better to add validator as one of share holder and
@@ -34,7 +34,9 @@ contract ValidatorShare is IValidatorShare {
       - add rewards to pool rewards
       - returns total active stake for validator
      */
-    uint256 stakePower = valPow.add(activeAmount);// validator + delegation stake power
+    uint256 stakePower;
+    (stakePower, , , , , , , ) = IStakeManager(owner()).validators(validatorId);// to avoid Stack too deep :cry
+    stakePower = stakePower.add(activeAmount);// validator + delegation stake power
     uint256 _rewards = stakePower.mul(_reward).div(totalStake);
     uint256 _valRewards = activeAmount.mul(_rewards).div(stakePower);
     _valRewards = _valRewards.add(_rewards.sub(_valRewards).mul(commissionRate).div(100));
