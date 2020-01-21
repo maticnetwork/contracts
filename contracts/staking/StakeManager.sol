@@ -15,6 +15,15 @@ import { IStakeManager } from "./IStakeManager.sol";
 import { ValidatorShare } from "./ValidatorShare.sol";
 import { StakingInfo } from "./StakingInfo.sol";
 
+contract ValidatorShareFactory {
+  /**
+    - factory to create new validatorShare contracts
+   */
+  function create(uint256 validatorId, address tokenAddress, address loggerAddress) public returns(address) {
+    return address(new ValidatorShare(validatorId, tokenAddress, loggerAddress));
+  }
+
+}
 
 contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
   using SafeMath for uint256;
@@ -24,6 +33,7 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
   IERC20 public token;
   address public registry;
   StakingInfo public logger;
+  ValidatorShareFactory public factory;
   // genesis/governance variables
   uint256 public dynasty = 2**13;  // unit: epoch 50 days
   uint256 public CHECKPOINT_REWARD = 10000 * (10**18); // @todo update according to Chain
@@ -75,10 +85,11 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
   // mapping to maintain validator's topped amount and given fee
   mapping (uint256 => Fee) public valAmountToFee;
 
-  constructor (address _registry, address _rootchain, address _stakingLogger) ERC721Full("Matic Validator", "MV") public {
+  constructor (address _registry, address _rootchain, address _stakingLogger, address _ValidatorShareFactory) ERC721Full("Matic Validator", "MV") public {
     registry = _registry;
     rootChain = _rootchain;
     logger = StakingInfo(_stakingLogger);
+    factory = ValidatorShareFactory(_ValidatorShareFactory);
   }
 
   modifier onlyStaker(uint256 validatorId) {
@@ -526,7 +537,7 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
       deactivationEpoch: 0,
       jailTime: 0,
       signer: signer,
-      contractAddress: address(0x0), //isContract ? address(new ValidatorShare(NFTCounter, address(token), address(logger))) : address(0x0),
+      contractAddress: isContract ? factory.create(NFTCounter, address(token), address(logger)) : address(0x0),
       status : Status.Active
     });
 
