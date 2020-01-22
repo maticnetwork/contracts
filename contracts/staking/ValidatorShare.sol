@@ -52,8 +52,9 @@ contract ValidatorShare is IValidatorShare {
     commissionRate = newCommissionRate;
   }
 
-  function withdrawRewardsValidator() external returns(uint256) { //} onlyOwner {
-    return validatorRewards;
+  function withdrawRewardsValidator() external onlyOwner returns(uint256 _rewards) {
+    _rewards = validatorRewards;
+    validatorRewards = 0;
   }
 
   function exchangeRate() public view returns(uint256) {

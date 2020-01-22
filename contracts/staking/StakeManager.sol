@@ -128,7 +128,7 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
     delete valAmountToFee[validatorId];
   }
 
-  function claimRewards(uint256 validatorId, uint256 accumBalance, uint256 accumSlashedAmount, uint256 fee, uint256 index, bytes memory proof) public onlyStaker(validatorId) {
+  function claimFees(uint256 validatorId, uint256 accumBalance, uint256 accumSlashedAmount, uint256 fee, uint256 index, bytes memory proof) public onlyStaker(validatorId) {
     Validator storage validator = validators[validatorId];
     require(keccak256(abi.encodePacked(validatorId, accumBalance, accumSlashedAmount, fee)).checkMembership(index, accountStateRoot, proof), "Wrong acc proof");
     //Ignoring other params becuase rewards distribution is on chain
@@ -273,8 +273,7 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
     delete signerToValidator[validators[validatorId].signer];
     // delete validators[validatorId];
     validators[validatorId].status = Status.Unstaked;
-
-    require(token.transfer(msg.sender, amount + validators[validatorId].reward));
+    require(token.transfer(msg.sender, amount.add(validators[validatorId].reward)), "Transfer stake failed");
     logger.logUnstaked(msg.sender, validatorId, amount, totalStaked);
   }
 
