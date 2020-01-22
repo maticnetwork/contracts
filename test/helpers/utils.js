@@ -51,7 +51,13 @@ export async function checkPoint(wallets, proposer, stakeManager) {
   )
   const stateRoot = ethUtils.bufferToHex(ethUtils.keccak256('stateRoot'))
   // 2/3 majority vote
+  let totalStake = await stakeManager.totalStakedFor(wallets[0].getAddressString())
+  for (let i = 1; i < wallets.length; i++) {
+    totalStake = totalStake.add(await stakeManager.totalStakedFor(wallets[i].getAddressString()))
+  }
+
   await stakeManager.checkSignatures(
+    totalStake,
     1,
     ethUtils.bufferToHex(ethUtils.keccak256(voteData)),
     stateRoot,
@@ -85,12 +91,19 @@ export function buildSubmitHeaderBlockPaylod(
   end,
   root,
   wallets,
-  options = { rewardsRootHash: '', allValidators: false, getSigs: false } // false vars are to show expected vars
+  options = { rewardsRootHash: '', allValidators: false, getSigs: false, totalStake: 0 } // false vars are to show expected vars
 ) {
   if (!root) root = ethUtils.keccak256(encode(start, end)) // dummy root
+  if (!wallets) {
+    wallets = getWallets()
+  }
+  let validators = options.allValidators
+    ? wallets
+    : [wallets[1], wallets[2], wallets[3]]
+
   const extraData = ethUtils.bufferToHex(
     ethUtils.rlp.encode([
-      [proposer, start, end, root, options.rewardsRootHash] // 0th element
+      [proposer, start, end, root, options.rewardsRootHash, options.totalStake] // 0th element
     ])
   )
   const vote = ethUtils.bufferToHex(
@@ -103,13 +116,6 @@ export function buildSubmitHeaderBlockPaylod(
       ethUtils.bufferToHex(ethUtils.sha256(extraData))
     ])
   )
-
-  if (!wallets) {
-    wallets = getWallets()
-  }
-  let validators = options.allValidators
-    ? wallets
-    : [wallets[1], wallets[2], wallets[3]]
 
   // in case of TestStakeManger use dummysig data
   const sigs = ethUtils.bufferToHex(

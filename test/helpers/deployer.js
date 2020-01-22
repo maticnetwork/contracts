@@ -71,6 +71,31 @@ class Deployer {
     return _contracts
   }
 
+  async deployStakeManager(wallets) {
+    this.registry = await contracts.Registry.new()
+    this.validatorShareFactory = await contracts.ValidatorShareFactory.new()
+    this.rootChain = await this.deployRootChain()
+    this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
+    this.stakeToken = await contracts.DummyERC20.new('Stake Token', 'STAKE')
+    this.stakeManager = await contracts.StakeManager.new(
+      this.stakeToken.address,
+      wallets[1].getAddressString(),
+      this.stakingInfo.address,
+      this.validatorShareFactory.address
+    )
+    await this.registry.updateContractMap(
+      ethUtils.keccak256('stakeManager'),
+      this.stakeManager.address
+    )
+    let _contracts = {
+      registry: this.registry,
+      rootChain: this.rootChain,
+      stakeManager: this.stakeManager,
+      stakeToken: this.stakeToken
+    }
+    return _contracts
+  }
+
   async deployRootChain() {
     this.rootChain = await contracts.RootChain.new(this.registry.address, 'heimdall-P5rXwg')
     return this.rootChain

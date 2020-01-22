@@ -13,7 +13,7 @@ import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
 
 chai.use(chaiAsPromised).should()
 
-contract('RootChain', async function(accounts) {
+contract('RootChain', async function (accounts) {
   let rootChain
 
   let wallets
@@ -23,18 +23,20 @@ contract('RootChain', async function(accounts) {
   let stakeToken
 
   let accountState = {}
+  let totalStake
 
-  before(async function() {
+  before(async function () {
     const stakes = {
-      1: web3.utils.toWei('101'),
-      2: web3.utils.toWei('100'),
-      3: web3.utils.toWei('100'),
-      4: web3.utils.toWei('100')
+      1: web3.utils.toWei('1000'),
+      2: web3.utils.toWei('1000'),
+      3: web3.utils.toWei('1000'),
+      4: web3.utils.toWei('1000')
     }
+    totalStake = web3.utils.toWei('4000')
     wallets = generateFirstWallets(mnemonics, Object.keys(stakes).length)
   })
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     const contracts = await deployer.freshDeploy({ stakeManager: true })
     rootChain = contracts.rootChain
     stakeManager = contracts.stakeManager
@@ -56,7 +58,7 @@ contract('RootChain', async function(accounts) {
     }
   })
 
-  it('submitHeaderBlock', async function() {
+  it('submitHeaderBlock', async function () {
     const validators = [1, 2, 3, 4]
     let tree = await rewradsTree(validators, accountState)
     const { vote, sigs, extraData, root } = buildSubmitHeaderBlockPaylod(
@@ -65,8 +67,9 @@ contract('RootChain', async function(accounts) {
       22,
       '' /* root */,
       wallets,
-      { rewardsRootHash: tree.getRoot(), getSigs: true }
+      { rewardsRootHash: tree.getRoot(), getSigs: true, totalStake: totalStake }
     )
+
     const result = await rootChain.submitHeaderBlock(vote, sigs, extraData)
     const logs = result.logs
     logs.should.have.lengthOf(1)
@@ -80,11 +83,12 @@ contract('RootChain', async function(accounts) {
     assertBigNumberEquality(logs[0].args.end, '22')
   })
 
-  it('submit multiple headerBlocks', async function() {
+  it('submit multiple headerBlocks', async function () {
     let tree = await rewradsTree([1, 2, 3, 4], accountState)
     let payload = buildSubmitHeaderBlockPaylod(accounts[0], 0, 4, '', wallets, {
       rewardsRootHash: tree.getRoot(),
-      getSigs: true
+      getSigs: true,
+      totalStake: totalStake
     })
     await rootChain.submitHeaderBlock(
       payload.vote,
@@ -95,7 +99,8 @@ contract('RootChain', async function(accounts) {
     let currentEpoch = await stakeManager.currentEpoch()
     payload = buildSubmitHeaderBlockPaylod(accounts[0], 5, 9, '', wallets, {
       rewardsRootHash: tree.getRoot(),
-      getSigs: true
+      getSigs: true,
+      totalStake: totalStake
     })
     await rootChain.submitHeaderBlock(
       payload.vote,
@@ -108,7 +113,8 @@ contract('RootChain', async function(accounts) {
     currentEpoch = newCurrentEpoch
     payload = buildSubmitHeaderBlockPaylod(accounts[0], 10, 14, '', wallets, {
       rewardsRootHash: tree.getRoot(),
-      getSigs: true
+      getSigs: true,
+      totalStake: totalStake
     })
     await rootChain.submitHeaderBlock(
       payload.vote,
@@ -131,7 +137,7 @@ contract('RootChain', async function(accounts) {
     assertBigNumberEquality(block.createdAt, '0')
   })
 
-  it('updateDepositId is ACLed on onlyDepositManager', async function() {
+  it('updateDepositId is ACLed on onlyDepositManager', async function () {
     try {
       await rootChain.updateDepositId(1)
       assert.fail('should have failed with UNAUTHORIZED_DEPOSIT_MANAGER_ONLY')
@@ -141,31 +147,31 @@ contract('RootChain', async function(accounts) {
   })
 })
 
-contract('submitHeaderBlock hardcoded params', async function(accounts) {
+contract('submitHeaderBlock hardcoded params', async function (accounts) {
   let rootChain
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     const contracts = await deployer.freshDeploy()
     rootChain = contracts.rootChain
   })
 
-  it('submitHeaderBlock (with hardcoded data)', async function() {
+  it('submitHeaderBlock (with hardcoded data)', async function () {
     const vote =
-      '0xf48f6865696d64616c6c2d503572587767020d80a0f7225d5fbdaeec3e35d970c4d36bc0f2945241ac5de2f53a8b0703a318d6c892'
+      '0xf48f6865696d64616c6c2d503572587767028080a0f32d8ebfa20332eb02d5bf1611758dde784112dd2750c594b9fe2a432fcf924e'
     const sigs =
-      '0xd61890e6167518b0352515d45381be76508e6fb1d3abef80c9944e910984b14014d82f12eb133f613c1378efceb50356b5509a14b82f7715e9a0f48dbc8a432001'
+      '0xa587122b0874cf8c86d2e4e14e65ff24cb582faff67d22ab39d2864a826cfc273c7fe1e98d5c3a30a6ffcdc12fb848e8e00d1c727baa00f89c1672ff5b1a69ee1b0b9059f8a901d2092e9987078d9a87bfb7ce89da14bccd8ed396bf0cf450e9ea22396ad482d69501dcf515d6f9c304ca87258f020e7a8ddc58d63998176a6f2f1c986144e59406cb18cb4cef89987d1a805c2725645126730c08b59ba92619e2155c4379b7eeeb5448081af34b970ccf407c906121b3921b3458a831f69ce12cf31c'
     const txData =
-      '0xf885f83f946c468cf8c9879006e22ec4029696e005c2319c9d808203ffa0fcaf3d0b2e32e20916c9f8c8bc2e8d89838fba5ea20885406e78767061305d4e845d7f51cfb841c3cd61fb7bb74b2ab89690be137d545418e9756fde4742fc2770edc5558ece682d3bf1ba90c11dfbaa1f84c0fa0c35af2ebfdd4632b7e69ab73f70aed1511a460080'
+      '0xf872f870949fb29aac15b9a4b7f17c3385939b007540f4d7918016a0c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470a0106892eb745427a56784350628942f5a3188adf722a7cf7b319cb59d43c23cc49634303030303030303030303030303030303030303030'
     const result = await rootChain.submitHeaderBlock(vote, sigs, txData)
     const logs = result.logs
     logs.should.have.lengthOf(1)
     logs[0].event.should.equal('NewHeaderBlock')
     expect(logs[0].args).to.include({
-      proposer: '0x6c468CF8c9879006E22EC4029696E005C2319C9D',
-      root: '0xfcaf3d0b2e32e20916c9f8c8bc2e8d89838fba5ea20885406e78767061305d4e'
+      proposer: '0x9fB29AAc15b9A4B7F17c3385939b007540f4d791',
+      root: '0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470'
     })
     assertBigNumberEquality(logs[0].args.headerBlockId, '10000')
     assertBigNumberEquality(logs[0].args.start, '0')
-    assertBigNumberEquality(logs[0].args.end, '1023')
+    assertBigNumberEquality(logs[0].args.end, '22')
   })
 })
