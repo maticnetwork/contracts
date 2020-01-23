@@ -48,12 +48,20 @@ contract StakingInfo {
   event DelClaimRewards(uint256 indexed validatorId, uint256 indexed rewards, uint256 indexed tokens);
   event UpdateCommissionRate(uint256 indexed validatorId, uint256 indexed newCommissionRate, uint256 indexed oldCommissionRate);
 
-  Registry registry;
+  Registry public registry;
 
   modifier onlyValidatorContract(uint256 validatorId) {
     address _contract;
     (,,,,,,_contract,) = IStakeManager(registry.getStakeManagerAddress()).validators(validatorId);
     require(_contract == msg.sender);
+    _;
+  }
+
+  modifier StakeManagerOrValidatorContract(uint256 validatorId) {
+    address _contract;
+    address _stakeManager = registry.getStakeManagerAddress();
+    (,,,,,,_contract,) = IStakeManager(_stakeManager).validators(validatorId);
+    require(_contract == msg.sender || _stakeManager == msg.sender);
     _;
   }
 
@@ -102,7 +110,7 @@ contract StakingInfo {
     emit RewardUpdate(newReward, oldReward);
   }
 
-  function logStakeUpdate(uint256 validatorId) public onlyStakeManager {
+  function logStakeUpdate(uint256 validatorId) public StakeManagerOrValidatorContract(validatorId) {
     emit StakeUpdate(validatorId, totalValidatorStake(validatorId));
   }
 
