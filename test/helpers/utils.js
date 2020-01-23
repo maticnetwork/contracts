@@ -44,18 +44,20 @@ export function encodeSigs(sigs = []) {
   return Buffer.concat(sigs.map(s => ethUtils.toBuffer(s)))
 }
 
-export async function checkPoint(wallets, proposer, stakeManager) {
+export async function checkPoint(wallets, proposer, stakeManager, options = {}) {
   const voteData = 'dummyData'
   const sigs = ethUtils.bufferToHex(
     encodeSigs(getSigs(wallets, ethUtils.keccak256(voteData)))
   )
   const stateRoot = ethUtils.bufferToHex(ethUtils.keccak256('stateRoot'))
   // 2/3 majority vote
-  let totalStake = await stakeManager.totalStakedFor(wallets[0].getAddressString())
-  for (let i = 1; i < wallets.length; i++) {
-    totalStake = totalStake.add(await stakeManager.totalStakedFor(wallets[i].getAddressString()))
+  let totalStake = options.totalStake
+  if (!options.totalStake) {
+    totalStake = await stakeManager.totalStakedFor(wallets[0].getAddressString())
+    for (let i = 1; i < wallets.length; i++) {
+      totalStake = totalStake.add(await stakeManager.totalStakedFor(wallets[i].getAddressString()))
+    }
   }
-
   await stakeManager.checkSignatures(
     totalStake,
     1,
