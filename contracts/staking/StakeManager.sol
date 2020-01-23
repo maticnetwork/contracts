@@ -20,7 +20,9 @@ contract ValidatorShareFactory {
     - factory to create new validatorShare contracts
    */
   function create(uint256 validatorId, address tokenAddress, address loggerAddress) public returns(address) {
-    return address(new ValidatorShare(validatorId, tokenAddress, loggerAddress));
+    ValidatorShare validatorShare = new ValidatorShare(validatorId, tokenAddress, loggerAddress);
+    validatorShare.transferOwnership(msg.sender);
+    return address(validatorShare);
   }
 
 }
