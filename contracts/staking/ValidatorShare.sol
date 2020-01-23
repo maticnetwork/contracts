@@ -11,9 +11,9 @@ contract ValidatorShare is IValidatorShare {
  // TODO: transfer all the funds and rewards to/from stakeManager
   constructor (
     uint256 _validatorId,
-    address tokenAddress,
+    address _tokenAddress,
     address _stakingLogger) public 
-    IValidatorShare(_validatorId, tokenAddress, _stakingLogger) {
+    IValidatorShare(_validatorId, _tokenAddress, _stakingLogger) {
   }
 
   modifier onlyValidator() {

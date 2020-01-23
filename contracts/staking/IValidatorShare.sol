@@ -31,9 +31,9 @@ contract IValidatorShare is ERC20, Lockable {
   mapping (address => uint256) public amountStaked;
   mapping (address=> Delegator) public delegators;
 
-  constructor (uint256 _validatorId, address tokenAddress, address _stakingLogger) public {
+  constructor (uint256 _validatorId, address _tokenAddress, address _stakingLogger) public {
     validatorId = _validatorId;
-    token = ERC20(tokenAddress);
+    token = ERC20(_tokenAddress);
     stakingLogger = StakingInfo(_stakingLogger);
   }
 
