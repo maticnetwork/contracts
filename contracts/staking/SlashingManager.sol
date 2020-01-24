@@ -17,8 +17,8 @@ contract SlashingManager is Ownable {
   uint256 public haltInterval = 50; // epoch
   uint256 public slashingRate = 5; // slashing %
   uint256 public jailCheckpoints = 5; // checkpoints
-  bytes32 public chain = keccak256("test-chain-E5igIA");
-  bytes32 public roundType = keccak256("vote");
+  bytes32 public chain = keccak256("heimdall-P5rXwg");
+  uint256 public roundType = 2;
   uint8 public voteType = 2;
   Registry public registry;
 
@@ -34,7 +34,7 @@ contract SlashingManager is Ownable {
 
     require(dataList1[2].toUint() == dataList2[2].toUint(), "sig isn't duplicate");
     require((keccak256(dataList1[0].toBytes()) == chain && keccak256(dataList2[0].toBytes()) == chain),"Chain ID not same");
-    require((keccak256(dataList1[1].toBytes()) == roundType && keccak256(dataList2[1].toBytes()) == roundType), "Round type not same ");
+    require(dataList1[1].toUint() == roundType && dataList2[1].toUint() == roundType, "Round type not same ");
     require((dataList1[3].toUint() == voteType && dataList2[3].toUint() == voteType), "Vote type not same");
     require(keccak256(dataList1[4].toBytes()) != keccak256(dataList2[4].toBytes()), "same vote");
 
