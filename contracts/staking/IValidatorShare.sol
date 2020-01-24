@@ -19,12 +19,10 @@ contract IValidatorShare is ERC20, Lockable {
   uint256 public totalStake;
   uint256 public rewards;
   uint256 public activeAmount;
-  uint256 public withdrawPool;
-  uint256 public withdrawShares;
   bool public delegation = true;
 
   struct Delegator {
-    uint256 share;
+    uint256 amount;
     uint256 withdrawEpoch;
   }
 
@@ -41,11 +39,10 @@ contract IValidatorShare is ERC20, Lockable {
   function updateCommissionRate(uint256 newCommissionRate) external;
   function withdrawRewardsValidator() external returns(uint256);
   function exchangeRate() public view returns(uint256);
-  function withdrawExchangeRate() public view returns(uint256);
   function buyVoucher(uint256 _amount) public;
-  function sellVoucher(uint256 shares) public;
+  function sellVoucher() public;
   function withdrawRewards() public;
-  function unStakeClaimTokens(address user) public;
+  function unStakeClaimTokens() public;
   function slash(uint256 slashRate, uint256 startEpoch, uint256 endEpoch) public;
   // function _slashActive() internal {}
   // function _slashInActive() internal {}

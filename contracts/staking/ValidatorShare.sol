@@ -21,7 +21,7 @@ contract ValidatorShare is IValidatorShare {
     _;
   }
 
-  function udpateRewards(uint256 _reward, uint256 totalStake) external onlyOwner returns(uint256) {
+  function udpateRewards(uint256 _reward, uint256 _totalStake) external onlyOwner returns(uint256) {
     /**
     TODO: check for no revert on 0 commission and reduce logic for calculations
     TODO: better to add validator as one of share holder and
@@ -35,10 +35,12 @@ contract ValidatorShare is IValidatorShare {
       - returns total active stake for validator
      */
     uint256 stakePower;
-    (stakePower, , , , , , , ) = IStakeManager(owner()).validators(validatorId);// to avoid Stack too deep :cry
-    stakePower = stakePower.add(activeAmount);// validator + delegation stake power
-    uint256 _rewards = stakePower.mul(_reward).div(totalStake);
-    uint256 _valRewards = activeAmount.mul(_rewards).div(stakePower);
+    uint256 valStake;
+    (valStake, , , , , , , ) = IStakeManager(owner()).validators(validatorId);// to avoid Stack too deep :cry
+    stakePower = valStake.add(activeAmount);// validator + delegation stake power
+    uint256 _rewards = stakePower.mul(_reward).div(_totalStake);
+
+    uint256 _valRewards = valStake.mul(_rewards).div(stakePower);
     _valRewards = _valRewards.add(_rewards.sub(_valRewards).mul(commissionRate).div(100));
     _rewards = _rewards.sub(_valRewards);
     validatorRewards = validatorRewards.add(_rewards.mul(commissionRate).div(100)).add(_valRewards);
@@ -61,10 +63,6 @@ contract ValidatorShare is IValidatorShare {
     return totalSupply() == 0 ? 100 : activeAmount.add(rewards).mul(100).div(totalSupply());
   }
 
-  function withdrawExchangeRate() public view returns(uint256) {
-    return withdrawShares == 0 ? 100 : withdrawPool.mul(100).div(withdrawShares);
-  }
-
   function buyVoucher(uint256 _amount) public onlyWhenUnlocked {
     uint256 share = _amount.mul(100).div(exchangeRate());
     totalStake = totalStake.add(_amount);
@@ -72,30 +70,34 @@ contract ValidatorShare is IValidatorShare {
     require(token.transferFrom(msg.sender, address(this), _amount), "Transfer amount failed");
     _mint(msg.sender, share);
     activeAmount = activeAmount.add(_amount);
+    IStakeManager(owner()).updateValidatorState(validatorId, int256(_amount));
 
     stakingLogger.logShareMinted(validatorId, msg.sender, _amount, share);
     stakingLogger.logStakeUpdate(validatorId);
   }
 
-  function sellVoucher(uint256 shares) public {
+  function sellVoucher() public {
     uint256 share = balanceOf(msg.sender);
-    //shares
     require(share > 0, "Zero balance");
     uint256 _amount = exchangeRate().mul(share).div(100);
     _burn(msg.sender, share);
+    IStakeManager(owner()).updateValidatorState(validatorId, -int256(_amount));
     totalStake = totalStake.sub(_amount);
     IStakeManager stakeManager = IStakeManager(owner());
     activeAmount = activeAmount.sub(_amount);
-    amountStaked[msg.sender] = amountStaked[msg.sender].sub(_amount);
-    share = _amount.mul(100).div(withdrawExchangeRate());
+    if (_amount > amountStaked[msg.sender]) {
+      uint256 _rewards = _amount.sub(amountStaked[msg.sender]);
+      //withdrawTransfer
+      IStakeManager(owner()).delegationTransfer(validatorId, _rewards, msg.sender);
+      _amount = _amount.sub(_rewards);
+    }
 
-    withdrawPool = withdrawPool.add(_amount);
-    withdrawShares = withdrawShares.add(share);
+    amountStaked[msg.sender] = 0; // TODO: add partial sell amountStaked[msg.sender].sub(_amount);
     delegators[msg.sender] = Delegator({
-        share: share,
+        amount: _amount,
         withdrawEpoch: stakeManager.currentEpoch().add(stakeManager.WITHDRAWAL_DELAY())
       });
-    
+
     stakingLogger.logShareBurned(validatorId, msg.sender, _amount, share);
     stakingLogger.logStakeUpdate(validatorId);
   }
@@ -106,6 +108,7 @@ contract ValidatorShare is IValidatorShare {
     // if (sharesToBurn > 0)
     _burn(msg.sender, sharesToBurn);
     rewards = rewards.sub(liquidRewards);
+    IStakeManager(owner()).delegationTransfer(validatorId, liquidRewards, msg.sender);
     stakingLogger.logDelClaimRewards(validatorId, liquidRewards, sharesToBurn);
   }
 
@@ -119,7 +122,11 @@ contract ValidatorShare is IValidatorShare {
     amountStaked[msg.sender] = amountStaked[msg.sender].add(liquidRewards);
     totalStake = totalStake.add(liquidRewards);
     activeAmount = activeAmount.add(liquidRewards);
+    IStakeManager(owner()).delegationTransfer(validatorId, liquidRewards, address(this));
+    IStakeManager(owner()).updateValidatorState(validatorId, int256(liquidRewards));
     rewards = rewards.sub(liquidRewards);
+    stakingLogger.logStakeUpdate(validatorId);
+    // TODO: add restake event
   }
 
   function getLiquidRewards(address user) internal returns(uint256 liquidRewards) {
@@ -131,13 +138,12 @@ contract ValidatorShare is IValidatorShare {
     require(liquidRewards > 0, "insufficient funds");
   }
 
-  function unStakeClaimTokens(address user) public {
-    Delegator storage delegator = delegators[user];
+  function unStakeClaimTokens() public {
+    Delegator storage delegator = delegators[msg.sender];
     IStakeManager stakeManager = IStakeManager(owner());
-    require(delegator.withdrawEpoch <= stakeManager.currentEpoch() && delegator.share > 0, "Incomplete withdrawal period");
-    uint256 _amount = withdrawExchangeRate().mul(delegator.share).div(100);
-    require(token.transfer(user, _amount), "Transfer amount failed");
-    delete delegators[user];
+    require(delegator.withdrawEpoch <= stakeManager.currentEpoch() && delegator.amount > 0, "Incomplete withdrawal period");
+    require(token.transfer(msg.sender, delegator.amount), "Transfer amount failed");
+    delete delegators[msg.sender];
   }
 
   function slash(uint256 slashRate, uint256 startEpoch, uint256 endEpoch) public {}
