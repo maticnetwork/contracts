@@ -242,8 +242,8 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
     _unstake(validatorId, exitEpoch);
   }
 
-  function delegationTransfer(uint256 amount, address delegator) external {
-    require(Registry(registry).getDelegationManagerAddress() == msg.sender);
+  function delegationTransfer(uint256 validatorId, uint256 amount, address delegator) external {
+    require(validators[validatorId].contractAddress == msg.sender);
     require(token.transfer(delegator, amount), "Insufficent rewards");
   }
 
@@ -313,9 +313,9 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
   // if not jailed then in state of warning, else will be unstaking after x epoch
   function slash(uint256 validatorId, uint256 slashingRate, uint256 jailCheckpoints) public onlySlashingMananger {
     // if contract call contract.slash
-    if (validators[validatorId].contractAddress != address(0x0)) {
-      ValidatorShare(validators[validatorId].contractAddress).slash(slashingRate, currentEpoch, currentEpoch);
-    }
+    // if (validators[validatorId].contractAddress != address(0x0)) {
+    //   // ValidatorShare(validators[validatorId].contractAddress).slash(slashingRate, currentEpoch, currentEpoch);
+    // }
     uint256 amount = validators[validatorId].amount.mul(slashingRate).div(100);
     validators[validatorId].amount = validators[validatorId].amount.sub(amount);
     if (validators[validatorId].amount < MIN_DEPOSIT_SIZE || jailCheckpoints > 0) {
@@ -412,11 +412,11 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
     CHECKPOINT_REWARD = newReward;
   }
 
-  function updateValidatorState(uint256 validatorId, uint256 epoch, int256 amount) public {
-    require(Registry(registry).getDelegationManagerAddress() == msg.sender);
-    require(epoch >= currentEpoch, "Can't change past");
-    validatorState[epoch].amount = (
-      validatorState[epoch].amount + amount
+  function updateValidatorState(uint256 validatorId, int256 amount) public {
+    require(validators[validatorId].contractAddress == msg.sender);
+    // require(epoch >= currentEpoch, "Can't change past");
+    validatorState[currentEpoch].amount = (
+      validatorState[currentEpoch].amount + amount
     );
   }
 
@@ -478,18 +478,14 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
     uint256 _reward = blockInterval.mul(CHECKPOINT_REWARD).div(checkPointBlockInterval);
     _reward = Math.min(CHECKPOINT_REWARD, _reward).mul(stakePower).div(currentValidatorSetTotalStake());
     totalRewards = totalRewards.add(_reward);
-    
     // update stateMerkleTree root for accounts balance on heimdall chain
     accountStateRoot = stateRoot;
     _finalizeCommit();
-    if(checkSignature(stakePower, _reward, voteHash, sigs)) {
-      return _reward;
-    } else {
-      return 0;
-    }
+    require(checkSignature(stakePower, _reward, voteHash, sigs));
+    return _reward;
   }
 
-  function checkSignature(uint256 stakePower, uint256 _reward, bytes32 voteHash, bytes memory sigs) public returns(bool) {
+  function checkSignature(uint256 stakePower, uint256 _reward, bytes32 voteHash, bytes memory sigs) internal returns(bool) {
     // total voting power
     uint256 _stakePower;
     //TODO: add proposer bonus
