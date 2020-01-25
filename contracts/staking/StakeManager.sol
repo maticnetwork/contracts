@@ -480,9 +480,11 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
     totalRewards = totalRewards.add(_reward);
     // update stateMerkleTree root for accounts balance on heimdall chain
     accountStateRoot = stateRoot;
-    _finalizeCommit();
-    require(checkSignature(stakePower, _reward, voteHash, sigs));
-    return _reward;
+    if (checkSignature(stakePower, _reward, voteHash, sigs)) {
+      _finalizeCommit();
+      return _reward;
+    }
+    return 0;
   }
 
   function checkSignature(uint256 stakePower, uint256 _reward, bytes32 voteHash, bytes memory sigs) internal returns(bool) {
@@ -517,6 +519,7 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
         _stakePower = _stakePower.add(valPow);
       }
     }
+
     return (stakePower <= _stakePower);
   }
 

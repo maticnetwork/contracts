@@ -9,6 +9,7 @@ import {
   assertBigNumbergt,
   buildSubmitHeaderBlockPaylod
 } from '../helpers/utils.js'
+import logDecoder from '../helpers/log-decoder.js'
 import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
 
 chai.use(chaiAsPromised).should()
@@ -32,7 +33,7 @@ contract('RootChain', async function (accounts) {
       3: web3.utils.toWei('1000'),
       4: web3.utils.toWei('1000')
     }
-    totalStake = web3.utils.toWei('4000')
+    totalStake = web3.utils.toWei('3000')
     wallets = generateFirstWallets(mnemonics, Object.keys(stakes).length)
   })
 
@@ -69,7 +70,6 @@ contract('RootChain', async function (accounts) {
       wallets,
       { rewardsRootHash: tree.getRoot(), getSigs: true, totalStake: totalStake }
     )
-
     const result = await rootChain.submitHeaderBlock(vote, sigs, extraData)
     const logs = result.logs
     logs.should.have.lengthOf(1)
@@ -88,6 +88,7 @@ contract('RootChain', async function (accounts) {
     let payload = buildSubmitHeaderBlockPaylod(accounts[0], 0, 4, '', wallets, {
       rewardsRootHash: tree.getRoot(),
       getSigs: true,
+      allValidators: true,
       totalStake: totalStake
     })
     await rootChain.submitHeaderBlock(

@@ -105,9 +105,10 @@ export function buildSubmitHeaderBlockPaylod(
 
   const extraData = ethUtils.bufferToHex(
     ethUtils.rlp.encode([
-      [proposer, start, end, root, options.rewardsRootHash, options.totalStake] // 0th element
+      [proposer, start, end, root, options.rewardsRootHash, web3.utils.toHex(options.totalStake.toString())] // 0th element
     ])
   )
+
   const vote = ethUtils.bufferToHex(
     // [chain, voteType, height, round, sha256(extraData)]
     ethUtils.rlp.encode([
