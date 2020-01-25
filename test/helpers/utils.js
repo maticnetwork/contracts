@@ -93,7 +93,7 @@ export function buildSubmitHeaderBlockPaylod(
   end,
   root,
   wallets,
-  options = { rewardsRootHash: '', allValidators: false, getSigs: false, totalStake: 0 } // false vars are to show expected vars
+  options = { rewardsRootHash: '', allValidators: false, getSigs: false, totalStake: 1 } // false vars are to show expected vars
 ) {
   if (!root) root = ethUtils.keccak256(encode(start, end)) // dummy root
   if (!wallets) {
@@ -105,7 +105,7 @@ export function buildSubmitHeaderBlockPaylod(
 
   const extraData = ethUtils.bufferToHex(
     ethUtils.rlp.encode([
-      [proposer, start, end, root, options.rewardsRootHash, web3.utils.toHex(options.totalStake.toString())] // 0th element
+      [proposer, start, end, root, options.rewardsRootHash, web3.utils.toHex((options.totalStake || '1').toString())] // 0th element
     ])
   )
 
