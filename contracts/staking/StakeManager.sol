@@ -54,7 +54,6 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
   uint256 public totalRewards;
   uint256 public totalRewardsLiquidated;
   uint256 public auctionPeriod = dynasty.div(4); // 1 week in epochs
-  uint256 public auctionCancelPeriod = dynasty.div(4); // can be made shorter
   bytes32 public accountStateRoot;
 
   // on dynasty update certain amount of cooldown period where there is no validator auction
@@ -173,15 +172,6 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
     logger.logStartAuction(validatorId, validators[validatorId].amount, validatorAuction[validatorId].amount);
   }
 
-  function cancelAuctionBid(uint256 validatorId) public {
-    //TODO: check for same owner mech and overall flow
-    Auction storage auction = validatorAuction[validatorId];
-    require(auctionPeriod.add(auction.startEpoch).add(auctionCancelPeriod) <= currentEpoch, "Incomplete cancellation period");
-    require(auction.user != ownerOf(validatorId));
-    require(token.transfer(auction.user, auction.amount));
-    delete validatorAuction[validatorId];
-  }
-
   function confirmAuctionBid(
     uint256 validatorId,
     uint256 heimdallFee, /** for new validator */
@@ -190,7 +180,7 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
     ) external onlyWhenUnlocked {
     Auction storage auction = validatorAuction[validatorId];
     Validator storage validator = validators[validatorId];
-    require(auction.user == msg.sender);
+    // require(auction.user == msg.sender);// any one can call confrimAuction
     require(auctionPeriod.add(auction.startEpoch) <= currentEpoch, "Confirmation is not allowed before auctionPeriod");
 
     // validator is last auctioner
