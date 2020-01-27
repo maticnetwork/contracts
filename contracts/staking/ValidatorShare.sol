@@ -135,7 +135,6 @@ contract ValidatorShare is IValidatorShare {
     require(share > 0, "Zero balance");
     uint256 totalTokens = _exchangeRate.mul(share).div(100);
     liquidRewards = totalTokens.sub(amountStaked[user]);
-    require(liquidRewards > 0, "insufficient funds");
   }
 
   function unStakeClaimTokens() public {

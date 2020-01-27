@@ -80,12 +80,8 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
   //Ongoing auctions for validatorId
   mapping (uint256 => Auction) public validatorAuction;
 
-  struct Fee {
-    uint256 amount;
-    uint256 fee;
-  }
-  // mapping to maintain validator's topped amount and given fee
-  mapping (uint256 => Fee) public valAmountToFee;
+
+  uint256 public totalHeimdallFee;
 
   constructor (address _registry, address _rootchain, address _stakingLogger, address _ValidatorShareFactory) ERC721Full("Matic Validator", "MV") public {
     registry = _registry;
@@ -105,43 +101,30 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
   }
 
   // TopUp heimdall fee
-  function topUpForFee(uint256 validatorId, uint256 amount) public onlyStaker(validatorId) {
-    _topUpForFee(validatorId, amount);
+  function topUpForFee(uint256 validatorId, uint256 heimdallFee) public onlyStaker(validatorId) {
+    require(token.transferFrom(msg.sender, address(this), heimdallFee), "Transfer stake failed");
+    _topUpForFee(validatorId, heimdallFee);
   }
 
   function _topUpForFee(uint256 validatorId, uint256 amount) private {
-    uint256 inflationRate = 10;// TODO: add inflation control mech here
-
-    if (validators[validatorId].activationEpoch == currentEpoch) {
-      valAmountToFee[validatorId] = Fee({
-        amount: 0,
-        fee: amount.mul(inflationRate)
-      });
-    } else {
-        valAmountToFee[validatorId].amount = amount;
-        valAmountToFee[validatorId].fee = amount.mul(inflationRate);
-    }
-    logger.logTopUpFee(validatorId, valAmountToFee[validatorId].fee);
+    totalHeimdallFee = totalHeimdallFee.add(amount);
+    logger.logTopUpFee(validatorId, amount);
   }
 
-  function _feeToAmount(uint256 validatorId, uint256 fee) private returns (uint256 _amount) {
-    _amount = valAmountToFee[validatorId].amount;
-    //TODO: logger.logfee burned !?
-    delete valAmountToFee[validatorId];
+  function _claimFee(uint256 validatorId, uint256 amount) private {
+    totalHeimdallFee = totalHeimdallFee.sub(amount);
+    logger.logClaimFee(validatorId, amount);
   }
 
-  function claimFees(uint256 validatorId, uint256 accumBalance, uint256 accumSlashedAmount, uint256 fee, uint256 index, bytes memory proof) public onlyStaker(validatorId) {
-    Validator storage validator = validators[validatorId];
-    require(keccak256(abi.encodePacked(validatorId, accumBalance, accumSlashedAmount, fee)).checkMembership(index, accountStateRoot, proof), "Wrong acc proof");
+  function ClaimFee(uint256 validatorId, uint256 accumBalance, uint256 accumSlashedAmount, uint256 amount, uint256 index, bytes memory proof) public onlyStaker(validatorId) {
     //Ignoring other params becuase rewards distribution is on chain
-    uint256 amount = _feeToAmount(validatorId, fee);
-  
+    require(keccak256(abi.encodePacked(validatorId, accumBalance, accumSlashedAmount, amount)).checkMembership(index, accountStateRoot, proof), "Wrong acc proof");
     require(token.transfer(msg.sender, amount));
-    logger.logClaimFee(validatorId, fee);
+    _claimFee(validatorId, amount);
   }
 
-  function stake(uint256 amount, address signer, bool isContract) external {
-    stakeFor(msg.sender, amount, signer, isContract);
+  function stake(uint256 amount, uint256 heimdallFee, address signer, bool isContract) external {
+    stakeFor(msg.sender, amount, heimdallFee, signer, isContract);
   }
 
   function totalStakedFor(address user) external view returns (uint256) {
@@ -201,6 +184,7 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
 
   function confirmAuctionBid(
     uint256 validatorId,
+    uint256 heimdallFee, /** for new validator */
     address signer,
     bool isContract
     ) external onlyWhenUnlocked {
@@ -226,6 +210,8 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
     } else {
       // dethrone
       _unstake(validatorId, currentEpoch);
+      require(token.transferFrom(msg.sender, address(this), heimdallFee), "Transfer fee failed");
+      _topUpForFee(NFTCounter, heimdallFee);
       _stakeFor(auction.user, auction.amount, signer, isContract);
 
       logger.logConfirmAuction(NFTCounter.sub(1), validatorId, auction.amount);
@@ -247,13 +233,15 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
     require(token.transfer(delegator, amount), "Insufficent rewards");
   }
 
-  function stakeFor(address user, uint256 amount, address signer, bool isContract) public onlyWhenUnlocked {
+  function stakeFor(address user, uint256 amount, uint256 heimdallFee, address signer, bool isContract) public onlyWhenUnlocked {
     require(currentValidatorSetSize() < validatorThreshold);
     require(balanceOf(user) == 0, "Only one time staking is allowed");
     require(amount > MIN_DEPOSIT_SIZE);
     require(signerToValidator[signer] == 0);
 
-    require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake failed");
+    require(token.transferFrom(msg.sender, address(this), amount.add(heimdallFee)), "Transfer stake failed");
+    // _topup
+    _topUpForFee(NFTCounter/** validatorId*/, heimdallFee);
     _stakeFor(user, amount, signer, isContract);
   }
 
@@ -497,7 +485,7 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
       address signer = voteHash.ecrecovery(sigElement);
 
       uint256 validatorId = signerToValidator[signer];
-      // check if signer is stacker and not proposer
+      // check if signer is staker and not proposer
       if (signer == lastAdd) {
         break;
       }
@@ -525,6 +513,8 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
 
   function challangeStateRootUpdate(bytes memory checkpointTx /* txData from submitCheckpoint */) public {
     // TODO: check for 2/3+1 sig and validate non-inclusion in newStateUpdate
+    // UPDATE: since we've moved rewards to on chain there is no urgent need for this function
+    // becuase heimdall fee can be trusted on 2/3+1 security 
   }
 
   function _stakeFor(address user, uint256 amount, address signer, bool isContract) internal {

@@ -52,7 +52,7 @@ contract('SlashingManager', async function (accounts) {
     await stakeToken.approve(stakeManager.address, amount, {
       from: user
     })
-    await stakeManager.stake(amount, user, false, {
+    await stakeManager.stake(amount, 0, user, false, {
       from: user
     })
     const beforeStake = await stakeManager.totalStakedFor(user)
@@ -90,7 +90,7 @@ contract('SlashingManager', async function (accounts) {
       from: user
     })
 
-    await stakeManager.stake(amount, user, false, {
+    await stakeManager.stake(amount, 0, user, false, {
       from: user
     })
 

@@ -41,7 +41,7 @@ contract('ValidatorShare', async function (accounts) {
       from: user
     })
 
-    await stakeManager.stake(amount, user, true, {
+    await stakeManager.stake(amount, 0, user, true, {
       from: user
     })
     let validator = await stakeManager.validators(1)
