@@ -140,7 +140,7 @@ contract ValidatorShare is IValidatorShare {
   function unStakeClaimTokens() public {
     Delegator storage delegator = delegators[msg.sender];
     IStakeManager stakeManager = IStakeManager(owner());
-    totalStake = totalStake.sub(_amount);
+    totalStake = totalStake.sub(delegator.amount);
     require(delegator.withdrawEpoch <= stakeManager.currentEpoch() && delegator.amount > 0, "Incomplete withdrawal period");
     require(token.transfer(msg.sender, delegator.amount), "Transfer amount failed");
     delete delegators[msg.sender];
