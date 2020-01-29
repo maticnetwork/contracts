@@ -450,9 +450,9 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
   function checkSignatures(uint256 stakePower, uint256 blockInterval, bytes32 voteHash, bytes32 stateRoot, bytes memory sigs) public onlyRootChain returns(uint256) {
     require(stakePower >= currentValidatorSetTotalStake().mul(2).div(3).add(1));
     // checkpoint rewards are based on BlockInterval multiplied on `CHECKPOINT_REWARD`
-    // with actual `blockInterval`
-    // eg. CHECKPOINT_REWARD = 10 Tokens, checkPointBlockInterval = 250, blockInterval = 500 then reward
-    // for this checkpoint is 20 Tokens
+    // for bigger checkpoints reward is capped at `CHECKPOINT_REWARD`
+    // if interval is 50% of checkPointBlockInterval then reward R is half of `CHECKPOINT_REWARD`
+    // and then stakePower is 90% of currentValidatorSetTotalStake then final reward is 90% of R
     uint256 _reward = blockInterval.mul(CHECKPOINT_REWARD).div(checkPointBlockInterval);
     _reward = Math.min(CHECKPOINT_REWARD, _reward).mul(stakePower).div(currentValidatorSetTotalStake());
     totalRewards = totalRewards.add(_reward);

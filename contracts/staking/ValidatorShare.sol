@@ -41,15 +41,17 @@ contract ValidatorShare is IValidatorShare {
     uint256 _rewards = stakePower.mul(_reward).div(_totalStake);
 
     uint256 _valRewards = valStake.mul(_rewards).div(stakePower);
+    // add validator commission from delegation rewards
     _valRewards = _valRewards.add(_rewards.sub(_valRewards).mul(commissionRate).div(100));
     _rewards = _rewards.sub(_valRewards);
-    validatorRewards = validatorRewards.add(_rewards.mul(commissionRate).div(100)).add(_valRewards);
+    validatorRewards = validatorRewards.add(_valRewards);
     rewards = rewards.add(_rewards);
     return stakePower;
   }
 
   function updateCommissionRate(uint256 newCommissionRate) external onlyValidator {
     //todo: constrains on updates, coolDown period
+    require(commissionRate <= 100,"Commission rate should be in range of 0-100");
     stakingLogger.logUpdateCommissionRate(validatorId, newCommissionRate, commissionRate);
     commissionRate = newCommissionRate;
   }
