@@ -51,15 +51,8 @@ export async function checkPoint(wallets, proposer, stakeManager, options = {}) 
   )
   const stateRoot = ethUtils.bufferToHex(ethUtils.keccak256('stateRoot'))
   // 2/3 majority vote
-  let totalStake = options.totalStake
-  if (!options.totalStake) {
-    totalStake = await stakeManager.totalStakedFor(wallets[0].getAddressString())
-    for (let i = 1; i < wallets.length; i++) {
-      totalStake = totalStake.add(await stakeManager.totalStakedFor(wallets[i].getAddressString()))
-    }
-  }
+
   await stakeManager.checkSignatures(
-    totalStake,
     1,
     ethUtils.bufferToHex(ethUtils.keccak256(voteData)),
     stateRoot,

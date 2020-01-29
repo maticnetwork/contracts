@@ -628,7 +628,6 @@ contract('StakeManager: Heimdall fee', async function (accounts) {
 
       // 2/3 majority vote
       await stakeManager.checkSignatures(
-        web3.utils.toWei('150'),
         1,
         utils.bufferToHex(utils.keccak256(vote)),
         utils.bufferToHex(tree.getRoot()),

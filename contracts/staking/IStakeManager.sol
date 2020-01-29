@@ -30,7 +30,7 @@ contract IStakeManager is IERC721Full {
   function totalStakedFor(address addr) external view returns (uint256);
   function supportsHistory() external pure returns (bool);
   function stakeFor(address user, uint256 heimdallFee, uint256 amount, address signer, bool isContract) public;
-  function checkSignatures(uint256 stakePower, uint256 blockInterval, bytes32 voteHash, bytes32 stateRoot, bytes memory sigs) public returns(uint256);
+  function checkSignatures(uint256 blockInterval, bytes32 voteHash, bytes32 stateRoot, bytes memory sigs) public returns(uint256);
   function updateValidatorState(uint256 validatorId, int256 amount) public;
 
   // optional

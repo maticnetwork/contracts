@@ -447,25 +447,22 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
     );
   }
 
-  function checkSignatures(uint256 stakePower, uint256 blockInterval, bytes32 voteHash, bytes32 stateRoot, bytes memory sigs) public onlyRootChain returns(uint256) {
-    require(stakePower >= currentValidatorSetTotalStake().mul(2).div(3).add(1));
+  function checkSignatures(uint256 blockInterval, bytes32 voteHash, bytes32 stateRoot, bytes memory sigs) public onlyRootChain returns(uint256) {
     // checkpoint rewards are based on BlockInterval multiplied on `CHECKPOINT_REWARD`
     // for bigger checkpoints reward is capped at `CHECKPOINT_REWARD`
     // if interval is 50% of checkPointBlockInterval then reward R is half of `CHECKPOINT_REWARD`
     // and then stakePower is 90% of currentValidatorSetTotalStake then final reward is 90% of R
     uint256 _reward = blockInterval.mul(CHECKPOINT_REWARD).div(checkPointBlockInterval);
-    _reward = Math.min(CHECKPOINT_REWARD, _reward).mul(stakePower).div(currentValidatorSetTotalStake());
-    totalRewards = totalRewards.add(_reward);
+    _reward = Math.min(CHECKPOINT_REWARD, _reward);
+
+    uint256 stakePower = currentValidatorSetTotalStake();
     // update stateMerkleTree root for accounts balance on heimdall chain
     accountStateRoot = stateRoot;
-    if (checkSignature(stakePower, _reward, voteHash, sigs)) {
-      _finalizeCommit();
-      return _reward;
-    }
-    return 0;
+    _finalizeCommit();
+    return checkSignature(stakePower, _reward, voteHash, sigs);
   }
 
-  function checkSignature(uint256 stakePower, uint256 _reward, bytes32 voteHash, bytes memory sigs) internal returns(bool) {
+  function checkSignature(uint256 stakePower, uint256 _reward, bytes32 voteHash, bytes memory sigs) internal returns(uint256) {
     // total voting power
     uint256 _stakePower;
     //TODO: add proposer bonus
@@ -498,7 +495,10 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
       }
     }
 
-    return (stakePower <= _stakePower);
+    _reward = CHECKPOINT_REWARD.mul(_stakePower).div(currentValidatorSetTotalStake());
+    totalRewards = totalRewards.add(_reward);
+    require(_stakePower >= currentValidatorSetTotalStake().mul(2).div(3).add(1));
+    return _reward;
   }
 
   function challangeStateRootUpdate(bytes memory checkpointTx /* txData from submitCheckpoint */) public {
