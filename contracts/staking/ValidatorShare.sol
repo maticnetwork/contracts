@@ -1,7 +1,6 @@
 pragma solidity ^0.5.2;
 
 import { Registry } from "../common/Registry.sol";
-import { IStakeManager } from "./IStakeManager.sol";
 
 import { IValidatorShare } from "./IValidatorShare.sol";
 
@@ -12,12 +11,13 @@ contract ValidatorShare is IValidatorShare {
   constructor (
     uint256 _validatorId,
     address _tokenAddress,
-    address _stakingLogger) public 
-    IValidatorShare(_validatorId, _tokenAddress, _stakingLogger) {
+    address _stakingLogger,
+    address _stakeManager) public
+    IValidatorShare(_validatorId, _tokenAddress, _stakingLogger, _stakeManager) {
   }
 
   modifier onlyValidator() {
-    require(IStakeManager(owner()).ownerOf(validatorId) == msg.sender);
+    require(stakeManager.ownerOf(validatorId) == msg.sender);
     _;
   }
 
@@ -36,7 +36,7 @@ contract ValidatorShare is IValidatorShare {
      */
     uint256 stakePower;
     uint256 valStake;
-    (valStake, , , , , , , ) = IStakeManager(owner()).validators(validatorId);// to avoid Stack too deep :cry
+    (valStake, , , , , , , ) = stakeManager.validators(validatorId);// to avoid Stack too deep :cry
     stakePower = valStake.add(activeAmount);// validator + delegation stake power
     uint256 _rewards = stakePower.mul(_reward).div(_totalStake);
 
@@ -51,7 +51,7 @@ contract ValidatorShare is IValidatorShare {
 
   function updateCommissionRate(uint256 newCommissionRate) external onlyValidator {
     //todo: constrains on updates, coolDown period
-    require(commissionRate <= 100,"Commission rate should be in range of 0-100");
+    require(commissionRate <= 100, "Commission rate should be in range of 0-100");
     stakingLogger.logUpdateCommissionRate(validatorId, newCommissionRate, commissionRate);
     commissionRate = newCommissionRate;
   }
@@ -72,7 +72,7 @@ contract ValidatorShare is IValidatorShare {
     require(token.transferFrom(msg.sender, address(this), _amount), "Transfer amount failed");
     _mint(msg.sender, share);
     activeAmount = activeAmount.add(_amount);
-    IStakeManager(owner()).updateValidatorState(validatorId, int256(_amount));
+    stakeManager.updateValidatorState(validatorId, int256(_amount));
 
     stakingLogger.logShareMinted(validatorId, msg.sender, _amount, share);
     stakingLogger.logStakeUpdate(validatorId);
@@ -83,14 +83,13 @@ contract ValidatorShare is IValidatorShare {
     require(share > 0, "Zero balance");
     uint256 _amount = exchangeRate().mul(share).div(100);
     _burn(msg.sender, share);
-    IStakeManager(owner()).updateValidatorState(validatorId, -int256(_amount));
+    stakeManager.updateValidatorState(validatorId, -int256(_amount));
 
-    IStakeManager stakeManager = IStakeManager(owner());
     activeAmount = activeAmount.sub(_amount);
     if (_amount > amountStaked[msg.sender]) {
       uint256 _rewards = _amount.sub(amountStaked[msg.sender]);
       //withdrawTransfer
-      IStakeManager(owner()).delegationTransfer(validatorId, _rewards, msg.sender);
+      stakeManager.delegationTransfer(validatorId, _rewards, msg.sender);
       _amount = _amount.sub(_rewards);
     }
 
@@ -110,7 +109,7 @@ contract ValidatorShare is IValidatorShare {
     // if (sharesToBurn > 0)
     _burn(msg.sender, sharesToBurn);
     rewards = rewards.sub(liquidRewards);
-    IStakeManager(owner()).delegationTransfer(validatorId, liquidRewards, msg.sender);
+    stakeManager.delegationTransfer(validatorId, liquidRewards, msg.sender);
     stakingLogger.logDelClaimRewards(validatorId, liquidRewards, sharesToBurn);
   }
 
@@ -124,14 +123,14 @@ contract ValidatorShare is IValidatorShare {
     amountStaked[msg.sender] = amountStaked[msg.sender].add(liquidRewards);
     totalStake = totalStake.add(liquidRewards);
     activeAmount = activeAmount.add(liquidRewards);
-    IStakeManager(owner()).delegationTransfer(validatorId, liquidRewards, address(this));
-    IStakeManager(owner()).updateValidatorState(validatorId, int256(liquidRewards));
+    stakeManager.delegationTransfer(validatorId, liquidRewards, address(this));
+    stakeManager.updateValidatorState(validatorId, int256(liquidRewards));
     rewards = rewards.sub(liquidRewards);
     stakingLogger.logStakeUpdate(validatorId);
     // TODO: add restake event
   }
 
-  function getLiquidRewards(address user) internal returns(uint256 liquidRewards) {
+  function getLiquidRewards(address user) public view returns(uint256 liquidRewards) {
     uint256 share = balanceOf(user);
     uint256 _exchangeRate = exchangeRate();
     require(share > 0, "Zero balance");
@@ -141,7 +140,6 @@ contract ValidatorShare is IValidatorShare {
 
   function unStakeClaimTokens() public {
     Delegator storage delegator = delegators[msg.sender];
-    IStakeManager stakeManager = IStakeManager(owner());
     totalStake = totalStake.sub(delegator.amount);
     require(delegator.withdrawEpoch <= stakeManager.currentEpoch() && delegator.amount > 0, "Incomplete withdrawal period");
     require(token.transfer(msg.sender, delegator.amount), "Transfer amount failed");

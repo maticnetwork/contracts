@@ -6,11 +6,14 @@ import { ERC721Full } from "openzeppelin-solidity/contracts/token/ERC721/ERC721F
 
 import { Lockable } from "../common/mixin/Lockable.sol";
 import { StakingInfo } from "./StakingInfo.sol";
+import { IStakeManager } from "./IStakeManager.sol";
+
 
 contract IValidatorShare is ERC20, Lockable {
   using SafeMath for uint256;
   ERC20 public token;
   StakingInfo public stakingLogger;
+  IStakeManager public stakeManager;
   uint256 public validatorId;
   uint256 public validatorRewards;
   uint256 public commissionRate;
@@ -29,10 +32,11 @@ contract IValidatorShare is ERC20, Lockable {
   mapping (address => uint256) public amountStaked;
   mapping (address=> Delegator) public delegators;
 
-  constructor (uint256 _validatorId, address _tokenAddress, address _stakingLogger) public {
+  constructor (uint256 _validatorId, address _tokenAddress, address _stakingLogger, address _stakeManager) public {
     validatorId = _validatorId;
     token = ERC20(_tokenAddress);
     stakingLogger = StakingInfo(_stakingLogger);
+    stakeManager = IStakeManager(_stakeManager);
   }
 
   function udpateRewards(uint256 _reward, uint256 _totalStake) external returns(uint256);
