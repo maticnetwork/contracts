@@ -194,6 +194,7 @@ module.exports = async function (deployer) {
         WithdrawManager: WithdrawManager.address,
         WithdrawManagerProxy: WithdrawManagerProxy.address,
         StakeManager: StakeManager.address,
+        StakingInfo: StakingInfo.address,
         SlashingManager: SlashingManager.address,
         ExitNFT: ExitNFT.address,
         StateSender: StateSender.address,
