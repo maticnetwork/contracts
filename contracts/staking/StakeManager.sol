@@ -100,7 +100,8 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
   }
 
   // TopUp heimdall fee
-  function topUpForFee(uint256 validatorId, uint256 heimdallFee) public onlyStaker(validatorId) {
+  function topUpForFee(uint256 validatorId, uint256 heimdallFee) public {
+    require(heimdallFee >= MIN_DEPOSIT_SIZE, "Minimum amount is 1 Matic");
     require(token.transferFrom(msg.sender, address(this), heimdallFee), "Transfer stake failed");
     _topUpForFee(validatorId, heimdallFee);
   }
