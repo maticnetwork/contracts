@@ -14,24 +14,27 @@ class Deployer {
 
   async freshDeploy(options = {}) {
     this.registry = await contracts.Registry.new()
+    this.validatorShareFactory = await contracts.ValidatorShareFactory.new()
+    this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
     await this.deployRootChain()
 
     this.SlashingManager = await contracts.SlashingManager.new(
-      this.registry.address
-    )
-    this.delegationManager = await contracts.DelegationManager.new(
       this.registry.address
     )
 
     if (options.stakeManager) {
       this.stakeManager = await contracts.StakeManager.new(
         this.registry.address,
-        this.rootChain.address
+        this.rootChain.address,
+        this.stakingInfo.address,
+        this.validatorShareFactory.address
       )
     } else {
       this.stakeManager = await contracts.StakeManagerTest.new(
         this.registry.address,
-        this.rootChain.address
+        this.rootChain.address,
+        this.stakingInfo.address,
+        this.validatorShareFactory.address
       )
     }
     this.exitNFT = await contracts.ExitNFT.new(this.registry.address)
@@ -46,10 +49,6 @@ class Deployer {
         this.stakeManager.address
       ),
       this.registry.updateContractMap(
-        ethUtils.keccak256('delegationManager'),
-        this.delegationManager.address
-      ),
-      this.registry.updateContractMap(
         ethUtils.keccak256('slashingManager'),
         this.SlashingManager.address
       )
@@ -61,7 +60,6 @@ class Deployer {
       depositManager,
       withdrawManager,
       exitNFT: this.exitNFT,
-      delegationManager: this.delegationManager,
       stakeManager: this.stakeManager,
       SlashingManager: this.SlashingManager
     }
@@ -70,6 +68,31 @@ class Deployer {
       _contracts.testToken = await this.deployTestErc20()
     }
 
+    return _contracts
+  }
+
+  async deployStakeManager(wallets) {
+    this.registry = await contracts.Registry.new()
+    this.validatorShareFactory = await contracts.ValidatorShareFactory.new()
+    this.rootChain = await this.deployRootChain()
+    this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
+    this.stakeToken = await contracts.DummyERC20.new('Stake Token', 'STAKE')
+    this.stakeManager = await contracts.StakeManager.new(
+      this.stakeToken.address,
+      wallets[1].getAddressString(),
+      this.stakingInfo.address,
+      this.validatorShareFactory.address
+    )
+    await this.registry.updateContractMap(
+      ethUtils.keccak256('stakeManager'),
+      this.stakeManager.address
+    )
+    let _contracts = {
+      registry: this.registry,
+      rootChain: this.rootChain,
+      stakeManager: this.stakeManager,
+      stakeToken: this.stakeToken
+    }
     return _contracts
   }
 

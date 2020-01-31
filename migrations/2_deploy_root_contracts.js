@@ -21,8 +21,8 @@ const RootChain = artifacts.require('RootChain')
 const DepositManager = artifacts.require('DepositManager')
 const WithdrawManager = artifacts.require('WithdrawManager')
 const StakeManager = artifacts.require('StakeManager')
-const ValidatorContract = artifacts.require('ValidatorContract')
-const DelegationManager = artifacts.require('DelegationManager')
+const StakingInfo = artifacts.require('StakingInfo')
+const ValidatorShareFactory = artifacts.require('ValidatorShareFactory')
 const SlashingManager = artifacts.require('SlashingManager')
 const ERC20Predicate = artifacts.require('ERC20Predicate')
 const ERC721Predicate = artifacts.require('ERC721Predicate')
@@ -114,9 +114,7 @@ const libDeps = [
       MarketplacePredicate,
       MarketplacePredicateTest,
       TransferWithSigPredicate,
-      ValidatorContract,
-      StakeManager,
-      DelegationManager
+      StakeManager
     ]
   },
   {
@@ -133,8 +131,8 @@ const libDeps = [
   }
 ]
 
-module.exports = async function(deployer, network) {
-  deployer.then(async() => {
+module.exports = async function (deployer, network) {
+  deployer.then(async () => {
     console.log('linking libs...')
     await bluebird.map(libDeps, async e => {
       await deployer.deploy(e.lib)
@@ -143,17 +141,18 @@ module.exports = async function(deployer, network) {
 
     console.log('deploying contracts...')
     await deployer.deploy(Registry)
+    await deployer.deploy(ValidatorShareFactory)
+    await deployer.deploy(StakingInfo, Registry.address)
     await Promise.all([
       deployer.deploy(RootChain, Registry.address, 'heimdall-P5rXwg'),
       deployer.deploy(SlashingManager, Registry.address),
-      deployer.deploy(DelegationManager, Registry.address),
 
       deployer.deploy(WithdrawManager),
       deployer.deploy(DepositManager)
     ])
 
-    await deployer.deploy(StakeManager, Registry.address, RootChain.address)
-    await deployer.deploy(StakeManagerTest, Registry.address, RootChain.address)
+    await deployer.deploy(StakeManager, Registry.address, RootChain.address, StakingInfo.address, ValidatorShareFactory.address)
+    await deployer.deploy(StakeManagerTest, Registry.address, RootChain.address, StakingInfo.address, ValidatorShareFactory.address)
 
     await Promise.all([
       deployer.deploy(

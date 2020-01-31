@@ -1,10 +1,11 @@
 export const RootChain = artifacts.require('RootChain')
 export const Registry = artifacts.require('Registry')
 export const StakeManager = artifacts.require('StakeManager')
+export const StakingInfo = artifacts.require('StakingInfo')
 export const SlashingManager = artifacts.require('SlashingManager')
-export const ValidatorContract = artifacts.require('ValidatorContract')
-export const DelegationManager = artifacts.require('DelegationManager')
+export const ValidatorShare = artifacts.require('ValidatorShare')
 export const StakeManagerTest = artifacts.require('StakeManagerTest')
+export const ValidatorShareFactory = artifacts.require('ValidatorShareFactory')
 
 export const DepositManager = artifacts.require('DepositManager')
 export const DepositManagerProxy = artifacts.require('DepositManagerProxy')
@@ -17,7 +18,7 @@ export const ERC721Predicate = artifacts.require('ERC721Predicate')
 export const MintableERC721Predicate = artifacts.require('MintableERC721Predicate')
 export const MarketplacePredicate = artifacts.require('MarketplacePredicate')
 export const MarketplacePredicateTest = artifacts.require(
-'MarketplacePredicateTest'
+  'MarketplacePredicateTest'
 )
 export const TransferWithSigPredicate = artifacts.require(
   'TransferWithSigPredicate'

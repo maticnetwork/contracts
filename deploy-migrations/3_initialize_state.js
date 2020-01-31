@@ -8,7 +8,6 @@ const StateSender = artifacts.require('StateSender')
 const WithdrawManager = artifacts.require('WithdrawManager')
 const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
 const StakeManager = artifacts.require('StakeManager')
-const DelegationManager = artifacts.require('DelegationManager')
 const SlashingManager = artifacts.require('SlashingManager')
 const ERC20Predicate = artifacts.require('ERC20Predicate')
 const ERC721Predicate = artifacts.require('ERC721Predicate')
@@ -18,8 +17,8 @@ const ExitNFT = artifacts.require('ExitNFT')
 const MaticWeth = artifacts.require('MaticWETH')
 const TestToken = artifacts.require('TestToken')
 
-module.exports = async function(deployer, network) {
-  deployer.then(async() => {
+module.exports = async function (deployer, network) {
+  deployer.then(async () => {
     console.log('initializing contract state...')
     await bluebird
       .all([
@@ -30,7 +29,6 @@ module.exports = async function(deployer, network) {
         StateSender.deployed(),
         WithdrawManagerProxy.deployed(),
         StakeManager.deployed(),
-        DelegationManager.deployed(),
         SlashingManager.deployed(),
         ExitNFT.deployed(),
         MaticWeth.deployed(),
@@ -39,7 +37,7 @@ module.exports = async function(deployer, network) {
         MarketplacePredicate.deployed(),
         TransferWithSigPredicate.deployed()
       ])
-      .spread(async function(
+      .spread(async function (
         testToken,
         registry,
         rootChain,
@@ -47,7 +45,6 @@ module.exports = async function(deployer, network) {
         stateSender,
         withdrawManagerProxy,
         stakeManager,
-        delegationManager,
         slashingManager,
         exitNFT,
         maticWeth,
@@ -71,10 +68,6 @@ module.exports = async function(deployer, network) {
         await registry.updateContractMap(
           ethUtils.keccak256('stakeManager'),
           stakeManager.address
-        )
-        await registry.updateContractMap(
-          ethUtils.keccak256('delegationManager'),
-          delegationManager.address
         )
         await registry.updateContractMap(
           ethUtils.keccak256('slashingManager'),
