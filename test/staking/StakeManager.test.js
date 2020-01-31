@@ -612,8 +612,8 @@ contract('StakeManager: Heimdall fee', async function (accounts) {
         from: user
       })
 
-      accountState[1] = [0, 0, web3.utils.toHex(fee.toString())]
-      accountState[2] = [0, 0, '0']
+      accountState[1] = [0, web3.utils.toHex(fee.toString())]
+      accountState[2] = [0, '0']
       // validatorId, accumBalance, accumSlashedAmount, amount
       let tree = await rewradsTreeFee(validators, accountState)
 
@@ -635,14 +635,13 @@ contract('StakeManager: Heimdall fee', async function (accounts) {
       )
       const leaf = utils.keccak256(
         web3.eth.abi.encodeParameters(
-          ['uint256', 'uint256', 'uint256', 'uint256'],
-          [1, accountState[1][0], accountState[1][1], accountState[1][2].toString()]
+          ['uint256', 'uint256', 'uint256'],
+          [1, accountState[1][0], accountState[1][1].toString()]
         )
       )
       // validatorId, accumBalance, accumSlashedAmount, amount, index, bytes memory proof
       let Receipt = await stakeManager.claimFee(
         1,
-        0,
         0,
         fee,
         0,

@@ -116,9 +116,9 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
     logger.logClaimFee(validatorId, amount);
   }
 
-  function claimFee(uint256 validatorId, uint256 accumBalance, uint256 accumSlashedAmount, uint256 amount, uint256 index, bytes memory proof) public onlyStaker(validatorId) {
+  function claimFee(uint256 validatorId, uint256 accumSlashedAmount, uint256 amount, uint256 index, bytes memory proof) public onlyStaker(validatorId) {
     //Ignoring other params becuase rewards distribution is on chain
-    require(keccak256(abi.encodePacked(validatorId, accumBalance, accumSlashedAmount, amount)).checkMembership(index, accountStateRoot, proof), "Wrong acc proof");
+    require(keccak256(abi.encodePacked(validatorId, accumSlashedAmount, amount)).checkMembership(index, accountStateRoot, proof), "Wrong acc proof");
     require(token.transfer(msg.sender, amount));
     _claimFee(validatorId, amount);
   }

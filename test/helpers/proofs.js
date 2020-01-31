@@ -46,8 +46,8 @@ export async function rewradsTreeFee(validators, accountState) {
     // validatorId, accumBalance, accumSlashedAmount, amount
     leafs[i++] = utils.keccak256(
       web3.eth.abi.encodeParameters(
-        ['uint256', 'uint256', 'uint256', 'uint256'],
-        [key, accountState[key][0], accountState[key][1], accountState[key][2]]
+        ['uint256', 'uint256', 'uint256'],
+        [key, accountState[key][0], accountState[key][1]]
       )
     )
   })
