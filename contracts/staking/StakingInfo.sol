@@ -45,7 +45,7 @@ contract StakingInfo {
   // Delegator events
   event ShareMinted(uint256 indexed validatorId, address indexed user, uint256 indexed amount, uint256 tokens);
   event ShareBurned(uint256 indexed validatorId, address indexed user, uint256 indexed amount, uint256 tokens);
-  event DelClaimRewards(uint256 indexed validatorId, uint256 indexed rewards, uint256 indexed tokens);
+  event DelClaimRewards(uint256 indexed validatorId, address indexed user, uint256 indexed rewards, uint256 tokens);
   event UpdateCommissionRate(uint256 indexed validatorId, uint256 indexed newCommissionRate, uint256 indexed oldCommissionRate);
 
   Registry public registry;
@@ -164,8 +164,8 @@ contract StakingInfo {
     emit ShareBurned(validatorId, user, amount, tokens);
   }
 
-  function logDelClaimRewards(uint256 validatorId, uint256 rewards, uint256 tokens) public onlyValidatorContract(validatorId) {
-    emit DelClaimRewards(validatorId, rewards, tokens);
+  function logDelClaimRewards(uint256 validatorId, address user, uint256 rewards, uint256 tokens) public onlyValidatorContract(validatorId) {
+    emit DelClaimRewards(validatorId, user, rewards, tokens);
   }
 
   function logUpdateCommissionRate(uint256 validatorId, uint256 newCommissionRate, uint256 oldCommissionRate) public onlyValidatorContract(validatorId) {

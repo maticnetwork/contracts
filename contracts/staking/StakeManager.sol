@@ -118,7 +118,7 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
 
   function claimFee(uint256 validatorId, uint256 accumSlashedAmount, uint256 amount, uint256 index, bytes memory proof) public onlyStaker(validatorId) {
     //Ignoring other params becuase rewards distribution is on chain
-    require(keccak256(abi.encodePacked(validatorId, accumSlashedAmount, amount)).checkMembership(index, accountStateRoot, proof), "Wrong acc proof");
+    require(keccak256(abi.encodePacked(validatorId, amount, accumSlashedAmount)).checkMembership(index, accountStateRoot, proof), "Wrong acc proof");
     require(token.transfer(msg.sender, amount));
     _claimFee(validatorId, amount);
   }
@@ -287,6 +287,7 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
     totalRewardsLiquidated = totalRewardsLiquidated.add(amount);
     validators[validatorId].reward = 0;
     require(token.transfer(msg.sender, amount), "Insufficent rewards");
+    logger.logClaimRewards(validatorId, amount, totalRewardsLiquidated);
   }
 
   // if not jailed then in state of warning, else will be unstaking after x epoch
