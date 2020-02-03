@@ -1,8 +1,6 @@
 pragma solidity ^0.5.2;
 
-import {
-    IERC721Full
-} from "openzeppelin-solidity/contracts/token/ERC721/IERC721Full.sol";
+import "openzeppelin-solidity/contracts/token/ERC721/IERC721Full.sol";
 
 contract IStakeManager is IERC721Full {
     // Todo: fix WITHDRAWAL_DELAY with interface
