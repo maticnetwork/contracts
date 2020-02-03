@@ -110,7 +110,7 @@ contract ValidatorShare is IValidatorShare {
     _burn(msg.sender, sharesToBurn);
     rewards = rewards.sub(liquidRewards);
     stakeManager.delegationTransfer(validatorId, liquidRewards, msg.sender);
-    stakingLogger.logDelClaimRewards(validatorId, liquidRewards, sharesToBurn);
+    stakingLogger.logDelClaimRewards(validatorId, msg.sender, liquidRewards, sharesToBurn);
   }
 
   function reStake() public {
