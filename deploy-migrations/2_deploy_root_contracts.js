@@ -146,14 +146,15 @@ module.exports = async function (deployer) {
       RootChain.address
     )
 
+    await deployer.deploy(ExitNFT, Registry.address)
     await deployer.deploy(WithdrawManager)
     await deployer.deploy(
       WithdrawManagerProxy,
       WithdrawManager.address,
       Registry.address,
-      RootChain.address
+      RootChain.address,
+      ExitNFT.address
     )
-    await deployer.deploy(ExitNFT, Registry.address)
 
     console.log('deploying predicates...')
     await deployer.deploy(

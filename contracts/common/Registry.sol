@@ -78,6 +78,7 @@ contract Registry is Ownable {
   }
 
   function addErc20Predicate(address predicate) public onlyOwner {
+    require(predicate != address(0x0), "Can not add null address as predicate");
     erc20Predicate = predicate;
     addPredicate(predicate, Type.ERC20);
   }
@@ -96,6 +97,7 @@ contract Registry is Ownable {
 
   function removePredicate(address predicate) public onlyOwner
   {
+    require(predicates[predicate]._type != Type.Invalid, "Predicate does not exist");
     delete predicates[predicate];
     emit PredicateRemoved(predicate, msg.sender);
   }

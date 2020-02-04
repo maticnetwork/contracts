@@ -1,5 +1,6 @@
 pragma solidity ^0.5.2;
 
+import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 library BytesLib {
   function concat(
@@ -134,11 +135,13 @@ library BytesLib {
 
   // Pad a bytes array to 32 bytes
   function leftPad(bytes memory _bytes) internal pure returns (bytes memory) {
-    bytes memory newBytes = new bytes(32 - _bytes.length);
+    // may underflow if bytes.length < 32. Hence using SafeMath.sub
+    bytes memory newBytes = new bytes(SafeMath.sub(32, _bytes.length));
     return concat(newBytes, _bytes);
   }
 
   function toBytes32(bytes memory b) internal pure returns (bytes32) {
+    require(b.length >= 32, "Bytes array should atleast be 32 bytes");
     bytes32 out;
     for (uint i = 0; i < 32; i++) {
       out |= bytes32(b[i] & 0xFF) >> (i * 8);
@@ -155,17 +158,14 @@ library BytesLib {
   function fromBytes32(bytes32 x) internal pure returns (bytes memory) {
     bytes memory b = new bytes(32);
     for (uint i = 0; i < 32; i++) {
-      b[i] = byte(uint8(uint(x) / (2**(8*(19 - i)))));
+      b[i] = byte(uint8(uint(x) / (2**(8*(31 - i)))));
     }
     return b;
   }
 
   function fromUint(uint256 _num) internal pure returns (bytes memory _ret) {
-    assembly {
-      _ret := mload(0x10)
-      mstore(_ret, 0x20)
-      mstore(add(_ret, 0x20), _num)
-    }
+    _ret = new bytes(32);
+    assembly { mstore(add(_ret, 32), _num) }
   }
 
   function toUint(bytes memory _bytes, uint _start) internal pure returns (uint256) {

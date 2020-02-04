@@ -13,7 +13,6 @@ const ERC20Predicate = artifacts.require('ERC20Predicate')
 const ERC721Predicate = artifacts.require('ERC721Predicate')
 const MarketplacePredicate = artifacts.require('MarketplacePredicate')
 const TransferWithSigPredicate = artifacts.require('TransferWithSigPredicate')
-const ExitNFT = artifacts.require('ExitNFT')
 const MaticWeth = artifacts.require('MaticWETH')
 const TestToken = artifacts.require('TestToken')
 
@@ -24,13 +23,11 @@ module.exports = async function (deployer, network) {
       .all([
         TestToken.deployed(),
         Registry.deployed(),
-        RootChain.deployed(),
         DepositManagerProxy.deployed(),
         StateSender.deployed(),
         WithdrawManagerProxy.deployed(),
         StakeManager.deployed(),
         SlashingManager.deployed(),
-        ExitNFT.deployed(),
         MaticWeth.deployed(),
         ERC20Predicate.deployed(),
         ERC721Predicate.deployed(),
@@ -40,23 +37,17 @@ module.exports = async function (deployer, network) {
       .spread(async function (
         testToken,
         registry,
-        rootChain,
         depositManagerProxy,
         stateSender,
         withdrawManagerProxy,
         stakeManager,
         slashingManager,
-        exitNFT,
         maticWeth,
         ERC20Predicate,
         ERC721Predicate,
         MarketplacePredicate,
         TransferWithSigPredicate
       ) {
-        const _withdrawManager = await WithdrawManager.at(
-          withdrawManagerProxy.address
-        )
-        await _withdrawManager.setExitNFTContract(exitNFT.address)
         await registry.updateContractMap(
           ethUtils.keccak256('depositManager'),
           depositManagerProxy.address

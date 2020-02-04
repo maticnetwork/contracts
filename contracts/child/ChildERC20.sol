@@ -81,7 +81,7 @@ contract ChildERC20 is BaseERC20, ERC20, ERC20Detailed {
     revert("Disabled feature");
   }
 
-  function transferFrom(address, address, uint256 ) public returns (bool){
+  function transferFrom(address, address, uint256 ) public returns (bool) {
     revert("Disabled feature");
   }
 }
