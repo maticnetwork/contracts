@@ -29,7 +29,10 @@ async function deploy() {
     'Registry',
     { value: process.env.HEIMDALL_ID }
   ]))
-  await deployer.deploy(transformArtifact('StakeManager', ['Registry', 'RootChain']))
+
+  await deployer.deploy(transformArtifact('ValidatorShareFactory', []))
+  await deployer.deploy(transformArtifact('StakingInfo', ['Registry']))
+  await deployer.deploy(transformArtifact('StakeManager', ['Registry', 'RootChain', 'StakingInfo', 'ValidatorShareFactory']))
   await deployer.deploy(transformArtifact('SlashingManager', ['Registry']))
   await deployer.deploy(transformArtifact('DelegationManager', ['Registry']))
 
