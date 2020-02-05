@@ -13,7 +13,8 @@ class Deployer {
   }
 
   async freshDeploy(options = {}) {
-    this.registry = await contracts.Registry.new()
+    this.governance = await contracts.Governance.new()
+    this.registry = await contracts.Registry.new(this.governance.address)
     this.validatorShareFactory = await contracts.ValidatorShareFactory.new()
     this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
     await this.deployRootChain()
@@ -49,11 +50,11 @@ class Deployer {
     const withdrawManager = await this.deployWithdrawManager()
 
     await Promise.all([
-      this.registry.updateContractMap(
+      this.updateContractMap(
         ethUtils.keccak256('stakeManager'),
         this.stakeManager.address
       ),
-      this.registry.updateContractMap(
+      this.updateContractMap(
         ethUtils.keccak256('slashingManager'),
         this.SlashingManager.address
       )
@@ -92,7 +93,7 @@ class Deployer {
       this.validatorShareFactory.address
     )
     await this.stakingNFT.transferOwnership(this.stakeManager.address)
-    await this.registry.updateContractMap(
+    await this.updateContractMap(
       ethUtils.keccak256('stakeManager'),
       this.stakeManager.address
     )
@@ -114,7 +115,7 @@ class Deployer {
     const maticWeth = await contracts.MaticWETH.new()
     await Promise.all([
       this.mapToken(maticWeth.address, maticWeth.address, false /* isERC721 */),
-      this.registry.updateContractMap(
+      this.updateContractMap(
         ethUtils.keccak256('wethToken'),
         maticWeth.address
       )
@@ -124,7 +125,7 @@ class Deployer {
 
   async deployStateSender() {
     this.stateSender = await contracts.StateSender.new()
-    await this.registry.updateContractMap(
+    await this.updateContractMap(
       ethUtils.keccak256('stateSender'),
       this.stateSender.address
     )
@@ -138,7 +139,7 @@ class Deployer {
       this.registry.address,
       this.rootChain.address
     )
-    await this.registry.updateContractMap(
+    await this.updateContractMap(
       ethUtils.keccak256('depositManager'),
       this.depositManagerProxy.address
     )
@@ -164,7 +165,7 @@ class Deployer {
       this.rootChain.address,
       this.exitNFT.address
     )
-    await this.registry.updateContractMap(
+    await this.updateContractMap(
       ethUtils.keccak256('withdrawManager'),
       this.withdrawManagerProxy.address
     )
@@ -177,7 +178,10 @@ class Deployer {
       this.depositManagerProxy.address,
       this.registry.address
     )
-    await this.registry.addErc20Predicate(ERC20Predicate.address)
+    await this.governance.update(
+      this.registry.address,
+      this.registry.contract.methods.addErc20Predicate(ERC20Predicate.address).encodeABI()
+    )
     return ERC20Predicate
   }
 
@@ -186,7 +190,10 @@ class Deployer {
       this.withdrawManagerProxy.address,
       this.depositManagerProxy.address
     )
-    await this.registry.addErc721Predicate(ERC721Predicate.address)
+    await this.governance.update(
+      this.registry.address,
+      this.registry.contract.methods.addErc721Predicate(ERC721Predicate.address).encodeABI()
+    )
     return ERC721Predicate
   }
 
@@ -195,7 +202,7 @@ class Deployer {
       this.withdrawManagerProxy.address,
       this.depositManagerProxy.address
     )
-    await this.registry.addPredicate(
+    await this.addPredicate(
       predicate.address,
       3 /* Type.Custom */
     )
@@ -208,7 +215,7 @@ class Deployer {
       this.withdrawManagerProxy.address,
       this.registry.address
     )
-    await this.registry.addPredicate(
+    await this.addPredicate(
       MarketplacePredicate.address,
       3 /* Type.Custom */
     )
@@ -221,7 +228,7 @@ class Deployer {
       this.withdrawManagerProxy.address,
       this.registry.address
     )
-    await this.registry.addPredicate(
+    await this.addPredicate(
       TransferWithSigPredicate.address,
       3 /* Type.Custom */
     )
@@ -254,7 +261,24 @@ class Deployer {
   }
 
   mapToken(rootTokenAddress, childTokenAddress, isERC721 = false) {
-    return this.registry.mapToken(rootTokenAddress, childTokenAddress, isERC721)
+    return this.governance.update(
+      this.registry.address,
+      this.registry.contract.methods.mapToken(rootTokenAddress, childTokenAddress, isERC721).encodeABI()
+    )
+  }
+
+  updateContractMap(key, value) {
+    return this.governance.update(
+      this.registry.address,
+      this.registry.contract.methods.updateContractMap(key, value).encodeABI()
+    )
+  }
+
+  addPredicate(predicate, type) {
+    return this.governance.update(
+      this.registry.address,
+      this.registry.contract.methods.addPredicate(predicate, type).encodeABI()
+    )
   }
 
   async deployChildErc20(owner, options = { mapToken: true }) {
@@ -379,7 +403,7 @@ class Deployer {
       this.globalMatic.rootERC20 = await this.deployTestErc20({ mapToken: true, childTokenAdress: utils.ChildMaticTokenAddress })
     }
     if (options.updateRegistry) {
-      await this.registry.updateContractMap(
+      await this.updateContractMap(
         ethUtils.keccak256('childChain'),
         this.childChain.address
       )
