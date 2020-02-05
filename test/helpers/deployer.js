@@ -13,7 +13,7 @@ class Deployer {
   }
 
   async freshDeploy(options = {}) {
-    this.governance = await contracts.Governance.new()
+    this.governance = await this.deployGovernance()
     this.registry = await contracts.Registry.new(this.governance.address)
     this.validatorShareFactory = await contracts.ValidatorShareFactory.new()
     this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
@@ -121,6 +121,12 @@ class Deployer {
       )
     ])
     return maticWeth
+  }
+
+  async deployGovernance() {
+    const governance = await contracts.Governance.new()
+    this.governanceProxy = await contracts.GovernanceProxy.new(governance.address)
+    return contracts.Governance.at(this.governanceProxy.address)
   }
 
   async deployStateSender() {

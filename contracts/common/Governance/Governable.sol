@@ -1,13 +1,13 @@
 pragma solidity ^0.5.2;
 
-import { Governance } from "./Governance.sol";
+import { IGovernance } from "./IGovernance.sol";
 
 
 contract Governable {
-  Governance public governance;
+  IGovernance public governance;
 
   constructor(address _governance) public {
-    governance = Governance(_governance);
+    governance = IGovernance(_governance);
   }
 
   modifier onlyGovernance() {
