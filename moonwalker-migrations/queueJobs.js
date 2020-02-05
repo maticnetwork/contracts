@@ -34,7 +34,6 @@ async function deploy() {
   await deployer.deploy(transformArtifact('StakingInfo', ['Registry']))
   await deployer.deploy(transformArtifact('StakeManager', ['Registry', 'RootChain', 'StakingInfo', 'ValidatorShareFactory']))
   await deployer.deploy(transformArtifact('SlashingManager', ['Registry']))
-  await deployer.deploy(transformArtifact('DelegationManager', ['Registry']))
 
   await deployer.deploy(transformArtifact('StateSender', []))
 
@@ -44,7 +43,7 @@ async function deploy() {
   await deployer.deploy(transformArtifact('WithdrawManager', []))
   await deployer.deploy(transformArtifact('WithdrawManagerProxy', ['WithdrawManager', 'Registry', 'RootChain']))
 
-  await deployer.deploy(transformArtifact('TestToken', [ { value: 'Test Token' }, { value: 'TST' } ]))
+  await deployer.deploy(transformArtifact('TestToken', [{ value: 'Test Token' }, { value: 'TST' }]))
 
   await deployer.deploy(
     tx('Registry', 'updateContractMap', [
@@ -62,12 +61,6 @@ async function deploy() {
     tx('Registry', 'updateContractMap', [
       { value: ethUtils.bufferToHex(ethUtils.keccak256('stakeManager')) },
       'StakeManager'
-    ])
-  )
-  await deployer.deploy(
-    tx('Registry', 'updateContractMap', [
-      { value: ethUtils.bufferToHex(ethUtils.keccak256('delegationManager')) },
-      'DelegationManager'
     ])
   )
   await deployer.deploy(
