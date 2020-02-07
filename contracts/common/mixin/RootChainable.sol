@@ -1,36 +1,36 @@
 pragma solidity ^0.5.2;
 
-import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import {Ownable} from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 /**
  * @title RootChainable
  */
 contract RootChainable is Ownable {
-  address public rootChain;
+    address public rootChain;
 
-  // Rootchain changed
-  event RootChainChanged(
-    address indexed previousRootChain,
-    address indexed newRootChain
-  );
+    // Rootchain changed
+    event RootChainChanged(
+        address indexed previousRootChain,
+        address indexed newRootChain
+    );
 
-  //
-  // Only root chain
-  //
+    //
+    // Only root chain
+    //
 
-  // only root chain
-  modifier onlyRootChain() {
-    require(msg.sender == rootChain);
-    _;
-  }
+    // only root chain
+    modifier onlyRootChain() {
+        require(msg.sender == rootChain);
+        _;
+    }
 
-  /**
+    /**
    * @dev Allows the current owner to change root chain address.
    * @param newRootChain The address to new rootchain.
    */
-  function changeRootChain(address newRootChain) public onlyOwner {
-    require(newRootChain != address(0));
-    emit RootChainChanged(rootChain, newRootChain);
-    rootChain = newRootChain;
-  }
+    function changeRootChain(address newRootChain) public onlyOwner {
+        require(newRootChain != address(0));
+        emit RootChainChanged(rootChain, newRootChain);
+        rootChain = newRootChain;
+    }
 }
