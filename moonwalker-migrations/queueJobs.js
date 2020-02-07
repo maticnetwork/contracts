@@ -41,7 +41,8 @@ async function deploy() {
   await deployer.deploy(transformArtifact('DepositManagerProxy', ['DepositManager', 'Registry', 'RootChain']))
 
   await deployer.deploy(transformArtifact('WithdrawManager', []))
-  await deployer.deploy(transformArtifact('WithdrawManagerProxy', ['WithdrawManager', 'Registry', 'RootChain']))
+  await deployer.deploy(transformArtifact('ExitNFT', ['Registry']))
+  await deployer.deploy(transformArtifact('WithdrawManagerProxy', ['WithdrawManager', 'Registry', 'RootChain', 'ExitNFT']))
 
   await deployer.deploy(transformArtifact('TestToken', [{ value: 'Test Token' }, { value: 'TST' }]))
 

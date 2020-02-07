@@ -152,17 +152,14 @@ class Deployer {
     this.withdrawManagerProxy = await contracts.WithdrawManagerProxy.new(
       this.withdrawManager.address,
       this.registry.address,
-      this.rootChain.address
+      this.rootChain.address,
+      this.exitNFT.address
     )
     await this.registry.updateContractMap(
       ethUtils.keccak256('withdrawManager'),
       this.withdrawManagerProxy.address
     )
-    const w = await contracts.WithdrawManager.at(
-      this.withdrawManagerProxy.address
-    )
-    await w.setExitNFTContract(this.exitNFT.address)
-    return w
+    return contracts.WithdrawManager.at(this.withdrawManagerProxy.address)
   }
 
   async deployErc20Predicate() {

@@ -22,15 +22,6 @@ library Common {
     return (length > 0);
   }
 
-  // convert uint256 to bytes
-  function toBytes(uint256 _num) public pure returns (bytes memory _ret) {
-    assembly {
-      _ret := mload(0x10)
-      mstore(_ret, 0x20)
-      mstore(add(_ret, 0x20), _num)
-    }
-  }
-
   // convert bytes to uint8
   function toUint8(bytes memory _arg) public pure returns (uint8) {
     return uint8(_arg[0]);

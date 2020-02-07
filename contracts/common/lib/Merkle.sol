@@ -10,10 +10,10 @@ library Merkle {
   ) public pure returns (bool) {
     bytes32 proofElement;
     bytes32 computedHash = leaf;
-    uint256 len = (proof.length / 32) * 32;
+    require(proof.length % 32 == 0, "Invalid proof length");
 
     uint256 index = mainIndex;
-    for (uint256 i = 32; i <= len; i += 32) {
+    for (uint256 i = 32; i <= proof.length; i += 32) {
       assembly {
         proofElement := mload(add(proof, i))
       }

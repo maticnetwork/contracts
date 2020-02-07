@@ -128,6 +128,11 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
       referenceTxData[offset + 1].toBytes() // blockProof
     );
 
+    uint256 _branchMask = branchMask.toRlpItem().toUint();
+    require(
+      _branchMask & 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000 == 0,
+      "Branch mask should be 32 bits"
+    );
     // ageOfInput is denoted as
     // 1 reserve bit (see last 2 lines in comment)
     // 128 bits for exitableAt timestamp
@@ -135,7 +140,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     // 32 bits for receiptPos + logIndex * MAX_LOGS + oIndex
     // In predicates, the exitId will be evaluated by shifting the ageOfInput left by 1 bit
     // (Only in erc20Predicate) Last bit is to differentiate whether the sender or receiver of the in-flight tx is starting an exit
-    return (getExitableAt(createdAt) << 127) | (blockNumber << 32) | branchMask.toRlpItem().toUint();
+    return (getExitableAt(createdAt) << 127) | (blockNumber << 32) | _branchMask;
   }
 
   function startExitWithDepositedTokens(uint256 depositId, address token, uint256 amountOrToken)
@@ -246,14 +251,6 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
         address(uint160(exitor)).transfer(BOND_AMOUNT);
       }
     }
-  }
-
-  function setExitNFTContract(address _nftContract)
-    external
-    onlyOwner
-  {
-    require(_nftContract != address(0));
-    exitNft = ExitNFT(_nftContract);
   }
 
   /**

@@ -354,7 +354,7 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
     uint256[] memory _validators = new uint256[](validatorThreshold);
     uint256 validator;
     uint256 k = 0;
-    for (uint96 i = 0;i < totalSupply() ;i++) {
+    for (uint256 i = 0; i < totalSupply() ; i++) {
       validator = tokenByIndex(i);
       if (isValidator(validator)) {
         _validators[k++] = validator;
@@ -506,7 +506,7 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
   function challangeStateRootUpdate(bytes memory checkpointTx /* txData from submitCheckpoint */) public {
     // TODO: check for 2/3+1 sig and validate non-inclusion in newStateUpdate
     // UPDATE: since we've moved rewards to on chain there is no urgent need for this function
-    // becuase heimdall fee can be trusted on 2/3+1 security 
+    // becuase heimdall fee can be trusted on 2/3+1 security
   }
 
   function _stakeFor(address user, uint256 amount, address signer, bool isContract) internal {
