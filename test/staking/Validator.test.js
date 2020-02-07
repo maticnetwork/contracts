@@ -54,7 +54,7 @@ contract('ValidatorShare', async function (accounts) {
       user,
       web3.utils.toWei('250')
     )
-    await stakeToken.approve(validatorContract.address, web3.utils.toWei('250'), {
+    await stakeToken.approve(stakeManager.address, web3.utils.toWei('250'), {
       from: user
     })
     let result = await validatorContract.buyVoucher(web3.utils.toWei('100'), {
@@ -72,7 +72,7 @@ contract('ValidatorShare', async function (accounts) {
       user,
       web3.utils.toWei('10100')
     )
-    await stakeToken.approve(validatorContract.address, web3.utils.toWei('2957'), {
+    await stakeToken.approve(stakeManager.address, web3.utils.toWei('2957'), {
       from: user
     })
 
@@ -92,7 +92,7 @@ contract('ValidatorShare', async function (accounts) {
       web3.utils.toWei('250')
     )
     let beforeExchangeRate = await validatorContract.exchangeRate()
-    await stakeToken.approve(validatorContract.address, web3.utils.toWei('250'), {
+    await stakeToken.approve(stakeManager.address, web3.utils.toWei('250'), {
       from: user
     })
     await validatorContract.buyVoucher(web3.utils.toWei('100'), {
@@ -113,7 +113,7 @@ contract('ValidatorShare', async function (accounts) {
       user,
       web3.utils.toWei('100')
     )
-    await stakeToken.approve(validatorContract.address, web3.utils.toWei('100'), {
+    await stakeToken.approve(stakeManager.address, web3.utils.toWei('100'), {
       from: user
     })
     await validatorContract.buyVoucher(web3.utils.toWei('100'), {
@@ -150,7 +150,7 @@ contract('ValidatorShare', async function (accounts) {
       user,
       web3.utils.toWei('250')
     )
-    await stakeToken.approve(validatorContract.address, web3.utils.toWei('250'), {
+    await stakeToken.approve(stakeManager.address, web3.utils.toWei('250'), {
       from: user
     })
     await validatorContract.buyVoucher(web3.utils.toWei('100'), {
@@ -183,7 +183,7 @@ contract('ValidatorShare', async function (accounts) {
       user,
       web3.utils.toWei('500')
     )
-    await stakeToken.approve(validatorContract.address, web3.utils.toWei('500'), {
+    await stakeToken.approve(stakeManager.address, web3.utils.toWei('500'), {
       from: user
     })
     await validatorContract.buyVoucher(web3.utils.toWei('100'), {
@@ -209,7 +209,7 @@ contract('ValidatorShare', async function (accounts) {
       web3.utils.toWei('100')
     )
 
-    await stakeToken.approve(validatorContract.address, web3.utils.toWei('100'), {
+    await stakeToken.approve(stakeManager.address, web3.utils.toWei('100'), {
       from: user
     })
     await validatorContract.buyVoucher(web3.utils.toWei('100'), {
