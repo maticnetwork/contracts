@@ -1,7 +1,7 @@
 pragma solidity ^0.5.2;
 
 // import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
-import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 /**
   override _transfer to avoid emmiting Transfer evnet
@@ -17,17 +17,23 @@ interface IERC20 {
 
     function approve(address spender, uint256 value) external returns (bool);
 
-    function transferFrom(address from, address to, uint256 value) external returns (bool);
+    function transferFrom(address from, address to, uint256 value)
+        external
+        returns (bool);
 
     function totalSupply() external view returns (uint256);
 
     function balanceOf(address who) external view returns (uint256);
 
-    function allowance(address owner, address spender) external view returns (uint256);
+    function allowance(address owner, address spender)
+        external
+        view
+        returns (uint256);
 
     // event Transfer(address indexed from, address indexed to, uint256 value);
 
     // event Approval(address indexed owner, address indexed spender, uint256 value);
+
 }
 
 /**
@@ -45,9 +51,9 @@ interface IERC20 {
 contract DummyERC20 is IERC20 {
     using SafeMath for uint256;
 
-    mapping (address => uint256) private _balances;
+    mapping(address => uint256) private _balances;
 
-    mapping (address => mapping (address => uint256)) private _allowed;
+    mapping(address => mapping(address => uint256)) private _allowed;
 
     uint256 private _totalSupply;
     // detailed ERC20
@@ -55,15 +61,15 @@ contract DummyERC20 is IERC20 {
     string public symbol;
     uint8 public decimals = 18;
 
-    constructor (string memory _name, string memory  _symbol) public {
-      name = _name;
-      symbol = _symbol;
+    constructor(string memory _name, string memory _symbol) public {
+        name = _name;
+        symbol = _symbol;
 
-      uint256 value = 10000 * (10 ** 18);
-      _mint(msg.sender, value);
+        uint256 value = 10000 * (10**18);
+        _mint(msg.sender, value);
     }
 
-  /**
+    /**
      * @dev Function to mint tokens
      * @param to The address that will receive the minted tokens.
      * @param value The amount of tokens to mint.
@@ -96,7 +102,11 @@ contract DummyERC20 is IERC20 {
      * @param spender address The address which will spend the funds.
      * @return A uint256 specifying the amount of tokens still available for the spender.
      */
-    function allowance(address owner, address spender) public view returns (uint256) {
+    function allowance(address owner, address spender)
+        public
+        view
+        returns (uint256)
+    {
         return _allowed[owner][spender];
     }
 
@@ -106,8 +116,8 @@ contract DummyERC20 is IERC20 {
      * @param value The amount to be transferred.
      */
     function transfer(address to, uint256 value) public returns (bool) {
-      _transfer(msg.sender, to, value);
-      return true;
+        _transfer(msg.sender, to, value);
+        return true;
     }
 
     /**
@@ -132,7 +142,10 @@ contract DummyERC20 is IERC20 {
      * @param to address The address which you want to transfer to
      * @param value uint256 the amount of tokens to be transferred
      */
-    function transferFrom(address from, address to, uint256 value) public returns (bool) {
+    function transferFrom(address from, address to, uint256 value)
+        public
+        returns (bool)
+    {
         _transfer(from, to, value);
         _approve(from, msg.sender, _allowed[from][msg.sender].sub(value));
         return true;
@@ -148,8 +161,15 @@ contract DummyERC20 is IERC20 {
      * @param spender The address which will spend the funds.
      * @param addedValue The amount of tokens to increase the allowance by.
      */
-    function increaseAllowance(address spender, uint256 addedValue) public returns (bool) {
-        _approve(msg.sender, spender, _allowed[msg.sender][spender].add(addedValue));
+    function increaseAllowance(address spender, uint256 addedValue)
+        public
+        returns (bool)
+    {
+        _approve(
+            msg.sender,
+            spender,
+            _allowed[msg.sender][spender].add(addedValue)
+        );
         return true;
     }
 
@@ -163,8 +183,15 @@ contract DummyERC20 is IERC20 {
      * @param spender The address which will spend the funds.
      * @param subtractedValue The amount of tokens to decrease the allowance by.
      */
-    function decreaseAllowance(address spender, uint256 subtractedValue) public returns (bool) {
-        _approve(msg.sender, spender, _allowed[msg.sender][spender].sub(subtractedValue));
+    function decreaseAllowance(address spender, uint256 subtractedValue)
+        public
+        returns (bool)
+    {
+        _approve(
+            msg.sender,
+            spender,
+            _allowed[msg.sender][spender].sub(subtractedValue)
+        );
         return true;
     }
 
@@ -238,4 +265,3 @@ contract DummyERC20 is IERC20 {
         _approve(account, msg.sender, _allowed[account][msg.sender].sub(value));
     }
 }
-
