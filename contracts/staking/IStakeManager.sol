@@ -33,7 +33,14 @@ contract IStakeManager is IERC721Full {
         uint256 validatorId,
         uint256 amount,
         address delegator
-    ) external;
+    ) external returns (bool);
+
+    function delegationDeposit(
+        uint256 validatorId,
+        uint256 amount,
+        address delegator
+    ) external returns (bool);
+
     function stake(
         uint256 amount,
         uint256 heimdallFee,

@@ -10,18 +10,9 @@ contract ValidatorShare is IValidatorShare {
     // TODO: transfer all the funds and rewards to/from stakeManager
     constructor(
         uint256 _validatorId,
-        address _tokenAddress,
         address _stakingLogger,
         address _stakeManager
-    )
-        public
-        IValidatorShare(
-            _validatorId,
-            _tokenAddress,
-            _stakingLogger,
-            _stakeManager
-        )
-    {}
+    ) public IValidatorShare(_validatorId, _stakingLogger, _stakeManager) {}
 
     modifier onlyValidator() {
         require(stakeManager.ownerOf(validatorId) == msg.sender);
@@ -99,10 +90,7 @@ contract ValidatorShare is IValidatorShare {
         uint256 share = _amount.mul(100).div(exchangeRate());
         totalStake = totalStake.add(_amount);
         amountStaked[msg.sender] = amountStaked[msg.sender].add(_amount);
-        require(
-            token.transferFrom(msg.sender, address(this), _amount),
-            "Transfer amount failed"
-        );
+        stakeManager.delegationDeposit(validatorId, _amount, msg.sender);
         _mint(msg.sender, share);
         activeAmount = activeAmount.add(_amount);
         stakeManager.updateValidatorState(validatorId, int256(_amount));
@@ -122,7 +110,14 @@ contract ValidatorShare is IValidatorShare {
         if (_amount > amountStaked[msg.sender]) {
             uint256 _rewards = _amount.sub(amountStaked[msg.sender]);
             //withdrawTransfer
-            stakeManager.delegationTransfer(validatorId, _rewards, msg.sender);
+            require(
+                stakeManager.delegationTransfer(
+                    validatorId,
+                    _rewards,
+                    msg.sender
+                ),
+                "Insufficent rewards"
+            );
             _amount = _amount.sub(_rewards);
         }
 
@@ -144,7 +139,14 @@ contract ValidatorShare is IValidatorShare {
         // if (sharesToBurn > 0)
         _burn(msg.sender, sharesToBurn);
         rewards = rewards.sub(liquidRewards);
-        stakeManager.delegationTransfer(validatorId, liquidRewards, msg.sender);
+        require(
+            stakeManager.delegationTransfer(
+                validatorId,
+                liquidRewards,
+                msg.sender
+            ),
+            "Insufficent rewards"
+        );
         stakingLogger.logDelClaimRewards(
             validatorId,
             msg.sender,
@@ -163,10 +165,13 @@ contract ValidatorShare is IValidatorShare {
         amountStaked[msg.sender] = amountStaked[msg.sender].add(liquidRewards);
         totalStake = totalStake.add(liquidRewards);
         activeAmount = activeAmount.add(liquidRewards);
-        stakeManager.delegationTransfer(
-            validatorId,
-            liquidRewards,
-            address(this)
+        require(
+            stakeManager.delegationTransfer(
+                validatorId,
+                liquidRewards,
+                address(this)
+            ),
+            "Insufficent rewards"
         );
         stakeManager.updateValidatorState(validatorId, int256(liquidRewards));
         rewards = rewards.sub(liquidRewards);
@@ -195,8 +200,12 @@ contract ValidatorShare is IValidatorShare {
             "Incomplete withdrawal period"
         );
         require(
-            token.transfer(msg.sender, delegator.amount),
-            "Transfer amount failed"
+            stakeManager.delegationTransfer(
+                validatorId,
+                delegator.amount,
+                msg.sender
+            ),
+            "Insufficent rewards"
         );
         delete delegators[msg.sender];
     }

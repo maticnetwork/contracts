@@ -19,14 +19,12 @@ contract ValidatorShareFactory {
     /**
     - factory to create new validatorShare contracts
    */
-    function create(
-        uint256 validatorId,
-        address tokenAddress,
-        address loggerAddress
-    ) public returns (address) {
+    function create(uint256 validatorId, address loggerAddress)
+        public
+        returns (address)
+    {
         ValidatorShare validatorShare = new ValidatorShare(
             validatorId,
-            tokenAddress,
             loggerAddress,
             msg.sender
         );
@@ -298,9 +296,18 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
         uint256 validatorId,
         uint256 amount,
         address delegator
-    ) external {
+    ) external returns (bool) {
         require(validators[validatorId].contractAddress == msg.sender);
-        require(token.transfer(delegator, amount), "Insufficent rewards");
+        return token.transfer(delegator, amount);
+    }
+
+    function delegationDeposit(
+        uint256 validatorId,
+        uint256 amount,
+        address delegator
+    ) external returns (bool) {
+        require(validators[validatorId].contractAddress == msg.sender);
+        return token.transferFrom(delegator, address(this), amount);
     }
 
     function stakeFor(
@@ -701,7 +708,7 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
             jailTime: 0,
             signer: signer,
             contractAddress: isContract
-                ? factory.create(NFTCounter, address(token), address(logger))
+                ? factory.create(NFTCounter, address(logger))
                 : address(0x0),
             status: Status.Active
         });
