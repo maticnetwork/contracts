@@ -185,9 +185,9 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
         uint256 amount,
         uint256 heimdallFee,
         address signer,
-        bool isContract
+        bool acceptDelegation
     ) external {
-        stakeFor(msg.sender, amount, heimdallFee, signer, isContract);
+        stakeFor(msg.sender, amount, heimdallFee, signer, acceptDelegation);
     }
 
     function totalStakedFor(address user) external view returns (uint256) {
@@ -265,7 +265,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
         uint256 validatorId,
         uint256 heimdallFee, /** for new validator */
         address signer,
-        bool isContract
+        bool acceptDelegation
     ) external onlyWhenUnlocked {
         Auction storage auction = validatorAuction[validatorId];
         Validator storage validator = validators[validatorId];
@@ -301,7 +301,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
                 "Transfer fee failed"
             );
             _topUpForFee(NFTCounter, heimdallFee);
-            _stakeFor(auction.user, auction.amount, signer, isContract);
+            _stakeFor(auction.user, auction.amount, signer, acceptDelegation);
 
             logger.logConfirmAuction(
                 NFTCounter.sub(1),
@@ -349,7 +349,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
         uint256 amount,
         uint256 heimdallFee,
         address signer,
-        bool isContract
+        bool acceptDelegation
     ) public onlyWhenUnlocked {
         require(currentValidatorSetSize() < validatorThreshold);
         require(amount > minDeposit);
@@ -368,7 +368,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
             NFTCounter, /** validatorId*/
             heimdallFee
         );
-        _stakeFor(user, amount, signer, isContract);
+        _stakeFor(user, amount, signer, acceptDelegation);
     }
 
     function perceivedStakeFactor(uint256 validatorId)
@@ -731,7 +731,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
         address user,
         uint256 amount,
         address signer,
-        bool isContract
+        bool acceptDelegation
     ) internal {
         totalStaked = totalStaked.add(amount);
 
@@ -742,7 +742,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
             deactivationEpoch: 0,
             jailTime: 0,
             signer: signer,
-            contractAddress: isContract
+            contractAddress: acceptDelegation
                 ? factory.create(NFTCounter, address(logger))
                 : address(0x0),
             status: Status.Active

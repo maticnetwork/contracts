@@ -2,7 +2,7 @@ pragma solidity ^0.5.2;
 
 contract IStakeManager {
     // Todo: fix WITHDRAWAL_DELAY with interface
-    uint256 public WITHDRAWAL_DELAY = (2**13) / 2; // unit: epoch
+    uint256 public WITHDRAWAL_DELAY = (2**13); // unit: epoch
     uint256 public currentEpoch = 1;
 
     enum Status {Inactive, Active, Locked, Unstaked}
@@ -43,17 +43,17 @@ contract IStakeManager {
         uint256 amount,
         uint256 heimdallFee,
         address signer,
-        bool isContract
+        bool acceptDelegation
     ) external;
     function unstake(uint256 validatorId) external;
     function totalStakedFor(address addr) external view returns (uint256);
     function supportsHistory() external pure returns (bool);
     function stakeFor(
         address user,
-        uint256 heimdallFee,
         uint256 amount,
+        uint256 heimdallFee,
         address signer,
-        bool isContract
+        bool acceptDelegation
     ) public;
     function checkSignatures(
         uint256 blockInterval,
