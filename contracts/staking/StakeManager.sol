@@ -79,16 +79,11 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
     // genesis/governance variables
     uint256 public dynasty = 2**13; // unit: epoch 50 days
     uint256 public CHECKPOINT_REWARD = 10000 * (10**18); // @todo update according to Chain
-    uint256 public MIN_DEPOSIT_SIZE = (10**18); // in ERC20 token
-    uint256 public EPOCH_LENGTH = 256; // unit : block
-    uint256 public UNSTAKE_DELAY = dynasty.mul(2); // unit: epoch
+    uint256 public minDeposit = (10**18); // in ERC20 token
+    uint256 public minHeimdallFee = (10**18); // in ERC20 token
     uint256 public checkPointBlockInterval = 255;
 
-    // TODO: add events and gov. based update function
-    uint256 public proposerToSignerRewards = 10; // will be used with fraud proof
-
     uint256 public validatorThreshold = 10; //128
-    uint256 public minLockInPeriod = 2; // unit: dynasty
     uint256 public totalStaked;
     uint256 public NFTCounter = 1;
     uint256 public totalRewards;
@@ -147,7 +142,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
 
     // TopUp heimdall fee
     function topUpForFee(uint256 validatorId, uint256 heimdallFee) public {
-        require(heimdallFee >= MIN_DEPOSIT_SIZE, "Minimum amount is 1 Matic");
+        require(heimdallFee >= minHeimdallFee, "Minimum amount is 1 Matic");
         require(
             token.transferFrom(msg.sender, address(this), heimdallFee),
             "Transfer stake failed"
@@ -357,7 +352,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
         bool isContract
     ) public onlyWhenUnlocked {
         require(currentValidatorSetSize() < validatorThreshold);
-        require(amount > MIN_DEPOSIT_SIZE);
+        require(amount > minDeposit);
         require(signerToValidator[signer] == 0);
 
         require(
@@ -481,8 +476,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
             amount
         );
         if (
-            validators[validatorId].amount < MIN_DEPOSIT_SIZE ||
-            jailCheckpoints > 0
+            validators[validatorId].amount < minDeposit || jailCheckpoints > 0
         ) {
             jail(validatorId, jailCheckpoints);
         }
@@ -498,7 +492,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
         );
 
         uint256 amount = validators[validatorId].amount;
-        require(amount >= MIN_DEPOSIT_SIZE);
+        require(amount >= minDeposit);
         uint256 exitEpoch = validators[validatorId].deactivationEpoch;
 
         int256 delegationAmount = 0;
@@ -526,7 +520,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
         // Todo: requires and more conditions
         uint256 amount = validators[validatorId].amount;
         // should unbond instantly
-        uint256 exitEpoch = currentEpoch.add(UNSTAKE_DELAY); // jail period
+        uint256 exitEpoch = currentEpoch.add(WITHDRAWAL_DELAY); // jail period
 
         int256 delegationAmount = 0;
         validators[validatorId].jailTime = jailCheckpoints;
@@ -599,11 +593,18 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
         require(newDynasty > 0);
         logger.logDynastyValueChange(newDynasty, dynasty);
         dynasty = newDynasty;
-        UNSTAKE_DELAY = dynasty.div(2);
-        WITHDRAWAL_DELAY = dynasty.mul(2);
+        WITHDRAWAL_DELAY = dynasty;
         auctionPeriod = dynasty.div(4);
         // set cool down period
         replacementCoolDown = currentEpoch.add(auctionPeriod);
+    }
+
+    function updateMinAmounts(uint256 _minDeposit, uint256 _minHeimdallFee)
+        public
+        onlyOwner
+    {
+        minDeposit = _minDeposit;
+        minHeimdallFee = _minHeimdallFee;
     }
 
     function updateSigner(uint256 validatorId, address _signer)
@@ -622,10 +623,6 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
         delete signerToValidator[validators[validatorId].signer];
         signerToValidator[_signer] = validatorId;
         validators[validatorId].signer = _signer;
-    }
-
-    function updateMinLockInPeriod(uint256 epochs) public onlyOwner {
-        minLockInPeriod = epochs;
     }
 
     function currentValidatorSetSize() public view returns (uint256) {
