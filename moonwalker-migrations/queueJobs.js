@@ -32,6 +32,7 @@ async function deploy() {
 
   await deployer.deploy(transformArtifact('ValidatorShareFactory', []))
   await deployer.deploy(transformArtifact('StakingInfo', ['Registry']))
+  await deployer.deploy(transformArtifact('StakingNFT', ['Matic Validator', 'MV']))
   await deployer.deploy(transformArtifact('StakeManager', ['Registry', 'RootChain', 'StakingInfo', 'ValidatorShareFactory']))
   await deployer.deploy(transformArtifact('SlashingManager', ['Registry']))
 
@@ -78,6 +79,9 @@ async function deploy() {
   )
   await deployer.deploy(
     tx('StakeManager', 'setToken', ['TestToken'])
+  )
+  await deployer.deploy(
+    tx('StakingNFT', 'transferOwnership', ['StakeManager'])
   )
   // 27 jobs
 }

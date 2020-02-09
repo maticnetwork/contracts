@@ -4,6 +4,7 @@ import {IERC20} from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
 import {Math} from "openzeppelin-solidity/contracts/math/Math.sol";
 import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import {Ownable} from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 import {BytesLib} from "../common/lib/BytesLib.sol";
 import {ECVerify} from "../common/lib/ECVerify.sol";
@@ -19,6 +20,7 @@ contract ValidatorShareFactory {
     /**
     - factory to create new validatorShare contracts
    */
+
     function create(uint256 validatorId, address loggerAddress)
         public
         returns (address)
@@ -34,7 +36,37 @@ contract ValidatorShareFactory {
 
 }
 
-contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
+contract StakingNFT is ERC721Full, Ownable {
+    constructor(string memory name, string memory symbol)
+        public
+        ERC721Full(name, symbol)
+    {
+        // solhint-disable-previous-line no-empty-blocks
+    }
+
+    function mint(address to, uint256 tokenId) public onlyOwner {
+        require(
+            balanceOf(to) == 0,
+            "Validators MUST NOT own multiple stake position"
+        );
+        //require(balanceOf(user) == 0, "Only one time staking is allowed");
+        _mint(to, tokenId);
+    }
+
+    function burn(uint256 tokenId) public onlyOwner {
+        _burn(tokenId);
+    }
+
+    function _transferFrom(address from, address to, uint256 tokenId) internal {
+        require(
+            balanceOf(to) == 0,
+            "Validators MUST NOT own multiple stake position"
+        );
+        super._transferFrom(from, to, tokenId);
+    }
+}
+
+contract StakeManager is IStakeManager, RootChainable, Lockable {
     using SafeMath for uint256;
     using ECVerify for bytes32;
     using Merkle for bytes32;
@@ -42,6 +74,7 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
     IERC20 public token;
     address public registry;
     StakingInfo public logger;
+    StakingNFT public NFTContract;
     ValidatorShareFactory public factory;
     // genesis/governance variables
     uint256 public dynasty = 2**13; // unit: epoch 50 days
@@ -91,17 +124,19 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
     constructor(
         address _registry,
         address _rootchain,
+        address _NFTContract,
         address _stakingLogger,
         address _ValidatorShareFactory
-    ) public ERC721Full("Matic Validator", "MV") {
+    ) public {
         registry = _registry;
         rootChain = _rootchain;
+        NFTContract = StakingNFT(_NFTContract);
         logger = StakingInfo(_stakingLogger);
         factory = ValidatorShareFactory(_ValidatorShareFactory);
     }
 
     modifier onlyStaker(uint256 validatorId) {
-        require(ownerOf(validatorId) == msg.sender);
+        require(NFTContract.ownerOf(validatorId) == msg.sender);
         _;
     }
 
@@ -118,6 +153,10 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
             "Transfer stake failed"
         );
         _topUpForFee(validatorId, heimdallFee);
+    }
+
+    function ownerOf(uint256 tokenId) public view returns (address) {
+        return NFTContract.ownerOf(tokenId);
     }
 
     function _topUpForFee(uint256 validatorId, uint256 amount) private {
@@ -157,10 +196,10 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
     }
 
     function totalStakedFor(address user) external view returns (uint256) {
-        if (user == address(0x0) || balanceOf(user) == 0) {
+        if (user == address(0x0) || NFTContract.balanceOf(user) == 0) {
             return 0;
         }
-        return validators[tokenOfOwnerByIndex(user, 0)].amount;
+        return validators[NFTContract.tokenOfOwnerByIndex(user, 0)].amount;
     }
 
     function supportsHistory() external pure returns (bool) {
@@ -242,7 +281,7 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
         );
 
         // validator is last auctioner
-        if (auction.user == ownerOf(validatorId)) {
+        if (auction.user == NFTContract.ownerOf(validatorId)) {
             uint256 refund = validator.amount;
             require(token.transfer(auction.user, refund));
             validator.amount = auction.amount;
@@ -318,7 +357,6 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
         bool isContract
     ) public onlyWhenUnlocked {
         require(currentValidatorSetSize() < validatorThreshold);
-        require(balanceOf(user) == 0, "Only one time staking is allowed");
         require(amount > MIN_DEPOSIT_SIZE);
         require(signerToValidator[signer] == 0);
 
@@ -361,7 +399,7 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
         totalStaked = totalStaked.sub(amount);
 
         // TODO :add slashing here use soft slashing in slash amt variable
-        _burn(validatorId);
+        NFTContract.burn(validatorId);
         delete signerToValidator[validators[validatorId].signer];
         // delete validators[validatorId];
         validators[validatorId].status = Status.Unstaked;
@@ -511,8 +549,8 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
         uint256[] memory _validators = new uint256[](validatorThreshold);
         uint256 validator;
         uint256 k = 0;
-        for (uint256 i = 0; i < totalSupply(); i++) {
-            validator = tokenByIndex(i);
+        for (uint256 i = 0; i < NFTContract.totalSupply(); i++) {
+            validator = NFTContract.tokenByIndex(i);
             if (isValidator(validator)) {
                 _validators[k++] = validator;
             }
@@ -521,7 +559,7 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
     }
 
     function getValidatorId(address user) public view returns (uint256) {
-        return tokenOfOwnerByIndex(user, 0);
+        return NFTContract.tokenOfOwnerByIndex(user, 0);
     }
 
     // set staking Token
@@ -713,7 +751,7 @@ contract StakeManager is IStakeManager, ERC721Full, RootChainable, Lockable {
             status: Status.Active
         });
 
-        _mint(user, NFTCounter);
+        NFTContract.mint(user, NFTCounter);
 
         signerToValidator[signer] = NFTCounter;
         updateTimeLine(currentEpoch, int256(amount), 1);

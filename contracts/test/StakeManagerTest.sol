@@ -10,6 +10,7 @@ contract StakeManagerTest is StakeManager {
     constructor(
         address _registry,
         address _rootChain,
+        address _NFTContract,
         address _stakingLogger,
         address _validatorShareFactory
     )
@@ -17,6 +18,7 @@ contract StakeManagerTest is StakeManager {
         StakeManager(
             _registry,
             _rootChain,
+            _NFTContract,
             _stakingLogger,
             _validatorShareFactory
         )
