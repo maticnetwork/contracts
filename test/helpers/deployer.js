@@ -17,6 +17,7 @@ class Deployer {
     this.validatorShareFactory = await contracts.ValidatorShareFactory.new()
     this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
     await this.deployRootChain()
+    this.stakingNFT = await contracts.StakingNFT.new('Matic Validator', 'MV')
 
     this.SlashingManager = await contracts.SlashingManager.new(
       this.registry.address
@@ -26,17 +27,21 @@ class Deployer {
       this.stakeManager = await contracts.StakeManager.new(
         this.registry.address,
         this.rootChain.address,
+        this.stakingNFT.address,
         this.stakingInfo.address,
         this.validatorShareFactory.address
       )
+
     } else {
       this.stakeManager = await contracts.StakeManagerTest.new(
         this.registry.address,
         this.rootChain.address,
+        this.stakingNFT.address,
         this.stakingInfo.address,
         this.validatorShareFactory.address
       )
     }
+    await this.stakingNFT.transferOwnership(this.stakeManager.address)
     this.exitNFT = await contracts.ExitNFT.new(this.registry.address)
 
     await this.deployStateSender()
@@ -77,12 +82,16 @@ class Deployer {
     this.rootChain = await this.deployRootChain()
     this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
     this.stakeToken = await contracts.DummyERC20.new('Stake Token', 'STAKE')
+    this.stakingNFT = await contracts.StakingNFT.new('Matic Validator', 'MV')
+
     this.stakeManager = await contracts.StakeManager.new(
       this.stakeToken.address,
       wallets[1].getAddressString(),
+      this.stakingNFT.address,
       this.stakingInfo.address,
       this.validatorShareFactory.address
     )
+    await this.stakingNFT.transferOwnership(this.stakeManager.address)
     await this.registry.updateContractMap(
       ethUtils.keccak256('stakeManager'),
       this.stakeManager.address

@@ -1,8 +1,6 @@
 pragma solidity ^0.5.2;
 
-import "openzeppelin-solidity/contracts/token/ERC721/IERC721Full.sol";
-
-contract IStakeManager is IERC721Full {
+contract IStakeManager {
     // Todo: fix WITHDRAWAL_DELAY with interface
     uint256 public WITHDRAWAL_DELAY = (2**13) / 2; // unit: epoch
     uint256 public currentEpoch = 1;
@@ -64,10 +62,9 @@ contract IStakeManager is IERC721Full {
         bytes memory sigs
     ) public returns (uint256);
     function updateValidatorState(uint256 validatorId, int256 amount) public;
-
+    function ownerOf(uint256 tokenId) public view returns (address);
     // optional
     // function lastStakedFor(address addr) external view returns (uint256);
     // function totalStakedForAt(address addr, uint256 blockNumber) external view returns (uint256);
     // function totalStakedAt(uint256 blockNumber) external view returns (uint256);
-
 }
