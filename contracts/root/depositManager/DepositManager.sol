@@ -15,6 +15,7 @@ import {WETH} from "../../common/tokens/WETH.sol";
 import {IDepositManager} from "./IDepositManager.sol";
 import {DepositManagerStorage} from "./DepositManagerStorage.sol";
 import {StateSender} from "../stateSyncer/StateSender.sol";
+import {Pausable} from "../../common/misc/Pausable.sol";
 
 contract DepositManager is
     DepositManagerStorage,
@@ -36,6 +37,8 @@ contract DepositManager is
         );
         _;
     }
+
+    constructor() Pausable(address(0x0)) public {}
 
     // deposit ETH by sending to this contract
     function() external payable {

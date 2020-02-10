@@ -178,7 +178,7 @@ contract('DepositManager', async function(accounts) {
     it('tokenFallback');
   })
 
-  describe('deposits do not happen when paused', async function() {
+  describe('deposits revert when paused', async function() {
     before(async function() {
       this.contracts = await deployer.freshDeploy()
     })
@@ -188,7 +188,7 @@ contract('DepositManager', async function(accounts) {
       depositManager = await deployer.deployDepositManager()
     })
 
-    it.only('depositEther fails', async function() {
+    it('depositEther reverts', async function() {
       await deployer.deployMaticWeth()
       await this.contracts.governance.update(
         depositManager.address,
@@ -202,8 +202,56 @@ contract('DepositManager', async function(accounts) {
         })
         assert.fail('Transaction should have reverted')
       } catch(e) {
-        console.log(e)
-        // expected
+        expect(e.reason).to.equal('Is Paused')
+      }
+    })
+
+    it('depositERC20 reverts', async function() {
+      const testToken = await deployer.deployTestErc20()
+      await testToken.approve(depositManager.address, amount)
+      try {
+        await depositManager.depositERC20(testToken.address, amount)
+      } catch(e) {
+        expect(e.reason).to.equal('Is Paused')
+      }
+    })
+
+    it('depositERC721 reverts', async function() {
+      const testToken = await deployer.deployTestErc721()
+      let tokenId = '1212'
+      await testToken.mint(tokenId)
+      await testToken.approve(depositManager.address, tokenId)
+      try {
+        await depositManager.depositERC721(testToken.address, tokenId)
+      } catch(e) {
+        expect(e.reason).to.equal('Is Paused')
+      }
+    })
+
+    it('depositBulk reverts', async function() {
+      const tokens = []
+      const amounts = []
+      const NUM_DEPOSITS = 15
+      for (let i = 0; i < NUM_DEPOSITS; i++) {
+        const testToken = await deployer.deployTestErc20()
+        const _amount = amount.add(web3.utils.toBN(i))
+        await testToken.approve(depositManager.address, _amount)
+        tokens.push(testToken.address)
+        amounts.push(_amount)
+      }
+      for (let i = 0; i < NUM_DEPOSITS; i++) {
+        const testToken = await deployer.deployTestErc721()
+        const tokenId = web3.utils.toBN(crypto.randomBytes(32).toString('hex'), 16)
+        await testToken.mint(tokenId)
+        await testToken.approve(depositManager.address, tokenId)
+        tokens.push(testToken.address)
+        amounts.push(tokenId)
+      }
+      const user = accounts[1]
+      try {
+        await depositManager.depositBulk(tokens, amounts, user)
+      } catch(e) {
+        expect(e.reason).to.equal('Is Paused')
       }
     })
   })

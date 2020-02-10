@@ -144,7 +144,8 @@ class Deployer {
     this.depositManagerProxy = await contracts.DepositManagerProxy.new(
       this.depositManager.address,
       this.registry.address,
-      this.rootChain.address
+      this.rootChain.address,
+      this.governance.address
     )
     await this.updateContractMap(
       ethUtils.keccak256('depositManager'),

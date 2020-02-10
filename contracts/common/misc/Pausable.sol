@@ -5,6 +5,8 @@ import { Governable } from "../governance/Governable.sol";
 contract Pausable is Governable {
   bool public paused;
 
+	constructor(address _governance) Governable(_governance) public {}
+
 	function setPaused(bool value) public onlyGovernance {
 		paused = value;
 	}
