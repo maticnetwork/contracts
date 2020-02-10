@@ -50,7 +50,7 @@ contract WithdrawManagerHeader is ExitsDataStructure {
 }
 
 contract WithdrawManagerStorage is ProxyStorage, WithdrawManagerHeader {
-    uint256 internal constant HALF_EXIT_PERIOD = 1 weeks;
+    uint256 public HALF_EXIT_PERIOD = 1 weeks;
 
     // Bonded exits collaterized at 0.1 ETH
     uint256 internal constant BOND_AMOUNT = 10**17;

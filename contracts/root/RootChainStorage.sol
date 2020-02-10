@@ -27,7 +27,7 @@ contract RootChainStorage is ProxyStorage, RootChainHeader {
     uint8 public constant VOTE_TYPE = 2;
 
     uint16 internal constant MAX_DEPOSITS = 10000;
-    uint256 internal _nextHeaderBlock = MAX_DEPOSITS;
+    uint256 public _nextHeaderBlock = MAX_DEPOSITS;
     uint256 internal _blockDepositId = 1;
     mapping(uint256 => HeaderBlock) public headerBlocks;
     Registry internal registry;
