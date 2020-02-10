@@ -326,6 +326,11 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
         _unstake(validatorId, exitEpoch);
     }
 
+    // @NOTE this is for stage-1 event only
+    function forceUnstake(uint256 validatorId) external onlyOwner {
+        _unstake(validatorId, exitEpoch);
+    }
+
     function delegationTransfer(
         uint256 validatorId,
         uint256 amount,
