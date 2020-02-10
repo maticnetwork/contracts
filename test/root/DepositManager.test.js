@@ -178,7 +178,7 @@ contract('DepositManager', async function(accounts) {
     it('tokenFallback');
   })
 
-  describe('deposits revert when paused', async function() {
+  describe.only('deposits revert when paused', async function() {
     before(async function() {
       this.contracts = await deployer.freshDeploy()
     })
@@ -211,6 +211,7 @@ contract('DepositManager', async function(accounts) {
       await testToken.approve(depositManager.address, amount)
       try {
         await depositManager.depositERC20(testToken.address, amount)
+        assert.fail('Transaction should have reverted')
       } catch(e) {
         expect(e.reason).to.equal('Is Paused')
       }
@@ -223,6 +224,7 @@ contract('DepositManager', async function(accounts) {
       await testToken.approve(depositManager.address, tokenId)
       try {
         await depositManager.depositERC721(testToken.address, tokenId)
+        assert.fail('Transaction should have reverted')
       } catch(e) {
         expect(e.reason).to.equal('Is Paused')
       }
@@ -250,6 +252,7 @@ contract('DepositManager', async function(accounts) {
       const user = accounts[1]
       try {
         await depositManager.depositBulk(tokens, amounts, user)
+        assert.fail('Transaction should have reverted')
       } catch(e) {
         expect(e.reason).to.equal('Is Paused')
       }
