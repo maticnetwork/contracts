@@ -1,6 +1,5 @@
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
-import ethUtils from 'ethereumjs-util'
 
 import deployer from '../../helpers/deployer.js'
 import logDecoder from '../../helpers/log-decoder.js'
@@ -30,9 +29,10 @@ contract('ERC20Predicate', async function(accounts) {
     beforeEach(async function() {
       contracts.withdrawManager = await deployer.deployWithdrawManager()
       contracts.ERC20Predicate = await deployer.deployErc20Predicate()
+      this.maticClient = await utils.initializeMaticClient(contracts)
     })
 
-    it('Exit with burnt tokens', async function() {
+    it.only('Exit with burnt tokens', async function() {
       const { rootERC20, childToken } = await deployer.deployChildErc20(accounts[0])
       childContracts.rootERC20 = rootERC20
       childContracts.childToken = childToken
@@ -43,14 +43,14 @@ contract('ERC20Predicate', async function(accounts) {
         user,
         amount
       )
-      const { receipt } = await childContracts.childToken.withdraw(amount)
-      let { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
-      const startExitTx = await utils.startExitWithBurntTokens(
-        contracts.ERC20Predicate,
-        { headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 }
-      )
-      const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
-      // console.log(startExitTx, logs)
+      // const { receipt } = await childContracts.childToken.withdraw(amount)
+      const burn = await this.maticClient.startWithdraw(childContracts.childToken.address, amount, { from: user })
+      await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
+      let receipt = await this.maticClient.withdraw(burn.transactionHash)
+      receipt = await web3.eth.getTransactionReceipt(receipt.transactionHash)
+      console.log(receipt)
+      let logs = logDecoder.decodeLogs(receipt.logs)
+      console.log(logs)
       let log = logs[utils.filterEvent(logs, 'ExitStarted')]
       expect(log.args).to.include({
         exitor: user,

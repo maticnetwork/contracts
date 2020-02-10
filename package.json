@@ -40,7 +40,7 @@
     "mnemonics": "clock radar mass judge dismiss just intact mind resemble fringe diary casino"
   },
   "devDependencies": {
-    "@maticnetwork/maticjs": "github:atvanguard/matic.js#2aee263777096533a138860f2184204cfab404dd",
+    "@maticnetwork/maticjs": "^2.0.0-beta.7",
     "babel-cli": "^6.26.0",
     "babel-eslint": "10.0.1",
     "babel-polyfill": "^6.26.0",
