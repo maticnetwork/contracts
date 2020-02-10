@@ -137,7 +137,8 @@ module.exports = async function (deployer) {
     await deployer.deploy(RootChain, Registry.address, process.env.HEIMDALL_ID)
     await deployer.deploy(StakeManager, Registry.address, RootChain.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address)
     await deployer.deploy(SlashingManager, Registry.address)
-    await this.stakingNFT.transferOwnership(StakeManager.address)
+    let stakingNFT = await StakingNFT.deployed()
+    await stakingNFT.transferOwnership(StakeManager.address)
     await deployer.deploy(StateSender)
 
     await deployer.deploy(DepositManager)
