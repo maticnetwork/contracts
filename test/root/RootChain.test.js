@@ -14,7 +14,7 @@ import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
 
 chai.use(chaiAsPromised).should()
 
-contract('RootChain', async function (accounts) {
+contract.only('RootChain', async function (accounts) {
   let rootChain
 
   let wallets
@@ -138,7 +138,7 @@ contract('RootChain', async function (accounts) {
     assertBigNumberEquality(block.createdAt, '0')
   })
 
-  it.only('revert checkpoints', async function () {
+  it('revert checkpoints', async function () {
     let tree = await rewradsTree([1, 2, 3, 4], accountState)
     let payload = buildSubmitHeaderBlockPaylod(accounts[0], 0, 4, '', wallets, {
       rewardsRootHash: tree.getRoot(),
