@@ -127,8 +127,13 @@ contract RootChain is RootChainStorage, IRootChain {
     }
 
     // HOUSEKEEPING functions
-    function setNextHeaderBlock(uint256 _value) public onlyOwner {
+    function setHeaderBlockValue(uint256 _value) public onlyOwner {
+        require(_value % MAX_DEPOSITS == 0, "Invalid value");
+        for (uint256 i = _value; i < currentHeaderBlock(); i += MAX_DEPOSITS) {
+            delete headerBlocks[i];
+        }
         _nextHeaderBlock = _value;
+        _blockDepositId = 1;
     }
 
     function setHeimdallId(string memory _heimdallId) public onlyOwner {
