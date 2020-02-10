@@ -178,6 +178,36 @@ contract('DepositManager', async function(accounts) {
     it('tokenFallback');
   })
 
+  describe('deposits do not happen when paused', async function() {
+    before(async function() {
+      this.contracts = await deployer.freshDeploy()
+    })
+
+    beforeEach(async function() {
+      await deployer.deployRootChain()
+      depositManager = await deployer.deployDepositManager()
+    })
+
+    it.only('depositEther fails', async function() {
+      await deployer.deployMaticWeth()
+      await this.contracts.governance.update(
+        depositManager.address,
+        depositManager.contract.methods.setPaused(true).encodeABI()
+      )
+      const value = web3.utils.toWei('1', 'ether')
+      try {
+        await depositManager.depositEther({
+          value,
+          from: accounts[0]
+        })
+        assert.fail('Transaction should have reverted')
+      } catch(e) {
+        console.log(e)
+        // expected
+      }
+    })
+  })
+
   describe('deposits on root and child', async function() {
 
     beforeEach(async function() {

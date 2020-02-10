@@ -67,7 +67,8 @@ class Deployer {
       withdrawManager,
       exitNFT: this.exitNFT,
       stakeManager: this.stakeManager,
-      SlashingManager: this.SlashingManager
+      SlashingManager: this.SlashingManager,
+      governance: this.governance
     }
 
     if (options.deployTestErc20) {

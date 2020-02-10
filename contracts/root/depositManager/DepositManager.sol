@@ -73,7 +73,9 @@ contract DepositManager is
         address[] calldata _tokens,
         uint256[] calldata _amountOrTokens,
         address _user
-    ) external {
+    )   external
+        isActive // unlike other deposit functions, depositBulk doesn't invoke _safeCreateDepositBlock
+    {
         require(_tokens.length == _amountOrTokens.length, "Invalid Input");
         uint256 depositId = rootChain.updateDepositId(_tokens.length);
 
@@ -190,7 +192,7 @@ contract DepositManager is
         address _user,
         address _token,
         uint256 _amountOrToken
-    ) internal isTokenMapped(_token) {
+    ) internal isActive isTokenMapped(_token) {
         _createDepositBlock(
             _user,
             _token,
