@@ -192,7 +192,7 @@ contract('RootChain', async function (accounts) {
     expect(block.start.toString()).to.equal('10')
     expect(block.end.toString()).to.equal('14')
 
-    await rootChain.setHeaderBlockValue(10000)
+    await rootChain.setNextHeaderBlock(20000)
 
     block = await rootChain.headerBlocks('10000')
     expect(block.start.toString()).to.equal('0')
