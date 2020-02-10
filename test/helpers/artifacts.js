@@ -1,4 +1,5 @@
 export const RootChain = artifacts.require('RootChain')
+export const RootChainProxy = artifacts.require('RootChainProxy')
 export const Registry = artifacts.require('Registry')
 export const StakeManager = artifacts.require('StakeManager')
 export const StakingInfo = artifacts.require('StakingInfo')
