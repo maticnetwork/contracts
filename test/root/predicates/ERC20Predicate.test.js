@@ -45,7 +45,7 @@ contract('ERC20Predicate', async function(accounts) {
       )
       // const { receipt } = await childContracts.childToken.withdraw(amount)
       const burn = await this.maticClient.startWithdraw(childContracts.childToken.address, amount, { from: user })
-      await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
+      await statefulUtils.submitCheckpoint(contracts.rootChain, burn, accounts)
       let receipt = await this.maticClient.withdraw(burn.transactionHash)
       receipt = await web3.eth.getTransactionReceipt(receipt.transactionHash)
       console.log(receipt)
