@@ -178,7 +178,7 @@ contract('DepositManager', async function(accounts) {
     it('tokenFallback');
   })
 
-  describe.only('deposits revert when paused', async function() {
+  describe('deposits revert when paused', async function() {
     before(async function() {
       this.contracts = await deployer.freshDeploy()
     })
@@ -209,6 +209,10 @@ contract('DepositManager', async function(accounts) {
     it('depositERC20 reverts', async function() {
       const testToken = await deployer.deployTestErc20()
       await testToken.approve(depositManager.address, amount)
+      await this.contracts.governance.update(
+        depositManager.address,
+        depositManager.contract.methods.setPaused(true).encodeABI()
+      )
       try {
         await depositManager.depositERC20(testToken.address, amount)
         assert.fail('Transaction should have reverted')
@@ -222,6 +226,10 @@ contract('DepositManager', async function(accounts) {
       let tokenId = '1212'
       await testToken.mint(tokenId)
       await testToken.approve(depositManager.address, tokenId)
+      await this.contracts.governance.update(
+        depositManager.address,
+        depositManager.contract.methods.setPaused(true).encodeABI()
+      )
       try {
         await depositManager.depositERC721(testToken.address, tokenId)
         assert.fail('Transaction should have reverted')
@@ -250,6 +258,10 @@ contract('DepositManager', async function(accounts) {
         amounts.push(tokenId)
       }
       const user = accounts[1]
+      await this.contracts.governance.update(
+        depositManager.address,
+        depositManager.contract.methods.setPaused(true).encodeABI()
+      )
       try {
         await depositManager.depositBulk(tokens, amounts, user)
         assert.fail('Transaction should have reverted')
@@ -309,4 +321,8 @@ function validateDepositBlock(depositBlock, owner, token, amountOrNFTId) {
 
 function validateDepositHash(depositHash, owner, token, amountOrNFTId) {
   expect(depositHash).to.equal(web3.utils.soliditySha3(owner, token, amountOrNFTId))
+}
+
+function setPaused() {
+
 }
