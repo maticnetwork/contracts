@@ -8,15 +8,23 @@ async function stake(address, amount) {
   const stakeManager = await StakeManager.at(contracts.root.StakeManager)
   const rootToken = await RootToken.at(contracts.root.tokens.TestToken)
   console.log({ stakeManager: stakeManager.address, rootToken: rootToken.address })
-  try {
-    console.log('Sender accounts has a balanceOf', (await rootToken.balanceOf(accounts[0])).toString())
-    await rootToken.approve(stakeManager.address, amount)
-    console.log('approved, staking now...')
-    const stake = await stakeManager.stakeFor(address, amount, address, false)
-    console.log('staked; txHash is', stake.tx)
-  } catch (err) {
-    console.log(err)
-  }
+  console.log('Sender accounts has a balanceOf', (await rootToken.balanceOf(accounts[0])).toString())
+  await rootToken.approve(stakeManager.address, amount)
+  console.log('approved, staking now...')
+  const stake = await stakeManager.stakeFor(address, amount, 0, address, false)
+  console.log('staked; txHash is', stake.tx)
+}
+
+async function topUpForFee(address, amount) {
+  const validatorId = await stakeManager.signerToValidator('0x25bE188468B1245Ab95037C238a24ee723493fE9')
+  console.log(validatorId.toString())
+  let r = await stakeManager.topUpForFee(validatorId.toString(), amount)
+  console.log(r.tx)
+}
+
+async function updateValidatorThreshold(number) {
+  const r = await stakeManager.updateValidatorThreshold(number)
+  console.log(r.tx)
 }
 
 module.exports = async function(callback) {
