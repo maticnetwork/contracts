@@ -13,16 +13,7 @@ contract StakeManagerTest is StakeManager {
         address _NFTContract,
         address _stakingLogger,
         address _validatorShareFactory
-    )
-        public
-        StakeManager(
-            _registry,
-            _rootChain,
-            _NFTContract,
-            _stakingLogger,
-            _validatorShareFactory
-        )
-    {
+    ) public {
         checkPointBlockInterval = 1;
     }
 

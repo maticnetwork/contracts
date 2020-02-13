@@ -1,12 +1,15 @@
 pragma solidity ^0.5.2;
 
+import {IERC20} from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+
 import {Registry} from "../common/Registry.sol";
 import {ProxyStorage} from "../common/misc/ProxyStorage.sol";
+import {RootChainable} from "../common/mixin/RootChainable.sol";
 import {StakingInfo} from "./StakingInfo.sol";
 import {StakingNFT} from "./StakingNFT.sol";
 import {ValidatorShareFactory} from "./ValidatorShareFactory.sol";
 
-contract StakeManagerStorage is ProxyStorage {
+contract StakeManagerStorage is ProxyStorage, RootChainable {
     // Todo: fix WITHDRAWAL_DELAY with interface
     uint256 public WITHDRAWAL_DELAY = (2**13); // unit: epoch
     uint256 public currentEpoch = 1;
@@ -41,7 +44,7 @@ contract StakeManagerStorage is ProxyStorage {
     uint256 public NFTCounter = 1;
     uint256 public totalRewards;
     uint256 public totalRewardsLiquidated;
-    uint256 public auctionPeriod = dynasty.div(4); // 1 week in epochs
+    uint256 public auctionPeriod = dynasty / 4; // 1 week in epochs
     bytes32 public accountStateRoot;
 
     // on dynasty update certain amount of cooldown period where there is no validator auction

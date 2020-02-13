@@ -16,7 +16,7 @@ import {ValidatorShareFactory} from "./ValidatorShareFactory.sol";
 import {StakingInfo} from "./StakingInfo.sol";
 import {StakingNFT} from "./StakingNFT.sol";
 
-contract StakeManager is IStakeManager, RootChainable, Lockable {
+contract StakeManager is IStakeManager, Lockable {
     using SafeMath for uint256;
     using ECVerify for bytes32;
     using Merkle for bytes32;
