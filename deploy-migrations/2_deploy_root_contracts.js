@@ -175,7 +175,7 @@ module.exports = async function (deployer) {
     )
     await deployer.deploy(
       MarketplacePredicate,
-      RootChain.address,
+      RootChainProxy.address,
       WithdrawManagerProxy.address,
       Registry.address
     )
