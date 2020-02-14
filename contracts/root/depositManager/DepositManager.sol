@@ -38,7 +38,7 @@ contract DepositManager is
         _;
     }
 
-    constructor() Pausable(address(0x0)) public {}
+    constructor() public Pausable(address(0x0)) {}
 
     // deposit ETH by sending to this contract
     function() external payable {
@@ -76,7 +76,8 @@ contract DepositManager is
         address[] calldata _tokens,
         uint256[] calldata _amountOrTokens,
         address _user
-    )   external
+    )
+        external
         isActive // unlike other deposit functions, depositBulk doesn't invoke _safeCreateDepositBlock
     {
         require(_tokens.length == _amountOrTokens.length, "Invalid Input");
