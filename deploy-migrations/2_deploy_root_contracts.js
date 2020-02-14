@@ -195,6 +195,7 @@ module.exports = async function (deployer) {
       root: {
         Registry: Registry.address,
         RootChain: RootChain.address,
+        RootChainProxy: RootChainProxy.address,
         DepositManager: DepositManager.address,
         DepositManagerProxy: DepositManagerProxy.address,
         WithdrawManager: WithdrawManager.address,
