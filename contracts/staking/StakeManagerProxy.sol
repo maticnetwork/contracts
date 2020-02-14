@@ -14,12 +14,12 @@ contract StakeManagerProxy is Proxy, StakeManagerStorage {
         address _rootchain,
         address _NFTContract,
         address _stakingLogger,
-        address _ValidatorShareFactory
+        address _validatorShareFactory
     ) public Proxy(_proxyTo) {
         registry = _registry;
         rootChain = _rootchain;
         NFTContract = StakingNFT(_NFTContract);
         logger = StakingInfo(_stakingLogger);
-        factory = ValidatorShareFactory(_ValidatorShareFactory);
+        factory = ValidatorShareFactory(_validatorShareFactory);
     }
 }

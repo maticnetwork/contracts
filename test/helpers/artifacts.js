@@ -1,6 +1,8 @@
 export const RootChain = artifacts.require('RootChain')
 export const Registry = artifacts.require('Registry')
 export const StakeManager = artifacts.require('StakeManager')
+export const StakeManagerProxy = artifacts.require('StakeManagerProxy')
+
 export const StakingInfo = artifacts.require('StakingInfo')
 export const StakingNFT = artifacts.require('StakingNFT')
 export const SlashingManager = artifacts.require('SlashingManager')

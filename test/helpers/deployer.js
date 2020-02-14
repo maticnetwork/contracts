@@ -22,16 +22,17 @@ class Deployer {
     this.SlashingManager = await contracts.SlashingManager.new(
       this.registry.address
     )
-
     if (options.stakeManager) {
-      this.stakeManager = await contracts.StakeManager.new(
+      let stakeManager = await contracts.StakeManager.new()
+      let proxy = await contracts.StakeManagerProxy.new(
+        stakeManager.address,
         this.registry.address,
         this.rootChain.address,
         this.stakingNFT.address,
         this.stakingInfo.address,
         this.validatorShareFactory.address
       )
-
+      this.stakeManager = await contracts.StakeManager.at(proxy.address)
     } else {
       this.stakeManager = await contracts.StakeManagerTest.new(
         this.registry.address,
@@ -83,14 +84,17 @@ class Deployer {
     this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
     this.stakeToken = await contracts.DummyERC20.new('Stake Token', 'STAKE')
     this.stakingNFT = await contracts.StakingNFT.new('Matic Validator', 'MV')
-
-    this.stakeManager = await contracts.StakeManager.new(
-      this.stakeToken.address,
+    let stakeManager = await contracts.StakeManager.new()
+    let proxy = await contracts.StakeManagerProxy.new(
+      stakeManager.address,
+      this.registry.address,
       wallets[1].getAddressString(),
       this.stakingNFT.address,
       this.stakingInfo.address,
       this.validatorShareFactory.address
     )
+    this.stakeManager = await contracts.StakeManager.at(proxy.address)
+
     await this.stakingNFT.transferOwnership(this.stakeManager.address)
     await this.registry.updateContractMap(
       ethUtils.keccak256('stakeManager'),
