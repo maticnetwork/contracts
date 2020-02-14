@@ -1,6 +1,9 @@
 pragma solidity ^0.5.2;
 
 import {StakeManager} from "../staking/StakeManager.sol";
+import {StakingInfo} from "../staking/StakingInfo.sol";
+import {StakingNFT} from "../staking/StakingNFT.sol";
+import {ValidatorShareFactory} from "../staking/ValidatorShareFactory.sol";
 
 contract StakeManagerTest is StakeManager {
     modifier onlyRootChain() {
@@ -15,6 +18,11 @@ contract StakeManagerTest is StakeManager {
         address _validatorShareFactory
     ) public {
         checkPointBlockInterval = 1;
+        registry = _registry;
+        rootChain = _rootChain;
+        NFTContract = StakingNFT(_NFTContract);
+        logger = StakingInfo(_stakingLogger);
+        factory = ValidatorShareFactory(_validatorShareFactory);
     }
 
     function checkSignatures(
