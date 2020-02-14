@@ -282,7 +282,9 @@ contract StakingInfo {
             registry.getStakeManagerAddress()
         )
             .validators(validatorId);
-        validatorStake += IStakeManager(contractAddress).activeAmount();
+        if (contractAddress != address(0x0)) {
+            validatorStake += IStakeManager(contractAddress).activeAmount();
+        }
     }
 
     function getAccountStateRoot()
