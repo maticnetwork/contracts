@@ -35,17 +35,17 @@ async function deploy() {
   await deployer.deploy(transformArtifact('ValidatorShareFactory', []))
   await deployer.deploy(transformArtifact('StakingInfo', ['Registry']))
   await deployer.deploy(transformArtifact('StakingNFT', [{ value: 'Matic Validator' }, { value: 'MV' }]))
-  await deployer.deploy(transformArtifact('StakeManager', ['Registry', 'RootChain', 'StakingNFT', 'StakingInfo', 'ValidatorShareFactory']))
+  await deployer.deploy(transformArtifact('StakeManager', ['Registry', 'RootChainProxy', 'StakingNFT', 'StakingInfo', 'ValidatorShareFactory']))
   await deployer.deploy(transformArtifact('SlashingManager', ['Registry']))
 
   await deployer.deploy(transformArtifact('StateSender', []))
 
   await deployer.deploy(transformArtifact('DepositManager', []))
-  await deployer.deploy(transformArtifact('DepositManagerProxy', ['DepositManager', 'Registry', 'RootChain']))
+  await deployer.deploy(transformArtifact('DepositManagerProxy', ['DepositManager', 'Registry', 'RootChainProxy']))
 
   await deployer.deploy(transformArtifact('WithdrawManager', []))
   await deployer.deploy(transformArtifact('ExitNFT', ['Registry']))
-  await deployer.deploy(transformArtifact('WithdrawManagerProxy', ['WithdrawManager', 'Registry', 'RootChain', 'ExitNFT']))
+  await deployer.deploy(transformArtifact('WithdrawManagerProxy', ['WithdrawManager', 'Registry', 'RootChainProxy', 'ExitNFT']))
 
   await deployer.deploy(transformArtifact('TestToken', [{ value: 'Test Token' }, { value: 'TST' }]))
 
