@@ -157,6 +157,9 @@ module.exports = async function (deployer, network) {
     await deployer.deploy(StakeManager, Registry.address, RootChain.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address)
     await deployer.deploy(StakeManagerTest, Registry.address, RootChain.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address)
 
+    let stakingNFT = await StakingNFT.deployed()
+    await stakingNFT.transferOwnership(StakeManager.address)
+
     await Promise.all([
       deployer.deploy(
         ERC20Predicate,

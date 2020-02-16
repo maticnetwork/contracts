@@ -9,7 +9,7 @@ contract IStakeManager is StakeManagerStorage {
         uint256 validatorId,
         uint256 heimdallFee,
         address signer,
-        bool isContract
+        bool acceptDelegation
     ) external;
 
     function delegationTransfer(

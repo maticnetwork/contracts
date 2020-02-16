@@ -140,7 +140,8 @@ module.exports = async function (deployer) {
     await deployer.deploy(StakeManager)
     await deployer.deploy(StakeManagerProxy, StakeManager.address, Registry.address, RootChain.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address)
     await deployer.deploy(SlashingManager, Registry.address)
-    await this.stakingNFT.transferOwnership(StakeManagerProxy.address)
+    let stakingNFT = await StakingNFT.deployed()
+    await stakingNFT.transferOwnership(StakeManagerProxy.address)
     await deployer.deploy(StateSender)
 
     await deployer.deploy(DepositManager)
