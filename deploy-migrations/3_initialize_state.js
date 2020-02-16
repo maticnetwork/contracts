@@ -41,7 +41,7 @@ module.exports = async function (deployer, network) {
         depositManagerProxy,
         stateSender,
         withdrawManagerProxy,
-        stakeManager,
+        stakeManagerProxy,
         slashingManager,
         maticWeth,
         ERC20Predicate,
@@ -49,6 +49,7 @@ module.exports = async function (deployer, network) {
         MarketplacePredicate,
         TransferWithSigPredicate
       ) {
+        let stakeManager = await StakeManager.at(stakeManagerProxy.address)
         await registry.updateContractMap(
           ethUtils.keccak256('depositManager'),
           depositManagerProxy.address
