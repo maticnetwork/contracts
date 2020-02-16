@@ -24,6 +24,7 @@ const WithdrawManager = artifacts.require('WithdrawManager')
 const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
 const StateSender = artifacts.require('StateSender')
 const StakeManager = artifacts.require('StakeManager')
+const StakeManagerProxy = artifacts.require('StakeManagerProxy')
 const StakingInfo = artifacts.require('StakingInfo')
 const StakingNFT = artifacts.require('StakingNFT')
 const ValidatorShareFactory = artifacts.require('ValidatorShareFactory')
@@ -135,9 +136,11 @@ module.exports = async function (deployer) {
     await deployer.deploy(StakingInfo, Registry.address)
     await deployer.deploy(StakingNFT, 'Matic Validator', 'MV')
     await deployer.deploy(RootChain, Registry.address, process.env.HEIMDALL_ID)
-    await deployer.deploy(StakeManager, Registry.address, RootChain.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address)
+
+    await deployer.deploy(StakeManager)
+    await deployer.deploy(StakeManagerProxy, StakeManager.address, Registry.address, RootChain.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address)
     await deployer.deploy(SlashingManager, Registry.address)
-    await this.stakingNFT.transferOwnership(StakeManager.address)
+    await this.stakingNFT.transferOwnership(StakeManagerProxy.address)
     await deployer.deploy(StateSender)
 
     await deployer.deploy(DepositManager)
@@ -196,7 +199,7 @@ module.exports = async function (deployer) {
         DepositManagerProxy: DepositManagerProxy.address,
         WithdrawManager: WithdrawManager.address,
         WithdrawManagerProxy: WithdrawManagerProxy.address,
-        StakeManager: StakeManager.address,
+        StakeManager: StakeManagerProxy.address,
         StakingInfo: StakingInfo.address,
         SlashingManager: SlashingManager.address,
         ExitNFT: ExitNFT.address,

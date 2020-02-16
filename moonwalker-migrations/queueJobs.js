@@ -33,7 +33,9 @@ async function deploy() {
   await deployer.deploy(transformArtifact('ValidatorShareFactory', []))
   await deployer.deploy(transformArtifact('StakingInfo', ['Registry']))
   await deployer.deploy(transformArtifact('StakingNFT', ['Matic Validator', 'MV']))
-  await deployer.deploy(transformArtifact('StakeManager', ['Registry', 'RootChain', 'StakingInfo', 'ValidatorShareFactory']))
+  await deployer.deploy(transformArtifact('StakeManager', []))
+  await deployer.deploy(transformArtifact('StakeManagerProxy', ['StakeManager', 'Registry', 'RootChain', 'StakingInfo', 'ValidatorShareFactory']))
+
   await deployer.deploy(transformArtifact('SlashingManager', ['Registry']))
 
   await deployer.deploy(transformArtifact('StateSender', []))
@@ -62,7 +64,7 @@ async function deploy() {
   await deployer.deploy(
     tx('Registry', 'updateContractMap', [
       { value: ethUtils.bufferToHex(ethUtils.keccak256('stakeManager')) },
-      'StakeManager'
+      'StakeManagerProxy'
     ])
   )
   await deployer.deploy(
@@ -78,10 +80,10 @@ async function deploy() {
     ])
   )
   await deployer.deploy(
-    tx('StakeManager', 'setToken', ['TestToken'])
+    tx('StakeManagerProxy', 'setToken', ['TestToken'])
   )
   await deployer.deploy(
-    tx('StakingNFT', 'transferOwnership', ['StakeManager'])
+    tx('StakingNFT', 'transferOwnership', ['StakeManagerProxy'])
   )
   // 27 jobs
 }
