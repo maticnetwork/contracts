@@ -147,7 +147,7 @@ contract('StakeManager', async function (accounts) {
       // logs[2].args.amount.should.be.bignumber.equal(amount)
     })
 
-    it('should stake via wallets[2]', async function () {
+    it('should stake via wallets[2] and restake', async function () {
       const user = wallets[2].getAddressString()
       const amount = web3.utils.toWei('250')
 
@@ -157,7 +157,7 @@ contract('StakeManager', async function (accounts) {
       })
 
       // stake now
-      const stakeReceipt = await stakeManager.stake(amount, 0, user, false, {
+      const stakeReceipt = await stakeManager.stake(web3.utils.toWei('150'), 0, user, false, {
         from: user
       })
 
@@ -174,14 +174,16 @@ contract('StakeManager', async function (accounts) {
       logs[2].event.should.equal('Staked')
       logs[2].args.signer.toLowerCase().should.equal(user)
       // logs[2].args.amount.should.be.bignumber.equal(amount)
-      assertBigNumberEquality(logs[2].args.amount, amount)
+      assertBigNumberEquality(logs[2].args.amount, web3.utils.toWei('150'))
 
+      await stakeManager.restake(logs[2].args.validatorId, web3.utils.toWei('100'), false, {
+        from: user
+      })
       // staked for
       const stakedFor = await stakeManager.totalStakedFor(user)
       assertBigNumberEquality(stakedFor, amount)
       // stakedFor.should.be.bignumber.equal(amount)
     })
-
     it('should stake via wallets[3]', async function () {
       const user = wallets[3].getAddressString()
       const amount = web3.utils.toWei('300')
