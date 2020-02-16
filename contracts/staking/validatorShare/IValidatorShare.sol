@@ -4,9 +4,9 @@ import {ERC20} from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
 
-import {Lockable} from "../common/mixin/Lockable.sol";
-import {StakingInfo} from "./StakingInfo.sol";
-import {IStakeManager} from "./IStakeManager.sol";
+import {Lockable} from "../../common/mixin/Lockable.sol";
+import {StakingInfo} from "../StakingInfo.sol";
+import {IStakeManager} from "../stakeManager/IStakeManager.sol";
 
 contract IValidatorShare is ERC20, Lockable {
     using SafeMath for uint256;

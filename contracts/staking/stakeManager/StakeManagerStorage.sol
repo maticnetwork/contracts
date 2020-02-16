@@ -2,12 +2,12 @@ pragma solidity ^0.5.2;
 
 import {IERC20} from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
-import {Registry} from "../common/Registry.sol";
-import {ProxyStorage} from "../common/misc/ProxyStorage.sol";
-import {RootChainable} from "../common/mixin/RootChainable.sol";
-import {StakingInfo} from "./StakingInfo.sol";
+import {Registry} from "../../common/Registry.sol";
+import {ProxyStorage} from "../../common/misc/ProxyStorage.sol";
+import {RootChainable} from "../../common/mixin/RootChainable.sol";
+import {StakingInfo} from "../StakingInfo.sol";
 import {StakingNFT} from "./StakingNFT.sol";
-import {ValidatorShareFactory} from "./ValidatorShareFactory.sol";
+import "../validatorShare/ValidatorShareFactory.sol";
 
 contract StakeManagerStorage is ProxyStorage, RootChainable {
     // Todo: fix WITHDRAWAL_DELAY with interface

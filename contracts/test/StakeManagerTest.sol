@@ -1,9 +1,9 @@
 pragma solidity ^0.5.2;
 
-import {StakeManager} from "../staking/StakeManager.sol";
+import {StakeManager} from "../staking/stakeManager/StakeManager.sol";
 import {StakingInfo} from "../staking/StakingInfo.sol";
-import {StakingNFT} from "../staking/StakingNFT.sol";
-import {ValidatorShareFactory} from "../staking/ValidatorShareFactory.sol";
+import {StakingNFT} from "../staking/stakeManager/StakingNFT.sol";
+import "../staking/validatorShare/ValidatorShareFactory.sol";
 
 contract StakeManagerTest is StakeManager {
     modifier onlyRootChain() {

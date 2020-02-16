@@ -1,6 +1,6 @@
 pragma solidity ^0.5.2;
 
-import {Registry} from "../common/Registry.sol";
+import {Registry} from "../../common/Registry.sol";
 
 import {IValidatorShare} from "./IValidatorShare.sol";
 
