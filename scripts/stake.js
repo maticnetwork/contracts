@@ -2,6 +2,9 @@ const contracts = require('../contractAddresses.json')
 
 const RootToken = artifacts.require('TestToken')
 const StakeManager = artifacts.require('StakeManager')
+const ChildERC20 = artifacts.require('ChildERC20')
+const TestToken = artifacts.require('TestToken')
+const DepositManager = artifacts.require('DepositManager')
 
 async function getStakeManager() {
   return StakeManager.at(contracts.root.StakeManager)
@@ -47,10 +50,22 @@ async function updateCheckpointReward(reward) {
   console.log((await stakeManager.CHECKPOINT_REWARD()).toString())
 }
 
+async function deposit() {
+  const amount = web3.utils.toWei(process.argv[6])
+  console.log(`Depositing ${amount}...`)
+  const testToken = await TestToken.at(contracts.root.tokens.TestToken)
+  let r = await testToken.approve(contracts.root.DepositManagerProxy, amount)
+  console.log(r)
+  const depositManager = await DepositManager.at(contracts.root.DepositManagerProxy)
+  let r = await depositManager.depositERC20(contracts.root.tokens.TestToken, amount)
+  console.log(r)
+  const childToken = await ChildERC20.at(contracts.child.tokens.TestToken)
+  console.log((await childToken.balanceOf('0x907f2e1F4A477319A700fC9a28374BA47527050e')).toString())
+}
+
 module.exports = async function(callback) {
   try {
     await stake()
-    // await updateCheckpointReward(web3.utils.toWei('10'))
   } catch(e) {
     // truffle exec <script> doesn't throw errors, so handling it in a verbose manner here
     console.log(e)
