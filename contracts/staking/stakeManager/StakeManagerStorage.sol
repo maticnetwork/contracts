@@ -3,13 +3,14 @@ pragma solidity ^0.5.2;
 import {IERC20} from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
 import {Registry} from "../../common/Registry.sol";
+import {Lockable} from "../../common/mixin/Lockable.sol";
 import {ProxyStorage} from "../../common/misc/ProxyStorage.sol";
 import {RootChainable} from "../../common/mixin/RootChainable.sol";
 import {StakingInfo} from "../StakingInfo.sol";
 import {StakingNFT} from "./StakingNFT.sol";
 import "../validatorShare/ValidatorShareFactory.sol";
 
-contract StakeManagerStorage is ProxyStorage, RootChainable {
+contract StakeManagerStorage is ProxyStorage, RootChainable, Lockable {
     // Todo: fix WITHDRAWAL_DELAY with interface
     uint256 public WITHDRAWAL_DELAY = (2**13); // unit: epoch
     uint256 public currentEpoch = 1;
