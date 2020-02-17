@@ -156,8 +156,8 @@ module.exports = async function (deployer, network) {
       deployer.deploy(DepositManager)
     ])
 
-    await deployer.deploy(StakeManager, Registry.address, RootChain.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address)
-    await deployer.deploy(StakeManagerTest, Registry.address, RootChain.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address)
+    await deployer.deploy(StakeManager, Registry.address, RootChain.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address, Governance.address)
+    await deployer.deploy(StakeManagerTest, Registry.address, RootChain.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address, Governance.address)
 
     await Promise.all([
       deployer.deploy(

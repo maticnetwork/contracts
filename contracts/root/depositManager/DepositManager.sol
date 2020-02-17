@@ -38,7 +38,6 @@ contract DepositManager is
         _;
     }
 
-    // Actual lockable contract is paused to the DepositManagerProxy
     constructor() public Lockable(address(0x0)) {}
 
     // deposit ETH by sending to this contract

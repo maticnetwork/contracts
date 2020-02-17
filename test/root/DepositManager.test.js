@@ -192,7 +192,7 @@ contract('DepositManager', async function(accounts) {
       await deployer.deployMaticWeth()
       await this.contracts.governance.update(
         depositManager.address,
-        depositManager.contract.methods.setPaused(true).encodeABI()
+        depositManager.contract.methods.lock().encodeABI()
       )
       const value = web3.utils.toWei('1', 'ether')
       try {
@@ -202,7 +202,7 @@ contract('DepositManager', async function(accounts) {
         })
         assert.fail('Transaction should have reverted')
       } catch(e) {
-        expect(e.reason).to.equal('Is Paused')
+        expect(e.reason).to.equal('Is Locked')
       }
     })
 
@@ -211,13 +211,13 @@ contract('DepositManager', async function(accounts) {
       await testToken.approve(depositManager.address, amount)
       await this.contracts.governance.update(
         depositManager.address,
-        depositManager.contract.methods.setPaused(true).encodeABI()
+        depositManager.contract.methods.lock().encodeABI()
       )
       try {
         await depositManager.depositERC20(testToken.address, amount)
         assert.fail('Transaction should have reverted')
       } catch(e) {
-        expect(e.reason).to.equal('Is Paused')
+        expect(e.reason).to.equal('Is Locked')
       }
     })
 
@@ -228,13 +228,13 @@ contract('DepositManager', async function(accounts) {
       await testToken.approve(depositManager.address, tokenId)
       await this.contracts.governance.update(
         depositManager.address,
-        depositManager.contract.methods.setPaused(true).encodeABI()
+        depositManager.contract.methods.lock().encodeABI()
       )
       try {
         await depositManager.depositERC721(testToken.address, tokenId)
         assert.fail('Transaction should have reverted')
       } catch(e) {
-        expect(e.reason).to.equal('Is Paused')
+        expect(e.reason).to.equal('Is Locked')
       }
     })
 
@@ -260,13 +260,13 @@ contract('DepositManager', async function(accounts) {
       const user = accounts[1]
       await this.contracts.governance.update(
         depositManager.address,
-        depositManager.contract.methods.setPaused(true).encodeABI()
+        depositManager.contract.methods.lock().encodeABI()
       )
       try {
         await depositManager.depositBulk(tokens, amounts, user)
         assert.fail('Transaction should have reverted')
       } catch(e) {
-        expect(e.reason).to.equal('Is Paused')
+        expect(e.reason).to.equal('Is Locked')
       }
     })
   })
@@ -321,8 +321,4 @@ function validateDepositBlock(depositBlock, owner, token, amountOrNFTId) {
 
 function validateDepositHash(depositHash, owner, token, amountOrNFTId) {
   expect(depositHash).to.equal(web3.utils.soliditySha3(owner, token, amountOrNFTId))
-}
-
-function setPaused() {
-
 }

@@ -25,9 +25,12 @@ contract('ValidatorShare', async function (accounts) {
     registry = contracts.registry
     stakeManager = contracts.stakeManager
     stakeToken = await TestToken.new("MATIC", "MATIC")
-    await registry.updateContractMap(
-      utils.keccak256('stakeManager'),
-      stakeManager.address
+    await contracts.governance.update(
+      contracts.registry.address,
+      contracts.registry.contract.methods.updateContractMap(
+        utils.keccak256('stakeManager'),
+        stakeManager.address
+      ).encodeABI()
     )
     await stakeManager.updateCheckPointBlockInterval(1)
     await stakeManager.updateValidatorThreshold(2)

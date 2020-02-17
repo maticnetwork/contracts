@@ -30,7 +30,8 @@ class Deployer {
         this.rootChain.address,
         this.stakingNFT.address,
         this.stakingInfo.address,
-        this.validatorShareFactory.address
+        this.validatorShareFactory.address,
+        this.governance.address
       )
 
     } else {
@@ -39,7 +40,8 @@ class Deployer {
         this.rootChain.address,
         this.stakingNFT.address,
         this.stakingInfo.address,
-        this.validatorShareFactory.address
+        this.validatorShareFactory.address,
+        this.governance.address
       )
     }
     await this.stakingNFT.transferOwnership(this.stakeManager.address)
@@ -79,7 +81,8 @@ class Deployer {
   }
 
   async deployStakeManager(wallets) {
-    this.registry = await contracts.Registry.new()
+    this.governance = await this.deployGovernance()
+    this.registry = await contracts.Registry.new(this.governance.address)
     this.validatorShareFactory = await contracts.ValidatorShareFactory.new()
     this.rootChain = await this.deployRootChain()
     this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
@@ -91,7 +94,8 @@ class Deployer {
       wallets[1].getAddressString(),
       this.stakingNFT.address,
       this.stakingInfo.address,
-      this.validatorShareFactory.address
+      this.validatorShareFactory.address,
+      this.governance.address
     )
     await this.stakingNFT.transferOwnership(this.stakeManager.address)
     await this.updateContractMap(

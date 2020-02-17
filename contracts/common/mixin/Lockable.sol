@@ -6,7 +6,7 @@ contract Lockable is Governable {
     bool public locked;
 
     modifier onlyWhenUnlocked() {
-        require(locked == false);
+        require(!locked, "Is Locked");
         _;
     }
 
