@@ -4,6 +4,7 @@ import {Registry} from "../../common/Registry.sol";
 import {RootChain} from "../RootChain.sol";
 import {ProxyStorage} from "../../common/misc/ProxyStorage.sol";
 import {StateSender} from "../stateSyncer/StateSender.sol";
+import {Lockable} from "../../common/mixin/Lockable.sol";
 
 contract DepositManagerHeader {
     event NewDepositBlock(
@@ -19,7 +20,7 @@ contract DepositManagerHeader {
     }
 }
 
-contract DepositManagerStorage is ProxyStorage, DepositManagerHeader {
+contract DepositManagerStorage is ProxyStorage, Lockable, DepositManagerHeader {
     Registry internal registry;
     RootChain internal rootChain;
     StateSender public stateSender;

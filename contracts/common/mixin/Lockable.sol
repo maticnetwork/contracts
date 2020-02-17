@@ -1,20 +1,22 @@
 pragma solidity ^0.5.2;
 
-import {Ownable} from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import {Governable} from "../governance/Governable.sol";
 
-contract Lockable is Ownable {
+contract Lockable is Governable {
     bool public locked;
 
     modifier onlyWhenUnlocked() {
-        require(locked == false);
+        require(!locked, "Is Locked");
         _;
     }
 
-    function lock() external onlyOwner {
+    constructor(address _governance) public Governable(_governance) {}
+
+    function lock() external onlyGovernance {
         locked = true;
     }
 
-    function unlock() external onlyOwner {
+    function unlock() external onlyGovernance {
         locked = false;
     }
 }

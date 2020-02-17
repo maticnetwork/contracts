@@ -21,14 +21,15 @@ contract ValidatorShareFactory {
     - factory to create new validatorShare contracts
    */
 
-    function create(uint256 validatorId, address loggerAddress)
+    function create(uint256 validatorId, address loggerAddress, address governance)
         public
         returns (address)
     {
         ValidatorShare validatorShare = new ValidatorShare(
             validatorId,
             loggerAddress,
-            msg.sender
+            msg.sender,
+            governance
         );
         validatorShare.transferOwnership(msg.sender);
         return address(validatorShare);
@@ -119,15 +120,16 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
     constructor(
         address _registry,
         address _rootchain,
-        address _NFTContract,
+        address _nftContract,
         address _stakingLogger,
-        address _ValidatorShareFactory
-    ) public {
+        address _validatorShareFactory,
+        address _governance
+    ) public Lockable(_governance) {
         registry = _registry;
         rootChain = _rootchain;
-        NFTContract = StakingNFT(_NFTContract);
+        NFTContract = StakingNFT(_nftContract);
         logger = StakingInfo(_stakingLogger);
-        factory = ValidatorShareFactory(_ValidatorShareFactory);
+        factory = ValidatorShareFactory(_validatorShareFactory);
     }
 
     modifier onlyStaker(uint256 validatorId) {
@@ -743,7 +745,7 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
             jailTime: 0,
             signer: signer,
             contractAddress: acceptDelegation
-                ? factory.create(NFTCounter, address(logger))
+                ? factory.create(NFTCounter, address(logger), address(governance))
                 : address(0x0),
             status: Status.Active
         });

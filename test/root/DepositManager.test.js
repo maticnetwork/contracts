@@ -178,6 +178,99 @@ contract('DepositManager', async function(accounts) {
     it('tokenFallback');
   })
 
+  describe('deposits revert when paused', async function() {
+    before(async function() {
+      this.contracts = await deployer.freshDeploy()
+    })
+
+    beforeEach(async function() {
+      await deployer.deployRootChain()
+      depositManager = await deployer.deployDepositManager()
+    })
+
+    it('depositEther reverts', async function() {
+      await deployer.deployMaticWeth()
+      await this.contracts.governance.update(
+        depositManager.address,
+        depositManager.contract.methods.lock().encodeABI()
+      )
+      const value = web3.utils.toWei('1', 'ether')
+      try {
+        await depositManager.depositEther({
+          value,
+          from: accounts[0]
+        })
+        assert.fail('Transaction should have reverted')
+      } catch(e) {
+        expect(e.reason).to.equal('Is Locked')
+      }
+    })
+
+    it('depositERC20 reverts', async function() {
+      const testToken = await deployer.deployTestErc20()
+      await testToken.approve(depositManager.address, amount)
+      await this.contracts.governance.update(
+        depositManager.address,
+        depositManager.contract.methods.lock().encodeABI()
+      )
+      try {
+        await depositManager.depositERC20(testToken.address, amount)
+        assert.fail('Transaction should have reverted')
+      } catch(e) {
+        expect(e.reason).to.equal('Is Locked')
+      }
+    })
+
+    it('depositERC721 reverts', async function() {
+      const testToken = await deployer.deployTestErc721()
+      let tokenId = '1212'
+      await testToken.mint(tokenId)
+      await testToken.approve(depositManager.address, tokenId)
+      await this.contracts.governance.update(
+        depositManager.address,
+        depositManager.contract.methods.lock().encodeABI()
+      )
+      try {
+        await depositManager.depositERC721(testToken.address, tokenId)
+        assert.fail('Transaction should have reverted')
+      } catch(e) {
+        expect(e.reason).to.equal('Is Locked')
+      }
+    })
+
+    it('depositBulk reverts', async function() {
+      const tokens = []
+      const amounts = []
+      const NUM_DEPOSITS = 15
+      for (let i = 0; i < NUM_DEPOSITS; i++) {
+        const testToken = await deployer.deployTestErc20()
+        const _amount = amount.add(web3.utils.toBN(i))
+        await testToken.approve(depositManager.address, _amount)
+        tokens.push(testToken.address)
+        amounts.push(_amount)
+      }
+      for (let i = 0; i < NUM_DEPOSITS; i++) {
+        const testToken = await deployer.deployTestErc721()
+        const tokenId = web3.utils.toBN(crypto.randomBytes(32).toString('hex'), 16)
+        await testToken.mint(tokenId)
+        await testToken.approve(depositManager.address, tokenId)
+        tokens.push(testToken.address)
+        amounts.push(tokenId)
+      }
+      const user = accounts[1]
+      await this.contracts.governance.update(
+        depositManager.address,
+        depositManager.contract.methods.lock().encodeABI()
+      )
+      try {
+        await depositManager.depositBulk(tokens, amounts, user)
+        assert.fail('Transaction should have reverted')
+      } catch(e) {
+        expect(e.reason).to.equal('Is Locked')
+      }
+    })
+  })
+
   describe('deposits on root and child', async function() {
 
     beforeEach(async function() {

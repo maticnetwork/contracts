@@ -54,7 +54,7 @@ contract('TransferWithSigPredicate', async function(accounts) {
     const to = accounts[2]
     let inFlightTx = await predicateTestUtils.getRawInflightTx(
       erc20.childToken.transferWithSig.bind(null, sig, tokenIdOrAmount, data, expiration, to),
-      spender /* from */, web3Child, 30232
+      spender /* from */, web3Child, 40000
     )
 
     const startExitTx = await utils.startExitForTransferWithSig(
@@ -100,7 +100,7 @@ contract('TransferWithSigPredicate', async function(accounts) {
 
     let inFlightTx = await predicateTestUtils.getRawInflightTx(
       erc20.childToken.transferWithSig.bind(null, sig, tokenIdOrAmount, data, expiration, bob),
-      spender /* from */, web3Child, 30232
+      spender /* from */, web3Child, 40000
     )
 
     const startExitTx = await utils.startExitForTransferWithSig(
@@ -142,7 +142,7 @@ contract('TransferWithSigPredicate', async function(accounts) {
     const to = accounts[2]
     let inFlightTx = await predicateTestUtils.getRawInflightTx(
       erc20.childToken.transferWithSig.bind(null, sig, tokenIdOrAmount, data, expiration, to),
-      spender /* from */, web3Child, 30232
+      spender /* from */, web3Child, 40000
     )
 
     const startExitTx = await utils.startExitForTransferWithSig(
