@@ -1,9 +1,9 @@
 pragma solidity ^0.5.2;
 
-import {Ownable} from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import {Governable} from "./governance/Governable.sol";
 import {IWithdrawManager} from "../root/withdrawManager/IWithdrawManager.sol";
 
-contract Registry is Ownable {
+contract Registry is Governable {
     // @todo hardcode constants
     bytes32 private constant WETH_TOKEN = keccak256("wethToken");
     bytes32 private constant DEPOSIT_MANAGER = keccak256("depositManager");
@@ -22,7 +22,6 @@ contract Registry is Ownable {
     mapping(bytes32 => address) contractMap;
     mapping(address => address) public rootToChildToken;
     mapping(address => address) public childToRootToken;
-    // @todo we can think of one function from the registry which returns both (childToken,isERC721) if we are using it frequently together.
     mapping(address => bool) public proofValidatorContracts;
     mapping(address => bool) public isERC721;
 
@@ -46,23 +45,25 @@ contract Registry is Ownable {
         address indexed newContract
     );
 
+    constructor(address _governance) public Governable(_governance) {}
+
     function updateContractMap(bytes32 _key, address _address)
         external
-        onlyOwner
+        onlyGovernance
     {
         emit ContractMapUpdated(_key, contractMap[_key], _address);
         contractMap[_key] = _address;
     }
 
     /**
-   * @dev Map root token to child token
-   * @param _rootToken Token address on the root chain
-   * @param _childToken Token address on the child chain
-   * @param _isERC721 Is the token being mapped ERC721
-   */
+    * @dev Map root token to child token
+    * @param _rootToken Token address on the root chain
+    * @param _childToken Token address on the child chain
+    * @param _isERC721 Is the token being mapped ERC721
+    */
     function mapToken(address _rootToken, address _childToken, bool _isERC721)
         external
-        onlyOwner
+        onlyGovernance
     {
         require(
             _rootToken != address(0x0) && _childToken != address(0x0),
@@ -77,16 +78,7 @@ contract Registry is Ownable {
         emit TokenMapped(_rootToken, _childToken);
     }
 
-    function addProofValidator(address _validator) public onlyOwner {
-        require(
-            _validator != address(0) &&
-                proofValidatorContracts[_validator] != true
-        );
-        emit ProofValidatorAdded(_validator, msg.sender);
-        proofValidatorContracts[_validator] = true;
-    }
-
-    function addErc20Predicate(address predicate) public onlyOwner {
+    function addErc20Predicate(address predicate) public onlyGovernance {
         require(
             predicate != address(0x0),
             "Can not add null address as predicate"
@@ -95,12 +87,12 @@ contract Registry is Ownable {
         addPredicate(predicate, Type.ERC20);
     }
 
-    function addErc721Predicate(address predicate) public onlyOwner {
+    function addErc721Predicate(address predicate) public onlyGovernance {
         erc721Predicate = predicate;
         addPredicate(predicate, Type.ERC721);
     }
 
-    function addPredicate(address predicate, Type _type) public onlyOwner {
+    function addPredicate(address predicate, Type _type) public onlyGovernance {
         require(
             predicates[predicate]._type == Type.Invalid,
             "Predicate already added"
@@ -109,19 +101,13 @@ contract Registry is Ownable {
         emit PredicateAdded(predicate, msg.sender);
     }
 
-    function removePredicate(address predicate) public onlyOwner {
+    function removePredicate(address predicate) public onlyGovernance {
         require(
             predicates[predicate]._type != Type.Invalid,
             "Predicate does not exist"
         );
         delete predicates[predicate];
         emit PredicateRemoved(predicate, msg.sender);
-    }
-
-    function removeProofValidator(address _validator) public onlyOwner {
-        require(proofValidatorContracts[_validator] == true);
-        emit ProofValidatorRemoved(_validator, msg.sender);
-        delete proofValidatorContracts[_validator];
     }
 
     function getDelegationManagerAddress() public view returns (address) {

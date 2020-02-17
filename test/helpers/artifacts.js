@@ -1,5 +1,7 @@
 export const RootChain = artifacts.require('RootChain')
 export const Registry = artifacts.require('Registry')
+export const Governance = artifacts.require('Governance')
+export const GovernanceProxy = artifacts.require('GovernanceProxy')
 export const StakeManager = artifacts.require('StakeManager')
 export const StakeManagerProxy = artifacts.require('StakeManagerProxy')
 

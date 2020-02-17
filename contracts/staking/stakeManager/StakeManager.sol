@@ -3,11 +3,11 @@ pragma solidity ^0.5.2;
 import {IERC20} from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import {Math} from "openzeppelin-solidity/contracts/math/Math.sol";
 import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import {Ownable} from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 import {BytesLib} from "../../common/lib/BytesLib.sol";
 import {ECVerify} from "../../common/lib/ECVerify.sol";
 import {Merkle} from "../../common/lib/Merkle.sol";
-import {Lockable} from "../../common/mixin/Lockable.sol";
 import {RootChainable} from "../../common/mixin/RootChainable.sol";
 import {Registry} from "../../common/Registry.sol";
 import {IStakeManager} from "./IStakeManager.sol";
@@ -16,7 +16,7 @@ import {StakingInfo} from "../StakingInfo.sol";
 import {StakingNFT} from "./StakingNFT.sol";
 import "../validatorShare/ValidatorShareFactory.sol";
 
-contract StakeManager is IStakeManager, Lockable {
+contract StakeManager is IStakeManager {
     using SafeMath for uint256;
     using ECVerify for bytes32;
     using Merkle for bytes32;
@@ -634,7 +634,11 @@ contract StakeManager is IStakeManager, Lockable {
             jailTime: 0,
             signer: signer,
             contractAddress: acceptDelegation
-                ? factory.create(NFTCounter, address(logger))
+                ? factory.create(
+                    NFTCounter,
+                    address(logger),
+                    address(governance)
+                )
                 : address(0x0),
             status: Status.Active
         });

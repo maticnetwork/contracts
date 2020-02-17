@@ -17,6 +17,7 @@ const PriorityQueue = artifacts.require('PriorityQueue')
 const RLPEncode = artifacts.require('RLPEncode')
 
 const Registry = artifacts.require('Registry')
+const Governance = artifacts.require('Governance')
 const RootChain = artifacts.require('RootChain')
 const DepositManager = artifacts.require('DepositManager')
 const WithdrawManager = artifacts.require('WithdrawManager')
@@ -141,7 +142,8 @@ module.exports = async function (deployer, network) {
     })
 
     console.log('deploying contracts...')
-    await deployer.deploy(Registry)
+    await deployer.deploy(Governance)
+    await deployer.deploy(Registry, Governance.address)
     await deployer.deploy(ValidatorShareFactory)
     await deployer.deploy(StakingInfo, Registry.address)
     await deployer.deploy(StakingNFT, 'Matic Validator', 'MV')
@@ -154,8 +156,8 @@ module.exports = async function (deployer, network) {
       deployer.deploy(DepositManager)
     ])
 
-    await deployer.deploy(StakeManager, Registry.address, RootChain.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address)
-    await deployer.deploy(StakeManagerTest, Registry.address, RootChain.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address)
+    await deployer.deploy(StakeManager, Registry.address, RootChain.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address, Governance.address)
+    await deployer.deploy(StakeManagerTest, Registry.address, RootChain.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address, Governance.address)
 
     let stakingNFT = await StakingNFT.deployed()
     await stakingNFT.transferOwnership(StakeManager.address)

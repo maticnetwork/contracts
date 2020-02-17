@@ -15,6 +15,7 @@ import {WETH} from "../../common/tokens/WETH.sol";
 import {IDepositManager} from "./IDepositManager.sol";
 import {DepositManagerStorage} from "./DepositManagerStorage.sol";
 import {StateSender} from "../stateSyncer/StateSender.sol";
+import {Lockable} from "../../common/mixin/Lockable.sol";
 
 contract DepositManager is
     DepositManagerStorage,
@@ -36,6 +37,8 @@ contract DepositManager is
         );
         _;
     }
+
+    constructor() public Lockable(address(0x0)) {}
 
     // deposit ETH by sending to this contract
     function() external payable {
@@ -73,7 +76,10 @@ contract DepositManager is
         address[] calldata _tokens,
         uint256[] calldata _amountOrTokens,
         address _user
-    ) external {
+    )
+        external
+        onlyWhenUnlocked // unlike other deposit functions, depositBulk doesn't invoke _safeCreateDepositBlock
+    {
         require(_tokens.length == _amountOrTokens.length, "Invalid Input");
         uint256 depositId = rootChain.updateDepositId(_tokens.length);
 
@@ -190,7 +196,7 @@ contract DepositManager is
         address _user,
         address _token,
         uint256 _amountOrToken
-    ) internal isTokenMapped(_token) {
+    ) internal onlyWhenUnlocked isTokenMapped(_token) {
         _createDepositBlock(
             _user,
             _token,

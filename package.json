@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "private": true,
   "scripts": {
     "testrpc": "ganache-cli --hardfork istanbul --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' --gasLimit 8000000 --gasPrice 0",
     "template:process": "node scripts/process-templates.js",
@@ -28,14 +27,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jdkanani/protocol.git"
+    "url": "https://github.com/maticnetwork/contracts.git"
   },
   "author": "Jaynti Kanani <jdkanani@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/jdkanani/protocol/issues"
+    "url": "https://github.com/maticnetwork/contracts/issues"
   },
-  "homepage": "https://github.com/jdkanani/protocol#readme",
+  "homepage": "https://github.com/maticnetwork/contracts",
   "config": {
     "mnemonics": "clock radar mass judge dismiss just intact mind resemble fringe diary casino"
   },
