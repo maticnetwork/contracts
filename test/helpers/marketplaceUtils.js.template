@@ -69,7 +69,7 @@ function getTransferTypedData({
         { name: "name", type: "string" },
         { name: "version", type: "string" },
         { name: "chainId", type: "uint256" },
-        { name: "contract", type: "address" }
+        { name: "verifyingContract", type: "address" }
       ],
       TokenTransferOrder: [
         { name: "spender", type: "address" },
@@ -82,7 +82,7 @@ function getTransferTypedData({
       name: "Matic Network",
       version: "1",
       chainId: {{ borChainId }},
-      contract: tokenAddress
+      verifyingContract: tokenAddress
     },
     primaryType: "TokenTransferOrder",
     message: {
