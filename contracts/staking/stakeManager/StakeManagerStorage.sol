@@ -10,7 +10,7 @@ import {StakingInfo} from "../StakingInfo.sol";
 import {StakingNFT} from "./StakingNFT.sol";
 import "../validatorShare/ValidatorShareFactory.sol";
 
-contract StakeManagerStorage is ProxyStorage, RootChainable, Lockable {
+contract StakeManagerStorage is ProxyStorage, Lockable, RootChainable {
     // Todo: fix WITHDRAWAL_DELAY with interface
     uint256 public WITHDRAWAL_DELAY = (2**13); // unit: epoch
     uint256 public currentEpoch = 1;
@@ -72,4 +72,6 @@ contract StakeManagerStorage is ProxyStorage, RootChainable, Lockable {
     mapping(uint256 => Auction) public validatorAuction;
 
     uint256 public totalHeimdallFee;
+
+    constructor() public Lockable(address(0x0)) {}
 }
