@@ -1,23 +1,8 @@
 pragma solidity ^0.5.2;
 
-contract IStakeManager {
-    // Todo: fix WITHDRAWAL_DELAY with interface
-    uint256 public WITHDRAWAL_DELAY = (2**13); // unit: epoch
-    uint256 public currentEpoch = 1;
+import {StakeManagerStorage} from "./StakeManagerStorage.sol";
 
-    enum Status {Inactive, Active, Locked, Unstaked}
-    struct Validator {
-        uint256 amount;
-        uint256 reward;
-        uint256 activationEpoch;
-        uint256 deactivationEpoch;
-        uint256 jailTime;
-        address signer;
-        address contractAddress;
-        Status status;
-    }
-
-    mapping(uint256 => Validator) public validators;
+contract IStakeManager is StakeManagerStorage {
     // validator replacement
     function startAuction(uint256 validatorId, uint256 amount) external;
     function confirmAuctionBid(

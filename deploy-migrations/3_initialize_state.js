@@ -8,6 +8,7 @@ const StateSender = artifacts.require('StateSender')
 const WithdrawManager = artifacts.require('WithdrawManager')
 const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
 const StakeManager = artifacts.require('StakeManager')
+const StakeManagerProxy = artifacts.require('StakeManagerProxy')
 const SlashingManager = artifacts.require('SlashingManager')
 const ERC20Predicate = artifacts.require('ERC20Predicate')
 const ERC721Predicate = artifacts.require('ERC721Predicate')
@@ -26,7 +27,7 @@ module.exports = async function (deployer, network) {
         DepositManagerProxy.deployed(),
         StateSender.deployed(),
         WithdrawManagerProxy.deployed(),
-        StakeManager.deployed(),
+        StakeManagerProxy.deployed(),
         SlashingManager.deployed(),
         MaticWeth.deployed(),
         ERC20Predicate.deployed(),
@@ -40,7 +41,7 @@ module.exports = async function (deployer, network) {
         depositManagerProxy,
         stateSender,
         withdrawManagerProxy,
-        stakeManager,
+        stakeManagerProxy,
         slashingManager,
         maticWeth,
         ERC20Predicate,
@@ -48,6 +49,7 @@ module.exports = async function (deployer, network) {
         MarketplacePredicate,
         TransferWithSigPredicate
       ) {
+        let stakeManager = await StakeManager.at(stakeManagerProxy.address)
         await registry.updateContractMap(
           ethUtils.keccak256('depositManager'),
           depositManagerProxy.address

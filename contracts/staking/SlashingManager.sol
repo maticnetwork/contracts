@@ -3,7 +3,7 @@ pragma solidity ^0.5.2;
 import {RLPReader} from "solidity-rlp/contracts/RLPReader.sol";
 import {Ownable} from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
-import {StakeManager} from "./StakeManager.sol";
+import {StakeManager} from "./stakeManager/StakeManager.sol";
 import {ECVerify} from "../common/lib/ECVerify.sol";
 import {Registry} from "../common/Registry.sol";
 

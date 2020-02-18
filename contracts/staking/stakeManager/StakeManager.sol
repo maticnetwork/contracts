@@ -1,136 +1,26 @@
 pragma solidity ^0.5.2;
 
 import {IERC20} from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
-import "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
 import {Math} from "openzeppelin-solidity/contracts/math/Math.sol";
 import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import {Ownable} from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
-import {BytesLib} from "../common/lib/BytesLib.sol";
-import {ECVerify} from "../common/lib/ECVerify.sol";
-import {Merkle} from "../common/lib/Merkle.sol";
-import {Lockable} from "../common/mixin/Lockable.sol";
-import {RootChainable} from "../common/mixin/RootChainable.sol";
-import {Registry} from "../common/Registry.sol";
+import {BytesLib} from "../../common/lib/BytesLib.sol";
+import {ECVerify} from "../../common/lib/ECVerify.sol";
+import {Merkle} from "../../common/lib/Merkle.sol";
+import {Lockable} from "../../common/mixin/Lockable.sol";
+import {RootChainable} from "../../common/mixin/RootChainable.sol";
+import {Registry} from "../../common/Registry.sol";
 import {IStakeManager} from "./IStakeManager.sol";
-import {ValidatorShare} from "./ValidatorShare.sol";
-import {StakingInfo} from "./StakingInfo.sol";
+import {ValidatorShare} from "../validatorShare/ValidatorShare.sol";
+import {StakingInfo} from "../StakingInfo.sol";
+import {StakingNFT} from "./StakingNFT.sol";
+import "../validatorShare/ValidatorShareFactory.sol";
 
-contract ValidatorShareFactory {
-    /**
-    - factory to create new validatorShare contracts
-   */
-
-    function create(uint256 validatorId, address loggerAddress, address governance)
-        public
-        returns (address)
-    {
-        ValidatorShare validatorShare = new ValidatorShare(
-            validatorId,
-            loggerAddress,
-            msg.sender,
-            governance
-        );
-        validatorShare.transferOwnership(msg.sender);
-        return address(validatorShare);
-    }
-
-}
-
-contract StakingNFT is ERC721Full, Ownable {
-    constructor(string memory name, string memory symbol)
-        public
-        ERC721Full(name, symbol)
-    {
-        // solhint-disable-previous-line no-empty-blocks
-    }
-
-    function mint(address to, uint256 tokenId) public onlyOwner {
-        require(
-            balanceOf(to) == 0,
-            "Validators MUST NOT own multiple stake position"
-        );
-        //require(balanceOf(user) == 0, "Only one time staking is allowed");
-        _mint(to, tokenId);
-    }
-
-    function burn(uint256 tokenId) public onlyOwner {
-        _burn(tokenId);
-    }
-
-    function _transferFrom(address from, address to, uint256 tokenId) internal {
-        require(
-            balanceOf(to) == 0,
-            "Validators MUST NOT own multiple stake position"
-        );
-        super._transferFrom(from, to, tokenId);
-    }
-}
-
-contract StakeManager is IStakeManager, RootChainable, Lockable {
+contract StakeManager is IStakeManager {
     using SafeMath for uint256;
     using ECVerify for bytes32;
     using Merkle for bytes32;
-
-    IERC20 public token;
-    address public registry;
-    StakingInfo public logger;
-    StakingNFT public NFTContract;
-    ValidatorShareFactory public factory;
-    // genesis/governance variables
-    uint256 public dynasty = 2**13; // unit: epoch 50 days
-    uint256 public CHECKPOINT_REWARD = 10000 * (10**18); // @todo update according to Chain
-    uint256 public minDeposit = (10**18); // in ERC20 token
-    uint256 public minHeimdallFee = (10**18); // in ERC20 token
-    uint256 public checkPointBlockInterval = 255;
-
-    uint256 public validatorThreshold = 10; //128
-    uint256 public totalStaked;
-    uint256 public NFTCounter = 1;
-    uint256 public totalRewards;
-    uint256 public totalRewardsLiquidated;
-    uint256 public auctionPeriod = dynasty.div(4); // 1 week in epochs
-    bytes32 public accountStateRoot;
-
-    // on dynasty update certain amount of cooldown period where there is no validator auction
-    uint256 replacementCoolDown;
-
-    struct Auction {
-        uint256 amount;
-        uint256 startEpoch;
-        address user;
-    }
-
-    struct State {
-        int256 amount;
-        int256 stakerCount;
-    }
-
-    // signer to Validator mapping
-    mapping(address => uint256) public signerToValidator;
-    // validator metadata
-    // mapping (uint256 => Validator) public validators;
-    //Mapping for epoch to totalStake for that epoch
-    mapping(uint256 => State) public validatorState;
-    //Ongoing auctions for validatorId
-    mapping(uint256 => Auction) public validatorAuction;
-
-    uint256 public totalHeimdallFee;
-
-    constructor(
-        address _registry,
-        address _rootchain,
-        address _nftContract,
-        address _stakingLogger,
-        address _validatorShareFactory,
-        address _governance
-    ) public Lockable(_governance) {
-        registry = _registry;
-        rootChain = _rootchain;
-        NFTContract = StakingNFT(_nftContract);
-        logger = StakingInfo(_stakingLogger);
-        factory = ValidatorShareFactory(_validatorShareFactory);
-    }
 
     modifier onlyStaker(uint256 validatorId) {
         require(NFTContract.ownerOf(validatorId) == msg.sender);
@@ -141,6 +31,8 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
         require(Registry(registry).getSlashingManagerAddress() == msg.sender);
         _;
     }
+
+    constructor() public Lockable(address(0x0)) {}
 
     // TopUp heimdall fee
     function topUpForFee(uint256 validatorId, uint256 heimdallFee) public {
@@ -745,7 +637,11 @@ contract StakeManager is IStakeManager, RootChainable, Lockable {
             jailTime: 0,
             signer: signer,
             contractAddress: acceptDelegation
-                ? factory.create(NFTCounter, address(logger), address(governance))
+                ? factory.create(
+                    NFTCounter,
+                    address(logger),
+                    address(governance)
+                )
                 : address(0x0),
             status: Status.Active
         });

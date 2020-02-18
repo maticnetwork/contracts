@@ -5,7 +5,8 @@ import {Ownable} from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import {RootChainHeader, RootChainStorage} from "./RootChainStorage.sol";
-import {IStakeManager} from "../staking/IStakeManager.sol";
+
+import {IStakeManager} from "../staking/stakeManager/IStakeManager.sol";
 import {IRootChain} from "./IRootChain.sol";
 import {Registry} from "../common/Registry.sol";
 
