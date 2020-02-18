@@ -4,6 +4,7 @@ import {IGovernance} from "../../common/governance/IGovernance.sol";
 import {StakeManagerStorage} from "./StakeManagerStorage.sol";
 import {Proxy} from "../../common/misc/Proxy.sol";
 import {Registry} from "../../common/Registry.sol";
+import {Lockable} from "../../common/mixin/Lockable.sol";
 import {StakingInfo} from "../StakingInfo.sol";
 import {StakingNFT} from "./StakingNFT.sol";
 import "../validatorShare/ValidatorShareFactory.sol";
