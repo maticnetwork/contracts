@@ -36,7 +36,7 @@ library TransferWithSigUtils {
     pure
     returns (bytes32 result)
   {
-    string memory EIP712_DOMAIN_SCHEMA = "EIP712Domain(string name,string version,uint256 chainId,address contract)";
+    string memory EIP712_DOMAIN_SCHEMA = "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)";
     bytes32 EIP712_DOMAIN_SCHEMA_HASH = keccak256(abi.encodePacked(EIP712_DOMAIN_SCHEMA));
     string memory EIP712_DOMAIN_NAME = "Matic Network";
     string memory EIP712_DOMAIN_VERSION = "1";

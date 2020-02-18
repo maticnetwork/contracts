@@ -3,7 +3,7 @@ pragma solidity ^0.5.2;
 import {ChainIdMixin} from "../../common/mixin/ChainIdMixin.sol";
 
 contract LibEIP712Domain is ChainIdMixin {
-    string internal constant EIP712_DOMAIN_SCHEMA = "EIP712Domain(string name,string version,uint256 chainId,address contract)";
+    string internal constant EIP712_DOMAIN_SCHEMA = "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)";
     bytes32 public constant EIP712_DOMAIN_SCHEMA_HASH = keccak256(
         abi.encodePacked(EIP712_DOMAIN_SCHEMA)
     );
