@@ -3,7 +3,6 @@ pragma solidity ^0.5.2;
 import {IGovernance} from "../../common/governance/IGovernance.sol";
 import {StakeManagerStorage} from "./StakeManagerStorage.sol";
 import {Proxy} from "../../common/misc/Proxy.sol";
-import {Lockable} from "../../common/mixin/Lockable.sol";
 import {Registry} from "../../common/Registry.sol";
 import {StakingInfo} from "../StakingInfo.sol";
 import {StakingNFT} from "./StakingNFT.sol";
@@ -24,6 +23,5 @@ contract StakeManagerProxy is Proxy, StakeManagerStorage {
         NFTContract = StakingNFT(_NFTContract);
         logger = StakingInfo(_stakingLogger);
         factory = ValidatorShareFactory(_validatorShareFactory);
-        governance = IGovernance(_governance);
     }
 }
