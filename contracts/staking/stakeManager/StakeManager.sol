@@ -104,7 +104,9 @@ contract StakeManager is IStakeManager {
         );
         require(
             auctionPeriod >=
-                currentEpoch.sub(validatorAuction[validatorId].startEpoch),
+                currentEpoch.sub(
+                    validatorAuction[validatorId].startEpoch.add(dynasty)
+                ),
             "Invalid auction period"
         );
         // (dynasty--auctionPeriod)--(dynasty--auctionPeriod)--(dynasty--auctionPeriod)
@@ -165,7 +167,7 @@ contract StakeManager is IStakeManager {
         Validator storage validator = validators[validatorId];
         // require(auction.user == msg.sender);// any one can call confrimAuction
         require(
-            auctionPeriod.add(auction.startEpoch) <= currentEpoch,
+            auctionPeriod.add(auction.startEpoch.add(dynasty)) <= currentEpoch,
             "Confirmation is not allowed before auctionPeriod"
         );
 
@@ -178,7 +180,7 @@ contract StakeManager is IStakeManager {
             //cleanup auction data
             auction.amount = 0;
             auction.user = address(0x0);
-            auction.startEpoch = currentEpoch.add(dynasty);
+            auction.startEpoch = currentEpoch;
             //update total stake amount
             totalStaked = totalStaked.add(validator.amount.sub(refund));
             logger.logStakeUpdate(validatorId);
@@ -651,7 +653,7 @@ contract StakeManager is IStakeManager {
         signerToValidator[signer] = NFTCounter;
         updateTimeLine(currentEpoch, int256(amount), 1);
         // no Auctions for 1 dynasty
-        validatorAuction[NFTCounter].startEpoch = currentEpoch.add(dynasty);
+        validatorAuction[NFTCounter].startEpoch = currentEpoch;
         logger.logStaked(signer, NFTCounter, currentEpoch, amount, totalStaked);
         NFTCounter = NFTCounter.add(1);
     }
