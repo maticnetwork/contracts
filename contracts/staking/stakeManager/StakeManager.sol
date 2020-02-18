@@ -8,6 +8,7 @@ import {Ownable} from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import {BytesLib} from "../../common/lib/BytesLib.sol";
 import {ECVerify} from "../../common/lib/ECVerify.sol";
 import {Merkle} from "../../common/lib/Merkle.sol";
+import {Lockable} from "../../common/mixin/Lockable.sol";
 import {RootChainable} from "../../common/mixin/RootChainable.sol";
 import {Registry} from "../../common/Registry.sol";
 import {IStakeManager} from "./IStakeManager.sol";
@@ -30,6 +31,8 @@ contract StakeManager is IStakeManager {
         require(Registry(registry).getSlashingManagerAddress() == msg.sender);
         _;
     }
+
+    constructor() public Lockable(address(0x0)) {}
 
     // TopUp heimdall fee
     function topUpForFee(uint256 validatorId, uint256 heimdallFee) public {

@@ -73,5 +73,4 @@ contract StakeManagerStorage is ProxyStorage, Lockable, RootChainable {
 
     uint256 public totalHeimdallFee;
 
-    constructor() public Lockable(address(0x0)) {}
 }
