@@ -2,7 +2,6 @@ const ethUtils = require('ethereumjs-util')
 const bluebird = require('bluebird')
 
 const Registry = artifacts.require('Registry')
-const RootChain = artifacts.require('RootChain')
 const DepositManagerProxy = artifacts.require('DepositManagerProxy')
 const StateSender = artifacts.require('StateSender')
 const WithdrawManager = artifacts.require('WithdrawManager')

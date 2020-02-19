@@ -19,6 +19,7 @@ const TransferWithSigUtils = artifacts.require('TransferWithSigUtils')
 const Registry = artifacts.require('Registry')
 const RootChain = artifacts.require('RootChain')
 const Governance = artifacts.require('Governance')
+const RootChainProxy = artifacts.require('RootChainProxy')
 const DepositManager = artifacts.require('DepositManager')
 const DepositManagerProxy = artifacts.require('DepositManagerProxy')
 const WithdrawManager = artifacts.require('WithdrawManager')
@@ -134,16 +135,19 @@ module.exports = async function (deployer) {
     console.log('deploying contracts...')
     await deployer.deploy(Governance)
     await deployer.deploy(Registry, Governance.address)
+
+    await deployer.deploy(RootChain)
+    await deployer.deploy(RootChainProxy, RootChain.address, Registry.address, process.env.HEIMDALL_ID)
+
     await deployer.deploy(ValidatorShareFactory)
     await deployer.deploy(StakingInfo, Registry.address)
     await deployer.deploy(StakingNFT, 'Matic Validator', 'MV')
-    await deployer.deploy(RootChain, Registry.address, process.env.HEIMDALL_ID)
-
     await deployer.deploy(StakeManager)
-    await deployer.deploy(StakeManagerProxy, StakeManager.address, Registry.address, RootChain.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address, Governance.address)
+    await deployer.deploy(StakeManagerProxy, StakeManager.address, Registry.address, RootChainProxy.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address, Governance.address)
     await deployer.deploy(SlashingManager, Registry.address)
     let stakingNFT = await StakingNFT.deployed()
     await stakingNFT.transferOwnership(StakeManagerProxy.address)
+
     await deployer.deploy(StateSender)
 
     await deployer.deploy(DepositManager)
@@ -151,7 +155,7 @@ module.exports = async function (deployer) {
       DepositManagerProxy,
       DepositManager.address,
       Registry.address,
-      RootChain.address
+      RootChainProxy.address
     )
 
     await deployer.deploy(ExitNFT, Registry.address)
@@ -160,7 +164,7 @@ module.exports = async function (deployer) {
       WithdrawManagerProxy,
       WithdrawManager.address,
       Registry.address,
-      RootChain.address,
+      RootChainProxy.address,
       ExitNFT.address
     )
 
@@ -178,13 +182,13 @@ module.exports = async function (deployer) {
     )
     await deployer.deploy(
       MarketplacePredicate,
-      RootChain.address,
+      RootChainProxy.address,
       WithdrawManagerProxy.address,
       Registry.address
     )
     await deployer.deploy(
       TransferWithSigPredicate,
-      RootChain.address,
+      RootChainProxy.address,
       WithdrawManagerProxy.address,
       Registry.address
     )
@@ -198,6 +202,7 @@ module.exports = async function (deployer) {
       root: {
         Registry: Registry.address,
         RootChain: RootChain.address,
+        RootChainProxy: RootChainProxy.address,
         DepositManager: DepositManager.address,
         DepositManagerProxy: DepositManagerProxy.address,
         WithdrawManager: WithdrawManager.address,
