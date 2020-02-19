@@ -686,6 +686,19 @@ contract('StakeManager:validator replacement', async function (accounts) {
           from: wallets[i].getAddressString()
         })
       }
+      // cool down period
+      let auctionPeriod = await stakeManager.auctionPeriod()
+      let currentEpoch = await stakeManager.currentEpoch()
+      for (
+        let i = currentEpoch;
+        i <= auctionPeriod;
+        i++
+      ) {
+        // 2/3 majority vote
+        await checkPoint([wallets[0], wallets[1]], wallets[1], stakeManager, {
+          from: wallets[1].getAddressString()
+        })
+      }
     })
 
     it('should try auction start in non-auction period and fail', async function () {
@@ -710,7 +723,9 @@ contract('StakeManager:validator replacement', async function (accounts) {
 
       let auction = await stakeManager.validatorAuction(1)
       let currentEpoch = await stakeManager.currentEpoch()
-      for (let i = currentEpoch; i <= auction.startEpoch; i++) {
+      let dynasty = await stakeManager.dynasty()
+
+      for (let i = currentEpoch; i <= auction.startEpoch.add(dynasty); i++) {
         // 2/3 majority vote
         await checkPoint([wallets[0], wallets[1]], wallets[1], stakeManager, {
           from: wallets[1].getAddressString()
@@ -722,11 +737,13 @@ contract('StakeManager:validator replacement', async function (accounts) {
       await stakeToken.approve(stakeManager.address, amount, {
         from: wallets[3].getAddressString()
       })
+
       await stakeManager.startAuction(1, amount, {
         from: wallets[3].getAddressString()
       })
 
       let auctionData = await stakeManager.validatorAuction(1)
+
       assertBigNumberEquality(auctionData.amount, amount)
       assert(
         auctionData.user.toLowerCase ===
@@ -741,9 +758,11 @@ contract('StakeManager:validator replacement', async function (accounts) {
       const oldAuctionerBalanceBefore = await stakeToken.balanceOf(
         wallets[3].getAddressString()
       )
+
       await stakeManager.startAuction(1, amount, {
         from: wallets[4].getAddressString()
       })
+
       // Balance transfer to stakeManager
       assertBigNumberEquality(
         await stakeToken.balanceOf(wallets[4].getAddressString()),
@@ -806,7 +825,7 @@ contract('StakeManager:validator replacement', async function (accounts) {
       // fast forward to skip auctionPeriod
       for (
         let i = currentEpoch;
-        i <= auctionPeriod.add(auctionData.startEpoch);
+        i <= auctionPeriod.add(auctionData.startEpoch.add(await stakeManager.dynasty()));
         i++
       ) {
         // 2/3 majority vote
