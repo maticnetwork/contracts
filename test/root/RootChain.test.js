@@ -14,7 +14,7 @@ import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
 
 chai.use(chaiAsPromised).should()
 
-contract.only('RootChain', async function (accounts) {
+contract('RootChain', async function (accounts) {
   let rootChain
 
   let wallets
