@@ -7,7 +7,7 @@ const TestToken = artifacts.require('TestToken')
 const DepositManager = artifacts.require('DepositManager')
 
 async function getStakeManager() {
-  return StakeManager.at(contracts.root.StakeManager)
+  return StakeManager.at(contracts.root.StakeManagerProxy)
 }
 
 async function stake() {
