@@ -136,20 +136,15 @@ contract StakeManager is IStakeManager {
 
         require(perceivedStake < amount, "Must bid higher amount");
 
+        Auction storage auction = validatorAuction[validatorId];
         // create new auction
-        if (validatorAuction[validatorId].amount == 0) {
-            validatorAuction[validatorId] = Auction({
-                amount: amount,
-                startEpoch: currentEpoch,
-                user: msg.sender
-            });
-        } else {
+        if (validatorAuction[validatorId].amount != 0) {
             //replace prev auction
-            Auction storage auction = validatorAuction[validatorId];
             require(token.transfer(auction.user, auction.amount));
-            auction.amount = amount;
-            auction.user = msg.sender;
         }
+        auction.amount = amount;
+        auction.user = msg.sender;
+
         logger.logStartAuction(
             validatorId,
             validators[validatorId].amount,
@@ -204,7 +199,8 @@ contract StakeManager is IStakeManager {
                 validatorId,
                 auction.amount
             );
-            delete validatorAuction[validatorId];
+            validatorAuction[validatorId].amount = 0;
+            validatorAuction[validatorId].user = address(0x0);
         }
     }
 
