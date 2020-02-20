@@ -16,6 +16,7 @@ class Deployer {
     this.governance = await this.deployGovernance()
     this.registry = await contracts.Registry.new(this.governance.address)
     this.validatorShareFactory = await contracts.ValidatorShareFactory.new()
+    this.stakeToken = await contracts.DummyERC20.new('Stake Token', 'ST')
     this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
     await this.deployRootChain()
     this.stakingNFT = await contracts.StakingNFT.new('Matic Validator', 'MV')
@@ -29,6 +30,7 @@ class Deployer {
         stakeManager.address,
         this.registry.address,
         this.rootChain.address,
+        this.stakeToken.address,
         this.stakingNFT.address,
         this.stakingInfo.address,
         this.validatorShareFactory.address,
@@ -39,6 +41,7 @@ class Deployer {
       this.stakeManager = await contracts.StakeManagerTest.new(
         this.registry.address,
         this.rootChain.address,
+        this.stakeToken.address,
         this.stakingNFT.address,
         this.stakingInfo.address,
         this.validatorShareFactory.address,
@@ -94,6 +97,7 @@ class Deployer {
       stakeManager.address,
       this.registry.address,
       wallets[1].getAddressString(),
+      this.stakeToken.address,
       this.stakingNFT.address,
       this.stakingInfo.address,
       this.validatorShareFactory.address,

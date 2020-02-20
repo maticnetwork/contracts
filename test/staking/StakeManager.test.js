@@ -41,7 +41,6 @@ contract('StakeManager', async function (accounts) {
       stakeManager = contracts.stakeManager
 
       // dummy registry address
-      await stakeManager.setToken(stakeToken.address)
       await stakeManager.updateCheckPointBlockInterval(1)
       // transfer tokens to other accounts
       await stakeToken.mint(
@@ -498,7 +497,6 @@ contract('StakeManager:rewards distribution', async function (accounts) {
       stakeToken = contracts.stakeToken
       stakeManager = contracts.stakeManager
 
-      await stakeManager.setToken(stakeToken.address)
       await stakeManager.updateCheckPointBlockInterval(1)
       let amount = web3.utils.toWei('1000')
       for (let i = 0; i < 2; i++) {
@@ -555,7 +553,6 @@ contract('StakeManager: Heimdall fee', async function (accounts) {
       stakeToken = contracts.stakeToken
       stakeManager = contracts.stakeManager
 
-      await stakeManager.setToken(stakeToken.address)
       await stakeManager.updateCheckPointBlockInterval(1)
       await stakeManager.changeRootChain(wallets[1].getAddressString())
     })
@@ -672,7 +669,6 @@ contract('StakeManager:validator replacement', async function (accounts) {
       stakeToken = contracts.stakeToken
       stakeManager = contracts.stakeManager
 
-      await stakeManager.setToken(stakeToken.address)
       await stakeManager.updateDynastyValue(8)
       await stakeManager.updateCheckPointBlockInterval(1)
 

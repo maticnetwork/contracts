@@ -25,6 +25,7 @@ const StakeManager = artifacts.require('StakeManager')
 const StakeManagerProxy = artifacts.require('StakeManagerProxy')
 const StakingInfo = artifacts.require('StakingInfo')
 const StakingNFT = artifacts.require('StakingNFT')
+const TestToken = artifacts.require('TestToken')
 const ValidatorShareFactory = artifacts.require('ValidatorShareFactory')
 const SlashingManager = artifacts.require('SlashingManager')
 const ERC20Predicate = artifacts.require('ERC20Predicate')
@@ -146,6 +147,7 @@ module.exports = async function (deployer, network) {
     await deployer.deploy(Governance)
     await deployer.deploy(Registry, Governance.address)
     await deployer.deploy(ValidatorShareFactory)
+    await deployer.deploy(TestToken, 'Matic Test', 'MATICTEST')
     await deployer.deploy(StakingInfo, Registry.address)
     await deployer.deploy(StakingNFT, 'Matic Validator', 'MV')
     await Promise.all([
@@ -157,8 +159,8 @@ module.exports = async function (deployer, network) {
     ])
 
     await deployer.deploy(StakeManager)
-    await deployer.deploy(StakeManagerProxy, StakeManager.address, Registry.address, RootChain.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address, Governance.address)
-    await deployer.deploy(StakeManagerTest, Registry.address, RootChain.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address, Governance.address)
+    await deployer.deploy(StakeManagerProxy, StakeManager.address, Registry.address, RootChain.address, TestToken.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address, Governance.address)
+    await deployer.deploy(StakeManagerTest, Registry.address, RootChain.address, TestToken.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address, Governance.address)
     let stakingNFT = await StakingNFT.deployed()
     await stakingNFT.transferOwnership(StakeManagerProxy.address)
 
