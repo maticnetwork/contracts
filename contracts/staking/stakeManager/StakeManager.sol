@@ -121,11 +121,6 @@ contract StakeManager is IStakeManager {
             "Not an auction time"
         );
 
-        require(
-            token.transferFrom(msg.sender, address(this), amount),
-            "Transfer amount failed"
-        );
-
         uint256 perceivedStake = validators[validatorId].amount.mul(
             perceivedStakeFactor(validatorId)
         );
@@ -135,6 +130,10 @@ contract StakeManager is IStakeManager {
         );
 
         require(perceivedStake < amount, "Must bid higher amount");
+        require(
+            token.transferFrom(msg.sender, address(this), amount),
+            "Transfer amount failed"
+        );
 
         Auction storage auction = validatorAuction[validatorId];
         // create new auction
