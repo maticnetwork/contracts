@@ -28,7 +28,7 @@ contract Drainable is Governable {
   ) external onlyGovernance {
     require (tokens.length == tokenId.length, "Invalid Input");
     for (uint256 i = 0; i < tokens.length; i ++) {
-      IERC721(tokens[i]).transferFrom(address(this), destination, tokenId[i][j]);
+      IERC721(tokens[i]).transferFrom(address(this), destination, tokenId[i]);
     }
   }
 
