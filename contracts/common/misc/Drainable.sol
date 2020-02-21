@@ -1,38 +1,33 @@
 pragma solidity ^0.5.2;
 
-import { Governable } from "../governance/Governable.sol";
+import {DepositManagerStorage} from "../../root/depositManager/DepositManagerStorage.sol";
 
 import {IERC20} from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
 
 
-contract Drainable is Governable {
+contract Drainable is DepositManagerStorage {
 
-  constructor (address _governance) public Governable(_governance) {}
-
-  function drainErc20 (
+  function drainTokens(
     address[] calldata tokens,
+    uint256[] calldata values,
     address destination
   ) external onlyGovernance {
-    for (uint256 i = 0; i < tokens.length; i ++) {
-      IERC20 token = IERC20(tokens[i]);
-      uint256 balance = token.balanceOf(address(this));
-      token.transfer(destination, balance);
+    for (uint256 i = 0; i < tokens.length; i++) {
+      if (registry.isERC721(tokens[i])) {
+        IERC721(tokens[i]).transferFrom(address(this), destination, values[i]);
+      } else {
+        require (
+          IERC20(tokens[i]).transfer(destination, values[i]), "Transfer Failed"
+        );
+      }
     }
   }
 
-  function drainErc721 (
-    address[] calldata tokens,
-    uint256[] calldata tokenId,
-    address destination
+  function drainEther (
+    uint256 amount,
+    address payable destination
   ) external onlyGovernance {
-    require (tokens.length == tokenId.length, "Invalid Input");
-    for (uint256 i = 0; i < tokens.length; i ++) {
-      IERC721(tokens[i]).transferFrom(address(this), destination, tokenId[i]);
-    }
-  }
-
-  function drainEther (address payable destination) external onlyGovernance {
-    destination.transfer(address(this).balance);
+    destination.transfer(amount);
   }
 }
