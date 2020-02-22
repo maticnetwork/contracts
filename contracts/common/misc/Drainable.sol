@@ -8,19 +8,27 @@ import {IERC721} from "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol"
 
 contract Drainable is DepositManagerStorage {
 
-  function drainTokens(
+  function drainErc20(
     address[] calldata tokens,
     uint256[] calldata values,
     address destination
   ) external onlyGovernance {
+    require((tokens.length == values.length), "invalid input");
     for (uint256 i = 0; i < tokens.length; i++) {
-      if (registry.isERC721(tokens[i])) {
-        IERC721(tokens[i]).transferFrom(address(this), destination, values[i]);
-      } else {
-        require (
-          IERC20(tokens[i]).transfer(destination, values[i]), "Transfer Failed"
-        );
-      }
+      require (
+        IERC20(tokens[i]).transfer(destination, values[i]), "Transfer failed"
+      );
+    }
+  }
+
+  function drainErc721(
+    address[] calldata tokens,
+    uint256[] calldata values,
+    address destination
+  ) external onlyGovernance {
+    require((tokens.length == values.length), "invalid input");
+    for (uint256 i = 0; i < tokens.length; i ++) {
+      IERC721(tokens[i]).transferFrom(address(this), destination, values[i]);
     }
   }
 
