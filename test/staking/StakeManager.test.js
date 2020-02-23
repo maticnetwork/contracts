@@ -703,6 +703,16 @@ contract('StakeManager:validator replacement', async function (accounts) {
       await stakeToken.approve(stakeManager.address, amount, {
         from: wallets[3].getAddressString()
       })
+      let auction = await stakeManager.validatorAuction(1)
+      let currentEpoch = await stakeManager.currentEpoch()
+      let dynasty = await stakeManager.dynasty()
+
+      for (let i = currentEpoch; i <= auction.startEpoch.add(dynasty); i++) {
+        // 2/3 majority vote
+        await checkPoint([wallets[0], wallets[1]], wallets[1], stakeManager, {
+          from: wallets[1].getAddressString()
+        })
+      }
       try {
         await stakeManager.startAuction(1, amount, {
           from: wallets[3].getAddressString()
@@ -720,13 +730,10 @@ contract('StakeManager:validator replacement', async function (accounts) {
       let auction = await stakeManager.validatorAuction(1)
       let currentEpoch = await stakeManager.currentEpoch()
       let dynasty = await stakeManager.dynasty()
-
-      for (let i = currentEpoch; i <= auction.startEpoch.add(dynasty); i++) {
-        // 2/3 majority vote
-        await checkPoint([wallets[0], wallets[1]], wallets[1], stakeManager, {
-          from: wallets[1].getAddressString()
-        })
-      }
+      // 2/3 majority vote
+      await checkPoint([wallets[0], wallets[1]], wallets[1], stakeManager, {
+        from: wallets[1].getAddressString()
+      })
 
       // start an auction from wallet[3]
       await stakeToken.mint(wallets[3].getAddressString(), amount)
@@ -821,7 +828,7 @@ contract('StakeManager:validator replacement', async function (accounts) {
       // fast forward to skip auctionPeriod
       for (
         let i = currentEpoch;
-        i <= auctionPeriod.add(auctionData.startEpoch.add(await stakeManager.dynasty()));
+        i <= auctionPeriod.add(currentEpoch);
         i++
       ) {
         // 2/3 majority vote
