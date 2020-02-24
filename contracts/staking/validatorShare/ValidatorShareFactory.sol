@@ -16,7 +16,6 @@ contract ValidatorShareFactory {
             loggerAddress,
             msg.sender
         );
-        validatorShare.transferOwnership(msg.sender);
         return address(validatorShare);
     }
 

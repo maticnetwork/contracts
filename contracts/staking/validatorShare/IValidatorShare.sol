@@ -41,6 +41,7 @@ contract IValidatorShare is ERC20, Lockable, Ownable {
         validatorId = _validatorId;
         stakingLogger = StakingInfo(_stakingLogger);
         stakeManager = IStakeManager(_stakeManager);
+        _transferOwnership(_stakeManager);
     }
 
     function udpateRewards(uint256 _reward, uint256 _totalStake)
