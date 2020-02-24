@@ -11,9 +11,8 @@ contract ValidatorShare is IValidatorShare {
     constructor(
         uint256 _validatorId,
         address _stakingLogger,
-        address _stakeManager,
-        address _governance
-    ) public IValidatorShare(_validatorId, _stakingLogger, _stakeManager, _governance) {}
+        address _stakeManager
+    ) public IValidatorShare(_validatorId, _stakingLogger, _stakeManager) {}
 
     modifier onlyValidator() {
         require(stakeManager.ownerOf(validatorId) == msg.sender);

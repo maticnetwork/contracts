@@ -51,6 +51,16 @@ contract('ValidatorShare', async function (accounts) {
     validatorContract = await ValidatorShare.at(validator.contractAddress)
   })
 
+  afterEach(async function () {
+    let user = wallets[1].getAddressString()
+    let result = await stakeManager.unstake(1, {
+      from: user
+    })
+    let logs = logDecoder.decodeLogs(result.receipt.rawLogs)
+    logs[0].event.should.equal('UnstakeInit')
+    assertBigNumberEquality(logs[0].args.validatorId, '1')
+  })
+
   it('Buy shares and test exchange rate', async function () {
     const user = wallets[2].getAddressString()
     await stakeToken.mint(

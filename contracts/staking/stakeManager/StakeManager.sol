@@ -629,11 +629,7 @@ contract StakeManager is IStakeManager {
             jailTime: 0,
             signer: signer,
             contractAddress: acceptDelegation
-                ? factory.create(
-                    NFTCounter,
-                    address(logger),
-                    address(governance)
-                )
+                ? factory.create(NFTCounter, address(logger))
                 : address(0x0),
             status: Status.Active
         });
