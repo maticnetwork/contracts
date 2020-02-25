@@ -16,12 +16,13 @@ import {IDepositManager} from "./IDepositManager.sol";
 import {DepositManagerStorage} from "./DepositManagerStorage.sol";
 import {StateSender} from "../stateSyncer/StateSender.sol";
 import {Lockable} from "../../common/mixin/Lockable.sol";
-
+import {Drainable} from "../../common/misc/Drainable.sol";
 contract DepositManager is
     DepositManagerStorage,
     IDepositManager,
     IERC721Receiver,
-    ContractReceiver
+    ContractReceiver,
+    Drainable
 {
     using SafeMath for uint256;
 
