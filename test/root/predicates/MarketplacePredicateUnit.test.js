@@ -21,16 +21,16 @@ chai
   .use(chaiAsPromised)
   .should()
 
-contract('MarketplacePredicate (from mocked responses)', async function(accounts) {
+contract('MarketplacePredicate (from mocked responses) [@skip-on-coverage]', async function (accounts) {
   let predicate, erc20Predicate, erc721Predicate
 
-  before(async function() {
+  before(async function () {
     erc721Predicate = await artifacts.ERC721Predicate.deployed()
     erc20Predicate = await artifacts.ERC20Predicate.deployed()
     predicate = await artifacts.MarketplacePredicateTest.new()
   })
 
-  it('processLogTransferReceipt (Erc20 Deposit)', async function() {
+  it('processLogTransferReceipt (Erc20 Deposit)', async function () {
     let event = deposit1
     let processLogTransferReceipt = await predicate.processLogTransferReceiptTest(
       erc20Predicate.address,
@@ -60,7 +60,7 @@ contract('MarketplacePredicate (from mocked responses)', async function(accounts
     assert.equal(ans.slice(192, 256).slice(24).toLowerCase(), input.topics[1].slice(26).toLowerCase())
   })
 
-  it('processLogTransferReceipt (Erc20 outgoingTransfer)', async function() {
+  it('processLogTransferReceipt (Erc20 outgoingTransfer)', async function () {
     let event = incomingTransfer
     let processLogTransferReceipt = await predicate.processLogTransferReceiptTest(
       erc20Predicate.address,
@@ -76,7 +76,7 @@ contract('MarketplacePredicate (from mocked responses)', async function(accounts
     assert.equal(ans.slice(192, 256).slice(24).toLowerCase(), input.topics[1].slice(26).toLowerCase())
   })
 
-  it('processLogTransferReceipt (Erc20 incomingTransfer)', async function() {
+  it('processLogTransferReceipt (Erc20 incomingTransfer)', async function () {
     let event = incomingTransfer
     let processLogTransferReceipt = await predicate.processLogTransferReceiptTest(
       erc20Predicate.address,
@@ -92,7 +92,7 @@ contract('MarketplacePredicate (from mocked responses)', async function(accounts
     assert.equal(ans.slice(192, 256).slice(24).toLowerCase(), input.topics[1].slice(26).toLowerCase())
   })
 
-  it('processLogTransferReceipt (Erc721 Deposit)', async function() {
+  it('processLogTransferReceipt (Erc721 Deposit)', async function () {
     let event = erc20_721_Deposit_1
     let processLogTransferReceipt = await predicate.processLogTransferReceiptTest(
       erc20Predicate.address,
@@ -122,7 +122,7 @@ contract('MarketplacePredicate (from mocked responses)', async function(accounts
     assert.equal(ans.slice(192, 256).slice(24).toLowerCase(), input.topics[1].slice(26).toLowerCase())
   })
 
-  it('processExitTx (20/20)', async function() {
+  it('processExitTx (20/20)', async function () {
     const startExit = await predicate.processExitTx(ethUtils.bufferToHex(buildInFlight(executeOrder.tx)))
     // console.log('startExit', startExit)
     const ans = startExit.slice(2)
@@ -134,7 +134,7 @@ contract('MarketplacePredicate (from mocked responses)', async function(accounts
     assert.equal(ans.slice(256).toLowerCase(), input.taker.toString('hex').toLowerCase())
   })
 
-  it('processExitTx (20/721)', async function() {
+  it('processExitTx (20/721)', async function () {
     const event = executeOrder_E20_E721
     const startExit = await predicate.processExitTx(ethUtils.bufferToHex(buildInFlight(event.tx)))
     const ans = startExit.slice(2)
@@ -146,7 +146,7 @@ contract('MarketplacePredicate (from mocked responses)', async function(accounts
     assert.equal(ans.slice(256).toLowerCase(), input.taker.toString('hex').toLowerCase())
   })
 
-  it('testGetAddressFromTx', async function() {
+  it('testGetAddressFromTx', async function () {
     let event = executeOrder
     const getAddressFromTx = await predicate.testGetAddressFromTx(ethUtils.bufferToHex(buildInFlight(event.tx)))
     assert.equal(getAddressFromTx.signer, event.tx.from)
@@ -177,7 +177,7 @@ function encode(token, sig, tokenIdOrAmount) {
 
 function decode(input) {
   return web3.eth.abi.decodeParameters(
-    [{type: 'address', name: 'token'}, {type: 'bytes', name: 'sig'}, {type: 'uint256', name: 'tokenIdOrAmount'}], input.toString('hex'))
+    [{ type: 'address', name: 'token' }, { type: 'bytes', name: 'sig' }, { type: 'uint256', name: 'tokenIdOrAmount' }], input.toString('hex'))
 }
 
 function dummyReferenceData(event, logIndex) {

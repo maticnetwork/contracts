@@ -17,3 +17,4 @@ before_script:
 script:
   - npm run template:process
   - npm run test:ci
+  - npm run truffle:coverage

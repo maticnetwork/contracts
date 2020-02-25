@@ -19,13 +19,13 @@ const alicePrivateKey = wallets[0].getPrivateKeyString()
 const alice = toChecksumAddress(wallets[0].getAddressString())
 let childContracts, erc20
 
-contract('ChildErc20', async function(accounts) {
-  beforeEach(async function() {
+contract('ChildErc20 [@skip-on-coverage]', async function (accounts) {
+  beforeEach(async function () {
     childContracts = await deployer.initializeChildChain(accounts[0], { updateRegistry: false })
     erc20 = await deployer.deployChildErc20(accounts[0], { mapToken: false })
   })
 
-  it('transfer', async function() {
+  it('transfer', async function () {
     const depositAmount = web3.utils.toBN('10')
     const tokenIdOrAmount = web3.utils.toBN('3')
     await utils.deposit(null, childContracts.childChain, erc20.rootERC20, alice, depositAmount)
@@ -48,7 +48,7 @@ contract('ChildErc20', async function(accounts) {
     expect(parsedLogs[1].args).to.include({ from: alice })
   })
 
-  it('transferWithSig', async function() {
+  it('transferWithSig', async function () {
     const depositAmount = web3.utils.toBN('10')
     await utils.deposit(null, childContracts.childChain, erc20.rootERC20, alice, depositAmount)
     const spender = accounts[1]

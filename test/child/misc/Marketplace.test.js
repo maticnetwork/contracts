@@ -11,7 +11,7 @@ chai
   .use(chaiAsPromised)
   .should()
 
-contract('Marketplace', async function(accounts) {
+contract('Marketplace [@skip-on-coverage]', async function (accounts) {
   let childContracts, marketplace
   const amount1 = web3.utils.toBN('10')
   const amount2 = web3.utils.toBN('5')
@@ -28,15 +28,15 @@ contract('Marketplace', async function(accounts) {
   const privateKey2 = wallets[1].getPrivateKeyString()
   const address2 = wallets[1].getAddressString()
 
-  before(async function() {
+  before(async function () {
     marketplace = await deployer.deployMarketplace()
   })
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     childContracts = await deployer.initializeChildChain(accounts[0], { updateRegistry: false })
   })
 
-  it('executeOrder - ERC20/20', async function() {
+  it('executeOrder - ERC20/20', async function () {
     const erc20 = await deployer.deployChildErc20(accounts[0], { mapToken: false })
     const token1 = erc20.childToken
     const otherErc20 = await deployer.deployChildErc20(accounts[0], { mapToken: false })
@@ -97,7 +97,7 @@ contract('Marketplace', async function(accounts) {
     assert.equal((await token2.balanceOf(address2)).toNumber(), 0)
   })
 
-  it('executeOrder - ERC20/721', async function() {
+  it('executeOrder - ERC20/721', async function () {
     const erc20 = await deployer.deployChildErc20(accounts[0], { mapToken: false })
     const token1 = erc20.childToken
     const erc721 = await deployer.deployChildErc721(accounts[0], { mapToken: false })

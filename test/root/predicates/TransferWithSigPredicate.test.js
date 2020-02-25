@@ -22,8 +22,8 @@ const alice = wallets[0].getAddressString()
 const malloryPrivateKey = wallets[1].getPrivateKeyString()
 const mallory = wallets[1].getAddressString()
 
-contract('TransferWithSigPredicate', async function(accounts) {
-  before(async function() {
+contract('TransferWithSigPredicate [@skip-on-coverage]', async function (accounts) {
+  before(async function () {
     contracts = await deployer.freshDeploy()
     childContracts = await deployer.initializeChildChain(accounts[0])
     await deployer.deployErc20Predicate()
@@ -31,7 +31,7 @@ contract('TransferWithSigPredicate', async function(accounts) {
     statefulUtils = new StatefulUtils()
   })
 
-  it('startExit from incoming erc20 transferWithSig', async function() {
+  it('startExit from incoming erc20 transferWithSig', async function () {
     const erc20 = await deployer.deployChildErc20(accounts[0])
     const depositAmount = web3.utils.toBN('10')
     // UTXO1A
@@ -72,7 +72,7 @@ contract('TransferWithSigPredicate', async function(accounts) {
     predicateTestUtils.assertExitUpdated(logs[3], to, exitId, 0)
   })
 
-  it('startExit from incoming erc20 transferWithSig while also referencing existing balance', async function() {
+  it('startExit from incoming erc20 transferWithSig while also referencing existing balance', async function () {
     const erc20 = await deployer.deployChildErc20(accounts[0])
     const depositAmount = web3.utils.toBN('10')
     // UTXO1A
@@ -119,7 +119,7 @@ contract('TransferWithSigPredicate', async function(accounts) {
     predicateTestUtils.assertExitUpdated(logs[3], bob, exitId, ageOfUtxo1b)
   })
 
-  it('startExit from outgoing erc20 transferWithSig', async function() {
+  it('startExit from outgoing erc20 transferWithSig', async function () {
     const erc20 = await deployer.deployChildErc20(accounts[0])
     const depositAmount = web3.utils.toBN('10')
     // UTXO1A

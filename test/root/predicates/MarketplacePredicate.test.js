@@ -20,7 +20,7 @@ chai
   .should()
 const rlp = ethUtils.rlp
 
-contract('MarketplacePredicate', async function(accounts) {
+contract('MarketplacePredicate [@skip-on-coverage]', async function (accounts) {
   let contracts, childContracts, marketplace, predicate, erc20Predicate, erc721Predicate, statefulUtils
   const amount1 = web3.utils.toBN('10')
   const amount2 = web3.utils.toBN('5')
@@ -37,11 +37,11 @@ contract('MarketplacePredicate', async function(accounts) {
   const privateKey2 = wallets[1].getPrivateKeyString()
   const address2 = wallets[1].getAddressString()
 
-  before(async function() {
+  before(async function () {
     childContracts = await deployer.initializeChildChain(accounts[0])
   })
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     contracts = await deployer.freshDeploy()
     contracts.withdrawManager = await deployer.deployWithdrawManager()
     erc20Predicate = await deployer.deployErc20Predicate()
@@ -52,7 +52,7 @@ contract('MarketplacePredicate', async function(accounts) {
     statefulUtils = new StatefulUtils()
   })
 
-  it('startExit (erc20/20 swap)', async function() {
+  it('startExit (erc20/20 swap)', async function () {
     const erc20 = await deployer.deployChildErc20(accounts[0])
     const token1 = erc20.childToken
     const otherErc20 = await deployer.deployChildErc20(accounts[0])
@@ -127,7 +127,7 @@ contract('MarketplacePredicate', async function(accounts) {
     utils.assertBigNumberEquality(log.args.exitId, exitId)
   })
 
-  it('startExit (erc20/721 swap)', async function() {
+  it('startExit (erc20/721 swap)', async function () {
     const erc20 = await deployer.deployChildErc20(accounts[0])
     const token1 = erc20.childToken
     const erc721 = await deployer.deployChildErc721(accounts[0])
@@ -202,7 +202,7 @@ contract('MarketplacePredicate', async function(accounts) {
     utils.assertBigNumberEquality(log.args.exitId, exitId)
   })
 
-  it('startExit fails if some other token is referenced', async function() {
+  it('startExit fails if some other token is referenced', async function () {
     const erc20 = await deployer.deployChildErc20(accounts[0])
     const token1 = erc20.childToken
     const erc721 = await deployer.deployChildErc721(accounts[0])
@@ -269,7 +269,7 @@ contract('MarketplacePredicate', async function(accounts) {
     }
   })
 
-  it('startExit fails if inputs are given in an incorrect order', async function() {
+  it('startExit fails if inputs are given in an incorrect order', async function () {
     const erc20 = await deployer.deployChildErc20(accounts[0])
     const token1 = erc20.childToken
     const erc721 = await deployer.deployChildErc721(accounts[0])
@@ -329,7 +329,7 @@ contract('MarketplacePredicate', async function(accounts) {
     }
   })
 
-  it('startExit fails if not a valid predicate', async function() {
+  it('startExit fails if not a valid predicate', async function () {
     const inputs = [
       web3.eth.abi.encodeParameters(
         ['address', 'bytes'],
@@ -348,7 +348,7 @@ contract('MarketplacePredicate', async function(accounts) {
     }
   })
 
-  it('startExit fails if marketplace order has expired', async function() {
+  it('startExit fails if marketplace order has expired', async function () {
     const erc20 = await deployer.deployChildErc20(accounts[0])
     const token1 = erc20.childToken
     const otherErc20 = await deployer.deployChildErc20(accounts[0])

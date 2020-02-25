@@ -11,21 +11,21 @@ chai
   .use(chaiAsPromised)
   .should()
 
-contract('DepositManager', async function(accounts) {
+contract('DepositManager [@skip-on-coverage]', async function (accounts) {
   let depositManager, childContracts
   const amount = web3.utils.toBN('10').pow(web3.utils.toBN('18'))
 
-  describe('deposits only on root', async function() {
-    before(async function() {
+  describe('deposits only on root', async function () {
+    before(async function () {
       await deployer.freshDeploy()
     })
 
-    beforeEach(async function() {
+    beforeEach(async function () {
       await deployer.deployRootChain()
       depositManager = await deployer.deployDepositManager()
     })
 
-    it('depositEther', async function() {
+    it('depositEther', async function () {
       const maticWeth = await deployer.deployMaticWeth()
       const value = web3.utils.toWei('1', 'ether')
       const result = await depositManager.depositEther({
@@ -46,7 +46,7 @@ contract('DepositManager', async function(accounts) {
       validateDepositHash(depositHash, accounts[0], maticWeth.address, value)
     })
 
-    it('depositERC20', async function() {
+    it('depositERC20', async function () {
       const testToken = await deployer.deployTestErc20()
       await testToken.approve(depositManager.address, amount)
       const result = await depositManager.depositERC20(testToken.address, amount)
@@ -64,7 +64,7 @@ contract('DepositManager', async function(accounts) {
       validateDepositHash(depositHash, accounts[0], testToken.address, amount)
     })
 
-    it('depositERC20ForUser', async function() {
+    it('depositERC20ForUser', async function () {
       const testToken = await deployer.deployTestErc20()
       const user = accounts[1]
       await testToken.approve(depositManager.address, amount)
@@ -83,7 +83,7 @@ contract('DepositManager', async function(accounts) {
       validateDepositHash(depositHash, user, testToken.address, amount)
     })
 
-    it('depositERC721', async function() {
+    it('depositERC721', async function () {
       const testToken = await deployer.deployTestErc721()
       let tokenId = '1212'
       await testToken.mint(tokenId)
@@ -103,7 +103,7 @@ contract('DepositManager', async function(accounts) {
       validateDepositHash(depositHash, accounts[0], testToken.address, tokenId)
     })
 
-    it('depositERC721ForUser', async function() {
+    it('depositERC721ForUser', async function () {
       const testToken = await deployer.deployTestErc721()
       const user = accounts[1]
       let tokenId = '1234'
@@ -124,7 +124,7 @@ contract('DepositManager', async function(accounts) {
       validateDepositHash(depositHash, user, testToken.address, tokenId)
     })
 
-    it('depositBulk', async function() {
+    it('depositBulk', async function () {
       const tokens = []
       const amounts = []
       const NUM_DEPOSITS = 15
@@ -178,17 +178,17 @@ contract('DepositManager', async function(accounts) {
     it('tokenFallback');
   })
 
-  describe('deposits revert when paused', async function() {
-    before(async function() {
+  describe('deposits revert when paused', async function () {
+    before(async function () {
       this.contracts = await deployer.freshDeploy()
     })
 
-    beforeEach(async function() {
+    beforeEach(async function () {
       await deployer.deployRootChain()
       depositManager = await deployer.deployDepositManager()
     })
 
-    it('depositEther reverts', async function() {
+    it('depositEther reverts', async function () {
       await deployer.deployMaticWeth()
       await this.contracts.governance.update(
         depositManager.address,
@@ -201,12 +201,12 @@ contract('DepositManager', async function(accounts) {
           from: accounts[0]
         })
         assert.fail('Transaction should have reverted')
-      } catch(e) {
+      } catch (e) {
         expect(e.reason).to.equal('Is Locked')
       }
     })
 
-    it('depositERC20 reverts', async function() {
+    it('depositERC20 reverts', async function () {
       const testToken = await deployer.deployTestErc20()
       await testToken.approve(depositManager.address, amount)
       await this.contracts.governance.update(
@@ -216,12 +216,12 @@ contract('DepositManager', async function(accounts) {
       try {
         await depositManager.depositERC20(testToken.address, amount)
         assert.fail('Transaction should have reverted')
-      } catch(e) {
+      } catch (e) {
         expect(e.reason).to.equal('Is Locked')
       }
     })
 
-    it('depositERC721 reverts', async function() {
+    it('depositERC721 reverts', async function () {
       const testToken = await deployer.deployTestErc721()
       let tokenId = '1212'
       await testToken.mint(tokenId)
@@ -233,12 +233,12 @@ contract('DepositManager', async function(accounts) {
       try {
         await depositManager.depositERC721(testToken.address, tokenId)
         assert.fail('Transaction should have reverted')
-      } catch(e) {
+      } catch (e) {
         expect(e.reason).to.equal('Is Locked')
       }
     })
 
-    it('depositBulk reverts', async function() {
+    it('depositBulk reverts', async function () {
       const tokens = []
       const amounts = []
       const NUM_DEPOSITS = 15
@@ -265,21 +265,21 @@ contract('DepositManager', async function(accounts) {
       try {
         await depositManager.depositBulk(tokens, amounts, user)
         assert.fail('Transaction should have reverted')
-      } catch(e) {
+      } catch (e) {
         expect(e.reason).to.equal('Is Locked')
       }
     })
   })
 
-  describe('deposits on root and child', async function() {
+  describe('deposits on root and child', async function () {
 
-    beforeEach(async function() {
+    beforeEach(async function () {
       const contracts = await deployer.freshDeploy()
       depositManager = contracts.depositManager
       childContracts = await deployer.initializeChildChain(accounts[0])
     })
 
-    it('depositERC20', async function() {
+    it('depositERC20', async function () {
       const bob = accounts[1]
       const e20 = await deployer.deployChildErc20(accounts[0])
       await utils.deposit(
@@ -295,7 +295,7 @@ contract('DepositManager', async function(accounts) {
       utils.assertBigNumberEquality(await e20.childToken.balanceOf(bob), amount)
     })
 
-    it('deposit Matic Tokens', async function() {
+    it('deposit Matic Tokens', async function () {
       const bob = '0x' + crypto.randomBytes(20).toString('hex')
       const e20 = await deployer.deployMaticToken()
       utils.assertBigNumberEquality(await e20.childToken.balanceOf(bob), 0)
@@ -315,7 +315,7 @@ contract('DepositManager', async function(accounts) {
 })
 
 function validateDepositBlock(depositBlock, owner, token, amountOrNFTId) {
-  expect(depositBlock).to.include({owner, token})
+  expect(depositBlock).to.include({ owner, token })
   utils.assertBigNumberEquality(depositBlock.amountOrNFTId, amountOrNFTId)
 }
 

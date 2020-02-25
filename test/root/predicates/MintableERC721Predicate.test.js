@@ -16,19 +16,19 @@ chai.use(chaiAsPromised).should()
 let contracts, childContracts
 let predicate, statefulUtils
 
-contract('MintableERC721Predicate', async function(accounts) {
+contract('MintableERC721Predicate [@skip-on-coverage]', async function (accounts) {
   let tokenId
   const alice = accounts[0]
   const bob = accounts[1]
 
-  before(async function() {
+  before(async function () {
     contracts = await deployer.freshDeploy()
     predicate = await deployer.deployMintableErc721Predicate()
     childContracts = await deployer.initializeChildChain(accounts[0])
     statefulUtils = new StatefulUtils()
   })
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     const { rootERC721, childErc721 } = await deployer.deployChildErc721Mintable()
     // add ERC721Predicate as a minter
     await rootERC721.addMinter(predicate.address)
@@ -38,7 +38,7 @@ contract('MintableERC721Predicate', async function(accounts) {
   })
 
 
-  it('mint and startExitForMintableBurntTokens', async function() {
+  it('mint and startExitForMintableBurntTokens', async function () {
     const { receipt: r } = await childContracts.childErc721.mint(alice, tokenId)
     // await utils.writeToFile('child/erc721-mint.js', r)
     let mintTx = await web3Child.eth.getTransaction(r.transactionHash)
@@ -71,7 +71,7 @@ contract('MintableERC721Predicate', async function(accounts) {
     expect((await childContracts.rootERC721.ownerOf(tokenId)).toLowerCase()).to.equal(bob.toLowerCase())
   })
 
-  it('mintWithTokenURI and startExitForMetadataMintableBurntToken', async function() {
+  it('mintWithTokenURI and startExitForMetadataMintableBurntToken', async function () {
     const uri = `https://tokens.com/${tokenId}`
     const { receipt: r } = await childContracts.childErc721.mintWithTokenURI(alice, tokenId, uri)
     // await utils.writeToFile('child/erc721-mintWithTokenURI.js', r)
@@ -106,7 +106,7 @@ contract('MintableERC721Predicate', async function(accounts) {
     expect(await childContracts.rootERC721.tokenURI(tokenId)).to.equal(uri)
   })
 
-  it('mint, MoreVP exit with reference: counterparty balance (Transfer) and exitTx: incomingTransfer', async function() {
+  it('mint, MoreVP exit with reference: counterparty balance (Transfer) and exitTx: incomingTransfer', async function () {
     const { receipt: mint } = await childContracts.childErc721.mint(alice, tokenId)
     const mintTx = await buildInFlight(await web3Child.eth.getTransaction(mint.transactionHash))
 
@@ -143,7 +143,7 @@ contract('MintableERC721Predicate', async function(accounts) {
     expect((await childContracts.rootERC721.ownerOf(tokenId)).toLowerCase()).to.equal(alice.toLowerCase())
   })
 
-  it('mintWithTokenURI, MoreVP exit with reference: counterparty balance (Transfer) and exitTx: incomingTransfer', async function() {
+  it('mintWithTokenURI, MoreVP exit with reference: counterparty balance (Transfer) and exitTx: incomingTransfer', async function () {
     const uri = `https://tokens.com/${tokenId}`
     const { receipt: mint } = await childContracts.childErc721.mintWithTokenURI(alice, tokenId, uri)
     const mintTx = await buildInFlight(await web3Child.eth.getTransaction(mint.transactionHash))
@@ -182,7 +182,7 @@ contract('MintableERC721Predicate', async function(accounts) {
     expect(await childContracts.rootERC721.tokenURI(tokenId)).to.equal(uri)
   })
 
-  it('mint -> startExitForMintableBurntTokens -> depositERC721 -> startExitWithBurntTokens', async function() {
+  it('mint -> startExitForMintableBurntTokens -> depositERC721 -> startExitWithBurntTokens', async function () {
     const { receipt: r } = await childContracts.childErc721.mint(alice, tokenId)
     let mintTx = await web3Child.eth.getTransaction(r.transactionHash)
     mintTx = await buildInFlight(mintTx)

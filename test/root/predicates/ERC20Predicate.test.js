@@ -14,25 +14,25 @@ const web3Child = utils.web3Child
 chai.use(chaiAsPromised).should()
 let contracts, childContracts, statefulUtils
 
-contract('ERC20Predicate', async function(accounts) {
+contract('ERC20Predicate [@skip-on-coverage]', async function (accounts) {
   const amount = web3.utils.toBN('10').mul(utils.scalingFactor)
   const halfAmount = web3.utils.toBN('5').mul(utils.scalingFactor)
   const user = accounts[0]
   const other = accounts[1]
 
-  before(async function() {
+  before(async function () {
     contracts = await deployer.freshDeploy()
     childContracts = await deployer.initializeChildChain(accounts[0])
     statefulUtils = new StatefulUtils()
   })
 
-  describe('startExitWithBurntTokens', async function() {
-    beforeEach(async function() {
+  describe('startExitWithBurntTokens', async function () {
+    beforeEach(async function () {
       contracts.withdrawManager = await deployer.deployWithdrawManager()
       contracts.ERC20Predicate = await deployer.deployErc20Predicate()
     })
 
-    it('Exit with burnt tokens', async function() {
+    it('Exit with burnt tokens', async function () {
       const { rootERC20, childToken } = await deployer.deployChildErc20(accounts[0])
       childContracts.rootERC20 = rootERC20
       childContracts.childToken = childToken
@@ -60,7 +60,7 @@ contract('ERC20Predicate', async function(accounts) {
       utils.assertBigNumberEquality(log.args.amount, amount)
     })
 
-    it('Exit with burnt Matic tokens', async function() {
+    it('Exit with burnt Matic tokens', async function () {
       const { rootERC20, childToken } = await deployer.deployMaticToken()
       childContracts.rootERC20 = rootERC20
       childContracts.childToken = childToken
@@ -89,8 +89,8 @@ contract('ERC20Predicate', async function(accounts) {
     })
   })
 
-  describe('startExit (MoreVP style)', async function() {
-    beforeEach(async function() {
+  describe('startExit (MoreVP style)', async function () {
+    beforeEach(async function () {
       contracts.withdrawManager = await deployer.deployWithdrawManager()
       contracts.ERC20Predicate = await deployer.deployErc20Predicate()
       const { rootERC20, childToken } = await deployer.deployChildErc20(accounts[0])
@@ -98,7 +98,7 @@ contract('ERC20Predicate', async function(accounts) {
       childContracts.childToken = childToken
     })
 
-    it('reference: incomingTransfer - exitTx: fullBurn', async function() {
+    it('reference: incomingTransfer - exitTx: fullBurn', async function () {
       await utils.deposit(
         contracts.depositManager,
         childContracts.childChain,
@@ -125,7 +125,7 @@ contract('ERC20Predicate', async function(accounts) {
       utils.assertBigNumberEquality(log.args.amount, amount)
     })
 
-    it('reference: outgoingTransfer - exitTx: fullBurn', async function() {
+    it('reference: outgoingTransfer - exitTx: fullBurn', async function () {
       await utils.deposit(
         contracts.depositManager,
         childContracts.childChain,
@@ -153,7 +153,7 @@ contract('ERC20Predicate', async function(accounts) {
       utils.assertBigNumberEquality(log.args.amount, halfAmount)
     })
 
-    it('reference: deposit - exitTx: outgoingTransfer', async function() {
+    it('reference: deposit - exitTx: outgoingTransfer', async function () {
       // Reference exitor's deposit which is the proof of exitor's balance
       const { receipt } = await utils.deposit(
         contracts.depositManager,
@@ -181,7 +181,7 @@ contract('ERC20Predicate', async function(accounts) {
       utils.assertBigNumberEquality(log.args.amount, amount.sub(transferAmount))
     })
 
-    it('reference: counterparty balance (Deposit) - exitTx: incomingTransfer', async function() {
+    it('reference: counterparty balance (Deposit) - exitTx: incomingTransfer', async function () {
       // Reference the counterparty's deposit which is the proof of counterparty's balance
       const { receipt } = await utils.deposit(
         contracts.depositManager,
@@ -209,7 +209,7 @@ contract('ERC20Predicate', async function(accounts) {
       utils.assertBigNumberEquality(log.args.amount, halfAmount)
     })
 
-    it('reference: counterparty balance (Transfer) - exitTx: incomingTransfer', async function() {
+    it('reference: counterparty balance (Transfer) - exitTx: incomingTransfer', async function () {
       await utils.deposit(
         contracts.depositManager,
         childContracts.childChain,
@@ -239,7 +239,7 @@ contract('ERC20Predicate', async function(accounts) {
       utils.assertBigNumberEquality(log.args.amount, halfAmount)
     })
 
-    it('reference: own balance (Deposit) and counterparty balance (Deposit) - exitTx: incomingTransfer', async function() {
+    it('reference: own balance (Deposit) and counterparty balance (Deposit) - exitTx: incomingTransfer', async function () {
       // Will reference user's pre-existing balance on the side-chain, currently this needs to given as the 2nd input so will process this later
       const { receipt } = await utils.deposit(
         contracts.depositManager,
@@ -288,7 +288,7 @@ contract('ERC20Predicate', async function(accounts) {
       utils.assertBigNumberEquality(log.args.exitId, exitId)
     })
 
-    it('reference: own balance (outgoingTransfer) and counterparty balance (incomingTransfer) - exitTx: incomingTransfer', async function() {
+    it('reference: own balance (outgoingTransfer) and counterparty balance (incomingTransfer) - exitTx: incomingTransfer', async function () {
       // This test case tests an interesting case.
       // 1. I deposit x tokens.
       await utils.deposit(
@@ -348,8 +348,8 @@ contract('ERC20Predicate', async function(accounts) {
     })
   })
 
-  describe('startExit (MoreVP style) for Matic Token', async function() {
-    beforeEach(async function() {
+  describe('startExit (MoreVP style) for Matic Token', async function () {
+    beforeEach(async function () {
       contracts.withdrawManager = await deployer.deployWithdrawManager()
       contracts.ERC20Predicate = await deployer.deployErc20Predicate()
       const { rootERC20, childToken } = await deployer.deployMaticToken()
@@ -357,7 +357,7 @@ contract('ERC20Predicate', async function(accounts) {
       childContracts.childToken = childToken
     })
 
-    it('reference: incomingTransfer - exitTx: fullBurn', async function() {
+    it('reference: incomingTransfer - exitTx: fullBurn', async function () {
       await utils.deposit(
         contracts.depositManager,
         childContracts.childChain,
@@ -385,7 +385,7 @@ contract('ERC20Predicate', async function(accounts) {
       // utils.assertBigNumberEquality(log.args.amount, amount)
     })
 
-    it('reference: outgoingTransfer - exitTx: fullBurn', async function() {
+    it('reference: outgoingTransfer - exitTx: fullBurn', async function () {
       await utils.deposit(
         contracts.depositManager,
         childContracts.childChain,
@@ -414,7 +414,7 @@ contract('ERC20Predicate', async function(accounts) {
       // utils.assertBigNumberEquality(log.args.amount, halfAmount)
     })
 
-    it('reference: deposit - exitTx: outgoingTransfer', async function() {
+    it('reference: deposit - exitTx: outgoingTransfer', async function () {
       // Reference exitor's deposit which is the proof of exitor's balance
       const { receipt } = await utils.deposit(
         contracts.depositManager,
@@ -444,7 +444,7 @@ contract('ERC20Predicate', async function(accounts) {
       // utils.assertBigNumberEquality(log.args.amount, amount.sub(transferAmount))
     })
 
-    it('reference: counterparty balance (Deposit) - exitTx: incomingTransfer', async function() {
+    it('reference: counterparty balance (Deposit) - exitTx: incomingTransfer', async function () {
       // Reference the counterparty's deposit which is the proof of counterparty's balance
       const { receipt } = await utils.deposit(
         contracts.depositManager,
@@ -473,7 +473,7 @@ contract('ERC20Predicate', async function(accounts) {
       // utils.assertBigNumberEquality(log.args.amount, halfAmount)
     })
 
-    it('reference: counterparty balance (Transfer) - exitTx: incomingTransfer', async function() {
+    it('reference: counterparty balance (Transfer) - exitTx: incomingTransfer', async function () {
       await utils.deposit(
         contracts.depositManager,
         childContracts.childChain,
@@ -503,7 +503,7 @@ contract('ERC20Predicate', async function(accounts) {
       // utils.assertBigNumberEquality(log.args.amount, halfAmount)
     })
 
-    it('reference: own balance (Deposit) and counterparty balance (Deposit) - exitTx: incomingTransfer', async function() {
+    it('reference: own balance (Deposit) and counterparty balance (Deposit) - exitTx: incomingTransfer', async function () {
       // Will reference user's pre-existing balance on the side-chain, currently this needs to given as the 2nd input so will process this later
       const { receipt } = await utils.deposit(
         contracts.depositManager,
@@ -553,7 +553,7 @@ contract('ERC20Predicate', async function(accounts) {
       utils.assertBigNumberEquality(log.args.exitId, exitId)
     })
 
-    it('reference: own balance (outgoingTransfer) and counterparty balance (incomingTransfer) - exitTx: incomingTransfer', async function() {
+    it('reference: own balance (outgoingTransfer) and counterparty balance (incomingTransfer) - exitTx: incomingTransfer', async function () {
       // This test case tests an interesting case.
       // 1. I deposit x tokens.
       await utils.deposit(
@@ -613,8 +613,8 @@ contract('ERC20Predicate', async function(accounts) {
     })
   })
 
-  describe('startExit by referencing LogFeeTransfer', async function() {
-    beforeEach(async function() {
+  describe('startExit by referencing LogFeeTransfer', async function () {
+    beforeEach(async function () {
       contracts.withdrawManager = await deployer.deployWithdrawManager()
       contracts.ERC20Predicate = await deployer.deployErc20Predicate()
       // This is required to remap matic child at 0x1010 to a fresh root token, so that exits for it can be processed
@@ -622,7 +622,7 @@ contract('ERC20Predicate', async function(accounts) {
       // statefulUtils = new StatefulUtils()
     })
 
-    it('reference: LogFeeTransfer - exitTx: burn', async function() {
+    it('reference: LogFeeTransfer - exitTx: burn', async function () {
       const receipt = await web3Child.eth.sendTransaction({ from: user, to: other, value: 0 })
       const logIndex = 0
       const { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
@@ -646,7 +646,7 @@ contract('ERC20Predicate', async function(accounts) {
       // utils.assertBigNumberEquality(log.args.amount, halfAmount)
     })
 
-    it('reference: LogFeeTransfer - exitTx: outgoingTransfer', async function() {
+    it('reference: LogFeeTransfer - exitTx: outgoingTransfer', async function () {
       const receipt = await web3Child.eth.sendTransaction({ from: user, to: other, value: 0 })
       const logIndex = 0
       const { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
@@ -671,8 +671,8 @@ contract('ERC20Predicate', async function(accounts) {
     })
   })
 
-  describe('verifyDeprecation', async function() {
-    beforeEach(async function() {
+  describe('verifyDeprecation', async function () {
+    beforeEach(async function () {
       contracts.withdrawManager = await deployer.deployWithdrawManager()
       contracts.ERC20Predicate = await deployer.deployErc20Predicate()
       const { rootERC20, childToken } = await deployer.deployChildErc20(accounts[0])
@@ -681,7 +681,7 @@ contract('ERC20Predicate', async function(accounts) {
       // start = 0
     })
 
-    it('reference: Deposit - challenge: spend - exit: Burn', async function() {
+    it('reference: Deposit - challenge: spend - exit: Burn', async function () {
       const inputs = []
       const { receipt } = await utils.deposit(
         contracts.depositManager,
@@ -717,7 +717,7 @@ contract('ERC20Predicate', async function(accounts) {
       // console.log('verifyDeprecationTx', verifyDeprecationTx)
     })
 
-    it('should not be able to challenge with the in-flight tx from which the exit was started', async function() {
+    it('should not be able to challenge with the in-flight tx from which the exit was started', async function () {
       const { receipt } = await utils.deposit(
         contracts.depositManager,
         childContracts.childChain,

@@ -15,14 +15,14 @@ const web3Child = utils.web3Child
 chai.use(chaiAsPromised).should()
 let contracts, childContracts, rootERC20, childErc20, statefulUtils
 
-contract('Misc Predicates tests', async function(accounts) {
-  before(async function() {
+contract('Misc Predicates tests [@skip-on-coverage]', async function (accounts) {
+  before(async function () {
     contracts = await deployer.freshDeploy()
     childContracts = await deployer.initializeChildChain(accounts[0])
     statefulUtils = new StatefulUtils()
   })
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     contracts.withdrawManager = await deployer.deployWithdrawManager()
     contracts.ERC20Predicate = await deployer.deployErc20Predicate()
     const e20 = await deployer.deployChildErc20(accounts[0])
@@ -30,7 +30,7 @@ contract('Misc Predicates tests', async function(accounts) {
     childErc20 = e20.childToken
   })
 
-  it('Alice & Bob are honest and cooperating', async function() {
+  it('Alice & Bob are honest and cooperating', async function () {
     const alice = accounts[1]
     const bob = accounts[2]
     const aliceInitial = web3.utils.toBN('13')
@@ -101,7 +101,7 @@ contract('Misc Predicates tests', async function(accounts) {
     assert.strictEqual((await rootERC20.balanceOf(bob)).toString(), bobInitial.add(aliceToBobtransferAmount).toString())
   })
 
-  it('Mallory tries to exit a spent output', async function() {
+  it('Mallory tries to exit a spent output', async function () {
     const alice = accounts[0]
     const mallory = accounts[1]
     const aliceInitial = web3.utils.toBN('13')
@@ -146,7 +146,7 @@ contract('Misc Predicates tests', async function(accounts) {
     predicateTestUtils.assertExitCancelled(challenge.logs[0], exitId)
   })
 
-  it('Alice double spends her input (eager exit fails)', async function() {
+  it('Alice double spends her input (eager exit fails)', async function () {
     const alice = accounts[0]
     const bob = accounts[1]
     const aliceInitial = web3.utils.toBN('13')
@@ -209,7 +209,7 @@ contract('Misc Predicates tests', async function(accounts) {
     predicateTestUtils.assertExitCancelled(challenge.logs[0], exitId)
   })
 
-  it('Alice double spends her inputs and both of these transactions are checkpointed', async function() {
+  it('Alice double spends her inputs and both of these transactions are checkpointed', async function () {
     const alice = accounts[0]
     const bob = accounts[1]
     const aliceInitial = web3.utils.toBN('13')
@@ -254,7 +254,7 @@ contract('Misc Predicates tests', async function(accounts) {
       const challengeData = utils.buildChallengeData(predicateTestUtils.buildInputFromCheckpoint(_utxo2A))
       await contracts.withdrawManager.challengeExit(exitId, ageOfUtxo1a, challengeData, contracts.ERC20Predicate.address)
       assert.fail('Challenge should have failed')
-    } catch(e) {
+    } catch (e) {
       assert.strictEqual(e.reason, 'Cannot challenge with the exit tx')
     }
 
@@ -267,9 +267,9 @@ contract('Misc Predicates tests', async function(accounts) {
     predicateTestUtils.assertExitCancelled(challenge.logs[0], exitId)
   })
 
-  describe('Mallory is challenged with a marketplace tx', async function() {
+  describe('Mallory is challenged with a marketplace tx', async function () {
     let privateKey1, alice, privateKey2, mallory, marketplacePredicate, marketplace
-    before(async function() {
+    before(async function () {
       const stakes = {
         1: web3.utils.toWei('101'),
         2: web3.utils.toWei('100'),
@@ -288,7 +288,7 @@ contract('Misc Predicates tests', async function(accounts) {
       marketplace = await deployer.deployMarketplace()
     })
 
-    it('erc20/20 swap', async function() {
+    it('erc20/20 swap', async function () {
       // setup tokens and predicate
       const erc20 = await deployer.deployChildErc20(accounts[0])
       const token1 = erc20.childToken
@@ -379,7 +379,7 @@ contract('Misc Predicates tests', async function(accounts) {
       predicateTestUtils.assertExitCancelled(challenge.logs[0], exitId)
     })
 
-    it('erc20/721 swap', async function() {
+    it('erc20/721 swap', async function () {
       const amount1 = web3.utils.toBN('10')
       const tokenId = web3.utils.toBN('789')
 
@@ -467,9 +467,9 @@ contract('Misc Predicates tests', async function(accounts) {
     })
   })
 
-  describe('Challenge with transferWithSig tx', async function() {
+  describe('Challenge with transferWithSig tx', async function () {
     let alicePrivateKey, alice, malloryPrivateKey, mallory, transferWithSigPredicate
-    before(async function() {
+    before(async function () {
       const wallets = generateFirstWallets(mnemonics, 2)
 
       alicePrivateKey = wallets[0].getPrivateKeyString()
@@ -481,7 +481,7 @@ contract('Misc Predicates tests', async function(accounts) {
       transferWithSigPredicate = await deployer.deployTransferWithSigPredicate()
     })
 
-    it('exit became stale because erc20 transferWithSig is executed', async function() {
+    it('exit became stale because erc20 transferWithSig is executed', async function () {
       const erc20 = await deployer.deployChildErc20(accounts[0])
       const depositAmount = web3.utils.toBN('10')
       // UTXO1A
@@ -533,7 +533,7 @@ contract('Misc Predicates tests', async function(accounts) {
       predicateTestUtils.assertExitCancelled(challenge.logs[0], exitId)
     })
 
-    it('exit became stale because erc721 transferWithSig is executed', async function() {
+    it('exit became stale because erc721 transferWithSig is executed', async function () {
       contracts.ERC721Predicate = await deployer.deployErc721Predicate()
       const erc721 = await deployer.deployChildErc721(accounts[0])
       const tokenId = '0x' + crypto.randomBytes(32).toString('hex')

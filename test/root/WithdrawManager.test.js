@@ -10,14 +10,14 @@ const utils = require('../helpers/utils')
 chai.use(chaiAsPromised).should()
 let contracts, childContracts, statefulUtils, erc20Predicate
 
-contract('WithdrawManager', async function(accounts) {
+contract('WithdrawManager [@skip-on-coverage]', async function (accounts) {
   const amount = web3.utils.toBN('10')
   const owner = accounts[0]
   const user = accounts[1]
   const other = accounts[2]
 
-  describe('startExitWithDepositedTokens', async function() {
-    before(async function() {
+  describe('startExitWithDepositedTokens', async function () {
+    before(async function () {
       contracts = await deployer.freshDeploy()
       statefulUtils = new StatefulUtils()
       erc20Predicate = await deployer.deployErc20Predicate()
@@ -27,7 +27,7 @@ contract('WithdrawManager', async function(accounts) {
       childContracts.childToken = childToken
     })
 
-    it('start and challenge exit started with deposited tokens', async function() {
+    it('start and challenge exit started with deposited tokens', async function () {
       // mint tokens to user account for testing
       await contracts.rootERC20.mint(user, amount)
 
