@@ -4,7 +4,7 @@ import {DepositManagerStorage} from "../../root/depositManager/DepositManagerSto
 
 import {IERC20} from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
-
+import {WETH} from "../tokens/WETH.sol";
 
 contract Drainable is DepositManagerStorage {
 
@@ -36,6 +36,8 @@ contract Drainable is DepositManagerStorage {
     uint256 amount,
     address payable destination
   ) external onlyGovernance {
-    destination.transfer(amount);
+    address wethToken = registry.getWethTokenAddress();
+    WETH t = WETH(wethToken);
+    t.withdraw(amount, destination);
   }
 }
