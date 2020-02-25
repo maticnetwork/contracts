@@ -31,10 +31,10 @@ start_blockchain() {
 
 
 echo "Starting our own testrpc instance"
-start_testrpc
+# start_testrpc
 
 echo "Starting our own geth instance"
 start_blockchain
 
-npm run truffle:migrate "$@"
-npm run truffle:test "$@"
+# npm run truffle:migrate "$@"
+npm run truffle:coverage "$@"

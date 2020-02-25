@@ -37,7 +37,7 @@ module.exports = {
       // confirmations: 5
     },
     kovan: {
-      provider: function() {
+      provider: function () {
         return new HDWalletProvider(
           MNEMONIC,
           `https://kovan.infura.io/v3/${API_KEY}`
@@ -47,7 +47,7 @@ module.exports = {
       gas: 8000000
     },
     mainnet: {
-      provider: function() {
+      provider: function () {
         return new HDWalletProvider(
           MNEMONIC,
           `https://mainnet.infura.io/v3/${API_KEY}`
@@ -57,7 +57,7 @@ module.exports = {
       gas: 4000000
     },
     bor_testnet2: {
-      provider: function() {
+      provider: function () {
         return new HDWalletProvider(MNEMONIC, `https://testnet2.matic.network`)
       },
       network_id: 8995,
@@ -86,5 +86,6 @@ module.exports = {
       outputFile: '/dev/null',
       showTimeSpent: true
     }
-  }
+  },
+  plugins: ['solidity-coverage']
 }
