@@ -121,14 +121,15 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
         }
 
         uint256 blockNumber = referenceTxData[offset + 2].toUint();
-        uint256 createdAt = checkBlockMembershipInCheckpoint(
-            blockNumber,
-            referenceTxData[offset + 3].toUint(), // blockTime
-            bytes32(referenceTxData[offset + 4].toUint()), // txRoot
-            bytes32(referenceTxData[offset + 5].toUint()), // receiptRoot
-            headerNumber,
-            referenceTxData[offset + 1].toBytes() // blockProof
-        );
+        uint256 createdAt = 0;
+        // checkBlockMembershipInCheckpoint(
+        //     blockNumber,
+        //     referenceTxData[offset + 3].toUint(), // blockTime
+        //     bytes32(referenceTxData[offset + 4].toUint()), // txRoot
+        //     bytes32(referenceTxData[offset + 5].toUint()), // receiptRoot
+        //     headerNumber,
+        //     referenceTxData[offset + 1].toBytes() // blockProof
+        // );
 
         uint256 _branchMask = branchMask.toRlpItem().toUint();
         require(
