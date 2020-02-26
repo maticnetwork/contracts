@@ -102,23 +102,18 @@ contract StakeManager is IStakeManager {
             replacementCoolDown == 0 || replacementCoolDown <= currentEpoch,
             "Cool down period"
         );
-        require(
-            auctionPeriod >=
-                currentEpoch.sub(
-                    validatorAuction[validatorId].startEpoch.add(dynasty)
-                ),
-            "Invalid auction period"
-        );
-        // (dynasty--auctionPeriod)--(dynasty--auctionPeriod)--(dynasty--auctionPeriod)
-        // if it's auctionPeriod then will get residue from (CurrentPeriod of validator )%(dynasty--auctionPeriod)
+        // (auctionPeriod--dynasty)--(auctionPeriod--dynasty)--(auctionPeriod--dynasty)
+        // if it's auctionPeriod then will get residue smaller then auctionPeriod
+        // from (CurrentPeriod of validator )%(auctionPeriod--dynasty)
         // make sure that its `auctionPeriod` window
         // dynasty = 30, auctionPeriod = 7, activationEpoch = 1, currentEpoch = 39
-        // residue 1 = (39-1)% (30+7), if residue-dynasty  > 0 it's `auctionPeriod`
+        // residue 1 = (39-1)% (7+30), if residue <= auctionPeriod it's `auctionPeriod`
+
         require(
             (currentEpoch.sub(validators[validatorId].activationEpoch) %
-                dynasty.add(auctionPeriod)) >
-                dynasty,
-            "Not an auction time"
+                dynasty.add(auctionPeriod)) <=
+                auctionPeriod,
+            "Invalid auction period"
         );
 
         uint256 perceivedStake = validators[validatorId].amount.mul(
@@ -431,7 +426,7 @@ contract StakeManager is IStakeManager {
 
     // returns valid validator for current epoch
     function getCurrentValidatorSet() public view returns (uint256[] memory) {
-        uint256[] memory _validators = new uint256[](validatorThreshold);
+        uint256[] memory _validators = new uint256[](currentValidatorSetSize());
         uint256 validator;
         uint256 k = 0;
         for (uint256 i = 0; i < NFTContract.totalSupply(); i++) {
@@ -634,11 +629,7 @@ contract StakeManager is IStakeManager {
             jailTime: 0,
             signer: signer,
             contractAddress: acceptDelegation
-                ? factory.create(
-                    NFTCounter,
-                    address(logger),
-                    address(governance)
-                )
+                ? factory.create(NFTCounter, address(logger))
                 : address(0x0),
             status: Status.Active
         });

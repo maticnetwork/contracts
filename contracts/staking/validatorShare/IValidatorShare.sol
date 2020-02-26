@@ -2,7 +2,9 @@ pragma solidity ^0.5.2;
 
 import {ERC20} from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import {ERC721Full} from "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
+import {
+    ERC721Full
+} from "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
 import {Ownable} from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 import {Lockable} from "../../common/mixin/Lockable.sol";
@@ -34,12 +36,12 @@ contract IValidatorShare is ERC20, Lockable, Ownable {
     constructor(
         uint256 _validatorId,
         address _stakingLogger,
-        address _stakeManager,
-        address _governance
-    ) public Lockable(_governance) {
+        address _stakeManager
+    ) public Lockable(_stakeManager) {
         validatorId = _validatorId;
         stakingLogger = StakingInfo(_stakingLogger);
         stakeManager = IStakeManager(_stakeManager);
+        _transferOwnership(_stakeManager);
     }
 
     function udpateRewards(uint256 _reward, uint256 _totalStake)

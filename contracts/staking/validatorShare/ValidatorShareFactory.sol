@@ -7,18 +7,15 @@ contract ValidatorShareFactory {
     - factory to create new validatorShare contracts
    */
 
-    function create(
-        uint256 validatorId,
-        address loggerAddress,
-        address governance
-    ) public returns (address) {
+    function create(uint256 validatorId, address loggerAddress)
+        public
+        returns (address)
+    {
         ValidatorShare validatorShare = new ValidatorShare(
             validatorId,
             loggerAddress,
-            msg.sender,
-            governance
+            msg.sender
         );
-        validatorShare.transferOwnership(msg.sender);
         return address(validatorShare);
     }
 
