@@ -727,9 +727,6 @@ contract('StakeManager:validator replacement', async function (accounts) {
     it('should start Auction and bid multiple times', async function () {
       let amount = web3.utils.toWei('1200')
 
-      let auction = await stakeManager.validatorAuction(1)
-      let currentEpoch = await stakeManager.currentEpoch()
-      let dynasty = await stakeManager.dynasty()
       // 2/3 majority vote
       await checkPoint([wallets[0], wallets[1]], wallets[1], stakeManager, {
         from: wallets[1].getAddressString()

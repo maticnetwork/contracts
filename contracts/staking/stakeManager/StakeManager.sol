@@ -426,7 +426,7 @@ contract StakeManager is IStakeManager {
 
     // returns valid validator for current epoch
     function getCurrentValidatorSet() public view returns (uint256[] memory) {
-        uint256[] memory _validators = new uint256[](validatorThreshold);
+        uint256[] memory _validators = new uint256[](currentValidatorSetSize());
         uint256 validator;
         uint256 k = 0;
         for (uint256 i = 0; i < NFTContract.totalSupply(); i++) {
@@ -629,11 +629,7 @@ contract StakeManager is IStakeManager {
             jailTime: 0,
             signer: signer,
             contractAddress: acceptDelegation
-                ? factory.create(
-                    NFTCounter,
-                    address(logger),
-                    address(governance)
-                )
+                ? factory.create(NFTCounter, address(logger))
                 : address(0x0),
             status: Status.Active
         });
