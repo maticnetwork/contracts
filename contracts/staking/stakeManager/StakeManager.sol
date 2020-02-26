@@ -50,12 +50,12 @@ contract StakeManager is IStakeManager {
 
     function _topUpForFee(uint256 validatorId, uint256 amount) private {
         totalHeimdallFee = totalHeimdallFee.add(amount);
-        logger.logTopUpFee(validatorId, amount);
+        logger.logTopUpFee(validatorId, validators[validatorId].signer, amount);
     }
 
     function _claimFee(uint256 validatorId, uint256 amount) private {
         totalHeimdallFee = totalHeimdallFee.sub(amount);
-        logger.logClaimFee(validatorId, amount);
+        logger.logClaimFee(validatorId, validators[validatorId].signer, amount);
     }
 
     function claimFee(
