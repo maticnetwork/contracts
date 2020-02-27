@@ -160,7 +160,7 @@ contract('DepositManager', async function(accounts) {
         validateDepositHash(depositHash, user, tokens[i], amounts[i])
       }
 
-  //     // assert events for erc721 transfers
+      // assert events for erc721 transfers
       for (let j = 0; j < NUM_DEPOSITS; j++) {
         const logIndex = 4 * NUM_DEPOSITS /* add erc20 events */ + j * 3 // 2 logs per transfer - Transfer, StateSynced, NewDepositBlock
         logs[logIndex].event.should.equal('Transfer')
@@ -176,78 +176,6 @@ contract('DepositManager', async function(accounts) {
 
     it('onERC721Received');
     it('tokenFallback');
-  })
-
-  describe('drain assets from DepositManager', async function() {
-    before(async function() {
-      this.contracts = await deployer.freshDeploy()
-    })
-    beforeEach(async function() {
-      await deployer.deployRootChain()
-      depositManager = await deployer.deployDepositManager()
-    })
-    it('drain ERC20', async function() {
-      const testToken = await deployer.deployTestErc20()
-      const destination = accounts[0]
-
-      await testToken.transfer(depositManager.address, amount)
-
-      utils.assertBigNumberEquality(await testToken.balanceOf(depositManager.address), amount)
-
-      const tokens = []
-      const values = []
-
-      tokens.push(testToken.address)
-      values.push(amount.toString())
-      const data = depositManager.contract.methods.drainErc20(tokens, values, destination).encodeABI()
-
-      await this.contracts.governance.update(
-        depositManager.address,
-        data
-      )
-      utils.assertBigNumberEquality(await testToken.balanceOf(depositManager.address), 0)
-    })
-    it('drain ERC721', async function() {
-      const testToken = await deployer.deployTestErc721()
-      const user = accounts[0]
-      let tokenId = '1234'
-      await testToken.mint(tokenId)
-      await testToken.transferFrom(user, depositManager.address, tokenId)
-
-      await testToken.ownerOf(tokenId).should.eventually.equal(depositManager.address)
-
-      const tokens = []
-      const values = []
-
-      tokens.push(testToken.address)
-      values.push(tokenId)
-
-      const data = depositManager.contract.methods.drainErc721(tokens, values, user).encodeABI()
-
-      await this.contracts.governance.update(
-        depositManager.address,
-        data
-      )
-      await testToken.ownerOf(tokenId).should.eventually.equal(user)
-    })
-    it('drain Ether', async function() {
-      const maticWeth = await deployer.deployMaticWeth()
-      const user = accounts[0]
-      const value = web3.utils.toWei('1', 'ether')
-      await web3.eth.sendTransaction({
-        from: user,
-        to: depositManager.address,
-        value,
-        gas: 200000
-      })
-      utils.assertBigNumberEquality(await maticWeth.balanceOf(depositManager.address), value)
-      const data = depositManager.contract.methods.drainEther(value, user).encodeABI()
-      await this.contracts.governance.update(
-        depositManager.address,
-        data
-      )
-      utils.assertBigNumberEquality(await maticWeth.balanceOf(depositManager.address), 0)
-    })
   })
 
   describe('deposits revert when paused', async function() {

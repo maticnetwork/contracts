@@ -169,6 +169,17 @@ class Deployer {
     return this.depositManager
   }
 
+  async deployDrainable() {
+    this.drainable = await contracts.Drainable.new()
+    await this.depositManagerProxy.updateImplementation(this.drainable.address)
+    await this.updateContractMap(
+      ethUtils.keccak256('drainable'),
+      this.depositManagerProxy.address
+    )
+    this.drainable = await contracts.Drainable.at(this.depositManagerProxy.address)
+    return this.drainable
+  }
+
   async deployWithdrawManager() {
     this.withdrawManager = await contracts.WithdrawManager.new()
     this.withdrawManagerProxy = await contracts.WithdrawManagerProxy.new(
