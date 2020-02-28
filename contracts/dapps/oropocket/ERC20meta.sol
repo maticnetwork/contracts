@@ -13,6 +13,14 @@ contract ERC20Meta is ChildERC20 {
         uint256 input2
     );
 
+    constructor(
+        address _owner,
+        address _token,
+        string memory _name,
+        string memory _symbol,
+        uint8 _decimals
+    ) public ChildERC20(_owner, _token, _name, _symbol, _decimals) {}
+
     function transferFrom(address from, address to, uint256 value)
         public
         returns (bool)

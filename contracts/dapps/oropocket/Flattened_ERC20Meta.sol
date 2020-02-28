@@ -1,4 +1,3 @@
-
 // File: openzeppelin-solidity/contracts/token/ERC20/IERC20.sol
 
 pragma solidity ^0.5.2;
@@ -12,23 +11,31 @@ interface IERC20 {
 
     function approve(address spender, uint256 value) external returns (bool);
 
-    function transferFrom(address from, address to, uint256 value) external returns (bool);
+    function transferFrom(address from, address to, uint256 value)
+        external
+        returns (bool);
 
     function totalSupply() external view returns (uint256);
 
     function balanceOf(address who) external view returns (uint256);
 
-    function allowance(address owner, address spender) external view returns (uint256);
+    function allowance(address owner, address spender)
+        external
+        view
+        returns (uint256);
 
     event Transfer(address indexed from, address indexed to, uint256 value);
 
-    event Approval(address indexed owner, address indexed spender, uint256 value);
+    event Approval(
+        address indexed owner,
+        address indexed spender,
+        uint256 value
+    );
 }
 
 // File: openzeppelin-solidity/contracts/token/ERC20/ERC20Detailed.sol
 
 pragma solidity ^0.5.2;
-
 
 /**
  * @title ERC20Detailed token
@@ -41,7 +48,9 @@ contract ERC20Detailed is IERC20 {
     string private _symbol;
     uint8 private _decimals;
 
-    constructor (string memory name, string memory symbol, uint8 decimals) public {
+    constructor(string memory name, string memory symbol, uint8 decimals)
+        public
+    {
         _name = name;
         _symbol = symbol;
         _decimals = decimals;
@@ -141,8 +150,6 @@ library SafeMath {
 
 pragma solidity ^0.5.2;
 
-
-
 /**
  * @title Standard ERC20 token
  *
@@ -158,9 +165,9 @@ pragma solidity ^0.5.2;
 contract ERC20 is IERC20 {
     using SafeMath for uint256;
 
-    mapping (address => uint256) private _balances;
+    mapping(address => uint256) private _balances;
 
-    mapping (address => mapping (address => uint256)) private _allowed;
+    mapping(address => mapping(address => uint256)) private _allowed;
 
     uint256 private _totalSupply;
 
@@ -186,7 +193,11 @@ contract ERC20 is IERC20 {
      * @param spender address The address which will spend the funds.
      * @return A uint256 specifying the amount of tokens still available for the spender.
      */
-    function allowance(address owner, address spender) public view returns (uint256) {
+    function allowance(address owner, address spender)
+        public
+        view
+        returns (uint256)
+    {
         return _allowed[owner][spender];
     }
 
@@ -222,7 +233,10 @@ contract ERC20 is IERC20 {
      * @param to address The address which you want to transfer to
      * @param value uint256 the amount of tokens to be transferred
      */
-    function transferFrom(address from, address to, uint256 value) public returns (bool) {
+    function transferFrom(address from, address to, uint256 value)
+        public
+        returns (bool)
+    {
         _transfer(from, to, value);
         _approve(from, msg.sender, _allowed[from][msg.sender].sub(value));
         return true;
@@ -238,8 +252,15 @@ contract ERC20 is IERC20 {
      * @param spender The address which will spend the funds.
      * @param addedValue The amount of tokens to increase the allowance by.
      */
-    function increaseAllowance(address spender, uint256 addedValue) public returns (bool) {
-        _approve(msg.sender, spender, _allowed[msg.sender][spender].add(addedValue));
+    function increaseAllowance(address spender, uint256 addedValue)
+        public
+        returns (bool)
+    {
+        _approve(
+            msg.sender,
+            spender,
+            _allowed[msg.sender][spender].add(addedValue)
+        );
         return true;
     }
 
@@ -253,8 +274,15 @@ contract ERC20 is IERC20 {
      * @param spender The address which will spend the funds.
      * @param subtractedValue The amount of tokens to decrease the allowance by.
      */
-    function decreaseAllowance(address spender, uint256 subtractedValue) public returns (bool) {
-        _approve(msg.sender, spender, _allowed[msg.sender][spender].sub(subtractedValue));
+    function decreaseAllowance(address spender, uint256 subtractedValue)
+        public
+        returns (bool)
+    {
+        _approve(
+            msg.sender,
+            spender,
+            _allowed[msg.sender][spender].sub(subtractedValue)
+        );
         return true;
     }
 
@@ -341,13 +369,16 @@ pragma solidity ^0.5.2;
 contract Ownable {
     address private _owner;
 
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event OwnershipTransferred(
+        address indexed previousOwner,
+        address indexed newOwner
+    );
 
     /**
      * @dev The Ownable constructor sets the original `owner` of the contract to the sender
      * account.
      */
-    constructor () internal {
+    constructor() internal {
         _owner = msg.sender;
         emit OwnershipTransferred(address(0), _owner);
     }
@@ -410,263 +441,286 @@ contract Ownable {
 pragma solidity ^0.5.2;
 
 contract ChainIdMixin {
-  bytes constant public networkId = hex"3A99";
-  uint256 constant public CHAINID = 15001;
+    bytes public constant networkId = hex"3A99";
+    uint256 public constant CHAINID = 15001;
 }
 
 // File: contracts/child/misc/EIP712.sol
 
 pragma solidity ^0.5.2;
 
-
 contract LibEIP712Domain is ChainIdMixin {
-  string constant internal EIP712_DOMAIN_SCHEMA = "EIP712Domain(string name,string version,uint256 chainId,address contract)";
-  bytes32 constant public EIP712_DOMAIN_SCHEMA_HASH = keccak256(abi.encodePacked(EIP712_DOMAIN_SCHEMA));
+    string internal constant EIP712_DOMAIN_SCHEMA = "EIP712Domain(string name,string version,uint256 chainId,address contract)";
+    bytes32 public constant EIP712_DOMAIN_SCHEMA_HASH = keccak256(
+        abi.encodePacked(EIP712_DOMAIN_SCHEMA)
+    );
 
-  string constant internal EIP712_DOMAIN_NAME = "Matic Network";
-  string constant internal EIP712_DOMAIN_VERSION = "1";
-  uint256 constant internal EIP712_DOMAIN_CHAINID = CHAINID;
+    string internal constant EIP712_DOMAIN_NAME = "Matic Network";
+    string internal constant EIP712_DOMAIN_VERSION = "1";
+    uint256 internal constant EIP712_DOMAIN_CHAINID = CHAINID;
 
-  bytes32 public EIP712_DOMAIN_HASH;
+    bytes32 public EIP712_DOMAIN_HASH;
 
-  constructor () public {
-    EIP712_DOMAIN_HASH = keccak256(abi.encode(
-      EIP712_DOMAIN_SCHEMA_HASH,
-      keccak256(bytes(EIP712_DOMAIN_NAME)),
-      keccak256(bytes(EIP712_DOMAIN_VERSION)),
-      EIP712_DOMAIN_CHAINID,
-      address(this)
-    ));
-  }
-
-  function hashEIP712Message(bytes32 hashStruct) internal view returns (bytes32 result) {
-    bytes32 domainHash = EIP712_DOMAIN_HASH;
-
-    // Assembly for more efficient computing:
-    // keccak256(abi.encode(
-    //     EIP191_HEADER,
-    //     domainHash,
-    //     hashStruct
-    // ));
-
-    assembly {
-      // Load free memory pointer
-      let memPtr := mload(64)
-
-      mstore(memPtr, 0x1901000000000000000000000000000000000000000000000000000000000000)  // EIP191 header
-      mstore(add(memPtr, 2), domainHash)                                          // EIP712 domain hash
-      mstore(add(memPtr, 34), hashStruct)                                                 // Hash of struct
-
-      // Compute hash
-      result := keccak256(memPtr, 66)
+    constructor() public {
+        EIP712_DOMAIN_HASH = keccak256(
+            abi.encode(
+                EIP712_DOMAIN_SCHEMA_HASH,
+                keccak256(bytes(EIP712_DOMAIN_NAME)),
+                keccak256(bytes(EIP712_DOMAIN_VERSION)),
+                EIP712_DOMAIN_CHAINID,
+                address(this)
+            )
+        );
     }
-    return result;
-  }
+
+    function hashEIP712Message(bytes32 hashStruct)
+        internal
+        view
+        returns (bytes32 result)
+    {
+        bytes32 domainHash = EIP712_DOMAIN_HASH;
+
+        // Assembly for more efficient computing:
+        // keccak256(abi.encode(
+        //     EIP191_HEADER,
+        //     domainHash,
+        //     hashStruct
+        // ));
+
+        assembly {
+            // Load free memory pointer
+            let memPtr := mload(64)
+
+            mstore(
+                memPtr,
+                0x1901000000000000000000000000000000000000000000000000000000000000
+            ) // EIP191 header
+            mstore(add(memPtr, 2), domainHash) // EIP712 domain hash
+            mstore(add(memPtr, 34), hashStruct) // Hash of struct
+
+            // Compute hash
+            result := keccak256(memPtr, 66)
+        }
+        return result;
+    }
 }
 
 // File: contracts/child/misc/LibTokenTransferOrder.sol
 
 pragma solidity ^0.5.2;
 
-
-
 contract LibTokenTransferOrder is LibEIP712Domain {
-  string constant internal EIP712_TOKEN_TRANSFER_ORDER_SCHEMA = "TokenTransferOrder(address spender,uint256 tokenIdOrAmount,bytes32 data,uint256 expiration)";
-  bytes32 constant public EIP712_TOKEN_TRANSFER_ORDER_SCHEMA_HASH = keccak256(abi.encodePacked(EIP712_TOKEN_TRANSFER_ORDER_SCHEMA));
+    string internal constant EIP712_TOKEN_TRANSFER_ORDER_SCHEMA = "TokenTransferOrder(address spender,uint256 tokenIdOrAmount,bytes32 data,uint256 expiration)";
+    bytes32 public constant EIP712_TOKEN_TRANSFER_ORDER_SCHEMA_HASH = keccak256(
+        abi.encodePacked(EIP712_TOKEN_TRANSFER_ORDER_SCHEMA)
+    );
 
-  struct TokenTransferOrder {
-    address spender;
-    uint256 tokenIdOrAmount;
-    bytes32 data;
-    uint256 expiration;
-  }
-
-  function getTokenTransferOrderHash(address spender, uint256 tokenIdOrAmount, bytes32 data, uint256 expiration)
-    public
-    view
-    returns (bytes32 orderHash)
-  {
-    orderHash = hashEIP712Message(hashTokenTransferOrder(spender, tokenIdOrAmount, data, expiration));
-  }
-
-  function hashTokenTransferOrder(address spender, uint256 tokenIdOrAmount, bytes32 data, uint256 expiration)
-    internal
-    pure
-    returns (bytes32 result)
-  {
-    bytes32 schemaHash = EIP712_TOKEN_TRANSFER_ORDER_SCHEMA_HASH;
-
-    // Assembly for more efficiently computing:
-    // return keccak256(abi.encode(
-    //   schemaHash,
-    //   spender,
-    //   tokenIdOrAmount,
-    //   data,
-    //   expiration
-    // ));
-
-    assembly {
-      // Load free memory pointer
-      let memPtr := mload(64)
-
-      mstore(memPtr, schemaHash)                                                         // hash of schema
-      mstore(add(memPtr, 32), and(spender, 0xffffffffffffffffffffffffffffffffffffffff))  // spender
-      mstore(add(memPtr, 64), tokenIdOrAmount)                                           // tokenIdOrAmount
-      mstore(add(memPtr, 96), data)                                                      // hash of data
-      mstore(add(memPtr, 128), expiration)                                               // expiration
-
-      // Compute hash
-      result := keccak256(memPtr, 160)
+    struct TokenTransferOrder {
+        address spender;
+        uint256 tokenIdOrAmount;
+        bytes32 data;
+        uint256 expiration;
     }
-    return result;
-  }
+
+    function getTokenTransferOrderHash(
+        address spender,
+        uint256 tokenIdOrAmount,
+        bytes32 data,
+        uint256 expiration
+    ) public view returns (bytes32 orderHash) {
+        orderHash = hashEIP712Message(
+            hashTokenTransferOrder(spender, tokenIdOrAmount, data, expiration)
+        );
+    }
+
+    function hashTokenTransferOrder(
+        address spender,
+        uint256 tokenIdOrAmount,
+        bytes32 data,
+        uint256 expiration
+    ) internal pure returns (bytes32 result) {
+        bytes32 schemaHash = EIP712_TOKEN_TRANSFER_ORDER_SCHEMA_HASH;
+
+        // Assembly for more efficiently computing:
+        // return keccak256(abi.encode(
+        //   schemaHash,
+        //   spender,
+        //   tokenIdOrAmount,
+        //   data,
+        //   expiration
+        // ));
+
+        assembly {
+            // Load free memory pointer
+            let memPtr := mload(64)
+
+            mstore(memPtr, schemaHash) // hash of schema
+            mstore(
+                add(memPtr, 32),
+                and(spender, 0xffffffffffffffffffffffffffffffffffffffff)
+            ) // spender
+            mstore(add(memPtr, 64), tokenIdOrAmount) // tokenIdOrAmount
+            mstore(add(memPtr, 96), data) // hash of data
+            mstore(add(memPtr, 128), expiration) // expiration
+
+            // Compute hash
+            result := keccak256(memPtr, 160)
+        }
+        return result;
+    }
 }
 
 // File: contracts/child/ChildToken.sol
 
 pragma solidity ^0.5.2;
 
-
-
-
-
 contract ChildToken is Ownable, LibTokenTransferOrder {
-  using SafeMath for uint256;
+    using SafeMath for uint256;
 
-  // ERC721/ERC20 contract token address on root chain
-  address public token;
-  address public parent;
-  address public parentOwner;
+    // ERC721/ERC20 contract token address on root chain
+    address public token;
+    address public parent;
+    address public parentOwner;
 
-  mapping(bytes32 => bool) public disabledHashes;
+    mapping(bytes32 => bool) public disabledHashes;
 
-  modifier isParentOwner() {
-    require(msg.sender == parentOwner);
-    _;
-  }
-
-  function deposit(address user, uint256 amountOrTokenId) public;
-  function withdraw(uint256 amountOrTokenId) public payable;
-  function setParent(address _parent) public;
-
-  event LogFeeTransfer(
-    address indexed token,
-    address indexed from,
-    address indexed to,
-    uint256 amount,
-    uint256 input1,
-    uint256 input2,
-    uint256 output1,
-    uint256 output2
-  );
-
-  function ecrecovery(
-    bytes32 hash,
-    bytes memory sig
-  ) public pure returns (address result) {
-    bytes32 r;
-    bytes32 s;
-    uint8 v;
-    if (sig.length != 65) {
-      return address(0x0);
+    modifier isParentOwner() {
+        require(msg.sender == parentOwner);
+        _;
     }
-    assembly {
-      r := mload(add(sig, 32))
-      s := mload(add(sig, 64))
-      v := and(mload(add(sig, 65)), 255)
+
+    function deposit(address user, uint256 amountOrTokenId) public;
+    function withdraw(uint256 amountOrTokenId) public payable;
+    function setParent(address _parent) public;
+
+    event LogFeeTransfer(
+        address indexed token,
+        address indexed from,
+        address indexed to,
+        uint256 amount,
+        uint256 input1,
+        uint256 input2,
+        uint256 output1,
+        uint256 output2
+    );
+
+    function ecrecovery(bytes32 hash, bytes memory sig)
+        public
+        pure
+        returns (address result)
+    {
+        bytes32 r;
+        bytes32 s;
+        uint8 v;
+        if (sig.length != 65) {
+            return address(0x0);
+        }
+        assembly {
+            r := mload(add(sig, 32))
+            s := mload(add(sig, 64))
+            v := and(mload(add(sig, 65)), 255)
+        }
+        // https://github.com/ethereum/go-ethereum/issues/2053
+        if (v < 27) {
+            v += 27;
+        }
+        if (v != 27 && v != 28) {
+            return address(0x0);
+        }
+        // get address out of hash and signature
+        result = ecrecover(hash, v, r, s);
+        // ecrecover returns zero on error
+        require(result != address(0x0), "Error in ecrecover");
     }
-    // https://github.com/ethereum/go-ethereum/issues/2053
-    if (v < 27) {
-      v += 27;
-    }
-    if (v != 27 && v != 28) {
-      return address(0x0);
-    }
-    // get address out of hash and signature
-    result = ecrecover(hash, v, r, s);
-    // ecrecover returns zero on error
-    require(result != address(0x0), "Error in ecrecover");
-  }
 }
 
 // File: contracts/child/BaseERC20.sol
 
 pragma solidity ^0.5.2;
 
-
-
-
 contract BaseERC20 is ChildToken {
-
-  event Deposit(
-    address indexed token,
-    address indexed from,
-    uint256 amount,
-    uint256 input1,
-    uint256 output1
-  );
-
-  event Withdraw(
-    address indexed token,
-    address indexed from,
-    uint256 amount,
-    uint256 input1,
-    uint256 output1
-  );
-
-  event LogTransfer(
-    address indexed token,
-    address indexed from,
-    address indexed to,
-    uint256 amount,
-    uint256 input1,
-    uint256 input2,
-    uint256 output1,
-    uint256 output2
-  );
-
-  constructor() public {}
-
-  function transferWithSig(bytes calldata sig, uint256 amount, bytes32 data, uint256 expiration, address to) external returns (address from) {
-    require(amount > 0);
-    require(expiration == 0 || block.number <= expiration, "Signature is expired");
-
-    bytes32 dataHash = getTokenTransferOrderHash(
-      msg.sender,
-      amount,
-      data,
-      expiration
+    event Deposit(
+        address indexed token,
+        address indexed from,
+        uint256 amount,
+        uint256 input1,
+        uint256 output1
     );
-    require(disabledHashes[dataHash] == false, "Sig deactivated");
-    disabledHashes[dataHash] = true;
 
-    from = ecrecovery(dataHash, sig);
-    _transferFrom(from, address(uint160(to)), amount);
-  }
-
-  function balanceOf(address account) external view returns (uint256);
-  function _transfer(address sender, address recipient, uint256 amount) internal;
-
-  /// @param from Address from where tokens are withdrawn.
-  /// @param to Address to where tokens are sent.
-  /// @param value Number of tokens to transfer.
-  /// @return Returns success of function call.
-  function _transferFrom(address from, address to, uint256 value) internal returns (bool) {
-    uint256 input1 = this.balanceOf(from);
-    uint256 input2 = this.balanceOf(to);
-    _transfer(from, to, value);
-    emit LogTransfer(
-      token,
-      from,
-      to,
-      value,
-      input1,
-      input2,
-      this.balanceOf(from),
-      this.balanceOf(to)
+    event Withdraw(
+        address indexed token,
+        address indexed from,
+        uint256 amount,
+        uint256 input1,
+        uint256 output1
     );
-    return true;
-  }
+
+    event LogTransfer(
+        address indexed token,
+        address indexed from,
+        address indexed to,
+        uint256 amount,
+        uint256 input1,
+        uint256 input2,
+        uint256 output1,
+        uint256 output2
+    );
+
+    constructor() public {}
+
+    function transferWithSig(
+        bytes calldata sig,
+        uint256 amount,
+        bytes32 data,
+        uint256 expiration,
+        address to
+    ) external returns (address from) {
+        require(amount > 0);
+        require(
+            expiration == 0 || block.number <= expiration,
+            "Signature is expired"
+        );
+
+        bytes32 dataHash = getTokenTransferOrderHash(
+            msg.sender,
+            amount,
+            data,
+            expiration
+        );
+        require(disabledHashes[dataHash] == false, "Sig deactivated");
+        disabledHashes[dataHash] = true;
+
+        from = ecrecovery(dataHash, sig);
+        _transferFrom(from, address(uint160(to)), amount);
+    }
+
+    function balanceOf(address account) external view returns (uint256);
+    function _transfer(address sender, address recipient, uint256 amount)
+        internal;
+
+    /// @param from Address from where tokens are withdrawn.
+    /// @param to Address to where tokens are sent.
+    /// @param value Number of tokens to transfer.
+    /// @return Returns success of function call.
+    function _transferFrom(address from, address to, uint256 value)
+        internal
+        returns (bool)
+    {
+        uint256 input1 = this.balanceOf(from);
+        uint256 input2 = this.balanceOf(to);
+        _transfer(from, to, value);
+        emit LogTransfer(
+            token,
+            from,
+            to,
+            value,
+            input1,
+            input2,
+            this.balanceOf(from),
+            this.balanceOf(to)
+        );
+        return true;
+    }
 }
 
 // File: contracts/child/misc/IParentToken.sol
@@ -674,103 +728,104 @@ contract BaseERC20 is ChildToken {
 pragma solidity ^0.5.2;
 //interface for parent contract of any child token
 
-
 interface IParentToken {
-  function beforeTransfer(address sender, address to, uint256 value) external returns(bool);
+    function beforeTransfer(address sender, address to, uint256 value)
+        external
+        returns (bool);
 }
 
 // File: contracts/child/ChildERC20.sol
 
 pragma solidity ^0.5.2;
 
-
-
-
-
-
 contract ChildERC20 is BaseERC20, ERC20, ERC20Detailed {
+    constructor(
+        address _owner,
+        address _token,
+        string memory _name,
+        string memory _symbol,
+        uint8 _decimals
+    ) public ERC20Detailed(_name, _symbol, _decimals) {
+        require(_token != address(0x0) && _owner != address(0x0));
+        parentOwner = _owner;
+        token = _token;
+    }
 
-  constructor (address _owner, address _token, string memory _name, string memory _symbol, uint8 _decimals)
-    public
-    ERC20Detailed(_name, _symbol, _decimals) {
-    require(_token != address(0x0) && _owner != address(0x0));
-    parentOwner = _owner;
-    token = _token;
-  }
+    function setParent(address _parent) public isParentOwner {
+        require(_parent != address(0x0));
+        parent = _parent;
+    }
 
-  function setParent(address _parent) public isParentOwner {
-    require(_parent != address(0x0));
-    parent = _parent;
-  }
-
-  /**
+    /**
    * Deposit tokens
    *
    * @param user address for address
    * @param amount token balance
    */
-  function deposit(address user, uint256 amount) public onlyOwner {
-    // check for amount and user
-    require(amount > 0 && user != address(0x0));
+    function deposit(address user, uint256 amount) public onlyOwner {
+        // check for amount and user
+        require(amount > 0 && user != address(0x0));
 
-    // input balance
-    uint256 input1 = balanceOf(user);
+        // input balance
+        uint256 input1 = balanceOf(user);
 
-    // increase balance
-    _mint(user, amount);
+        // increase balance
+        _mint(user, amount);
 
-    // deposit events
-    emit Deposit(token, user, amount, input1, balanceOf(user));
-  }
+        // deposit events
+        emit Deposit(token, user, amount, input1, balanceOf(user));
+    }
 
-  /**
+    /**
    * Withdraw tokens
    *
    * @param amount tokens
    */
-  function withdraw(uint256 amount) public payable {
-    address user = msg.sender;
-    // input balance
-    uint256 input = balanceOf(user);
+    function withdraw(uint256 amount) public payable {
+        address user = msg.sender;
+        // input balance
+        uint256 input = balanceOf(user);
 
-    // check for amount
-    require(amount > 0 && input >= amount);
+        // check for amount
+        require(amount > 0 && input >= amount);
 
-    // decrease balance
-    _burn(user, amount);
+        // decrease balance
+        _burn(user, amount);
 
-    // withdraw event
-    emit Withdraw(token, user, amount, input, balanceOf(user));
-  }
-
-  /// @dev Function that is called when a user or another contract wants to transfer funds.
-  /// @param to Address of token receiver.
-  /// @param value Number of tokens to transfer.
-  /// @return Returns success of function call.
-  function transfer(address to, uint256 value) public returns (bool) {
-    if (parent != address(0x0) && !IParentToken(parent).beforeTransfer(msg.sender, to, value)) {
-      return false;
+        // withdraw event
+        emit Withdraw(token, user, amount, input, balanceOf(user));
     }
-    return _transferFrom(msg.sender, to, value);
-  }
 
-  function allowance(address, address) public view returns (uint256) {
-    revert("Disabled feature");
-  }
+    /// @dev Function that is called when a user or another contract wants to transfer funds.
+    /// @param to Address of token receiver.
+    /// @param value Number of tokens to transfer.
+    /// @return Returns success of function call.
+    function transfer(address to, uint256 value) public returns (bool) {
+        if (
+            parent != address(0x0) &&
+            !IParentToken(parent).beforeTransfer(msg.sender, to, value)
+        ) {
+            return false;
+        }
+        return _transferFrom(msg.sender, to, value);
+    }
 
-  function approve(address, uint256) public returns (bool) {
-    revert("Disabled feature");
-  }
+    function allowance(address, address) public view returns (uint256) {
+        revert("Disabled feature");
+    }
 
-  function transferFrom(address, address, uint256 ) public returns (bool){
-    revert("Disabled feature");
-  }
+    function approve(address, uint256) public returns (bool) {
+        revert("Disabled feature");
+    }
+
+    function transferFrom(address, address, uint256) public returns (bool) {
+        revert("Disabled feature");
+    }
 }
 
 // File: dapps/oropocket/ERC20meta.sol
 
 pragma solidity ^0.5.2;
-
 
 contract ERC20Meta is ChildERC20 {
     mapping(address => uint256) public replayNonce;
@@ -782,6 +837,14 @@ contract ERC20Meta is ChildERC20 {
         uint256 input1,
         uint256 input2
     );
+
+    constructor(
+        address _owner,
+        address _token,
+        string memory _name,
+        string memory _symbol,
+        uint8 _decimals
+    ) public ChildERC20(_owner, _token, _name, _symbol, _decimals) {}
 
     function transferFrom(address from, address to, uint256 value)
         public
