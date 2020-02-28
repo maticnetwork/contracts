@@ -5,14 +5,23 @@ import {ChildERC20} from "../../child/ChildERC20.sol";
 contract ERC20Meta is ChildERC20 {
     mapping(address => uint256) public replayNonce;
 
-    function transferFrom(address from, address to, uint256 value) public returns (bool) {
-        if (
-            parent != address(0x0) &&
-            !IParentToken(parent).beforeTransfer(msg.sender, to, value)
-        ) {
-            return false;
-        }
-        return _transferFrom(msg.sender, to, value);
+    event LogTransfer(
+        address indexed from,
+        address indexed to,
+        uint256 amount,
+        uint256 input1,
+        uint256 input2
+    );
+
+    function transferFrom(address from, address to, uint256 value)
+        public
+        returns (bool)
+    {
+        uint256 input1 = this.balanceOf(from);
+        uint256 input2 = this.balanceOf(to);
+        _transfer(from, to, value);
+        emit LogTransfer(from, to, value, input1, input2);
+        return true;
     }
 
     function metaTransfer(
