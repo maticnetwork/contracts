@@ -14,6 +14,7 @@ export const ValidatorShareFactory = artifacts.require('ValidatorShareFactory')
 
 export const DepositManager = artifacts.require('DepositManager')
 export const DepositManagerProxy = artifacts.require('DepositManagerProxy')
+export const Drainable = artifacts.require('Drainable')
 export const WithdrawManager = artifacts.require('WithdrawManager')
 export const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
 export const StateSender = artifacts.require('StateSender')
