@@ -32,6 +32,9 @@ library RLPEncode {
         for (uint256 i = 0; i < self.length; i++) {
             encoded = BytesLib.concat(encoded, encodeItem(self[i]));
         }
+        // if the list length > 55, a different prefix from 192 is expected by the RLP standard
+        // We don't require that however, if this function is used for such cases, then a corresponding fix would be required.
+        require(encoded.length <= 55, "This implementation of RLP needs to be fixed to handle these cases");
         return BytesLib.concat(encodeLength(encoded.length, 192), encoded);
     }
 
