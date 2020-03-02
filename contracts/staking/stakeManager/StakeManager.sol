@@ -212,12 +212,12 @@ contract StakeManager is IStakeManager {
         _unstake(validatorId, exitEpoch);
     }
 
-    // @NOTE this is for stage-1 event only
+    // Housekeeping function. @todo remove later
     function forceUnstake(uint256 validatorId) external onlyOwner {
         _unstake(validatorId, currentEpoch);
     }
 
-    // @NOTE this is for stage-1 event only
+    // Housekeeping function. @todo remove later
     // other than varibale you want to update give same values
     function updateConstructor(
         address _registry,

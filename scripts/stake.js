@@ -11,6 +11,7 @@ async function getStakeManager() {
 }
 
 async function stake() {
+  console.log(process.argv)
   const stakeFor = process.argv[6]
   const amount = web3.utils.toWei(process.argv[7])
   console.log(`Staking ${amount} for ${stakeFor}...`)
@@ -22,13 +23,20 @@ async function stake() {
   console.log('Sender accounts has a balanceOf', (await rootToken.balanceOf(accounts[0])).toString())
   await rootToken.approve(stakeManager.address, amount)
   console.log('approved, staking now...')
-  const stake = await stakeManager.stakeFor(address, amount, 0, address, false)
+  const stake = await stakeManager.stakeFor(stakeFor, amount, 0, stakeFor, false)
   console.log('staked; txHash is', stake.tx)
 }
 
-async function topUpForFee(address, amount) {
+async function topUpForFee() {
+  const stakeFor = process.argv[6]
+  const amount = web3.utils.toWei(process.argv[7])
   const stakeManager = await getStakeManager()
-  const validatorId = await stakeManager.signerToValidator('0x25bE188468B1245Ab95037C238a24ee723493fE9')
+
+  const rootToken = await RootToken.at(contracts.root.tokens.TestToken)
+  await rootToken.approve(stakeManager.address, amount)
+  console.log('approved, staking now...')
+
+  const validatorId = await stakeManager.signerToValidator(stakeFor)
   console.log(validatorId.toString())
   let r = await stakeManager.topUpForFee(validatorId.toString(), amount)
   console.log(r.tx)
@@ -55,17 +63,18 @@ async function deposit() {
   console.log(`Depositing ${amount}...`)
   const testToken = await TestToken.at(contracts.root.tokens.TestToken)
   let r = await testToken.approve(contracts.root.DepositManagerProxy, amount)
-  console.log(r)
+  console.log('approved', r.tx)
   const depositManager = await DepositManager.at(contracts.root.DepositManagerProxy)
-  let r = await depositManager.depositERC20(contracts.root.tokens.TestToken, amount)
-  console.log(r)
-  const childToken = await ChildERC20.at(contracts.child.tokens.TestToken)
-  console.log((await childToken.balanceOf('0x907f2e1F4A477319A700fC9a28374BA47527050e')).toString())
+  r = await depositManager.depositERC20(contracts.root.tokens.TestToken, amount)
+  console.log('deposited', r.tx)
 }
 
 module.exports = async function(callback) {
   try {
     await stake()
+    // await topUpForFee()
+    // await updateValidatorThreshold(20)
+    // await deposit()
   } catch(e) {
     // truffle exec <script> doesn't throw errors, so handling it in a verbose manner here
     console.log(e)

@@ -127,7 +127,7 @@ contract RootChain is RootChainStorage, IRootChain {
         headerBlock.createdAt = now;
     }
 
-    // HOUSEKEEPING functions
+    // Housekeeping function. @todo remove later
     function setNextHeaderBlock(uint256 _value) public onlyOwner {
         require(_value % MAX_DEPOSITS == 0, "Invalid value");
         for (uint256 i = _value; i < _nextHeaderBlock; i += MAX_DEPOSITS) {
@@ -137,6 +137,7 @@ contract RootChain is RootChainStorage, IRootChain {
         _blockDepositId = 1;
     }
 
+    // Housekeeping function. @todo remove later
     function setHeimdallId(string memory _heimdallId) public onlyOwner {
         heimdallId = keccak256(abi.encodePacked(_heimdallId));
     }

@@ -223,11 +223,8 @@ contract DepositManager is
         emit NewDepositBlock(_user, _token, _amountOrToken, _depositId);
     }
 
+     // Housekeeping function. @todo remove later
     function updateRootChain(address _rootChain) public onlyOwner {
         rootChain = RootChain(_rootChain);
-    }
-
-    function getRootChain() public view returns(address) {
-        return address(rootChain);
     }
 }

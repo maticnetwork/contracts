@@ -471,7 +471,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
             Math.max(createdAt + 2 * HALF_EXIT_PERIOD, now + HALF_EXIT_PERIOD);
     }
 
-    // HOUSEKEEPING functions
+    // Housekeeping function. @todo remove later
     function updateExitPeriod(uint256 halfExitPeriod) public onlyOwner {
         HALF_EXIT_PERIOD = halfExitPeriod;
     }
