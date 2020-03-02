@@ -5,102 +5,92 @@ const Registry = artifacts.require('Registry')
 const ethUtils = require('ethereumjs-util')
 const EthDeployer = require('moonwalker').default
 
-let id = 35 // THIS SHOULD BE NUMBER OF JOBS PROCESSED IN THE PREVIOUS SCRIPT
+let id = 28 // THIS SHOULD BE NUMBER OF JOBS PROCESSED IN THE PREVIOUS SCRIPT
 
 async function deploy() {
   const qClient = await EthDeployer.getQueue()
   const deployer = new EthDeployer.Sender(qClient)
 
+  // just need this for encodeABI()
   const registry = await Registry.new('0x0000000000000000000000000000000000000000')
-  // await deployer.deploy(
-  //   tx(
-  //     'Governance',
-  //     'update',
-  //     [
-  //       'Registry',
-  //       { value:
-  //           registry.contract.methods.updateContractMap(
-  //             ethUtils.bufferToHex(ethUtils.keccak256('depositManager')),
-  //             getAddressForContract('DepositManagerProxy')
-  //           ).encodeABI()
-  //       },
-  //     ],
-  //     'GovernanceProxy'
-  //   )
-  // )
-
-  // await deployer.deploy(
-  //   tx(
-  //     'Governance',
-  //     'update',
-  //     [
-  //       'Registry',
-  //       { value:
-  //           registry.contract.methods.updateContractMap(
-  //             ethUtils.bufferToHex(ethUtils.keccak256('withdrawManager')),
-  //             getAddressForContract('WithdrawManagerProxy')
-  //           ).encodeABI()
-  //       },
-  //     ],
-  //     'GovernanceProxy'
-  //   )
-  // )
-
-  // await deployer.deploy(
-  //   tx(
-  //     'Governance',
-  //     'update',
-  //     [
-  //       'Registry',
-  //       { value:
-  //           registry.contract.methods.updateContractMap(
-  //             ethUtils.bufferToHex(ethUtils.keccak256('stakeManager')),
-  //             getAddressForContract('StakeManagerProxy')
-  //           ).encodeABI()
-  //       },
-  //     ],
-  //     'GovernanceProxy'
-  //   )
-  // )
-
-  // await deployer.deploy(
-  //   tx(
-  //     'Governance',
-  //     'update',
-  //     [
-  //       'Registry',
-  //       { value:
-  //           registry.contract.methods.updateContractMap(
-  //             ethUtils.bufferToHex(ethUtils.keccak256('slashingManager')),
-  //             getAddressForContract('SlashingManager')
-  //           ).encodeABI()
-  //       },
-  //     ],
-  //     'GovernanceProxy'
-  //   )
-  // )
-
-  // await deployer.deploy(
-  //   tx(
-  //     'Governance',
-  //     'update',
-  //     [
-  //       'Registry',
-  //       { value:
-  //           registry.contract.methods.updateContractMap(
-  //             ethUtils.bufferToHex(ethUtils.keccak256('stateSender')),
-  //             getAddressForContract('StateSender')
-  //           ).encodeABI()
-  //       },
-  //     ],
-  //     'GovernanceProxy'
-  //   )
-  // )
 
   await deployer.deploy(
-    tx(
-      'Governance',
-      'update',
+    tx('Governance', 'update',
+      [
+        'Registry',
+        { value:
+            registry.contract.methods.updateContractMap(
+              ethUtils.bufferToHex(ethUtils.keccak256('depositManager')),
+              getAddressForContract('DepositManagerProxy')
+            ).encodeABI()
+        },
+      ],
+      'GovernanceProxy'
+    )
+  )
+
+  await deployer.deploy(
+    tx('Governance', 'update',
+      [
+        'Registry',
+        { value:
+            registry.contract.methods.updateContractMap(
+              ethUtils.bufferToHex(ethUtils.keccak256('withdrawManager')),
+              getAddressForContract('WithdrawManagerProxy')
+            ).encodeABI()
+        },
+      ],
+      'GovernanceProxy'
+    )
+  )
+
+  await deployer.deploy(
+    tx('Governance', 'update',
+      [
+        'Registry',
+        { value:
+            registry.contract.methods.updateContractMap(
+              ethUtils.bufferToHex(ethUtils.keccak256('stakeManager')),
+              getAddressForContract('StakeManagerProxy')
+            ).encodeABI()
+        },
+      ],
+      'GovernanceProxy'
+    )
+  )
+
+  await deployer.deploy(
+    tx('Governance', 'update',
+      [
+        'Registry',
+        { value:
+            registry.contract.methods.updateContractMap(
+              ethUtils.bufferToHex(ethUtils.keccak256('slashingManager')),
+              getAddressForContract('SlashingManager')
+            ).encodeABI()
+        },
+      ],
+      'GovernanceProxy'
+    )
+  )
+
+  await deployer.deploy(
+    tx('Governance', 'update',
+      [
+        'Registry',
+        { value:
+            registry.contract.methods.updateContractMap(
+              ethUtils.bufferToHex(ethUtils.keccak256('stateSender')),
+              getAddressForContract('StateSender')
+            ).encodeABI()
+        },
+      ],
+      'GovernanceProxy'
+    )
+  )
+
+  await deployer.deploy(
+    tx('Governance', 'update',
       [
         'Registry',
         { value:
@@ -114,8 +104,8 @@ async function deploy() {
     )
   )
 
-  // await deployer.deploy(tx('StakingNFT', 'transferOwnership', ['StakeManagerProxy']))
-  // await deployer.deploy(tx('StakeManager', 'setToken', ['TestToken'], 'StakeManagerProxy'))
+  await deployer.deploy(tx('StakingNFT', 'transferOwnership', ['StakeManagerProxy']))
+  await deployer.deploy(tx('StakeManager', 'setToken', ['TestToken'], 'StakeManagerProxy'))
 }
 
 function tx(contract, method, args, addressArtifact) {
