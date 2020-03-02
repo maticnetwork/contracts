@@ -185,8 +185,8 @@ contract StakeManager is IStakeManager {
                 token.transferFrom(msg.sender, address(this), heimdallFee),
                 "Transfer fee failed"
             );
-            _topUpForFee(NFTCounter, heimdallFee);
             _stakeFor(auction.user, auction.amount, signer, acceptDelegation);
+            _topUpForFee(NFTCounter, heimdallFee);
 
             logger.logConfirmAuction(
                 NFTCounter.sub(1),
@@ -270,12 +270,12 @@ contract StakeManager is IStakeManager {
             ),
             "Transfer stake failed"
         );
+        _stakeFor(user, amount, signer, acceptDelegation);
         // _topup
         _topUpForFee(
             NFTCounter, /** validatorId*/
             heimdallFee
         );
-        _stakeFor(user, amount, signer, acceptDelegation);
     }
 
     function perceivedStakeFactor(uint256 validatorId)

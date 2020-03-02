@@ -572,6 +572,7 @@ contract('StakeManager: Heimdall fee', async function (accounts) {
       logs[0].event.should.equal('TopUpFee')
       logs[2].event.should.equal('Staked')
       assertBigNumberEquality(logs[0].args.fee, fee)
+      logs[0].args.signer.toLowerCase().should.equal(user.toLowerCase())
     })
 
     it('Topup later', async function () {
