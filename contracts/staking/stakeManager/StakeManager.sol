@@ -212,6 +212,27 @@ contract StakeManager is IStakeManager {
         _unstake(validatorId, exitEpoch);
     }
 
+    // @NOTE this is for stage-1 event only
+    function forceUnstake(uint256 validatorId) external onlyOwner {
+        _unstake(validatorId, currentEpoch);
+    }
+
+    // @NOTE this is for stage-1 event only
+    // other than varibale you want to update give same values
+    function updateConstructor(
+        address _registry,
+        address _rootchain,
+        address _NFTContract,
+        address _stakingLogger,
+        address _ValidatorShareFactory
+    ) external onlyOwner {
+        registry = _registry;
+        rootChain = _rootchain;
+        NFTContract = StakingNFT(_NFTContract);
+        logger = StakingInfo(_stakingLogger);
+        factory = ValidatorShareFactory(_ValidatorShareFactory);
+    }
+
     function delegationTransfer(
         uint256 validatorId,
         uint256 amount,

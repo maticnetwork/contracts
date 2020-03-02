@@ -120,7 +120,13 @@ class Deployer {
   }
 
   async deployRootChain() {
-    this.rootChain = await contracts.RootChain.new(this.registry.address, 'heimdall-P5rXwg')
+    const rootChain = await contracts.RootChain.new()
+    const rootChainProxy = await contracts.RootChainProxy.new(
+      rootChain.address,
+      this.registry.address,
+      'heimdall-P5rXwg'
+    )
+    this.rootChain = await contracts.RootChain.at(rootChainProxy.address)
     return this.rootChain
   }
 

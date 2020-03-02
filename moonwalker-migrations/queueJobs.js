@@ -24,28 +24,32 @@ async function deploy() {
   await deployer.deploy(transformArtifact('SafeMath', []))
 
   // contracts
-  await deployer.deploy(transformArtifact('Registry', []))
-  await deployer.deploy(transformArtifact('RootChain', [
+  await deployer.deploy(transformArtifact('Governance', []))
+  await deployer.deploy(transformArtifact('GovernanceProxy', ['Governance']))
+  await deployer.deploy(transformArtifact('Registry', ['GovernanceProxy']))
+  await deployer.deploy(transformArtifact('RootChain', []))
+  await deployer.deploy(transformArtifact('RootChainProxy', [
+    'RootChain',
     'Registry',
     { value: process.env.HEIMDALL_ID }
   ]))
 
   await deployer.deploy(transformArtifact('ValidatorShareFactory', []))
   await deployer.deploy(transformArtifact('StakingInfo', ['Registry']))
-  await deployer.deploy(transformArtifact('StakingNFT', ['Matic Validator', 'MV']))
+  await deployer.deploy(transformArtifact('StakingNFT', [{ value: 'Matic Validator' }, { value: 'MV' }]))
   await deployer.deploy(transformArtifact('StakeManager', []))
-  await deployer.deploy(transformArtifact('StakeManagerProxy', ['StakeManager', 'Registry', 'RootChain', 'StakingInfo', 'ValidatorShareFactory']))
+  await deployer.deploy(transformArtifact('StakeManagerProxy', ['StakeManager', 'Registry', 'RootChain', 'StakingNFT', 'StakingInfo', 'ValidatorShareFactory', 'GovernanceProxy']))
 
   await deployer.deploy(transformArtifact('SlashingManager', ['Registry']))
 
   await deployer.deploy(transformArtifact('StateSender', []))
 
   await deployer.deploy(transformArtifact('DepositManager', []))
-  await deployer.deploy(transformArtifact('DepositManagerProxy', ['DepositManager', 'Registry', 'RootChain']))
+  await deployer.deploy(transformArtifact('DepositManagerProxy', ['DepositManager', 'Registry', 'RootChainProxy', 'GovernanceProxy']))
 
   await deployer.deploy(transformArtifact('WithdrawManager', []))
   await deployer.deploy(transformArtifact('ExitNFT', ['Registry']))
-  await deployer.deploy(transformArtifact('WithdrawManagerProxy', ['WithdrawManager', 'Registry', 'RootChain', 'ExitNFT']))
+  await deployer.deploy(transformArtifact('WithdrawManagerProxy', ['WithdrawManager', 'Registry', 'RootChainProxy', 'ExitNFT']))
 
   await deployer.deploy(transformArtifact('TestToken', [{ value: 'Test Token' }, { value: 'TST' }]))
 
@@ -80,12 +84,12 @@ async function deploy() {
     ])
   )
   await deployer.deploy(
-    tx('StakeManagerProxy', 'setToken', ['TestToken'])
-  )
-  await deployer.deploy(
     tx('StakingNFT', 'transferOwnership', ['StakeManagerProxy'])
   )
-  // 27 jobs
+  // Do Manually
+  // await deployer.deploy(
+  //   tx('StakeManagerProxy', 'setToken', ['TestToken'])
+  // )
 }
 
 function transformArtifact(contract, args, waitOnJob) {
