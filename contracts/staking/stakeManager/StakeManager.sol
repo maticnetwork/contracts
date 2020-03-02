@@ -186,7 +186,7 @@ contract StakeManager is IStakeManager {
                 "Transfer fee failed"
             );
             _stakeFor(auction.user, auction.amount, signer, acceptDelegation);
-            _topUpForFee(NFTCounter, heimdallFee);
+            _topUpForFee(NFTCounter.sub(1), heimdallFee);
 
             logger.logConfirmAuction(
                 NFTCounter.sub(1),
@@ -273,7 +273,7 @@ contract StakeManager is IStakeManager {
         _stakeFor(user, amount, signer, acceptDelegation);
         // _topup
         _topUpForFee(
-            NFTCounter, /** validatorId*/
+            NFTCounter.sub(1), /** validatorId*/
             heimdallFee
         );
     }

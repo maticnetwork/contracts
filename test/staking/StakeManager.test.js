@@ -141,8 +141,8 @@ contract('StakeManager', async function (accounts) {
       // logs[0].args.to.toLowerCase().should.equal(stakeManager.address)
       // assertBigNumberEquality(logs[0].args.value, amount)
 
-      logs[2].event.should.equal('Staked')
-      logs[2].args.signer.toLowerCase().should.equal(user)
+      logs[1].event.should.equal('Staked')
+      logs[1].args.signer.toLowerCase().should.equal(user)
       // logs[2].args.amount.should.be.bignumber.equal(amount)
     })
 
@@ -170,12 +170,12 @@ contract('StakeManager', async function (accounts) {
       // logs[0].args.value.should.be.bignumber.equal(amount)
       // assertBigNumberEquality(logs[0].args.value, amount)
 
-      logs[2].event.should.equal('Staked')
-      logs[2].args.signer.toLowerCase().should.equal(user)
+      logs[1].event.should.equal('Staked')
+      logs[1].args.signer.toLowerCase().should.equal(user)
       // logs[2].args.amount.should.be.bignumber.equal(amount)
-      assertBigNumberEquality(logs[2].args.amount, web3.utils.toWei('150'))
+      assertBigNumberEquality(logs[1].args.amount, web3.utils.toWei('150'))
 
-      await stakeManager.restake(logs[2].args.validatorId, web3.utils.toWei('100'), false, {
+      await stakeManager.restake(logs[1].args.validatorId, web3.utils.toWei('100'), false, {
         from: user
       })
       // staked for
@@ -569,10 +569,11 @@ contract('StakeManager: Heimdall fee', async function (accounts) {
         from: user
       })
       const logs = logDecoder.decodeLogs(Receipt.receipt.rawLogs)
-      logs[0].event.should.equal('TopUpFee')
-      logs[2].event.should.equal('Staked')
-      assertBigNumberEquality(logs[0].args.fee, fee)
-      logs[0].args.signer.toLowerCase().should.equal(user.toLowerCase())
+      console.log(logs, JSON.stringify(logs))
+      logs[2].event.should.equal('TopUpFee')
+      logs[1].event.should.equal('Staked')
+      assertBigNumberEquality(logs[2].args.fee, fee)
+      logs[2].args.signer.toLowerCase().should.equal(user.toLowerCase())
     })
 
     it('Topup later', async function () {
@@ -587,15 +588,16 @@ contract('StakeManager: Heimdall fee', async function (accounts) {
         from: user
       })
       let logs = logDecoder.decodeLogs(Receipt.receipt.rawLogs)
-      logs[0].event.should.equal('TopUpFee')
-      logs[2].event.should.equal('Staked')
-      assertBigNumberEquality(logs[0].args.fee, '0')
-
+      logs[2].event.should.equal('TopUpFee')
+      logs[1].event.should.equal('Staked')
+      assertBigNumberEquality(logs[2].args.fee, '0')
+      logs[2].args.signer.toLowerCase().should.equal(user.toLowerCase())
       Receipt = await stakeManager.topUpForFee(1, fee, {
         from: user
       })
       logs = logDecoder.decodeLogs(Receipt.receipt.rawLogs)
       logs[0].event.should.equal('TopUpFee')
+      logs[0].args.signer.toLowerCase().should.equal(user.toLowerCase())
       assertBigNumberEquality(logs[0].args.fee, fee)
     })
 
@@ -892,7 +894,6 @@ contract('StakeManager:validator replacement', async function (accounts) {
       //   }
       // )
       // const logs = result.receipt.logs
-      // console.log("yolo", logs)
 
       // logs[1].event.should.equal('ConfirmAuction')
 
