@@ -12,11 +12,7 @@ contract TestToken is ERC20Mintable {
         name = _name;
         symbol = _symbol;
 
-        uint256 value = 10000 * (10**18);
+        uint256 value = 10**10 * (10**18);
         mint(msg.sender, value);
-    }
-
-    function() external payable {
-        mint(msg.sender, msg.value);
     }
 }

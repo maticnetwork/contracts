@@ -18,10 +18,10 @@ async function consume() {
       gas: 7000000,
       gasPrice: '10000000000' // 10 gwei
     },
-    `${process.cwd()}/build/contracts`,
+    `${process.cwd()}/build`,
     1 // blockConfirmation
   )
-  await worker.start('deposit-test-1')
+  await worker.start('default-deposit-q')
   return 'worker started...'
 }
 

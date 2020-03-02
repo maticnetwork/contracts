@@ -1,7 +1,6 @@
 pragma solidity ^0.5.2;
 
 import {RLPReader} from "solidity-rlp/contracts/RLPReader.sol";
-import {Ownable} from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import {RootChainHeader, RootChainStorage} from "./RootChainStorage.sol";
@@ -21,11 +20,6 @@ contract RootChain is RootChainStorage, IRootChain {
             "UNAUTHORIZED_DEPOSIT_MANAGER_ONLY"
         );
         _;
-    }
-
-    constructor(address _registry, string memory _heimdallId) public {
-        registry = Registry(_registry);
-        heimdallId = keccak256(abi.encodePacked(_heimdallId));
     }
 
     function submitHeaderBlock(
@@ -131,5 +125,20 @@ contract RootChain is RootChainStorage, IRootChain {
         // toUintStrict returns the encoded uint. Encoded data must be padded to 32 bytes.
         headerBlock.root = bytes32(dataList[3].toUintStrict());
         headerBlock.createdAt = now;
+    }
+
+    // Housekeeping function. @todo remove later
+    function setNextHeaderBlock(uint256 _value) public onlyOwner {
+        require(_value % MAX_DEPOSITS == 0, "Invalid value");
+        for (uint256 i = _value; i < _nextHeaderBlock; i += MAX_DEPOSITS) {
+            delete headerBlocks[i];
+        }
+        _nextHeaderBlock = _value;
+        _blockDepositId = 1;
+    }
+
+    // Housekeeping function. @todo remove later
+    function setHeimdallId(string memory _heimdallId) public onlyOwner {
+        heimdallId = keccak256(abi.encodePacked(_heimdallId));
     }
 }

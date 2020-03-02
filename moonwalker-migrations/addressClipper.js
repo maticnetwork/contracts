@@ -1,4 +1,4 @@
-const status = require('../build/contracts/status.json')
+const status = require('../build/status.json')
 const fs = require('fs')
 
 const res = { root: { tokens: {} } }
@@ -6,6 +6,8 @@ for (let i = 0; i < Object.keys(status).length; i++) {
   if (status[i].type === 'deploy') {
     if (status[i].contract === 'TestToken') {
       res.root['tokens'][status[i].contract] = status[i].address
+    } else if(status[i].contract === 'MaticWETH') {
+      res.root['tokens']['MaticWeth'] = status[i].address
     } else {
       res.root[status[i].contract] = status[i].address
     }

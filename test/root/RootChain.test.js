@@ -138,6 +138,79 @@ contract('RootChain', async function (accounts) {
     assertBigNumberEquality(block.createdAt, '0')
   })
 
+  it('revert checkpoints', async function () {
+    let tree = await rewradsTree([1, 2, 3, 4], accountState)
+    let payload = buildSubmitHeaderBlockPaylod(accounts[0], 0, 4, '', wallets, {
+      rewardsRootHash: tree.getRoot(),
+      getSigs: true,
+      allValidators: true,
+      totalStake: totalStake
+    })
+    await rootChain.submitHeaderBlock(
+      payload.vote,
+      payload.sigs,
+      payload.extraData
+    )
+
+    let currentEpoch = await stakeManager.currentEpoch()
+    payload = buildSubmitHeaderBlockPaylod(accounts[0], 5, 9, '', wallets, {
+      rewardsRootHash: tree.getRoot(),
+      getSigs: true,
+      totalStake: totalStake
+    })
+    await rootChain.submitHeaderBlock(
+      payload.vote,
+      payload.sigs,
+      payload.extraData
+    )
+    let newCurrentEpoch = await stakeManager.currentEpoch()
+    assertBigNumbergt(newCurrentEpoch, currentEpoch)
+
+    currentEpoch = newCurrentEpoch
+    payload = buildSubmitHeaderBlockPaylod(accounts[0], 10, 14, '', wallets, {
+      rewardsRootHash: tree.getRoot(),
+      getSigs: true,
+      totalStake: totalStake
+    })
+    await rootChain.submitHeaderBlock(
+      payload.vote,
+      payload.sigs,
+      payload.extraData
+    )
+    newCurrentEpoch = await stakeManager.currentEpoch()
+    assertBigNumbergt(newCurrentEpoch, currentEpoch)
+
+    let block = await rootChain.headerBlocks('10000')
+    expect(block.start.toString()).to.equal('0')
+    expect(block.end.toString()).to.equal('4')
+
+    block = await rootChain.headerBlocks('20000')
+    expect(block.start.toString()).to.equal('5')
+    expect(block.end.toString()).to.equal('9')
+
+    block = await rootChain.headerBlocks('30000')
+    expect(block.start.toString()).to.equal('10')
+    expect(block.end.toString()).to.equal('14')
+
+    await rootChain.setNextHeaderBlock(20000)
+
+    block = await rootChain.headerBlocks('10000')
+    expect(block.start.toString()).to.equal('0')
+    expect(block.end.toString()).to.equal('4')
+
+    block = await rootChain.headerBlocks('20000')
+    expect(block.start.toString()).to.equal('0')
+    expect(block.end.toString()).to.equal('0')
+
+    block = await rootChain.headerBlocks('30000')
+    expect(block.start.toString()).to.equal('0')
+    expect(block.end.toString()).to.equal('0')
+
+    block = await rootChain.headerBlocks('40000')
+    expect(block.start.toString()).to.equal('0')
+    expect(block.end.toString()).to.equal('0')
+  })
+
   it('updateDepositId is ACLed on onlyDepositManager', async function () {
     try {
       await rootChain.updateDepositId(1)
@@ -176,3 +249,12 @@ contract('submitHeaderBlock hardcoded params', async function (accounts) {
     assertBigNumberEquality(logs[0].args.end, '22')
   })
 })
+
+function printBlock(block) {
+  console.log({
+    start: block.start.toString(),
+    end: block.end.toString(),
+    root: block.root,
+    createdAt: block.createdAt.toString(),
+  })
+}

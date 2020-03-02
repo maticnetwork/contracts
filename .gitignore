@@ -17,4 +17,4 @@ test-blockchain/data
 *.log
 
 .DS_Store
-.env
+*.env

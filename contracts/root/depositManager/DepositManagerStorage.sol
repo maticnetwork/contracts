@@ -21,8 +21,8 @@ contract DepositManagerHeader {
 }
 
 contract DepositManagerStorage is ProxyStorage, Lockable, DepositManagerHeader {
-    Registry internal registry;
-    RootChain internal rootChain;
+    Registry public registry;
+    RootChain public rootChain;
     StateSender public stateSender;
 
     mapping(uint256 => DepositBlock) public deposits;
