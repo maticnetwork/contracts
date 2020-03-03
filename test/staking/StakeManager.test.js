@@ -569,7 +569,7 @@ contract('StakeManager: Heimdall fee', async function (accounts) {
         from: user
       })
       const logs = logDecoder.decodeLogs(Receipt.receipt.rawLogs)
-      console.log(logs, JSON.stringify(logs))
+
       logs[2].event.should.equal('TopUpFee')
       logs[1].event.should.equal('Staked')
       assertBigNumberEquality(logs[2].args.fee, fee)
