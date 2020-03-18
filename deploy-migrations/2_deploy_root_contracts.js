@@ -134,10 +134,6 @@ module.exports = async function (deployer) {
     })
 
     console.log('deploying contracts...')
-    console.log('deploying tokens...')
-    await deployer.deploy(MaticWeth)
-    await deployer.deploy(TestToken, 'Test Token', 'TST')
-
     await deployer.deploy(Governance)
     await deployer.deploy(GovernanceProxy, Governance.address)
     await deployer.deploy(Registry, GovernanceProxy.address)
@@ -148,12 +144,14 @@ module.exports = async function (deployer) {
     await deployer.deploy(ValidatorShareFactory)
     await deployer.deploy(StakingInfo, Registry.address)
     await deployer.deploy(StakingNFT, 'Matic Validator', 'MV')
+
+    console.log('deploying tokens...')
+    await deployer.deploy(MaticWeth)
+    await deployer.deploy(TestToken, 'Test Token', 'TST')
+
     await deployer.deploy(StakeManager)
     await deployer.deploy(StakeManagerProxy, StakeManager.address, Registry.address, RootChainProxy.address, TestToken.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address, GovernanceProxy.address)
     await deployer.deploy(SlashingManager, Registry.address)
-    let stakingNFT = await StakingNFT.deployed()
-    await stakingNFT.transferOwnership(StakeManagerProxy.address)
-
     await deployer.deploy(StateSender)
 
     await deployer.deploy(DepositManager)
@@ -165,8 +163,8 @@ module.exports = async function (deployer) {
       GovernanceProxy.address
     )
 
-    await deployer.deploy(ExitNFT, Registry.address)
     await deployer.deploy(WithdrawManager)
+    await deployer.deploy(ExitNFT, Registry.address)
     await deployer.deploy(
       WithdrawManagerProxy,
       WithdrawManager.address,

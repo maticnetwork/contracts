@@ -6,9 +6,9 @@ const DepositManagerProxy = artifacts.require('DepositManagerProxy')
 const StateSender = artifacts.require('StateSender')
 const Governance = artifacts.require('Governance')
 const GovernanceProxy = artifacts.require('GovernanceProxy')
-const WithdrawManager = artifacts.require('WithdrawManager')
 const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
 const StakeManager = artifacts.require('StakeManager')
+const StakingNFT = artifacts.require('StakingNFT')
 const StakeManagerProxy = artifacts.require('StakeManagerProxy')
 const SlashingManager = artifacts.require('SlashingManager')
 const ERC20Predicate = artifacts.require('ERC20Predicate')
@@ -31,6 +31,7 @@ module.exports = async function (deployer, network) {
         WithdrawManagerProxy.deployed(),
         StakeManagerProxy.deployed(),
         SlashingManager.deployed(),
+        StakingNFT.deployed(),
         MaticWeth.deployed(),
         ERC20Predicate.deployed(),
         ERC721Predicate.deployed(),
@@ -46,15 +47,14 @@ module.exports = async function (deployer, network) {
         withdrawManagerProxy,
         stakeManagerProxy,
         slashingManager,
+        stakingNFT,
         maticWeth,
         ERC20Predicate,
         ERC721Predicate,
         MarketplacePredicate,
         TransferWithSigPredicate
       ) {
-        let stakeManager = await StakeManager.at(stakeManagerProxy.address)
         let governance = await Governance.at(governanceProxy.address)
-
         await governance.update(
           registry.address,
           registry.contract.methods.updateContractMap(
@@ -73,7 +73,7 @@ module.exports = async function (deployer, network) {
           registry.address,
           registry.contract.methods.updateContractMap(
             ethUtils.bufferToHex(ethUtils.keccak256('stakeManager')),
-            stakeManager.address
+            StakeManagerProxy.address
           ).encodeABI()
         )
         await governance.update(
@@ -89,16 +89,17 @@ module.exports = async function (deployer, network) {
             ethUtils.bufferToHex(ethUtils.keccak256('stateSender')),
             stateSender.address
           ).encodeABI()
-
         )
         await governance.update(
           registry.address,
           registry.contract.methods.updateContractMap(
             ethUtils.bufferToHex(ethUtils.keccak256('wethToken')),
-            MaticWeth.address
+            maticWeth.address
           ).encodeABI()
         )
-        await stakeManager.setToken(testToken.address)
+
+        await stakingNFT.transferOwnership(StakeManagerProxy.address)
+        await (await StakeManager.at(stakeManagerProxy.address)).setToken(testToken.address)
 
         // whitelist predicates
         await governance.update(
