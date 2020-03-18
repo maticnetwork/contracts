@@ -71,8 +71,11 @@ contract StakeManager is IStakeManager {
                 .checkMembership(index, accountStateRoot, proof),
             "Wrong acc proof"
         );
-        require(token.transfer(msg.sender, amount));
-        _claimFee(validatorId, amount);
+        uint256 _amount = amount.sub(validatorFeeExit[validatorId]);
+
+        require(token.transfer(msg.sender, _amount));
+        _claimFee(validatorId, _amount);
+        validatorFeeExit[validatorId] = amount;
     }
 
     function stake(
