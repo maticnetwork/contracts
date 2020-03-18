@@ -36,8 +36,18 @@ module.exports = {
       skipDryRun: true
       // confirmations: 5
     },
+    goerli: {
+      provider: function () {
+        return new HDWalletProvider(
+          MNEMONIC,
+          `https://goerli.infura.io/v3/${API_KEY}`
+        )
+      },
+      network_id: 5,
+      gas: 8000000
+    },
     kovan: {
-      provider: function() {
+      provider: function () {
         return new HDWalletProvider(
           MNEMONIC,
           `https://kovan.infura.io/v3/${API_KEY}`
@@ -47,7 +57,7 @@ module.exports = {
       gas: 8000000
     },
     mainnet: {
-      provider: function() {
+      provider: function () {
         return new HDWalletProvider(
           MNEMONIC,
           `https://mainnet.infura.io/v3/${API_KEY}`
@@ -57,7 +67,7 @@ module.exports = {
       gas: 4000000
     },
     bor_testnet2: {
-      provider: function() {
+      provider: function () {
         return new HDWalletProvider(MNEMONIC, `https://testnet2.matic.network`)
       },
       network_id: 8995,
