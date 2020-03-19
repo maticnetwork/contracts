@@ -280,7 +280,7 @@ contract StakingInfo {
             _contract,
             status
         ) = stakeManager.validators(validatorId);
-        reward += IStakeManager(_contract).validatorRewards()
+        reward += IStakeManager(_contract).validatorRewards();
         _status = uint256(status);
     }
 
