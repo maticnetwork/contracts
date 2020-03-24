@@ -53,7 +53,7 @@ contract RootChain is RootChainStorage, IRootChain {
         );
         // blockInterval, voteHash, stateRoot, sigs
         uint256 _reward = stakeManager.checkSignatures(
-            headerBlock.end.sub(headerBlock.start),
+            headerBlock.end.sub(headerBlock.start.add(1)),
             keccak256(vote),
             bytes32(extraData[4].toUint()),
             sigs
