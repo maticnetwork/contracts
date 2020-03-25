@@ -422,7 +422,7 @@ contract StakeManager is IStakeManager {
     // in context of slashing
     function jail(uint256 validatorId, uint256 jailCheckpoints)
         public
-    /** only*/
+        onlySlashingMananger
     {
         // Todo: requires and more conditions
         uint256 amount = validators[validatorId].amount;

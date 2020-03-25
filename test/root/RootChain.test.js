@@ -33,7 +33,7 @@ contract('RootChain', async function (accounts) {
       3: web3.utils.toWei('1000'),
       4: web3.utils.toWei('1000')
     }
-    totalStake = web3.utils.toWei('3000')
+    totalStake = web3.utils.toWei('4000')
     wallets = generateFirstWallets(mnemonics, Object.keys(stakes).length)
   })
 
@@ -65,10 +65,10 @@ contract('RootChain', async function (accounts) {
     const { vote, sigs, extraData, root } = buildSubmitHeaderBlockPaylod(
       accounts[0],
       0,
-      22,
+      255,
       '' /* root */,
       wallets,
-      { rewardsRootHash: tree.getRoot(), getSigs: true, totalStake: totalStake }
+      { allValidators: true, rewardsRootHash: tree.getRoot(), getSigs: true, totalStake: totalStake }
     )
     const result = await rootChain.submitHeaderBlock(vote, sigs, extraData)
     const logs = result.logs
@@ -78,9 +78,11 @@ contract('RootChain', async function (accounts) {
       proposer: accounts[0],
       root: '0x' + root.toString('hex')
     })
+
+    assertBigNumberEquality(logs[0].args.reward, await stakeManager.CHECKPOINT_REWARD())
     assertBigNumberEquality(logs[0].args.headerBlockId, '10000')
     assertBigNumberEquality(logs[0].args.start, '0')
-    assertBigNumberEquality(logs[0].args.end, '22')
+    assertBigNumberEquality(logs[0].args.end, '255')
   })
 
   it('submit multiple headerBlocks', async function () {
