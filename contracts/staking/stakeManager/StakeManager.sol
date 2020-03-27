@@ -61,18 +61,29 @@ contract StakeManager is IStakeManager {
     function claimFee(
         uint256 validatorId,
         uint256 accumSlashedAmount,
-        uint256 amount,
+        uint256 accumFeeAmount,
         uint256 index,
         bytes memory proof
     ) public onlyStaker(validatorId) {
         //Ignoring other params becuase rewards distribution is on chain
         require(
-            keccak256(abi.encodePacked(validatorId, amount, accumSlashedAmount))
+            keccak256(
+                abi.encodePacked(
+                    validatorId,
+                    accumFeeAmount,
+                    accumSlashedAmount
+                )
+            )
                 .checkMembership(index, accountStateRoot, proof),
             "Wrong acc proof"
         );
-        require(token.transfer(msg.sender, amount));
-        _claimFee(validatorId, amount);
+        uint256 withdrawAmount = accumFeeAmount.sub(
+            validatorFeeExit[validatorId]
+        );
+
+        require(token.transfer(msg.sender, withdrawAmount));
+        _claimFee(validatorId, withdrawAmount);
+        validatorFeeExit[validatorId] = accumFeeAmount;
     }
 
     function stake(
