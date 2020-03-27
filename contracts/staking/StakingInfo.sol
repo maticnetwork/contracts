@@ -20,6 +20,7 @@ contract IStakeManager {
     mapping(uint256 => Validator) public validators;
     bytes32 public accountStateRoot;
     uint256 public activeAmount; // delegation amount from validator contract
+    uint256 public validatorRewards;
 }
 
 contract StakingInfo {
@@ -257,6 +258,7 @@ contract StakingInfo {
         view
         returns (
             uint256 amount,
+            uint256 reward,
             uint256 activationEpoch,
             uint256 deactivationEpoch,
             address signer,
@@ -266,17 +268,19 @@ contract StakingInfo {
         IStakeManager stakeManager = IStakeManager(
             registry.getStakeManagerAddress()
         );
+        address _contract;
         IStakeManager.Status status;
         (
             amount,
-            ,
+            reward,
             activationEpoch,
             deactivationEpoch,
             ,
             signer,
-            ,
+            _contract,
             status
         ) = stakeManager.validators(validatorId);
+        reward += IStakeManager(_contract).validatorRewards();
         _status = uint256(status);
     }
 
