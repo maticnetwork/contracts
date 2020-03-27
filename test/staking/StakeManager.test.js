@@ -657,6 +657,106 @@ contract('StakeManager: Heimdall fee', async function (accounts) {
         wallets[2].getAddressString()
       ), fee)
     })
+
+    it('Withdraw heimdall fee multiple times', async function () {
+      const validators = [1, 2]
+      const amount = web3.utils.toWei('200')
+      let fee = web3.utils.toWei('50')
+      const user = wallets[2].getAddressString()
+      await stakeToken.mint(user, amount)
+      await stakeToken.approve(stakeManager.address, amount, {
+        from: user
+      })
+      await stakeManager.stake(web3.utils.toWei('150'), fee, user, false, {
+        from: user
+      })
+      fee = web3.utils.toWei('25')
+      accountState[1] = [web3.utils.toHex(fee.toString()), 0]
+      accountState[2] = [0, 0]
+      // validatorId, accumBalance, accumSlashedAmount, amount
+      let tree = await rewradsTreeFee(validators, accountState)
+
+      const { vote, sigs } = buildSubmitHeaderBlockPaylod(
+        wallets[2].getAddressString(),
+        0,
+        22,
+        '' /* root */,
+        [wallets[2]],
+        { rewardsRootHash: tree.getRoot(), allValidators: true, getSigs: true, totalStake: web3.utils.toWei('150') }
+      )
+
+      // 2/3 majority vote
+      await stakeManager.checkSignatures(
+        22,
+        utils.bufferToHex(utils.keccak256(vote)),
+        utils.bufferToHex(tree.getRoot()),
+        sigs, { from: wallets[1].getAddressString() }
+      )
+      let leaf = utils.keccak256(
+        web3.eth.abi.encodeParameters(
+          ['uint256', 'uint256', 'uint256'],
+          [1, accountState[1][0].toString(), accountState[1][1]]
+        )
+      )
+      // validatorId, accumBalance, accumSlashedAmount, amount, index, bytes memory proof
+      let Receipt = await stakeManager.claimFee(
+        1,
+        0,
+        fee,
+        0,
+        utils.bufferToHex(Buffer.concat(tree.getProof(leaf))),
+        { from: wallets[2].getAddressString() }
+      )
+
+      let logs = logDecoder.decodeLogs(Receipt.receipt.rawLogs)
+      logs[0].event.should.equal('ClaimFee')
+      assertBigNumberEquality(await stakeToken.balanceOf(
+        wallets[2].getAddressString()
+      ), fee)
+
+      fee = web3.utils.toWei('50')
+
+      accountState[1] = [web3.utils.toHex(fee.toString()), 0]
+      // validatorId, accumBalance, accumSlashedAmount, amount
+      tree = await rewradsTreeFee(validators, accountState)
+
+      const header = buildSubmitHeaderBlockPaylod(
+        wallets[2].getAddressString(),
+        22,
+        44,
+        '' /* root */,
+        [wallets[2]],
+        { rewardsRootHash: tree.getRoot(), allValidators: true, getSigs: true, totalStake: web3.utils.toWei('150') }
+      )
+      // 2/3 majority vote
+      await stakeManager.checkSignatures(
+        22,
+        utils.bufferToHex(utils.keccak256(header.vote)),
+        utils.bufferToHex(tree.getRoot()),
+        header.sigs, { from: wallets[1].getAddressString() }
+      )
+
+      leaf = utils.keccak256(
+        web3.eth.abi.encodeParameters(
+          ['uint256', 'uint256', 'uint256'],
+          [1, accountState[1][0].toString(), accountState[1][1]]
+        )
+      )
+      // validatorId, accumBalance, accumSlashedAmount, amount, index, bytes memory proof
+      Receipt = await stakeManager.claimFee(
+        1,
+        0,
+        fee,
+        0,
+        utils.bufferToHex(Buffer.concat(tree.getProof(leaf))),
+        { from: wallets[2].getAddressString() }
+      )
+      logs = logDecoder.decodeLogs(Receipt.receipt.rawLogs)
+      logs[0].event.should.equal('ClaimFee')
+      assertBigNumberEquality(await stakeToken.balanceOf(
+        wallets[2].getAddressString()
+      ), fee)
+    })
   })
 })
 
