@@ -136,7 +136,6 @@ contract ValidatorShare is IValidatorShare {
     function withdrawRewards() public {
         uint256 liquidRewards = getLiquidRewards(msg.sender);
         uint256 sharesToBurn = liquidRewards.mul(100).div(exchangeRate());
-        // if (sharesToBurn > 0)
         _burn(msg.sender, sharesToBurn);
         rewards = rewards.sub(liquidRewards);
         require(
@@ -176,7 +175,11 @@ contract ValidatorShare is IValidatorShare {
         stakeManager.updateValidatorState(validatorId, int256(liquidRewards));
         rewards = rewards.sub(liquidRewards);
         stakingLogger.logStakeUpdate(validatorId);
-        // TODO: add restake event
+        stakingLogger.logDelReStaked(
+            validatorId,
+            msg.sender,
+            amountStaked[msg.sender]
+        );
     }
 
     function getLiquidRewards(address user)
