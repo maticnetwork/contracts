@@ -155,6 +155,41 @@ contract('ValidatorShare', async function (accounts) {
     // assertBigNumberEquality(logs[1].args.tokens, web3.utils.toWei('100'))
   })
 
+  it('Sell after big rewards', async function () {
+    const user = wallets[2].getAddressString()
+    await stakeToken.mint(
+      user,
+      web3.utils.toWei('100')
+    )
+    await stakeToken.approve(stakeManager.address, web3.utils.toWei('100'), {
+      from: user
+    })
+
+    await validatorContract.buyVoucher(web3.utils.toWei('100'), {
+      from: user
+    })
+    const shares = await validatorContract.balanceOf(user)
+
+    for (let i = 0; i < 4; i++) {
+      await checkPoint([wallets[1]], wallets[1], stakeManager, { totalStake: web3.utils.toWei('350') }, {
+        from: wallets[1].getAddressString()
+      })
+    }
+
+    await stakeToken.mint(
+      stakeManager.address,
+      web3.utils.toWei('30000')
+    )
+    let result = await validatorContract.sellVoucher({
+      from: user
+    })
+    let logs = logDecoder.decodeLogs(result.receipt.rawLogs)
+    console.log(JSON.stringify(logs))
+    logs[2].event.should.equal('ShareBurned')
+    // logs[2].args.tokens.should.be.bignumber.equal(await validatorContract.rewards())
+    assertBigNumberEquality(logs[2].args.tokens, shares)
+  })
+
   it('Restake', async function () {
     const user = wallets[2].getAddressString()
     await stakeToken.mint(

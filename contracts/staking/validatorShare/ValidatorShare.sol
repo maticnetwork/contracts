@@ -106,7 +106,6 @@ contract ValidatorShare is IValidatorShare {
         _burn(msg.sender, share);
         stakeManager.updateValidatorState(validatorId, -int256(_amount));
 
-        activeAmount = activeAmount.sub(_amount);
         if (_amount > amountStaked[msg.sender]) {
             uint256 _rewards = _amount.sub(amountStaked[msg.sender]);
             //withdrawTransfer
@@ -121,6 +120,8 @@ contract ValidatorShare is IValidatorShare {
             _amount = _amount.sub(_rewards);
         }
 
+        activeAmount = activeAmount.sub(_amount);
+
         amountStaked[msg.sender] = 0; // TODO: add partial sell amountStaked[msg.sender].sub(_amount);
         delegators[msg.sender] = Delegator({
             amount: _amount,
@@ -131,6 +132,7 @@ contract ValidatorShare is IValidatorShare {
 
         stakingLogger.logShareBurned(validatorId, msg.sender, _amount, share);
         stakingLogger.logStakeUpdate(validatorId);
+
     }
 
     function withdrawRewards() public {
