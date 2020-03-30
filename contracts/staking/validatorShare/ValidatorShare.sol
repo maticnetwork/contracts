@@ -132,7 +132,6 @@ contract ValidatorShare is IValidatorShare {
 
         stakingLogger.logShareBurned(validatorId, msg.sender, _amount, share);
         stakingLogger.logStakeUpdate(validatorId);
-
     }
 
     function withdrawRewards() public {
