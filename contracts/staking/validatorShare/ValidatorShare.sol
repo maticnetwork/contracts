@@ -212,6 +212,7 @@ contract ValidatorShare is IValidatorShare {
             ),
             "Insufficent rewards"
         );
+        stakingLogger.logDelUnstaked(validatorId, msg.sender, delegator.amount);
         delete delegators[msg.sender];
     }
 
