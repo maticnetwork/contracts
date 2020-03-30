@@ -149,7 +149,6 @@ contract('ValidatorShare', async function (accounts) {
     logs[1].event.should.equal('Transfer')
     logs[1].args.from.toLowerCase().should.equal(stakeManager.address.toLowerCase())
     logs[1].args.to.toLowerCase().should.equal(user.toLowerCase())
-    // console.log(logs[2].args.rewards, await validatorContract.rewards())
     // logs[2].args.rewards.should.be.bignumber.equal(await validatorContract.rewards())
     // logs[1].args.value.should.be.bignumber.equal()
     // assertBigNumberEquality(logs[1].args.tokens, web3.utils.toWei('100'))
@@ -184,7 +183,6 @@ contract('ValidatorShare', async function (accounts) {
       from: user
     })
     let logs = logDecoder.decodeLogs(result.receipt.rawLogs)
-    console.log(JSON.stringify(logs))
     logs[2].event.should.equal('ShareBurned')
     // logs[2].args.tokens.should.be.bignumber.equal(await validatorContract.rewards())
     assertBigNumberEquality(logs[2].args.tokens, shares)

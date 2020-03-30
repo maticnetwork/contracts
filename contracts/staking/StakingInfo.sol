@@ -106,8 +106,8 @@ contract StakingInfo {
         uint256 indexed totalStaked
     );
     event DelUnstaked(
-        address indexed user,
         uint256 indexed validatorId,
+        address indexed user,
         uint256 amount
     );
     event UpdateCommissionRate(
