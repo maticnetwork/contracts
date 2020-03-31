@@ -25,11 +25,11 @@ contract IStakeManager {
 
 contract StakingInfo {
     event Staked(
-        address indexed signer,
         uint256 indexed validatorId,
         uint256 indexed activationEpoch,
         uint256 amount,
-        uint256 total
+        uint256 total,
+        bytes signerPubkey
     );
     event Unstaked(
         address indexed user,
@@ -48,7 +48,7 @@ contract StakingInfo {
     event SignerChange(
         uint256 indexed validatorId,
         address indexed oldSigner,
-        address indexed newSigner
+        bytes newSignerPubkey
     );
     event ReStaked(uint256 indexed validatorId, uint256 amount, uint256 total);
     event Jailed(uint256 indexed validatorId, uint256 indexed exitEpoch);
@@ -143,13 +143,13 @@ contract StakingInfo {
     }
 
     function logStaked(
-        address signer,
+        bytes memory signerPubkey,
         uint256 validatorId,
         uint256 activationEpoch,
         uint256 amount,
         uint256 total
     ) public onlyStakeManager {
-        emit Staked(signer, validatorId, activationEpoch, amount, total);
+        emit Staked(validatorId, activationEpoch, amount, total, signerPubkey);
     }
 
     function logUnstaked(
@@ -173,9 +173,9 @@ contract StakingInfo {
     function logSignerChange(
         uint256 validatorId,
         address oldSigner,
-        address newSigner
+        bytes memory signerPubkey
     ) public onlyStakeManager {
-        emit SignerChange(validatorId, oldSigner, newSigner);
+        emit SignerChange(validatorId, oldSigner, signerPubkey);
     }
 
     function logReStaked(uint256 validatorId, uint256 amount, uint256 total)

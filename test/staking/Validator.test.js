@@ -20,6 +20,7 @@ contract('ValidatorShare', async function (accounts) {
 
   beforeEach(async function () {
     let user = wallets[1].getAddressString()
+    const userPubkey = wallets[1].getPublicKeyString()
     let amount = web3.utils.toWei('250')
     const contracts = await deployer.freshDeploy({ stakeManager: true })
     registry = contracts.registry
@@ -44,7 +45,7 @@ contract('ValidatorShare', async function (accounts) {
       from: user
     })
 
-    await stakeManager.stake(amount, 0, user, true, {
+    await stakeManager.stake(amount, 0, true, userPubkey, {
       from: user
     })
     let validator = await stakeManager.validators(1)

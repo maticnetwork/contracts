@@ -52,7 +52,7 @@ contract('RootChain', async function (accounts) {
       await stakeToken.approve(stakeManager.address, amount, {
         from: wallets[i].getAddressString()
       })
-      await stakeManager.stake(amount, 0, wallets[i].getAddressString(), false, {
+      await stakeManager.stake(amount, 0, false, wallets[i].getPublicKeyString(), {
         from: wallets[i].getAddressString()
       })
       accountState[i + 1] = 0

@@ -546,7 +546,7 @@ contract StakeManager is IStakeManager {
         logger.logSignerChange(
             validatorId,
             validators[validatorId].signer,
-            _signer
+            signerPubkey
         );
 
         delete signerToValidator[validators[validatorId].signer];
@@ -685,7 +685,13 @@ contract StakeManager is IStakeManager {
         updateTimeLine(currentEpoch, int256(amount), 1);
         // no Auctions for 1 dynasty
         validatorAuction[NFTCounter].startEpoch = currentEpoch;
-        logger.logStaked(signer, NFTCounter, currentEpoch, amount, totalStaked);
+        logger.logStaked(
+            signerPubkey,
+            NFTCounter,
+            currentEpoch,
+            amount,
+            totalStaked
+        );
         NFTCounter = NFTCounter.add(1);
     }
 
