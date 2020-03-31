@@ -89,10 +89,16 @@ contract StakeManager is IStakeManager {
     function stake(
         uint256 amount,
         uint256 heimdallFee,
-        address signer,
-        bool acceptDelegation
+        bool acceptDelegation,
+        bytes calldata signerPubkey
     ) external {
-        stakeFor(msg.sender, amount, heimdallFee, signer, acceptDelegation);
+        stakeFor(
+            msg.sender,
+            amount,
+            heimdallFee,
+            acceptDelegation,
+            signerPubkey
+        );
     }
 
     function totalStakedFor(address user) external view returns (uint256) {
@@ -160,8 +166,8 @@ contract StakeManager is IStakeManager {
     function confirmAuctionBid(
         uint256 validatorId,
         uint256 heimdallFee, /** for new validator */
-        address signer,
-        bool acceptDelegation
+        bool acceptDelegation,
+        bytes calldata signerPubkey
     ) external onlyWhenUnlocked {
         Auction storage auction = validatorAuction[validatorId];
         Validator storage validator = validators[validatorId];
@@ -196,7 +202,12 @@ contract StakeManager is IStakeManager {
                 token.transferFrom(msg.sender, address(this), heimdallFee),
                 "Transfer fee failed"
             );
-            _stakeFor(auction.user, auction.amount, signer, acceptDelegation);
+            _stakeFor(
+                auction.user,
+                auction.amount,
+                acceptDelegation,
+                signerPubkey
+            );
             _topUpForFee(NFTCounter.sub(1), heimdallFee);
 
             logger.logConfirmAuction(
@@ -266,12 +277,11 @@ contract StakeManager is IStakeManager {
         address user,
         uint256 amount,
         uint256 heimdallFee,
-        address signer,
-        bool acceptDelegation
+        bool acceptDelegation,
+        bytes memory signerPubkey
     ) public onlyWhenUnlocked {
         require(currentValidatorSetSize() < validatorThreshold);
         require(amount > minDeposit);
-        require(signerToValidator[signer] == 0);
 
         require(
             token.transferFrom(
@@ -281,7 +291,7 @@ contract StakeManager is IStakeManager {
             ),
             "Transfer stake failed"
         );
-        _stakeFor(user, amount, signer, acceptDelegation);
+        _stakeFor(user, amount, acceptDelegation, signerPubkey);
         // _topup
         _topUpForFee(
             NFTCounter.sub(1), /** validatorId*/
@@ -525,10 +535,11 @@ contract StakeManager is IStakeManager {
         minHeimdallFee = _minHeimdallFee;
     }
 
-    function updateSigner(uint256 validatorId, address _signer)
+    function updateSigner(uint256 validatorId, bytes memory signerPubkey)
         public
         onlyStaker(validatorId)
     {
+        address _signer = pubToAddress(signerPubkey);
         require(_signer != address(0x0) && signerToValidator[_signer] == 0);
 
         // update signer event
@@ -648,11 +659,13 @@ contract StakeManager is IStakeManager {
     function _stakeFor(
         address user,
         uint256 amount,
-        address signer,
-        bool acceptDelegation
+        bool acceptDelegation,
+        bytes memory signerPubkey
     ) internal {
-        totalStaked = totalStaked.add(amount);
+        address signer = pubToAddress(signerPubkey);
+        require(signerToValidator[signer] == 0, "Invalid Signer key");
 
+        totalStaked = totalStaked.add(amount);
         validators[NFTCounter] = Validator({
             reward: 0,
             amount: amount,
@@ -720,4 +733,11 @@ contract StakeManager is IStakeManager {
         validatorState[epoch].stakerCount += stakerCount;
     }
 
+    function pubToAddress(bytes memory pub) public pure returns (address addr) {
+        bytes32 hash = keccak256(pub);
+        assembly {
+            mstore(0, hash)
+            addr := mload(0)
+        }
+    }
 }
