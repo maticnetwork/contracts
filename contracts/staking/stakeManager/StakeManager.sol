@@ -546,6 +546,7 @@ contract StakeManager is IStakeManager {
         logger.logSignerChange(
             validatorId,
             validators[validatorId].signer,
+            _signer,
             signerPubkey
         );
 
@@ -686,6 +687,7 @@ contract StakeManager is IStakeManager {
         // no Auctions for 1 dynasty
         validatorAuction[NFTCounter].startEpoch = currentEpoch;
         logger.logStaked(
+            signer,
             signerPubkey,
             NFTCounter,
             currentEpoch,
@@ -739,11 +741,8 @@ contract StakeManager is IStakeManager {
         validatorState[epoch].stakerCount += stakerCount;
     }
 
-    function pubToAddress(bytes memory pub) public pure returns (address addr) {
-        bytes32 hash = keccak256(pub);
-        assembly {
-            mstore(0, hash)
-            addr := mload(0)
-        }
+    function pubToAddress(bytes memory pub) public pure returns (address) {
+        require(pub.length == 64, "Invalid pubkey");
+        return address(uint160(uint256(keccak256(pub))));
     }
 }

@@ -174,6 +174,7 @@ contract('StakeManager', async function (accounts) {
 
       logs[1].event.should.equal('Staked')
       logs[1].args.signerPubkey.toLowerCase().should.equal(userPubkey.toLowerCase())
+      logs[1].args.signer.toLowerCase().should.equal(user.toLowerCase())
       // logs[2].args.amount.should.be.bignumber.equal(amount)
       assertBigNumberEquality(logs[1].args.amount, web3.utils.toWei('150'))
 
@@ -288,6 +289,7 @@ contract('StakeManager', async function (accounts) {
       const logs = logDecoder.decodeLogs(signerReceipt.receipt.rawLogs)
       logs.should.have.lengthOf(1)
       logs[0].event.should.equal('SignerChange')
+      logs[0].args.newSigner.toLowerCase().should.equal(signer.toLowerCase())
 
       // staked for
       let stakerDetails = await stakeManager.validators(validatorId)
