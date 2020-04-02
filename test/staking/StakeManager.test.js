@@ -1009,4 +1009,107 @@ contract('StakeManager:validator replacement', async function (accounts) {
     })
     // TODO: add more tests with delegation enabled
   })
+  describe('validator replacement: skip a dynasty', async function () {
+    before(async function () {
+      wallets = generateFirstWallets(mnemonics, 10)
+      let contracts = await deployer.deployStakeManager(wallets)
+      stakeToken = contracts.stakeToken
+      stakeManager = contracts.stakeManager
+
+      await stakeManager.updateDynastyValue(8)
+      await stakeManager.updateCheckPointBlockInterval(1)
+
+      let amount = web3.utils.toWei('1000')
+      for (let i = 0; i < 2; i++) {
+        await stakeToken.mint(wallets[i].getAddressString(), amount)
+        await stakeToken.approve(stakeManager.address, amount, {
+          from: wallets[i].getAddressString()
+        })
+        await stakeManager.stake(amount, 0, wallets[i].getAddressString(), false, {
+          from: wallets[i].getAddressString()
+        })
+      }
+      let dynasty = await stakeManager.dynasty()
+      // cool down period
+      let auctionPeriod = await stakeManager.auctionPeriod()
+      let currentEpoch = await stakeManager.currentEpoch()
+      for (
+        let i = currentEpoch;
+        i <= auctionPeriod.add(dynasty);
+        i++
+      ) {
+        // 2/3 majority vote
+        await checkPoint([wallets[0], wallets[1]], wallets[1], stakeManager, {
+          from: wallets[1].getAddressString()
+        })
+      }
+    })
+
+    it.only('should call confirmAuction at diffrent times', async function () {
+      let amount = web3.utils.toWei('1200')
+      // 2/3 majority vote
+      await checkPoint([wallets[0], wallets[1]], wallets[1], stakeManager, {
+        from: wallets[1].getAddressString()
+      })
+      // start an auction from wallet[3]
+      await stakeToken.mint(wallets[3].getAddressString(), amount)
+      await stakeToken.approve(stakeManager.address, amount, {
+        from: wallets[3].getAddressString()
+      })
+
+      await stakeManager.startAuction(1, amount, {
+        from: wallets[3].getAddressString()
+      })
+      let dynasty = await stakeManager.dynasty()
+
+      for (
+        let i = 0;
+        i <= dynasty;
+        i++
+      ) {
+        // 2/3 majority vote
+        await checkPoint([wallets[0], wallets[1]], wallets[1], stakeManager, {
+          from: wallets[1].getAddressString()
+        })
+      }
+
+      try {
+        await stakeManager.confirmAuctionBid(
+          1,
+          0,
+          wallets[4].getAddressString(),
+          false,
+          {
+            from: wallets[4].getAddressString()
+          }
+        )
+        assert.fail(`Confirmation should've failed`)
+      } catch (error) {
+        const invalidOpcode = error.message.search('Confirmation is not allowed before auctionPeriod') >= 0
+        assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
+      }
+
+      await checkPoint([wallets[0], wallets[1]], wallets[1], stakeManager, {
+        from: wallets[1].getAddressString()
+      })
+      await checkPoint([wallets[0], wallets[1]], wallets[1], stakeManager, {
+        from: wallets[1].getAddressString()
+      })
+
+      const result = await stakeManager.confirmAuctionBid(
+        1,
+        0,
+        wallets[4].getAddressString(),
+        false,
+        {
+          from: wallets[4].getAddressString()
+        }
+      )
+
+      const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
+      logs[2].event.should.equal('Staked')
+      logs[4].event.should.equal('ConfirmAuction')
+      assert.ok(!(await stakeManager.isValidator(1)))
+    })
+  })
 })
