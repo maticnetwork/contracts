@@ -48,11 +48,12 @@ contract('SlashingManager', async function (accounts) {
 
   it('should slash validator', async function () {
     const user = wallets[2].getAddressString()
+    const userPubkey = wallets[2].getPublicKeyString()
     const amount = web3.utils.toWei('250')
     await stakeToken.approve(stakeManager.address, amount, {
       from: user
     })
-    await stakeManager.stake(amount, 0, user, false, {
+    await stakeManager.stake(amount, 0, false, userPubkey, {
       from: user
     })
     const beforeStake = await stakeManager.totalStakedFor(user)
@@ -85,12 +86,13 @@ contract('SlashingManager', async function (accounts) {
 
   it('should not slash validator', async function () {
     const user = wallets[2].getAddressString()
+    const userPubkey = wallets[2].getPublicKeyString()
     const amount = web3.utils.toWei('250')
     await stakeToken.approve(stakeManager.address, amount, {
       from: user
     })
 
-    await stakeManager.stake(amount, 0, user, false, {
+    await stakeManager.stake(amount, 0, false, userPubkey, {
       from: user
     })
 
