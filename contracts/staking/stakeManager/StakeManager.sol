@@ -165,9 +165,14 @@ contract StakeManager is IStakeManager {
     ) external onlyWhenUnlocked {
         Auction storage auction = validatorAuction[validatorId];
         Validator storage validator = validators[validatorId];
-        // require(auction.user == msg.sender);// any one can call confrimAuction
+        /**
+            // any one can call confrimAuction
+            // require(auction.user == msg.sender);
+         */
+
         require(
-            auctionPeriod.add(auction.startEpoch.add(dynasty)) <= currentEpoch,
+            currentEpoch.sub(auction.startEpoch) % auctionPeriod.add(dynasty) >=
+                auctionPeriod,
             "Confirmation is not allowed before auctionPeriod"
         );
 
