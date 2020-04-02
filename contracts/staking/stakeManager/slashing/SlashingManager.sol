@@ -19,10 +19,15 @@ contract SlashingManager is Ownable {
     bytes32 public chain = keccak256("heimdall-P5rXwg");
     uint256 public roundType = 2;
     uint8 public voteType = 2;
+    bytes32 public slashAccHash;
     Registry public registry;
 
     constructor(address _registry) public {
         registry = Registry(_registry);
+    }
+
+    function startSlashing(bytes32 _slashAccHash) public {
+        slashAccHash = _slashAccHash;
     }
 
     function doubleSign(

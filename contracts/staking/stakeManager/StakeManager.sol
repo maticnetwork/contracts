@@ -572,12 +572,14 @@ contract StakeManager is IStakeManager {
         uint256 blockInterval,
         bytes32 voteHash,
         bytes32 stateRoot,
+        bytes32 slashAccHash,
         bytes memory sigs
     ) public onlyRootChain returns (uint256) {
         // checkpoint rewards are based on BlockInterval multiplied on `CHECKPOINT_REWARD`
         // for bigger checkpoints reward is capped at `CHECKPOINT_REWARD`
         // if interval is 50% of checkPointBlockInterval then reward R is half of `CHECKPOINT_REWARD`
         // and then stakePower is 90% of currentValidatorSetTotalStake then final reward is 90% of R
+        require(slashing != true, "Pending slashing operation");
         uint256 _reward = blockInterval.mul(CHECKPOINT_REWARD).div(
             checkPointBlockInterval
         );
@@ -587,6 +589,7 @@ contract StakeManager is IStakeManager {
         // update stateMerkleTree root for accounts balance on heimdall chain
         accountStateRoot = stateRoot;
         _finalizeCommit();
+        // slashAccHash
         return checkSignature(stakePower, _reward, voteHash, sigs);
     }
 

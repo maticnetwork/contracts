@@ -32,6 +32,7 @@ contract StakeManagerStorage is ProxyStorage, Lockable, RootChainable {
     uint256 public totalRewardsLiquidated;
     uint256 public auctionPeriod = dynasty / 4; // 1 week in epochs
     bytes32 public accountStateRoot;
+    bool public slashing;
 
     // on dynasty update certain amount of cooldown period where there is no validator auction
     uint256 replacementCoolDown;
