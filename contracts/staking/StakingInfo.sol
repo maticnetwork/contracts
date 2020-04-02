@@ -107,6 +107,11 @@ contract StakingInfo {
         address indexed user,
         uint256 indexed totalStaked
     );
+    event DelUnstaked(
+        uint256 indexed validatorId,
+        address indexed user,
+        uint256 amount
+    );
     event UpdateCommissionRate(
         uint256 indexed validatorId,
         uint256 indexed newCommissionRate,
@@ -369,6 +374,13 @@ contract StakingInfo {
         uint256 totalStaked
     ) public onlyValidatorContract(validatorId) {
         emit DelReStaked(validatorId, user, totalStaked);
+    }
+
+    function logDelUnstaked(uint256 validatorId, address user, uint256 amount)
+        public
+        onlyValidatorContract(validatorId)
+    {
+        emit DelUnstaked(validatorId, user, amount);
     }
 
     function logUpdateCommissionRate(
