@@ -1120,3 +1120,66 @@ contract('StakeManager:validator replacement', async function (accounts) {
     })
   })
 })
+contract('StakeManager: Delegation', async function (accounts) {
+  let stakeToken
+  let stakeManager
+  let wallets
+
+  describe('validator:delegation', async function () {
+    before(async function () {
+      wallets = generateFirstWallets(mnemonics, 10)
+      let contracts = await deployer.deployStakeManager(wallets)
+      stakeToken = contracts.stakeToken
+      stakeManager = contracts.stakeManager
+
+      await stakeManager.updateDynastyValue(8)
+      await stakeManager.updateCheckPointBlockInterval(1)
+
+      let amount = web3.utils.toWei('1000')
+      for (let i = 0; i < 2; i++) {
+        await stakeToken.mint(wallets[i].getAddressString(), amount)
+        await stakeToken.approve(stakeManager.address, amount, {
+          from: wallets[i].getAddressString()
+        })
+        await stakeManager.stake(amount, 0, true, wallets[i].getPublicKeyString(), {
+          from: wallets[i].getAddressString()
+        })
+      }
+      // cool down period
+      let auctionPeriod = await stakeManager.auctionPeriod()
+      let currentEpoch = await stakeManager.currentEpoch()
+      for (
+        let i = currentEpoch;
+        i <= auctionPeriod;
+        i++
+      ) {
+        // 2/3 majority vote
+        await checkPoint([wallets[0], wallets[1]], wallets[1], stakeManager, {
+          from: wallets[1].getAddressString()
+        })
+      }
+    })
+
+    it('should test reStake with rewards', async function () {
+      const user = wallets[0].getAddressString()
+      const amount = web3.utils.toWei('100')
+      await stakeToken.mint(user, amount)
+      await stakeToken.approve(stakeManager.address, amount, {
+        from: user
+      })
+
+      let validator = await stakeManager.validators(1)
+      let validatorContract = await ValidatorShare.at(validator.contractAddress)
+      let stakeReceipt = await stakeManager.restake(1, amount, true, {
+        from: user
+      })
+      const logs = logDecoder.decodeLogs(stakeReceipt.receipt.rawLogs)
+      logs.should.have.lengthOf(2)
+      logs[0].event.should.equal('StakeUpdate')
+      logs[1].event.should.equal('ReStaked')
+
+      assertBigNumberEquality(await validatorContract.validatorRewards(), 0)
+      assertBigNumberEquality(logs[1].args.amount, web3.utils.toWei('11100'))
+    })
+  })
+})
