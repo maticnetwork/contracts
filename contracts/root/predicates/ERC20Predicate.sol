@@ -341,10 +341,6 @@ contract ERC20Predicate is IErcPredicate {
             challengeTxData.signer == signer,
             "Challenge tx not signed by the party who signed the input UTXO to the exit"
         );
-        require(
-            _exit.txHash != challengeTxData.txHash,
-            "Cannot challenge with the exit tx"
-        );
 
         // receipt alone is not enough for a challenge. It is required to check that the challenge tx was included as well
         ReferenceTxData memory referenceTxData = processReferenceTx(
@@ -365,10 +361,19 @@ contract ERC20Predicate is IErcPredicate {
                 challengeTxData.childToken == childToken,
             "LogTransferReceipt, challengeTx token and challenged utxo token do not match"
         );
-        require(
-            referenceTxData.age > age,
-            "Age of challenge log in the receipt needs to be more recent than Utxo being challenged"
-        );
+        if (referenceTxData.age < age) {
+            // this block shows that the exitor used an older, already checkpointed tx as in-flight to start an exit;
+            // only in that case, we can allow the challenge age to be < exit age
+            require(
+                _exit.txHash == challengeTxData.txHash,
+                "Cannot challenge with the exit tx"
+            );
+        } else {
+            require(
+                _exit.txHash != challengeTxData.txHash,
+                "Cannot challenge with the exit tx"
+            );
+        }
         return true;
     }
 
@@ -490,8 +495,6 @@ contract ERC20Predicate is IErcPredicate {
             referenceTxData.closingBalance >= exitTxData.amountOrToken,
             "Exiting with more tokens than referenced"
         );
-        // @todo Check exitTxData.nonce > referenceTxData.nonce. The issue is that the referenceTx receipt doesn't contain the nonce
-
         // If exit tx has is an outgoing transfer from exitor's perspective, exit with closingBalance minus sent amount
         if (exitTxData.exitType == ExitType.OutgoingTransfer) {
             return referenceTxData.closingBalance.sub(exitTxData.amountOrToken);

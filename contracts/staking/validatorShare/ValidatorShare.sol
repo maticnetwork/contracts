@@ -11,9 +11,8 @@ contract ValidatorShare is IValidatorShare {
     constructor(
         uint256 _validatorId,
         address _stakingLogger,
-        address _stakeManager,
-        address _governance
-    ) public IValidatorShare(_validatorId, _stakingLogger, _stakeManager, _governance) {}
+        address _stakeManager
+    ) public IValidatorShare(_validatorId, _stakingLogger, _stakeManager) {}
 
     modifier onlyValidator() {
         require(stakeManager.ownerOf(validatorId) == msg.sender);
@@ -107,7 +106,6 @@ contract ValidatorShare is IValidatorShare {
         _burn(msg.sender, share);
         stakeManager.updateValidatorState(validatorId, -int256(_amount));
 
-        activeAmount = activeAmount.sub(_amount);
         if (_amount > amountStaked[msg.sender]) {
             uint256 _rewards = _amount.sub(amountStaked[msg.sender]);
             //withdrawTransfer
@@ -121,6 +119,8 @@ contract ValidatorShare is IValidatorShare {
             );
             _amount = _amount.sub(_rewards);
         }
+
+        activeAmount = activeAmount.sub(_amount);
 
         amountStaked[msg.sender] = 0; // TODO: add partial sell amountStaked[msg.sender].sub(_amount);
         delegators[msg.sender] = Delegator({
@@ -137,7 +137,6 @@ contract ValidatorShare is IValidatorShare {
     function withdrawRewards() public {
         uint256 liquidRewards = getLiquidRewards(msg.sender);
         uint256 sharesToBurn = liquidRewards.mul(100).div(exchangeRate());
-        // if (sharesToBurn > 0)
         _burn(msg.sender, sharesToBurn);
         rewards = rewards.sub(liquidRewards);
         require(
@@ -177,7 +176,11 @@ contract ValidatorShare is IValidatorShare {
         stakeManager.updateValidatorState(validatorId, int256(liquidRewards));
         rewards = rewards.sub(liquidRewards);
         stakingLogger.logStakeUpdate(validatorId);
-        // TODO: add restake event
+        stakingLogger.logDelReStaked(
+            validatorId,
+            msg.sender,
+            amountStaked[msg.sender]
+        );
     }
 
     function getLiquidRewards(address user)
@@ -208,6 +211,7 @@ contract ValidatorShare is IValidatorShare {
             ),
             "Insufficent rewards"
         );
+        stakingLogger.logDelUnstaked(validatorId, msg.sender, delegator.amount);
         delete delegators[msg.sender];
     }
 

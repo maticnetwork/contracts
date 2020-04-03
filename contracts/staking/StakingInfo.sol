@@ -20,6 +20,7 @@ contract IStakeManager {
     mapping(uint256 => Validator) public validators;
     bytes32 public accountStateRoot;
     uint256 public activeAmount; // delegation amount from validator contract
+    uint256 public validatorRewards;
 }
 
 contract StakingInfo {
@@ -28,7 +29,8 @@ contract StakingInfo {
         uint256 indexed validatorId,
         uint256 indexed activationEpoch,
         uint256 amount,
-        uint256 total
+        uint256 total,
+        bytes signerPubkey
     );
     event Unstaked(
         address indexed user,
@@ -47,7 +49,8 @@ contract StakingInfo {
     event SignerChange(
         uint256 indexed validatorId,
         address indexed oldSigner,
-        address indexed newSigner
+        address indexed newSigner,
+        bytes signerPubkey
     );
     event ReStaked(uint256 indexed validatorId, uint256 amount, uint256 total);
     event Jailed(uint256 indexed validatorId, uint256 indexed exitEpoch);
@@ -70,8 +73,16 @@ contract StakingInfo {
         uint256 indexed oldValidatorId,
         uint256 indexed amount
     );
-    event TopUpFee(uint256 indexed validatorId, uint256 indexed fee);
-    event ClaimFee(uint256 indexed validatorId, uint256 indexed fee);
+    event TopUpFee(
+        uint256 indexed validatorId,
+        address indexed signer,
+        uint256 indexed fee
+    );
+    event ClaimFee(
+        uint256 indexed validatorId,
+        address indexed signer,
+        uint256 indexed fee
+    );
     // Delegator events
     event ShareMinted(
         uint256 indexed validatorId,
@@ -90,6 +101,16 @@ contract StakingInfo {
         address indexed user,
         uint256 indexed rewards,
         uint256 tokens
+    );
+    event DelReStaked(
+        uint256 indexed validatorId,
+        address indexed user,
+        uint256 indexed totalStaked
+    );
+    event DelUnstaked(
+        uint256 indexed validatorId,
+        address indexed user,
+        uint256 amount
     );
     event UpdateCommissionRate(
         uint256 indexed validatorId,
@@ -130,12 +151,20 @@ contract StakingInfo {
 
     function logStaked(
         address signer,
+        bytes memory signerPubkey,
         uint256 validatorId,
         uint256 activationEpoch,
         uint256 amount,
         uint256 total
     ) public onlyStakeManager {
-        emit Staked(signer, validatorId, activationEpoch, amount, total);
+        emit Staked(
+            signer,
+            validatorId,
+            activationEpoch,
+            amount,
+            total,
+            signerPubkey
+        );
     }
 
     function logUnstaked(
@@ -159,9 +188,10 @@ contract StakingInfo {
     function logSignerChange(
         uint256 validatorId,
         address oldSigner,
-        address newSigner
+        address newSigner,
+        bytes memory signerPubkey
     ) public onlyStakeManager {
-        emit SignerChange(validatorId, oldSigner, newSigner);
+        emit SignerChange(validatorId, oldSigner, newSigner, signerPubkey);
     }
 
     function logReStaked(uint256 validatorId, uint256 amount, uint256 total)
@@ -230,18 +260,18 @@ contract StakingInfo {
         emit ConfirmAuction(newValidatorId, oldValidatorId, amount);
     }
 
-    function logTopUpFee(uint256 validatorId, uint256 fee)
+    function logTopUpFee(uint256 validatorId, address signer, uint256 fee)
         public
         onlyStakeManager
     {
-        emit TopUpFee(validatorId, fee);
+        emit TopUpFee(validatorId, signer, fee);
     }
 
-    function logClaimFee(uint256 validatorId, uint256 fee)
+    function logClaimFee(uint256 validatorId, address signer, uint256 fee)
         public
         onlyStakeManager
     {
-        emit ClaimFee(validatorId, fee);
+        emit ClaimFee(validatorId, signer, fee);
     }
 
     function getStakerDetails(uint256 validatorId)
@@ -249,6 +279,7 @@ contract StakingInfo {
         view
         returns (
             uint256 amount,
+            uint256 reward,
             uint256 activationEpoch,
             uint256 deactivationEpoch,
             address signer,
@@ -258,17 +289,19 @@ contract StakingInfo {
         IStakeManager stakeManager = IStakeManager(
             registry.getStakeManagerAddress()
         );
+        address _contract;
         IStakeManager.Status status;
         (
             amount,
-            ,
+            reward,
             activationEpoch,
             deactivationEpoch,
             ,
             signer,
-            ,
+            _contract,
             status
         ) = stakeManager.validators(validatorId);
+        reward += IStakeManager(_contract).validatorRewards();
         _status = uint256(status);
     }
 
@@ -333,6 +366,21 @@ contract StakingInfo {
         uint256 tokens
     ) public onlyValidatorContract(validatorId) {
         emit DelClaimRewards(validatorId, user, rewards, tokens);
+    }
+
+    function logDelReStaked(
+        uint256 validatorId,
+        address user,
+        uint256 totalStaked
+    ) public onlyValidatorContract(validatorId) {
+        emit DelReStaked(validatorId, user, totalStaked);
+    }
+
+    function logDelUnstaked(uint256 validatorId, address user, uint256 amount)
+        public
+        onlyValidatorContract(validatorId)
+    {
+        emit DelUnstaked(validatorId, user, amount);
     }
 
     function logUpdateCommissionRate(

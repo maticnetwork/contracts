@@ -17,6 +17,7 @@ import {StakingInfo} from "../StakingInfo.sol";
 import {StakingNFT} from "./StakingNFT.sol";
 import "../validatorShare/ValidatorShareFactory.sol";
 
+
 contract StakeManager is IStakeManager {
     using SafeMath for uint256;
     using ECVerify for bytes32;
@@ -50,38 +51,55 @@ contract StakeManager is IStakeManager {
 
     function _topUpForFee(uint256 validatorId, uint256 amount) private {
         totalHeimdallFee = totalHeimdallFee.add(amount);
-        logger.logTopUpFee(validatorId, amount);
+        logger.logTopUpFee(validatorId, validators[validatorId].signer, amount);
     }
 
     function _claimFee(uint256 validatorId, uint256 amount) private {
         totalHeimdallFee = totalHeimdallFee.sub(amount);
-        logger.logClaimFee(validatorId, amount);
+        logger.logClaimFee(validatorId, validators[validatorId].signer, amount);
     }
 
     function claimFee(
         uint256 validatorId,
         uint256 accumSlashedAmount,
-        uint256 amount,
+        uint256 accumFeeAmount,
         uint256 index,
         bytes memory proof
     ) public onlyStaker(validatorId) {
         //Ignoring other params becuase rewards distribution is on chain
         require(
-            keccak256(abi.encodePacked(validatorId, amount, accumSlashedAmount))
+            keccak256(
+                abi.encodePacked(
+                    validatorId,
+                    accumFeeAmount,
+                    accumSlashedAmount
+                )
+            )
                 .checkMembership(index, accountStateRoot, proof),
             "Wrong acc proof"
         );
-        require(token.transfer(msg.sender, amount));
-        _claimFee(validatorId, amount);
+        uint256 withdrawAmount = accumFeeAmount.sub(
+            validatorFeeExit[validatorId]
+        );
+
+        require(token.transfer(msg.sender, withdrawAmount));
+        _claimFee(validatorId, withdrawAmount);
+        validatorFeeExit[validatorId] = accumFeeAmount;
     }
 
     function stake(
         uint256 amount,
         uint256 heimdallFee,
-        address signer,
-        bool acceptDelegation
+        bool acceptDelegation,
+        bytes calldata signerPubkey
     ) external {
-        stakeFor(msg.sender, amount, heimdallFee, signer, acceptDelegation);
+        stakeFor(
+            msg.sender,
+            amount,
+            heimdallFee,
+            acceptDelegation,
+            signerPubkey
+        );
     }
 
     function totalStakedFor(address user) external view returns (uint256) {
@@ -102,23 +120,17 @@ contract StakeManager is IStakeManager {
             replacementCoolDown == 0 || replacementCoolDown <= currentEpoch,
             "Cool down period"
         );
-        require(
-            auctionPeriod >=
-                currentEpoch.sub(
-                    validatorAuction[validatorId].startEpoch.add(dynasty)
-                ),
-            "Invalid auction period"
-        );
-        // (dynasty--auctionPeriod)--(dynasty--auctionPeriod)--(dynasty--auctionPeriod)
-        // if it's auctionPeriod then will get residue from (CurrentPeriod of validator )%(dynasty--auctionPeriod)
+        // (auctionPeriod--dynasty)--(auctionPeriod--dynasty)--(auctionPeriod--dynasty)
+        // if it's auctionPeriod then will get residue smaller then auctionPeriod
+        // from (CurrentPeriod of validator )%(auctionPeriod--dynasty)
         // make sure that its `auctionPeriod` window
         // dynasty = 30, auctionPeriod = 7, activationEpoch = 1, currentEpoch = 39
-        // residue 1 = (39-1)% (30+7), if residue-dynasty  > 0 it's `auctionPeriod`
+        // residue 1 = (39-1)% (7+30), if residue <= auctionPeriod it's `auctionPeriod`
+
         require(
             (currentEpoch.sub(validators[validatorId].activationEpoch) %
-                dynasty.add(auctionPeriod)) >
-                dynasty,
-            "Not an auction time"
+                dynasty.add(auctionPeriod)) <= auctionPeriod,
+            "Invalid auction period"
         );
 
         uint256 perceivedStake = validators[validatorId].amount.mul(
@@ -154,14 +166,19 @@ contract StakeManager is IStakeManager {
     function confirmAuctionBid(
         uint256 validatorId,
         uint256 heimdallFee, /** for new validator */
-        address signer,
-        bool acceptDelegation
+        bool acceptDelegation,
+        bytes calldata signerPubkey
     ) external onlyWhenUnlocked {
         Auction storage auction = validatorAuction[validatorId];
         Validator storage validator = validators[validatorId];
-        // require(auction.user == msg.sender);// any one can call confrimAuction
+        /**
+            // any one can call confrimAuction
+            // require(auction.user == msg.sender);
+         */
+
         require(
-            auctionPeriod.add(auction.startEpoch.add(dynasty)) <= currentEpoch,
+            currentEpoch.sub(auction.startEpoch) % auctionPeriod.add(dynasty) >=
+                auctionPeriod,
             "Confirmation is not allowed before auctionPeriod"
         );
 
@@ -190,8 +207,13 @@ contract StakeManager is IStakeManager {
                 token.transferFrom(msg.sender, address(this), heimdallFee),
                 "Transfer fee failed"
             );
-            _topUpForFee(NFTCounter, heimdallFee);
-            _stakeFor(auction.user, auction.amount, signer, acceptDelegation);
+            _stakeFor(
+                auction.user,
+                auction.amount,
+                acceptDelegation,
+                signerPubkey
+            );
+            _topUpForFee(NFTCounter.sub(1), heimdallFee);
 
             logger.logConfirmAuction(
                 NFTCounter.sub(1),
@@ -217,6 +239,27 @@ contract StakeManager is IStakeManager {
         _unstake(validatorId, exitEpoch);
     }
 
+    // Housekeeping function. @todo remove later
+    function forceUnstake(uint256 validatorId) external onlyOwner {
+        _unstake(validatorId, currentEpoch);
+    }
+
+    // Housekeeping function. @todo remove later
+    // other than varibale you want to update give same values
+    function updateConstructor(
+        address _registry,
+        address _rootchain,
+        address _NFTContract,
+        address _stakingLogger,
+        address _ValidatorShareFactory
+    ) external onlyOwner {
+        registry = _registry;
+        rootChain = _rootchain;
+        NFTContract = StakingNFT(_NFTContract);
+        logger = StakingInfo(_stakingLogger);
+        factory = ValidatorShareFactory(_ValidatorShareFactory);
+    }
+
     function delegationTransfer(
         uint256 validatorId,
         uint256 amount,
@@ -239,12 +282,11 @@ contract StakeManager is IStakeManager {
         address user,
         uint256 amount,
         uint256 heimdallFee,
-        address signer,
-        bool acceptDelegation
+        bool acceptDelegation,
+        bytes memory signerPubkey
     ) public onlyWhenUnlocked {
         require(currentValidatorSetSize() < validatorThreshold);
         require(amount > minDeposit);
-        require(signerToValidator[signer] == 0);
 
         require(
             token.transferFrom(
@@ -254,12 +296,12 @@ contract StakeManager is IStakeManager {
             ),
             "Transfer stake failed"
         );
+        _stakeFor(user, amount, acceptDelegation, signerPubkey);
         // _topup
         _topUpForFee(
-            NFTCounter, /** validatorId*/
+            NFTCounter.sub(1), /** validatorId*/
             heimdallFee
         );
-        _stakeFor(user, amount, signer, acceptDelegation);
     }
 
     function perceivedStakeFactor(uint256 validatorId)
@@ -316,14 +358,21 @@ contract StakeManager is IStakeManager {
             );
         }
         if (stakeRewards) {
-            amount += validators[validatorId].reward;
+            amount = amount.add(validators[validatorId].reward);
+            address _contract = validators[validatorId].contractAddress;
+            if (_contract != address(0x0)) {
+                amount = amount.add(
+                    ValidatorShare(_contract).withdrawRewardsValidator()
+                );
+            }
             validators[validatorId].reward = 0;
         }
         totalStaked = totalStaked.add(amount);
-        validators[validatorId].amount += amount;
+        validators[validatorId].amount = validators[validatorId].amount.add(
+            amount
+        );
         validatorState[currentEpoch].amount = (validatorState[currentEpoch]
-            .amount +
-            int256(amount));
+            .amount + int256(amount));
 
         logger.logStakeUpdate(validatorId);
         logger.logReStaked(
@@ -406,7 +455,7 @@ contract StakeManager is IStakeManager {
     // in context of slashing
     function jail(uint256 validatorId, uint256 jailCheckpoints)
         public
-    /** only*/
+        onlySlashingMananger
     {
         // Todo: requires and more conditions
         uint256 amount = validators[validatorId].amount;
@@ -431,7 +480,7 @@ contract StakeManager is IStakeManager {
 
     // returns valid validator for current epoch
     function getCurrentValidatorSet() public view returns (uint256[] memory) {
-        uint256[] memory _validators = new uint256[](validatorThreshold);
+        uint256[] memory _validators = new uint256[](currentValidatorSetSize());
         uint256 validator;
         uint256 k = 0;
         for (uint256 i = 0; i < NFTContract.totalSupply(); i++) {
@@ -476,8 +525,7 @@ contract StakeManager is IStakeManager {
         require(validators[validatorId].contractAddress == msg.sender);
         // require(epoch >= currentEpoch, "Can't change past");
         validatorState[currentEpoch].amount = (validatorState[currentEpoch]
-            .amount +
-            amount);
+            .amount + amount);
     }
 
     function updateDynastyValue(uint256 newDynasty) public onlyOwner {
@@ -498,17 +546,19 @@ contract StakeManager is IStakeManager {
         minHeimdallFee = _minHeimdallFee;
     }
 
-    function updateSigner(uint256 validatorId, address _signer)
+    function updateSigner(uint256 validatorId, bytes memory signerPubkey)
         public
         onlyStaker(validatorId)
     {
+        address _signer = pubToAddress(signerPubkey);
         require(_signer != address(0x0) && signerToValidator[_signer] == 0);
 
         // update signer event
         logger.logSignerChange(
             validatorId,
             validators[validatorId].signer,
-            _signer
+            _signer,
+            signerPubkey
         );
 
         delete signerToValidator[validators[validatorId].signer];
@@ -621,11 +671,13 @@ contract StakeManager is IStakeManager {
     function _stakeFor(
         address user,
         uint256 amount,
-        address signer,
-        bool acceptDelegation
+        bool acceptDelegation,
+        bytes memory signerPubkey
     ) internal {
-        totalStaked = totalStaked.add(amount);
+        address signer = pubToAddress(signerPubkey);
+        require(signerToValidator[signer] == 0, "Invalid Signer key");
 
+        totalStaked = totalStaked.add(amount);
         validators[NFTCounter] = Validator({
             reward: 0,
             amount: amount,
@@ -634,11 +686,7 @@ contract StakeManager is IStakeManager {
             jailTime: 0,
             signer: signer,
             contractAddress: acceptDelegation
-                ? factory.create(
-                    NFTCounter,
-                    address(logger),
-                    address(governance)
-                )
+                ? factory.create(NFTCounter, address(logger))
                 : address(0x0),
             status: Status.Active
         });
@@ -649,7 +697,14 @@ contract StakeManager is IStakeManager {
         updateTimeLine(currentEpoch, int256(amount), 1);
         // no Auctions for 1 dynasty
         validatorAuction[NFTCounter].startEpoch = currentEpoch;
-        logger.logStaked(signer, NFTCounter, currentEpoch, amount, totalStaked);
+        logger.logStaked(
+            signer,
+            signerPubkey,
+            NFTCounter,
+            currentEpoch,
+            amount,
+            totalStaked
+        );
         NFTCounter = NFTCounter.add(1);
     }
 
@@ -679,11 +734,9 @@ contract StakeManager is IStakeManager {
         uint256 nextEpoch = currentEpoch.add(1);
         // update totalstake and validator count
         validatorState[nextEpoch].amount = (validatorState[currentEpoch]
-            .amount +
-            validatorState[nextEpoch].amount);
+            .amount + validatorState[nextEpoch].amount);
         validatorState[nextEpoch].stakerCount = (validatorState[currentEpoch]
-            .stakerCount +
-            validatorState[nextEpoch].stakerCount);
+            .stakerCount + validatorState[nextEpoch].stakerCount);
 
         // erase old data/history
         delete validatorState[currentEpoch];
@@ -697,4 +750,8 @@ contract StakeManager is IStakeManager {
         validatorState[epoch].stakerCount += stakerCount;
     }
 
+    function pubToAddress(bytes memory pub) public pure returns (address) {
+        require(pub.length == 64, "Invalid pubkey");
+        return address(uint160(uint256(keccak256(pub))));
+    }
 }

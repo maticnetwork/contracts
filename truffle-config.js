@@ -36,6 +36,16 @@ module.exports = {
       skipDryRun: true
       // confirmations: 5
     },
+    goerli: {
+      provider: function () {
+        return new HDWalletProvider(
+          MNEMONIC,
+          `https://goerli.infura.io/v3/${API_KEY}`
+        )
+      },
+      network_id: 5,
+      gas: 8000000
+    },
     kovan: {
       provider: function () {
         return new HDWalletProvider(

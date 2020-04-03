@@ -120,7 +120,13 @@ class Deployer {
   }
 
   async deployRootChain() {
-    this.rootChain = await contracts.RootChain.new(this.registry.address, 'heimdall-P5rXwg')
+    const rootChain = await contracts.RootChain.new()
+    const rootChainProxy = await contracts.RootChainProxy.new(
+      rootChain.address,
+      this.registry.address,
+      'heimdall-P5rXwg'
+    )
+    this.rootChain = await contracts.RootChain.at(rootChainProxy.address)
     return this.rootChain
   }
 
@@ -175,6 +181,13 @@ class Deployer {
       await this.depositManager.updateChildChainAndStateSender()
     }
     return this.depositManager
+  }
+
+  async deployDrainable() {
+    this.drainable = await contracts.Drainable.new()
+    await this.depositManagerProxy.updateImplementation(this.drainable.address)
+    this.drainable = await contracts.Drainable.at(this.depositManagerProxy.address)
+    return this.drainable
   }
 
   async deployWithdrawManager() {
