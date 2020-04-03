@@ -17,6 +17,7 @@ import {StakingInfo} from "../StakingInfo.sol";
 import {StakingNFT} from "./StakingNFT.sol";
 import "../validatorShare/ValidatorShareFactory.sol";
 
+
 contract StakeManager is IStakeManager {
     using SafeMath for uint256;
     using ECVerify for bytes32;
@@ -128,8 +129,7 @@ contract StakeManager is IStakeManager {
 
         require(
             (currentEpoch.sub(validators[validatorId].activationEpoch) %
-                dynasty.add(auctionPeriod)) <=
-                auctionPeriod,
+                dynasty.add(auctionPeriod)) <= auctionPeriod,
             "Invalid auction period"
         );
 
@@ -353,14 +353,21 @@ contract StakeManager is IStakeManager {
             );
         }
         if (stakeRewards) {
-            amount += validators[validatorId].reward;
+            amount = amount.add(validators[validatorId].reward);
+            address _contract = validators[validatorId].contractAddress;
+            if (_contract != address(0x0)) {
+                amount = amount.add(
+                    ValidatorShare(_contract).withdrawRewardsValidator()
+                );
+            }
             validators[validatorId].reward = 0;
         }
         totalStaked = totalStaked.add(amount);
-        validators[validatorId].amount += amount;
+        validators[validatorId].amount = validators[validatorId].amount.add(
+            amount
+        );
         validatorState[currentEpoch].amount = (validatorState[currentEpoch]
-            .amount +
-            int256(amount));
+            .amount + int256(amount));
 
         logger.logStakeUpdate(validatorId);
         logger.logReStaked(
@@ -513,8 +520,7 @@ contract StakeManager is IStakeManager {
         require(validators[validatorId].contractAddress == msg.sender);
         // require(epoch >= currentEpoch, "Can't change past");
         validatorState[currentEpoch].amount = (validatorState[currentEpoch]
-            .amount +
-            amount);
+            .amount + amount);
     }
 
     function updateDynastyValue(uint256 newDynasty) public onlyOwner {
@@ -723,11 +729,9 @@ contract StakeManager is IStakeManager {
         uint256 nextEpoch = currentEpoch.add(1);
         // update totalstake and validator count
         validatorState[nextEpoch].amount = (validatorState[currentEpoch]
-            .amount +
-            validatorState[nextEpoch].amount);
+            .amount + validatorState[nextEpoch].amount);
         validatorState[nextEpoch].stakerCount = (validatorState[currentEpoch]
-            .stakerCount +
-            validatorState[nextEpoch].stakerCount);
+            .stakerCount + validatorState[nextEpoch].stakerCount);
 
         // erase old data/history
         delete validatorState[currentEpoch];
