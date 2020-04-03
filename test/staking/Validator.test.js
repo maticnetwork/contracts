@@ -20,6 +20,7 @@ contract('ValidatorShare', async function (accounts) {
 
   beforeEach(async function () {
     let user = wallets[1].getAddressString()
+    const userPubkey = wallets[1].getPublicKeyString()
     let amount = web3.utils.toWei('250')
     const contracts = await deployer.freshDeploy({ stakeManager: true })
     registry = contracts.registry
@@ -44,7 +45,7 @@ contract('ValidatorShare', async function (accounts) {
       from: user
     })
 
-    await stakeManager.stake(amount, 0, user, true, {
+    await stakeManager.stake(amount, 0, true, userPubkey, {
       from: user
     })
     let validator = await stakeManager.validators(1)
@@ -149,10 +150,43 @@ contract('ValidatorShare', async function (accounts) {
     logs[1].event.should.equal('Transfer')
     logs[1].args.from.toLowerCase().should.equal(stakeManager.address.toLowerCase())
     logs[1].args.to.toLowerCase().should.equal(user.toLowerCase())
-    // console.log(logs[2].args.rewards, await validatorContract.rewards())
     // logs[2].args.rewards.should.be.bignumber.equal(await validatorContract.rewards())
     // logs[1].args.value.should.be.bignumber.equal()
     // assertBigNumberEquality(logs[1].args.tokens, web3.utils.toWei('100'))
+  })
+
+  it('Sell after big rewards', async function () {
+    const user = wallets[2].getAddressString()
+    await stakeToken.mint(
+      user,
+      web3.utils.toWei('100')
+    )
+    await stakeToken.approve(stakeManager.address, web3.utils.toWei('100'), {
+      from: user
+    })
+
+    await validatorContract.buyVoucher(web3.utils.toWei('100'), {
+      from: user
+    })
+    const shares = await validatorContract.balanceOf(user)
+
+    for (let i = 0; i < 4; i++) {
+      await checkPoint([wallets[1]], wallets[1], stakeManager, { totalStake: web3.utils.toWei('350') }, {
+        from: wallets[1].getAddressString()
+      })
+    }
+
+    await stakeToken.mint(
+      stakeManager.address,
+      web3.utils.toWei('30000')
+    )
+    let result = await validatorContract.sellVoucher({
+      from: user
+    })
+    let logs = logDecoder.decodeLogs(result.receipt.rawLogs)
+    logs[2].event.should.equal('ShareBurned')
+    // logs[2].args.tokens.should.be.bignumber.equal(await validatorContract.rewards())
+    assertBigNumberEquality(logs[2].args.tokens, shares)
   })
 
   it('Restake', async function () {

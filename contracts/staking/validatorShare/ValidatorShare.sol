@@ -106,7 +106,6 @@ contract ValidatorShare is IValidatorShare {
         _burn(msg.sender, share);
         stakeManager.updateValidatorState(validatorId, -int256(_amount));
 
-        activeAmount = activeAmount.sub(_amount);
         if (_amount > amountStaked[msg.sender]) {
             uint256 _rewards = _amount.sub(amountStaked[msg.sender]);
             //withdrawTransfer
@@ -120,6 +119,8 @@ contract ValidatorShare is IValidatorShare {
             );
             _amount = _amount.sub(_rewards);
         }
+
+        activeAmount = activeAmount.sub(_amount);
 
         amountStaked[msg.sender] = 0; // TODO: add partial sell amountStaked[msg.sender].sub(_amount);
         delegators[msg.sender] = Delegator({
@@ -210,6 +211,7 @@ contract ValidatorShare is IValidatorShare {
             ),
             "Insufficent rewards"
         );
+        stakingLogger.logDelUnstaked(validatorId, msg.sender, delegator.amount);
         delete delegators[msg.sender];
     }
 
