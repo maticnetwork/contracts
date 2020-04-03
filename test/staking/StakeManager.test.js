@@ -1032,7 +1032,7 @@ contract('StakeManager:validator replacement', async function (accounts) {
         await stakeToken.approve(stakeManager.address, amount, {
           from: wallets[i].getAddressString()
         })
-        await stakeManager.stake(amount, 0, wallets[i].getAddressString(), false, {
+        await stakeManager.stake(amount, 0, false, wallets[i].getPublicKeyString(), {
           from: wallets[i].getAddressString()
         })
       }
@@ -1052,7 +1052,7 @@ contract('StakeManager:validator replacement', async function (accounts) {
       }
     })
 
-    it.only('should call confirmAuction at diffrent times', async function () {
+    it('should call confirmAuction at diffrent times', async function () {
       let amount = web3.utils.toWei('1200')
       // 2/3 majority vote
       await checkPoint([wallets[0], wallets[1]], wallets[1], stakeManager, {
@@ -1084,8 +1084,8 @@ contract('StakeManager:validator replacement', async function (accounts) {
         await stakeManager.confirmAuctionBid(
           1,
           0,
-          wallets[4].getAddressString(),
           false,
+          wallets[4].getPublicKeyString(),
           {
             from: wallets[4].getAddressString()
           }
@@ -1106,10 +1106,10 @@ contract('StakeManager:validator replacement', async function (accounts) {
       const result = await stakeManager.confirmAuctionBid(
         1,
         0,
-        wallets[4].getAddressString(),
         false,
+        wallets[3].getPublicKeyString(),
         {
-          from: wallets[4].getAddressString()
+          from: wallets[3].getAddressString()
         }
       )
 
