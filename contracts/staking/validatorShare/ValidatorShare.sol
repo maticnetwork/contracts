@@ -4,10 +4,8 @@ import {Registry} from "../../common/Registry.sol";
 
 import {IValidatorShare} from "./IValidatorShare.sol";
 
-// TODO: refactor each function to reusable smaller internal functions
+
 contract ValidatorShare is IValidatorShare {
-    // TODO: totalStake and active ammount issue
-    // TODO: transfer all the funds and rewards to/from stakeManager
     constructor(
         uint256 _validatorId,
         address _stakingLogger,
@@ -57,7 +55,11 @@ contract ValidatorShare is IValidatorShare {
         external
         onlyValidator
     {
-        //todo: constrains on updates, coolDown period
+        uint256 currentEpoch = stakeManager.currentEpoch();
+        require(
+            lastUpdate.add(commissionCooldown) <= currentEpoch,
+            "Commission rate update cool down period"
+        );
         require(
             commissionRate <= 100,
             "Commission rate should be in range of 0-100"
@@ -68,6 +70,7 @@ contract ValidatorShare is IValidatorShare {
             commissionRate
         );
         commissionRate = newCommissionRate;
+        lastUpdate = currentEpoch;
     }
 
     function withdrawRewardsValidator()
@@ -122,7 +125,7 @@ contract ValidatorShare is IValidatorShare {
 
         activeAmount = activeAmount.sub(_amount);
 
-        amountStaked[msg.sender] = 0; // TODO: add partial sell amountStaked[msg.sender].sub(_amount);
+        amountStaked[msg.sender] = 0;
         delegators[msg.sender] = Delegator({
             amount: _amount,
             withdrawEpoch: stakeManager.currentEpoch().add(
@@ -218,11 +221,11 @@ contract ValidatorShare is IValidatorShare {
     function slash(uint256 slashRate, uint256 startEpoch, uint256 endEpoch)
         public
     {}
+
     // function _slashActive() internal {}
     // function _slashInActive() internal {}
 
     function _transfer(address from, address to, uint256 value) internal {
         revert("Disabled");
     }
-
 }
