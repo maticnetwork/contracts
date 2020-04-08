@@ -628,7 +628,7 @@ contract('ERC20Predicate', async function(accounts) {
       const { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
 
       let exitTx = await predicateTestUtils.getRawInflightTx(
-        // cannot use a dummy MaticChildERC20 (deployed using deployer.deployMaticToken) because LogFeeTransfer emits token as 0x1010
+        // cannot use a dummy MRC20 (deployed using deployer.deployMaticToken) because LogFeeTransfer emits token as 0x1010
         // Hence we need to make use of corresponding mapped root token for adding exits to queue
         deployer.globalMatic.childToken.withdraw.bind(null, halfAmount),
         user /* from */, web3Child, null /* gas */, { value: halfAmount }
@@ -652,7 +652,7 @@ contract('ERC20Predicate', async function(accounts) {
       const { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
 
       let exitTx = await predicateTestUtils.getRawInflightTx(
-        // cannot use a dummy MaticChildERC20 (deployed using deployer.deployMaticToken) because LogFeeTransfer emits token as 0x1010
+        // cannot use a dummy MRC20 (deployed using deployer.deployMaticToken) because LogFeeTransfer emits token as 0x1010
         // Hence we need to make use of corresponding mapped root token for adding exits to queue
         deployer.globalMatic.childToken.transfer.bind(null, other, halfAmount),
         user /* from */, web3Child, null /* gas */, { value: halfAmount }
