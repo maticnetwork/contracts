@@ -21,7 +21,7 @@ contract StakeManagerStorage is ProxyStorage, Lockable, RootChainable {
     uint256 public currentEpoch = 1;
     // genesis/governance variables
     uint256 public dynasty = 2**13; // unit: epoch 50 days
-    uint256 public CHECKPOINT_REWARD = 10000 * (10**18); // @todo update according to Chain
+    uint256 public CHECKPOINT_REWARD = 10000 * (10**18); // update via governance
     uint256 public minDeposit = (10**18); // in ERC20 token
     uint256 public minHeimdallFee = (10**18); // in ERC20 token
     uint256 public checkPointBlockInterval = 255;

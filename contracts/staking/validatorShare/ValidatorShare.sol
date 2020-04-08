@@ -23,8 +23,6 @@ contract ValidatorShare is IValidatorShare {
         returns (uint256)
     {
         /**
-    TODO: check for no revert on 0 commission and reduce logic for calculations
-    TODO: better to add validator as one of share holder and
      restaking is simply buying more shares of pool
      but those needs to be nonswapable/transferrable(to prevent https://en.wikipedia.org/wiki/Tragedy_of_the_commons)
 

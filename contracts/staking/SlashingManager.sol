@@ -7,6 +7,7 @@ import {StakeManager} from "./stakeManager/StakeManager.sol";
 import {ECVerify} from "../common/lib/ECVerify.sol";
 import {Registry} from "../common/Registry.sol";
 
+
 contract SlashingManager is Ownable {
     using ECVerify for bytes32;
     using RLPReader for bytes;
@@ -31,7 +32,6 @@ contract SlashingManager is Ownable {
         bytes memory sig1,
         bytes memory sig2
     ) public {
-        // Todo: fix signer chanage for same validator
         // Height/checkpoint for slashing
         RLPReader.RLPItem[] memory dataList1 = vote1.toRlpItem().toList();
         RLPReader.RLPItem[] memory dataList2 = vote2.toRlpItem().toList();
@@ -73,5 +73,4 @@ contract SlashingManager is Ownable {
     }
 
     function checkpointHalt(uint256 start) public {}
-
 }
