@@ -6,9 +6,8 @@
 | ------------ | :-------------------------------------: | ---------: |
 | ropsten      | https://ropsten.infura.io/v3/${API_KEY} |          3 |
 | mainnet      | https://mainnet.infura.io/v3/${API_KEY} |          1 |
-| bor_testnet2 |     https://testnet2.matic.network      |       8995 |
-| development  |          http://localhost:8545          |         \* |
-| matic_dev    |          http://localhost:8546          |         \* |
+| development  |          http://localhost:9545          |         \* |
+| bor          |          http://localhost:8545          |         \* |
 
 Feel free to add your own. Update the chain url in `networks.matic` key in [truffle-config.js](../truffle-config.js).
 
