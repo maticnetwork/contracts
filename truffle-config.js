@@ -14,14 +14,14 @@ module.exports = {
   networks: {
     development: {
       host: 'localhost',
-      port: 8545,
+      port: 9545,
       network_id: '*', // match any network
       skipDryRun: true,
       gas: 7000000
     },
-    matic_dev: {
+    bor: {
       host: 'localhost',
-      port: 8546,
+      port: 8545,
       network_id: '*' // match any network
     },
     ropsten: {
@@ -65,20 +65,11 @@ module.exports = {
       },
       network_id: 1,
       gas: 4000000
-    },
-    bor_testnet2: {
-      provider: function () {
-        return new HDWalletProvider(MNEMONIC, `https://testnet2.matic.network`)
-      },
-      network_id: 8995,
-      gas: 8000000,
-      confirmations: 2
     }
   },
   compilers: {
     solc: {
       version: '0.5.11',
-      // docker: true,
       settings: {
         optimizer: {
           enabled: true,
