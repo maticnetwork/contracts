@@ -6,28 +6,50 @@ import {Ownable} from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import {StakeManager} from "./stakeManager/StakeManager.sol";
 import {ECVerify} from "../common/lib/ECVerify.sol";
 import {Registry} from "../common/Registry.sol";
+import "ISlashingManager.sol";
 
-contract SlashingManager is Ownable {
+
+contract SlashingManager is ISlashingManager, Ownable {
     using ECVerify for bytes32;
     using RLPReader for bytes;
     using RLPReader for RLPReader.RLPItem;
-
-    uint256 public checkpointHaltEpoch = 0;
-    uint256 public haltInterval = 50; // epoch
-    uint256 public slashingRate = 5; // slashing %
-    uint256 public jailCheckpoints = 5; // checkpoints
-    bytes32 public chain = keccak256("heimdall-P5rXwg");
-    uint256 public roundType = 2;
-    uint8 public voteType = 2;
-    bytes32 public slashAccHash;
-    Registry public registry;
 
     constructor(address _registry) public {
         registry = Registry(_registry);
     }
 
-    function startSlashing(bytes32 _slashAccHash) public {
+    modifier onlyStakeManager() {
+        require(registry.getStakeManagerAddress() == msg.sender);
+        _;
+    }
+
+    function initiateSlashing(uint256 _amountToSlash, bytes32 _slashAccHash)
+        public
+        onlyStakeManager
+    {
         slashAccHash = _slashAccHash;
+        amountToSlash = _amountToSlash;
+    }
+
+    function confirmSlashing(
+        bytes memory _validators,
+        bytes memory _amounts,
+    ) public {
+        require(slashAccHash == keccak256(_validators,_amounts), "Incorrect slasAccHash data");
+        RLPReader.RLPItem[] memory _validators = _validators.toRlpItem().toList();
+        RLPReader.RLPItem[] memory _amounts = _amounts.toRlpItem().toList();
+
+        require(
+            _validators.length == _validators.length,
+            "Incorrect Data"
+        );
+        // StakeManager stakeManager = StakeManager(
+        //     registry.getStakeManagerAddress()
+        // );
+        // uint256 validatorId = stakeManager.signerToValidator(signer);
+        // stakeManager.slash(validators,amounts);
+        // transfer x% to msg.sender
+        // figure out where to put the rest of amount(burn or add to rewards pool)
     }
 
     function doubleSign(
@@ -78,5 +100,4 @@ contract SlashingManager is Ownable {
     }
 
     function checkpointHalt(uint256 start) public {}
-
 }

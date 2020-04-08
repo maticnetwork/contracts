@@ -16,6 +16,8 @@ import {ValidatorShare} from "../validatorShare/ValidatorShare.sol";
 import {StakingInfo} from "../StakingInfo.sol";
 import {StakingNFT} from "./StakingNFT.sol";
 import "../validatorShare/ValidatorShareFactory.sol";
+import {ISlashingManager} from "../slashing/ISlashingManager.sol";
+
 
 contract StakeManager is IStakeManager {
     using SafeMath for uint256;
@@ -122,8 +124,7 @@ contract StakeManager is IStakeManager {
 
         require(
             (currentEpoch.sub(validators[validatorId].activationEpoch) %
-                dynasty.add(auctionPeriod)) <=
-                auctionPeriod,
+                dynasty.add(auctionPeriod)) <= auctionPeriod,
             "Invalid auction period"
         );
 
@@ -349,8 +350,7 @@ contract StakeManager is IStakeManager {
         totalStaked = totalStaked.add(amount);
         validators[validatorId].amount += amount;
         validatorState[currentEpoch].amount = (validatorState[currentEpoch]
-            .amount +
-            int256(amount));
+            .amount + int256(amount));
 
         logger.logStakeUpdate(validatorId);
         logger.logReStaked(
@@ -503,8 +503,7 @@ contract StakeManager is IStakeManager {
         require(validators[validatorId].contractAddress == msg.sender);
         // require(epoch >= currentEpoch, "Can't change past");
         validatorState[currentEpoch].amount = (validatorState[currentEpoch]
-            .amount +
-            amount);
+            .amount + amount);
     }
 
     function updateDynastyValue(uint256 newDynasty) public onlyOwner {
@@ -570,11 +569,16 @@ contract StakeManager is IStakeManager {
 
     function checkSignatures(
         uint256 blockInterval,
+        uint256 slashedAmount,
+        bytes32 slashAccHash,
         bytes32 voteHash,
         bytes32 stateRoot,
-        bytes32 slashAccHash,
         bytes memory sigs
     ) public onlyRootChain returns (uint256) {
+        ISlashingManager slashingManager = ISlashingManager(
+            Registry(registry).getSlashingManagerAddress()
+        );
+        require(slashingManager.amountToSlash() == 0, "Incomplete slashing");
         // checkpoint rewards are based on BlockInterval multiplied on `CHECKPOINT_REWARD`
         // for bigger checkpoints reward is capped at `CHECKPOINT_REWARD`
         // if interval is 50% of checkPointBlockInterval then reward R is half of `CHECKPOINT_REWARD`
@@ -589,7 +593,15 @@ contract StakeManager is IStakeManager {
         // update stateMerkleTree root for accounts balance on heimdall chain
         accountStateRoot = stateRoot;
         _finalizeCommit();
-        // slashAccHash
+        // slash
+        if (slashedAmount > 0) {
+            require(
+                slashedAmount <=
+                    currentValidatorSetTotalStake().mul(1).div(3).add(1),
+                "Slashed amount must be less then 1/3"
+            );
+            slashingManager.initiateSlashing(slashedAmount, slashAccHash);
+        }
         return checkSignature(stakePower, _reward, voteHash, sigs);
     }
 
@@ -705,11 +717,9 @@ contract StakeManager is IStakeManager {
         uint256 nextEpoch = currentEpoch.add(1);
         // update totalstake and validator count
         validatorState[nextEpoch].amount = (validatorState[currentEpoch]
-            .amount +
-            validatorState[nextEpoch].amount);
+            .amount + validatorState[nextEpoch].amount);
         validatorState[nextEpoch].stakerCount = (validatorState[currentEpoch]
-            .stakerCount +
-            validatorState[nextEpoch].stakerCount);
+            .stakerCount + validatorState[nextEpoch].stakerCount);
 
         // erase old data/history
         delete validatorState[currentEpoch];
@@ -722,5 +732,4 @@ contract StakeManager is IStakeManager {
         validatorState[epoch].amount += amount;
         validatorState[epoch].stakerCount += stakerCount;
     }
-
 }

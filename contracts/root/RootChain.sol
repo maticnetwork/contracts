@@ -9,6 +9,7 @@ import {IStakeManager} from "../staking/stakeManager/IStakeManager.sol";
 import {IRootChain} from "./IRootChain.sol";
 import {Registry} from "../common/Registry.sol";
 
+
 contract RootChain is RootChainStorage, IRootChain {
     using SafeMath for uint256;
     using RLPReader for bytes;
@@ -51,9 +52,18 @@ contract RootChain is RootChainStorage, IRootChain {
         IStakeManager stakeManager = IStakeManager(
             registry.getStakeManagerAddress()
         );
+            function checkSignatures(
+        uint256 blockInterval,
+        uint256 slashedAmount,
+        bytes32 slashingRoot,
+        bytes32 voteHash,
+        bytes32 stateRoot,
+        bytes memory sigs
         // blockInterval, voteHash, stateRoot, sigs
         uint256 _reward = stakeManager.checkSignatures(
             headerBlock.end.sub(headerBlock.start).add(1),
+            extraData[6].toUint(), //slashed amount
+            bytes32(extraData[5].toUint()), // slashing root(keccak256 of val:amount[])
             keccak256(vote),
             bytes32(extraData[4].toUint()),
             sigs

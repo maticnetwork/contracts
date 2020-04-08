@@ -10,6 +10,7 @@ import {StakingInfo} from "../StakingInfo.sol";
 import {StakingNFT} from "./StakingNFT.sol";
 import "../validatorShare/ValidatorShareFactory.sol";
 
+
 contract StakeManagerStorage is ProxyStorage, Lockable, RootChainable {
     IERC20 public token;
     address public registry;
@@ -32,7 +33,6 @@ contract StakeManagerStorage is ProxyStorage, Lockable, RootChainable {
     uint256 public totalRewardsLiquidated;
     uint256 public auctionPeriod = dynasty / 4; // 1 week in epochs
     bytes32 public accountStateRoot;
-    bool public slashing;
 
     // on dynasty update certain amount of cooldown period where there is no validator auction
     uint256 replacementCoolDown;
@@ -70,5 +70,4 @@ contract StakeManagerStorage is ProxyStorage, Lockable, RootChainable {
     mapping(uint256 => Auction) public validatorAuction;
 
     uint256 public totalHeimdallFee;
-
 }
