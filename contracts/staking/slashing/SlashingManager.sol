@@ -36,18 +36,12 @@ contract SlashingManager is ISlashingManager, Ownable {
         bytes memory _amounts,
     ) public {
         require(slashAccHash == keccak256(_validators,_amounts), "Incorrect slasAccHash data");
-        RLPReader.RLPItem[] memory _validators = _validators.toRlpItem().toList();
-        RLPReader.RLPItem[] memory _amounts = _amounts.toRlpItem().toList();
 
-        require(
-            _validators.length == _validators.length,
-            "Incorrect Data"
+        StakeManager stakeManager = StakeManager(
+            registry.getStakeManagerAddress()
         );
-        // StakeManager stakeManager = StakeManager(
-        //     registry.getStakeManagerAddress()
-        // );
-        // uint256 validatorId = stakeManager.signerToValidator(signer);
-        // stakeManager.slash(validators,amounts);
+        
+        uint256 totalAmount=stakeManager.slash(_validators, _amounts);
         // transfer x% to msg.sender
         // figure out where to put the rest of amount(burn or add to rewards pool)
     }

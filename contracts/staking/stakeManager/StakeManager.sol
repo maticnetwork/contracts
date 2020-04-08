@@ -378,11 +378,19 @@ contract StakeManager is IStakeManager {
     }
 
     // if not jailed then in state of warning, else will be unstaking after x epoch
-    function slash(
-        uint256 validatorId,
-        uint256 slashingRate,
-        uint256 jailCheckpoints
-    ) public onlySlashingMananger {
+    function slash(bytes memory _validators, bytes memory _amounts)
+        public
+        onlySlashingMananger
+    {
+        RLPReader.RLPItem[] memory validators = _validators
+            .toRlpItem()
+            .toList();
+        RLPReader.RLPItem[] memory amounts = _amounts.toRlpItem().toList();
+                require(
+            validators.length == amounts.length,
+            "Incorrect Data"
+        );
+        for (uint256 i = 0; i < sigs.length; i++) {
         // if contract call contract.slash
         // if (validators[validatorId].contractAddress != address(0x0)) {
         //   // ValidatorShare(validators[validatorId].contractAddress).slash(slashingRate, currentEpoch, currentEpoch);
