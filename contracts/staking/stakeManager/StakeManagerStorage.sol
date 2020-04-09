@@ -34,7 +34,7 @@ contract StakeManagerStorage is ProxyStorage, Lockable, RootChainable {
     uint256 public auctionPeriod = dynasty / 4; // 1 week in epochs
     bytes32 public accountStateRoot;
 
-    // on dynasty update for a certain amount of cooldown period where there is no validator auction
+    // Stop validator auction for some time when updating dynasty value
     uint256 replacementCoolDown;
 
     struct Auction {
