@@ -59,8 +59,8 @@ contract('ValidatorShare', async function (accounts) {
       from: user
     })
     let logs = logDecoder.decodeLogs(result.receipt.rawLogs)
-    logs[0].event.should.equal('UnstakeInit')
-    assertBigNumberEquality(logs[0].args.validatorId, '1')
+    logs[1].event.should.equal('UnstakeInit')
+    assertBigNumberEquality(logs[1].args.validatorId, '1')
   })
 
   it('Buy shares and test exchange rate', async function () {
