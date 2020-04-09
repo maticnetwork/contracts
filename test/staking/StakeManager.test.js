@@ -791,6 +791,7 @@ contract('StakeManager:validator replacement', async function (accounts) {
           from: wallets[i].getAddressString()
         })
       }
+      await stakeToken.mint(stakeManager.address, web3.utils.toWei('1000000'))// rewards amount
       // cool down period
       let auctionPeriod = await stakeManager.auctionPeriod()
       let currentEpoch = await stakeManager.currentEpoch()
@@ -1046,6 +1047,7 @@ contract('StakeManager:validator replacement', async function (accounts) {
           from: wallets[1].getAddressString()
         })
       }
+      await stakeToken.mint(stakeManager.address, web3.utils.toWei('1000000'))// rewards amount
     })
 
     it('should call confirmAuction at diffrent times', async function () {

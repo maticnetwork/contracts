@@ -325,13 +325,7 @@ contract StakeManager is IStakeManager {
         delete signerToValidator[validators[validatorId].signer];
         // delete validators[validatorId];
         validators[validatorId].status = Status.Unstaked;
-        require(
-            token.transfer(
-                msg.sender,
-                amount.add(validators[validatorId].reward)
-            ),
-            "Transfer stake failed"
-        );
+        require(token.transfer(msg.sender, amount), "Transfer stake failed");
         logger.logUnstaked(msg.sender, validatorId, amount, totalStaked);
     }
 
@@ -620,14 +614,16 @@ contract StakeManager is IStakeManager {
 
         // unbond all delegators in future
         int256 delegationAmount = 0;
+        uint256 rewards = validators[validatorId].reward;
         if (validators[validatorId].contractAddress != address(0x0)) {
-            delegationAmount = int256(
-                ValidatorShare(validators[validatorId].contractAddress)
-                    .activeAmount()
+            ValidatorShare validatorShare = ValidatorShare(
+                validators[validatorId].contractAddress
             );
-            ValidatorShare(validators[validatorId].contractAddress).lock();
+            delegationAmount = int256(validatorShare.activeAmount());
+            rewards = rewards.add(validatorShare.withdrawRewardsValidator());
+            validatorShare.lock();
         }
-
+        require(token.transfer(msg.sender, rewards), "Rewards transfer failed");
         //  update future
         updateTimeLine(exitEpoch, -(int256(amount) + delegationAmount), -1);
 
