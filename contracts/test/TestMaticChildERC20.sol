@@ -1,7 +1,7 @@
 pragma solidity ^0.5.11;
 
-import {MaticChildERC20} from "../child/MaticChildERC20.sol";
+import {MRC20} from "../child/MRC20.sol";
 
-contract TestMaticChildERC20 is MaticChildERC20 {
+contract TestMRC20 is MRC20 {
     function() external payable {}
 }
