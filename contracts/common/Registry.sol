@@ -3,6 +3,7 @@ pragma solidity ^0.5.2;
 import {Governable} from "./governance/Governable.sol";
 import {IWithdrawManager} from "../root/withdrawManager/IWithdrawManager.sol";
 
+
 contract Registry is Governable {
     // @todo hardcode constants
     bytes32 private constant WETH_TOKEN = keccak256("wethToken");
@@ -14,7 +15,6 @@ contract Registry is Governable {
     bytes32 private constant WITHDRAW_MANAGER = keccak256("withdrawManager");
     bytes32 private constant CHILD_CHAIN = keccak256("childChain");
     bytes32 private constant STATE_SENDER = keccak256("stateSender");
-    bytes32 private constant SLASHING_MANAGER = keccak256("slashingManager");
 
     address public erc20Predicate;
     address public erc721Predicate;
@@ -56,11 +56,11 @@ contract Registry is Governable {
     }
 
     /**
-    * @dev Map root token to child token
-    * @param _rootToken Token address on the root chain
-    * @param _childToken Token address on the child chain
-    * @param _isERC721 Is the token being mapped ERC721
-    */
+     * @dev Map root token to child token
+     * @param _rootToken Token address on the root chain
+     * @param _childToken Token address on the child chain
+     * @param _isERC721 Is the token being mapped ERC721
+     */
     function mapToken(address _rootToken, address _childToken, bool _isERC721)
         external
         onlyGovernance
@@ -124,10 +124,6 @@ contract Registry is Governable {
 
     function getStakeManagerAddress() public view returns (address) {
         return contractMap[STAKE_MANAGER];
-    }
-
-    function getSlashingManagerAddress() public view returns (address) {
-        return contractMap[SLASHING_MANAGER];
     }
 
     function getWithdrawManagerAddress() public view returns (address) {
