@@ -466,7 +466,6 @@ contract('StakeManager', async function (accounts) {
         from: wallets[3].getAddressString()
       })
       let balance = await stakeToken.balanceOf(wallets[2].getAddressString())
-      // TODO: consider rewards as well for assert equal
       assertBigNumbergt(balance, web3.utils.toWei('805'))
       balance = await stakeToken.balanceOf(wallets[3].getAddressString())
       assertBigNumbergt(balance, web3.utils.toWei('850'))
@@ -964,7 +963,6 @@ contract('StakeManager:validator replacement', async function (accounts) {
       }
     })
 
-    // TODO : get events from stakingInfo and add more test for auction
     it('should confrim auction and secure the place', async function () {
       const result = await stakeManager.confirmAuctionBid(
         1,
@@ -975,14 +973,13 @@ contract('StakeManager:validator replacement', async function (accounts) {
           from: wallets[4].getAddressString()
         }
       )
-      const logs = result.receipt.logs
-      // console.log(logs)
-      // logs[2].event.should.equal('Staked')
-      // logs[3].event.should.equal('ConfirmAuction')
+      const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
+      logs[2].event.should.equal('Staked')
+      logs[4].event.should.equal('ConfirmAuction')
 
-      // assertBigNumberEquality(logs[3].args.amount, web3.utils.toWei('1250'))
-      // assert.ok(!(await stakeManager.isValidator(logs[3].args.oldValidatorId)))
-      // assert.ok(await stakeManager.isValidator(logs[3].args.newValidatorId))
+      assertBigNumberEquality(logs[4].args.amount, web3.utils.toWei('1250'))
+      assert.ok(!(await stakeManager.isValidator(logs[4].args.oldValidatorId)))
+      assert.ok(await stakeManager.isValidator(logs[4].args.newValidatorId))
     })
 
     it('should confrim auction and secure the place for validator itself', async function () {
@@ -1014,7 +1011,6 @@ contract('StakeManager:validator replacement', async function (accounts) {
       // let balanceAfter = await stakeToken.balanceOf(validator.signer)
       // assertBigNumberEquality(balanceAfter.sub(balanceBefore), stake)
     })
-    // TODO: add more tests with delegation enabled
   })
   describe('validator replacement: skip a dynasty', async function () {
     before(async function () {
