@@ -17,7 +17,7 @@ const rlp = ethUtils.rlp
 
 // constants
 export const web3Child = new web3.constructor(
-  new web3.providers.HttpProvider('http://localhost:8546')
+  new web3.providers.HttpProvider('http://localhost:8545')
 )
 
 export const ZeroAddress = '0x0000000000000000000000000000000000000000'

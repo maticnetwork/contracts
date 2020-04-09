@@ -1,7 +1,5 @@
 pragma solidity ^0.5.2;
 
-import {ERC20} from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
-
 import "./ChildToken.sol";
 
 contract BaseERC20 is ChildToken {
