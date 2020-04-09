@@ -28,11 +28,6 @@ contract StakeManager is IStakeManager {
         _;
     }
 
-    modifier onlySlashingMananger() {
-        require(Registry(registry).getSlashingManagerAddress() == msg.sender);
-        _;
-    }
-
     constructor() public Lockable(address(0x0)) {}
 
     // TopUp heimdall fee
@@ -397,13 +392,6 @@ contract StakeManager is IStakeManager {
         require(token.transfer(msg.sender, amount), "Insufficent rewards");
         logger.logClaimRewards(validatorId, amount, totalRewardsLiquidated);
     }
-
-    // if not jailed then in state of warning, else will be unstaking after x epoch
-    function slash(
-        uint256 validatorId,
-        uint256 slashingRate,
-        uint256 jailCheckpoints
-    ) public onlySlashingMananger {}
 
     // returns valid validator for current epoch
     function getCurrentValidatorSet() public view returns (uint256[] memory) {
