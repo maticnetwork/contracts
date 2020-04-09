@@ -128,9 +128,13 @@ contract StakeManager is IStakeManager {
             "Invalid auction period"
         );
 
-        uint256 perceivedStake = validators[validatorId].amount.mul(
-            perceivedStakeFactor(validatorId)
-        );
+        uint256 perceivedStake = validators[validatorId].amount;
+        address _contract = validators[validatorId].contractAddress;
+        if (_contract != address(0x0)) {
+            perceivedStake = perceivedStake.add(
+                ValidatorShare(_contract).activeAmount()
+            );
+        }
         perceivedStake = Math.max(
             perceivedStake,
             validatorAuction[validatorId].amount
@@ -297,15 +301,6 @@ contract StakeManager is IStakeManager {
             NFTCounter.sub(1), /** validatorId*/
             heimdallFee
         );
-    }
-
-    /// @notice currently replace with just minimum amount
-    function perceivedStakeFactor(uint256 validatorId)
-        public
-        view
-        returns (uint256)
-    {
-        return 1;
     }
 
     function unstakeClaim(uint256 validatorId) public onlyStaker(validatorId) {

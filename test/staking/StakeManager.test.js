@@ -1179,5 +1179,57 @@ contract('StakeManager: Delegation', async function (accounts) {
       assertBigNumberEquality(await validatorContract.validatorRewards(), 0)
       assertBigNumberEquality(logs[1].args.amount, web3.utils.toWei('11100'))
     })
+
+    it('should test auction with delegation', async function () {
+      let amount = web3.utils.toWei('1250')
+      const delegator = wallets[3].getAddressString()
+      const val = wallets[4].getAddressString()
+      await stakeToken.mint(stakeManager.address, web3.utils.toWei('1000000'))// rewards amount
+      await stakeToken.mint(val, amount)
+      await stakeToken.approve(stakeManager.address, amount, {
+        from: val
+      })
+      await stakeManager.stake(amount, 0, true, wallets[4].getPublicKeyString(), {
+        from: val
+      })
+      let validator = await stakeManager.validators(3)
+      let validatorContract = await ValidatorShare.at(validator.contractAddress)
+      await stakeToken.mint(delegator, amount)
+      await stakeToken.approve(stakeManager.address, amount, {
+        from: delegator
+      })
+      await validatorContract.buyVoucher(amount, { from: delegator })
+      amount = web3.utils.toWei('2555')
+      const auctionVal = wallets[5].getAddressString()
+      await stakeToken.mint(auctionVal, amount)
+      await stakeToken.approve(stakeManager.address, amount, {
+        from: auctionVal
+      })
+
+      await stakeManager.startAuction(3, amount, {
+        from: auctionVal
+      })
+      let auctionPeriod = await stakeManager.auctionPeriod()
+      for (
+        let i = 0;
+        i <= auctionPeriod;
+        i++
+      ) {
+        // 2/3 majority vote
+        await checkPoint([wallets[0], wallets[1], wallets[4]], wallets[1], stakeManager, {
+          from: wallets[1].getAddressString()
+        })
+      }
+      await stakeManager.confirmAuctionBid(
+        3,
+        0,
+        false,
+        wallets[5].getPublicKeyString(),
+        {
+          from: auctionVal
+        }
+      )
+      assert.isOk(true, 'Should complete above txs')
+    })
   })
 })
