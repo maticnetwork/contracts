@@ -127,7 +127,6 @@ contract StakeManager is IStakeManager {
                 dynasty.add(auctionPeriod)) <= auctionPeriod,
             "Invalid auction period"
         );
-
         uint256 perceivedStake = validators[validatorId].amount;
         address _contract = validators[validatorId].contractAddress;
         if (_contract != address(0x0)) {
@@ -174,7 +173,6 @@ contract StakeManager is IStakeManager {
             // any one can call confrimAuction
             // require(auction.user == msg.sender);
          */
-
         require(
             currentEpoch.sub(auction.startEpoch) % auctionPeriod.add(dynasty) >=
                 auctionPeriod,
@@ -332,6 +330,10 @@ contract StakeManager is IStakeManager {
         require(
             validators[validatorId].deactivationEpoch < currentEpoch,
             "No use of restaking"
+        );
+        require(
+            validatorAuction[validatorId].amount == 0,
+            "Wait for auction completion"
         );
 
         if (amount > 0) {
