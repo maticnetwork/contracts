@@ -26,10 +26,14 @@ contract IStakeManager {
     bytes32 public accountStateRoot;
     uint256 public activeAmount; // delegation amount from validator contract
     uint256 public validatorRewards;
-    // signer to Validator mapping
-    mapping(address => uint256) public signerToValidator;
 
     function currentValidatorSetTotalStake() public view returns (uint256);
+
+    // signer to Validator mapping
+    function signerToValidator(address validatorAddress)
+        public
+        view
+        returns (uint256);
 
     function isValidator(uint256 validatorId) public view returns (bool);
 }
