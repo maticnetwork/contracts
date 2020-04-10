@@ -263,11 +263,15 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
 
             exitNft.burn(exitId);
 
-            // limit the gas amount that predicate.onFinalizeExit() can use, to be able to make gas estimations for bulk process exits
             address exitor = currentExit.owner;
-            IPredicate(currentExit.predicate).onFinalizeExit(
-                encodeExitForProcessExit(exitId)
-            );
+
+            // limit the gas amount that predicate.onFinalizeExit() can use, to be able to make gas estimations for bulk process exits
+            
+            // If finalizing a particular exit is reverting, it will block any following exits from being processed.
+            // Hence, call predicate.onFinalizeExit in a revertless manner.
+            // (bool success, bytes memory result) =
+            currentExit.predicate.call(abi.encodeWithSignature("onFinalizeExit(bytes)", encodeExitForProcessExit(exitId)));
+
             emit Withdraw(
                 exitId,
                 exitor,
