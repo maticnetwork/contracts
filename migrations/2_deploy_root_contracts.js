@@ -57,6 +57,7 @@ const libDeps = [
   {
     lib: ECVerify,
     contracts: [
+      StakingInfo,
       StakeManager,
       StakeManagerTest,
       MarketplacePredicate,
@@ -115,7 +116,8 @@ const libDeps = [
       MarketplacePredicate,
       MarketplacePredicateTest,
       TransferWithSigPredicate,
-      StakeManager
+      StakeManager,
+      StakingInfo
     ]
   },
   {

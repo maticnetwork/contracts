@@ -68,7 +68,8 @@ const libDeps = [
     contracts: [
       StakeManager,
       MarketplacePredicate,
-      TransferWithSigPredicate
+      TransferWithSigPredicate,
+      StakingInfo
     ]
   },
   {
@@ -109,7 +110,8 @@ const libDeps = [
       RootChain,
       ERC20Predicate,
       StakeManager,
-      StateSender
+      StateSender,
+      StakingInfo
     ]
   },
   {
