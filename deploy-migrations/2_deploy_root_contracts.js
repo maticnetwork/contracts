@@ -31,7 +31,6 @@ const StakeManagerProxy = artifacts.require('StakeManagerProxy')
 const StakingInfo = artifacts.require('StakingInfo')
 const StakingNFT = artifacts.require('StakingNFT')
 const ValidatorShareFactory = artifacts.require('ValidatorShareFactory')
-const SlashingManager = artifacts.require('SlashingManager')
 const ERC20Predicate = artifacts.require('ERC20Predicate')
 const ERC721Predicate = artifacts.require('ERC721Predicate')
 const MintableERC721Predicate = artifacts.require('MintableERC721Predicate')
@@ -70,7 +69,6 @@ const libDeps = [
       StakeManager,
       MarketplacePredicate,
       TransferWithSigPredicate,
-      SlashingManager,
       StakingInfo
     ]
   },
@@ -99,7 +97,6 @@ const libDeps = [
     lib: RLPReader,
     contracts: [
       RootChain,
-      SlashingManager,
       ERC20Predicate,
       ERC721Predicate,
       MintableERC721Predicate,
@@ -153,7 +150,6 @@ module.exports = async function (deployer) {
 
     await deployer.deploy(StakeManager)
     await deployer.deploy(StakeManagerProxy, StakeManager.address, Registry.address, RootChainProxy.address, TestToken.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address, GovernanceProxy.address)
-    await deployer.deploy(SlashingManager, Registry.address)
     await deployer.deploy(StateSender)
 
     await deployer.deploy(DepositManager)
@@ -215,7 +211,6 @@ module.exports = async function (deployer) {
         StakeManager: StakeManager.address,
         StakeManagerProxy: StakeManagerProxy.address,
         StakingInfo: StakingInfo.address,
-        SlashingManager: SlashingManager.address,
         ExitNFT: ExitNFT.address,
         StateSender: StateSender.address,
         predicates: {

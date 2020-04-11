@@ -21,9 +21,6 @@ class Deployer {
     await this.deployRootChain()
     this.stakingNFT = await contracts.StakingNFT.new('Matic Validator', 'MV')
 
-    this.SlashingManager = await contracts.SlashingManager.new(
-      this.registry.address
-    )
     if (options.stakeManager) {
       let stakeManager = await contracts.StakeManager.new()
       let proxy = await contracts.StakeManagerProxy.new(
@@ -55,16 +52,10 @@ class Deployer {
     const depositManager = await this.deployDepositManager()
     const withdrawManager = await this.deployWithdrawManager()
 
-    await Promise.all([
-      this.updateContractMap(
-        ethUtils.keccak256('stakeManager'),
-        this.stakeManager.address
-      ),
-      this.updateContractMap(
-        ethUtils.keccak256('slashingManager'),
-        this.SlashingManager.address
-      )
-    ])
+    await this.updateContractMap(
+      ethUtils.keccak256('stakeManager'),
+      this.stakeManager.address
+    )
 
     let _contracts = {
       registry: this.registry,
@@ -73,7 +64,6 @@ class Deployer {
       withdrawManager,
       exitNFT: this.exitNFT,
       stakeManager: this.stakeManager,
-      SlashingManager: this.SlashingManager,
       governance: this.governance
     }
 
