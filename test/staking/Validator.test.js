@@ -37,6 +37,7 @@ contract('ValidatorShare', async function (accounts) {
     await stakeManager.updateValidatorThreshold(2)
     await stakeManager.changeRootChain(wallets[1].getAddressString())
     await stakeManager.setToken(stakeToken.address)
+    await stakeToken.mint(stakeManager.address, web3.utils.toWei('1000000'))// rewards amount
     await stakeToken.mint(
       user,
       amount
@@ -58,8 +59,8 @@ contract('ValidatorShare', async function (accounts) {
       from: user
     })
     let logs = logDecoder.decodeLogs(result.receipt.rawLogs)
-    logs[0].event.should.equal('UnstakeInit')
-    assertBigNumberEquality(logs[0].args.validatorId, '1')
+    logs[1].event.should.equal('UnstakeInit')
+    assertBigNumberEquality(logs[1].args.validatorId, '1')
   })
 
   it('Buy shares and test exchange rate', async function () {
@@ -74,10 +75,10 @@ contract('ValidatorShare', async function (accounts) {
     let result = await validatorContract.buyVoucher(web3.utils.toWei('100'), {
       from: user
     })
+
     let logs = logDecoder.decodeLogs(result.receipt.rawLogs)
     assertBigNumberEquality(logs[3].args.amount, logs[3].args.tokens)
     assertBigNumberEquality(await validatorContract.exchangeRate(), web3.utils.toBN('100'))
-
     await checkPoint([wallets[1]], wallets[1], stakeManager, { totalStake: web3.utils.toWei('350') }, {
       from: wallets[1].getAddressString()
     })

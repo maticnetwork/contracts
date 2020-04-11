@@ -8,7 +8,6 @@ export const StakeManagerProxy = artifacts.require('StakeManagerProxy')
 
 export const StakingInfo = artifacts.require('StakingInfo')
 export const StakingNFT = artifacts.require('StakingNFT')
-export const SlashingManager = artifacts.require('SlashingManager')
 export const ValidatorShare = artifacts.require('ValidatorShare')
 export const StakeManagerTest = artifacts.require('StakeManagerTest')
 export const ValidatorShareFactory = artifacts.require('ValidatorShareFactory')

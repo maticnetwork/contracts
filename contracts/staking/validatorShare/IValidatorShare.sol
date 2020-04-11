@@ -11,6 +11,7 @@ import {Lockable} from "../../common/mixin/Lockable.sol";
 import {StakingInfo} from "../StakingInfo.sol";
 import {IStakeManager} from "../stakeManager/IStakeManager.sol";
 
+
 contract IValidatorShare is ERC20, Lockable, Ownable {
     using SafeMath for uint256;
     StakingInfo public stakingLogger;
@@ -18,6 +19,10 @@ contract IValidatorShare is ERC20, Lockable, Ownable {
     uint256 public validatorId;
     uint256 public validatorRewards;
     uint256 public commissionRate;
+    //# of checkpoints after which commission rate can be updated
+    uint256 public commissionCooldown = 1;
+    //last checkpoint where validator updated commission rate
+    uint256 public lastUpdate;
     uint256 public validatorDelegatorRatio = 10;
 
     uint256 public totalStake;
@@ -47,13 +52,21 @@ contract IValidatorShare is ERC20, Lockable, Ownable {
     function udpateRewards(uint256 _reward, uint256 _totalStake)
         external
         returns (uint256);
+
     function updateCommissionRate(uint256 newCommissionRate) external;
+
     function withdrawRewardsValidator() external returns (uint256);
+
     function exchangeRate() public view returns (uint256);
+
     function buyVoucher(uint256 _amount) public;
+
     function sellVoucher() public;
+
     function withdrawRewards() public;
+
     function unStakeClaimTokens() public;
+
     function slash(uint256 slashRate, uint256 startEpoch, uint256 endEpoch)
         public;
     // function _slashActive() internal {}
