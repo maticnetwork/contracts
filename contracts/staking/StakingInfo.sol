@@ -1,6 +1,11 @@
 pragma solidity ^0.5.2;
 
 import {Registry} from "../common/Registry.sol";
+import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+
+import {BytesLib} from "../common/lib/BytesLib.sol";
+import {ECVerify} from "../common/lib/ECVerify.sol";
+
 
 // dummy interface to avoid cyclic dependency
 contract IStakeManager {
@@ -20,15 +25,30 @@ contract IStakeManager {
     mapping(uint256 => Validator) public validators;
     bytes32 public accountStateRoot;
     uint256 public activeAmount; // delegation amount from validator contract
+    uint256 public validatorRewards;
+
+    function currentValidatorSetTotalStake() public view returns (uint256);
+
+    // signer to Validator mapping
+    function signerToValidator(address validatorAddress)
+        public
+        view
+        returns (uint256);
+
+    function isValidator(uint256 validatorId) public view returns (bool);
 }
 
+
 contract StakingInfo {
+    using SafeMath for uint256;
+    using ECVerify for bytes32;
     event Staked(
         address indexed signer,
         uint256 indexed validatorId,
         uint256 indexed activationEpoch,
         uint256 amount,
-        uint256 total
+        uint256 total,
+        bytes signerPubkey
     );
     event Unstaked(
         address indexed user,
@@ -47,7 +67,8 @@ contract StakingInfo {
     event SignerChange(
         uint256 indexed validatorId,
         address indexed oldSigner,
-        address indexed newSigner
+        address indexed newSigner,
+        bytes signerPubkey
     );
     event ReStaked(uint256 indexed validatorId, uint256 amount, uint256 total);
     event Jailed(uint256 indexed validatorId, uint256 indexed exitEpoch);
@@ -99,6 +120,16 @@ contract StakingInfo {
         uint256 indexed rewards,
         uint256 tokens
     );
+    event DelReStaked(
+        uint256 indexed validatorId,
+        address indexed user,
+        uint256 indexed totalStaked
+    );
+    event DelUnstaked(
+        uint256 indexed validatorId,
+        address indexed user,
+        uint256 amount
+    );
     event UpdateCommissionRate(
         uint256 indexed validatorId,
         uint256 indexed newCommissionRate,
@@ -138,12 +169,20 @@ contract StakingInfo {
 
     function logStaked(
         address signer,
+        bytes memory signerPubkey,
         uint256 validatorId,
         uint256 activationEpoch,
         uint256 amount,
         uint256 total
     ) public onlyStakeManager {
-        emit Staked(signer, validatorId, activationEpoch, amount, total);
+        emit Staked(
+            signer,
+            validatorId,
+            activationEpoch,
+            amount,
+            total,
+            signerPubkey
+        );
     }
 
     function logUnstaked(
@@ -167,9 +206,10 @@ contract StakingInfo {
     function logSignerChange(
         uint256 validatorId,
         address oldSigner,
-        address newSigner
+        address newSigner,
+        bytes memory signerPubkey
     ) public onlyStakeManager {
-        emit SignerChange(validatorId, oldSigner, newSigner);
+        emit SignerChange(validatorId, oldSigner, newSigner, signerPubkey);
     }
 
     function logReStaked(uint256 validatorId, uint256 amount, uint256 total)
@@ -257,6 +297,7 @@ contract StakingInfo {
         view
         returns (
             uint256 amount,
+            uint256 reward,
             uint256 activationEpoch,
             uint256 deactivationEpoch,
             address signer,
@@ -266,17 +307,19 @@ contract StakingInfo {
         IStakeManager stakeManager = IStakeManager(
             registry.getStakeManagerAddress()
         );
+        address _contract;
         IStakeManager.Status status;
         (
             amount,
-            ,
+            reward,
             activationEpoch,
             deactivationEpoch,
             ,
             signer,
-            ,
+            _contract,
             status
         ) = stakeManager.validators(validatorId);
+        reward += IStakeManager(_contract).validatorRewards();
         _status = uint256(status);
     }
 
@@ -343,6 +386,21 @@ contract StakingInfo {
         emit DelClaimRewards(validatorId, user, rewards, tokens);
     }
 
+    function logDelReStaked(
+        uint256 validatorId,
+        address user,
+        uint256 totalStaked
+    ) public onlyValidatorContract(validatorId) {
+        emit DelReStaked(validatorId, user, totalStaked);
+    }
+
+    function logDelUnstaked(uint256 validatorId, address user, uint256 amount)
+        public
+        onlyValidatorContract(validatorId)
+    {
+        emit DelUnstaked(validatorId, user, amount);
+    }
+
     function logUpdateCommissionRate(
         uint256 validatorId,
         uint256 newCommissionRate,
@@ -355,4 +413,47 @@ contract StakingInfo {
         );
     }
 
+    function verifyConsensus(bytes32 voteHash, bytes memory sigs)
+        public
+        view
+        returns (uint256, uint256)
+    {
+        IStakeManager stakeManager = IStakeManager(
+            registry.getStakeManagerAddress()
+        );
+        // total voting power
+        uint256 _stakePower;
+        address lastAdd; // cannot have address(0x0) as an owner
+        for (uint64 i = 0; i < sigs.length; i += 65) {
+            bytes memory sigElement = BytesLib.slice(sigs, i, 65);
+            address signer = voteHash.ecrecovery(sigElement);
+
+            uint256 validatorId = stakeManager.signerToValidator(signer);
+            // check if signer is staker and not proposer
+            if (signer == lastAdd) {
+                break;
+            } else if (
+                stakeManager.isValidator(validatorId) && signer > lastAdd
+            ) {
+                lastAdd = signer;
+                uint256 amount;
+                address contractAddress;
+                (amount, , , , , , contractAddress, ) = stakeManager.validators(
+                    validatorId
+                );
+                // add delegation power
+                if (contractAddress != address(0x0)) {
+                    amount = amount.add(
+                        IStakeManager(contractAddress).activeAmount() // dummy interface
+                    );
+                }
+                _stakePower = _stakePower.add(amount);
+            }
+        }
+
+        return (
+            _stakePower,
+            stakeManager.currentValidatorSetTotalStake().mul(2).div(3).add(1)
+        );
+    }
 }

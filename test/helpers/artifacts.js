@@ -8,7 +8,6 @@ export const StakeManagerProxy = artifacts.require('StakeManagerProxy')
 
 export const StakingInfo = artifacts.require('StakingInfo')
 export const StakingNFT = artifacts.require('StakingNFT')
-export const SlashingManager = artifacts.require('SlashingManager')
 export const ValidatorShare = artifacts.require('ValidatorShare')
 export const StakeManagerTest = artifacts.require('StakeManagerTest')
 export const ValidatorShareFactory = artifacts.require('ValidatorShareFactory')
@@ -46,6 +45,6 @@ export const childContracts = {
   ChildERC20: artifacts.require('ChildERC20'),
   ChildERC721: artifacts.require('ChildERC721'),
   ChildERC721Mintable: artifacts.require('ChildERC721Mintable'),
-  MaticChildERC20: artifacts.require('MaticChildERC20'),
-  TestMaticChildERC20: artifacts.require('TestMaticChildERC20')
+  MRC20: artifacts.require('MRC20'),
+  TestMRC20: artifacts.require('TestMRC20')
 }

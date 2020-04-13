@@ -27,7 +27,6 @@ const StakingInfo = artifacts.require('StakingInfo')
 const StakingNFT = artifacts.require('StakingNFT')
 const TestToken = artifacts.require('TestToken')
 const ValidatorShareFactory = artifacts.require('ValidatorShareFactory')
-const SlashingManager = artifacts.require('SlashingManager')
 const ERC20Predicate = artifacts.require('ERC20Predicate')
 const ERC721Predicate = artifacts.require('ERC721Predicate')
 const MintableERC721Predicate = artifacts.require('MintableERC721Predicate')
@@ -58,9 +57,9 @@ const libDeps = [
   {
     lib: ECVerify,
     contracts: [
+      StakingInfo,
       StakeManager,
       StakeManagerTest,
-      SlashingManager,
       MarketplacePredicate,
       MarketplacePredicateTest,
       TransferWithSigPredicate
@@ -99,7 +98,6 @@ const libDeps = [
   {
     lib: RLPReader,
     contracts: [
-      SlashingManager,
       RootChain,
       ERC20Predicate,
       ERC721Predicate,
@@ -118,7 +116,8 @@ const libDeps = [
       MarketplacePredicate,
       MarketplacePredicateTest,
       TransferWithSigPredicate,
-      StakeManager
+      StakeManager,
+      StakingInfo
     ]
   },
   {
@@ -152,7 +151,6 @@ module.exports = async function (deployer, network) {
     await deployer.deploy(StakingNFT, 'Matic Validator', 'MV')
     await Promise.all([
       deployer.deploy(RootChain, Registry.address, 'heimdall-P5rXwg'),
-      deployer.deploy(SlashingManager, Registry.address),
 
       deployer.deploy(WithdrawManager),
       deployer.deploy(DepositManager)

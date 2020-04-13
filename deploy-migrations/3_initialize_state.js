@@ -10,7 +10,6 @@ const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
 const StakeManager = artifacts.require('StakeManager')
 const StakingNFT = artifacts.require('StakingNFT')
 const StakeManagerProxy = artifacts.require('StakeManagerProxy')
-const SlashingManager = artifacts.require('SlashingManager')
 const ERC20Predicate = artifacts.require('ERC20Predicate')
 const ERC721Predicate = artifacts.require('ERC721Predicate')
 const MarketplacePredicate = artifacts.require('MarketplacePredicate')
@@ -30,7 +29,6 @@ module.exports = async function (deployer, network) {
         StateSender.deployed(),
         WithdrawManagerProxy.deployed(),
         StakeManagerProxy.deployed(),
-        SlashingManager.deployed(),
         StakingNFT.deployed(),
         MaticWeth.deployed(),
         ERC20Predicate.deployed(),
@@ -46,7 +44,6 @@ module.exports = async function (deployer, network) {
         stateSender,
         withdrawManagerProxy,
         stakeManagerProxy,
-        slashingManager,
         stakingNFT,
         maticWeth,
         ERC20Predicate,
@@ -74,13 +71,6 @@ module.exports = async function (deployer, network) {
           registry.contract.methods.updateContractMap(
             ethUtils.bufferToHex(ethUtils.keccak256('stakeManager')),
             StakeManagerProxy.address
-          ).encodeABI()
-        )
-        await governance.update(
-          registry.address,
-          registry.contract.methods.updateContractMap(
-            ethUtils.bufferToHex(ethUtils.keccak256('slashingManager')),
-            slashingManager.address
           ).encodeABI()
         )
         await governance.update(

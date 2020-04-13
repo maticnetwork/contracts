@@ -14,6 +14,7 @@ async function stake() {
   console.log(process.argv)
   const stakeFor = process.argv[6]
   const amount = web3.utils.toWei(process.argv[7])
+  const pubkey = process.argv[8]
   console.log(`Staking ${amount} for ${stakeFor}...`)
 
   const accounts = await web3.eth.getAccounts()
@@ -23,7 +24,7 @@ async function stake() {
   console.log('Sender accounts has a balanceOf', (await rootToken.balanceOf(accounts[0])).toString())
   await rootToken.approve(stakeManager.address, amount)
   console.log('approved, staking now...')
-  const stake = await stakeManager.stakeFor(stakeFor, amount, 0, stakeFor, false)
+  const stake = await stakeManager.stakeFor(stakeFor, amount, 0, false, pubkey)
   console.log('staked; txHash is', stake.tx)
 }
 
@@ -69,13 +70,13 @@ async function deposit() {
   console.log('deposited', r.tx)
 }
 
-module.exports = async function(callback) {
+module.exports = async function (callback) {
   try {
     await stake()
     // await topUpForFee()
     // await updateValidatorThreshold(20)
     // await deposit()
-  } catch(e) {
+  } catch (e) {
     // truffle exec <script> doesn't throw errors, so handling it in a verbose manner here
     console.log(e)
   }
