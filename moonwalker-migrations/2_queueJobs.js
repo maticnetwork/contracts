@@ -18,7 +18,8 @@ async function deploy() {
     tx('Governance', 'update',
       [
         'Registry',
-        { value:
+        {
+          value:
             registry.contract.methods.updateContractMap(
               ethUtils.bufferToHex(ethUtils.keccak256('depositManager')),
               getAddressForContract('DepositManagerProxy')
@@ -33,7 +34,8 @@ async function deploy() {
     tx('Governance', 'update',
       [
         'Registry',
-        { value:
+        {
+          value:
             registry.contract.methods.updateContractMap(
               ethUtils.bufferToHex(ethUtils.keccak256('withdrawManager')),
               getAddressForContract('WithdrawManagerProxy')
@@ -48,7 +50,8 @@ async function deploy() {
     tx('Governance', 'update',
       [
         'Registry',
-        { value:
+        {
+          value:
             registry.contract.methods.updateContractMap(
               ethUtils.bufferToHex(ethUtils.keccak256('stakeManager')),
               getAddressForContract('StakeManagerProxy')
@@ -63,22 +66,8 @@ async function deploy() {
     tx('Governance', 'update',
       [
         'Registry',
-        { value:
-            registry.contract.methods.updateContractMap(
-              ethUtils.bufferToHex(ethUtils.keccak256('slashingManager')),
-              getAddressForContract('SlashingManager')
-            ).encodeABI()
-        },
-      ],
-      'GovernanceProxy'
-    )
-  )
-
-  await deployer.deploy(
-    tx('Governance', 'update',
-      [
-        'Registry',
-        { value:
+        {
+          value:
             registry.contract.methods.updateContractMap(
               ethUtils.bufferToHex(ethUtils.keccak256('stateSender')),
               getAddressForContract('StateSender')
@@ -93,7 +82,8 @@ async function deploy() {
     tx('Governance', 'update',
       [
         'Registry',
-        { value:
+        {
+          value:
             registry.contract.methods.updateContractMap(
               ethUtils.bufferToHex(ethUtils.keccak256('wethToken')),
               getAddressForContract('MaticWETH')
@@ -125,7 +115,7 @@ function getStatus() {
   if (fs.existsSync(statusFile)) {
     try {
       status = JSON.parse(fs.readFileSync(statusFile).toString())
-    } catch(e) {
+    } catch (e) {
       console.log(e)
     }
   }
@@ -142,15 +132,15 @@ function getAddressForContract(contract) {
 
 function wait(ms) {
   return new Promise((resolve, reject) => {
-    setTimeout(function() {resolve()}, ms);
+    setTimeout(function () { resolve() }, ms);
   })
 }
 
-module.exports = async function(callback) {
+module.exports = async function (callback) {
   try {
     await deploy()
     await wait(3000) // otherwise the tasks are not queued
-  } catch(e) {
+  } catch (e) {
     // truffle exec <script> doesn't throw errors, so handling it in a verbose manner here
     console.log(e)
   }

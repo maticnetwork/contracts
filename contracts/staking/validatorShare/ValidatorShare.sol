@@ -4,10 +4,8 @@ import {Registry} from "../../common/Registry.sol";
 
 import {IValidatorShare} from "./IValidatorShare.sol";
 
-// TODO: refactor each function to reusable smaller internal functions
+
 contract ValidatorShare is IValidatorShare {
-    // TODO: totalStake and active ammount issue
-    // TODO: transfer all the funds and rewards to/from stakeManager
     constructor(
         uint256 _validatorId,
         address _stakingLogger,
@@ -25,8 +23,6 @@ contract ValidatorShare is IValidatorShare {
         returns (uint256)
     {
         /**
-    TODO: check for no revert on 0 commission and reduce logic for calculations
-    TODO: better to add validator as one of share holder and
      restaking is simply buying more shares of pool
      but those needs to be nonswapable/transferrable(to prevent https://en.wikipedia.org/wiki/Tragedy_of_the_commons)
 
@@ -44,9 +40,11 @@ contract ValidatorShare is IValidatorShare {
 
         uint256 _valRewards = valStake.mul(_rewards).div(stakePower);
         // add validator commission from delegation rewards
-        _valRewards = _valRewards.add(
-            _rewards.sub(_valRewards).mul(commissionRate).div(100)
-        );
+        if (commissionRate > 0) {
+            _valRewards = _valRewards.add(
+                _rewards.sub(_valRewards).mul(commissionRate).div(100)
+            );
+        }
         _rewards = _rewards.sub(_valRewards);
         validatorRewards = validatorRewards.add(_valRewards);
         rewards = rewards.add(_rewards);
@@ -57,7 +55,11 @@ contract ValidatorShare is IValidatorShare {
         external
         onlyValidator
     {
-        //todo: constrains on updates, coolDown period
+        uint256 currentEpoch = stakeManager.currentEpoch();
+        require(
+            lastUpdate.add(commissionCooldown) <= currentEpoch,
+            "Commission rate update cool down period"
+        );
         require(
             commissionRate <= 100,
             "Commission rate should be in range of 0-100"
@@ -68,6 +70,7 @@ contract ValidatorShare is IValidatorShare {
             commissionRate
         );
         commissionRate = newCommissionRate;
+        lastUpdate = currentEpoch;
     }
 
     function withdrawRewardsValidator()
@@ -106,7 +109,6 @@ contract ValidatorShare is IValidatorShare {
         _burn(msg.sender, share);
         stakeManager.updateValidatorState(validatorId, -int256(_amount));
 
-        activeAmount = activeAmount.sub(_amount);
         if (_amount > amountStaked[msg.sender]) {
             uint256 _rewards = _amount.sub(amountStaked[msg.sender]);
             //withdrawTransfer
@@ -121,7 +123,9 @@ contract ValidatorShare is IValidatorShare {
             _amount = _amount.sub(_rewards);
         }
 
-        amountStaked[msg.sender] = 0; // TODO: add partial sell amountStaked[msg.sender].sub(_amount);
+        activeAmount = activeAmount.sub(_amount);
+
+        amountStaked[msg.sender] = 0;
         delegators[msg.sender] = Delegator({
             amount: _amount,
             withdrawEpoch: stakeManager.currentEpoch().add(
@@ -135,6 +139,7 @@ contract ValidatorShare is IValidatorShare {
 
     function withdrawRewards() public {
         uint256 liquidRewards = getLiquidRewards(msg.sender);
+        require(liquidRewards >= minAmount, "Too small rewards amount");
         uint256 sharesToBurn = liquidRewards.mul(100).div(exchangeRate());
         _burn(msg.sender, sharesToBurn);
         rewards = rewards.sub(liquidRewards);
@@ -210,17 +215,18 @@ contract ValidatorShare is IValidatorShare {
             ),
             "Insufficent rewards"
         );
+        stakingLogger.logDelUnstaked(validatorId, msg.sender, delegator.amount);
         delete delegators[msg.sender];
     }
 
     function slash(uint256 slashRate, uint256 startEpoch, uint256 endEpoch)
         public
     {}
+
     // function _slashActive() internal {}
     // function _slashInActive() internal {}
 
     function _transfer(address from, address to, uint256 value) internal {
         revert("Disabled");
     }
-
 }

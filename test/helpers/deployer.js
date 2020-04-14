@@ -21,9 +21,6 @@ class Deployer {
     await this.deployRootChain()
     this.stakingNFT = await contracts.StakingNFT.new('Matic Validator', 'MV')
 
-    this.SlashingManager = await contracts.SlashingManager.new(
-      this.registry.address
-    )
     if (options.stakeManager) {
       let stakeManager = await contracts.StakeManager.new()
       let proxy = await contracts.StakeManagerProxy.new(
@@ -55,16 +52,10 @@ class Deployer {
     const depositManager = await this.deployDepositManager()
     const withdrawManager = await this.deployWithdrawManager()
 
-    await Promise.all([
-      this.updateContractMap(
-        ethUtils.keccak256('stakeManager'),
-        this.stakeManager.address
-      ),
-      this.updateContractMap(
-        ethUtils.keccak256('slashingManager'),
-        this.SlashingManager.address
-      )
-    ])
+    await this.updateContractMap(
+      ethUtils.keccak256('stakeManager'),
+      this.stakeManager.address
+    )
 
     let _contracts = {
       registry: this.registry,
@@ -73,7 +64,6 @@ class Deployer {
       withdrawManager,
       exitNFT: this.exitNFT,
       stakeManager: this.stakeManager,
-      SlashingManager: this.SlashingManager,
       governance: this.governance
     }
 
@@ -339,14 +329,14 @@ class Deployer {
   async deployMaticToken() {
     if (!this.globalMatic) throw Error('global matic token is not initialized')
     if (!this.childChain) throw Error('child chain is not initialized')
-    // Since we cannot initialize MaticChildERC20 repeatedly, deploy a dummy MaticChildERC20 to test it
+    // Since we cannot initialize MRC20 repeatedly, deploy a dummy MRC20 to test it
     // not mentioning the gas limit fails with "The contract code couldn't be stored, please check your gas limit." intermittently which is super weird
-    const childToken = await contracts.TestMaticChildERC20.new({ gas: 7500000 })
+    const childToken = await contracts.TestMRC20.new({ gas: 7500000 })
     const rootERC20 = await this.deployTestErc20({ mapToken: true, childTokenAdress: childToken.address })
-    // initialize this like we would have done for MaticChildERC20 once
+    // initialize this like we would have done for MRC20 once
     await childToken.initialize(this.childChain.address, rootERC20.address)
     await this.childChain.mapToken(rootERC20.address, childToken.address, false /* isERC721 */)
-    // send some ether to dummy MaticChildERC20, so that deposits can be processed
+    // send some ether to dummy MRC20, so that deposits can be processed
     await this.globalMatic.childToken.deposit(childToken.address, web3.utils.toBN(100).mul(utils.scalingFactor))
     return { rootERC20, childToken }
   }
@@ -422,8 +412,8 @@ class Deployer {
     this.childChain = await contracts.ChildChain.new({ gas: 7500000 })
     await this.childChain.changeStateSyncerAddress(owner)
     if (!this.globalMatic) {
-      // MaticChildERC20 comes as a genesis-contract at utils.ChildMaticTokenAddress
-      this.globalMatic = { childToken: await contracts.MaticChildERC20.at(utils.ChildMaticTokenAddress) }
+      // MRC20 comes as a genesis-contract at utils.ChildMaticTokenAddress
+      this.globalMatic = { childToken: await contracts.MRC20.at(utils.ChildMaticTokenAddress) }
       const maticOwner = await this.globalMatic.childToken.owner()
       if (maticOwner === '0x0000000000000000000000000000000000000000') {
         // matic contract at 0x1010 can only be initialized once, after the bor image starts to run
@@ -432,7 +422,7 @@ class Deployer {
       }
     }
     if (this.registry) {
-      // When a new set of contracts is deployed, we should map MaticChildERC20 on root, though we cannot initialize it more than once in its lifetime
+      // When a new set of contracts is deployed, we should map MRC20 on root, though we cannot initialize it more than once in its lifetime
       this.globalMatic.rootERC20 = await this.deployTestErc20({ mapToken: true, childTokenAdress: utils.ChildMaticTokenAddress })
     }
     if (options.updateRegistry) {

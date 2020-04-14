@@ -10,8 +10,8 @@ contract IStakeManager is StakeManagerStorage {
     function confirmAuctionBid(
         uint256 validatorId,
         uint256 heimdallFee,
-        address signer,
-        bool acceptDelegation
+        bool acceptDelegation,
+        bytes calldata signerPubkey
     ) external;
 
     function delegationTransfer(
@@ -29,8 +29,8 @@ contract IStakeManager is StakeManagerStorage {
     function stake(
         uint256 amount,
         uint256 heimdallFee,
-        address signer,
-        bool acceptDelegation
+        bool acceptDelegation,
+        bytes calldata signerPubkey
     ) external;
 
     function unstake(uint256 validatorId) external;
@@ -43,8 +43,8 @@ contract IStakeManager is StakeManagerStorage {
         address user,
         uint256 amount,
         uint256 heimdallFee,
-        address signer,
-        bool acceptDelegation
+        bool acceptDelegation,
+        bytes memory signerPubkey
     ) public;
 
     function checkSignatures(

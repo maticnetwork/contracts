@@ -17,7 +17,6 @@ contract StakingNFT is ERC721Full, Ownable {
             balanceOf(to) == 0,
             "Validators MUST NOT own multiple stake position"
         );
-        //require(balanceOf(user) == 0, "Only one time staking is allowed");
         _mint(to, tokenId);
     }
 
