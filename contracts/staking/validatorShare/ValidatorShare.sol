@@ -40,9 +40,11 @@ contract ValidatorShare is IValidatorShare {
 
         uint256 _valRewards = valStake.mul(_rewards).div(stakePower);
         // add validator commission from delegation rewards
-        _valRewards = _valRewards.add(
-            _rewards.sub(_valRewards).mul(commissionRate).div(100)
-        );
+        if (commissionRate > 0) {
+            _valRewards = _valRewards.add(
+                _rewards.sub(_valRewards).mul(commissionRate).div(100)
+            );
+        }
         _rewards = _rewards.sub(_valRewards);
         validatorRewards = validatorRewards.add(_valRewards);
         rewards = rewards.add(_rewards);
@@ -137,6 +139,7 @@ contract ValidatorShare is IValidatorShare {
 
     function withdrawRewards() public {
         uint256 liquidRewards = getLiquidRewards(msg.sender);
+        require(liquidRewards >= minAmount, "Too small rewards amount");
         uint256 sharesToBurn = liquidRewards.mul(100).div(exchangeRate());
         _burn(msg.sender, sharesToBurn);
         rewards = rewards.sub(liquidRewards);
