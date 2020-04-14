@@ -4,6 +4,7 @@ import chaiAsPromised from 'chai-as-promised'
 
 import deployer from '../helpers/deployer.js'
 import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
+import { assertBigNumberEquality } from '../helpers/utils.js'
 
 chai.use(chaiAsPromised).should()
 
@@ -21,8 +22,6 @@ contract('StakeManager: unit test governance, delegation contract only functions
 
       await stakeManager.updateDynastyValue(8)
       await stakeManager.updateCheckPointBlockInterval(1)
-    })
-    beforeEach(async function () {
       const user = wallets[1].getAddressString()
       const userPubkey = wallets[1].getPublicKeyString()
       const amount = web3.utils.toWei('200')
@@ -66,12 +65,12 @@ contract('StakeManager: unit test governance, delegation contract only functions
 
     it('should test validator id to user(owner) address', async function () {
       const validatorId = await stakeManager.getValidatorId(wallets[1].getAddressString())
-      validatorId.should.equal(1)
+      assertBigNumberEquality(validatorId, web3.utils.toBN(1))
     })
+
     it('should test public key to address function', async function () {
-      const validatorId = await stakeManager.getValidatorId(wallets[1].getAddressString())
-      validatorId.should.equal(1)
+      const signer = await stakeManager.pubToAddress(wallets[1].getPublicKeyString())
+      signer.toLowerCase().should.equal(wallets[1].getAddressString().toLowerCase())
     })
-    //
   })
 })
