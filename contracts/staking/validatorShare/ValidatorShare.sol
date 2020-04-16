@@ -17,7 +17,7 @@ contract ValidatorShare is IValidatorShare {
         _;
     }
 
-    function udpateRewards(uint256 _reward, uint256 _totalStake)
+    function updateRewards(uint256 _reward, uint256 _totalStake)
         external
         onlyOwner
         returns (uint256)
@@ -219,9 +219,18 @@ contract ValidatorShare is IValidatorShare {
         delete delegators[msg.sender];
     }
 
-    function slash(uint256 slashRate, uint256 startEpoch, uint256 endEpoch)
-        public
-    {}
+    function slash(uint256 valPow, uint256 totalAmountToSlash)
+        external
+        onlyOwner
+        returns (uint256, uint256)
+    {
+        uint256 _amountToSlash = activeAmount.mul(totalAmountToSlash).div(
+            valPow.add(activeAmount)
+        );
+        activeAmount = activeAmount.sub(_amountToSlash);
+        // todo: consider amount in withdrawal delay
+        return (_amountToSlash, totalAmountToSlash.sub(_amountToSlash)); //dummy return value
+    }
 
     // function _slashActive() internal {}
     // function _slashInActive() internal {}
