@@ -52,20 +52,12 @@ contract RootChain is RootChainStorage, IRootChain {
         IStakeManager stakeManager = IStakeManager(
             registry.getStakeManagerAddress()
         );
-            function checkSignatures(
-        uint256 blockInterval,
-        uint256 slashedAmount,
-        bytes32 slashingRoot,
-        bytes32 voteHash,
-        bytes32 stateRoot,
-        bytes memory sigs
-        // blockInterval, voteHash, stateRoot, sigs
         uint256 _reward = stakeManager.checkSignatures(
-            headerBlock.end.sub(headerBlock.start).add(1),
+            headerBlock.end.sub(headerBlock.start).add(1), // blockInterval
             extraData[6].toUint(), //slashed amount
             bytes32(extraData[5].toUint()), // slashing root(keccak256 of val:amount[])
-            keccak256(vote),
-            bytes32(extraData[4].toUint()),
+            keccak256(vote), //voteHash
+            bytes32(extraData[4].toUint()), //stateRoot
             sigs
         );
         require(_reward != 0, "Invalid checkpoint");
