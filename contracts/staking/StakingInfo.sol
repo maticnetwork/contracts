@@ -42,6 +42,7 @@ contract IStakeManager {
 contract StakingInfo {
     using SafeMath for uint256;
     using ECVerify for bytes32;
+
     event Staked(
         address indexed signer,
         uint256 indexed validatorId,
@@ -72,7 +73,7 @@ contract StakingInfo {
     );
     event ReStaked(uint256 indexed validatorId, uint256 amount, uint256 total);
     event Jailed(uint256 indexed validatorId, uint256 indexed exitEpoch);
-    event Slashed(uint256 indexed validatorId, uint256 indexed amount);
+    event Slashed(uint256 indexed amount);
     event ThresholdChange(uint256 newThreshold, uint256 oldThreshold);
     event DynastyValueChange(uint256 newDynasty, uint256 oldDynasty);
     event RewardUpdate(uint256 newReward, uint256 oldReward);
@@ -227,11 +228,8 @@ contract StakingInfo {
         emit Jailed(validatorId, exitEpoch);
     }
 
-    function logSlashed(uint256 validatorId, uint256 amount)
-        public
-        onlyStakeManager
-    {
-        emit Slashed(validatorId, amount);
+    function logSlashed(uint256 amount) public onlyStakeManager {
+        emit Slashed(amount);
     }
 
     function logThresholdChange(uint256 newThreshold, uint256 oldThreshold)
