@@ -4,7 +4,6 @@ import {Registry} from "../../common/Registry.sol";
 
 
 contract ISlashingManager {
-    uint256 public slashingRate = 5; // slashing %
     uint256 public reportRate = 5;
     uint256 public jailCheckpoints = 5; // checkpoints
     bytes32 public chain = keccak256("heimdall-P5rXwg");

@@ -627,17 +627,17 @@ contract StakeManager is IStakeManager {
             // jail(validatorId, jailCheckpoints);
             // jailedVal++
             // }
-            // logger.logSlashed(validatorId, _amount);
-            // logger.logStakeUpdate(validatorId);
         }
+
         //update timeline
         updateTimeLine(currentEpoch, -int256(_totalAmount), 0);
-        // logger.logSlashed(validatorId, _amount); //_totalAmount
-        uint256 _amount = _totalAmount.mul(reportRate).div(100);
-        // _totalAmount = _totalAmount.sub(_amount);
+        logger.logSlashed(_totalAmount);
         // figure out where to put the rest of amount(burn or add to rewards pool)
         // Transfer bounty to slashing reporter
-        require(token.transfer(reporter, _amount), "Rewards transfer failed");
+        require(
+            token.transfer(reporter, _totalAmount.mul(reportRate).div(100)),
+            "Rewards transfer failed"
+        );
         return _totalAmount;
     }
 

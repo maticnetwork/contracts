@@ -53,7 +53,7 @@ contract SlashingManager is ISlashingManager, Ownable {
         delete slashAccHash;
     }
 
-    function slash(
+    function updateSlashedAmounts(
         bytes memory _validators,
         bytes memory _amounts,
         bytes memory sigs
@@ -74,11 +74,6 @@ contract SlashingManager is ISlashingManager, Ownable {
             _amounts
         );
     }
-
-    // function updateSlashingRate(uint256 newSlashingRate) public onlyOwner {
-    //     require(newSlashingRate > 0);
-    //     slashingRate = newSlashingRate;
-    // }
 
     function updateReportRate(uint256 newReportRate) public onlyOwner {
         require(newReportRate > 0);
