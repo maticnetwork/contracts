@@ -128,8 +128,8 @@ contract ValidatorShare is IValidatorShare {
         }
 
         activeAmount = activeAmount.sub(_amount);
-        withdrawPool = withdrawPool.add(_amount);
         uint256 _share = _amount.mul(100).div(withdrawExchangeRate());
+        withdrawPool = withdrawPool.add(_amount);
         withdrawShares = withdrawShares.add(share);
         delegators[msg.sender] = Delegator({
             share: _share,
@@ -231,7 +231,6 @@ contract ValidatorShare is IValidatorShare {
         onlyOwner
         returns (uint256)
     {
-        //should be considering withdrawal pool here as well?
         uint256 delegationAmount = activeAmount.add(withdrawPool);
         // total amount to be slashed from delegation pool (active + inactive)
         uint256 _amountToSlash = delegationAmount.mul(totalAmountToSlash).div(
