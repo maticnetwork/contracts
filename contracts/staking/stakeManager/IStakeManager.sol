@@ -59,6 +59,13 @@ contract IStakeManager is StakeManagerStorage {
     function updateValidatorState(uint256 validatorId, int256 amount) public;
 
     function ownerOf(uint256 tokenId) public view returns (address);
+
+    function slash(
+        address reporter,
+        uint256 reportRate,
+        bytes memory _validators,
+        bytes memory _amounts
+    ) public returns (uint256);
     // optional
     // function lastStakedFor(address addr) external view returns (uint256);
     // function totalStakedForAt(address addr, uint256 blockNumber) external view returns (uint256);

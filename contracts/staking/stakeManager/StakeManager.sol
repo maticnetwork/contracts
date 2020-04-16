@@ -4,6 +4,7 @@ import {IERC20} from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import {Math} from "openzeppelin-solidity/contracts/math/Math.sol";
 import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import {Ownable} from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import {RLPReader} from "solidity-rlp/contracts/RLPReader.sol";
 
 import {BytesLib} from "../../common/lib/BytesLib.sol";
 import {ECVerify} from "../../common/lib/ECVerify.sol";
@@ -23,15 +24,22 @@ contract StakeManager is IStakeManager {
     using SafeMath for uint256;
     using ECVerify for bytes32;
     using Merkle for bytes32;
+    using RLPReader for bytes;
+    using RLPReader for RLPReader.RLPItem;
 
     modifier onlyStaker(uint256 validatorId) {
         require(NFTContract.ownerOf(validatorId) == msg.sender);
         _;
     }
 
+    modifier onlySlashingMananger() {
+        //     require(slashingManager == msg.sender);
+        _;
+    }
+
     constructor() public Lockable(address(0x0)) {}
 
-    // TopUp heimdall fee
+    // TopUp heimdall fee¯
     function topUpForFee(uint256 validatorId, uint256 heimdallFee) public {
         require(heimdallFee >= minHeimdallFee, "Minimum amount is 1 Matic");
         require(
@@ -522,7 +530,7 @@ contract StakeManager is IStakeManager {
         // for bigger checkpoints reward is capped at `CHECKPOINT_REWARD`
         // if interval is 50% of checkPointBlockInterval then reward R is half of `CHECKPOINT_REWARD`
         // and then stakePower is 90% of currentValidatorSetTotalStake then final reward is 90% of R
-        require(slashing != true, "Pending slashing operation");
+        // require(slashing != true, "Pending slashing operation");
         uint256 _reward = blockInterval.mul(CHECKPOINT_REWARD).div(
             checkPointBlockInterval
         );
@@ -568,7 +576,7 @@ contract StakeManager is IStakeManager {
                 // add delegation power
                 if (validator.contractAddress != address(0x0)) {
                     valPow = ValidatorShare(validator.contractAddress)
-                        .udpateRewards(_reward, stakePower);
+                        .updateRewards(_reward, stakePower);
                 } else {
                     valPow = validator.amount;
                     validator.reward = validator.reward.add(
@@ -587,6 +595,54 @@ contract StakeManager is IStakeManager {
             _stakePower >= currentValidatorSetTotalStake().mul(2).div(3).add(1)
         );
         return _reward;
+    }
+
+    function slash(
+        address reporter,
+        uint256 reportRate,
+        bytes memory _validators,
+        bytes memory _amounts
+    ) public onlySlashingMananger returns (uint256) {
+        RLPReader.RLPItem[] memory validatorList = _validators
+            .toRlpItem()
+            .toList();
+        RLPReader.RLPItem[] memory amounts = _amounts.toRlpItem().toList();
+        require(validatorList.length == amounts.length, "Incorrect Data");
+        uint256 _totalAmount;
+        for (uint256 i = 0; i < validatorList.length; i++) {
+            //amounts[i]
+            uint256 _amount = amounts[i].toUint();
+            uint256 validatorId = validatorList[i].toUint();
+            if (validators[validatorId].contractAddress != address(0x0)) {
+                uint256 delSlashedAmount;
+                (delSlashedAmount, _amount) = ValidatorShare(
+                    validators[validatorId]
+                        .contractAddress
+                )
+                    .slash(validators[validatorId].amount, _amount);
+                _totalAmount = _totalAmount.add(delSlashedAmount);
+            }
+            validators[validatorId].amount = validators[validatorId].amount.sub(
+                _amount
+            );
+            _totalAmount = _totalAmount.add(_amount);
+            // if (validators[validatorId].amount < minDeposit) {
+            // some more conditions
+            // jail(validatorId, jailCheckpoints);
+            // jailedVal++
+            // }
+            // logger.logSlashed(validatorId, _amount);
+            // logger.logStakeUpdate(validatorId);
+        }
+        //update timeline
+        updateTimeLine(currentEpoch, -int256(_totalAmount), 0);
+        // logger.logSlashed(validatorId, _amount); //_totalAmount
+        uint256 _amount = _totalAmount.mul(reportRate).div(100);
+        // _totalAmount = _totalAmount.sub(_amount);
+        // figure out where to put the rest of amount(burn or add to rewards pool)
+        // Transfer bounty to slashing reporter
+        require(token.transfer(reporter, _amount), "Rewards transfer failed");
+        return _totalAmount;
     }
 
     function _stakeFor(
