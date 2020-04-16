@@ -612,20 +612,19 @@ contract StakeManager is IStakeManager {
         for (uint256 i = 0; i < validatorList.length; i++) {
             //amounts[i]
             uint256 _amount = amounts[i].toUint();
+            _totalAmount = _totalAmount.add(_amount);
             uint256 validatorId = validatorList[i].toUint();
             if (validators[validatorId].contractAddress != address(0x0)) {
-                uint256 delSlashedAmount;
-                (delSlashedAmount, _amount) = ValidatorShare(
+                uint256 delSlashedAmount = ValidatorShare(
                     validators[validatorId]
                         .contractAddress
                 )
                     .slash(validators[validatorId].amount, _amount);
-                _totalAmount = _totalAmount.add(delSlashedAmount);
+                _amount = _amount.sub(delSlashedAmount);
             }
             validators[validatorId].amount = validators[validatorId].amount.sub(
                 _amount
             );
-            _totalAmount = _totalAmount.add(_amount);
             // if (validators[validatorId].amount < minDeposit) {
             // some more conditions
             // jail(validatorId, jailCheckpoints);

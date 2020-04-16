@@ -213,6 +213,9 @@ contract ValidatorShare is IValidatorShare {
             "Incomplete withdrawal period"
         );
         uint256 _amount = withdrawExchangeRate().mul(delegator.share).div(100);
+        withdrawShares.sub(delegator.share);
+        withdrawPool.sub(_amount);
+
         totalStake = totalStake.sub(_amount);
 
         require(
@@ -226,20 +229,23 @@ contract ValidatorShare is IValidatorShare {
     function slash(uint256 valPow, uint256 totalAmountToSlash)
         external
         onlyOwner
-        returns (uint256, uint256)
+        returns (uint256)
     {
         //should be considering withdrawal pool here as well?
-        uint256 _amountToSlash = activeAmount.mul(totalAmountToSlash).div(
-            valPow.add(activeAmount)
+        uint256 delegationAmount = activeAmount.add(withdrawPool);
+        // total amount to be slashed from delegation pool (active + inactive)
+        uint256 _amountToSlash = delegationAmount.mul(totalAmountToSlash).div(
+            valPow.add(delegationAmount)
         );
         uint256 _amountToSlashWithdrawalPool = activeAmount
             .mul(_amountToSlash)
-            .div(withdrawPool.add(activeAmount));
+            .div(delegationAmount);
+        // slash inactive pool
         withdrawPool = withdrawPool.sub(_amountToSlashWithdrawalPool);
         activeAmount = activeAmount.sub(
             _amountToSlash.sub(_amountToSlashWithdrawalPool)
         );
-        return (_amountToSlash, totalAmountToSlash.sub(_amountToSlash)); //dummy return value
+        return _amountToSlash;
     }
 
     // function _slashActive() internal {}

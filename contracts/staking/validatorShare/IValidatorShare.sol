@@ -72,7 +72,7 @@ contract IValidatorShare is ERC20, Lockable, Ownable {
 
     function slash(uint256 valPow, uint256 totalAmountToSlash)
         external
-        returns (uint256, uint256);
+        returns (uint256);
     // function _slashActive() internal {}
     // function _slashInActive() internal {}
 }
