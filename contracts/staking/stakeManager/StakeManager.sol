@@ -32,11 +32,6 @@ contract StakeManager is IStakeManager {
         _;
     }
 
-    modifier onlySlashingMananger() {
-        //     require(slashingManager == msg.sender);
-        _;
-    }
-
     constructor() public Lockable(address(0x0)) {}
 
     // TopUp heimdall fee¯
@@ -602,7 +597,8 @@ contract StakeManager is IStakeManager {
         uint256 reportRate,
         bytes memory _validators,
         bytes memory _amounts
-    ) public onlySlashingMananger returns (uint256) {
+    ) public returns (uint256) {
+        require(Registry(registry).getSlashingManagerAddress() == msg.sender);
         RLPReader.RLPItem[] memory validatorList = _validators
             .toRlpItem()
             .toList();
