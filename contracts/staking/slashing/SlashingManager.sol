@@ -3,10 +3,11 @@ pragma solidity ^0.5.2;
 import {RLPReader} from "solidity-rlp/contracts/RLPReader.sol";
 import {Ownable} from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
-import {StakeManager} from "./stakeManager/StakeManager.sol";
-import {ECVerify} from "../common/lib/ECVerify.sol";
-import {Registry} from "../common/Registry.sol";
-import "ISlashingManager.sol";
+import {StakeManager} from "../stakeManager/StakeManager.sol";
+import {ECVerify} from "../../common/lib/ECVerify.sol";
+import {Registry} from "../../common/Registry.sol";
+import {StakingInfo} from "../StakingInfo.sol";
+import "./ISlashingManager.sol";
 
 
 contract SlashingManager is ISlashingManager, Ownable {
@@ -14,13 +15,14 @@ contract SlashingManager is ISlashingManager, Ownable {
     using RLPReader for bytes;
     using RLPReader for RLPReader.RLPItem;
 
-    constructor(address _registry) public {
-        registry = Registry(_registry);
-    }
-
     modifier onlyStakeManager() {
         require(registry.getStakeManagerAddress() == msg.sender);
         _;
+    }
+
+    constructor(address _registry, address _logger) public {
+        registry = Registry(_registry);
+        logger = StakingInfo(_logger);
     }
 
     function initiateSlashing(uint256 _amountToSlash, bytes32 _slashAccHash)
@@ -31,18 +33,55 @@ contract SlashingManager is ISlashingManager, Ownable {
         amountToSlash = _amountToSlash;
     }
 
-    function confirmSlashing(
-        bytes memory _validators,
-        bytes memory _amounts,
-    ) public {
-        require(slashAccHash == keccak256(_validators,_amounts), "Incorrect slasAccHash data");
+    function confirmSlashing(bytes memory _validators, bytes memory _amounts)
+        public
+    {
+        require(
+            slashAccHash == keccak256(abi.encodePacked(_validators, _amounts)),
+            "Incorrect slasAccHash data"
+        );
 
         StakeManager stakeManager = StakeManager(
             registry.getStakeManagerAddress()
         );
-        
-        uint256 totalAmount=stakeManager.slash(_validators, _amounts);
-        // transfer x% to msg.sender
-        // figure out where to put the rest of amount(burn or add to rewards pool)
+        require(
+            stakeManager.slash(msg.sender, reportRate, _validators, _amounts) ==
+                amountToSlash,
+            ""
+        );
+        delete amountToSlash;
+        delete slashAccHash;
+    }
+
+    function slash(
+        bytes memory _validators,
+        bytes memory _amounts,
+        bytes memory sigs
+    ) public {
+        StakeManager stakeManager = StakeManager(
+            registry.getStakeManagerAddress()
+        );
+        uint256 stakePower;
+        uint256 activeTwoByThree;
+        (stakePower, activeTwoByThree) = logger.verifyConsensus(
+            keccak256(abi.encodePacked(_validators, _amounts)),
+            sigs
+        );
+        uint256 slashedAmount = stakeManager.slash(
+            msg.sender,
+            reportRate,
+            _validators,
+            _amounts
+        );
+    }
+
+    // function updateSlashingRate(uint256 newSlashingRate) public onlyOwner {
+    //     require(newSlashingRate > 0);
+    //     slashingRate = newSlashingRate;
+    // }
+
+    function updateReportRate(uint256 newReportRate) public onlyOwner {
+        require(newReportRate > 0);
+        reportRate = newReportRate;
     }
 }
