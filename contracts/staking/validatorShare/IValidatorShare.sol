@@ -31,11 +31,13 @@ contract IValidatorShare is ERC20, Lockable, Ownable {
     uint256 public activeAmount;
     bool public delegation = true;
 
+    uint256 public withdrawPool;
+    uint256 public withdrawShares;
+
     struct Delegator {
-        uint256 amount;
+        uint256 share;
         uint256 withdrawEpoch;
     }
-
     mapping(address => uint256) public amountStaked;
     mapping(address => Delegator) public delegators;
 
@@ -70,7 +72,7 @@ contract IValidatorShare is ERC20, Lockable, Ownable {
 
     function slash(uint256 valPow, uint256 totalAmountToSlash)
         external
-        returns (uint256, uint256);
+        returns (uint256);
     // function _slashActive() internal {}
     // function _slashInActive() internal {}
 }

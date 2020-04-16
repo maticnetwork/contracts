@@ -89,6 +89,10 @@ contract ValidatorShare is IValidatorShare {
                 : activeAmount.add(rewards).mul(100).div(totalSupply());
     }
 
+    function withdrawExchangeRate() public view returns (uint256) {
+        return withdrawPool.mul(100).div(withdrawShares);
+    }
+
     function buyVoucher(uint256 _amount) public onlyWhenUnlocked {
         uint256 share = _amount.mul(100).div(exchangeRate());
         totalStake = totalStake.add(_amount);
@@ -124,14 +128,18 @@ contract ValidatorShare is IValidatorShare {
         }
 
         activeAmount = activeAmount.sub(_amount);
-
-        amountStaked[msg.sender] = 0;
+        uint256 _withdrawPoolShare = _amount.mul(100).div(
+            withdrawExchangeRate()
+        );
+        withdrawPool = withdrawPool.add(_amount);
+        withdrawShares = withdrawShares.add(_withdrawPoolShare);
         delegators[msg.sender] = Delegator({
-            amount: _amount,
+            share: _withdrawPoolShare,
             withdrawEpoch: stakeManager.currentEpoch().add(
                 stakeManager.WITHDRAWAL_DELAY()
             )
         });
+        amountStaked[msg.sender] = 0;
 
         stakingLogger.logShareBurned(validatorId, msg.sender, _amount, share);
         stakingLogger.logStakeUpdate(validatorId);
@@ -201,35 +209,44 @@ contract ValidatorShare is IValidatorShare {
 
     function unStakeClaimTokens() public {
         Delegator storage delegator = delegators[msg.sender];
-        totalStake = totalStake.sub(delegator.amount);
         require(
             delegator.withdrawEpoch <= stakeManager.currentEpoch() &&
-                delegator.amount > 0,
+                delegator.share > 0,
             "Incomplete withdrawal period"
         );
+        uint256 _amount = withdrawExchangeRate().mul(delegator.share).div(100);
+        withdrawShares.sub(delegator.share);
+        withdrawPool.sub(_amount);
+
+        totalStake = totalStake.sub(_amount);
+
         require(
-            stakeManager.delegationTransfer(
-                validatorId,
-                delegator.amount,
-                msg.sender
-            ),
+            stakeManager.delegationTransfer(validatorId, _amount, msg.sender),
             "Insufficent rewards"
         );
-        stakingLogger.logDelUnstaked(validatorId, msg.sender, delegator.amount);
+        stakingLogger.logDelUnstaked(validatorId, msg.sender, _amount);
         delete delegators[msg.sender];
     }
 
     function slash(uint256 valPow, uint256 totalAmountToSlash)
         external
         onlyOwner
-        returns (uint256, uint256)
+        returns (uint256)
     {
-        uint256 _amountToSlash = activeAmount.mul(totalAmountToSlash).div(
-            valPow.add(activeAmount)
+        uint256 delegationAmount = activeAmount.add(withdrawPool);
+        // total amount to be slashed from delegation pool (active + inactive)
+        uint256 _amountToSlash = delegationAmount.mul(totalAmountToSlash).div(
+            valPow.add(delegationAmount)
         );
-        activeAmount = activeAmount.sub(_amountToSlash);
-        // todo: consider amount in withdrawal delay
-        return (_amountToSlash, totalAmountToSlash.sub(_amountToSlash)); //dummy return value
+        uint256 _amountToSlashWithdrawalPool = withdrawPool
+            .mul(_amountToSlash)
+            .div(delegationAmount);
+        // slash inactive pool
+        withdrawPool = withdrawPool.sub(_amountToSlashWithdrawalPool);
+        activeAmount = activeAmount.sub(
+            _amountToSlash.sub(_amountToSlashWithdrawalPool)
+        );
+        return _amountToSlash;
     }
 
     // function _slashActive() internal {}
