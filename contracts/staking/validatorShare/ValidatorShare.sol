@@ -236,7 +236,7 @@ contract ValidatorShare is IValidatorShare {
         uint256 _amountToSlash = delegationAmount.mul(totalAmountToSlash).div(
             valPow.add(delegationAmount)
         );
-        uint256 _amountToSlashWithdrawalPool = activeAmount
+        uint256 _amountToSlashWithdrawalPool = withdrawPool
             .mul(_amountToSlash)
             .div(delegationAmount);
         // slash inactive pool
