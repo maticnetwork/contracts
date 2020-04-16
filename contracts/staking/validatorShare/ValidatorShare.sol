@@ -128,13 +128,13 @@ contract ValidatorShare is IValidatorShare {
         }
 
         activeAmount = activeAmount.sub(_amount);
-        uint256 _shareWithdrawPool = _amount.mul(100).div(
+        uint256 _withdrawPoolShare = _amount.mul(100).div(
             withdrawExchangeRate()
         );
         withdrawPool = withdrawPool.add(_amount);
-        withdrawShares = withdrawShares.add(_shareWithdrawPool);
+        withdrawShares = withdrawShares.add(_withdrawPoolShare);
         delegators[msg.sender] = Delegator({
-            share: _shareWithdrawPool,
+            share: _withdrawPoolShare,
             withdrawEpoch: stakeManager.currentEpoch().add(
                 stakeManager.WITHDRAWAL_DELAY()
             )
