@@ -7,9 +7,11 @@ library Merkle {
         bytes32 rootHash,
         bytes memory proof
     ) public pure returns (bool) {
+        require(proof.length % 32 == 0, "Invalid proof length");
+        require(mainIndex < 2 ** (proof.length / 32), "Index is too big");
+
         bytes32 proofElement;
         bytes32 computedHash = leaf;
-        require(proof.length % 32 == 0, "Invalid proof length");
 
         uint256 index = mainIndex;
         for (uint256 i = 32; i <= proof.length; i += 32) {
