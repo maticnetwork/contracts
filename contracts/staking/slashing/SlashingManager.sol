@@ -25,37 +25,11 @@ contract SlashingManager is ISlashingManager, Ownable {
         logger = StakingInfo(_logger);
     }
 
-    function initiateSlashing(uint256 _amountToSlash, bytes32 _slashAccHash)
-        public
-        onlyStakeManager
-    {
-        slashAccHash = _slashAccHash;
-        amountToSlash = _amountToSlash;
-    }
-
-    function confirmSlashing(bytes memory _validators, bytes memory _amounts)
-        public
-    {
-        require(
-            slashAccHash == keccak256(abi.encodePacked(_validators, _amounts)),
-            "Incorrect slasAccHash data"
-        );
-
-        StakeManager stakeManager = StakeManager(
-            registry.getStakeManagerAddress()
-        );
-        require(
-            stakeManager.slash(msg.sender, reportRate, _validators, _amounts) ==
-                amountToSlash,
-            ""
-        );
-        delete amountToSlash;
-        delete slashAccHash;
-    }
-
     function updateSlashedAmounts(
+        uint256 public _slashingNonce,
         bytes memory _validators,
         bytes memory _amounts,
+        bytes memory _isJailed,
         bytes memory sigs
     ) public {
         StakeManager stakeManager = StakeManager(
@@ -63,15 +37,19 @@ contract SlashingManager is ISlashingManager, Ownable {
         );
         uint256 stakePower;
         uint256 activeTwoByThree;
+        require(slashingNonce < _slashingNonce,"Invalid slashing nonce");
         (stakePower, activeTwoByThree) = logger.verifyConsensus(
-            keccak256(abi.encodePacked(_validators, _amounts)),
+            keccak256(abi.encodePacked(_validators, _amounts, _isJailed, _slashingNonce)),
             sigs
         );
+        slashingNonce = _slashingNonce;
+        require(stakePower <= activeTwoByThree, "2/3+1 Power required");
         uint256 slashedAmount = stakeManager.slash(
             msg.sender,
             reportRate,
             _validators,
-            _amounts
+            _amounts,
+            _isJailed
         );
     }
 
