@@ -117,11 +117,7 @@ contract ValidatorShare is IValidatorShare {
             uint256 _rewards = _amount.sub(amountStaked[msg.sender]);
             //withdrawTransfer
             require(
-                stakeManager.delegationTransfer(
-                    validatorId,
-                    _rewards,
-                    msg.sender
-                ),
+                stakeManager.transferfunds(validatorId, _rewards, msg.sender),
                 "Insufficent rewards"
             );
             _amount = _amount.sub(_rewards);
@@ -152,11 +148,7 @@ contract ValidatorShare is IValidatorShare {
         _burn(msg.sender, sharesToBurn);
         rewards = rewards.sub(liquidRewards);
         require(
-            stakeManager.delegationTransfer(
-                validatorId,
-                liquidRewards,
-                msg.sender
-            ),
+            stakeManager.transferfunds(validatorId, liquidRewards, msg.sender),
             "Insufficent rewards"
         );
         stakingLogger.logDelClaimRewards(
@@ -178,7 +170,7 @@ contract ValidatorShare is IValidatorShare {
         totalStake = totalStake.add(liquidRewards);
         activeAmount = activeAmount.add(liquidRewards);
         require(
-            stakeManager.delegationTransfer(
+            stakeManager.transferfunds(
                 validatorId,
                 liquidRewards,
                 address(this)
@@ -221,7 +213,7 @@ contract ValidatorShare is IValidatorShare {
         totalStake = totalStake.sub(_amount);
 
         require(
-            stakeManager.delegationTransfer(validatorId, _amount, msg.sender),
+            stakeManager.transferfunds(validatorId, _amount, msg.sender),
             "Insufficent rewards"
         );
         stakingLogger.logDelUnstaked(validatorId, msg.sender, _amount);
@@ -249,12 +241,12 @@ contract ValidatorShare is IValidatorShare {
         return _amountToSlash;
     }
 
-    function unlock() external onlyOwner retruns(uint256) {
+    function unlockContract() external onlyOwner returns (uint256) {
         locked = false;
         return activeAmount;
     }
 
-    function lock() external onlyOwner retruns(uint256) {
+    function lockContract() external onlyOwner returns (uint256) {
         locked = true;
         return activeAmount;
     }

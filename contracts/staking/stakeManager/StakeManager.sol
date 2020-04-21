@@ -261,13 +261,14 @@ contract StakeManager is IStakeManager {
         factory = ValidatorShareFactory(_ValidatorShareFactory);
     }
 
-    function delegationTransfer(
+    function transferfunds(
         uint256 validatorId,
         uint256 amount,
         address delegator
     ) external returns (bool) {
         require(
-            validators[validatorId].contractAddress == msg.sender,
+            Registry(registry).getSlashingManagerAddress() == msg.sender ||
+                validators[validatorId].contractAddress == msg.sender,
             "Invalid contract address"
         );
         return token.transfer(delegator, amount);
@@ -577,8 +578,6 @@ contract StakeManager is IStakeManager {
     }
 
     function slash(
-        address reporter,
-        uint256 reportRate,
         bytes memory _validators,
         bytes memory _amounts,
         bytes memory _isJailed
@@ -591,6 +590,7 @@ contract StakeManager is IStakeManager {
         RLPReader.RLPItem[] memory isJailed = _isJailed.toRlpItem().toList();
         require(validatorList.length == amounts.length, "Incorrect Data");
         int256 valJailed = 0;
+        uint256 jailedAmount = 0;
         uint256 _totalAmount;
         for (uint256 i = 0; i < validatorList.length; i++) {
             uint256 _amount = amounts[i].toUint();
@@ -607,21 +607,20 @@ contract StakeManager is IStakeManager {
             validators[validatorId].amount = validators[validatorId].amount.sub(
                 _amount
             );
-            if (isJailed.toBoolean()) {
-                _jail(validatorId, 1);
-                valJailed = valJailed.add(1);
+            if (isJailed[i].toBoolean()) {
+                jailedAmount = jailedAmount.add(_jail(validatorId, 1));
+                valJailed++;
             }
         }
 
         //update timeline
-        updateTimeLine(currentEpoch, -int256(_totalAmount), -valJailed);
-        logger.logSlashed(_totalAmount);
-        // figure out where to put the rest of amount(burn or add to rewards pool)
-        // Transfer bounty to slashing reporter
-        require(
-            token.transfer(reporter, _totalAmount.mul(reportRate).div(100)),
-            "Bounty transfer failed"
+        updateTimeLine(
+            currentEpoch,
+            -int256(_totalAmount.add(jailedAmount)),
+            -valJailed
         );
+        logger.logSlashed(_totalAmount);
+
         return _totalAmount;
     }
 
@@ -633,37 +632,42 @@ contract StakeManager is IStakeManager {
         );
 
         uint256 amount = validators[validatorId].amount;
-        require(amount >= MIN_DEPOSIT_SIZE);
+        require(amount >= minDeposit);
 
-        int256 delegationAmount = 0;
+        uint256 delegationAmount = 0;
         if (validators[validatorId].contractAddress != address(0x0)) {
             delegationAmount = ValidatorShare(
                 validators[validatorId]
                     .contractAddress
             )
-                .unLock();
+                .unlockContract();
         }
 
         // undo timline so that validator is normal validator
-        updateTimeLine(exitEpoch, (int256(amount) + delegationAmount), 1);
+        updateTimeLine(currentEpoch, int256(amount.add(delegationAmount)), 1);
 
         validators[validatorId].deactivationEpoch = 0;
         validators[validatorId].status = Status.Active;
-        logger.UnJailed(validatorId);
+        logger.logUnJailed(validatorId);
     }
 
-    function _jail(uint256 validatorId, uint256 _jailCheckpoints) internal {
+    function _jail(uint256 validatorId, uint256 _jailCheckpoints)
+        internal
+        returns (uint256)
+    {
+        uint256 delegationAmount = 0;
         if (validators[validatorId].contractAddress != address(0x0)) {
             delegationAmount = ValidatorShare(
                 validators[validatorId]
                     .contractAddress
             )
-                .lock();
+                .lockContract();
         }
         validators[validatorId].deactivationEpoch = currentEpoch;
         validators[validatorId].jailTime = currentEpoch.add(_jailCheckpoints);
         validators[validatorId].status = Status.Locked;
         logger.logJailed(validatorId, currentEpoch);
+        return validators[validatorId].amount.add(delegationAmount);
     }
 
     function _stakeFor(
@@ -718,9 +722,8 @@ contract StakeManager is IStakeManager {
             ValidatorShare validatorShare = ValidatorShare(
                 validators[validatorId].contractAddress
             );
-            delegationAmount = int256(validatorShare.activeAmount());
             rewards = rewards.add(validatorShare.withdrawRewardsValidator());
-            validatorShare.lock();
+            delegationAmount = int256(validatorShare.lockContract());
         }
         require(token.transfer(msg.sender, rewards), "Rewards transfer failed");
         //  update future

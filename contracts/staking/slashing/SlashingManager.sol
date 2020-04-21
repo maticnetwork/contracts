@@ -26,7 +26,7 @@ contract SlashingManager is ISlashingManager, Ownable {
     }
 
     function updateSlashedAmounts(
-        uint256 public _slashingNonce,
+        uint256 _slashingNonce,
         bytes memory _validators,
         bytes memory _amounts,
         bytes memory _isJailed,
@@ -37,19 +37,34 @@ contract SlashingManager is ISlashingManager, Ownable {
         );
         uint256 stakePower;
         uint256 activeTwoByThree;
-        require(slashingNonce < _slashingNonce,"Invalid slashing nonce");
+        require(slashingNonce < _slashingNonce, "Invalid slashing nonce");
         (stakePower, activeTwoByThree) = logger.verifyConsensus(
-            keccak256(abi.encodePacked(_validators, _amounts, _isJailed, _slashingNonce)),
+            keccak256(
+                abi.encodePacked(
+                    _validators,
+                    _amounts,
+                    _isJailed,
+                    _slashingNonce
+                )
+            ),
             sigs
         );
         slashingNonce = _slashingNonce;
         require(stakePower <= activeTwoByThree, "2/3+1 Power required");
         uint256 slashedAmount = stakeManager.slash(
-            msg.sender,
-            reportRate,
             _validators,
             _amounts,
             _isJailed
+        );
+        // figure out where to put the rest of amount(burn or add to rewards pool)
+        // Transfer bounty to slashing reporter
+        require(
+            stakeManager.transferfunds(
+                0, //placeholder
+                ((slashedAmount * reportRate) / 100), //safeMath
+                msg.sender
+            ),
+            "Bounty transfer failed"
         );
     }
 
