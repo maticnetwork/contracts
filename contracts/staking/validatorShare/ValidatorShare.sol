@@ -249,6 +249,16 @@ contract ValidatorShare is IValidatorShare {
         return _amountToSlash;
     }
 
+    function unlock() external onlyOwner retruns(uint256) {
+        locked = false;
+        return activeAmount;
+    }
+
+    function lock() external onlyOwner retruns(uint256) {
+        locked = true;
+        return activeAmount;
+    }
+
     // function _slashActive() internal {}
     // function _slashInActive() internal {}
 
