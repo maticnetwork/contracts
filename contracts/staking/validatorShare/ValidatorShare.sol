@@ -17,7 +17,7 @@ contract ValidatorShare is IValidatorShare {
         _;
     }
 
-    function udpateRewards(uint256 _reward, uint256 _totalStake)
+    function updateRewards(uint256 _reward, uint256 _totalStake)
         external
         onlyOwner
         returns (uint256)

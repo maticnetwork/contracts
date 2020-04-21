@@ -543,7 +543,7 @@ contract StakeManager is IStakeManager {
                 // add delegation power
                 if (validator.contractAddress != address(0x0)) {
                     valPow = ValidatorShare(validator.contractAddress)
-                        .udpateRewards(_reward, stakePower);
+                        .updateRewards(_reward, stakePower);
                 } else {
                     valPow = validator.amount;
                     validator.reward = validator.reward.add(
