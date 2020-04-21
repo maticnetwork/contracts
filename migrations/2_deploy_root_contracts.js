@@ -23,6 +23,7 @@ const DepositManager = artifacts.require('DepositManager')
 const WithdrawManager = artifacts.require('WithdrawManager')
 const StakeManager = artifacts.require('StakeManager')
 const StakeManagerProxy = artifacts.require('StakeManagerProxy')
+const SlashingManager = artifacts.require('SlashingManager')
 const StakingInfo = artifacts.require('StakingInfo')
 const StakingNFT = artifacts.require('StakingNFT')
 const TestToken = artifacts.require('TestToken')
@@ -99,6 +100,7 @@ const libDeps = [
     lib: RLPReader,
     contracts: [
       RootChain,
+      StakeManager,
       ERC20Predicate,
       ERC721Predicate,
       MintableERC721Predicate,
@@ -117,6 +119,7 @@ const libDeps = [
       MarketplacePredicateTest,
       TransferWithSigPredicate,
       StakeManager,
+      SlashingManager,
       StakingInfo
     ]
   },
@@ -159,6 +162,7 @@ module.exports = async function (deployer, network) {
     await deployer.deploy(StakeManager)
     await deployer.deploy(StakeManagerProxy, StakeManager.address, Registry.address, RootChain.address, TestToken.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address, Governance.address)
     await deployer.deploy(StakeManagerTest, Registry.address, RootChain.address, TestToken.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address, Governance.address)
+    await deployer.deploy(SlashingManager, Registry.address, StakingInfo.address)
     let stakingNFT = await StakingNFT.deployed()
     await stakingNFT.transferOwnership(StakeManagerProxy.address)
 
