@@ -39,7 +39,7 @@ contract('DrainStakeManager', async function ([owner, ...accounts]) {
             this.governance = contracts.governance;
             this.stakeToken = contracts.stakeToken;
             this.stakeManager = contracts.stakeManager;
-            this.proxy = contracts.proxy;
+            this.proxy = contracts.stakeManagerProxy;
             this.stakeManagerImpl = contracts.stakeManagerImpl;
 
             await this.stakeManager.updateCheckPointBlockInterval(1);
