@@ -13,6 +13,11 @@ module.exports = {
   // to customize your Truffle configuration!
   networks: {
     development: {
+      provider: () =>
+        new HDWalletProvider(
+          MNEMONIC,
+          `http://localhost:9545`
+        ),
       host: 'localhost',
       port: 9545,
       network_id: '*', // match any network

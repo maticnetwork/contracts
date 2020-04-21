@@ -19,13 +19,13 @@ const alicePrivateKey = wallets[0].getPrivateKeyString()
 const alice = toChecksumAddress(wallets[0].getAddressString())
 let childContracts, erc20
 
-contract('ChildErc20', async function(accounts) {
-  beforeEach(async function() {
+contract('ChildErc20', async function (accounts) {
+  beforeEach(async function () {
     childContracts = await deployer.initializeChildChain(accounts[0], { updateRegistry: false })
     erc20 = await deployer.deployChildErc20(accounts[0], { mapToken: false })
   })
 
-  it('transfer', async function() {
+  it('transfer', async function () {
     const depositAmount = web3.utils.toBN('10')
     const tokenIdOrAmount = web3.utils.toBN('3')
     await utils.deposit(null, childContracts.childChain, erc20.rootERC20, alice, depositAmount)
@@ -48,10 +48,15 @@ contract('ChildErc20', async function(accounts) {
     expect(parsedLogs[1].args).to.include({ from: alice })
   })
 
-  it('transferWithSig', async function() {
+  it('transferWithSig', async function () {
     const depositAmount = web3.utils.toBN('10')
     await utils.deposit(null, childContracts.childChain, erc20.rootERC20, alice, depositAmount)
-    const spender = accounts[1]
+    // const spender = accounts[1]
+    // console.log("accounts[1] balance:"+ web3.utils.fromWei(await web3.eth.getBalance(accounts[1]),'ether'));
+
+    const spender = await web3.eth.personal.newAccount("password")
+    await web3.eth.sendTransaction({ from: accounts[0], to: spender, value: web3.utils.toWei('10', "ether") })
+
     const data = '0x' + crypto.randomBytes(32).toString('hex')
     const tokenIdOrAmount = web3.utils.toBN('3')
     const expiration = (await utils.web3Child.eth.getBlockNumber()) + 10
@@ -66,6 +71,7 @@ contract('ChildErc20', async function(accounts) {
     const to = '0x' + crypto.randomBytes(20).toString('hex')
     assert.strictEqual((await erc20.childToken.balanceOf(alice)).toString(), depositAmount.toString())
     assert.strictEqual((await erc20.childToken.balanceOf(to)).toString(), '0')
+    await web3.eth.personal.unlockAccount(spender, "password", 1000000000000)
     const { receipt } = await erc20.childToken.transferWithSig(sig, tokenIdOrAmount, data, expiration, to, { from: spender })
     // await utils.writeToFile('child/erc20-transferWithSig.js', receipt)
     assert.strictEqual((await erc20.childToken.balanceOf(alice)).toString(), depositAmount.sub(tokenIdOrAmount).toString())
