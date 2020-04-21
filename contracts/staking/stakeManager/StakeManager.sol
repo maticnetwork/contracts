@@ -16,9 +16,9 @@ import {ValidatorShare} from "../validatorShare/ValidatorShare.sol";
 import {StakingInfo} from "../StakingInfo.sol";
 import {StakingNFT} from "./StakingNFT.sol";
 import "../validatorShare/ValidatorShareFactory.sol";
+import {StakeManagerStorage} from "./StakeManagerStorage.sol";
 
-
-contract StakeManager is IStakeManager {
+contract StakeManager is IStakeManager, StakeManagerStorage {
     using SafeMath for uint256;
     using ECVerify for bytes32;
     using Merkle for bytes32;
@@ -42,6 +42,18 @@ contract StakeManager is IStakeManager {
 
     function ownerOf(uint256 tokenId) public view returns (address) {
         return NFTContract.ownerOf(tokenId);
+    }
+
+    function epoch() public view returns(uint256) {
+        return currentEpoch;
+    }
+
+    function withdrawalDelay() public view returns(uint256) {
+        return WITHDRAWAL_DELAY;
+    }
+
+    function validatorStake(uint256 validatorId) public view returns(uint256) {
+        return validators[validatorId].amount;
     }
 
     function _topUpForFee(uint256 validatorId, uint256 amount) private {
