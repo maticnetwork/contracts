@@ -511,21 +511,14 @@ contract StakeManager is IStakeManager {
 
     function checkSignatures(
         uint256 blockInterval,
-        uint256 slashedAmount,
-        bytes32 slashAccHash,
         bytes32 voteHash,
         bytes32 stateRoot,
         bytes memory sigs
     ) public onlyRootChain returns (uint256) {
-        ISlashingManager slashingManager = ISlashingManager(
-            Registry(registry).getSlashingManagerAddress()
-        );
-        require(slashingManager.amountToSlash() == 0, "Incomplete slashing");
         // checkpoint rewards are based on BlockInterval multiplied on `CHECKPOINT_REWARD`
         // for bigger checkpoints reward is capped at `CHECKPOINT_REWARD`
         // if interval is 50% of checkPointBlockInterval then reward R is half of `CHECKPOINT_REWARD`
         // and then stakePower is 90% of currentValidatorSetTotalStake then final reward is 90% of R
-        // require(slashing != true, "Pending slashing operation");
         uint256 _reward = blockInterval.mul(CHECKPOINT_REWARD).div(
             checkPointBlockInterval
         );
@@ -535,15 +528,6 @@ contract StakeManager is IStakeManager {
         // update stateMerkleTree root for accounts balance on heimdall chain
         accountStateRoot = stateRoot;
         _finalizeCommit();
-        // slash
-        if (slashedAmount > 0) {
-            require(
-                slashedAmount <=
-                    currentValidatorSetTotalStake().mul(1).div(3).add(1),
-                "Slashed amount must be less then 1/3"
-            );
-            slashingManager.initiateSlashing(slashedAmount, slashAccHash);
-        }
         return checkSignature(stakePower, _reward, voteHash, sigs);
     }
 
@@ -596,17 +580,19 @@ contract StakeManager is IStakeManager {
         address reporter,
         uint256 reportRate,
         bytes memory _validators,
-        bytes memory _amounts
+        bytes memory _amounts,
+        bytes memory _isJailed
     ) public returns (uint256) {
         require(Registry(registry).getSlashingManagerAddress() == msg.sender);
         RLPReader.RLPItem[] memory validatorList = _validators
             .toRlpItem()
             .toList();
         RLPReader.RLPItem[] memory amounts = _amounts.toRlpItem().toList();
+        RLPReader.RLPItem[] memory isJailed = _isJailed.toRlpItem().toList();
         require(validatorList.length == amounts.length, "Incorrect Data");
+        int256 valJailed = 0;
         uint256 _totalAmount;
         for (uint256 i = 0; i < validatorList.length; i++) {
-            //amounts[i]
             uint256 _amount = amounts[i].toUint();
             _totalAmount = _totalAmount.add(_amount);
             uint256 validatorId = validatorList[i].toUint();
@@ -621,23 +607,62 @@ contract StakeManager is IStakeManager {
             validators[validatorId].amount = validators[validatorId].amount.sub(
                 _amount
             );
-            // if (validators[validatorId].amount < minDeposit) {
-            // some more conditions
-            // jail(validatorId, jailCheckpoints);
-            // jailedVal++
-            // }
+            if (isJailed.toBoolean()) {
+                _jail(validatorId, 1);
+                valJailed = valJailed.add(1);
+            }
         }
 
         //update timeline
-        updateTimeLine(currentEpoch, -int256(_totalAmount), 0);
+        updateTimeLine(currentEpoch, -int256(_totalAmount), -valJailed);
         logger.logSlashed(_totalAmount);
         // figure out where to put the rest of amount(burn or add to rewards pool)
         // Transfer bounty to slashing reporter
         require(
             token.transfer(reporter, _totalAmount.mul(reportRate).div(100)),
-            "Rewards transfer failed"
+            "Bounty transfer failed"
         );
         return _totalAmount;
+    }
+
+    function unJail(uint256 validatorId) public onlyStaker(validatorId) {
+        require(validators[validatorId].status == Status.Locked);
+        require(
+            validators[validatorId].jailTime <= currentEpoch,
+            "Incomplete jail period"
+        );
+
+        uint256 amount = validators[validatorId].amount;
+        require(amount >= MIN_DEPOSIT_SIZE);
+
+        int256 delegationAmount = 0;
+        if (validators[validatorId].contractAddress != address(0x0)) {
+            delegationAmount = ValidatorShare(
+                validators[validatorId]
+                    .contractAddress
+            )
+                .unLock();
+        }
+
+        // undo timline so that validator is normal validator
+        updateTimeLine(exitEpoch, (int256(amount) + delegationAmount), 1);
+
+        validators[validatorId].deactivationEpoch = 0;
+        validators[validatorId].status = Status.Active;
+    }
+
+    function _jail(uint256 validatorId, uint256 _jailCheckpoints) internal {
+        if (validators[validatorId].contractAddress != address(0x0)) {
+            delegationAmount = ValidatorShare(
+                validators[validatorId]
+                    .contractAddress
+            )
+                .lock();
+        }
+        validators[validatorId].deactivationEpoch = currentEpoch;
+        validators[validatorId].jailTime = currentEpoch.add(_jailCheckpoints);
+        validators[validatorId].status = Status.Locked;
+        emit Jailed(validatorId, currentEpoch);
     }
 
     function _stakeFor(

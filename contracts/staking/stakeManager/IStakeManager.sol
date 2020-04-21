@@ -64,7 +64,8 @@ contract IStakeManager is StakeManagerStorage {
         address reporter,
         uint256 reportRate,
         bytes memory _validators,
-        bytes memory _amounts
+        bytes memory _amounts,
+        bytes memory _isJailed
     ) public returns (uint256);
     // optional
     // function lastStakedFor(address addr) external view returns (uint256);
