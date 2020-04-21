@@ -219,7 +219,7 @@ contract('DepositManager', async function(accounts) {
       } catch(e) {
         expect(e.reason).to.equal('Is Locked')
       }
-    })
+    }) 
 
     it('depositERC721 reverts', async function() {
       const testToken = await deployer.deployTestErc721()
