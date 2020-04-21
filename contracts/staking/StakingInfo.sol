@@ -73,6 +73,7 @@ contract StakingInfo {
     );
     event ReStaked(uint256 indexed validatorId, uint256 amount, uint256 total);
     event Jailed(uint256 indexed validatorId, uint256 indexed exitEpoch);
+    event UnJailed(uint256 indexed validatorId);
     event Slashed(uint256 indexed amount);
     event ThresholdChange(uint256 newThreshold, uint256 oldThreshold);
     event DynastyValueChange(uint256 newDynasty, uint256 oldDynasty);
@@ -226,6 +227,10 @@ contract StakingInfo {
         onlyStakeManager
     {
         emit Jailed(validatorId, exitEpoch);
+    }
+
+    function logUnJailed(uint256 validatorId) public onlyStakeManager {
+        emit UnJailed(validatorId);
     }
 
     function logSlashed(uint256 amount) public onlyStakeManager {

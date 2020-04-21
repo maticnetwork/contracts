@@ -649,6 +649,7 @@ contract StakeManager is IStakeManager {
 
         validators[validatorId].deactivationEpoch = 0;
         validators[validatorId].status = Status.Active;
+        logger.UnJailed(validatorId);
     }
 
     function _jail(uint256 validatorId, uint256 _jailCheckpoints) internal {
@@ -662,7 +663,7 @@ contract StakeManager is IStakeManager {
         validators[validatorId].deactivationEpoch = currentEpoch;
         validators[validatorId].jailTime = currentEpoch.add(_jailCheckpoints);
         validators[validatorId].status = Status.Locked;
-        emit Jailed(validatorId, currentEpoch);
+        logger.logJailed(validatorId, currentEpoch);
     }
 
     function _stakeFor(
