@@ -1,19 +1,16 @@
 pragma solidity ^0.5.2;
 
-import {RLPReader} from "solidity-rlp/contracts/RLPReader.sol";
 import {Ownable} from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import {StakeManager} from "../stakeManager/StakeManager.sol";
-import {ECVerify} from "../../common/lib/ECVerify.sol";
 import {Registry} from "../../common/Registry.sol";
 import {StakingInfo} from "../StakingInfo.sol";
 import "./ISlashingManager.sol";
 
 
 contract SlashingManager is ISlashingManager, Ownable {
-    using ECVerify for bytes32;
-    using RLPReader for bytes;
-    using RLPReader for RLPReader.RLPItem;
+    using SafeMath for uint256;
 
     modifier onlyStakeManager() {
         require(registry.getStakeManagerAddress() == msg.sender);
@@ -61,7 +58,7 @@ contract SlashingManager is ISlashingManager, Ownable {
         require(
             stakeManager.transferfunds(
                 0, //placeholder
-                ((slashedAmount * reportRate) / 100), //safeMath
+                (slashedAmount.mul(reportRate)).div(100),
                 msg.sender
             ),
             "Bounty transfer failed"

@@ -59,8 +59,6 @@ contract IStakeManager is StakeManagerStorage {
     function ownerOf(uint256 tokenId) public view returns (address);
 
     function slash(
-        address reporter,
-        uint256 reportRate,
         bytes memory _validators,
         bytes memory _amounts,
         bytes memory _isJailed
