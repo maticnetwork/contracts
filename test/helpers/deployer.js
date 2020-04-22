@@ -104,7 +104,10 @@ class Deployer {
       registry: this.registry,
       rootChain: this.rootChain,
       stakeManager: this.stakeManager,
-      stakeToken: this.stakeToken
+      stakeToken: this.stakeToken,
+      governance: this.governance,
+      stakeManagerProxy: proxy,
+      stakeManagerImpl: stakeManager
     }
     return _contracts
   }

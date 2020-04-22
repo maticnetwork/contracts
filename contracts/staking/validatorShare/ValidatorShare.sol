@@ -17,7 +17,7 @@ contract ValidatorShare is IValidatorShare {
         _;
     }
 
-    function udpateRewards(uint256 _reward, uint256 _totalStake)
+    function updateRewards(uint256 _reward, uint256 _totalStake)
         external
         onlyOwner
         returns (uint256)
@@ -33,8 +33,7 @@ contract ValidatorShare is IValidatorShare {
       - returns total active stake for validator
      */
         uint256 stakePower;
-        uint256 valStake;
-        (valStake, , , , , , , ) = stakeManager.validators(validatorId); // to avoid Stack too deep :cry
+        uint256 valStake = stakeManager.validatorStake(validatorId);
         stakePower = valStake.add(activeAmount); // validator + delegation stake power
         uint256 _rewards = stakePower.mul(_reward).div(_totalStake);
 
@@ -55,9 +54,9 @@ contract ValidatorShare is IValidatorShare {
         external
         onlyValidator
     {
-        uint256 currentEpoch = stakeManager.currentEpoch();
+        uint256 epoch = stakeManager.epoch();
         require(
-            lastUpdate.add(commissionCooldown) <= currentEpoch,
+            lastUpdate.add(commissionCooldown) <= epoch,
             "Commission rate update cool down period"
         );
         require(
@@ -70,7 +69,7 @@ contract ValidatorShare is IValidatorShare {
             commissionRate
         );
         commissionRate = newCommissionRate;
-        lastUpdate = currentEpoch;
+        lastUpdate = epoch;
     }
 
     function withdrawRewardsValidator()
@@ -128,8 +127,8 @@ contract ValidatorShare is IValidatorShare {
         amountStaked[msg.sender] = 0;
         delegators[msg.sender] = Delegator({
             amount: _amount,
-            withdrawEpoch: stakeManager.currentEpoch().add(
-                stakeManager.WITHDRAWAL_DELAY()
+            withdrawEpoch: stakeManager.epoch().add(
+                stakeManager.withdrawalDelay()
             )
         });
 
@@ -203,7 +202,7 @@ contract ValidatorShare is IValidatorShare {
         Delegator storage delegator = delegators[msg.sender];
         totalStake = totalStake.sub(delegator.amount);
         require(
-            delegator.withdrawEpoch <= stakeManager.currentEpoch() &&
+            delegator.withdrawEpoch <= stakeManager.epoch() &&
                 delegator.amount > 0,
             "Incomplete withdrawal period"
         );
