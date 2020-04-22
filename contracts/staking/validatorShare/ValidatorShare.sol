@@ -90,7 +90,10 @@ contract ValidatorShare is IValidatorShare {
     }
 
     function withdrawExchangeRate() public view returns (uint256) {
-        return withdrawPool.mul(100).div(withdrawShares);
+        return
+            withdrawShares == 0
+                ? 100
+                : withdrawPool.mul(100).div(withdrawShares);
     }
 
     function buyVoucher(uint256 _amount) public onlyWhenUnlocked {
