@@ -438,7 +438,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
 
         uint mainIndex = 0;
         if (blockNumber > startBlock && blockProof.length > 0) {
-            mainIndex = (blockNumber - startBlock) % blockProof.length;
+            mainIndex = (blockNumber - startBlock) % (2 ** (blockProof.length / 32));
         }
         require(
             keccak256(
