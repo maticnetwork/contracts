@@ -274,7 +274,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 amount,
         address delegator
     ) external returns (bool) {
-        require(validators[validatorId].contractAddress == msg.sender);
+        require(
+            validators[validatorId].contractAddress == msg.sender,
+            "Invalid contract address"
+        );
         return token.transfer(delegator, amount);
     }
 
@@ -283,7 +286,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 amount,
         address delegator
     ) external returns (bool) {
-        require(validators[validatorId].contractAddress == msg.sender);
+        require(
+            validators[validatorId].contractAddress == msg.sender,
+            "Invalid contract address"
+        );
         return token.transferFrom(delegator, address(this), amount);
     }
 
@@ -440,8 +446,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     }
 
     function updateValidatorState(uint256 validatorId, int256 amount) public {
-        require(validators[validatorId].contractAddress == msg.sender);
-        // require(epoch >= currentEpoch, "Can't change past");
+        require(
+            validators[validatorId].contractAddress == msg.sender,
+            "Invalid contract address"
+        );
         validatorState[currentEpoch].amount = (validatorState[currentEpoch]
             .amount + amount);
     }
