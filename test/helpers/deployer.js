@@ -94,17 +94,24 @@ class Deployer {
       this.governance.address
     )
     this.stakeManager = await contracts.StakeManager.at(proxy.address)
+    this.slashingManager = await contracts.SlashingManager.new(this.registry.address, this.stakingInfo.address)
 
     await this.stakingNFT.transferOwnership(this.stakeManager.address)
     await this.updateContractMap(
       ethUtils.keccak256('stakeManager'),
       this.stakeManager.address
     )
+    await this.updateContractMap(
+      ethUtils.keccak256('slashingManager'),
+      this.slashingManager.address
+    )
     let _contracts = {
       registry: this.registry,
       rootChain: this.rootChain,
       stakeManager: this.stakeManager,
-      stakeToken: this.stakeToken
+      stakeToken: this.stakeToken,
+      slashingManager: this.slashingManager,
+      stakingInfo: this.stakingInfo
     }
     return _contracts
   }

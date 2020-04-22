@@ -3,7 +3,7 @@ import chaiAsPromised from 'chai-as-promised'
 import utils from 'ethereumjs-util'
 
 import deployer from '../helpers/deployer.js'
-import { TestToken, ValidatorShare, StakingInfo } from '../helpers/artifacts'
+import { TestToken, ValidatorShare } from '../helpers/artifacts'
 import logDecoder from '../helpers/log-decoder.js'
 
 import { checkPoint, assertBigNumberEquality, assertBigNumbergt } from '../helpers/utils.js'
