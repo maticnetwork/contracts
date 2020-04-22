@@ -63,8 +63,4 @@ contract IStakeManager is StakeManagerStorage {
         bytes memory _amounts,
         bytes memory _isJailed
     ) public returns (uint256);
-    // optional
-    // function lastStakedFor(address addr) external view returns (uint256);
-    // function totalStakedForAt(address addr, uint256 blockNumber) external view returns (uint256);
-    // function totalStakedAt(uint256 blockNumber) external view returns (uint256);
 }

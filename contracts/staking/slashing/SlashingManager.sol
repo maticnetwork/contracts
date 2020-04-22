@@ -37,17 +37,12 @@ contract SlashingManager is ISlashingManager, Ownable {
         require(slashingNonce < _slashingNonce, "Invalid slashing nonce");
         (stakePower, activeTwoByThree) = logger.verifyConsensus(
             keccak256(
-                abi.encodePacked(
-                    _validators,
-                    _amounts,
-                    _isJailed,
-                    _slashingNonce
-                )
+                abi.encode(_validators, _amounts, _isJailed, _slashingNonce)
             ),
             sigs
         );
         slashingNonce = _slashingNonce;
-        require(stakePower <= activeTwoByThree, "2/3+1 Power required");
+        require(stakePower >= activeTwoByThree, "2/3+1 Power required");
         uint256 slashedAmount = stakeManager.slash(
             _validators,
             _amounts,
