@@ -50,7 +50,7 @@ contract IValidatorShare is ERC20, Lockable, Ownable {
         _transferOwnership(_stakeManager);
     }
 
-    function udpateRewards(uint256 _reward, uint256 _totalStake)
+    function updateRewards(uint256 _reward, uint256 _totalStake)
         external
         returns (uint256);
 
