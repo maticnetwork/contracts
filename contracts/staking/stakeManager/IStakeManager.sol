@@ -46,10 +46,6 @@ contract IStakeManager {
     ) public returns (uint256);
     function updateValidatorState(uint256 validatorId, int256 amount) public;
     function ownerOf(uint256 tokenId) public view returns (address);
-    // optional
-    // function lastStakedFor(address addr) external view returns (uint256);
-    // function totalStakedForAt(address addr, uint256 blockNumber) external view returns (uint256);
-    // function totalStakedAt(uint256 blockNumber) external view returns (uint256);
     function validatorStake(uint256 validatorId) public view returns(uint256);
     function epoch() public view returns(uint256);
     function withdrawalDelay() public view returns(uint256);

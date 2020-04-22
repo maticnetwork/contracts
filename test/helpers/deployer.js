@@ -106,7 +106,7 @@ class Deployer {
       stakeManager: this.stakeManager,
       stakeToken: this.stakeToken,
       governance: this.governance,
-      proxy: proxy,
+      stakeManagerProxy: proxy,
       stakeManagerImpl: stakeManager
     }
     return _contracts

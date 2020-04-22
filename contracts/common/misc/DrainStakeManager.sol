@@ -7,6 +7,6 @@ contract DrainStakeManager is StakeManagerStorage {
     constructor() public Lockable(address(0x0)) {}
 
     function drain(address destination, uint amount) external onlyGovernance {
-        require(token.transfer(destination, amount));
+        require(token.transfer(destination, amount), "Drain failed");
     }
 }
