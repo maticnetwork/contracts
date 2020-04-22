@@ -120,7 +120,7 @@ contract ValidatorShare is IValidatorShare {
             uint256 _rewards = _amount.sub(amountStaked[msg.sender]);
             //withdrawTransfer
             require(
-                stakeManager.transferfunds(validatorId, _rewards, msg.sender),
+                stakeManager.transferFunds(validatorId, _rewards, msg.sender),
                 "Insufficent rewards"
             );
             _amount = _amount.sub(_rewards);
@@ -151,7 +151,7 @@ contract ValidatorShare is IValidatorShare {
         _burn(msg.sender, sharesToBurn);
         rewards = rewards.sub(liquidRewards);
         require(
-            stakeManager.transferfunds(validatorId, liquidRewards, msg.sender),
+            stakeManager.transferFunds(validatorId, liquidRewards, msg.sender),
             "Insufficent rewards"
         );
         stakingLogger.logDelClaimRewards(
@@ -173,7 +173,7 @@ contract ValidatorShare is IValidatorShare {
         totalStake = totalStake.add(liquidRewards);
         activeAmount = activeAmount.add(liquidRewards);
         require(
-            stakeManager.transferfunds(
+            stakeManager.transferFunds(
                 validatorId,
                 liquidRewards,
                 address(this)
@@ -216,7 +216,7 @@ contract ValidatorShare is IValidatorShare {
         totalStake = totalStake.sub(_amount);
 
         require(
-            stakeManager.transferfunds(validatorId, _amount, msg.sender),
+            stakeManager.transferFunds(validatorId, _amount, msg.sender),
             "Insufficent rewards"
         );
         stakingLogger.logDelUnstaked(validatorId, msg.sender, _amount);

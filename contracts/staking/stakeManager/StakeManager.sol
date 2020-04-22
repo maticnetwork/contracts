@@ -261,7 +261,7 @@ contract StakeManager is IStakeManager {
         factory = ValidatorShareFactory(_ValidatorShareFactory);
     }
 
-    function transferfunds(
+    function transferFunds(
         uint256 validatorId,
         uint256 amount,
         address delegator

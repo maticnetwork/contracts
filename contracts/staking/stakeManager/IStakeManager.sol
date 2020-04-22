@@ -14,7 +14,7 @@ contract IStakeManager is StakeManagerStorage {
         bytes calldata signerPubkey
     ) external;
 
-    function transferfunds(
+    function transferFunds(
         uint256 validatorId,
         uint256 amount,
         address delegator

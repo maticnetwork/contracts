@@ -51,7 +51,7 @@ contract SlashingManager is ISlashingManager, Ownable {
         // figure out where to put the rest of amount(burn or add to rewards pool)
         // Transfer bounty to slashing reporter
         require(
-            stakeManager.transferfunds(
+            stakeManager.transferFunds(
                 0, //placeholder
                 (slashedAmount.mul(reportRate)).div(100),
                 msg.sender
