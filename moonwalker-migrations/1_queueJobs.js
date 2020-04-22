@@ -41,7 +41,7 @@ async function deploy() {
 
   await deployer.deploy(transformArtifact('StakeManager'))
   await deployer.deploy(transformArtifact('StakeManagerProxy', ['StakeManager', 'Registry', 'RootChainProxy', 'TestToken', 'StakingNFT', 'StakingInfo', 'ValidatorShareFactory', 'GovernanceProxy']))
-
+  await deployer.deploy(transformArtifact('SlashingManager', ['Registry', 'StakingInfo']))
   await deployer.deploy(transformArtifact('StateSender'))
 
   await deployer.deploy(transformArtifact('DepositManager'))
