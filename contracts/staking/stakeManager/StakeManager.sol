@@ -648,7 +648,7 @@ contract StakeManager is IStakeManager {
 
         validators[validatorId].deactivationEpoch = 0;
         validators[validatorId].status = Status.Active;
-        logger.logUnJailed(validatorId);
+        logger.logUnJailed(validatorId, validators[validatorId].signer);
     }
 
     function _jail(uint256 validatorId, uint256 _jailCheckpoints)
@@ -666,7 +666,11 @@ contract StakeManager is IStakeManager {
         validators[validatorId].deactivationEpoch = currentEpoch;
         validators[validatorId].jailTime = currentEpoch.add(_jailCheckpoints);
         validators[validatorId].status = Status.Locked;
-        logger.logJailed(validatorId, currentEpoch);
+        logger.logJailed(
+            validatorId,
+            currentEpoch,
+            validators[validatorId].signer
+        );
         return validators[validatorId].amount.add(delegationAmount);
     }
 
