@@ -47,8 +47,8 @@ contract('StakeManager: unit test governance, delegation contract only functions
       }
       // delegationTransfer
       try {
-        await stakeManager.delegationTransfer(1, 1, wallets[1].getAddressString())
-        assert.fail('Modifier check failed: delegationTransfer')
+        await stakeManager.transferfunds(1, 1, wallets[1].getAddressString())
+        assert.fail('Modifier check failed: transferfunds')
       } catch (error) {
         const invalidOpcode = error.message.search('revert Invalid contract address') >= 0
         assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
