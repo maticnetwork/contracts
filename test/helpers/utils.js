@@ -51,11 +51,34 @@ export async function checkPoint(wallets, proposer, stakeManager, options = {}) 
   )
   const stateRoot = ethUtils.bufferToHex(ethUtils.keccak256('stateRoot'))
   // 2/3 majority vote
-
   await stakeManager.checkSignatures(
     1,
     ethUtils.bufferToHex(ethUtils.keccak256(voteData)),
     stateRoot,
+    sigs,
+    {
+      from: proposer.getAddressString()
+    }
+  )
+}
+
+export async function updateSlashedAmounts(wallets, proposer, _slashingNonce, validators, amounts, isJailed, slashingManager, options = {}) {
+  let _amounts = ethUtils.toBuffer(ethUtils.rlp.encode(amounts))
+  let _validators = ethUtils.toBuffer(ethUtils.rlp.encode(validators))
+  let _isJailed = ethUtils.toBuffer((ethUtils.rlp.encode(isJailed)))
+  // 2/3+1 majority vote
+  let voteData = web3.eth.abi.encodeParameters(
+    ['bytes', 'bytes', 'bytes', 'uint256'],
+    [_validators, _amounts, _isJailed, _slashingNonce]
+  )
+  const sigs = ethUtils.bufferToHex(
+    encodeSigs(getSigs(wallets, ethUtils.keccak256(voteData)))
+  )
+  return slashingManager.updateSlashedAmounts(
+    _slashingNonce,
+    ethUtils.bufferToHex(_validators),
+    ethUtils.bufferToHex(_amounts),
+    ethUtils.bufferToHex(_isJailed),
     sigs,
     {
       from: proposer.getAddressString()
