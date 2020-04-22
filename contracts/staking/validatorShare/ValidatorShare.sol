@@ -226,6 +226,9 @@ contract ValidatorShare is IValidatorShare {
         returns (uint256)
     {
         uint256 delegationAmount = activeAmount.add(withdrawPool);
+        if (delegationAmount == 0) {
+            return totalAmountToSlash;
+        }
         // total amount to be slashed from delegation pool (active + inactive)
         uint256 _amountToSlash = delegationAmount.mul(totalAmountToSlash).div(
             valPow.add(delegationAmount)
