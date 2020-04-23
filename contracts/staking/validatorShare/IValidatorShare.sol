@@ -24,6 +24,7 @@ contract IValidatorShare is ERC20, Lockable, Ownable {
     //last checkpoint where validator updated commission rate
     uint256 public lastUpdate;
     uint256 public validatorDelegatorRatio = 10;
+    uint256 public minAmount = 10**18;
 
     uint256 public totalStake;
     uint256 public rewards;
@@ -49,7 +50,7 @@ contract IValidatorShare is ERC20, Lockable, Ownable {
         _transferOwnership(_stakeManager);
     }
 
-    function udpateRewards(uint256 _reward, uint256 _totalStake)
+    function updateRewards(uint256 _reward, uint256 _totalStake)
         external
         returns (uint256);
 

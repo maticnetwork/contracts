@@ -17,7 +17,7 @@ contract ValidatorShare is IValidatorShare {
         _;
     }
 
-    function udpateRewards(uint256 _reward, uint256 _totalStake)
+    function updateRewards(uint256 _reward, uint256 _totalStake)
         external
         onlyOwner
         returns (uint256)
@@ -33,16 +33,17 @@ contract ValidatorShare is IValidatorShare {
       - returns total active stake for validator
      */
         uint256 stakePower;
-        uint256 valStake;
-        (valStake, , , , , , , ) = stakeManager.validators(validatorId); // to avoid Stack too deep :cry
+        uint256 valStake = stakeManager.validatorStake(validatorId);
         stakePower = valStake.add(activeAmount); // validator + delegation stake power
         uint256 _rewards = stakePower.mul(_reward).div(_totalStake);
 
         uint256 _valRewards = valStake.mul(_rewards).div(stakePower);
         // add validator commission from delegation rewards
-        _valRewards = _valRewards.add(
-            _rewards.sub(_valRewards).mul(commissionRate).div(100)
-        );
+        if (commissionRate > 0) {
+            _valRewards = _valRewards.add(
+                _rewards.sub(_valRewards).mul(commissionRate).div(100)
+            );
+        }
         _rewards = _rewards.sub(_valRewards);
         validatorRewards = validatorRewards.add(_valRewards);
         rewards = rewards.add(_rewards);
@@ -53,9 +54,9 @@ contract ValidatorShare is IValidatorShare {
         external
         onlyValidator
     {
-        uint256 currentEpoch = stakeManager.currentEpoch();
+        uint256 epoch = stakeManager.epoch();
         require(
-            lastUpdate.add(commissionCooldown) <= currentEpoch,
+            lastUpdate.add(commissionCooldown) <= epoch,
             "Commission rate update cool down period"
         );
         require(
@@ -68,7 +69,7 @@ contract ValidatorShare is IValidatorShare {
             commissionRate
         );
         commissionRate = newCommissionRate;
-        lastUpdate = currentEpoch;
+        lastUpdate = epoch;
     }
 
     function withdrawRewardsValidator()
@@ -129,8 +130,8 @@ contract ValidatorShare is IValidatorShare {
         //TODO: check if exists @ayush then update amount, reWrite new withdraw delay
         delegators[msg.sender] = Delegator({
             amount: _amount,
-            withdrawEpoch: stakeManager.currentEpoch().add(
-                stakeManager.WITHDRAWAL_DELAY()
+            withdrawEpoch: stakeManager.epoch().add(
+                stakeManager.withdrawalDelay()
             )
         });
 
@@ -140,6 +141,7 @@ contract ValidatorShare is IValidatorShare {
 
     function withdrawRewards() public {
         uint256 liquidRewards = getLiquidRewards(msg.sender);
+        require(liquidRewards >= minAmount, "Too small rewards amount");
         uint256 sharesToBurn = liquidRewards.mul(100).div(exchangeRate());
         _burn(msg.sender, sharesToBurn);
         rewards = rewards.sub(liquidRewards);
@@ -203,7 +205,7 @@ contract ValidatorShare is IValidatorShare {
         Delegator storage delegator = delegators[msg.sender];
         totalStake = totalStake.sub(delegator.amount);
         require(
-            delegator.withdrawEpoch <= stakeManager.currentEpoch() &&
+            delegator.withdrawEpoch <= stakeManager.epoch() &&
                 delegator.amount > 0,
             "Incomplete withdrawal period"
         );

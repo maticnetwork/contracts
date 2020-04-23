@@ -1,8 +1,6 @@
 pragma solidity ^0.5.2;
 
-import {StakeManagerStorage} from "./StakeManagerStorage.sol";
-
-contract IStakeManager is StakeManagerStorage {
+contract IStakeManager {
     // validator replacement
     function startAuction(uint256 validatorId, uint256 amount) external;
     function confirmAuctionBid(
@@ -48,8 +46,7 @@ contract IStakeManager is StakeManagerStorage {
     ) public returns (uint256);
     function updateValidatorState(uint256 validatorId, int256 amount) public;
     function ownerOf(uint256 tokenId) public view returns (address);
-    // optional
-    // function lastStakedFor(address addr) external view returns (uint256);
-    // function totalStakedForAt(address addr, uint256 blockNumber) external view returns (uint256);
-    // function totalStakedAt(uint256 blockNumber) external view returns (uint256);
+    function validatorStake(uint256 validatorId) public view returns(uint256);
+    function epoch() public view returns(uint256);
+    function withdrawalDelay() public view returns(uint256);
 }
