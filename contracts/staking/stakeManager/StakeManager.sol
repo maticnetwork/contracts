@@ -31,7 +31,10 @@ contract StakeManager is IStakeManager {
     constructor() public Lockable(address(0x0)) {}
 
     // TopUp heimdall fee
-    function topUpForFee(uint256 validatorId, uint256 heimdallFee) public {
+    function topUpForFee(uint256 validatorId, uint256 heimdallFee)
+        public
+        onlyWhenUnlocked
+    {
         require(heimdallFee >= minHeimdallFee, "Minimum amount is 1 Matic");
         require(
             token.transferFrom(msg.sender, address(this), heimdallFee),
@@ -108,7 +111,10 @@ contract StakeManager is IStakeManager {
         return false;
     }
 
-    function startAuction(uint256 validatorId, uint256 amount) external {
+    function startAuction(uint256 validatorId, uint256 amount)
+        external
+        onlyWhenUnlocked
+    {
         require(isValidator(validatorId));
         // when dynasty period is updated validators are in cool down period
         require(
@@ -283,6 +289,7 @@ contract StakeManager is IStakeManager {
     ) public onlyWhenUnlocked {
         require(currentValidatorSetSize() < validatorThreshold);
         require(amount > minDeposit);
+        require(heimdallFee >= minHeimdallFee, "Minimum amount is 1 Matic");
 
         require(
             token.transferFrom(
@@ -324,6 +331,7 @@ contract StakeManager is IStakeManager {
     // slashing and jail interface
     function restake(uint256 validatorId, uint256 amount, bool stakeRewards)
         public
+        onlyWhenUnlocked,
         onlyStaker(validatorId)
     {
         require(
