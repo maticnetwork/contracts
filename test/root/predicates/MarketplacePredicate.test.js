@@ -20,7 +20,7 @@ chai
   .should()
 const rlp = ethUtils.rlp
 
-contract.only('MarketplacePredicate', async function(accounts) {
+contract('MarketplacePredicate', async function(accounts) {
   let contracts, childContracts, marketplace, predicate, erc20Predicate, erc721Predicate, statefulUtils
   const amount1 = web3.utils.toBN('10')
   const amount2 = web3.utils.toBN('5')
