@@ -169,10 +169,8 @@ contract StakeManager is IStakeManager {
     ) external onlyWhenUnlocked {
         Auction storage auction = validatorAuction[validatorId];
         Validator storage validator = validators[validatorId];
-        /**
-            // any one can call confrimAuction
-            // require(auction.user == msg.sender);
-         */
+        require(msg.sender == auction.user, "Only bidder can confirm");
+
         require(
             currentEpoch.sub(auction.startEpoch) % auctionPeriod.add(dynasty) >=
                 auctionPeriod,
@@ -210,6 +208,7 @@ contract StakeManager is IStakeManager {
                 acceptDelegation,
                 signerPubkey
             );
+            require(heimdallFee >= minHeimdallFee, "Minimum amount is 1 Matic");
             _topUpForFee(NFTCounter.sub(1), heimdallFee);
 
             logger.logConfirmAuction(
@@ -606,6 +605,7 @@ contract StakeManager is IStakeManager {
 
     function _unstake(uint256 validatorId, uint256 exitEpoch) internal {
         uint256 amount = validators[validatorId].amount;
+        address validator = ownerOf(validatorId);
 
         validators[validatorId].deactivationEpoch = exitEpoch;
 
@@ -620,11 +620,11 @@ contract StakeManager is IStakeManager {
             rewards = rewards.add(validatorShare.withdrawRewardsValidator());
             validatorShare.lock();
         }
-        require(token.transfer(msg.sender, rewards), "Rewards transfer failed");
+        require(token.transfer(validator, rewards), "Rewards transfer failed");
         //  update future
         updateTimeLine(exitEpoch, -(int256(amount) + delegationAmount), -1);
 
-        logger.logUnstakeInit(msg.sender, validatorId, exitEpoch, amount);
+        logger.logUnstakeInit(validator, validatorId, exitEpoch, amount);
     }
 
     function _finalizeCommit() internal {
