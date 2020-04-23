@@ -126,6 +126,7 @@ contract ValidatorShare is IValidatorShare {
         activeAmount = activeAmount.sub(_amount);
 
         amountStaked[msg.sender] = 0;
+        //TODO: check if exists @ayush then update amount, reWrite new withdraw delay
         delegators[msg.sender] = Delegator({
             amount: _amount,
             withdrawEpoch: stakeManager.currentEpoch().add(
