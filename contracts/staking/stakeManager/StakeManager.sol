@@ -577,25 +577,19 @@ contract StakeManager is IStakeManager {
         return _reward;
     }
 
-    function slash(
-        bytes memory _validators,
-        bytes memory _amounts,
-        bytes memory _isJailed
-    ) public returns (uint256) {
+    function slash(bytes memory _slashingInfoList) public returns (uint256) {
         require(Registry(registry).getSlashingManagerAddress() == msg.sender);
-        RLPReader.RLPItem[] memory validatorList = _validators
+        RLPReader.RLPItem[] memory slashingInfoList = _slashingInfoList
             .toRlpItem()
             .toList();
-        RLPReader.RLPItem[] memory amounts = _amounts.toRlpItem().toList();
-        RLPReader.RLPItem[] memory isJailed = _isJailed.toRlpItem().toList();
-        require(validatorList.length == amounts.length, "Incorrect Data");
         int256 valJailed = 0;
         uint256 jailedAmount = 0;
         uint256 _totalAmount;
-        for (uint256 i = 0; i < validatorList.length; i++) {
-            uint256 _amount = amounts[i].toUint();
+        for (uint256 i = 0; i < slashingInfoList.length; i++) {
+            RLPReader.RLPItem[] memory slashData = slashingInfoList[i].toList();
+            uint256 validatorId = slashData[0].toUint();
+            uint256 _amount = slashData[1].toUint();
             _totalAmount = _totalAmount.add(_amount);
-            uint256 validatorId = validatorList[i].toUint();
             if (validators[validatorId].contractAddress != address(0x0)) {
                 uint256 delSlashedAmount = ValidatorShare(
                     validators[validatorId]
@@ -607,7 +601,7 @@ contract StakeManager is IStakeManager {
             validators[validatorId].amount = validators[validatorId].amount.sub(
                 _amount
             );
-            if (isJailed[i].toBoolean()) {
+            if (slashData[2].toBoolean()) {
                 jailedAmount = jailedAmount.add(_jail(validatorId, 1));
                 valJailed++;
             }
