@@ -21,7 +21,9 @@ contract('ValidatorShare', async function (accounts) {
   beforeEach(async function () {
     let user = wallets[1].getAddressString()
     const userPubkey = wallets[1].getPublicKeyString()
-    let amount = web3.utils.toWei('100')
+    let heimdallFee = web3.utils.toWei('2')
+    let amount = web3.utils.toWei('102')
+    let stakeAmount = web3.utils.toWei('100')
     const contracts = await deployer.freshDeploy({ stakeManager: true })
     registry = contracts.registry
     stakeManager = contracts.stakeManager
@@ -46,7 +48,7 @@ contract('ValidatorShare', async function (accounts) {
       from: user
     })
 
-    await stakeManager.stake(amount, 0, true, userPubkey, {
+    await stakeManager.stake(stakeAmount, heimdallFee, true, userPubkey, {
       from: user
     })
     let validator = await stakeManager.validators(1)
@@ -288,7 +290,10 @@ contract('ValidatorShare: commissionRate', async function (accounts) {
   beforeEach(async function () {
     let user = wallets[1].getAddressString()
     const userPubkey = wallets[1].getPublicKeyString()
-    let amount = web3.utils.toWei('100')
+    let heimdallFee = web3.utils.toWei('2')
+    let amount = web3.utils.toWei('102')
+    let stakeAmount = web3.utils.toWei('100')
+    
     const contracts = await deployer.freshDeploy({ stakeManager: true })
     registry = contracts.registry
     stakeManager = contracts.stakeManager
@@ -313,7 +318,7 @@ contract('ValidatorShare: commissionRate', async function (accounts) {
       from: user
     })
 
-    await stakeManager.stake(amount, 0, true, userPubkey, {
+    await stakeManager.stake(stakeAmount, heimdallFee, true, userPubkey, {
       from: user
     })
     let validator = await stakeManager.validators(1)

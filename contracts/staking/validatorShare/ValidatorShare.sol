@@ -91,7 +91,7 @@ contract ValidatorShare is IValidatorShare {
     function buyVoucher(uint256 _amount) public onlyWhenUnlocked {
         uint256 share = _amount.mul(100).div(exchangeRate());
         require(share > 0, "Insufficient amount to buy share ");
-        require(delegators[msg.sender].amount ==0, "Delegator has no rewards left");
+        require(delegators[msg.sender].amount ==0, "Ongoing exit");
 
         totalStake = totalStake.add(_amount);
         amountStaked[msg.sender] = amountStaked[msg.sender].add(_amount);
