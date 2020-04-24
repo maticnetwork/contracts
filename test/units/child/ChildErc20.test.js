@@ -1,13 +1,13 @@
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 
-import deployer from '../helpers/deployer.js'
-import logDecoder from '../helpers/log-decoder.js'
-import { getTransferSig } from '../helpers/marketplaceUtils'
-import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
-import { toChecksumAddress, assertBigNumberEquality } from '../helpers/utils.js'
+import deployer from '../../helpers/deployer.js'
+import { getTransferSig } from '../../helpers/marketplaceUtils'
+import { generateFirstWallets, mnemonics } from '../../helpers/wallets.js'
+import { toChecksumAddress } from '../../helpers/utils.js'
+import { expectEvent } from "@openzeppelin/test-helpers";
 
-const utils = require('../helpers/utils')
+const utils = require('../../helpers/utils')
 const crypto = require('crypto')
 
 chai
@@ -28,24 +28,18 @@ contract('ChildErc20', async function(accounts) {
   it('transfer', async function() {
     const depositAmount = web3.utils.toBN('10')
     const tokenIdOrAmount = web3.utils.toBN('3')
+
     await utils.deposit(null, childContracts.childChain, erc20.rootERC20, alice, depositAmount)
     const to = toChecksumAddress('0x' + crypto.randomBytes(20).toString('hex'))
     assert.strictEqual((await erc20.childToken.balanceOf(alice)).toString(), depositAmount.toString())
     assert.strictEqual((await erc20.childToken.balanceOf(to)).toString(), '0')
-    const { receipt } = await erc20.childToken.transfer(to, tokenIdOrAmount, { from: alice })
-    const parsedLogs = logDecoder.decodeLogs(receipt.rawLogs)
-    // console.log(parsedLogs)
+    const receipt = await erc20.childToken.transfer(to, tokenIdOrAmount, { from: alice })
 
-    assert.equal(parsedLogs[0].event, 'Transfer')
-    expect(parsedLogs[0].args).to.include({ from: alice, to })
-    assertBigNumberEquality(parsedLogs[0].args.value, tokenIdOrAmount)
-
-    assert.equal(parsedLogs[1].event, 'LogTransfer')
-    expect(parsedLogs[1].args).to.include({ token: toChecksumAddress(erc20.rootERC20.address), from: alice, to })
-    assertBigNumberEquality(parsedLogs[1].args.amount, tokenIdOrAmount)
-
-    assert.equal(parsedLogs[2].event, 'LogFeeTransfer')
-    expect(parsedLogs[1].args).to.include({ from: alice })
+    await expectEvent(receipt, 'Transfer', { from: alice, to, value: tokenIdOrAmount })
+    await expectEvent(receipt, 'LogTransfer', { amount: tokenIdOrAmount, token: toChecksumAddress(erc20.rootERC20.address), from: alice })
+    if (!process.env.SOLIDITY_COVERAGE) {
+      await expectEvent(receipt, 'LogFeeTransfer', { from: alice })
+    }
   })
 
   it('transferWithSig', async function() {

@@ -2,9 +2,9 @@
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 
-import deployer from '../helpers/deployer.js'
-import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
-import { assertBigNumberEquality } from '../helpers/utils.js'
+import deployer from '../../helpers/deployer.js'
+import { generateFirstWallets, mnemonics } from '../../helpers/wallets.js'
+import { assertBigNumberEquality } from '../../helpers/utils.js'
 
 chai.use(chaiAsPromised).should()
 

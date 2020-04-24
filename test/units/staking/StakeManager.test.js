@@ -4,24 +4,20 @@ import chaiAsPromised from 'chai-as-promised'
 import utils from 'ethereumjs-util'
 
 import {
-  StakeManager,
-  DummyERC20,
-  StakingInfo,
   ValidatorShare,
-  ValidatorShareFactory
-} from '../helpers/artifacts'
+} from '../../helpers/artifacts'
 
-import deployer from '../helpers/deployer.js'
-import logDecoder from '../helpers/log-decoder.js'
-import { rewradsTreeFee } from '../helpers/proofs.js'
+import deployer from '../../helpers/deployer.js'
+import logDecoder from '../../helpers/log-decoder.js'
+import { rewradsTreeFee } from '../../helpers/proofs.js'
 
 import {
   checkPoint,
   assertBigNumbergt,
   assertBigNumberEquality,
   buildSubmitHeaderBlockPaylod
-} from '../helpers/utils.js'
-import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
+} from '../../helpers/utils.js'
+import { generateFirstWallets, mnemonics } from '../../helpers/wallets.js'
 
 chai.use(chaiAsPromised).should()
 

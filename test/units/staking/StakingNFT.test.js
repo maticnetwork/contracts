@@ -1,9 +1,9 @@
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 
-import { StakingNFT } from '../helpers/artifacts'
+import { StakingNFT } from '../../helpers/artifacts.js'
 
-import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
+import { generateFirstWallets, mnemonics } from '../../helpers/wallets.js'
 
 chai.use(chaiAsPromised).should()
 

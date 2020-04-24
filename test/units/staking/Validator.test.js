@@ -2,12 +2,12 @@ import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import utils from 'ethereumjs-util'
 
-import deployer from '../helpers/deployer.js'
-import { TestToken, ValidatorShare, StakingInfo } from '../helpers/artifacts'
-import logDecoder from '../helpers/log-decoder.js'
+import deployer from '../../helpers/deployer.js'
+import { TestToken, ValidatorShare, StakingInfo } from '../../helpers/artifacts'
+import logDecoder from '../../helpers/log-decoder.js'
 
-import { checkPoint, assertBigNumberEquality, assertBigNumbergt } from '../helpers/utils.js'
-import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
+import { checkPoint, assertBigNumberEquality, assertBigNumbergt } from '../../helpers/utils.js'
+import { generateFirstWallets, mnemonics } from '../../helpers/wallets.js'
 
 chai.use(chaiAsPromised).should()
 

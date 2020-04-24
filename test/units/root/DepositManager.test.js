@@ -1,9 +1,9 @@
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 
-import deployer from '../helpers/deployer.js'
-import logDecoder from '../helpers/log-decoder.js'
-import * as utils from '../helpers/utils'
+import deployer from '../../helpers/deployer.js'
+import logDecoder from '../../helpers/log-decoder.js'
+import * as utils from '../../helpers/utils'
 
 const crypto = require('crypto')
 
@@ -12,7 +12,7 @@ chai
   .should()
 
 contract('DepositManager', async function(accounts) {
-  let depositManager, childContracts
+  let depositManager
   const amount = web3.utils.toBN('10').pow(web3.utils.toBN('18'))
 
   describe('deposits only on root', async function() {
@@ -32,7 +32,6 @@ contract('DepositManager', async function(accounts) {
         value,
         from: accounts[0]
       })
-      console.log('gasUsed', result.receipt.gasUsed)
       const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
 
       // Transfer, Deposit, StateSynced, NewDepositBlock
@@ -50,7 +49,6 @@ contract('DepositManager', async function(accounts) {
       const testToken = await deployer.deployTestErc20()
       await testToken.approve(depositManager.address, amount)
       const result = await depositManager.depositERC20(testToken.address, amount)
-      console.log('gasUsed', result.receipt.gasUsed)
       const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
 
       // Transfer, Approval (ERC20 updates the spender allowance), StateSynced, NewDepositBlock
@@ -69,7 +67,6 @@ contract('DepositManager', async function(accounts) {
       const user = accounts[1]
       await testToken.approve(depositManager.address, amount)
       const result = await depositManager.depositERC20ForUser(testToken.address, user, amount)
-      console.log('gasUsed', result.receipt.gasUsed)
       const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
 
       // Transfer, Approval (ERC20 updates the spender allowance), StateSynced, NewDepositBlock
@@ -89,7 +86,6 @@ contract('DepositManager', async function(accounts) {
       await testToken.mint(tokenId)
       await testToken.approve(depositManager.address, tokenId)
       const result = await depositManager.depositERC721(testToken.address, tokenId)
-      console.log('gasUsed', result.receipt.gasUsed)
       const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
 
       // Transfer, StateSynced, NewDepositBlock
@@ -110,7 +106,6 @@ contract('DepositManager', async function(accounts) {
       await testToken.mint(tokenId)
       await testToken.approve(depositManager.address, tokenId)
       const result = await depositManager.depositERC721ForUser(testToken.address, user, tokenId)
-      console.log('gasUsed', result.receipt.gasUsed)
       const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
 
       // Transfer, StateSynced, NewDepositBlock
@@ -145,7 +140,6 @@ contract('DepositManager', async function(accounts) {
       }
       const user = accounts[1]
       const result = await depositManager.depositBulk(tokens, amounts, user)
-      console.log(`gasUsed in ${NUM_DEPOSITS} ERC20 and ERC721 deposits each`, result.receipt.gasUsed)
       const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
       // assert events for erc20 transfers
       for (let i = 0; i < NUM_DEPOSITS; i++) {
@@ -268,48 +262,6 @@ contract('DepositManager', async function(accounts) {
       } catch(e) {
         expect(e.reason).to.equal('Is Locked')
       }
-    })
-  })
-
-  describe('deposits on root and child', async function() {
-
-    beforeEach(async function() {
-      const contracts = await deployer.freshDeploy()
-      depositManager = contracts.depositManager
-      childContracts = await deployer.initializeChildChain(accounts[0])
-    })
-
-    it('depositERC20', async function() {
-      const bob = accounts[1]
-      const e20 = await deployer.deployChildErc20(accounts[0])
-      await utils.deposit(
-        depositManager,
-        childContracts.childChain,
-        e20.rootERC20,
-        bob,
-        amount,
-        { rootDeposit: true, erc20: true }
-      )
-
-      // assert deposit on child chain
-      utils.assertBigNumberEquality(await e20.childToken.balanceOf(bob), amount)
-    })
-
-    it('deposit Matic Tokens', async function() {
-      const bob = '0x' + crypto.randomBytes(20).toString('hex')
-      const e20 = await deployer.deployMaticToken()
-      utils.assertBigNumberEquality(await e20.childToken.balanceOf(bob), 0)
-      await utils.deposit(
-        depositManager,
-        childContracts.childChain,
-        e20.rootERC20,
-        bob,
-        amount,
-        { rootDeposit: true, erc20: true }
-      )
-
-      // assert deposit on child chain
-      utils.assertBigNumberEquality(await e20.childToken.balanceOf(bob), amount)
     })
   })
 })

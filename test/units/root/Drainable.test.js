@@ -1,8 +1,8 @@
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 
-import deployer from '../helpers/deployer.js'
-import * as utils from '../helpers/utils'
+import deployer from '../../helpers/deployer.js'
+import * as utils from '../../helpers/utils'
 
 chai
   .use(chaiAsPromised)

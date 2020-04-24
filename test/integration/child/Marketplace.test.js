@@ -11,7 +11,7 @@ chai
   .use(chaiAsPromised)
   .should()
 
-contract('Marketplace', async function(accounts) {
+contract('Marketplace @skip-on-coverage', async function(accounts) {
   let childContracts, marketplace
   const amount1 = web3.utils.toBN('10')
   const amount2 = web3.utils.toBN('5')

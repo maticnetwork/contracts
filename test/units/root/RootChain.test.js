@@ -1,16 +1,15 @@
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 
-import { rewradsTree } from '../helpers/proofs.js'
-import deployer from '../helpers/deployer.js'
-import { DummyERC20 } from '../helpers/artifacts.js'
+import { rewradsTree } from '../../helpers/proofs.js'
+import deployer from '../../helpers/deployer.js'
+import { DummyERC20 } from '../../helpers/artifacts.js'
 import {
   assertBigNumberEquality,
   assertBigNumbergt,
   buildSubmitHeaderBlockPaylod
-} from '../helpers/utils.js'
-import logDecoder from '../helpers/log-decoder.js'
-import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
+} from '../../helpers/utils.js'
+import { generateFirstWallets, mnemonics } from '../../helpers/wallets.js'
 
 chai.use(chaiAsPromised).should()
 
@@ -251,12 +250,3 @@ contract('submitHeaderBlock hardcoded params', async function (accounts) {
     assertBigNumberEquality(logs[0].args.end, '22')
   })
 })
-
-function printBlock(block) {
-  console.log({
-    start: block.start.toString(),
-    end: block.end.toString(),
-    root: block.root,
-    createdAt: block.createdAt.toString(),
-  })
-}
