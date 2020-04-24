@@ -87,5 +87,6 @@ module.exports = {
       outputFile: '/dev/null',
       showTimeSpent: true
     }
-  }
+  },
+  plugins: ['solidity-coverage']
 }

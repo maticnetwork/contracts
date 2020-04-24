@@ -18,3 +18,7 @@ test-blockchain/data
 
 .DS_Store
 *.env
+
+coverage/
+
+coverage.json
