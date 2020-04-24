@@ -16,13 +16,24 @@ const BN = ethUtils.BN
 const rlp = ethUtils.rlp
 
 // constants
-export const web3Child = new web3.constructor(
-  new web3.providers.HttpProvider('http://localhost:8545')
-)
+export let web3Child
+
+if (process.env.SOLIDITY_COVERAGE) {
+  web3Child = new web3.constructor(
+    web3.currentProvider
+  )
+} else {
+  web3Child = new web3.constructor(
+    new web3.providers.HttpProvider('http://localhost:8545')
+  )
+}
 
 export const ZeroAddress = '0x0000000000000000000000000000000000000000'
-export const ChildMaticTokenAddress =
+export let ChildMaticTokenAddress =
   '0x0000000000000000000000000000000000001010'
+if (process.env.SOLIDITY_COVERAGE) {
+  ChildMaticTokenAddress = null
+}
 export const scalingFactor = web3.utils.toBN(10).pow(web3.utils.toBN(18))
 
 export function getSigs(wallets, votedata) {
