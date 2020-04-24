@@ -43,11 +43,17 @@ contract SlashingManager is ISlashingManager, Ownable {
         StakeManager stakeManager = StakeManager(
             registry.getStakeManagerAddress()
         );
+
         require(
             keccak256(dataList[4].toBytes()) ==
-                keccak256(abi.encode(proposer, slashingInfoList)),
+                keccak256(
+                    abi.encodePacked(
+                        sha256(abi.encode(proposer, sha256(slashingInfoList)))
+                    )
+                ),
             "Extra data is invalid"
         );
+
         uint256 stakePower;
         uint256 activeTwoByThree;
         (stakePower, activeTwoByThree) = logger.verifyConsensus(
