@@ -79,4 +79,9 @@ contract SlashingManager is ISlashingManager, Ownable {
         require(newReportRate > 0);
         reportRate = newReportRate;
     }
+
+    // Housekeeping function. @todo remove later
+    function setHeimdallId(string memory _heimdallId) public onlyOwner {
+        heimdallId = keccak256(abi.encodePacked(_heimdallId));
+    }
 }
