@@ -1,6 +1,5 @@
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
-
 import deployer from '../helpers/deployer.js'
 import logDecoder from '../helpers/log-decoder.js'
 import { ValidatorShare } from '../helpers/artifacts'
@@ -47,11 +46,9 @@ contract('Slashing:validator', async function (accounts) {
 
     it('should slash validators', async function () {
       const amount = +web3.utils.toWei('100')
-      const amounts = [amount, amount]
-      const validators = [1, 2]
-      const isJailed = ['0x0', '0x0']
+      const slashingInfoList = [[1, amount, '0x0'], [2, amount, '0x0']]
 
-      const result = await updateSlashedAmounts([wallets[0], wallets[1]], wallets[1], 1, validators, amounts, isJailed, slashingManager)
+      const result = await updateSlashedAmounts([wallets[0], wallets[1]], wallets[1], 1, slashingInfoList, slashingManager)
       const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
       logs.should.have.lengthOf(1)
       logs[0].event.should.equal('Slashed')
@@ -65,10 +62,10 @@ contract('Slashing:validator', async function (accounts) {
     it('should slash validator:jail and send checkpoint', async function () {
       const amount = +web3.utils.toWei('100')
       const validator1Wallet = wallets[0]
-      const amounts = [amount]
-      const validators = [2]
-      const isJailed = ['0x1']
-      const result = await updateSlashedAmounts([wallets[0], wallets[1]], wallets[1], 2, validators, amounts, isJailed, slashingManager)
+      const slashingInfoList = [[2, amount, '0x1']]
+
+      const result = await updateSlashedAmounts([wallets[0], wallets[1]], wallets[1], 1, slashingInfoList, slashingManager)
+
       const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
       logs.should.have.lengthOf(2)
       logs[0].event.should.equal('Jailed')
@@ -91,10 +88,10 @@ contract('Slashing:validator', async function (accounts) {
       const amount = +web3.utils.toWei('100')
       const validator1Wallet = wallets[0]
       const validator2Wallet = wallets[1]
-      const amounts = [amount]
-      const validators = [2]
-      const isJailed = ['0x1']
-      await updateSlashedAmounts([wallets[0], wallets[1]], wallets[1], 2, validators, amounts, isJailed, slashingManager)
+      const slashingInfoList = [[2, amount, '0x1']]
+
+      await updateSlashedAmounts([wallets[0], wallets[1]], wallets[1], 1, slashingInfoList, slashingManager)
+
       await checkPoint([validator1Wallet], validator1Wallet, stakeManager, {
         from: validator1Wallet.getAddressString()
       })
@@ -153,11 +150,10 @@ contract('Slashing:delegation', async function (accounts) {
         from: delegator
       })
       const amount = +web3.utils.toWei('100')
-      const amounts = [amount, amount]
-      const validators = [1, 2]
-      const isJailed = ['0x0', '0x0']
 
-      result = await updateSlashedAmounts([wallets[0], wallets[1]], wallets[1], 1, validators, amounts, isJailed, slashingManager)
+      const slashingInfoList = [[1, amount, '0x0'], [2, amount, '0x0']]
+
+      result = await updateSlashedAmounts([wallets[0], wallets[1]], wallets[1], 1, slashingInfoList, slashingManager)
       const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
       logs.should.have.lengthOf(1)
       logs[0].event.should.equal('Slashed')
