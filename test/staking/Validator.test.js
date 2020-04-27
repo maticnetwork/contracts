@@ -65,6 +65,24 @@ contract('ValidatorShare', async function (accounts) {
     assertBigNumberEquality(logs[1].args.validatorId, '1')
   })
 
+  it('Buy shares with zero amount', async function () {
+    const user = wallets[2].getAddressString()
+    await stakeToken.mint(
+      user,
+      web3.utils.toWei('100')
+    )
+    await stakeToken.approve(stakeManager.address, web3.utils.toWei('100'), {
+      from: user
+    })
+    try {
+      let result = await validatorContract.buyVoucher(web3.utils.toWei('0'), {
+        from: user
+      })
+    } catch (error) {
+      expect(error.reason).to.equal('Insufficient amount to buy share')
+    }
+  })
+
   it('Buy shares and test exchange rate', async function () {
     const user = wallets[2].getAddressString()
     await stakeToken.mint(
@@ -277,6 +295,34 @@ contract('ValidatorShare', async function (accounts) {
 
     let logs = logDecoder.decodeLogs(result.receipt.rawLogs)
     assertBigNumberEquality(logs[0].args.value, web3.utils.toWei('100'))
+  })
+
+  it('Buy -> sell -> buy -> expect error', async function () {
+    const user = wallets[2].getAddressString()
+    await stakeManager.updateDynastyValue(8)
+    await stakeToken.mint(
+      user,
+      web3.utils.toWei('200')
+    )
+
+    await stakeToken.approve(stakeManager.address, web3.utils.toWei('200'), {
+      from: user
+    })
+    await validatorContract.buyVoucher(web3.utils.toWei('100'), {
+      from: user
+    })
+
+    await validatorContract.sellVoucher({
+      from: user
+    })
+
+    try {
+      await validatorContract.buyVoucher(web3.utils.toWei('100'), {
+        from: user
+      })
+    } catch (error) {
+      expect(error.reason).to.equal('Ongoing exit')
+    }
   })
 })
 
