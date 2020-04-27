@@ -9,129 +9,171 @@ chai
   .should()
 
 contract('Drainable', async function(accounts) {
-  let depositManager, drainable, destination, drainAmount
   const amount = web3.utils.toBN('2').pow(web3.utils.toBN('18'))
+
+  async function freshDeploy() {
+    this.contracts = await deployer.freshDeploy()
+    await deployer.deployRootChain()
+    this.depositManager = await deployer.deployDepositManager()
+    let randomUser = await web3.eth.accounts.create()
+    this.destination = randomUser.address
+  }
+
   describe('drain assets from Deposit Manager', async function() {
-    before(async function() {
-      this.contracts = await deployer.freshDeploy()
+    describe('ERC20', function() {
+      async function testErc20Drain() {
+        const tokens = []
+        const values = []
+        let testToken
+
+        before(freshDeploy)
+        before(async function() {
+          testToken = await deployer.deployTestErc20()
+          await testToken.transfer(this.depositManager.address, this.amount)
+
+          tokens.push(testToken.address)
+          values.push(this.drainAmount.toString())
+        })
+        
+        describe('before drain', function() {
+          it(`must have correct balance`, async function() {
+            utils.assertBigNumberEquality(await testToken.balanceOf(this.depositManager.address), this.amount)
+          })
+        })
+
+        describe('after drain', function() {
+          before(async function() {
+            this.drainable = await deployer.deployDrainable()
+            const data = this.drainable.contract.methods.drainErc20(tokens, values, this.destination).encodeABI()
+            await this.contracts.governance.update(
+              this.drainable.address,
+              data
+            )
+          })
+
+          it(`drainable must have correct balance`, async function() {
+            utils.assertBigNumberEquality(await testToken.balanceOf(this.drainable.address), amount.sub(this.drainAmount))
+          })
+
+          it(`destination must have correct balance`, async function() {
+            utils.assertBigNumberEquality(await testToken.balanceOf(this.destination), this.drainAmount)
+          })
+        })
+      }
+
+      describe('complete drain', function() {
+        before(function() {
+          this.amount = amount
+          this.drainAmount = amount
+        })
+
+        testErc20Drain()
+      })
+
+      describe('partial drain', function() {
+        before(function() {
+          this.amount = amount
+          this.drainAmount = web3.utils.toBN('1').pow(web3.utils.toBN('18'))
+        })
+
+        testErc20Drain()
+      })
     })
-    beforeEach(async function() {
-      await deployer.deployRootChain()
-      depositManager = await deployer.deployDepositManager()
-      let randomUser = await web3.eth.accounts.create()
-      destination = randomUser.address
-    })
 
-    it('complete drain ERC20', async function() {
-      const testToken = await deployer.deployTestErc20()
-      await testToken.transfer(depositManager.address, amount)
-      drainAmount = amount
-      utils.assertBigNumberEquality(await testToken.balanceOf(depositManager.address), amount)
-
-      const tokens = []
-      const values = []
-
-      tokens.push(testToken.address)
-      values.push(drainAmount.toString())
-
-      drainable = await deployer.deployDrainable()
-      const data = drainable.contract.methods.drainErc20(tokens, values, destination).encodeABI()
-      await this.contracts.governance.update(
-        drainable.address,
-        data
-      )
-
-      utils.assertBigNumberEquality(await testToken.balanceOf(drainable.address), amount.sub(drainAmount))
-      utils.assertBigNumberEquality(await testToken.balanceOf(destination), drainAmount)
-    })
-
-    it('partial drain ERC20', async function() {
-      const testToken = await deployer.deployTestErc20()
-      await testToken.transfer(depositManager.address, amount)
-      drainAmount = web3.utils.toBN('1').pow(web3.utils.toBN('18'))
-
-      utils.assertBigNumberEquality(await testToken.balanceOf(depositManager.address), amount)
-
-      const tokens = []
-      const values = []
-
-      tokens.push(testToken.address)
-      values.push(drainAmount.toString())
-
-      drainable = await deployer.deployDrainable()
-      const data = drainable.contract.methods.drainErc20(tokens, values, destination).encodeABI()
-      await this.contracts.governance.update(
-        drainable.address,
-        data
-      )
-
-      utils.assertBigNumberEquality(await testToken.balanceOf(drainable.address), amount.sub(drainAmount))
-      utils.assertBigNumberEquality(await testToken.balanceOf(destination), drainAmount)
-    })
-
-    it('drain ERC721', async function() {
-      const testToken = await deployer.deployTestErc721()
+    describe('ERC721', function() {
       let tokenId = '1234'
-      await testToken.mint(tokenId)
-      await testToken.transferFrom(accounts[0], depositManager.address, tokenId)
-      await testToken.ownerOf(tokenId).should.eventually.equal(depositManager.address)
       const tokens = []
       const values = []
-      tokens.push(testToken.address)
-      values.push(tokenId)
-      drainable = await deployer.deployDrainable()
-      const data = drainable.contract.methods.drainErc721(tokens, values, destination).encodeABI()
-      await this.contracts.governance.update(
-        drainable.address,
-        data
-      )
-      await testToken.ownerOf(tokenId).should.eventually.equal(destination)
-    })
 
-    it('complete drain Ether', async function() {
-      const maticWeth = await deployer.deployMaticWeth()
-      drainAmount = amount
-      await web3.eth.sendTransaction({
-        from: accounts[0],
-        to: depositManager.address,
-        value: amount.toString(),
-        gas: 200000
+      before(freshDeploy)
+      before(async function() {
+        const testToken = await deployer.deployTestErc721()
+        await testToken.mint(tokenId)
+        await testToken.transferFrom(accounts[0], this.depositManager.address, tokenId)
+        this.testToken = testToken
+
+        tokens.push(testToken.address)
+        values.push(tokenId)
       })
 
-      utils.assertBigNumberEquality(await maticWeth.balanceOf(depositManager.address), amount)
-
-      drainable = await deployer.deployDrainable()
-      const data = drainable.contract.methods.drainEther(drainAmount.toString(), destination).encodeABI()
-      await this.contracts.governance.update(
-        drainable.address,
-        data
-      )
-
-      utils.assertBigNumberEquality(await maticWeth.balanceOf(depositManager.address), amount.sub(drainAmount))
-      utils.assertBigNumberEquality(await web3.eth.getBalance(destination), drainAmount)
-    })
-
-    it('partial drain Ether', async function() {
-      const maticWeth = await deployer.deployMaticWeth()
-      drainAmount = web3.utils.toBN('1').pow(web3.utils.toBN('18'))
-      await web3.eth.sendTransaction({
-        from: accounts[0],
-        to: depositManager.address,
-        value: amount.toString(),
-        gas: 200000
+      describe('before drain', function() {
+        it(`depositManager must have ${tokenId} token`, async function() {
+          await this.testToken.ownerOf(tokenId).should.eventually.equal(this.depositManager.address)
+        })
       })
 
-      utils.assertBigNumberEquality(await maticWeth.balanceOf(depositManager.address), amount)
+      describe('after drain', function() {
+        before(async function() {
+          this.drainable = await deployer.deployDrainable()
+          const data = this.drainable.contract.methods.drainErc721(tokens, values, this.destination).encodeABI()
+          await this.contracts.governance.update(
+            this.drainable.address,
+            data
+          )
+        })
 
-      drainable = await deployer.deployDrainable()
-      const data = drainable.contract.methods.drainEther(drainAmount.toString(), destination).encodeABI()
-      await this.contracts.governance.update(
-        drainable.address,
-        data
-      )
+        it(`destination must have ${tokenId} token`, async function() {
+          await this.testToken.ownerOf(tokenId).should.eventually.equal(this.destination)
+        })
+      })
+    })
 
-      utils.assertBigNumberEquality(await maticWeth.balanceOf(depositManager.address), amount.sub(drainAmount))
-      utils.assertBigNumberEquality(await web3.eth.getBalance(destination), drainAmount)
+    describe('Ether', async function() {
+      function testEtherDrain() {
+        before(freshDeploy)
+        before(async function() {
+          this.maticWeth = await deployer.deployMaticWeth()
+          await web3.eth.sendTransaction({
+            from: accounts[0],
+            to: this.depositManager.address,
+            value: this.amount.toString(),
+            gas: 200000
+          })
+        })
+
+        describe('before drain', function() {
+          it('depositManager must have correct balance', async function() {
+            utils.assertBigNumberEquality(await this.maticWeth.balanceOf(this.depositManager.address), this.amount)
+          })
+        })
+  
+        describe('after drain', function() {
+          before(async function() {
+            this.drainable = await deployer.deployDrainable()
+            const data = this.drainable.contract.methods.drainEther(this.drainAmount.toString(), this.destination).encodeABI()
+            await this.contracts.governance.update(
+              this.drainable.address,
+              data
+            )
+          })
+  
+          it('depositManager must have correct balance', async function() {
+            utils.assertBigNumberEquality(await this.maticWeth.balanceOf(this.depositManager.address), this.amount.sub(this.drainAmount))
+          })
+  
+          it('destination must have correct balance', async function() {
+            utils.assertBigNumberEquality(await web3.eth.getBalance(this.destination), this.drainAmount)
+          })
+        })
+      }
+
+      describe('complete drain', function() {
+        before(function() {
+          this.amount = amount
+          this.drainAmount = amount
+        })
+
+        testEtherDrain()
+      })
+
+      describe('partial amount', function() {
+        before(function() {
+          this.amount = amount
+          this.drainAmount = web3.utils.toBN('1').pow(web3.utils.toBN('18'))
+        })
+
+        testEtherDrain()
+      })
     })
   })
 })
