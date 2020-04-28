@@ -39,9 +39,8 @@ contract SlashingManager is ISlashingManager, Ownable {
             "Chain ID is invalid"
         );
         require(dataList[1].toUint() == VOTE_TYPE, "Vote type is invalid");
-        uint256 _slashingNonce = dataList[2].toUint();
-        require(slashingNonce < _slashingNonce, "Invalid slashing nonce");
-        slashingNonce = _slashingNonce;
+        require(slashingNonce < dataList[2].toUint(), "Invalid slashing nonce");
+        slashingNonce = dataList[2].toUint();
         StakeManager stakeManager = StakeManager(
             registry.getStakeManagerAddress()
         );
