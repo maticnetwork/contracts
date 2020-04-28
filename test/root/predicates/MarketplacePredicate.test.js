@@ -38,7 +38,7 @@ contract('MarketplacePredicate', async function(accounts) {
   const address2 = wallets[1].getAddressString()
 
   before(async function() {
-    childContracts = await deployer.initializeChildChain(accounts[0])
+    childContracts = await deployer.initializeChildChain(accounts[0], { updateRegistry: false })
   })
 
   beforeEach(async function() {
@@ -370,7 +370,7 @@ contract('MarketplacePredicate', async function(accounts) {
 
     const orderId = '0x' + crypto.randomBytes(32).toString('hex')
     // Sign an expired order
-    const expiration = (await utils.web3Child.eth.getBlockNumber()) - 10
+    const expiration = statefulUtils.lastEndBlock - 1
     const obj1 = getSig({
       privateKey: privateKey1,
       spender: marketplace.address,

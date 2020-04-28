@@ -21,7 +21,9 @@ contract('ValidatorShare', async function (accounts) {
   beforeEach(async function () {
     let user = wallets[1].getAddressString()
     const userPubkey = wallets[1].getPublicKeyString()
-    let amount = web3.utils.toWei('100')
+    let heimdallFee = web3.utils.toWei('2')
+    let amount = web3.utils.toWei('102')
+    let stakeAmount = web3.utils.toWei('100')
     const contracts = await deployer.freshDeploy({ stakeManager: true })
     registry = contracts.registry
     stakeManager = contracts.stakeManager
@@ -46,7 +48,7 @@ contract('ValidatorShare', async function (accounts) {
       from: user
     })
 
-    await stakeManager.stake(amount, 0, true, userPubkey, {
+    await stakeManager.stake(stakeAmount, heimdallFee, true, userPubkey, {
       from: user
     })
     let validator = await stakeManager.validators(1)
@@ -61,6 +63,24 @@ contract('ValidatorShare', async function (accounts) {
     let logs = logDecoder.decodeLogs(result.receipt.rawLogs)
     logs[1].event.should.equal('UnstakeInit')
     assertBigNumberEquality(logs[1].args.validatorId, '1')
+  })
+
+  it('Buy shares with zero amount', async function () {
+    const user = wallets[2].getAddressString()
+    await stakeToken.mint(
+      user,
+      web3.utils.toWei('100')
+    )
+    await stakeToken.approve(stakeManager.address, web3.utils.toWei('100'), {
+      from: user
+    })
+    try {
+      let result = await validatorContract.buyVoucher(web3.utils.toWei('0'), {
+        from: user
+      })
+    } catch (error) {
+      expect(error.reason).to.equal('Insufficient amount to buy share')
+    }
   })
 
   it('Buy shares and test exchange rate', async function () {
@@ -276,6 +296,34 @@ contract('ValidatorShare', async function (accounts) {
     let logs = logDecoder.decodeLogs(result.receipt.rawLogs)
     assertBigNumberEquality(logs[0].args.value, web3.utils.toWei('100'))
   })
+
+  it('should not allow buy voucher while ongoing exit', async function () {
+    const user = wallets[2].getAddressString()
+    await stakeManager.updateDynastyValue(8)
+    await stakeToken.mint(
+      user,
+      web3.utils.toWei('200')
+    )
+
+    await stakeToken.approve(stakeManager.address, web3.utils.toWei('200'), {
+      from: user
+    })
+    await validatorContract.buyVoucher(web3.utils.toWei('100'), {
+      from: user
+    })
+
+    await validatorContract.sellVoucher({
+      from: user
+    })
+
+    try {
+      await validatorContract.buyVoucher(web3.utils.toWei('100'), {
+        from: user
+      })
+    } catch (error) {
+      expect(error.reason).to.equal('Ongoing exit')
+    }
+  })
 })
 
 contract('ValidatorShare: commissionRate', async function (accounts) {
@@ -288,7 +336,10 @@ contract('ValidatorShare: commissionRate', async function (accounts) {
   beforeEach(async function () {
     let user = wallets[1].getAddressString()
     const userPubkey = wallets[1].getPublicKeyString()
-    let amount = web3.utils.toWei('100')
+    let heimdallFee = web3.utils.toWei('2')
+    let amount = web3.utils.toWei('102')
+    let stakeAmount = web3.utils.toWei('100')
+    
     const contracts = await deployer.freshDeploy({ stakeManager: true })
     registry = contracts.registry
     stakeManager = contracts.stakeManager
@@ -313,7 +364,7 @@ contract('ValidatorShare: commissionRate', async function (accounts) {
       from: user
     })
 
-    await stakeManager.stake(amount, 0, true, userPubkey, {
+    await stakeManager.stake(stakeAmount, heimdallFee, true, userPubkey, {
       from: user
     })
     let validator = await stakeManager.validators(1)

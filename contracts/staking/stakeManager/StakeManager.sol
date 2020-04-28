@@ -35,6 +35,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         public
         onlyWhenUnlocked
     {
+        require(isValidator(validatorId), "validator is not active");
         require(heimdallFee >= minHeimdallFee, "Minimum amount is 1 Matic");
         require(
             token.transferFrom(msg.sender, address(this), heimdallFee),
@@ -349,7 +350,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     // slashing and jail interface
     function restake(uint256 validatorId, uint256 amount, bool stakeRewards)
         public
-        onlyWhenUnlocked,
+        onlyWhenUnlocked
         onlyStaker(validatorId)
     {
         require(
