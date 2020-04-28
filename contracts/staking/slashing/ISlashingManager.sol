@@ -6,7 +6,8 @@ import {Registry} from "../../common/Registry.sol";
 contract ISlashingManager {
     bytes32 public heimdallId = keccak256(abi.encodePacked("heimdall-P5rXwg"));
     uint8 public constant VOTE_TYPE = 2;
-    uint256 public reportRate = 5;
+    uint256 public reportRate = 5; // dummy default value
+    uint256 public proposerRate = 50; // dummy default value
     uint256 public jailCheckpoints = 5; // checkpoints
     uint256 public slashingNonce;
     Registry public registry;

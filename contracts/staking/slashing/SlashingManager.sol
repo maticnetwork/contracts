@@ -3,6 +3,7 @@ pragma solidity ^0.5.2;
 import {Ownable} from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import {RLPReader} from "solidity-rlp/contracts/RLPReader.sol";
+import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
 import {StakeManager} from "../stakeManager/StakeManager.sol";
 import {Registry} from "../../common/Registry.sol";
@@ -67,12 +68,34 @@ contract SlashingManager is ISlashingManager, Ownable {
         );
         //slashingInfoList[]=[[valiD,am,isJailed]]
         uint256 slashedAmount = stakeManager.slash(slashingInfoList);
-        // think about proposer!=msg.sender
-        // Transfer bounty to slashing reporter
+        uint256 bounty = (slashedAmount.mul(reportRate)).div(100);
+        slashedAmount = slashedAmount.sub(bounty);
         require(
             stakeManager.transferFunds(
                 0, //placeholder
-                (slashedAmount.mul(reportRate)).div(100),
+                slashedAmount,
+                address(this)
+            ),
+            "Transfer failed"
+        );
+        // Transfer bounty to slashing reporter
+        if (msg.sender != proposer) {
+            // bounty
+            uint256 _bounty = (bounty.mul(proposerRate)).div(100);
+            require(
+                stakeManager.transferFunds(
+                    0, //placeholder
+                    _bounty,
+                    proposer
+                ),
+                "Bounty transfer failed"
+            );
+            bounty = bounty.sub(_bounty);
+        }
+        require(
+            stakeManager.transferFunds(
+                0, //placeholder
+                bounty,
                 msg.sender
             ),
             "Bounty transfer failed"
@@ -84,8 +107,25 @@ contract SlashingManager is ISlashingManager, Ownable {
         reportRate = newReportRate;
     }
 
+    function updateReportRate(uint256 newProposerRate) public onlyOwner {
+        require(newProposerRate > 0);
+        proposerRate = newProposerRate;
+    }
+
     // Housekeeping function. @todo remove later
     function setHeimdallId(string memory _heimdallId) public onlyOwner {
         heimdallId = keccak256(abi.encodePacked(_heimdallId));
+    }
+
+    // Housekeeping function. @todo remove later
+    function drainTokens(uint256 value, address token, address destination)
+        external
+        onlyOwner
+    {
+            require(
+                IERC20(token).transfer(destination, value),
+                "Transfer failed"
+            );
+        }
     }
 }
