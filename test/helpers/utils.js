@@ -63,33 +63,31 @@ export async function checkPoint(wallets, proposer, stakeManager, options = {}) 
 }
 
 export async function updateSlashedAmounts(wallets, proposer, _slashingNonce, slashingInfoList, slashingManager, options = {}) {
-  const address = web3.eth.abi.encodeParameter('address', proposer.getAddressString())
-  // abi.encode(proposer, sha256(slashingInfoList))
-  const extraData = Buffer.concat([ethUtils.toBuffer(address), ethUtils.sha256(
-    ethUtils.toBuffer(
-      ethUtils.rlp.encode(
-        slashingInfoList)))])
-
+  const extraData = ethUtils.bufferToHex(
+    ethUtils.rlp.encode([
+      [proposer.getAddressString(), ethUtils.bufferToHex(ethUtils.sha256(ethUtils.rlp.encode(
+        slashingInfoList)))]
+    ])
+  )
   const vote = ethUtils.bufferToHex(
     // [chain, voteType, height, round, sha256(extraData)]
     ethUtils.rlp.encode([
       'heimdall-P5rXwg',
       2,
-      _slashingNonce,
+      _slashingNonce, // header number
       0,
       ethUtils.bufferToHex(ethUtils.sha256(extraData))
     ])
   )
-
   const sigs = ethUtils.bufferToHex(
     encodeSigs(getSigs(wallets, ethUtils.keccak256(vote)))
   )
-
   return slashingManager.updateSlashedAmounts(
     proposer.getAddressString(),
     vote,
     sigs,
     ethUtils.bufferToHex(ethUtils.rlp.encode(slashingInfoList)),
+    ethUtils.bufferToHex(extraData),
     {
       from: proposer.getAddressString()
     }
