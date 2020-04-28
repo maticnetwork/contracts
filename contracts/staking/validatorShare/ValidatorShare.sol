@@ -33,8 +33,7 @@ contract ValidatorShare is IValidatorShare {
       - returns total active stake for validator
      */
         uint256 stakePower;
-        uint256 valStake;
-        (valStake, , , , , , , ) = stakeManager.validators(validatorId); // to avoid Stack too deep :cry
+        uint256 valStake = stakeManager.validatorStake(validatorId);
         stakePower = valStake.add(activeAmount); // validator + delegation stake power
         uint256 _rewards = stakePower.mul(_reward).div(_totalStake);
 
@@ -55,9 +54,9 @@ contract ValidatorShare is IValidatorShare {
         external
         onlyValidator
     {
-        uint256 currentEpoch = stakeManager.currentEpoch();
+        uint256 epoch = stakeManager.epoch();
         require(
-            lastUpdate.add(commissionCooldown) <= currentEpoch,
+            lastUpdate.add(commissionCooldown) <= epoch,
             "Commission rate update cool down period"
         );
         require(
@@ -70,7 +69,7 @@ contract ValidatorShare is IValidatorShare {
             commissionRate
         );
         commissionRate = newCommissionRate;
-        lastUpdate = currentEpoch;
+        lastUpdate = epoch;
     }
 
     function withdrawRewardsValidator()
@@ -134,8 +133,8 @@ contract ValidatorShare is IValidatorShare {
         withdrawShares = withdrawShares.add(_withdrawPoolShare);
         delegators[msg.sender] = Delegator({
             share: _withdrawPoolShare,
-            withdrawEpoch: stakeManager.currentEpoch().add(
-                stakeManager.WITHDRAWAL_DELAY()
+            withdrawEpoch: stakeManager.epoch().add(
+                stakeManager.withdrawalDelay()
             )
         });
         amountStaked[msg.sender] = 0;
@@ -205,7 +204,7 @@ contract ValidatorShare is IValidatorShare {
     function unStakeClaimTokens() public {
         Delegator storage delegator = delegators[msg.sender];
         require(
-            delegator.withdrawEpoch <= stakeManager.currentEpoch() &&
+            delegator.withdrawEpoch <= stakeManager.epoch() &&
                 delegator.share > 0,
             "Incomplete withdrawal period"
         );

@@ -115,7 +115,10 @@ class Deployer {
       stakeManager: this.stakeManager,
       stakeToken: this.stakeToken,
       slashingManager: this.slashingManager,
-      stakingInfo: this.stakingInfo
+      stakingInfo: this.stakingInfo,
+      governance: this.governance,
+      stakeManagerProxy: proxy,
+      stakeManagerImpl: stakeManager
     }
     return _contracts
   }
