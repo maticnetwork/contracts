@@ -3,7 +3,7 @@ pragma solidity ^0.5.2;
 import {Ownable} from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import {RLPReader} from "solidity-rlp/contracts/RLPReader.sol";
-import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+import {IERC20} from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
 import {StakeManager} from "../stakeManager/StakeManager.sol";
 import {Registry} from "../../common/Registry.sol";
@@ -107,7 +107,7 @@ contract SlashingManager is ISlashingManager, Ownable {
         reportRate = newReportRate;
     }
 
-    function updateReportRate(uint256 newProposerRate) public onlyOwner {
+    function updateProposerRate(uint256 newProposerRate) public onlyOwner {
         require(newProposerRate > 0);
         proposerRate = newProposerRate;
     }
@@ -122,10 +122,6 @@ contract SlashingManager is ISlashingManager, Ownable {
         external
         onlyOwner
     {
-            require(
-                IERC20(token).transfer(destination, value),
-                "Transfer failed"
-            );
-        }
+        require(IERC20(token).transfer(destination, value), "Transfer failed");
     }
 }
