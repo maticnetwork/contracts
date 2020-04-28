@@ -29,7 +29,8 @@ contract SlashingManager is ISlashingManager, Ownable {
         address proposer,
         bytes memory vote,
         bytes memory sigs,
-        bytes memory slashingInfoList
+        bytes memory slashingInfoList,
+        bytes memory txData
     ) public {
         RLPReader.RLPItem[] memory dataList = vote.toRlpItem().toList();
         require(
@@ -46,11 +47,7 @@ contract SlashingManager is ISlashingManager, Ownable {
 
         require(
             keccak256(dataList[4].toBytes()) ==
-                keccak256(
-                    abi.encodePacked(
-                        sha256(abi.encode(proposer, sha256(slashingInfoList)))
-                    )
-                ),
+                keccak256(abi.encodePacked(sha256(txData))),
             "Extra data is invalid"
         );
 
@@ -60,7 +57,14 @@ contract SlashingManager is ISlashingManager, Ownable {
             keccak256(vote),
             sigs
         );
+        dataList = txData.toRlpItem().toList()[0].toList();
         require(stakePower >= activeTwoByThree, "2/3+1 Power required");
+        require(dataList[0].toAddress() == proposer, "Invalid proposer");
+        require(
+            keccak256(dataList[1].toBytes()) ==
+                keccak256(abi.encodePacked(sha256(slashingInfoList))),
+            "Invalid slashInfoHash"
+        );
         //slashingInfoList[]=[[valiD,am,isJailed]]
         uint256 slashedAmount = stakeManager.slash(slashingInfoList);
         // think about proposer!=msg.sender
