@@ -297,7 +297,7 @@ contract('ValidatorShare', async function (accounts) {
     assertBigNumberEquality(logs[0].args.value, web3.utils.toWei('100'))
   })
 
-  it('Buy -> sell -> buy -> expect error', async function () {
+  it('should not allow buy voucher while ongoing exit', async function () {
     const user = wallets[2].getAddressString()
     await stakeManager.updateDynastyValue(8)
     await stakeToken.mint(
