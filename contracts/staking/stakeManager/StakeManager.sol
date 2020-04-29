@@ -18,6 +18,7 @@ import {StakingNFT} from "./StakingNFT.sol";
 import "../validatorShare/ValidatorShareFactory.sol";
 import {StakeManagerStorage} from "./StakeManagerStorage.sol";
 
+
 contract StakeManager is IStakeManager, StakeManagerStorage {
     using SafeMath for uint256;
     using ECVerify for bytes32;
@@ -48,15 +49,15 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         return NFTContract.ownerOf(tokenId);
     }
 
-    function epoch() public view returns(uint256) {
+    function epoch() public view returns (uint256) {
         return currentEpoch;
     }
 
-    function withdrawalDelay() public view returns(uint256) {
+    function withdrawalDelay() public view returns (uint256) {
         return WITHDRAWAL_DELAY;
     }
 
-    function validatorStake(uint256 validatorId) public view returns(uint256) {
+    function validatorStake(uint256 validatorId) public view returns (uint256) {
         return validators[validatorId].amount;
     }
 
@@ -292,11 +293,16 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 amount,
         address delegator
     ) external returns (bool) {
+        require(!disableDelegation, "Delegation is disabled");
         require(
             validators[validatorId].contractAddress == msg.sender,
             "Invalid contract address"
         );
         return token.transferFrom(delegator, address(this), amount);
+    }
+
+    function updateDisableDelegation(bool _disableDelegation) public onlyOwner {
+        disableDelegation = _disableDelegation;
     }
 
     function stakeFor(
@@ -600,7 +606,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     ) internal {
         address signer = pubToAddress(signerPubkey);
         require(signerToValidator[signer] == 0, "Invalid Signer key");
-
+        require(
+            acceptDelegation != true && disableDelegation != true,
+            "Delegation is disabled"
+        );
         totalStaked = totalStaked.add(amount);
         validators[NFTCounter] = Validator({
             reward: 0,
