@@ -488,6 +488,79 @@ contract('StakeManager', async function(accounts) {
   describe('Staking', function() {
     require('./StakeManager.Staking')(accounts)
   })
+
+  describe('topUpForFee', function() {
+    const wallet = wallets[1]
+    const user = wallet.getAddressString()
+    const userPubkey = wallet.getPublicKeyString()
+    const amount = web3.utils.toWei('200')
+    const fee = new BN(web3.utils.toWei('50'))
+
+    async function doDeploy() {
+      await freshDeploy.call(this)
+      
+      await this.stakeToken.approve(this.stakeManager.address, amount, {
+        from: user
+      })
+
+      await this.stakeManager.stake(amount, 0, false, userPubkey, {
+        from: user
+      })
+    }
+
+    describe('when user tops up', function() {
+      before(doDeploy)
+
+      it('must top up', async function() {
+        await this.stakeToken.approve(this.stakeManager.address, fee, {
+          from: user
+        })
+
+        const validatorId = await this.stakeManager.getValidatorId(user)
+        this.receipt = await this.stakeManager.topUpForFee(validatorId, fee, {
+          from: user
+        })
+      })
+
+      it('must emit TopUpFee', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'TopUpFee', {
+          signer: wallet.getChecksumAddressString(),
+          fee
+        })
+      })
+    })
+
+    describe('reverts', function() {
+      beforeEach(doDeploy)
+
+      it('when user approves less than fee', async function() {
+        await this.stakeToken.approve(this.stakeManager.address, fee.sub(new BN(1)), {
+          from: user
+        })
+
+        const validatorId = await this.stakeManager.getValidatorId(user)
+        await expectRevert.unspecified(this.stakeManager.topUpForFee(validatorId, fee, {
+          from: user
+        }))
+      })
+
+      it('when fee is too small', async function() {
+        const validatorId = await this.stakeManager.getValidatorId(user)
+        const minHeimdallFee = await this.stakeManager.minHeimdallFee()
+        await expectRevert(this.stakeManager.topUpForFee(validatorId, minHeimdallFee.sub(new BN(1)), {
+          from: user
+        }), 'Minimum amount is 1 Matic')
+      })
+
+      it('when fee overflows', async function() {
+        const validatorId = await this.stakeManager.getValidatorId(user)
+        const overflowFee = new BN(2).pow(new BN(256))
+        await expectRevert.unspecified(this.stakeManager.topUpForFee(validatorId, overflowFee, {
+          from: user
+        }))
+      })
+    })
+  })
 })
 
 // contract('this.stakeManager:rewards distribution', async function(accounts) {
