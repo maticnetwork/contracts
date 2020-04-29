@@ -132,7 +132,7 @@ contract('Slashing:delegation', async function (accounts) {
         await stakeToken.approve(stakeManager.address, amount, {
           from: wallets[i].getAddressString()
         })
-        await stakeManager.stake(stakeAmount, heimdallFee, false, wallets[i].getPublicKeyString(), {
+        await stakeManager.stake(stakeAmount, heimdallFee, true, wallets[i].getPublicKeyString(), {
           from: wallets[i].getAddressString()
         })
       }
