@@ -92,34 +92,24 @@ export function buildSubmitHeaderBlockPaylod(
   if (!wallets) {
     wallets = getWallets()
   }
+
   let validators = options.allValidators
     ? wallets
     : [wallets[1], wallets[2], wallets[3]]
 
-  const extraData = ethUtils.bufferToHex(
-    ethUtils.rlp.encode([
-      [proposer, start, end, root, options.rewardsRootHash, web3.utils.toHex((options.totalStake || '1').toString())] // 0th element
-    ])
+  let data = web3.eth.abi.encodeParameters(
+    ['address', 'uint256', 'uint256', 'bytes32', 'bytes32', 'bytes32'],
+    [proposer, start, end, root, options.rewardsRootHash, '0x0000000000000000000000000000000000000000000000000000000000003a99']
   )
-
-  const vote = ethUtils.bufferToHex(
-    // [chain, voteType, height, round, sha256(extraData)]
-    ethUtils.rlp.encode([
-      'heimdall-P5rXwg',
-      2,
-      0,
-      0,
-      ethUtils.bufferToHex(ethUtils.sha256(extraData))
-    ])
-  )
+  const sigData = Buffer.concat([ethUtils.toBuffer('0x01'), ethUtils.toBuffer(data)])
 
   // in case of TestStakeManger use dummysig data
   const sigs = ethUtils.bufferToHex(
     options.getSigs
-      ? encodeSigs(getSigs(validators, ethUtils.keccak256(vote)))
+      ? encodeSigs(getSigs(validators, ethUtils.keccak256(sigData)))
       : 'dummySig'
   )
-  return { vote, sigs, extraData, root }
+  return { data, sigs, root }
 }
 
 export function getWallets() {

@@ -63,20 +63,10 @@ contract('RootChain', async function (accounts) {
     }
   })
 
-  it.only('submitHeaderBlock side-channel', async function () { 
-    
-    const data = ethUtils.bufferToHex(0000000000000000000000006c468cf8c9879006e22ec4029696e005c2319c9d00000000000000000000000000000000000000000000000000000000000028280000000000000000000000000000000000000000000000000000000000002c2704a94567dc56e7aa3552b890c776aedd2b00513919777d2cdee9c20d3fe9be50d10b5c16c25efe0b0f5b3d75038834223934ae8c2ec2b63a62bbe42aa21e2d2dd94de22b9798ab592e2c1befd8bd16405c9d17b70fb615031bde6d74545e217c)
-    const sigs = ethUtils.bufferToHex(37417cd1947b4939f0c344ac9b79a231a45c9815677fb6a22e8e9416247833e54204cf00ab341edc56768d83195256e98374f40a946d79df6d2431ca5f25bab800)
-
-    await rootChain.submitHeaderBlock(data, sigs)
-    const logs = result.logs
-    console.log(logs)
-  })
-
   it('submitHeaderBlock', async function () {
     const validators = [1, 2, 3, 4]
     let tree = await rewradsTree(validators, accountState)
-    const { vote, sigs, extraData, root } = buildSubmitHeaderBlockPaylod(
+    const { data, sigs, root } = buildSubmitHeaderBlockPaylod(
       accounts[0],
       0,
       255,
@@ -84,7 +74,7 @@ contract('RootChain', async function (accounts) {
       wallets,
       { allValidators: true, rewardsRootHash: tree.getRoot(), getSigs: true, totalStake: totalStake }
     )
-    const result = await rootChain.submitHeaderBlock(vote, sigs, extraData)
+    const result = await rootChain.submitHeaderBlock(data, sigs)
     const logs = result.logs
     logs.should.have.lengthOf(1)
     logs[0].event.should.equal('NewHeaderBlock')

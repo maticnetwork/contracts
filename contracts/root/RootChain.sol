@@ -88,7 +88,7 @@ contract RootChain is RootChainStorage, IRootChain {
             data,
             (address, uint256, uint256, bytes32, bytes32, bytes32)
         );
-        // require(bytes32(uint(15001)) == _borChainID, "Invalid bor chain id");
+        require(bytes32(uint256(15001)) == _borChainID, "Invalid bor chain id");
 
         require(
             _buildHeaderBlock(proposer, start, end, rootHash),
@@ -99,7 +99,6 @@ contract RootChain is RootChainStorage, IRootChain {
         IStakeManager stakeManager = IStakeManager(
             registry.getStakeManagerAddress()
         );
-
         // blockInterval, voteHash, stateRoot, sigs
         uint256 _reward = stakeManager.checkSignatures(
             end.sub(start).add(1),
@@ -153,8 +152,6 @@ contract RootChain is RootChainStorage, IRootChain {
         uint256 end,
         bytes32 rootHash
     ) private returns (bool) {
-        HeaderBlock memory headerBlock;
-        headerBlock.proposer = proposer;
         // Is this required? Why does a proposer need to be the sender? Think validator relay networks
         // require(msg.sender == dataList[0].toAddress(), "Invalid proposer");
 
@@ -166,16 +163,20 @@ contract RootChain is RootChainStorage, IRootChain {
         if (_nextHeaderBlock > MAX_DEPOSITS) {
             nextChildBlock = headerBlocks[currentHeaderBlock()].end + 1;
         }
-        // require(nextChildBlock == start, "INCORRECT_START_BLOCK");
         if (nextChildBlock != start) {
             return false;
         }
-        headerBlock.start = nextChildBlock;
-        headerBlock.end = end;
 
         // toUintStrict returns the encoded uint. Encoded data must be padded to 32 bytes.
-        headerBlock.root = rootHash;
-        headerBlock.createdAt = now;
+        // headerBlock.root = bytes32(dataList[3].toUintStrict());
+        HeaderBlock memory headerBlock = HeaderBlock({
+            root: rootHash,
+            start: nextChildBlock,
+            end: end,
+            createdAt: now,
+            proposer: proposer
+        });
+
         headerBlocks[_nextHeaderBlock] = headerBlock;
         return true;
     }
