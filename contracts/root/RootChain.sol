@@ -10,6 +10,7 @@ import {IRootChain} from "./IRootChain.sol";
 import {Registry} from "../common/Registry.sol";
 import "../common/lib/BytesLib.sol";
 
+
 contract RootChain is RootChainStorage, IRootChain {
     using SafeMath for uint256;
     using RLPReader for bytes;
@@ -72,46 +73,48 @@ contract RootChain is RootChainStorage, IRootChain {
     //     _blockDepositId = 1;
     // }
 
-    // side channel 
-    function submitHeaderBlock(
-        bytes calldata data,
-        bytes calldata sigs
-    ) external {
-        (address proposer,
-        uint256 start,
-        uint256 end,
-        bytes32 rootHash,
-        bytes32 accountHash,
-        bytes32 _borChainID) = 
-        abi.decode(data, (address, uint256, uint256, bytes32, bytes32, bytes32));
+    // side channel
+    function submitHeaderBlock(bytes calldata data, bytes calldata sigs)
+        external
+    {
+        (
+            address proposer,
+            uint256 start,
+            uint256 end,
+            bytes32 rootHash,
+            bytes32 accountHash,
+            bytes32 _borChainID
+        ) = abi.decode(
+            data,
+            (address, uint256, uint256, bytes32, bytes32, bytes32)
+        );
         // require(bytes32(uint(15001)) == _borChainID, "Invalid bor chain id");
 
-        RootChainHeader.HeaderBlock memory headerBlock = _buildHeaderBlock(
-            proposer, start, end, rootHash
+        require(
+            _buildHeaderBlock(proposer, start, end, rootHash),
+            "INCORRECT_HEADER_DATA"
         );
-        headerBlocks[_nextHeaderBlock] = headerBlock;
+
         // check if it is better to keep it in local storage instead
         IStakeManager stakeManager = IStakeManager(
             registry.getStakeManagerAddress()
         );
 
-        bytes memory votePrefix = hex'01';
-        
         // blockInterval, voteHash, stateRoot, sigs
         uint256 _reward = stakeManager.checkSignatures(
-            headerBlock.end.sub(headerBlock.start).add(1),
-            keccak256(BytesLib.concat(votePrefix, data)), // prefix 01 to data
+            end.sub(start).add(1),
+            keccak256(abi.encodePacked(bytes(hex"01"), data)), // prefix 01 to data
             accountHash,
             sigs
         );
         require(_reward != 0, "Invalid checkpoint");
         emit NewHeaderBlock(
-            headerBlock.proposer,
+            proposer,
             _nextHeaderBlock,
             _reward,
-            headerBlock.start,
-            headerBlock.end,
-            headerBlock.root
+            start,
+            end,
+            rootHash
         );
         _nextHeaderBlock = _nextHeaderBlock.add(MAX_DEPOSITS);
         _blockDepositId = 1;
@@ -144,14 +147,13 @@ contract RootChain is RootChainStorage, IRootChain {
         return _nextHeaderBlock.sub(MAX_DEPOSITS);
     }
 
-    function _buildHeaderBlock(address proposer,
-    uint start,
-    uint end,
-    bytes32 rootHash)
-        private
-        view
-        returns (HeaderBlock memory headerBlock)
-    {
+    function _buildHeaderBlock(
+        address proposer,
+        uint256 start,
+        uint256 end,
+        bytes32 rootHash
+    ) private returns (bool) {
+        HeaderBlock memory headerBlock;
         headerBlock.proposer = proposer;
         // Is this required? Why does a proposer need to be the sender? Think validator relay networks
         // require(msg.sender == dataList[0].toAddress(), "Invalid proposer");
@@ -164,16 +166,18 @@ contract RootChain is RootChainStorage, IRootChain {
         if (_nextHeaderBlock > MAX_DEPOSITS) {
             nextChildBlock = headerBlocks[currentHeaderBlock()].end + 1;
         }
-        require(
-            nextChildBlock == start,
-            "INCORRECT_START_BLOCK"
-        );
+        // require(nextChildBlock == start, "INCORRECT_START_BLOCK");
+        if (nextChildBlock != start) {
+            return false;
+        }
         headerBlock.start = nextChildBlock;
         headerBlock.end = end;
 
         // toUintStrict returns the encoded uint. Encoded data must be padded to 32 bytes.
         headerBlock.root = rootHash;
         headerBlock.createdAt = now;
+        headerBlocks[_nextHeaderBlock] = headerBlock;
+        return true;
     }
 
     // Housekeeping function. @todo remove later
