@@ -10,7 +10,7 @@ import {
   buildSubmitHeaderBlockPaylod
 } from '../../helpers/utils.js'
 import { generateFirstWallets, mnemonics } from '../../helpers/wallets.js'
-import { expectEvent, expectRevert } from '@openzeppelin/test-helpers'
+import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
 
 chai.use(chaiAsPromised).should()
 
@@ -21,6 +21,8 @@ contract('RootChain', async function(accounts) {
   let stakeToken
   let accountState = {}
   let totalStake
+  const validatorsCount = 4
+  const validators = []
 
   before(async function() {
     const stakes = {
@@ -44,7 +46,7 @@ contract('RootChain', async function(accounts) {
     await stakeManager.updateCheckPointBlockInterval(1)
 
     let amount = web3.utils.toWei('1000')
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < validatorsCount; i++) {
       await stakeToken.mint(wallets[i].getAddressString(), amount)
       await stakeToken.approve(stakeManager.address, amount, {
         from: wallets[i].getAddressString()
@@ -53,6 +55,7 @@ contract('RootChain', async function(accounts) {
         from: wallets[i].getAddressString()
       })
       accountState[i + 1] = 0
+      validators.push(i + 1)
     }
 
     this.reward = await stakeManager.CHECKPOINT_REWARD()
@@ -61,7 +64,6 @@ contract('RootChain', async function(accounts) {
   function testCheckpoint(dontBuildHeaderBlockPayload) {
     before(async function() {
       if (!dontBuildHeaderBlockPayload) {
-        const validators = [1, 2, 3, 4]
         let tree = await rewradsTree(validators, accountState)
         const { vote, sigs, extraData, root } = buildSubmitHeaderBlockPaylod(
           this.proposer,
@@ -241,11 +243,20 @@ contract('RootChain', async function(accounts) {
     testHeaderBlock('40000', 0, 0)
   })
 
-  describe('updateDepositId is ACLed on onlyDepositManager', async function() {
-    before(freshDeploy)
+  describe('updateDepositId', async function() {
+    beforeEach(freshDeploy)
 
-    it('must revert', async function() {
-      await expectRevert(rootChain.updateDepositId(1), 'UNAUTHORIZED_DEPOSIT_MANAGER_ONLY')
+    describe('when from is not deposit manager', function() {
+      it('must revert', async function() {
+        await expectRevert(rootChain.updateDepositId(1), 'UNAUTHORIZED_DEPOSIT_MANAGER_ONLY')
+      })
+    })
+
+    describe('when numDeposits > MAX_DEPOSITS', function() {
+      it('must revert', async function() {
+        const maxDeposits = await rootChain.MAX_DEPOSITS()
+        await expectRevert(rootChain.updateDepositId(maxDeposits.add(new BN(1))), 'UNAUTHORIZED_DEPOSIT_MANAGER_ONLY')
+      })
     })
   })
 })
