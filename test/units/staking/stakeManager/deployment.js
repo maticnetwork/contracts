@@ -38,7 +38,8 @@ module.exports = {
     let contracts = await deployer.deployStakeManager(wallets)
     this.stakeToken = contracts.stakeToken
     this.stakeManager = contracts.stakeManager
-
+    this.rootChainOwner = contracts.rootChainOwner
+    
     // dummy registry address
     await this.stakeManager.updateCheckPointBlockInterval(1)
     // transfer tokens to other accounts

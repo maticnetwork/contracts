@@ -17,36 +17,117 @@ import {
   encodeSigs,
   getSigs
 } from '../../../helpers/utils.js'
-import { expectEvent, expectRevert } from '@openzeppelin/test-helpers'
+import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
 import { wallets, freshDeploy } from './deployment'
 
 contract('StakeManager', async function(accounts) {
   let owner = accounts[0]
 
   describe('checkSignatures', function() {
-    let w = [wallets[1], wallets[2], wallets[3]]
-
-    beforeEach(freshDeploy)
-    beforeEach(async function() {
-      const amount = web3.utils.toWei('200')
-      for (const wallet of w) {
-        await this.stakeToken.approve(this.stakeManager.address, amount, {
-          from: wallet.getAddressString()
-        })
-
-        await this.stakeManager.stake(amount, 0, false, wallet.getPublicKeyString(), {
-          from: wallet.getAddressString()
-        })
-      }
-    })
+    let _wallets = [wallets[1], wallets[2], wallets[3]]
 
     describe('when payload is valid', function() {
-      it('must check', async function() {
-        await checkPoint(w, wallets[1], this.stakeManager)
+      function prepareToTest(checkpointBlockInterval = 1) {
+        before('Fresh deploy', freshDeploy)
+        before('updateCheckPointBlockInterval', async function() {
+          await this.stakeManager.updateCheckPointBlockInterval(checkpointBlockInterval)
+        })
+        before('Approve and stake equally', async function() {
+          this.amount = new BN(web3.utils.toWei('200'))
+          this.totalAmount = new BN(0)
+          
+          for (const wallet of _wallets) {
+            await this.stakeToken.approve(this.stakeManager.address, this.amount, {
+              from: wallet.getAddressString()
+            })
+
+            await this.stakeManager.stake(this.amount, 0, false, wallet.getPublicKeyString(), {
+              from: wallet.getAddressString()
+            })
+
+            this.totalAmount = this.totalAmount.add(this.amount)
+          }
+        })
+      }
+
+      function testCheckpointing(blockInterval, count) {
+        it('must checkpoint', async function() {
+          let _count = count
+          while (_count-- > 0) {
+            await checkPoint(_wallets, this.rootChainOwner, this.stakeManager, { blockInterval })
+          }
+        })
+
+        it('every wallet must have equal expected reward balance on the respective validator', async function() {
+          const checkpointBlockInterval = await this.stakeManager.checkPointBlockInterval()
+          let checkpointReward = await this.stakeManager.CHECKPOINT_REWARD()
+          let expectedCheckpointReward = checkpointReward.mul(new BN(blockInterval)).div(checkpointBlockInterval)
+          if (expectedCheckpointReward.gt(checkpointReward)) {
+            expectedCheckpointReward = checkpointReward
+          }
+
+          let expectedBalance = this.amount.mul(expectedCheckpointReward).div(this.totalAmount)
+          expectedBalance = expectedBalance.mul(new BN(count))
+
+          for (const wallet of _wallets) {
+            const validatorId = await this.stakeManager.getValidatorId(wallet.getAddressString())
+            const validator = await this.stakeManager.validators(validatorId)
+            assertBigNumberEquality(validator.reward, expectedBalance)
+          }
+        })
+      }
+
+      function runTests(checkpointBlockInterval) {
+        function runInnerTests(blockInterval, epochs) {
+          describe(`when ${epochs} epoch passed`, function() {
+            prepareToTest(checkpointBlockInterval)
+            testCheckpointing(blockInterval, epochs)
+          })
+        }
+
+        describe('when block interval is 1', function() {
+          runInnerTests(1, 1)
+          runInnerTests(1, 5)
+        })
+  
+        describe('when block interval is 3', function() {
+          runInnerTests(3, 1)
+          runInnerTests(3, 5)
+        })
+      }
+
+      describe('when checkpoint block interval is 1', function() {
+        runTests(1)
+      })
+
+      describe('when checkpoint block interval is 10', function() {
+        runTests(10)
       })
     })
 
     describe('when payload is invalid', function() {
+      beforeEach(freshDeploy)
+      beforeEach('Prepare to test', async function() {
+        this.amount = new BN(web3.utils.toWei('200'))
+        this.wallets = [wallets[2]]
+        this.voteData = 'dummyData'
+        this.stateRoot = utils.bufferToHex(utils.keccak256('stateRoot'))
+        
+        for (const wallet of this.wallets) {
+          await this.stakeToken.approve(this.stakeManager.address, this.amount, {
+            from: wallet.getAddressString()
+          })
+
+          await this.stakeManager.stake(this.amount, 0, false, wallet.getPublicKeyString(), {
+            from: wallet.getAddressString()
+          })
+        }
+
+        this.sigs = utils.bufferToHex(
+          encodeSigs(getSigs(this.wallets, utils.keccak256(this.voteData)))
+        )
+      })
+
       function testRevert() {
         it('must revert', async function() {
           await expectRevert.unspecified(this.stakeManager.checkSignatures(
@@ -55,7 +136,7 @@ contract('StakeManager', async function(accounts) {
             this.stateRoot,
             this.sigs,
             {
-              from: wallets[1].getAddressString()
+              from: this.rootChainOwner.getAddressString()
             }
           ))
         })
@@ -63,9 +144,7 @@ contract('StakeManager', async function(accounts) {
 
       describe('when sigs is empty', function() {
         beforeEach(function() {
-          this.voteData = 'dummyData'
           this.sigs = []
-          this.stateRoot = utils.bufferToHex(utils.keccak256('stateRoot'))
         })
 
         testRevert()
@@ -73,9 +152,15 @@ contract('StakeManager', async function(accounts) {
 
       describe('when sigs is random string', function() {
         beforeEach(function() {
-          this.voteData = 'dummyData'
           this.sigs = utils.bufferToHex(utils.keccak256('random_string'))
-          this.stateRoot = utils.bufferToHex(utils.keccak256('stateRoot'))
+        })
+
+        testRevert()
+      })
+
+      describe('when from is not root chain', function() {
+        beforeEach(function() {
+          this.rootChainOwner = wallets[2]
         })
 
         testRevert()
@@ -84,10 +169,12 @@ contract('StakeManager', async function(accounts) {
   })
 
   describe('updateSigner', function() {
+    let w = [wallets[1], wallets[2], wallets[3]]
+    let user = wallets[3].getChecksumAddressString()
+
     function doDeploy() {
       before(freshDeploy)
       before(async function() {
-        let w = [wallets[1], wallets[2], wallets[3]]
         const amount = web3.utils.toWei('200')
         for (const wallet of w) {
           await this.stakeToken.approve(this.stakeManager.address, amount, {
@@ -99,11 +186,9 @@ contract('StakeManager', async function(accounts) {
           })
         }
 
-        await checkPoint(w, wallets[1], this.stakeManager)
+        await checkPoint(w, this.rootChainOwner, this.stakeManager)
       })
     }
-
-    let user = wallets[3].getChecksumAddressString()
 
     function testUpdateSigner() {
       it('must update signer', async function() {
@@ -126,7 +211,7 @@ contract('StakeManager', async function(accounts) {
       })
     }
 
-    describe('when from is staker', function() {
+    describe('must able to change to original public key. 1 epoch between stakes', function() {
       doDeploy()
 
       describe('when update signer to different public key', function() {
@@ -139,12 +224,38 @@ contract('StakeManager', async function(accounts) {
       })
 
       describe('when update signer back to staker original public key', function() {
+        before(async function() {
+          // include recently changed signer
+          await checkPoint([...w, wallets[0]], this.rootChainOwner, this.stakeManager)
+        })
+
         before(function() {
           this.signer = wallets[3].getChecksumAddressString()
           this.userPubkey = wallets[3].getPublicKeyString()
         })
 
         testUpdateSigner()
+      })
+    })
+
+    describe('when updating public key 2 times in 1 epoch', function() {
+      doDeploy()
+
+      before(function() {
+        this.signer = wallets[0].getChecksumAddressString()
+        this.userPubkey = wallets[0].getPublicKeyString()
+      })
+
+      it('must revert', async function() {
+        let validatorId = await this.stakeManager.getValidatorId(user)
+        await this.stakeManager.updateSigner(validatorId, wallets[0].getPublicKeyString(), {
+          from: user
+        })
+
+        validatorId = await this.stakeManager.getValidatorId(user)
+        await expectRevert.unspecified(this.stakeManager.updateSigner(validatorId, wallets[6].getPublicKeyString(), {
+          from: user
+        }))
       })
     })
 
@@ -219,23 +330,65 @@ contract('StakeManager', async function(accounts) {
   })
 
   describe('updateDynastyValue', function() {
-    beforeEach(freshDeploy)
+    describe('when set dynasty to 2', function() {
+      before(freshDeploy)
 
-    it('set dynasty value to 2 epochs', async function() {
-      this.receipt = await this.stakeManager.updateDynastyValue(2, {
-        from: owner
+      it('must update dynasty', async function() {
+        this.receipt = await this.stakeManager.updateDynastyValue(2, {
+          from: owner
+        })
+      })
+  
+      it('must emit DynastyValueChange', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'DynastyValueChange', {
+          newDynasty: '2'
+        })
       })
     })
 
-    it('must emit DynastyValueChange', async function() {
-      await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'DynastyValueChange', {
-        newDynasty: '2'
+    describe('when set dynasty to 0', function() {
+      before(freshDeploy)
+
+      it('must revert', async function() {
+        await expectRevert.unspecified(this.stakeManager.updateDynastyValue(0, {
+          from: owner
+        }))
+      })
+    })
+  })
+
+  describe('updateCheckpointReward', function() {
+    describe('when set reward to 20', function() {
+      before(freshDeploy)
+
+      it('must update', async function() {
+        this.oldReward = await this.stakeManager.CHECKPOINT_REWARD()
+        this.receipt = await this.stakeManager.updateCheckpointReward(20, {
+          from: owner
+        })
+      })
+  
+      it('must emit RewardUpdate', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'RewardUpdate', {
+          newReward: '20',
+          oldReward: this.oldReward
+        })
+      })
+    })
+
+    describe('when set reward to 0', function() {
+      before(freshDeploy)
+
+      it('must revert', async function() {
+        await expectRevert.unspecified(this.stakeManager.updateCheckpointReward(0, {
+          from: owner
+        }))
       })
     })
   })
 
   describe('Staking', function() {
-    require('./StakingTests')(accounts)
+    require('./StakeManager.Staking')(accounts)
   })
 })
 
