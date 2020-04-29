@@ -31,13 +31,15 @@ contract('Slashing:validator', async function (accounts) {
       await stakeManager.updateDynastyValue(8)
       await stakeManager.updateCheckPointBlockInterval(1)
       await stakeManager.changeRootChain(wallets[0].getAddressString())
-      let amount = web3.utils.toWei('1000')
+      const amount = web3.utils.toWei('1002')
+      const stakeAmount = web3.utils.toWei('1000')
+      const heimdallFee = web3.utils.toWei('2')
       for (let i = 0; i < 2; i++) {
         await stakeToken.mint(wallets[i].getAddressString(), amount)
         await stakeToken.approve(stakeManager.address, amount, {
           from: wallets[i].getAddressString()
         })
-        await stakeManager.stake(amount, 0, false, wallets[i].getPublicKeyString(), {
+        await stakeManager.stake(stakeAmount, heimdallFee, false, wallets[i].getPublicKeyString(), {
           from: wallets[i].getAddressString()
         })
       }
