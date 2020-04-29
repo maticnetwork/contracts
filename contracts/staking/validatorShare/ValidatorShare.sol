@@ -60,7 +60,7 @@ contract ValidatorShare is IValidatorShare {
             "Commission rate update cool down period"
         );
         require(
-            commissionRate <= 100,
+            newCommissionRate <= 100,
             "Commission rate should be in range of 0-100"
         );
         stakingLogger.logUpdateCommissionRate(
@@ -97,6 +97,9 @@ contract ValidatorShare is IValidatorShare {
 
     function buyVoucher(uint256 _amount) public onlyWhenUnlocked {
         uint256 share = _amount.mul(100).div(exchangeRate());
+        require(share > 0, "Insufficient amount to buy share");
+        require(delegators[msg.sender].amount ==0, "Ongoing exit");
+
         totalStake = totalStake.add(_amount);
         amountStaked[msg.sender] = amountStaked[msg.sender].add(_amount);
         stakeManager.delegationDeposit(validatorId, _amount, msg.sender);
