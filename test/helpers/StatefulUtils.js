@@ -2,12 +2,7 @@ import ethUtils from 'ethereumjs-util'
 
 import { getBlockHeader } from './blocks'
 import MerkleTree from './merkle-tree'
-import {
-  getTxProof,
-  verifyTxProof,
-  getReceiptProof,
-  verifyReceiptProof
-} from './proofs'
+
 import { build } from '../mockResponses/utils'
 
 const utils = require('./utils')
@@ -45,7 +40,7 @@ export default class StatefulUtils {
     }
 
     const headers = []
-    for (let i = start; i <= end ; i++) {
+    for (let i = start; i <= end; i++) {
       const block = await web3Child.eth.getBlock(i + this.offset)
       block.number = i
       headers.push(getBlockHeader(block))
@@ -57,7 +52,7 @@ export default class StatefulUtils {
     // tree
     //   .verify(blockHeader, end - start, tree.getRoot(), blockProof)
     //   .should.equal(true)
-    const { vote, sigs, extraData } = utils.buildSubmitHeaderBlockPaylod(
+    const { data, sigs, root_ } = utils.buildSubmitHeaderBlockPaylod(
       proposer[0],
       start,
       end,
@@ -66,10 +61,7 @@ export default class StatefulUtils {
       { rewardsRootHash: ethUtils.keccak256('RandomState') }
     )
     const submitHeaderBlock = await rootChain.submitHeaderBlock(
-      vote,
-      sigs,
-      extraData
-    )
+      data, sigs)
 
     // const txProof = await getTxProof(event.tx, event.block)
     // assert.isTrue(verifyTxProof(txProof), 'Tx proof must be valid (failed in js)')
