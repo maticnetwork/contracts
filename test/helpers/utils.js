@@ -55,7 +55,7 @@ export function encodeSigs(sigs = []) {
   return Buffer.concat(sigs.map(s => ethUtils.toBuffer(s)))
 }
 
-export async function checkPoint(wallets, proposer, stakeManager, options = {}) {
+export async function checkPoint(wallets, proposer, stakeManager, options = { 'blockInterval': 1 }) {
   const voteData = 'dummyData'
   const sigs = ethUtils.bufferToHex(
     encodeSigs(getSigs(wallets, ethUtils.keccak256(voteData)))
@@ -64,7 +64,7 @@ export async function checkPoint(wallets, proposer, stakeManager, options = {}) 
   // 2/3 majority vote
 
   await stakeManager.checkSignatures(
-    1,
+    options.blockInterval,
     ethUtils.bufferToHex(ethUtils.keccak256(voteData)),
     stateRoot,
     sigs,
