@@ -85,10 +85,12 @@ class Deployer {
     this.stakeToken = await contracts.DummyERC20.new('Stake Token', 'STAKE')
     this.stakingNFT = await contracts.StakingNFT.new('Matic Validator', 'MV')
     let stakeManager = await contracts.StakeManager.new()
+
+    const rootChainOwner = wallets[1]
     let proxy = await contracts.StakeManagerProxy.new(
       stakeManager.address,
       this.registry.address,
-      wallets[1].getAddressString(),
+      rootChainOwner.getAddressString(),
       this.stakeToken.address,
       this.stakingNFT.address,
       this.stakingInfo.address,
@@ -103,6 +105,7 @@ class Deployer {
       this.stakeManager.address
     )
     let _contracts = {
+      rootChainOwner: rootChainOwner,
       registry: this.registry,
       rootChain: this.rootChain,
       stakeManager: this.stakeManager,
