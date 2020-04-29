@@ -23,6 +23,18 @@ import { wallets, freshDeploy } from './deployment'
 contract('StakeManager', async function(accounts) {
   let owner = accounts[0]
 
+  async function calculateExpectedCheckpointReward(blockInterval, amount, totalAmount, checkpointsPassed) {
+    const checkpointBlockInterval = await this.stakeManager.checkPointBlockInterval()
+    let checkpointReward = await this.stakeManager.CHECKPOINT_REWARD()
+    let expectedCheckpointReward = checkpointReward.mul(new BN(blockInterval)).div(checkpointBlockInterval)
+    if (expectedCheckpointReward.gt(checkpointReward)) {
+      expectedCheckpointReward = checkpointReward
+    }
+
+    let expectedBalance = amount.mul(expectedCheckpointReward).div(totalAmount)
+    return expectedBalance.mul(new BN(checkpointsPassed))
+  }
+
   describe('checkSignatures', function() {
     let _wallets = [wallets[1], wallets[2], wallets[3]]
 
@@ -50,29 +62,21 @@ contract('StakeManager', async function(accounts) {
         })
       }
 
-      function testCheckpointing(blockInterval, count) {
+      function testCheckpointing(blockInterval, checkpointsPassed) {
         it('must checkpoint', async function() {
-          let _count = count
+          let _count = checkpointsPassed
           while (_count-- > 0) {
             await checkPoint(_wallets, this.rootChainOwner, this.stakeManager, { blockInterval })
           }
         })
 
         it('every wallet must have equal expected reward balance on the respective validator', async function() {
-          const checkpointBlockInterval = await this.stakeManager.checkPointBlockInterval()
-          let checkpointReward = await this.stakeManager.CHECKPOINT_REWARD()
-          let expectedCheckpointReward = checkpointReward.mul(new BN(blockInterval)).div(checkpointBlockInterval)
-          if (expectedCheckpointReward.gt(checkpointReward)) {
-            expectedCheckpointReward = checkpointReward
-          }
-
-          let expectedBalance = this.amount.mul(expectedCheckpointReward).div(this.totalAmount)
-          expectedBalance = expectedBalance.mul(new BN(count))
+          const expectedReward = await calculateExpectedCheckpointReward.call(this, blockInterval, this.amount, this.totalAmount, checkpointsPassed)
 
           for (const wallet of _wallets) {
             const validatorId = await this.stakeManager.getValidatorId(wallet.getAddressString())
             const validator = await this.stakeManager.validators(validatorId)
-            assertBigNumberEquality(validator.reward, expectedBalance)
+            assertBigNumberEquality(validator.reward, expectedReward)
           }
         })
       }
@@ -387,6 +391,100 @@ contract('StakeManager', async function(accounts) {
     })
   })
 
+  describe('withdrawRewards', function() {
+    const Alice = wallets[2]
+    const Bob = wallets[3]
+
+    let _wallets = [Alice, Bob]
+
+    async function doDeploy() {
+      await freshDeploy.call(this)
+
+      this.amount = new BN(web3.utils.toWei('200'))
+      this.totalStaked = new BN(0)
+
+      for (const wallet of _wallets) {
+        await this.stakeToken.approve(this.stakeManager.address, this.amount, {
+          from: wallet.getAddressString()
+        })
+
+        await this.stakeManager.stake(this.amount, 0, false, wallet.getPublicKeyString(), {
+          from: wallet.getChecksumAddressString()
+        })
+
+        this.totalStaked = this.totalStaked.add(this.amount)
+      }
+
+      const blockInterval = 1
+      this.epochs = this.epochs || 1
+      let _epochs = this.epochs
+      while (_epochs-- > 0) {
+        await checkPoint(_wallets, this.rootChainOwner, this.stakeManager, { blockInterval })
+      }
+
+      this.expectedReward = await calculateExpectedCheckpointReward.call(this, blockInterval, this.amount, this.totalStaked, this.epochs)
+    }
+
+    function runTests(epochs) {
+      describe(`when Alice and Bob stakes for ${epochs} epochs`, function() {
+        before(function() {
+          this.epochs = epochs
+        })
+
+        before(doDeploy)
+
+        it('Alice must have correct balance', async function() {
+          const user = Alice.getAddressString()
+          const validatorId = await this.stakeManager.getValidatorId(user)
+          const beforeBalance = await this.stakeToken.balanceOf(user)
+
+          await this.stakeManager.withdrawRewards(validatorId, {
+            from: user
+          })
+
+          const afterBalance = await this.stakeToken.balanceOf(user)
+
+          assertBigNumberEquality(afterBalance, this.expectedReward.add(beforeBalance))
+        })
+
+        it('Bob must have correct balance', async function() {
+          const user = Bob.getAddressString()
+          const validatorId = await this.stakeManager.getValidatorId(user)
+          const beforeBalance = await this.stakeToken.balanceOf(user)
+
+          await this.stakeManager.withdrawRewards(validatorId, {
+            from: user
+          })
+
+          const afterBalance = await this.stakeToken.balanceOf(user)
+
+          assertBigNumberEquality(afterBalance, this.expectedReward.add(beforeBalance))
+        })
+      })
+    }
+
+    runTests(1)
+    runTests(10)
+
+    describe('reverts', function() {
+      beforeEach(doDeploy)
+
+      it('when from is not staker', async function() {
+        const user = Bob.getAddressString()
+        const validatorId = await this.stakeManager.getValidatorId(user)
+        await this.stakeManager.withdrawRewards(validatorId, {
+          from: Alice.getAddressString()
+        })
+      })
+
+      it('when validatorId is invalid', async function() {
+        await this.stakeManager.withdrawRewards('99999', {
+          from: Alice.getAddressString()
+        })
+      })
+    })
+  })
+
   describe('Staking', function() {
     require('./StakeManager.Staking')(accounts)
   })
@@ -420,32 +518,32 @@ contract('StakeManager', async function(accounts) {
 //       await this.stakeToken.mint(this.stakeManager.address, web3.utils.toWei('10000'))
 //     })
 
-//     it('should get rewards for validator1 for a single checkpoint', async function() {
-//       const reward = web3.utils.toWei('5000')
+  //   it('should get rewards for validator1 for a single checkpoint', async function() {
+  //     const reward = web3.utils.toWei('5000')
 
-//       // 2/3 majority vote
-//       await checkPoint(wallets, wallets[1], this.stakeManager, {
-//         from: wallets[1].getAddressString()
-//       })
+  //     // 2/3 majority vote
+  //     await checkPoint(wallets, wallets[1], this.stakeManager, {
+  //       from: wallets[1].getAddressString()
+  //     })
 
-//       const user = await this.stakeManager.ownerOf(1)
-//       const beforeBalance = await this.stakeToken.balanceOf(
-//         user
-//       )
+  //     const user = await this.stakeManager.ownerOf(1)
+  //     const beforeBalance = await this.stakeToken.balanceOf(
+  //       user
+  //     )
 
-//       let validator = await this.stakeManager.validators(1)
-//       assertBigNumberEquality(validator.reward, web3.utils.toBN(reward))
+  //     let validator = await this.stakeManager.validators(1)
+  //     assertBigNumberEquality(validator.reward, web3.utils.toBN(reward))
 
-//       await this.stakeManager.withdrawRewards(1, {
-//         from: user
-//       })
-//       const afterBalance = await this.stakeToken.balanceOf(
-//         user
-//       )
-//       assertBigNumberEquality(afterBalance, web3.utils.toBN(reward).add(beforeBalance))
-//       assertBigNumbergt(afterBalance, beforeBalance)
-//     })
-//   })
+  //     await this.stakeManager.withdrawRewards(1, {
+  //       from: user
+  //     })
+  //     const afterBalance = await this.stakeToken.balanceOf(
+  //       user
+  //     )
+  //     assertBigNumberEquality(afterBalance, web3.utils.toBN(reward).add(beforeBalance))
+  //     assertBigNumbergt(afterBalance, beforeBalance)
+  //   })
+  // })
 // })
 
 // contract('this.stakeManager: Heimdall fee', async function(accounts) {
