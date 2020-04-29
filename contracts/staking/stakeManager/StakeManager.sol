@@ -579,7 +579,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         );
         totalRewards = totalRewards.add(_reward);
         require(
-            _stakePower >= currentValidatorSetTotalStake().mul(2).div(3).add(1)
+            _stakePower >= currentValidatorSetTotalStake().mul(2).div(3).add(1),
+            "not enough stake power"
         );
         return _reward;
     }
