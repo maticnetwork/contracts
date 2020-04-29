@@ -458,8 +458,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         require(newDynasty > 0);
         logger.logDynastyValueChange(newDynasty, dynasty);
         dynasty = newDynasty;
-        WITHDRAWAL_DELAY = dynasty;
-        auctionPeriod = dynasty.div(4);
+        WITHDRAWAL_DELAY = newDynasty;
+        auctionPeriod = newDynasty.div(4);
         // set cool down period
         replacementCoolDown = currentEpoch.add(auctionPeriod);
     }
