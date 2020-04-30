@@ -67,17 +67,19 @@ module.exports = function(accounts) {
       })
     }
 
-    function testStake(user, userPubkey, amount, stakeAmount, validatorId) {
+    function testStake(user, userPubkey, amount, stakeAmount, validatorId, fee) {
       before('Approve', async function() {
         this.user = user
 
         await this.stakeToken.approve(this.stakeManager.address, amount, {
           from: user
         })
+
+        this.fee = new BN(fee) || 0
       })
 
       it('must stake', async function() {
-        this.receipt = await this.stakeManager.stake(stakeAmount, 0, false, userPubkey, {
+        this.receipt = await this.stakeManager.stake(stakeAmount, this.fee, false, userPubkey, {
           from: user
         })
       })
@@ -89,6 +91,16 @@ module.exports = function(accounts) {
           amount: stakeAmount
         })
       })
+
+      if (fee) {
+        it('must emit TopUpFee', async function() {
+          await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'TopUpFee', {
+            validatorId: validatorId.toString(),
+            signer: user,
+            fee: this.fee
+          })
+        })
+      }
 
       it(`must have correct staked amount`, async function() {
         const stakedFor = await this.stakeManager.totalStakedFor(user)
@@ -152,15 +164,6 @@ module.exports = function(accounts) {
 
     describe('double stake', async function() {
       before(freshDeploy)
-      before('Validator threshold and dynasty', async function() {
-        await this.stakeManager.updateValidatorThreshold(3, {
-          from: owner
-        })
-
-        await this.stakeManager.updateDynastyValue(2, {
-          from: owner
-        })
-      })
 
       describe('when stakes first time', function() {
         const amounts = walletAmounts[wallets[1].getAddressString()]
@@ -183,20 +186,11 @@ module.exports = function(accounts) {
       })
     })
 
-    describe('stake and restake following stake', function() {
+    describe('stake and restake following by another stake', function() {
       before(freshDeploy)
-      before('Validator threshold and dynasty', async function() {
-        await this.stakeManager.updateValidatorThreshold(3, {
-          from: owner
-        })
-
-        await this.stakeManager.updateDynastyValue(2, {
-          from: owner
-        })
-      })
 
       const amounts = walletAmounts[wallets[2].getAddressString()]
-      before('Stake', doStake(wallets[2], amounts.amount, amounts.stakeAmount))
+      before('Stake', doStake(wallets[2]))
 
       describe('when restakes', function() {
         testRestake(
@@ -254,15 +248,6 @@ module.exports = function(accounts) {
 
     describe('consecutive stakes', function() {
       before(freshDeploy)
-      before('Validator threshold and dynasty', async function() {
-        await this.stakeManager.updateValidatorThreshold(3, {
-          from: owner
-        })
-
-        await this.stakeManager.updateDynastyValue(2, {
-          from: owner
-        })
-      })
 
       it('validatorId must increment 1 by 1', async function() {
         const _wallets = [wallets[1], wallets[2], wallets[3]]
@@ -275,6 +260,19 @@ module.exports = function(accounts) {
           expectedValidatorId++
         }
       })
+    })
+
+    describe('stake with heimdall fee', function() {
+      before(freshDeploy)
+
+      testStake(
+        wallets[0].getChecksumAddressString(),
+        wallets[0].getPublicKeyString(),
+        web3.utils.toWei('200'),
+        web3.utils.toWei('150'),
+        1,
+        web3.utils.toWei('50')
+      )
     })
   })
 
