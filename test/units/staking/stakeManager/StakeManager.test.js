@@ -7,7 +7,7 @@ import {
 
 import deployer from '../../../helpers/deployer.js'
 import logDecoder from '../../../helpers/log-decoder.js'
-import { rewradsTreeFee } from '../../../helpers/proofs.js'
+import { buildTreeFee } from '../../../helpers/proofs.js'
 
 import {
   checkPoint,
@@ -509,23 +509,57 @@ contract('StakeManager', async function(accounts) {
     }
 
     describe('when user tops up', function() {
-      before(doDeploy)
+      function testTopUp() {
+        it('must top up', async function() {
+          await this.stakeToken.approve(this.stakeManager.address, fee, {
+            from: user
+          })
 
-      it('must top up', async function() {
-        await this.stakeToken.approve(this.stakeManager.address, fee, {
-          from: user
+          const validatorId = await this.stakeManager.getValidatorId(user)
+          this.receipt = await this.stakeManager.topUpForFee(validatorId, fee, {
+            from: user
+          })
         })
 
-        const validatorId = await this.stakeManager.getValidatorId(user)
-        this.receipt = await this.stakeManager.topUpForFee(validatorId, fee, {
-          from: user
+        it('must emit TopUpFee', async function() {
+          await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'TopUpFee', {
+            signer: wallet.getChecksumAddressString(),
+            fee
+          })
+        })
+      }
+
+      describe('once', function() {
+        before(doDeploy)
+
+        testTopUp()
+      })
+
+      describe('2 times within same checkpoint', function() {
+        before(doDeploy)
+
+        describe('1st top up', function() {
+          testTopUp()
+        })
+
+        describe('2nd top up', function() {
+          testTopUp()
         })
       })
 
-      it('must emit TopUpFee', async function() {
-        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'TopUpFee', {
-          signer: wallet.getChecksumAddressString(),
-          fee
+      describe('2 times with 1 checkpoint between', function() {
+        before(doDeploy)
+
+        describe('1st top up', function() {
+          testTopUp()
+        })
+
+        describe('2nd top up', function() {
+          before(async function() {
+            await checkPoint([wallet], this.rootChainOwner, this.stakeManager)
+          })
+
+          testTopUp()
         })
       })
     })
@@ -562,23 +596,24 @@ contract('StakeManager', async function(accounts) {
     })
   })
 
-  describe.only('claimFee', function() {
+  describe('claimFee', function() {
     const amount = new BN(web3.utils.toWei('200'))
 
-    async function feeCheckpoint(validatorId) {
-      let tree = await rewradsTreeFee(this.validators, this.accountState)
+    async function feeCheckpoint(validatorId, start, end) {
+      let tree = await buildTreeFee(this.validators, this.accumulatedFees, this.checkpointIndex)
+      this.checkpointIndex++
 
       const { vote, sigs } = buildSubmitHeaderBlockPaylod(
         this.validatorsWallets[validatorId].getAddressString(),
-        0,
-        22,
+        start,
+        end,
         '' /* root */,
         Object.values(this.validatorsWallets),
         { rewardsRootHash: tree.getRoot(), allValidators: true, getSigs: true, totalStake: this.totalStaked }
       )
-        
+
       await this.stakeManager.checkSignatures(
-        22,
+        end - start,
         utils.bufferToHex(utils.keccak256(vote)),
         utils.bufferToHex(tree.getRoot()),
         sigs,
@@ -588,11 +623,11 @@ contract('StakeManager', async function(accounts) {
       return tree
     }
 
-    function createLeafFrom(validatorId) {
+    function createLeafFrom(validatorId, checkpointIndex) {
       return utils.keccak256(
         web3.eth.abi.encodeParameters(
           ['uint256', 'uint256', 'uint256'],
-          [1, this.accountState[validatorId][0].toString(), this.accountState[validatorId][1].toString()]
+          [1, this.accumulatedFees[validatorId][checkpointIndex][0].toString(), this.accumulatedFees[validatorId][checkpointIndex][1].toString()]
         )
       )
     }
@@ -600,10 +635,11 @@ contract('StakeManager', async function(accounts) {
     async function doDeploy() {
       await freshDeploy.call(this)
 
+      this.checkpointIndex = 0
       this.validators = []
       this.validatorsWallets = {}
       this.totalStaked = new BN(0)
-      this.accountState = {}
+      this.accumulatedFees = {}
 
       for (let i = 0; i < this.validatorsCount; i++) {
         await this.stakeToken.approve(this.stakeManager.address, amount, {
@@ -618,62 +654,43 @@ contract('StakeManager', async function(accounts) {
         this.validatorsWallets[validatorId] = wallets[i]
         this.validators.push(validatorId)
         this.totalStaked = this.totalStaked.add(amount)
-        this.accountState[validatorId] = [0, 0]
+        this.accumulatedFees[validatorId] = []
       }
-
-      for (const validatorId in this.topUpFeeFor) {
-        const fee = this.topUpFeeFor[validatorId]
-        this.accountState[validatorId] = [web3.utils.toHex(fee.toString()), 0]
-
-        const user = this.validatorsWallets[validatorId].getAddressString()
-        await this.stakeToken.approve(this.stakeManager.address, fee, {
-          from: user
-        })
-
-        await this.stakeManager.topUpForFee(validatorId, fee, {
-          from: user
-        })
-      }
-
-      this.tree = await feeCheckpoint.call(this, 1)
 
       this.accumSlashedAmount = 0
       this.index = 0
-      this.beforeClaimTotalHeimdallFee = await this.stakeManager.totalHeimdallFee()
     }
 
-    describe('when Alice and Bob stakes, but only Alice topups heimdall fee', function() {
-      const AliceValidatorId = 1
-      const BobValidatorId = 2
+    function doTopUp(checkpointIndex) {
+      return async function() {
+        for (const validatorId in this.topUpFeeFor) {
+          const fee = this.topUpFeeFor[validatorId]
 
-      before(function() {
-        this.validatorsCount = 2
-        this.fee = new BN(web3.utils.toWei('50'))
-        this.topUpFeeFor = {
-          [AliceValidatorId]: this.fee
+          let newTopUp = [fee, 0]
+          if (checkpointIndex === this.accumulatedFees[validatorId].length) {
+            let newTopUpIndex = this.accumulatedFees[validatorId].push(newTopUp) - 1
+            for (let i = 0; i < newTopUpIndex; ++i) {
+              newTopUp[0] = newTopUp[0].add(this.accumulatedFees[validatorId][i][0])
+            }
+          } else {
+            this.accumulatedFees[validatorId][checkpointIndex][0] = newTopUp[0].add(this.accumulatedFees[validatorId][checkpointIndex][0])
+          }
+
+          const user = this.validatorsWallets[validatorId].getAddressString()
+          await this.stakeToken.approve(this.stakeManager.address, fee, {
+            from: user
+          })
+
+          await this.stakeManager.topUpForFee(validatorId, fee, {
+            from: user
+          })
         }
-      })
 
-      before(doDeploy)
+        this.beforeClaimTotalHeimdallFee = await this.stakeManager.totalHeimdallFee()
+      }
+    }
 
-      before(async function() {
-        this.user = this.validatorsWallets[AliceValidatorId].getAddressString()
-        this.signer = this.validatorsWallets[AliceValidatorId].getChecksumAddressString()
-        this.leaf = createLeafFrom.call(this, AliceValidatorId)
-        this.beforeClaimBalance = await this.stakeToken.balanceOf(this.user)
-      })
-
-      it('Bob must fail withdrawing', async function() {
-        await expectRevert.unspecified(this.stakeManager.claimFee(
-          BobValidatorId,
-          this.accumSlashedAmount,
-          this.fee,
-          this.index,
-          utils.bufferToHex(Buffer.concat(this.tree.getProof(this.leaf))),
-          { from: this.validatorsWallets[BobValidatorId].getAddressString() }
-        ))
-      })
-
+    function testAliceClaim(AliceValidatorId) {
       it('Alice must withdraw heimdall fee', async function() {
         this.receipt = await this.stakeManager.claimFee(
           AliceValidatorId,
@@ -702,220 +719,169 @@ contract('StakeManager', async function(accounts) {
         const totalHeimdallFee = await this.stakeManager.totalHeimdallFee()
         assertBigNumberEquality(this.beforeClaimTotalHeimdallFee.sub(this.fee), totalHeimdallFee)
       })
+    }
+
+    describe('when Alice and Bob stakes, but only Alice topups heimdall fee', function() {
+      const AliceValidatorId = 1
+      const BobValidatorId = 2
+
+      before(function() {
+        this.validatorsCount = 2
+        this.fee = new BN(web3.utils.toWei('50'))
+        this.topUpFeeFor = {
+          [AliceValidatorId]: this.fee
+        }
+      })
+
+      before(doDeploy)
+      before(doTopUp(0))
+
+      before(async function() {
+        this.tree = await feeCheckpoint.call(this, AliceValidatorId, 0, 22)
+        this.user = this.validatorsWallets[AliceValidatorId].getAddressString()
+        this.signer = this.validatorsWallets[AliceValidatorId].getChecksumAddressString()
+        this.leaf = createLeafFrom.call(this, AliceValidatorId, 0)
+        this.beforeClaimBalance = await this.stakeToken.balanceOf(this.user)
+      })
+
+      it('Bob must fail withdrawing', async function() {
+        await expectRevert.unspecified(this.stakeManager.claimFee(
+          BobValidatorId,
+          this.accumSlashedAmount,
+          this.fee,
+          this.index,
+          utils.bufferToHex(Buffer.concat(this.tree.getProof(this.leaf))),
+          { from: this.validatorsWallets[BobValidatorId].getAddressString() }
+        ))
+      })
+
+      testAliceClaim(AliceValidatorId)
+    })
+
+    // accountStateRoot is being replaced during checkpoint
+    // If i want to be able to withdraw fee from previous checkpoint - should i commit previous tree root?
+    describe.skip('when Alice top ups 2 times with different values', function() {
+      const AliceValidatorId = 1
+      const firstFee = new BN(web3.utils.toWei('50'))
+      const secondFee = new BN(web3.utils.toWei('30'))
+
+      describe('when top', function() {
+        before(function() {
+          this.trees = []
+          this.user = this.validatorsWallets[AliceValidatorId].getAddressString()
+          this.signer = this.validatorsWallets[AliceValidatorId].getChecksumAddressString()
+          this.validatorsCount = 2
+          this.topUpFeeFor = {
+            [AliceValidatorId]: firstFee
+          }
+        })
+
+        before('fresh deploy', doDeploy)
+        before('1st top up', doTopUp(0))
+        before('1st checkpoint', async function() {
+          this.trees.push(await feeCheckpoint.call(this, AliceValidatorId, 0, 22))
+          this.topUpFeeFor = {
+            [AliceValidatorId]: secondFee
+          }
+        })
+        before('2nd top up', doTopUp(1))
+        before('2nd checkpoint', async function() {
+          this.trees.push(await feeCheckpoint.call(this, AliceValidatorId, 22, 44))
+        })
+
+        describe('claims 1st time', function() {
+          before(async function() {
+            this.beforeClaimBalance = await this.stakeToken.balanceOf(this.user)
+            this.tree = this.trees[0]
+            this.fee = firstFee
+            this.leaf = createLeafFrom.call(this, AliceValidatorId, 0)
+          })
+
+          testAliceClaim(AliceValidatorId)
+        })
+
+        describe('claims 2nd time', function() {
+          before(async function() {
+            this.tree = this.trees[1]
+            this.fee = secondFee
+            this.index = 0
+            this.leaf = createLeafFrom.call(this, AliceValidatorId, 1)
+            this.beforeClaimBalance = await this.stakeToken.balanceOf(this.user)
+          })
+
+          testAliceClaim(AliceValidatorId)
+        })
+
+        // describe('claims 2nd time', function() {
+        //   testAliceClaim(AliceValidatorId)
+        // })
+
+        // describe('claims 3rd time', function() {
+        //   testAliceClaim(AliceValidatorId)
+        // })
+      })
+
+      describe('when 1 checkpoint between claims', function() {
+        // testAliceClaim(AliceValidatorId)
+      })
     })
 
     describe('reverts', function() {
-      it('when index is incorrect')
-      it('when validator id is incorrect')
-      it('when proof is incorrect')
-      it('accumulated fee amount passed is bigger than fee balance')
-    })
-  })
-
-  describe('Heimdall fee', async function() {
-    let accountState = {}
-
-    beforeEach(freshDeploy)
-
-    it('Stake with fee amount', async function() {
-      const amount = web3.utils.toWei('200')
-      const fee = web3.utils.toWei('50')
-      const user = wallets[2].getAddressString()
-      await this.stakeToken.mint(user, amount)
-      await this.stakeToken.approve(this.stakeManager.address, amount, {
-        from: user
-      })
-      let Receipt = await this.stakeManager.stake(web3.utils.toWei('150'), fee, false, wallets[2].getPublicKeyString(), {
-        from: user
-      })
-      const logs = logDecoder.decodeLogs(Receipt.receipt.rawLogs)
-
-      logs[2].event.should.equal('TopUpFee')
-      logs[1].event.should.equal('Staked')
-      assertBigNumberEquality(logs[2].args.fee, fee)
-      logs[2].args.signer.toLowerCase().should.equal(user.toLowerCase())
-    })
-
-    it('Topup later', async function() {
-      const amount = web3.utils.toWei('200')
-      const fee = web3.utils.toWei('50')
-      const user = wallets[2].getAddressString()
-      await this.stakeToken.mint(user, amount)
-      await this.stakeToken.approve(this.stakeManager.address, amount, {
-        from: user
-      })
-      let Receipt = await this.stakeManager.stake(web3.utils.toWei('150'), 0, false, wallets[2].getPublicKeyString(), {
-        from: user
-      })
-      let logs = logDecoder.decodeLogs(Receipt.receipt.rawLogs)
-      logs[2].event.should.equal('TopUpFee')
-      logs[1].event.should.equal('Staked')
-      assertBigNumberEquality(logs[2].args.fee, '0')
-      logs[2].args.signer.toLowerCase().should.equal(user.toLowerCase())
-      Receipt = await this.stakeManager.topUpForFee(1, fee, {
-        from: user
-      })
-      logs = logDecoder.decodeLogs(Receipt.receipt.rawLogs)
-      logs[0].event.should.equal('TopUpFee')
-      logs[0].args.signer.toLowerCase().should.equal(user.toLowerCase())
-      assertBigNumberEquality(logs[0].args.fee, fee)
-    })
-
-    it('Withdraw heimdall fee', async function() {
-      const validators = [1, 2]
-      const amount = web3.utils.toWei('200')
-      const fee = web3.utils.toWei('50')
-      const user = wallets[2].getAddressString()
-      await this.stakeToken.mint(user, amount)
-      await this.stakeToken.approve(this.stakeManager.address, amount, {
-        from: user
-      })
-      await this.stakeManager.stake(web3.utils.toWei('150'), fee, false, wallets[2].getPublicKeyString(), {
-        from: user
+      beforeEach(function() {
+        this.validatorsCount = 2
+        this.fee = new BN(web3.utils.toWei('50'))
+        this.validatorId = 1
+        this.topUpFeeFor = {
+          [this.validatorId]: this.fee
+        }
       })
 
-      accountState[1] = [web3.utils.toHex(fee.toString()), 0]
-      accountState[2] = [0, 0]
-      // validatorId, accumBalance, accumSlashedAmount, amount
-      let tree = await rewradsTreeFee(validators, accountState)
-
-      const { vote, sigs } = buildSubmitHeaderBlockPaylod(
-        wallets[2].getAddressString(),
-        0,
-        22,
-        '' /* root */,
-        [wallets[2]],
-        { rewardsRootHash: tree.getRoot(), allValidators: true, getSigs: true, totalStake: web3.utils.toWei('150') }
-      )
-
-      // 2/3 majority vote
-      await this.stakeManager.checkSignatures(
-        1,
-        utils.bufferToHex(utils.keccak256(vote)),
-        utils.bufferToHex(tree.getRoot()),
-        sigs, { from: wallets[1].getAddressString() }
-      )
-      const leaf = utils.keccak256(
-        web3.eth.abi.encodeParameters(
-          ['uint256', 'uint256', 'uint256'],
-          [1, accountState[1][0].toString(), accountState[1][1]]
-        )
-      )
-      // validatorId, accumBalance, accumSlashedAmount, amount, index, bytes memory proof
-      let Receipt = await this.stakeManager.claimFee(
-        1,
-        0,
-        fee,
-        0,
-        utils.bufferToHex(Buffer.concat(tree.getProof(leaf))),
-        { from: wallets[2].getAddressString() }
-      )
-
-      let logs = logDecoder.decodeLogs(Receipt.receipt.rawLogs)
-      logs[0].event.should.equal('ClaimFee')
-      assertBigNumberEquality(await this.stakeToken.balanceOf(
-        wallets[2].getAddressString()
-      ), fee)
-    })
-
-    it('Withdraw heimdall fee multiple times', async function() {
-      const validators = [1, 2]
-      const amount = web3.utils.toWei('200')
-      let fee = web3.utils.toWei('50')
-      const user = wallets[2].getAddressString()
-      await this.stakeToken.mint(user, amount)
-      await this.stakeToken.approve(this.stakeManager.address, amount, {
-        from: user
+      beforeEach(doDeploy)
+      beforeEach(doTopUp(0))
+      beforeEach(async function() {
+        this.tree = await feeCheckpoint.call(this, this.validatorId, 0, 22)
+        this.user = this.validatorsWallets[this.validatorId].getAddressString()
+        this.signer = this.validatorsWallets[this.validatorId].getChecksumAddressString()
+        this.leaf = createLeafFrom.call(this, this.validatorId, 0)
+        this.beforeClaimBalance = await this.stakeToken.balanceOf(this.user)
+        this.proof = utils.bufferToHex(Buffer.concat(this.tree.getProof(this.leaf)))
       })
-      await this.stakeManager.stake(web3.utils.toWei('150'), fee, false, wallets[2].getPublicKeyString(), {
-        from: user
+
+      async function testRevert() {
+        await expectRevert.unspecified(this.stakeManager.claimFee(
+          this.validatorId,
+          this.accumSlashedAmount,
+          this.fee,
+          this.index,
+          this.proof,
+          { from: this.user }
+        ))
+      }
+
+      it('when index is incorrect', async function() {
+        this.index = 1
+        await testRevert.call(this)
       })
-      fee = web3.utils.toWei('25')
-      accountState[1] = [web3.utils.toHex(fee.toString()), 0]
-      accountState[2] = [0, 0]
-      // validatorId, accumBalance, accumSlashedAmount, amount
-      let tree = await rewradsTreeFee(validators, accountState)
+      
+      it('when validator id is incorrect', async function() {
+        this.validatorId = 999
+        await testRevert.call(this)
+      })
 
-      const { vote, sigs } = buildSubmitHeaderBlockPaylod(
-        wallets[2].getAddressString(),
-        0,
-        22,
-        '' /* root */,
-        [wallets[2]],
-        { rewardsRootHash: tree.getRoot(), allValidators: true, getSigs: true, totalStake: web3.utils.toWei('150') }
-      )
+      it('when proof is incorrect', async function() {
+        this.proof = utils.bufferToHex(Buffer.from('random_string'))
+        await testRevert.call(this)
+      })
 
-      // 2/3 majority vote
-      await this.stakeManager.checkSignatures(
-        22,
-        utils.bufferToHex(utils.keccak256(vote)),
-        utils.bufferToHex(tree.getRoot()),
-        sigs, { from: wallets[1].getAddressString() }
-      )
-      let leaf = utils.keccak256(
-        web3.eth.abi.encodeParameters(
-          ['uint256', 'uint256', 'uint256'],
-          [1, accountState[1][0].toString(), accountState[1][1]]
-        )
-      )
-      // validatorId, accumBalance, accumSlashedAmount, amount, index, bytes memory proof
-      let Receipt = await this.stakeManager.claimFee(
-        1,
-        0,
-        fee,
-        0,
-        utils.bufferToHex(Buffer.concat(tree.getProof(leaf))),
-        { from: wallets[2].getAddressString() }
-      )
+      it('when claim less than checkpointed balance', async function() {
+        this.fee = this.fee.sub(new BN(1))
+        await testRevert.call(this)
+      })
 
-      let logs = logDecoder.decodeLogs(Receipt.receipt.rawLogs)
-      logs[0].event.should.equal('ClaimFee')
-      assertBigNumberEquality(await this.stakeToken.balanceOf(
-        wallets[2].getAddressString()
-      ), fee)
-
-      fee = web3.utils.toWei('50')
-
-      accountState[1] = [web3.utils.toHex(fee.toString()), 0]
-      // validatorId, accumBalance, accumSlashedAmount, amount
-      tree = await rewradsTreeFee(validators, accountState)
-
-      const header = buildSubmitHeaderBlockPaylod(
-        wallets[2].getAddressString(),
-        22,
-        44,
-        '' /* root */,
-        [wallets[2]],
-        { rewardsRootHash: tree.getRoot(), allValidators: true, getSigs: true, totalStake: web3.utils.toWei('150') }
-      )
-      // 2/3 majority vote
-      await this.stakeManager.checkSignatures(
-        22,
-        utils.bufferToHex(utils.keccak256(header.vote)),
-        utils.bufferToHex(tree.getRoot()),
-        header.sigs, { from: wallets[1].getAddressString() }
-      )
-
-      leaf = utils.keccak256(
-        web3.eth.abi.encodeParameters(
-          ['uint256', 'uint256', 'uint256'],
-          [1, accountState[1][0].toString(), accountState[1][1]]
-        )
-      )
-      // validatorId, accumBalance, accumSlashedAmount, amount, index, bytes memory proof
-      Receipt = await this.stakeManager.claimFee(
-        1,
-        0,
-        fee,
-        0,
-        utils.bufferToHex(Buffer.concat(tree.getProof(leaf))),
-        { from: wallets[2].getAddressString() }
-      )
-      logs = logDecoder.decodeLogs(Receipt.receipt.rawLogs)
-      logs[0].event.should.equal('ClaimFee')
-      assertBigNumberEquality(await this.stakeToken.balanceOf(
-        wallets[2].getAddressString()
-      ), fee)
+      it('when claim more than checkpointed balance', async function() {
+        this.fee = this.fee.add(new BN(1))
+        await testRevert.call(this)
+      })
     })
   })
 })
