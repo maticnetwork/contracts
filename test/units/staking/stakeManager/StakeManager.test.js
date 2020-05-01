@@ -176,21 +176,21 @@ contract('StakeManager', async function(accounts) {
     let w = [wallets[1], wallets[2], wallets[3]]
     let user = wallets[3].getChecksumAddressString()
 
-    function doDeploy() {
-      before(freshDeploy)
-      before(async function() {
-        const amount = web3.utils.toWei('200')
-        for (const wallet of w) {
-          await this.stakeToken.approve(this.stakeManager.address, amount, {
-            from: wallet.getAddressString()
-          })
+    async function doDeploy() {
+      await freshDeploy.call(this)
 
-          await this.stakeManager.stake(amount, 0, false, wallet.getPublicKeyString(), {
-            from: wallet.getChecksumAddressString()
-          })
-        }
+      const amount = web3.utils.toWei('200')
+      for (const wallet of w) {
+        await this.stakeToken.approve(this.stakeManager.address, amount, {
+          from: wallet.getAddressString()
+        })
 
-        await checkPoint(w, this.rootChainOwner, this.stakeManager)
+        await this.stakeManager.stake(amount, 0, false, wallet.getPublicKeyString(), {
+          from: wallet.getChecksumAddressString()
+        })
+      }
+
+      await checkPoint(w, this.rootChainOwner, this.stakeManager)
       })
     }
 
@@ -216,7 +216,7 @@ contract('StakeManager', async function(accounts) {
     }
 
     describe('must able to change to original public key. 1 epoch between stakes', function() {
-      doDeploy()
+      before(doDeploy)
 
       describe('when update signer to different public key', function() {
         before(function() {
@@ -242,15 +242,10 @@ contract('StakeManager', async function(accounts) {
       })
     })
 
-    describe('when updating public key 2 times in 1 epoch', function() {
-      doDeploy()
+    describe('reverts', function() {
+      beforeEach(doDeploy)
 
-      before(function() {
-        this.signer = wallets[0].getChecksumAddressString()
-        this.userPubkey = wallets[0].getPublicKeyString()
-      })
-
-      it('must revert', async function() {
+      it('when updating public key 2 times in 1 epoch', async function() {
         let validatorId = await this.stakeManager.getValidatorId(user)
         await this.stakeManager.updateSigner(validatorId, wallets[0].getPublicKeyString(), {
           from: user
@@ -261,25 +256,31 @@ contract('StakeManager', async function(accounts) {
           from: user
         }))
       })
-    })
 
-    describe('when from is not staker', function() {
-      doDeploy()
-
-      it('must revert', async function() {
+      it('when from is not staker', async function() {
         const validatorId = await this.stakeManager.getValidatorId(user)
         await expectRevert.unspecified(this.stakeManager.updateSigner(validatorId, wallets[6].getPublicKeyString(), {
           from: wallets[6].getAddressString()
         }))
       })
-    })
 
-    describe('when validatorId is incorrect', function() {
-      doDeploy()
-
-      it('must revert', async function() {
+      it('when validatorId is incorrect', async function() {
         await expectRevert.unspecified(this.stakeManager.updateSigner('9999999', wallets[5].getPublicKeyString(), {
           from: user
+        }))
+      })
+
+      it('when public key is already in use', async function() {
+        const newPubKey = wallets[0].getPublicKeyString()
+
+        let validatorId = await this.stakeManager.getValidatorId(wallets[1].getAddressString())
+        await this.stakeManager.updateSigner(validatorId, newPubKey, {
+          from: wallets[1].getAddressString()
+        })
+
+        validatorId = await this.stakeManager.getValidatorId(wallets[2].getAddressString())
+        await expectRevert.unspecified(this.stakeManager.updateSigner(validatorId, newPubKey, {
+          from: wallets[2].getAddressString()
         }))
       })
     })
