@@ -393,16 +393,6 @@ module.exports = function(accounts) {
 
     describe('reverts', function() {
       beforeEach('Fresh Deploy', freshDeploy)
-      beforeEach('Validator Threshold and Dynasty', async function() {
-        await this.stakeManager.updateValidatorThreshold(3, {
-          from: owner
-        })
-
-        await this.stakeManager.updateDynastyValue(2, {
-          from: owner
-        })
-      })
-
       const user = wallets[2].getChecksumAddressString()
 
       beforeEach(doStake(wallets[2]))
@@ -423,6 +413,24 @@ module.exports = function(accounts) {
       it('when unstakes 2 times', async function() {
         const validatorId = await this.stakeManager.getValidatorId(user)
         await this.stakeManager.unstake(validatorId, {
+          from: user
+        })
+
+        await expectRevert.unspecified(this.stakeManager.unstake(validatorId, {
+          from: user
+        }))
+      })
+
+      it('when unstakes during auction', async function() {
+        const amount = web3.utils.toWei('1200')
+        await this.stakeToken.mint(user, amount)
+
+        await this.stakeToken.approve(this.stakeManager.address, amount, {
+          from: user
+        })
+
+        const validatorId = await this.stakeManager.getValidatorId(user)
+        await this.stakeManager.startAuction(validatorId, amount, {
           from: user
         })
 
