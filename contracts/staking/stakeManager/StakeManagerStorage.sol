@@ -19,13 +19,14 @@ contract StakeManagerStorage is ProxyStorage, Lockable, RootChainable {
     ValidatorShareFactory public factory;
     uint256 public WITHDRAWAL_DELAY = (2**13); // unit: epoch
     uint256 public currentEpoch = 1;
-    uint256 public updateEpoch = 100;
+    
     // genesis/governance variables
     uint256 public dynasty = 2**13; // unit: epoch 50 days
     uint256 public CHECKPOINT_REWARD = 10000 * (10**18); // update via governance
     uint256 public minDeposit = (10**18); // in ERC20 token
     uint256 public minHeimdallFee = (10**18); // in ERC20 token
     uint256 public checkPointBlockInterval = 255;
+    uint256 public signerUpdateLimit = 100;
 
     uint256 public validatorThreshold = 10; //128
     uint256 public totalStaked;
@@ -59,6 +60,7 @@ contract StakeManagerStorage is ProxyStorage, Lockable, RootChainable {
         address signer;
         address contractAddress;
         Status status;
+        uint256 updateEpoch;
     }
 
     mapping(uint256 => Validator) public validators;
