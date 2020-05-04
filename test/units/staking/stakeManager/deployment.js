@@ -38,6 +38,7 @@ module.exports = {
     let contracts = await deployer.deployStakeManager(wallets)
     this.stakeToken = contracts.stakeToken
     this.stakeManager = contracts.stakeManager
+    this.nftContract = contracts.stakingNFT
     this.rootChainOwner = contracts.rootChainOwner
     
     // dummy registry address

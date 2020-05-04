@@ -111,6 +111,7 @@ class Deployer {
       stakeManager: this.stakeManager,
       stakeToken: this.stakeToken,
       governance: this.governance,
+      stakingNFT: this.stakingNFT,
       stakeManagerProxy: proxy,
       stakeManagerImpl: stakeManager
     }
