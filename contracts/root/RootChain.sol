@@ -9,6 +9,7 @@ import {IStakeManager} from "../staking/stakeManager/IStakeManager.sol";
 import {IRootChain} from "./IRootChain.sol";
 import {Registry} from "../common/Registry.sol";
 
+
 contract RootChain is RootChainStorage, IRootChain {
     using SafeMath for uint256;
     using RLPReader for bytes;
@@ -50,7 +51,12 @@ contract RootChain is RootChainStorage, IRootChain {
         // blockInterval, voteHash, stateRoot, sigs
         uint256 _reward = stakeManager.checkSignatures(
             end.sub(start).add(1),
-            keccak256(abi.encodePacked(bytes(hex"01"), data)), // prefix 01 to data
+            /**  
+                prefix 01 to data 
+                01 represents positive vote on data and 00 is negative vote
+                malicious validator can try to send 2/3 on negative vote so 01 is appended
+             */
+            keccak256(abi.encodePacked(bytes(hex"01"), data)),
             accountHash,
             sigs
         );
