@@ -616,7 +616,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             contractAddress: acceptDelegation
                 ? factory.create(NFTCounter, address(logger))
                 : address(0x0),
-            status: Status.Active
+            status: Status.Active,
+            signerUpdateEpoch: currentEpoch
         });
 
         NFTContract.mint(user, NFTCounter);
