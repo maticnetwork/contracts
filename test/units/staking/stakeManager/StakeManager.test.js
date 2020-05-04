@@ -862,7 +862,7 @@ contract('StakeManager', async function(accounts) {
         this.index = 1
         await testRevert.call(this)
       })
-      
+
       it('when validator id is incorrect', async function() {
         this.validatorId = 999
         await testRevert.call(this)
@@ -893,7 +893,7 @@ contract('StakeManager', async function(accounts) {
       await freshDeploy.call(this)
 
       await this.stakeManager.updateDynastyValue(8)
-      
+
       for (const wallet of _initialStakers) {
         const user = wallet.getChecksumAddressString()
         const userPubkey = wallet.getPublicKeyString()
@@ -950,16 +950,15 @@ contract('StakeManager', async function(accounts) {
             from: user
           })
         })
-  
+
         it('must emit StartAuction', async function() {
-          const validotor = await this.stakeManager.validators(validatorId)
           await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'StartAuction', {
             validatorId: validatorId.toString(),
-            amount: validotor.amount,
+            amount: initialStakeAmount,
             auctionAmount: bidAmount
           })
         })
-  
+
         it('validator auction must have correct balance equal to bid amount', async function() {
           let auctionData = await this.stakeManager.validatorAuction(validatorId)
           assertBigNumberEquality(auctionData.amount, bidAmount)
@@ -969,7 +968,7 @@ contract('StakeManager', async function(accounts) {
           let auctionData = await this.stakeManager.validatorAuction(validatorId)
           assert(auctionData.user === user)
         })
-  
+
         it('balance must decrease by bid amount', async function() {
           assertBigNumberEquality(
             await this.stakeToken.balanceOf(user),
@@ -994,12 +993,12 @@ contract('StakeManager', async function(accounts) {
 
     describe('reverts', function() {
       beforeEach('deploy', doDeploy)
-      
+
       it('when bid during non-auction period', async function() {
         let auction = await this.stakeManager.validatorAuction(1)
         let currentEpoch = await this.stakeManager.currentEpoch()
         let dynasty = await this.stakeManager.dynasty()
-        
+
         // skip auction period
         let end = auction.startEpoch.add(dynasty).toNumber()
         for (let i = currentEpoch.toNumber(); i <= end; i++) {
@@ -1034,224 +1033,265 @@ contract('StakeManager', async function(accounts) {
   })
 
   describe('confirmAuctionBid', function() {
-    
+    const _initialStakers = [wallets[1], wallets[2]]
+    const _bidAmount = web3.utils.toWei('1200')
+    const _initialStakeAmount = web3.utils.toWei('200')
+
+    function doDeploy(runAuction = true) {
+      return async function() {
+        await freshDeploy.call(this)
+
+        await this.stakeManager.updateDynastyValue(8)
+
+        for (const wallet of _initialStakers) {
+          const user = wallet.getChecksumAddressString()
+          const userPubkey = wallet.getPublicKeyString()
+
+          await this.stakeToken.approve(this.stakeManager.address, _initialStakeAmount, {
+            from: user
+          })
+
+          await this.stakeManager.stake(_initialStakeAmount, 0, false, userPubkey, {
+            from: user
+          })
+        }
+
+        if (runAuction) {
+        // cooldown period
+          let auctionPeriod = (await this.stakeManager.auctionPeriod()).toNumber()
+          let currentEpoch = (await this.stakeManager.currentEpoch()).toNumber()
+          for (let i = currentEpoch; i <= auctionPeriod; i++) {
+            await checkPoint(_initialStakers, this.rootChainOwner, this.stakeManager)
+          }
+
+          this.amount = web3.utils.toWei('500')
+          await this.stakeToken.approve(this.stakeManager.address, this.amount, {
+            from: wallets[3].getAddressString()
+          })
+
+          // bid
+          await this.stakeToken.mint(this.bidder, _bidAmount)
+          await this.stakeToken.approve(this.stakeManager.address, _bidAmount, {
+            from: this.bidder
+          })
+
+          await this.stakeManager.startAuction(this.validatorId, _bidAmount, {
+            from: this.bidder
+          })
+
+          let auction = await this.stakeManager.validatorAuction(this.validatorId)
+          currentEpoch = await this.stakeManager.currentEpoch()
+          let dynasty = await this.stakeManager.dynasty()
+
+          // skip auction period
+          let end = auction.startEpoch.add(dynasty).toNumber()
+          for (let i = currentEpoch.toNumber(); i <= end; i++) {
+          // 2/3 majority vote
+            await checkPoint(_initialStakers, this.rootChainOwner, this.stakeManager)
+          }
+        }
+      }
+    }
+
+    describe('when last auctioner is validator', function() {
+      before(async function() {
+        this.validatorId = '1'
+        this.bidder = _initialStakers[0].getChecksumAddressString()
+        this.bidderPubKey = _initialStakers[0].getPublicKeyString()
+        this.heimdallFee = web3.utils.toWei('100')
+        this.bidAmount = _bidAmount
+      })
+
+      before(doDeploy())
+
+      before(async function() {
+        await this.stakeToken.mint(this.bidder, this.heimdallFee)
+        await this.stakeToken.approve(this.stakeManager.address, this.heimdallFee, {
+          from: this.bidder
+        })
+
+        this.bidderPrevBalance = await this.stakeToken.balanceOf(this.bidder)
+        this.validatorPrevState = await this.stakeManager.validators(this.validatorId)
+        this.prevTotalStaked = await this.stakeManager.totalStaked()
+      })
+
+      it('must confirm with heimdal fee', async function() {
+        this.receipt = await this.stakeManager.confirmAuctionBid(
+          this.validatorId,
+          this.heimdallFee,
+          false,
+          this.bidderPubKey,
+          {
+            from: this.bidder
+          }
+        )
+      })
+
+      it('must emit StakeUpdate', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'StakeUpdate', {
+          validatorId: this.validatorId,
+          newAmount: this.bidAmount
+        })
+      })
+
+      it('must emit ConfirmAuction', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ConfirmAuction', {
+          newValidatorId: this.validatorId,
+          oldValidatorId: this.validatorId,
+          amount: this.bidAmount
+        })
+      })
+
+      it('must not emit TopUpFee', async function() {
+        await expectEvent.not.inTransaction(this.receipt.tx, StakingInfo, 'TopUpFee')
+      })
+
+      it('validator must be refunded', async function() {
+        const refundedBalance = await this.stakeToken.balanceOf(this.bidder)
+        assertBigNumberEquality(refundedBalance, this.bidderPrevBalance.add(this.validatorPrevState.amount))
+      })
+
+      it('totalStaked must be correct', async function() {
+        const totalStaked = await this.stakeManager.totalStaked()
+        const auctionDelta = new BN(this.bidAmount).sub(this.validatorPrevState.amount)
+        assertBigNumberEquality(totalStaked, this.prevTotalStaked.add(auctionDelta))
+      })
+    })
+
+    describe('when last auctioner is not validator', function() {
+      before(async function() {
+        this.validatorId = '1'
+        this.newValidatorId = '3'
+        this.bidder = wallets[3].getChecksumAddressString()
+        this.bidderPubKey = wallets[3].getPublicKeyString()
+        this.heimdallFee = web3.utils.toWei('100')
+        this.bidAmount = _bidAmount
+      })
+
+      before(doDeploy())
+
+      before(async function() {
+        await this.stakeToken.mint(this.bidder, this.heimdallFee)
+        await this.stakeToken.approve(this.stakeManager.address, this.heimdallFee, {
+          from: this.bidder
+        })
+
+        this.prevValidatorAddr = _initialStakers[0].getChecksumAddressString()
+        this.prevValidatorOldBalance = await this.stakeToken.balanceOf(this.prevValidatorAddr)
+
+        this.validator = await this.stakeManager.validators(this.validatorId)
+        this.totalStakedBeforeAuction = await this.stakeManager.totalStaked()
+      })
+
+      it('must confirm auction with heimdall fee', async function() {
+        this.receipt = await this.stakeManager.confirmAuctionBid(
+          this.validatorId,
+          this.heimdallFee,
+          false,
+          this.bidderPubKey,
+          {
+            from: this.bidder
+          }
+        )
+      })
+
+      it('must emit Staked', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'Staked', {
+          signer: this.bidder,
+          signerPubkey: this.bidderPubKey,
+          activationEpoch: await this.stakeManager.currentEpoch(),
+          validatorId: this.newValidatorId,
+          amount: this.bidAmount,
+          total: this.totalStakedBeforeAuction.add(new BN(this.bidAmount))
+        })
+      })
+
+      it('must emit UnstakeInit', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'UnstakeInit', {
+          user: this.bidder,
+          validatorId: this.validatorId,
+          deactivationEpoch: await this.stakeManager.currentEpoch(),
+          amount: this.validator.amount
+        })
+      })
+
+      it('must emit ConfirmAuction', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ConfirmAuction', {
+          newValidatorId: this.newValidatorId,
+          oldValidatorId: this.validatorId,
+          amount: this.bidAmount
+        })
+      })
+
+      it('must emit TopUpFee', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'TopUpFee', {
+          validatorId: this.newValidatorId,
+          signer: this.bidder,
+          fee: this.heimdallFee
+        })
+      })
+
+      it('previous validator must get his reward', async function() {
+        let prevValidatorBalance = await this.stakeToken.balanceOf(this.prevValidatorAddr)
+        assertBigNumberEquality(prevValidatorBalance, this.prevValidatorOldBalance.add(this.validator.reward))
+      })
+
+      it('previous validator is not validator anymore', async function() {
+        assert.ok(!(await this.stakeManager.isValidator(this.validatorId)))
+      })
+
+      it('new validator is validator', async function() {
+        assert.ok(await this.stakeManager.isValidator(this.newValidatorId))
+      })
+    })
+
+    describe('when auction has not ended yet', function() {
+      before(async function() {
+        this.validatorId = '1'
+        this.bidder = wallets[3].getChecksumAddressString()
+        this.bidderPubKey = wallets[3].getPublicKeyString()
+        this.bidAmount = _bidAmount
+      })
+
+      before(doDeploy(false))
+
+      it('reverts', async function() {
+        await expectRevert(this.stakeManager.confirmAuctionBid(
+          this.validatorId,
+          0,
+          false,
+          wallets[4].getPublicKeyString(),
+          {
+            from: wallets[4].getChecksumAddressString()
+          }
+        ), 'Confirmation is not allowed before auctionPeriod')
+      })
+    })
+
+    describe('when from is not bidder', function() {
+      before(async function() {
+        this.validatorId = '1'
+        this.bidder = wallets[3].getChecksumAddressString()
+        this.bidderPubKey = wallets[3].getPublicKeyString()
+        this.bidAmount = _bidAmount
+      })
+
+      before(doDeploy())
+
+      it('reverts', async function() {
+        await expectRevert.unspecified(this.stakeManager.confirmAuctionBid(
+          this.validatorId,
+          0,
+          false,
+          wallets[4].getPublicKeyString(),
+          {
+            from: wallets[4].getChecksumAddressString()
+          }
+        ))
+      })
+    })
   })
 })
-
-// describe('this.stakeManager:validator replacement', async function() {
-//   describe('validator replacement', async function() {
-//     it('should start auction where validator is last bidder', async function() {
-//       const amount = web3.utils.toWei('1250')
-//       let validator = await this.stakeManager.validators(2)
-//       assert(
-//         validator.signer.toLowerCase(),
-//         wallets[3].getAddressString().toLowerCase()
-//       )
-
-//       await this.stakeToken.mint(validator.signer, amount)
-//       await this.stakeToken.approve(this.stakeManager.address, amount, {
-//         from: validator.signer
-//       })
-
-//       await this.stakeManager.startAuction(2, amount, {
-//         from: validator.signer
-//       })
-//       const auctionData = await this.stakeManager.validatorAuction(2)
-//       assertBigNumberEquality(auctionData.amount, amount)
-//       assert(auctionData.user.toLowerCase() === validator.signer.toLowerCase())
-//     })
-
-//     it('should try auction start after auctionPeriod period and fail', async function() {
-//       let auctionData = await this.stakeManager.validatorAuction(1)
-//       let auctionPeriod = await this.stakeManager.auctionPeriod()
-//       let currentEpoch = await this.stakeManager.currentEpoch()
-
-//       // fast forward to skip auctionPeriod
-//       for (
-//         let i = currentEpoch;
-//         i <= auctionPeriod.add(currentEpoch);
-//         i++
-//       ) {
-//         // 2/3 majority vote
-//         await checkPoint([wallets[0], wallets[1]], wallets[1], this.stakeManager, {
-//           from: wallets[1].getAddressString()
-//         })
-//       }
-//       const amount = web3.utils.toWei('1300')
-//       await this.stakeToken.mint(wallets[5].getAddressString(), amount)
-//       await this.stakeToken.approve(this.stakeManager.address, amount, {
-//         from: wallets[5].getAddressString()
-//       })
-//       try {
-//         await this.stakeManager.startAuction(1, amount, {
-//           from: wallets[5].getAddressString()
-//         })
-//         assert.fail('Test should fail due to invalid auction period')
-//       } catch (error) {
-//         const invalidOpcode = error.message.search('revert') >= 0
-//         const errorMessage = error.message.search('Invalid auction period') >= 0
-//         assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
-//         assert(
-//           errorMessage,
-//           "Expected 'Invalid auction period', got '" + error + "' instead"
-//         )
-//       }
-//     })
-
-//     it('should confrim auction and secure the place', async function() {
-//       const result = await this.stakeManager.confirmAuctionBid(
-//         1,
-//         0,
-//         false,
-//         wallets[4].getPublicKeyString(),
-//         {
-//           from: wallets[4].getAddressString()
-//         }
-//       )
-//       const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
-//       logs[2].event.should.equal('Staked')
-//       logs[4].event.should.equal('ConfirmAuction')
-
-//       assertBigNumberEquality(logs[4].args.amount, web3.utils.toWei('1250'))
-//       assert.ok(!(await this.stakeManager.isValidator(logs[4].args.oldValidatorId)))
-//       assert.ok(await this.stakeManager.isValidator(logs[4].args.newValidatorId))
-//     })
-
-//     it('should confrim auction and secure the place for validator itself', async function() {
-//       // let validator = await this.stakeManager.validators(2)
-//       // let stake = validator.amount
-//       // let balanceBefore = await this.stakeToken.balanceOf(validator.signer)
-//       // console.log(await this.stakeManager.validatorAuction(2))
-//       // console.log(await this.stakeManager.currentEpoch())
-//       // const result = await this.stakeManager.confirmAuctionBid(
-//       //   2,
-//       //   0,
-//       //   validator.signer,
-//       //   false,
-//       //   {
-//       //     from: validator.signer
-//       //   }
-//       // )
-//       // const logs = result.receipt.logs
-
-//       // logs[1].event.should.equal('ConfirmAuction')
-
-//       // assertBigNumberEquality(logs[1].args.amount, web3.utils.toWei('1250'))
-//       // assertBigNumberEquality(
-//       //   logs[1].args.oldValidatorId,
-//       //   logs[1].args.newValidatorId
-//       // )
-
-//       // test if validator got the diff balance back
-//       // let balanceAfter = await this.stakeToken.balanceOf(validator.signer)
-//       // assertBigNumberEquality(balanceAfter.sub(balanceBefore), stake)
-//     })
-//   })
-//   describe('validator replacement: skip a dynasty', async function() {
-//     before(async function() {
-//       wallets = generateFirstWallets(mnemonics, 10)
-//       let contracts = await deployer.deploythis.stakeManager(wallets)
-//       this.stakeToken = contracts.this.stakeToken
-//       this.stakeManager = contracts.this.stakeManager
-
-//       await this.stakeManager.updateDynastyValue(8)
-//       await this.stakeManager.updateCheckPointBlockInterval(1)
-
-//       let amount = web3.utils.toWei('1000')
-//       for (let i = 0; i < 2; i++) {
-//         await this.stakeToken.mint(wallets[i].getAddressString(), amount)
-//         await this.stakeToken.approve(this.stakeManager.address, amount, {
-//           from: wallets[i].getAddressString()
-//         })
-//         await this.stakeManager.stake(amount, 0, false, wallets[i].getPublicKeyString(), {
-//           from: wallets[i].getAddressString()
-//         })
-//       }
-//       let dynasty = await this.stakeManager.dynasty()
-//       // cool down period
-//       let auctionPeriod = await this.stakeManager.auctionPeriod()
-//       let currentEpoch = await this.stakeManager.currentEpoch()
-//       for (
-//         let i = currentEpoch;
-//         i <= auctionPeriod.add(dynasty);
-//         i++
-//       ) {
-//         // 2/3 majority vote
-//         await checkPoint([wallets[0], wallets[1]], wallets[1], this.stakeManager, {
-//           from: wallets[1].getAddressString()
-//         })
-//       }
-//       await this.stakeToken.mint(this.stakeManager.address, web3.utils.toWei('1000000'))// rewards amount
-//     })
-
-//     it('should call confirmAuction at diffrent times', async function() {
-//       let amount = web3.utils.toWei('1200')
-//       // 2/3 majority vote
-//       await checkPoint([wallets[0], wallets[1]], wallets[1], this.stakeManager, {
-//         from: wallets[1].getAddressString()
-//       })
-//       // start an auction from wallet[3]
-//       await this.stakeToken.mint(wallets[3].getAddressString(), amount)
-//       await this.stakeToken.approve(this.stakeManager.address, amount, {
-//         from: wallets[3].getAddressString()
-//       })
-
-//       await this.stakeManager.startAuction(1, amount, {
-//         from: wallets[3].getAddressString()
-//       })
-//       let dynasty = await this.stakeManager.dynasty()
-
-//       for (
-//         let i = 0;
-//         i <= dynasty;
-//         i++
-//       ) {
-//         // 2/3 majority vote
-//         await checkPoint([wallets[0], wallets[1]], wallets[1], this.stakeManager, {
-//           from: wallets[1].getAddressString()
-//         })
-//       }
-
-//       try {
-//         await this.stakeManager.confirmAuctionBid(
-//           1,
-//           0,
-//           false,
-//           wallets[4].getPublicKeyString(),
-//           {
-//             from: wallets[4].getAddressString()
-//           }
-//         )
-//         assert.fail(`Confirmation should've failed`)
-//       } catch (error) {
-//         const invalidOpcode = error.message.search('Confirmation is not allowed before auctionPeriod') >= 0
-//         assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
-//       }
-
-//       await checkPoint([wallets[0], wallets[1]], wallets[1], this.stakeManager, {
-//         from: wallets[1].getAddressString()
-//       })
-//       await checkPoint([wallets[0], wallets[1]], wallets[1], this.stakeManager, {
-//         from: wallets[1].getAddressString()
-//       })
-
-//       const result = await this.stakeManager.confirmAuctionBid(
-//         1,
-//         0,
-//         false,
-//         wallets[3].getPublicKeyString(),
-//         {
-//           from: wallets[3].getAddressString()
-//         }
-//       )
-
-//       const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
-//       logs[2].event.should.equal('Staked')
-//       logs[4].event.should.equal('ConfirmAuction')
-//       assert.ok(!(await this.stakeManager.isValidator(1)))
-//     })
-//   })
-// })
 
 // contract('this.stakeManager: Delegation', async function(accounts) {
 //   let this.stakeToken
