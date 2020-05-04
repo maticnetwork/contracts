@@ -1,6 +1,7 @@
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import ethUtils from 'ethereumjs-util'
+import encode from 'ethereumjs-abi'
 
 import { rewradsTree } from '../helpers/proofs.js'
 import deployer from '../helpers/deployer.js'
@@ -63,6 +64,25 @@ contract('RootChain', async function (accounts) {
     }
   })
 
+  it('try to submitHeaderBlock with negative vote(`00` prefix) and fail', async function () {
+    const validators = [1, 2, 3, 4]
+    let tree = await rewradsTree(validators, accountState)
+    const { data, sigs } = buildSubmitHeaderBlockPaylod(
+      accounts[0],
+      0,
+      255,
+      '' /* root */,
+      wallets,
+      { allValidators: true, rewardsRootHash: tree.getRoot(), getSigs: true, totalStake: totalStake, sigPrefix: '0x00' }
+    )
+    try {
+      await rootChain.submitHeaderBlock(data, sigs)
+    } catch (error) {
+      const invalidOpcode = error.message.search('revert') >= 0
+      assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
+    }
+  })
+
   it('submitHeaderBlock', async function () {
     const validators = [1, 2, 3, 4]
     let tree = await rewradsTree(validators, accountState)
@@ -80,7 +100,7 @@ contract('RootChain', async function (accounts) {
     logs[0].event.should.equal('NewHeaderBlock')
     expect(logs[0].args).to.include({
       proposer: accounts[0],
-      root: '0x'.toString('hex')
+      root: ethUtils.bufferToHex(ethUtils.keccak256(encode(0, 255)))
     })
 
     assertBigNumberEquality(logs[0].args.reward, await stakeManager.CHECKPOINT_REWARD())

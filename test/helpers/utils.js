@@ -86,7 +86,7 @@ export function buildSubmitHeaderBlockPaylod(
   end,
   root,
   wallets,
-  options = { rewardsRootHash: '', allValidators: false, getSigs: false, totalStake: 1 } // false vars are to show expected vars
+  options = { rewardsRootHash: '', allValidators: false, getSigs: false, totalStake: 1, sigPrefix: '' } // false vars are to show expected vars
 ) {
   if (!root) root = ethUtils.keccak256(encode(start, end)) // dummy root
   if (!wallets) {
@@ -101,7 +101,7 @@ export function buildSubmitHeaderBlockPaylod(
     ['address', 'uint256', 'uint256', 'bytes32', 'bytes32', 'bytes32'],
     [proposer, start, end, root, options.rewardsRootHash, '0x0000000000000000000000000000000000000000000000000000000000003a99']
   )
-  const sigData = Buffer.concat([ethUtils.toBuffer('0x01'), ethUtils.toBuffer(data)])
+  const sigData = Buffer.concat([ethUtils.toBuffer(options.sigPrefix || '0x01'), ethUtils.toBuffer(data)])
 
   // in case of TestStakeManger use dummysig data
   const sigs = ethUtils.bufferToHex(
