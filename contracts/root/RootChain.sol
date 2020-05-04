@@ -106,9 +106,6 @@ contract RootChain is RootChainStorage, IRootChain {
         uint256 end,
         bytes32 rootHash
     ) private returns (bool) {
-        // Is this required? Why does a proposer need to be the sender? Think validator relay networks
-        // require(msg.sender == dataList[0].toAddress(), "Invalid proposer");
-
         uint256 nextChildBlock;
         /*
     The ID of the 1st header block is MAX_DEPOSITS.
