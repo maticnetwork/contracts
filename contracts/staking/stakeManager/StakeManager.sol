@@ -125,7 +125,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         // when dynasty period is updated validators are in cool down period
         require(
             replacementCoolDown == 0 || replacementCoolDown <= currentEpoch,
-            "Cool down period"
+            "Cooldown period"
         );
         // (auctionPeriod--dynasty)--(auctionPeriod--dynasty)--(auctionPeriod--dynasty)
         // if it's auctionPeriod then will get residue smaller then auctionPeriod
