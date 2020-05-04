@@ -1,4 +1,4 @@
-import { StakingInfo, DummyERC20 } from '../../../helpers/artifacts'
+import { StakingInfo, DummyERC20, StakingNFT, ValidatorShare } from '../../../helpers/artifacts'
 
 import {
   checkPoint,
@@ -630,6 +630,170 @@ module.exports = function(accounts) {
           const stake = await this.stakeManager.currentValidatorSetTotalStake()
           assertBigNumberEquality(stake, amount)
         })
+      })
+    })
+  })
+
+  describe('restake', function() {
+    const initialStake = web3.utils.toWei('1000')
+    const initialStakers = [wallets[0], wallets[1]]
+
+    function doDeploy(acceptDelegation) {
+      return async function() {
+        await freshDeploy.call(this)
+
+        await this.stakeManager.updateDynastyValue(8)
+        await this.stakeManager.updateCheckPointBlockInterval(1)
+
+        for (const wallet of initialStakers) {
+          await this.stakeToken.mint(wallet.getAddressString(), initialStake)
+          await this.stakeToken.approve(this.stakeManager.address, initialStake, {
+            from: wallet.getAddressString()
+          })
+          await this.stakeManager.stake(initialStake, 0, acceptDelegation, wallet.getPublicKeyString(), {
+            from: wallet.getAddressString()
+          })
+        }
+
+        // cooldown period
+        let auctionPeriod = (await this.stakeManager.auctionPeriod()).toNumber()
+        let currentEpoch = (await this.stakeManager.currentEpoch()).toNumber()
+        this.validatorReward = new BN(web3.utils.toWei('10000')).mul(new BN(auctionPeriod - currentEpoch))
+        for (let i = currentEpoch; i <= auctionPeriod; i++) {
+          await checkPoint(initialStakers, this.rootChainOwner, this.stakeManager)
+        }
+
+        this.validatorId = '1'
+        this.user = initialStakers[0].getAddressString()
+        this.amount = web3.utils.toWei('100')
+
+        await this.stakeToken.mint(this.user, this.amount)
+        await this.stakeToken.approve(this.stakeManager.address, this.amount, {
+          from: this.user
+        })
+      }
+    }
+
+    function testRestake(withDelegation, withRewards) {
+      before(doDeploy(withDelegation))
+
+      before(async function() {
+        this.oldTotalStaked = await this.stakeManager.totalStaked()
+        this.validatorOldState = await this.stakeManager.validators(this.validatorId)
+
+        if (!withRewards) {
+          this.validatorReward = new BN(0)
+
+          let reward = this.validatorOldState.reward
+
+          if (this.validatorOldState.contractAddress !== '0x0000000000000000000000000000000000000000') {
+            let validatorContract = await ValidatorShare.at(this.validatorOldState.contractAddress)
+            reward = await validatorContract.validatorRewards()
+          }
+
+          this.oldReward = reward
+        }
+      })
+
+      it('must restake rewards', async function() {
+        this.receipt = await this.stakeManager.restake(this.validatorId, this.amount, withRewards, {
+          from: this.user
+        })
+      })
+
+      it('must emit StakeUpdate', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'StakeUpdate', {
+          validatorId: this.validatorId,
+          newAmount: this.validatorOldState.amount.add(new BN(this.amount)).add(this.validatorReward)
+        })
+      })
+
+      it('must emit ReStaked', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ReStaked', {
+          validatorId: this.validatorId,
+          amount: this.validatorOldState.amount.add(new BN(this.amount)).add(this.validatorReward),
+          total: this.oldTotalStaked.add(new BN(this.amount)).add(this.validatorReward)
+        })
+      })
+
+      if (withRewards) {
+        it('validator rewards must be 0', async function() {
+          let validator = await this.stakeManager.validators(this.validatorId)
+          let reward = validator.reward
+
+          if (validator.contractAddress !== '0x0000000000000000000000000000000000000000') {
+            let validatorContract = await ValidatorShare.at(validator.contractAddress)
+            reward = await validatorContract.validatorRewards()
+          }
+
+          assertBigNumberEquality(reward, 0)
+        })
+      } else {
+        it('validator rewards must be untouched', async function() {
+          let validator = await this.stakeManager.validators(this.validatorId)
+          let reward = validator.reward
+
+          if (validator.contractAddress !== '0x0000000000000000000000000000000000000000') {
+            let validatorContract = await ValidatorShare.at(validator.contractAddress)
+            reward = await validatorContract.validatorRewards()
+          }
+
+          assertBigNumberEquality(reward, this.oldReward)
+        })
+      }
+    }
+
+    describe('with delegation', function() {
+      describe('with rewards', function() {
+        testRestake(true, true)
+      })
+
+      describe('without rewards', function() {
+        testRestake(true, false)
+      })
+    })
+
+    describe('without delegation', function() {
+      describe('with rewards', function() {
+        testRestake(false, true)
+      })
+
+      describe('without rewards', function() {
+        testRestake(false, false)
+      })
+    })
+
+    describe('reverts', function() {
+      before(doDeploy(false))
+
+      it('when validatorId is incorrect', async function() {
+        await expectRevert.unspecified(this.stakeManager.restake('0', this.amount, false, {
+          from: this.user
+        }))
+      })
+
+      it('when restake after unstake during same epoch', async function() {
+        await this.stakeManager.unstake(this.validatorId)
+        await expectRevert(this.stakeManager.restake(this.validatorId, this.amount, false, {
+          from: this.user
+        }), 'No use of restaking')
+      })
+
+      it('when auction is active', async function() {
+        let auctionBid = web3.utils.toWei('10000')
+        await this.stakeToken.mint(this.user, auctionBid)
+        await this.stakeToken.approve(this.stakeManager.address, auctionBid, {
+          from: this.user
+        })
+        await this.stakeManager.startAuction(this.validatorId, auctionBid, {
+          from: this.user
+        })
+        await checkPoint(initialStakers, this.rootChainOwner, this.stakeManager)
+        await checkPoint(initialStakers, this.rootChainOwner, this.stakeManager)
+
+        await expectRevert(this.stakeManager.restake(this.validatorId, this.amount, false, {
+          from: this.user
+        }), 'Wait for auction completion')
       })
     })
   })
