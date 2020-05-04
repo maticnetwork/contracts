@@ -4,6 +4,12 @@ import { getBlockHeader } from './blocks'
 import MerkleTree from './merkle-tree'
 
 import { build } from '../mockResponses/utils'
+import {
+  getTxProof,
+  verifyTxProof,
+  getReceiptProof,
+  verifyReceiptProof
+} from './proofs'
 
 const utils = require('./utils')
 const web3Child = utils.web3Child

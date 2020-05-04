@@ -8,9 +8,8 @@ import {RootChainHeader, RootChainStorage} from "./RootChainStorage.sol";
 import {IStakeManager} from "../staking/stakeManager/IStakeManager.sol";
 import {IRootChain} from "./IRootChain.sol";
 import {Registry} from "../common/Registry.sol";
-import {ChainIdMixin} from "../common/mixin/ChainIdMixin.sol";
 
-contract RootChain is RootChainStorage, IRootChain, ChainIdMixin {
+contract RootChain is RootChainStorage, IRootChain {
     using SafeMath for uint256;
     using RLPReader for bytes;
     using RLPReader for RLPReader.RLPItem;
