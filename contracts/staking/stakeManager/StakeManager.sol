@@ -486,7 +486,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     {
         address _signer = pubToAddress(signerPubkey);
         require(_signer != address(0x0) && signerToValidator[_signer] == 0, "Invalid Signer!");
-        require(epoch() % 100 == 0, "Invalid checkpoint number!");
+        require(epoch() == updateEpoch, "Invalid checkpoint number!");
 
         // update signer event
         logger.logSignerChange(
@@ -499,6 +499,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         delete signerToValidator[validators[validatorId].signer];
         signerToValidator[_signer] = validatorId;
         validators[validatorId].signer = _signer;
+        updateEpoch = updateEpoch.add(updateEpoch);
     }
 
     function currentValidatorSetSize() public view returns (uint256) {
