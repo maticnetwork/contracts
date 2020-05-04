@@ -37,13 +37,15 @@ if (process.env.SOLIDITY_COVERAGE) {
 export const scalingFactor = web3.utils.toBN(10).pow(web3.utils.toBN(18))
 
 export function getSigs(wallets, votedata) {
-  wallets.sort((w1, w2) => {
+  // avoid any potential side effects
+  const copyWallets = [...wallets]
+  copyWallets.sort((w1, w2) => {
     return w1.getAddressString().localeCompare(w2.getAddressString())
   })
 
   const h = ethUtils.toBuffer(votedata)
 
-  return wallets
+  return copyWallets
     .map(w => {
       const vrs = ethUtils.ecsign(h, w.getPrivateKey())
       return ethUtils.toRpcSig(vrs.v, vrs.r, vrs.s)
@@ -77,9 +79,9 @@ export async function checkPoint(wallets, proposer, stakeManager, options = { 'b
 export function assertBigNumberEquality(num1, num2) {
   if (!BN.isBN(num1)) num1 = web3.utils.toBN(num1.toString())
   if (!BN.isBN(num2)) num2 = web3.utils.toBN(num2.toString())
-  assert.ok(
+  assert(
     num1.eq(num2),
-    `expected ${num1.toString(16)} and ${num2.toString(16)} to be equal`
+    `expected ${num1.toString(10)} and ${num2.toString(10)} to be equal`
   )
 }
 
