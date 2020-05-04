@@ -66,7 +66,7 @@ contract('RootChain', async function (accounts) {
   it('submitHeaderBlock', async function () {
     const validators = [1, 2, 3, 4]
     let tree = await rewradsTree(validators, accountState)
-    const { data, sigs, root } = buildSubmitHeaderBlockPaylod(
+    const { data, sigs } = buildSubmitHeaderBlockPaylod(
       accounts[0],
       0,
       255,
@@ -80,7 +80,7 @@ contract('RootChain', async function (accounts) {
     logs[0].event.should.equal('NewHeaderBlock')
     expect(logs[0].args).to.include({
       proposer: accounts[0],
-      root: '0x' + root.toString('hex')
+      root: '0x'.toString('hex')
     })
 
     assertBigNumberEquality(logs[0].args.reward, await stakeManager.CHECKPOINT_REWARD())

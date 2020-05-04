@@ -58,7 +58,7 @@ export default class StatefulUtils {
     // tree
     //   .verify(blockHeader, end - start, tree.getRoot(), blockProof)
     //   .should.equal(true)
-    const { data, sigs, root_ } = utils.buildSubmitHeaderBlockPaylod(
+    const { data, sigs } = utils.buildSubmitHeaderBlockPaylod(
       proposer[0],
       start,
       end,

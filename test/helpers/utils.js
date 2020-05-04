@@ -109,7 +109,7 @@ export function buildSubmitHeaderBlockPaylod(
       ? encodeSigs(getSigs(validators, ethUtils.keccak256(sigData)))
       : 'dummySig'
   )
-  return { data, sigs, root }
+  return { data, sigs }
 }
 
 export function getWallets() {
