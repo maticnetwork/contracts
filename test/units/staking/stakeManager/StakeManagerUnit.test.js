@@ -2,19 +2,19 @@
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 
-import deployer from '../../helpers/deployer.js'
-import { generateFirstWallets, mnemonics } from '../../helpers/wallets.js'
-import { assertBigNumberEquality } from '../../helpers/utils.js'
+import deployer from '../../../helpers/deployer.js'
+import { generateFirstWallets, mnemonics } from '../../../helpers/wallets.js'
+import { assertBigNumberEquality } from '../../../helpers/utils.js'
 
 chai.use(chaiAsPromised).should()
 
-contract('StakeManager: unit test governance, delegation contract only functions', async function (accounts) {
+contract('StakeManager: unit test governance, delegation contract only functions', async function(accounts) {
   let stakeToken
   let stakeManager
   let wallets
 
-  describe('extra functions', async function () {
-    before(async function () {
+  describe('extra functions', async function() {
+    before(async function() {
       wallets = generateFirstWallets(mnemonics, 10)
       let contracts = await deployer.deployStakeManager(wallets)
       stakeToken = contracts.stakeToken
@@ -36,7 +36,7 @@ contract('StakeManager: unit test governance, delegation contract only functions
       })
     })
 
-    it('should try to call onlyDelegation contract functions and fail', async function () {
+    it('should try to call onlyDelegation contract functions and fail', async function() {
       // delegationDeposit
       try {
         await stakeManager.delegationDeposit(1, 1, wallets[1].getAddressString())
@@ -63,12 +63,12 @@ contract('StakeManager: unit test governance, delegation contract only functions
       }
     })
 
-    it('should test validator id to user(owner) address', async function () {
+    it('should test validator id to user(owner) address', async function() {
       const validatorId = await stakeManager.getValidatorId(wallets[1].getAddressString())
       assertBigNumberEquality(validatorId, web3.utils.toBN(1))
     })
 
-    it('should test public key to address function', async function () {
+    it('should test public key to address function', async function() {
       const signer = await stakeManager.pubToAddress(wallets[1].getPublicKeyString())
       signer.toLowerCase().should.equal(wallets[1].getAddressString().toLowerCase())
     })

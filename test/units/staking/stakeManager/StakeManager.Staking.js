@@ -6,7 +6,7 @@ import {
   assertBigNumberEquality
 } from '../../../helpers/utils.js'
 import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
-import { wallets, walletAmounts, freshDeploy } from './deployment'
+import { wallets, walletAmounts, freshDeploy } from '../deployment'
 
 module.exports = function(accounts) {
   let owner = accounts[0]

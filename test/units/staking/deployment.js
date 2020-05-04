@@ -1,7 +1,7 @@
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
-import deployer from '../../../helpers/deployer.js'
-import { generateFirstWallets, mnemonics } from '../../../helpers/wallets.js'
+import deployer from '../../helpers/deployer.js'
+import { generateFirstWallets, mnemonics } from '../../helpers/wallets.js'
 
 chai.use(chaiAsPromised).should()
 
@@ -40,6 +40,8 @@ module.exports = {
     this.stakeManager = contracts.stakeManager
     this.nftContract = contracts.stakingNFT
     this.rootChainOwner = contracts.rootChainOwner
+    this.registry = contracts.registry
+    this.governance = contracts.governance
     
     // dummy registry address
     await this.stakeManager.updateCheckPointBlockInterval(1)
@@ -50,13 +52,7 @@ module.exports = {
         walletAmounts[walletAddr].initialBalance
       )
     }
-    await this.stakeToken.mint(
-      wallets[9].getAddressString(),
-      web3.utils.toWei('90000')
-    )
-    // rewards transfer
-    await this.stakeToken.transfer(this.stakeManager.address, web3.utils.toWei('90000'), {
-      from: wallets[9].getAddressString()
-    })
+
+    await this.stakeToken.mint(this.stakeManager.address, web3.utils.toWei('10000000'))
   }
 }

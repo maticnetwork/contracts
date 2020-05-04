@@ -18,7 +18,7 @@ import {
   getSigs
 } from '../../../helpers/utils.js'
 import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
-import { wallets, freshDeploy } from './deployment'
+import { wallets, freshDeploy } from '../deployment'
 
 contract('StakeManager', async function(accounts) {
   let owner = accounts[0]
