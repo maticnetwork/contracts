@@ -485,7 +485,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         onlyStaker(validatorId)
     {
         address _signer = pubToAddress(signerPubkey);
-        require(_signer != address(0x0) && signerToValidator[_signer] == 0);
+        require(_signer != address(0x0) && signerToValidator[_signer] == 0, "Invalid Signer!");
+        require(epoch() % 100 == 0, "Invalid checkpoint number!");
 
         // update signer event
         logger.logSignerChange(
