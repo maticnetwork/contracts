@@ -43,6 +43,8 @@ module.exports = {
     this.registry = contracts.registry
     this.governance = contracts.governance
     
+    await this.stakeManager.updateCheckpointReward(web3.utils.toWei('10000'))
+
     // dummy registry address
     await this.stakeManager.updateCheckPointBlockInterval(1)
     // transfer tokens to other accounts
