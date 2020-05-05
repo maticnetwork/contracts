@@ -118,8 +118,6 @@ contract RootChain is RootChainStorage, IRootChain {
             return false;
         }
 
-        // toUintStrict returns the encoded uint. Encoded data must be padded to 32 bytes.
-        // headerBlock.root = bytes32(dataList[3].toUintStrict());
         HeaderBlock memory headerBlock = HeaderBlock({
             root: rootHash,
             start: nextChildBlock,

@@ -77,6 +77,7 @@ contract('RootChain', async function (accounts) {
     )
     try {
       await rootChain.submitHeaderBlock(data, sigs)
+      assert.fail('Expected the tx to revert')
     } catch (error) {
       const invalidOpcode = error.message.search('revert') >= 0
       assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
