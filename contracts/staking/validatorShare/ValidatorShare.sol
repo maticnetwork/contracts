@@ -17,7 +17,7 @@ contract ValidatorShare is IValidatorShare {
         _;
     }
 
-    function updateRewards(uint256 _reward, uint256 _totalStake)
+    function updateRewards(uint256 _reward, uint256 _stakePower)
         external
         onlyOwner
         returns (uint256)
@@ -32,22 +32,21 @@ contract ValidatorShare is IValidatorShare {
       - add rewards to pool rewards
       - returns total active stake for validator
      */
-        uint256 stakePower;
-        uint256 valStake = stakeManager.validatorStake(validatorId);
-        stakePower = valStake.add(activeAmount); // validator + delegation stake power
-        uint256 _rewards = stakePower.mul(_reward).div(_totalStake);
+        uint256 validatorStake = stakeManager.validatorStake(validatorId);
+        uint256 combinedStakePower = validatorStake.add(activeAmount); // validator + delegation stake power
+        uint256 _rewards = combinedStakePower.mul(_reward).div(_stakePower);
 
-        uint256 _valRewards = valStake.mul(_rewards).div(stakePower);
+        uint256 _validatorRewards = validatorStake.mul(_rewards).div(combinedStakePower);
         // add validator commission from delegation rewards
         if (commissionRate > 0) {
-            _valRewards = _valRewards.add(
-                _rewards.sub(_valRewards).mul(commissionRate).div(100)
+            _validatorRewards = _validatorRewards.add(
+                _rewards.sub(_validatorRewards).mul(commissionRate).div(100)
             );
         }
-        _rewards = _rewards.sub(_valRewards);
-        validatorRewards = validatorRewards.add(_valRewards);
-        rewards = rewards.add(_rewards);
-        return stakePower;
+        uint256 delegatorsRewards = _rewards.sub(_validatorRewards);
+        validatorRewards = validatorRewards.add(_validatorRewards);
+        rewards = rewards.add(delegatorsRewards);
+        return combinedStakePower;
     }
 
     function updateCommissionRate(uint256 newCommissionRate)
