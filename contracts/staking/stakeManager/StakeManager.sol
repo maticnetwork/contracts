@@ -306,7 +306,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         bool acceptDelegation,
         bytes memory signerPubkey
     ) public onlyWhenUnlocked {
-        require(currentValidatorSetSize() < validatorThreshold);
+        require(currentValidatorSetSize() < validatorThreshold, "Validator set Threshold exceeded!");
         require(amount > minDeposit);
         require(heimdallFee >= minHeimdallFee, "Minimum amount is 1 Matic");
 
@@ -472,6 +472,13 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         replacementCoolDown = currentEpoch.add(auctionPeriod);
     }
 
+    function updateSignerUpdateLimit(uint256 _limit)
+        public
+        onlyOwner
+    {
+        signerUpdateLimit = _limit;
+    }
+
     function updateMinAmounts(uint256 _minDeposit, uint256 _minHeimdallFee)
         public
         onlyOwner
@@ -486,8 +493,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     {
         address _signer = pubToAddress(signerPubkey);
         require(_signer != address(0x0) && signerToValidator[_signer] == 0, "Invalid Signer!");
-        if (validators[validatorId].signerUpdateEpoch > 0) {
-            require(epoch() >= validators[validatorId].signerUpdateEpoch, "Invalid checkpoint number!");
+        if (latestSignerUpdateEpoch[validatorId] > 0) {
+            require(epoch() >= latestSignerUpdateEpoch[validatorId], "Invalid checkpoint number!");
         }
 
         // update signer event
@@ -501,7 +508,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         delete signerToValidator[validators[validatorId].signer];
         signerToValidator[_signer] = validatorId;
         validators[validatorId].signer = _signer;
-        validators[validatorId].signerUpdateEpoch = validators[validatorId].signerUpdateEpoch.add(signerUpdateLimit);
+        latestSignerUpdateEpoch[validatorId] = latestSignerUpdateEpoch[validatorId].add(signerUpdateLimit);
     }
 
     function currentValidatorSetSize() public view returns (uint256) {
@@ -616,10 +623,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             contractAddress: acceptDelegation
                 ? factory.create(NFTCounter, address(logger))
                 : address(0x0),
-            status: Status.Active,
-            signerUpdateEpoch: currentEpoch
+            status: Status.Active
         });
-
+        
+        latestSignerUpdateEpoch[NFTCounter] = currentEpoch;
         NFTContract.mint(user, NFTCounter);
 
         signerToValidator[signer] = NFTCounter;

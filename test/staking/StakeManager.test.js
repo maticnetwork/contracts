@@ -283,9 +283,13 @@ contract('StakeManager', async function (accounts) {
       const validatorId = await stakeManager.getValidatorId(user)
       const stakerDetails = await stakeManager.validators(validatorId)
       stakerDetails.signer.toLowerCase().should.equal(user)
+
+      // // for other test compatibility
+      // let w = [wallets[1], wallets[2], wallets[3], wallets[4]]
+      // await checkPoint(w, wallets[1], stakeManager)
     })
 
-    it('should not update signer/pubkey twice', async function () {
+    it('should update and verify signer/pubkey', async function () {
       let user = wallets[5].getAddressString()
       let userPubkey = wallets[0].getPublicKeyString()
       let signer = wallets[0].getAddressString()
@@ -293,6 +297,7 @@ contract('StakeManager', async function (accounts) {
       await checkPoint(w, wallets[1], stakeManager)
 
       const validatorId = await stakeManager.getValidatorId(user)
+      await stakeManager.updateSignerUpdateLimit(0, { from: owner });
       let signerReceipt = await stakeManager.updateSigner(validatorId, userPubkey, {
         from: user
       })
@@ -304,15 +309,10 @@ contract('StakeManager', async function (accounts) {
       // staked for
       let stakerDetails = await stakeManager.validators(validatorId)
       stakerDetails.signer.toLowerCase().should.equal(signer)
-      
-      // should throw error
-      try {
-        await stakeManager.updateSigner(validatorId, wallets[5].getPublicKeyString(), {
-          from: user
-        })
-      } catch (error) {
-        assert(error.message,"Invalid checkpoint number!")
-      }
+      // revert it back
+      await stakeManager.updateSigner(validatorId, wallets[5].getPublicKeyString(), {
+        from: user
+      })
     })
 
     it('should try to stake after validator threshold', async function () {
@@ -378,6 +378,8 @@ contract('StakeManager', async function (accounts) {
 
       await checkPoint(w, wallets[1], stakeManager)
       await checkPoint(w, wallets[1], stakeManager)
+      // await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
+      // await stakeManager.finalizeCommit({ from: wallets[1].getAddressString() })
 
       const validatorId = await stakeManager.getValidatorId(user)
       // stake now
@@ -393,7 +395,6 @@ contract('StakeManager', async function (accounts) {
       // logs[0].args.validatorId.should.be.bignumber.equal(validatorId)
       assertBigNumberEquality(logs[0].args.validatorId, validatorId)
     })
-
     it('should set the validator threshold to 6, dynasty value to 2 epochs', async function () {
       const thresholdReceipt = await stakeManager.updateValidatorThreshold(6, {
         from: owner
@@ -508,6 +509,54 @@ contract('StakeManager', async function (accounts) {
       await checkPoint(w, wallets[1], stakeManager, {
         from: wallets[1].getAddressString()
       })
+    })
+
+    it('should not update signer/pubkey twice', async function () {
+      const thresholdReceipt = await stakeManager.updateValidatorThreshold(8, {
+        from: owner
+      })
+
+      let user = wallets[8].getAddressString()
+      let userPubkey = wallets[8].getPublicKeyString()
+      let amount = web3.utils.toWei('202')
+      let heimdallFee = web3.utils.toWei('2')
+      let stakeAmount = web3.utils.toWei('200') 
+
+      // approve tranfer
+      await stakeToken.approve(stakeManager.address, amount, {
+        from: user
+      })
+      // stake now
+      let stakeReceipt = await stakeManager.stake(stakeAmount, heimdallFee, false, userPubkey, {
+        from: user
+      })
+
+      userPubkey = wallets[9].getPublicKeyString()
+      let signer = wallets[9].getAddressString()
+      // // let w = [wallets[1], wallets[2], wallets[3], wallets[4]]
+      // // await checkPoint(w, wallets[1], stakeManager)
+
+      const validatorId = await stakeManager.getValidatorId(user)
+      let signerReceipt = await stakeManager.updateSigner(validatorId, userPubkey, {
+        from: user
+      })
+      const logs = logDecoder.decodeLogs(signerReceipt.receipt.rawLogs)
+      logs.should.have.lengthOf(1)
+      logs[0].event.should.equal('SignerChange')
+      logs[0].args.newSigner.toLowerCase().should.equal(signer.toLowerCase())
+
+      // staked for
+      let stakerDetails = await stakeManager.validators(validatorId)
+      stakerDetails.signer.toLowerCase().should.equal(signer)
+
+      // should revert
+      try {
+        await stakeManager.updateSigner(validatorId, wallets[5].getPublicKeyString(), {
+          from: user
+        })
+      } catch (error) {
+        assert(error.message, "Invalid checkpoint number!")
+      }
     })
   })
 })
@@ -1018,6 +1067,7 @@ contract('StakeManager:validator replacement', async function (accounts) {
       assert.ok(await stakeManager.isValidator(logs[4].args.newValidatorId))
     })
 
+    // remove this?
     it('should confrim auction and secure the place for validator itself', async function () {
       // let validator = await stakeManager.validators(2)
       // let stake = validator.amount
