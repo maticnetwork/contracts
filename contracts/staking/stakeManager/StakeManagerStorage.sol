@@ -60,7 +60,6 @@ contract StakeManagerStorage is ProxyStorage, Lockable, RootChainable {
         address signer;
         address contractAddress;
         Status status;
-        uint256 signerUpdateEpoch;
     }
 
     mapping(uint256 => Validator) public validators;
@@ -71,6 +70,8 @@ contract StakeManagerStorage is ProxyStorage, Lockable, RootChainable {
     mapping(uint256 => uint256) public validatorFeeExit;
     //Ongoing auctions for validatorId
     mapping(uint256 => Auction) public validatorAuction;
+    // validatorId to last signer update epoch
+    mapping(uint256 => uint256) public latestSignerUpdateEpoch;
 
     uint256 public totalHeimdallFee;
 }
