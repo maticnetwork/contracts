@@ -13,7 +13,10 @@ async function getStakeManager() {
 async function stake() {
   console.log(process.argv)
   const stakeFor = process.argv[6]
-  const amount = web3.utils.toWei(process.argv[7])
+  const stakeAmount = web3.utils.toWei(process.argv[7])
+
+  const heimdallFee = web3.utils.toWei('1')
+  const amount = web3.utils.toWei((+process.argv[7] + 1).toString())
   const pubkey = process.argv[8]
   console.log(`Staking ${amount} for ${stakeFor}...`)
 
@@ -24,7 +27,7 @@ async function stake() {
   console.log('Sender accounts has a balanceOf', (await rootToken.balanceOf(accounts[0])).toString())
   await rootToken.approve(stakeManager.address, amount)
   console.log('approved, staking now...')
-  const stake = await stakeManager.stakeFor(stakeFor, amount, 0, false, pubkey)
+  const stake = await stakeManager.stakeFor(stakeFor, stakeAmount, heimdallFee, false, pubkey)
   console.log('staked; txHash is', stake.tx)
 }
 
