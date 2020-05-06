@@ -776,4 +776,41 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         require(pub.length == 64, "Invalid pubkey");
         return address(uint160(uint256(keccak256(pub))));
     }
+
+    function verifyConsensus(bytes32 voteHash, bytes memory sigs)
+        public
+        view
+        returns (uint256, uint256)
+    {
+        // total voting power
+        uint256 _stakePower;
+        address lastAdd; // cannot have address(0x0) as an owner
+        for (uint64 i = 0; i < sigs.length; i += 65) {
+            bytes memory sigElement = BytesLib.slice(sigs, i, 65);
+            address signer = voteHash.ecrecovery(sigElement);
+
+            uint256 validatorId = signerToValidator[signer];
+            // check if signer is staker and not proposer
+            if (signer == lastAdd) {
+                break;
+            } else if (isValidator(validatorId) && signer > lastAdd) {
+                lastAdd = signer;
+                uint256 amount = validators[validatorId].amount;
+                address contractAddress = validators[validatorId]
+                    .contractAddress;
+                // add delegation power
+                if (contractAddress != address(0x0)) {
+                    amount = amount.add(
+                        ValidatorShare(contractAddress).activeAmount() // dummy interface
+                    );
+                }
+                _stakePower = _stakePower.add(amount);
+            }
+        }
+
+        return (
+            _stakePower,
+            currentValidatorSetTotalStake().mul(2).div(3).add(1)
+        );
+    }
 }

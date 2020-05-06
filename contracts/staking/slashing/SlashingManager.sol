@@ -56,7 +56,7 @@ contract SlashingManager is ISlashingManager, Ownable {
 
         uint256 stakePower;
         uint256 activeTwoByThree;
-        (stakePower, activeTwoByThree) = logger.verifyConsensus(
+        (stakePower, activeTwoByThree) = stakeManager.verifyConsensus(
             keccak256(vote),
             sigs
         );

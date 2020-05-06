@@ -41,7 +41,6 @@ contract IStakeManager {
 
 contract StakingInfo {
     using SafeMath for uint256;
-    using ECVerify for bytes32;
 
     event Staked(
         address indexed signer,
@@ -428,50 +427,6 @@ contract StakingInfo {
             validatorId,
             newCommissionRate,
             oldCommissionRate
-        );
-    }
-
-    function verifyConsensus(bytes32 voteHash, bytes memory sigs)
-        public
-        view
-        returns (uint256, uint256)
-    {
-        IStakeManager stakeManager = IStakeManager(
-            registry.getStakeManagerAddress()
-        );
-        // total voting power
-        uint256 _stakePower;
-        address lastAdd; // cannot have address(0x0) as an owner
-        for (uint64 i = 0; i < sigs.length; i += 65) {
-            bytes memory sigElement = BytesLib.slice(sigs, i, 65);
-            address signer = voteHash.ecrecovery(sigElement);
-
-            uint256 validatorId = stakeManager.signerToValidator(signer);
-            // check if signer is staker and not proposer
-            if (signer == lastAdd) {
-                break;
-            } else if (
-                stakeManager.isValidator(validatorId) && signer > lastAdd
-            ) {
-                lastAdd = signer;
-                uint256 amount;
-                address contractAddress;
-                (amount, , , , , , contractAddress, ) = stakeManager.validators(
-                    validatorId
-                );
-                // add delegation power
-                if (contractAddress != address(0x0)) {
-                    amount = amount.add(
-                        IStakeManager(contractAddress).activeAmount() // dummy interface
-                    );
-                }
-                _stakePower = _stakePower.add(amount);
-            }
-        }
-
-        return (
-            _stakePower,
-            stakeManager.currentValidatorSetTotalStake().mul(2).div(3).add(1)
         );
     }
 }

@@ -58,7 +58,6 @@ const libDeps = [
   {
     lib: ECVerify,
     contracts: [
-      StakingInfo,
       StakeManager,
       StakeManagerTest,
       MarketplacePredicate,
