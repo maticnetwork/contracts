@@ -17,6 +17,7 @@ import {StakingInfo} from "../StakingInfo.sol";
 import {StakingNFT} from "./StakingNFT.sol";
 import "../validatorShare/ValidatorShareFactory.sol";
 import {StakeManagerStorage} from "./StakeManagerStorage.sol";
+import { Governable } from "../../common/governance/Governable.sol";
 
 contract StakeManager is IStakeManager, StakeManagerStorage {
     using SafeMath for uint256;
@@ -29,6 +30,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     }
 
     constructor() public Lockable(address(0x0)) {}
+
+    function setDelegationEnabled(bool enabled) public onlyGovernance {
+        delegationEnabled = enabled;
+    }
 
     // TopUp heimdall fee
     function topUpForFee(uint256 validatorId, uint256 heimdallFee)
@@ -292,6 +297,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 amount,
         address delegator
     ) external returns (bool) {
+        require(delegationEnabled, "Delegation is disabled");
         require(
             validators[validatorId].contractAddress == msg.sender,
             "Invalid contract address"
