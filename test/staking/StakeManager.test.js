@@ -124,7 +124,7 @@ contract('StakeManager', async function (accounts) {
       const userPubkey = wallets[1].getPublicKeyString()
       const amount = web3.utils.toWei('202')
       const heimdallFee = web3.utils.toWei('2')
-      const stakeAmount = web3.utils.toWei('200') 
+      const stakeAmount = web3.utils.toWei('200')
 
       // approve tranfer
       await stakeToken.approve(stakeManager.address, amount, {
@@ -146,6 +146,7 @@ contract('StakeManager', async function (accounts) {
 
       logs[1].event.should.equal('Staked')
       logs[1].args.signerPubkey.toLowerCase().should.equal(userPubkey.toLowerCase())
+      assertBigNumberEquality(logs[1].args.nonce, 1)
       // logs[2].args.amount.should.be.bignumber.equal(amount)
     })
 
@@ -178,6 +179,7 @@ contract('StakeManager', async function (accounts) {
       logs[1].event.should.equal('Staked')
       logs[1].args.signerPubkey.toLowerCase().should.equal(userPubkey.toLowerCase())
       logs[1].args.signer.toLowerCase().should.equal(user.toLowerCase())
+      assertBigNumberEquality(logs[1].args.nonce, 2)
       // logs[2].args.amount.should.be.bignumber.equal(amount)
       assertBigNumberEquality(logs[1].args.amount, web3.utils.toWei('150'))
 
@@ -283,6 +285,7 @@ contract('StakeManager', async function (accounts) {
       const validatorId = await stakeManager.getValidatorId(user)
       const stakerDetails = await stakeManager.validators(validatorId)
       stakerDetails.signer.toLowerCase().should.equal(user)
+      assertBigNumberEquality(stakerDetails.nonce, 1)
     })
 
     it('should update and verify signer/pubkey', async function () {
@@ -304,6 +307,7 @@ contract('StakeManager', async function (accounts) {
       // staked for
       let stakerDetails = await stakeManager.validators(validatorId)
       stakerDetails.signer.toLowerCase().should.equal(signer)
+      assertBigNumberEquality(stakerDetails.nonce, 2)
       // revert it back
       await stakeManager.updateSigner(validatorId, wallets[5].getPublicKeyString(), {
         from: user
@@ -362,6 +366,7 @@ contract('StakeManager', async function (accounts) {
       logs[0].args.user.toLowerCase().should.equal(user)
       // logs[0].args.amount.should.be.bignumber.equal(amount)
       assertBigNumberEquality(logs[0].args.amount, amount)
+      assertBigNumberEquality(logs[0].args.nonce, 2)
       // logs[0].args.validatorId.should.be.bignumber.equal(validatorId)
       assertBigNumberEquality(logs[0].args.validatorId, validatorId)
     })
@@ -387,6 +392,7 @@ contract('StakeManager', async function (accounts) {
       logs[0].args.user.toLowerCase().should.equal(user)
       // logs[0].args.amount.should.be.bignumber.equal(amount)
       assertBigNumberEquality(logs[0].args.amount, amount)
+      assertBigNumberEquality(logs[0].args.nonce, 2)
       // logs[0].args.validatorId.should.be.bignumber.equal(validatorId)
       assertBigNumberEquality(logs[0].args.validatorId, validatorId)
     })
@@ -989,7 +995,7 @@ contract('StakeManager:validator replacement', async function (accounts) {
     })
 
     it('should confrim auction and secure the place', async function () {
-     const heimdallFee = web3.utils.toWei('2')
+      const heimdallFee = web3.utils.toWei('2')
 
       await stakeToken.mint(wallets[4].getAddressString(), heimdallFee)
       await stakeToken.approve(stakeManager.address, heimdallFee, {
@@ -1009,6 +1015,7 @@ contract('StakeManager:validator replacement', async function (accounts) {
       logs[2].event.should.equal('Staked')
       logs[4].event.should.equal('ConfirmAuction')
 
+      assertBigNumberEquality(logs[2].args.nonce, 3)
       assertBigNumberEquality(logs[4].args.amount, web3.utils.toWei('1250'))
       assert.ok(!(await stakeManager.isValidator(logs[4].args.oldValidatorId)))
       assert.ok(await stakeManager.isValidator(logs[4].args.newValidatorId))

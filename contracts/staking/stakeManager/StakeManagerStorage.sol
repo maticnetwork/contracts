@@ -55,6 +55,7 @@ contract StakeManagerStorage is ProxyStorage, Lockable, RootChainable {
         uint256 activationEpoch;
         uint256 deactivationEpoch;
         uint256 jailTime;
+        uint256 nonce;
         address signer;
         address contractAddress;
         Status status;

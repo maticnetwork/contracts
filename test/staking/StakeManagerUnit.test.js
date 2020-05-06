@@ -1,4 +1,3 @@
-
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 
@@ -27,7 +26,7 @@ contract('StakeManager: unit test governance, delegation contract only functions
       const amount = web3.utils.toWei('202')
       const heimdallFee = web3.utils.toWei('2')
       const stakedAmount = web3.utils.toWei('200')
-      
+
       await stakeToken.mint(user, amount)
       // approve tranfer
       await stakeToken.approve(stakeManager.address, amount, {

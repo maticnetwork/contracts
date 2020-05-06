@@ -45,6 +45,7 @@ contract IStakeManager {
         bytes memory sigs
     ) public returns (uint256);
     function updateValidatorState(uint256 validatorId, int256 amount) public;
+    function updateValidatorNonce(uint256 validatorId) public returns(uint256);
     function ownerOf(uint256 tokenId) public view returns (address);
     function validatorStake(uint256 validatorId) public view returns(uint256);
     function epoch() public view returns(uint256);

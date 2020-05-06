@@ -14,6 +14,7 @@ contract IStakeManager {
     struct Validator {
         uint256 amount;
         uint256 reward;
+        uint256 nonce;
         uint256 activationEpoch;
         uint256 deactivationEpoch;
         uint256 jailTime;
@@ -45,6 +46,7 @@ contract StakingInfo {
     event Staked(
         address indexed signer,
         uint256 indexed validatorId,
+        uint256 nonce,
         uint256 indexed activationEpoch,
         uint256 amount,
         uint256 total,
@@ -60,22 +62,31 @@ contract StakingInfo {
     event UnstakeInit(
         address indexed user,
         uint256 indexed validatorId,
+        uint256 nonce,
         uint256 deactivationEpoch,
         uint256 indexed amount
     );
 
     event SignerChange(
         uint256 indexed validatorId,
+        uint256 nonce,
         address indexed oldSigner,
         address indexed newSigner,
         bytes signerPubkey
     );
-    event ReStaked(uint256 indexed validatorId, uint256 amount, uint256 total);
+    event ReStaked(
+        uint256 indexed validatorId,
+        uint256 amount,
+        uint256 total
+    );
     event Jailed(uint256 indexed validatorId, uint256 indexed exitEpoch);
     event ThresholdChange(uint256 newThreshold, uint256 oldThreshold);
     event DynastyValueChange(uint256 newDynasty, uint256 oldDynasty);
     event RewardUpdate(uint256 newReward, uint256 oldReward);
-    event StakeUpdate(uint256 indexed validatorId, uint256 indexed newAmount);
+    event StakeUpdate(
+        uint256 indexed validatorId,
+        uint256 nonce,
+        uint256 indexed newAmount);
     event ClaimRewards(
         uint256 indexed validatorId,
         uint256 indexed amount,
@@ -140,7 +151,7 @@ contract StakingInfo {
 
     modifier onlyValidatorContract(uint256 validatorId) {
         address _contract;
-        (, , , , , , _contract, ) = IStakeManager(
+        (, , , , , , , _contract, ) = IStakeManager(
             registry.getStakeManagerAddress()
         )
             .validators(validatorId);
@@ -151,7 +162,7 @@ contract StakingInfo {
     modifier StakeManagerOrValidatorContract(uint256 validatorId) {
         address _contract;
         address _stakeManager = registry.getStakeManagerAddress();
-        (, , , , , , _contract, ) = IStakeManager(_stakeManager).validators(
+        (, , , , , , , _contract, ) = IStakeManager(_stakeManager).validators(
             validatorId
         );
         require(_contract == msg.sender || _stakeManager == msg.sender);
@@ -171,6 +182,7 @@ contract StakingInfo {
         address signer,
         bytes memory signerPubkey,
         uint256 validatorId,
+        uint256 nonce,
         uint256 activationEpoch,
         uint256 amount,
         uint256 total
@@ -178,6 +190,7 @@ contract StakingInfo {
         emit Staked(
             signer,
             validatorId,
+            nonce,
             activationEpoch,
             amount,
             total,
@@ -197,22 +210,34 @@ contract StakingInfo {
     function logUnstakeInit(
         address user,
         uint256 validatorId,
+        uint256 nonce,
         uint256 deactivationEpoch,
         uint256 amount
     ) public onlyStakeManager {
-        emit UnstakeInit(user, validatorId, deactivationEpoch, amount);
+        emit UnstakeInit(user, validatorId, nonce, deactivationEpoch, amount);
     }
 
     function logSignerChange(
         uint256 validatorId,
+        uint256 nonce,
         address oldSigner,
         address newSigner,
         bytes memory signerPubkey
     ) public onlyStakeManager {
-        emit SignerChange(validatorId, oldSigner, newSigner, signerPubkey);
+        emit SignerChange(
+            validatorId,
+            nonce,
+            oldSigner,
+            newSigner,
+            signerPubkey
+        );
     }
 
-    function logReStaked(uint256 validatorId, uint256 amount, uint256 total)
+    function logReStaked(
+        uint256 validatorId,
+        uint256 amount,
+        uint256 total
+    )
         public
         onlyStakeManager
     {
@@ -247,11 +272,11 @@ contract StakingInfo {
         emit RewardUpdate(newReward, oldReward);
     }
 
-    function logStakeUpdate(uint256 validatorId)
+    function logStakeUpdate(uint256 validatorId, uint256 nonce)
         public
         StakeManagerOrValidatorContract(validatorId)
     {
-        emit StakeUpdate(validatorId, totalValidatorStake(validatorId));
+        emit StakeUpdate(validatorId, nonce, totalValidatorStake(validatorId));
     }
 
     function logClaimRewards(
@@ -278,14 +303,22 @@ contract StakingInfo {
         emit ConfirmAuction(newValidatorId, oldValidatorId, amount);
     }
 
-    function logTopUpFee(uint256 validatorId, address signer, uint256 fee)
+    function logTopUpFee(
+        uint256 validatorId,
+        address signer,
+        uint256 fee
+    )
         public
         onlyStakeManager
     {
         emit TopUpFee(validatorId, signer, fee);
     }
 
-    function logClaimFee(uint256 validatorId, address signer, uint256 fee)
+    function logClaimFee(
+        uint256 validatorId,
+        address signer,
+        uint256 fee
+    )
         public
         onlyStakeManager
     {
@@ -315,6 +348,7 @@ contract StakingInfo {
             activationEpoch,
             deactivationEpoch,
             ,
+            ,
             signer,
             _contract,
             status
@@ -329,7 +363,7 @@ contract StakingInfo {
         returns (uint256 validatorStake)
     {
         address contractAddress;
-        (validatorStake, , , , , , contractAddress, ) = IStakeManager(
+        (validatorStake, , , , , , , contractAddress, ) = IStakeManager(
             registry.getStakeManagerAddress()
         )
             .validators(validatorId);
@@ -352,7 +386,7 @@ contract StakingInfo {
         view
         returns (address ValidatorContract)
     {
-        (, , , , , , ValidatorContract, ) = IStakeManager(
+        (, , , , , , , ValidatorContract, ) = IStakeManager(
             registry.getStakeManagerAddress()
         )
             .validators(validatorId);
@@ -394,7 +428,11 @@ contract StakingInfo {
         emit DelReStaked(validatorId, user, totalStaked);
     }
 
-    function logDelUnstaked(uint256 validatorId, address user, uint256 amount)
+    function logDelUnstaked(
+        uint256 validatorId,
+        address user,
+        uint256 amount
+      )
         public
         onlyValidatorContract(validatorId)
     {
@@ -438,7 +476,7 @@ contract StakingInfo {
                 lastAdd = signer;
                 uint256 amount;
                 address contractAddress;
-                (amount, , , , , , contractAddress, ) = stakeManager.validators(
+                (amount, , , , , , , contractAddress, ) = stakeManager.validators(
                     validatorId
                 );
                 // add delegation power

@@ -99,9 +99,9 @@ contract ValidatorShare is IValidatorShare {
         _mint(msg.sender, share);
         activeAmount = activeAmount.add(_amount);
         stakeManager.updateValidatorState(validatorId, int256(_amount));
-
+        uint256 nonce = stakeManager.updateValidatorNonce(validatorId);
         stakingLogger.logShareMinted(validatorId, msg.sender, _amount, share);
-        stakingLogger.logStakeUpdate(validatorId);
+        stakingLogger.logStakeUpdate(validatorId, nonce);
     }
 
     function sellVoucher() public {
@@ -134,9 +134,9 @@ contract ValidatorShare is IValidatorShare {
                 stakeManager.withdrawalDelay()
             )
         });
-
+        uint256 nonce = stakeManager.updateValidatorNonce(validatorId);
         stakingLogger.logShareBurned(validatorId, msg.sender, _amount, share);
-        stakingLogger.logStakeUpdate(validatorId);
+        stakingLogger.logStakeUpdate(validatorId, nonce);
     }
 
     function withdrawRewards() public {
@@ -181,7 +181,8 @@ contract ValidatorShare is IValidatorShare {
         );
         stakeManager.updateValidatorState(validatorId, int256(liquidRewards));
         rewards = rewards.sub(liquidRewards);
-        stakingLogger.logStakeUpdate(validatorId);
+        uint256 nonce = stakeManager.updateValidatorNonce(validatorId);
+        stakingLogger.logStakeUpdate(validatorId, nonce);
         stakingLogger.logDelReStaked(
             validatorId,
             msg.sender,

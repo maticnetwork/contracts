@@ -172,7 +172,6 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         }
         auction.amount = amount;
         auction.user = msg.sender;
-
         logger.logStartAuction(
             validatorId,
             validators[validatorId].amount,
@@ -208,7 +207,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             auction.startEpoch = currentEpoch;
             //update total stake amount
             totalStaked = totalStaked.add(validator.amount.sub(refund));
-            logger.logStakeUpdate(validatorId);
+            validators[validatorId].nonce += 1;
+            logger.logStakeUpdate(validatorId, validators[validatorId].nonce);
             logger.logConfirmAuction(
                 validatorId,
                 validatorId,
@@ -344,7 +344,13 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         // delete validators[validatorId];
         validators[validatorId].status = Status.Unstaked;
         require(token.transfer(msg.sender, amount), "Transfer stake failed");
-        logger.logUnstaked(msg.sender, validatorId, amount, totalStaked);
+        validators[validatorId].nonce += 1;
+        logger.logUnstaked(
+            msg.sender,
+            validatorId,
+            amount,
+            totalStaked
+        );
     }
 
     // slashing and jail interface
@@ -384,8 +390,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         );
         validatorState[currentEpoch].amount = (validatorState[currentEpoch]
             .amount + int256(amount));
-
-        logger.logStakeUpdate(validatorId);
+        validators[validatorId].nonce += 1;
+        logger.logStakeUpdate(validatorId, validators[validatorId].nonce);
         logger.logReStaked(
             validatorId,
             validators[validatorId].amount,
@@ -462,6 +468,19 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             .amount + amount);
     }
 
+    function updateValidatorNonce(uint256 validatorId)
+        public
+        returns
+        (uint256)
+    {
+        require(
+            validators[validatorId].contractAddress == msg.sender,
+            "Invalid contract address"
+        );
+        validators[validatorId].nonce += 1;
+        return validators[validatorId].nonce;
+    }
+
     function updateDynastyValue(uint256 newDynasty) public onlyOwner {
         require(newDynasty > 0);
         logger.logDynastyValueChange(newDynasty, dynasty);
@@ -486,10 +505,11 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     {
         address _signer = pubToAddress(signerPubkey);
         require(_signer != address(0x0) && signerToValidator[_signer] == 0);
-
+        validators[validatorId].nonce += 1;
         // update signer event
         logger.logSignerChange(
             validatorId,
+            validators[validatorId].nonce,
             validators[validatorId].signer,
             _signer,
             signerPubkey
@@ -605,6 +625,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         validators[NFTCounter] = Validator({
             reward: 0,
             amount: amount,
+            nonce: 1,
             activationEpoch: currentEpoch,
             deactivationEpoch: 0,
             jailTime: 0,
@@ -624,6 +645,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         logger.logStaked(
             signer,
             signerPubkey,
+            1,
             NFTCounter,
             currentEpoch,
             amount,
@@ -637,7 +659,6 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         address validator = ownerOf(validatorId);
 
         validators[validatorId].deactivationEpoch = exitEpoch;
-
         // unbond all delegators in future
         int256 delegationAmount = 0;
         uint256 rewards = validators[validatorId].reward;
@@ -652,8 +673,15 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         require(token.transfer(validator, rewards), "Rewards transfer failed");
         //  update future
         updateTimeLine(exitEpoch, -(int256(amount) + delegationAmount), -1);
+        validators[validatorId].nonce += 1;
 
-        logger.logUnstakeInit(validator, validatorId, exitEpoch, amount);
+        logger.logUnstakeInit(
+            validator,
+            validatorId,
+            validators[validatorId].nonce,
+            exitEpoch,
+            amount
+        );
     }
 
     function _finalizeCommit() internal {
