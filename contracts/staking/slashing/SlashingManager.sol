@@ -21,9 +21,12 @@ contract SlashingManager is ISlashingManager, Ownable {
         _;
     }
 
-    constructor(address _registry, address _logger) public {
+    constructor(address _registry, address _logger, string memory _heimdallId)
+        public
+    {
         registry = Registry(_registry);
         logger = StakingInfo(_logger);
+        heimdallId = keccak256(abi.encodePacked(_heimdallId));
     }
 
     function updateSlashedAmounts(

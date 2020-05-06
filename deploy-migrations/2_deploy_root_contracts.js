@@ -153,7 +153,7 @@ module.exports = async function (deployer) {
 
     await deployer.deploy(StakeManager)
     await deployer.deploy(StakeManagerProxy, StakeManager.address, Registry.address, RootChainProxy.address, TestToken.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address, GovernanceProxy.address)
-    await deployer.deploy(SlashingManager, Registry.address, StakingInfo.address)
+    await deployer.deploy(SlashingManager, Registry.address, StakingInfo.address, process.env.HEIMDALL_ID)
     await deployer.deploy(StateSender)
 
     await deployer.deploy(DepositManager)
