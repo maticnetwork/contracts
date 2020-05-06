@@ -283,10 +283,6 @@ contract('StakeManager', async function (accounts) {
       const validatorId = await stakeManager.getValidatorId(user)
       const stakerDetails = await stakeManager.validators(validatorId)
       stakerDetails.signer.toLowerCase().should.equal(user)
-
-      // // for other test compatibility
-      // let w = [wallets[1], wallets[2], wallets[3], wallets[4]]
-      // await checkPoint(w, wallets[1], stakeManager)
     })
 
     it('should update and verify signer/pubkey', async function () {
@@ -1065,37 +1061,6 @@ contract('StakeManager:validator replacement', async function (accounts) {
       assertBigNumberEquality(logs[4].args.amount, web3.utils.toWei('1250'))
       assert.ok(!(await stakeManager.isValidator(logs[4].args.oldValidatorId)))
       assert.ok(await stakeManager.isValidator(logs[4].args.newValidatorId))
-    })
-
-    // remove this?
-    it('should confrim auction and secure the place for validator itself', async function () {
-      // let validator = await stakeManager.validators(2)
-      // let stake = validator.amount
-      // let balanceBefore = await stakeToken.balanceOf(validator.signer)
-      // console.log(await stakeManager.validatorAuction(2))
-      // console.log(await stakeManager.currentEpoch())
-      // const result = await stakeManager.confirmAuctionBid(
-      //   2,
-      //   0,
-      //   validator.signer,
-      //   false,
-      //   {
-      //     from: validator.signer
-      //   }
-      // )
-      // const logs = result.receipt.logs
-
-      // logs[1].event.should.equal('ConfirmAuction')
-
-      // assertBigNumberEquality(logs[1].args.amount, web3.utils.toWei('1250'))
-      // assertBigNumberEquality(
-      //   logs[1].args.oldValidatorId,
-      //   logs[1].args.newValidatorId
-      // )
-
-      // test if validator got the diff balance back
-      // let balanceAfter = await stakeToken.balanceOf(validator.signer)
-      // assertBigNumberEquality(balanceAfter.sub(balanceBefore), stake)
     })
   })
   describe('validator replacement: skip a dynasty', async function () {
