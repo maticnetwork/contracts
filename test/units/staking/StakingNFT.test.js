@@ -1,7 +1,7 @@
 import { StakingNFT } from '../../helpers/artifacts.js'
 import { generateFirstWallets, mnemonics } from '../../helpers/wallets.js'
 import { expectRevert } from '@openzeppelin/test-helpers'
-import { InterfaceIds, shouldSupportInterfaces } from '../behaviours/SupportsInterface.behavior'
+import { InterfaceIds, shouldSupportInterfaces } from '../behaviors/SupportsInterface.behavior'
 
 contract('StakingNFT', async function() {
   let stakingNFT, wallets
