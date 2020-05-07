@@ -58,7 +58,6 @@ const libDeps = [
   {
     lib: ECVerify,
     contracts: [
-      StakingInfo,
       StakeManager,
       StakeManagerTest,
       MarketplacePredicate,
@@ -162,7 +161,7 @@ module.exports = async function (deployer, network) {
     await deployer.deploy(StakeManager)
     await deployer.deploy(StakeManagerProxy, StakeManager.address, Registry.address, RootChain.address, TestToken.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address, Governance.address)
     await deployer.deploy(StakeManagerTest, Registry.address, RootChain.address, TestToken.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address, Governance.address)
-    await deployer.deploy(SlashingManager, Registry.address, StakingInfo.address)
+    await deployer.deploy(SlashingManager, Registry.address, StakingInfo.address, 'heimdall-P5rXwg')
     let stakingNFT = await StakingNFT.deployed()
     await stakingNFT.transferOwnership(StakeManagerProxy.address)
 

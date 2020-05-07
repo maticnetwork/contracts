@@ -53,6 +53,11 @@ contract IStakeManager {
         bytes memory sigs
     ) public returns (uint256);
 
+    function verifyConsensus(bytes32 voteHash, bytes memory sigs)
+        public
+        view
+        returns (uint256, uint256);
+
     function updateValidatorState(uint256 validatorId, int256 amount) public;
 
     function ownerOf(uint256 tokenId) public view returns (address);
