@@ -229,7 +229,7 @@ contract('ValidatorShare', async function() {
     })
   })
 
-  describe.only('exchangeRate', function() {
+  describe('exchangeRate', function() {
     describe('when Alice purchases voucher 2 times, 1 epoch between', function() {
       before(doDeploy)
 
@@ -491,7 +491,7 @@ contract('ValidatorShare', async function() {
     })
   })
 
-  describe.only('updateCommissionRate', function() {
+  describe('updateCommissionRate', function() {
     async function batchDeploy() {
       await doDeploy.call(this)
 
