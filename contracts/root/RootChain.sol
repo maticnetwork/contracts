@@ -32,12 +32,12 @@ contract RootChain is RootChainStorage, IRootChain {
             uint256 end,
             bytes32 rootHash,
             bytes32 accountHash,
-            bytes32 _borChainID
+            uint256 _borChainID
         ) = abi.decode(
             data,
-            (address, uint256, uint256, bytes32, bytes32, bytes32)
+            (address, uint256, uint256, bytes32, bytes32, uint256)
         );
-        require(bytes32(CHAINID) == _borChainID, "Invalid bor chain id");
+        require(CHAINID == _borChainID, "Invalid bor chain id");
 
         require(
             _buildHeaderBlock(proposer, start, end, rootHash),

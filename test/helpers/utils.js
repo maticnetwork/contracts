@@ -98,8 +98,8 @@ export function buildSubmitHeaderBlockPaylod(
     : [wallets[1], wallets[2], wallets[3]]
 
   let data = web3.eth.abi.encodeParameters(
-    ['address', 'uint256', 'uint256', 'bytes32', 'bytes32', 'bytes32'],
-    [proposer, start, end, root, options.rewardsRootHash, '0x0000000000000000000000000000000000000000000000000000000000003a99']
+    ['address', 'uint256', 'uint256', 'bytes32', 'bytes32', 'uint256'],
+    [proposer, start, end, root, options.rewardsRootHash, 15001]
   )
   const sigData = Buffer.concat([ethUtils.toBuffer(options.sigPrefix || '0x01'), ethUtils.toBuffer(data)])
 
