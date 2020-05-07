@@ -124,7 +124,7 @@ contract('StakeManager', async function (accounts) {
       const userPubkey = wallets[1].getPublicKeyString()
       const amount = web3.utils.toWei('202')
       const heimdallFee = web3.utils.toWei('2')
-      const stakeAmount = web3.utils.toWei('200') 
+      const stakeAmount = web3.utils.toWei('200')
 
       // approve tranfer
       await stakeToken.approve(stakeManager.address, amount, {
@@ -540,7 +540,7 @@ contract('StakeManager:rewards distribution', async function (accounts) {
     })
 
     it('should get rewards for validator1 for a single checkpoint', async function () {
-      const reward = web3.utils.toWei('5000')
+      const reward = web3.utils.toWei('4500') // 5k - 10*% proposer commission
 
       // 2/3 majority vote
       await checkPoint(wallets, wallets[1], stakeManager, {
@@ -645,9 +645,9 @@ contract('StakeManager: Heimdall fee', async function (accounts) {
       accountState[2] = [0, 0]
       // validatorId, accumBalance, accumSlashedAmount, amount
       let tree = await rewradsTreeFee(validators, accountState)
-
+      const proposer = wallets[2].getAddressString()
       const { vote, sigs } = buildSubmitHeaderBlockPaylod(
-        wallets[2].getAddressString(),
+        proposer,
         0,
         22,
         '' /* root */,
@@ -660,6 +660,7 @@ contract('StakeManager: Heimdall fee', async function (accounts) {
         1,
         utils.bufferToHex(utils.keccak256(vote)),
         utils.bufferToHex(tree.getRoot()),
+        proposer,
         sigs, { from: wallets[1].getAddressString() }
       )
       const leaf = utils.keccak256(
@@ -702,9 +703,9 @@ contract('StakeManager: Heimdall fee', async function (accounts) {
       accountState[2] = [0, 0]
       // validatorId, accumBalance, accumSlashedAmount, amount
       let tree = await rewradsTreeFee(validators, accountState)
-
+      const proposer = wallets[2].getAddressString()
       const { vote, sigs } = buildSubmitHeaderBlockPaylod(
-        wallets[2].getAddressString(),
+        proposer,
         0,
         22,
         '' /* root */,
@@ -717,6 +718,7 @@ contract('StakeManager: Heimdall fee', async function (accounts) {
         22,
         utils.bufferToHex(utils.keccak256(vote)),
         utils.bufferToHex(tree.getRoot()),
+        proposer,
         sigs, { from: wallets[1].getAddressString() }
       )
       let leaf = utils.keccak256(
@@ -748,7 +750,7 @@ contract('StakeManager: Heimdall fee', async function (accounts) {
       tree = await rewradsTreeFee(validators, accountState)
 
       const header = buildSubmitHeaderBlockPaylod(
-        wallets[2].getAddressString(),
+        proposer,
         22,
         44,
         '' /* root */,
@@ -760,6 +762,7 @@ contract('StakeManager: Heimdall fee', async function (accounts) {
         22,
         utils.bufferToHex(utils.keccak256(header.vote)),
         utils.bufferToHex(tree.getRoot()),
+        proposer,
         header.sigs, { from: wallets[1].getAddressString() }
       )
 
@@ -989,7 +992,7 @@ contract('StakeManager:validator replacement', async function (accounts) {
     })
 
     it('should confrim auction and secure the place', async function () {
-     const heimdallFee = web3.utils.toWei('2')
+      const heimdallFee = web3.utils.toWei('2')
 
       await stakeToken.mint(wallets[4].getAddressString(), heimdallFee)
       await stakeToken.approve(stakeManager.address, heimdallFee, {
@@ -1216,7 +1219,7 @@ contract('StakeManager: Delegation', async function (accounts) {
       logs[1].event.should.equal('ReStaked')
 
       assertBigNumberEquality(await validatorContract.validatorRewards(), 0)
-      assertBigNumberEquality(logs[1].args.amount, web3.utils.toWei('11100'))
+      assertBigNumberEquality(logs[1].args.amount, web3.utils.toWei('10100'))
     })
 
     it('should test auction with delegation', async function () {
