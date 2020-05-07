@@ -45,13 +45,18 @@ contract('RootChain', async function(accounts) {
     await stakeManager.changeRootChain(rootChain.address)
     await stakeManager.updateCheckPointBlockInterval(1)
 
-    let amount = web3.utils.toWei('1000')
+    this.defaultHeimdallFee = new BN(web3.utils.toWei('1'))
+
+    let amount = new BN(web3.utils.toWei('1000'))
     for (let i = 0; i < validatorsCount; i++) {
-      await stakeToken.mint(wallets[i].getAddressString(), amount)
-      await stakeToken.approve(stakeManager.address, amount, {
+      const mintAmount = amount.add(this.defaultHeimdallFee)
+      await stakeToken.mint(wallets[i].getAddressString(), mintAmount)
+
+      await stakeToken.approve(stakeManager.address, mintAmount, {
         from: wallets[i].getAddressString()
       })
-      await stakeManager.stake(amount, 0, false, wallets[i].getPublicKeyString(), {
+
+      await stakeManager.stake(amount, this.defaultHeimdallFee, false, wallets[i].getPublicKeyString(), {
         from: wallets[i].getAddressString()
       })
       accountState[i + 1] = 0
