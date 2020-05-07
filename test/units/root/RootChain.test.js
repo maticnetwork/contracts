@@ -45,13 +45,18 @@ contract('RootChain', async function(accounts) {
     await stakeManager.changeRootChain(rootChain.address)
     await stakeManager.updateCheckPointBlockInterval(1)
 
-    let amount = web3.utils.toWei('1000')
+    this.defaultHeimdallFee = new BN(web3.utils.toWei('1'))
+
+    let amount = new BN(web3.utils.toWei('1000'))
     for (let i = 0; i < validatorsCount; i++) {
-      await stakeToken.mint(wallets[i].getAddressString(), amount)
-      await stakeToken.approve(stakeManager.address, amount, {
+      const mintAmount = amount.add(this.defaultHeimdallFee)
+      await stakeToken.mint(wallets[i].getAddressString(), mintAmount)
+
+      await stakeToken.approve(stakeManager.address, mintAmount, {
         from: wallets[i].getAddressString()
       })
-      await stakeManager.stake(amount, 0, false, wallets[i].getPublicKeyString(), {
+
+      await stakeManager.stake(amount, this.defaultHeimdallFee, false, wallets[i].getPublicKeyString(), {
         from: wallets[i].getAddressString()
       })
       accountState[i + 1] = 0
@@ -254,7 +259,8 @@ contract('RootChain', async function(accounts) {
 
     describe('when numDeposits > MAX_DEPOSITS', function() {
       it('must revert', async function() {
-        const maxDeposits = await rootChain.MAX_DEPOSITS()
+        // TODO add a root chain mock where MAX_DEPOSITS can be queried
+        const maxDeposits = new BN('10000')
         await expectRevert(rootChain.updateDepositId(maxDeposits.add(new BN(1))), 'UNAUTHORIZED_DEPOSIT_MANAGER_ONLY')
       })
     })

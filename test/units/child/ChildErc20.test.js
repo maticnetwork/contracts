@@ -24,19 +24,19 @@ contract('ChildErc20', async function(accounts) {
     this.erc20 = await deployer.deployChildErc20(accounts[0], { mapToken: false })
   }
 
-  function transferTest(transferFn) {
+  function transferTest(transferFn, feeSpender) {
     before(freshDeploy)
 
     const depositAmount = web3.utils.toBN('10')
     const tokenIdOrAmount = web3.utils.toBN('3')
-    const expectedAfterBalance = depositAmount.sub(tokenIdOrAmount);
+    const expectedAfterBalance = depositAmount.sub(tokenIdOrAmount)
     const to = toChecksumAddress('0x' + crypto.randomBytes(20).toString('hex'))
 
     it('deposits to alice', async function() {
       // deposit inside has 2 contract calls, failing one will bring confustion
       await utils.deposit(null, this.childContracts.childChain, this.erc20.rootERC20, alice, depositAmount)
     })
-    
+
     it(`alice has ${depositAmount.toString()} tokens`, async function() {
       assert.strictEqual((await this.erc20.childToken.balanceOf(alice)).toString(), depositAmount.toString())
     })
@@ -44,7 +44,7 @@ contract('ChildErc20', async function(accounts) {
     it('new address has 0 balance', async function() {
       assert.strictEqual((await this.erc20.childToken.balanceOf(to)).toString(), '0')
     })
-    
+
     it('transfers from alice to new address', async function() {
       this.receipt = await transferFn.call(this, to, tokenIdOrAmount)
     })
@@ -52,22 +52,35 @@ contract('ChildErc20', async function(accounts) {
     it(`alice has ${expectedAfterBalance.toString()} balance`, async function() {
       assert.strictEqual((await this.erc20.childToken.balanceOf(alice)).toString(), expectedAfterBalance.toString())
     })
-    
+
     it(`new address has ${tokenIdOrAmount.toString()} balance`, async function() {
       assert.strictEqual((await this.erc20.childToken.balanceOf(to)).toString(), tokenIdOrAmount.toString())
     })
 
     it('emits Transfer', async function() {
-      await expectEvent(this.receipt, 'Transfer', { from: alice, to, value: tokenIdOrAmount })
+      await expectEvent(this.receipt, 'Transfer',
+        {
+          from: alice,
+          to,
+          value: tokenIdOrAmount
+        })
     })
 
     it('emits LogTransfer', async function() {
-      await expectEvent(this.receipt, 'LogTransfer', { amount: tokenIdOrAmount, token: toChecksumAddress(this.erc20.rootERC20.address), from: alice })
+      await expectEvent(this.receipt, 'LogTransfer',
+        {
+          amount: tokenIdOrAmount,
+          token: toChecksumAddress(this.erc20.rootERC20.address),
+          from: alice
+        })
     })
-    
+
     if (!process.env.SOLIDITY_COVERAGE) {
       it('emits LogFeeTransfer', async function() {
-        await expectEvent(this.receipt, 'LogFeeTransfer', { from: alice })
+        await expectEvent(this.receipt, 'LogFeeTransfer',
+          {
+            from: feeSpender
+          })
       })
     }
   }
@@ -75,7 +88,7 @@ contract('ChildErc20', async function(accounts) {
   describe('transfer', async function() {
     transferTest(async function(to, tokenIdOrAmount) {
       return this.erc20.childToken.transfer(to, tokenIdOrAmount, { from: alice })
-    })
+    }, alice)
   })
 
   describe('transferWithSig', async function() {
@@ -93,6 +106,6 @@ contract('ChildErc20', async function(accounts) {
         expiration
       })
       return this.erc20.childToken.transferWithSig(sig, tokenIdOrAmount, data, expiration, to, { from: spender })
-    })
+    }, spender)
   })
 })

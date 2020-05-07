@@ -27,6 +27,7 @@ const WithdrawManager = artifacts.require('WithdrawManager')
 const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
 const StateSender = artifacts.require('StateSender')
 const StakeManager = artifacts.require('StakeManager')
+const SlashingManager = artifacts.require('SlashingManager')
 const StakeManagerProxy = artifacts.require('StakeManagerProxy')
 const StakingInfo = artifacts.require('StakingInfo')
 const StakingNFT = artifacts.require('StakingNFT')
@@ -68,8 +69,7 @@ const libDeps = [
     contracts: [
       StakeManager,
       MarketplacePredicate,
-      TransferWithSigPredicate,
-      StakingInfo
+      TransferWithSigPredicate
     ]
   },
   {
@@ -97,6 +97,7 @@ const libDeps = [
     lib: RLPReader,
     contracts: [
       RootChain,
+      StakeManager,
       ERC20Predicate,
       ERC721Predicate,
       MintableERC721Predicate,
@@ -110,6 +111,7 @@ const libDeps = [
       RootChain,
       ERC20Predicate,
       StakeManager,
+      SlashingManager,
       StateSender,
       StakingInfo
     ]
@@ -150,6 +152,7 @@ module.exports = async function (deployer) {
 
     await deployer.deploy(StakeManager)
     await deployer.deploy(StakeManagerProxy, StakeManager.address, Registry.address, RootChainProxy.address, TestToken.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address, GovernanceProxy.address)
+    await deployer.deploy(SlashingManager, Registry.address, StakingInfo.address, process.env.HEIMDALL_ID)
     await deployer.deploy(StateSender)
 
     await deployer.deploy(DepositManager)
@@ -210,6 +213,7 @@ module.exports = async function (deployer) {
         WithdrawManagerProxy: WithdrawManagerProxy.address,
         StakeManager: StakeManager.address,
         StakeManagerProxy: StakeManagerProxy.address,
+        SlashingManager: SlashingManager.address,
         StakingInfo: StakingInfo.address,
         ExitNFT: ExitNFT.address,
         StateSender: StateSender.address,

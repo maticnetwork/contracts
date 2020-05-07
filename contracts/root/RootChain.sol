@@ -9,6 +9,7 @@ import {IStakeManager} from "../staking/stakeManager/IStakeManager.sol";
 import {IRootChain} from "./IRootChain.sol";
 import {Registry} from "../common/Registry.sol";
 
+
 contract RootChain is RootChainStorage, IRootChain {
     using SafeMath for uint256;
     using RLPReader for bytes;
@@ -51,11 +52,10 @@ contract RootChain is RootChainStorage, IRootChain {
         IStakeManager stakeManager = IStakeManager(
             registry.getStakeManagerAddress()
         );
-        // blockInterval, voteHash, stateRoot, sigs
         uint256 _reward = stakeManager.checkSignatures(
-            headerBlock.end.sub(headerBlock.start).add(1),
-            keccak256(vote),
-            bytes32(extraData[4].toUint()),
+            headerBlock.end.sub(headerBlock.start).add(1), // blockInterval
+            keccak256(vote), //voteHash
+            bytes32(extraData[4].toUint()), //stateRoot
             sigs
         );
         require(_reward != 0, "Invalid checkpoint");

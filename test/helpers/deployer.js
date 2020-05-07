@@ -20,6 +20,7 @@ class Deployer {
     this.validatorShareFactory = await contracts.ValidatorShareFactory.new()
     this.stakeToken = await contracts.DummyERC20.new('Stake Token', 'ST')
     this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
+    this.slashingManager = await contracts.SlashingManager.new(this.registry.address, this.stakingInfo.address, 'heimdall-P5rXwg')
     await this.deployRootChain()
     this.stakingNFT = await contracts.StakingNFT.new('Matic Validator', 'MV')
 
@@ -58,7 +59,10 @@ class Deployer {
       ethUtils.keccak256('stakeManager'),
       this.stakeManager.address
     )
-
+    await this.updateContractMap(
+      ethUtils.keccak256('slashingManager'),
+      this.slashingManager.address
+    )
     let _contracts = {
       registry: this.registry,
       rootChain: this.rootChain,
@@ -98,11 +102,16 @@ class Deployer {
       this.governance.address
     )
     this.stakeManager = await contracts.StakeManager.at(proxy.address)
+    this.slashingManager = await contracts.SlashingManager.new(this.registry.address, this.stakingInfo.address, 'heimdall-P5rXwg')
 
     await this.stakingNFT.transferOwnership(this.stakeManager.address)
     await this.updateContractMap(
       ethUtils.keccak256('stakeManager'),
       this.stakeManager.address
+    )
+    await this.updateContractMap(
+      ethUtils.keccak256('slashingManager'),
+      this.slashingManager.address
     )
     let _contracts = {
       rootChainOwner: rootChainOwner,
@@ -110,6 +119,8 @@ class Deployer {
       rootChain: this.rootChain,
       stakeManager: this.stakeManager,
       stakeToken: this.stakeToken,
+      slashingManager: this.slashingManager,
+      stakingInfo: this.stakingInfo,
       governance: this.governance,
       stakingNFT: this.stakingNFT,
       stakeManagerProxy: proxy,
@@ -379,7 +390,7 @@ class Deployer {
       'ERC721Mintable',
       'M721'
     )
-    await childErc721.transferOwnership(this.childChain.address); // required to process deposits via childChain
+    await childErc721.transferOwnership(this.childChain.address) // required to process deposits via childChain
     await this.childChain.mapToken(
       rootERC721.address,
       childErc721.address,
@@ -400,7 +411,7 @@ class Deployer {
     const childErc721 = await contracts.ChildERC721Mintable.new(
       rootERC721.address
     )
-    await childErc721.transferOwnership(this.childChain.address); // required to process deposits via childChain
+    await childErc721.transferOwnership(this.childChain.address) // required to process deposits via childChain
     await this.childChain.mapToken(
       rootERC721.address,
       childErc721.address,
@@ -418,7 +429,7 @@ class Deployer {
 
   async initializeChildChain(owner, options = { updateRegistry: true }) {
     // not mentioning the gas limit fails with "The contract code couldn't be stored, please check your gas limit." intermittently which is super weird
-    this.childChain = await contracts.ChildChain.new({ gas: 75000000 })
+    this.childChain = await contracts.ChildChain.new({ gas: 7500000 })
     await this.childChain.changeStateSyncerAddress(owner)
     if (!this.globalMatic) {
       // MRC20 comes as a genesis-contract at utils.ChildMaticTokenAddress
@@ -431,7 +442,6 @@ class Deployer {
       const maticOwner = await this.globalMatic.childToken.owner()
       if (maticOwner === '0x0000000000000000000000000000000000000000') {
         // matic contract at 0x1010 can only be initialized once, after the bor image starts to run
-        console.log('initializing globalMatic ... ')
         await this.globalMatic.childToken.initialize(owner, utils.ZeroAddress)
       }
     }
