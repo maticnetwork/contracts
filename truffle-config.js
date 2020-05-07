@@ -1,6 +1,10 @@
 require('babel-register')
 require('babel-polyfill')
 
+const chai = require('chai')
+const chaiAsPromised = require('chai-as-promised')
+chai.use(chaiAsPromised).should()
+
 var HDWalletProvider = require('truffle-hdwallet-provider')
 
 const MNEMONIC =
@@ -37,7 +41,7 @@ module.exports = {
       // confirmations: 5
     },
     goerli: {
-      provider: function () {
+      provider: function() {
         return new HDWalletProvider(
           MNEMONIC,
           `https://goerli.infura.io/v3/${API_KEY}`
@@ -47,7 +51,7 @@ module.exports = {
       gas: 8000000
     },
     kovan: {
-      provider: function () {
+      provider: function() {
         return new HDWalletProvider(
           MNEMONIC,
           `https://kovan.infura.io/v3/${API_KEY}`
@@ -57,7 +61,7 @@ module.exports = {
       gas: 8000000
     },
     mainnet: {
-      provider: function () {
+      provider: function() {
         return new HDWalletProvider(
           MNEMONIC,
           `https://mainnet.infura.io/v3/${API_KEY}`
