@@ -5,13 +5,10 @@ import {
   StakingInfo
 } from '../../../helpers/artifacts'
 
-import deployer from '../../../helpers/deployer.js'
-import logDecoder from '../../../helpers/log-decoder.js'
 import { buildTreeFee } from '../../../helpers/proofs.js'
 
 import {
   checkPoint,
-  assertBigNumbergt,
   assertBigNumberEquality,
   buildSubmitHeaderBlockPaylod,
   encodeSigs,
@@ -1214,7 +1211,7 @@ contract('StakeManager', async function(accounts) {
       testAuctionerIsValidator(web3.utils.toWei('100'))
     })
 
-    describe.skip('when last auctioner is not validator', function() {
+    describe('when last auctioner is not validator', function() {
       testAuctionerIsNotValidator(web3.utils.toWei('100'))
     })
 
@@ -1265,7 +1262,7 @@ contract('StakeManager', async function(accounts) {
     })
   })
 
-  describe('auction with delegator', async function() {
+  describe('auction with delegator, 3 validators initially', async function() {
     const initialStakers = [wallets[1], wallets[2]]
     const delegatedValidatorId = '3'
     const delegator = wallets[3].getChecksumAddressString()
@@ -1312,47 +1309,46 @@ contract('StakeManager', async function(accounts) {
 
       await this.validatorContract.buyVoucher(stakeAmount, { from: delegator })
 
-      await this.stakeToken.mint(auctionValidatorAddr, bidAmount)
-      await this.stakeToken.approve(this.stakeManager.address, bidAmount, {
+      this.heimdallFee = this.defaultHeimdallFee
+
+      const approveAmount = new BN(bidAmount).add(this.heimdallFee)
+      await this.stakeToken.mint(auctionValidatorAddr, approveAmount)
+      await this.stakeToken.approve(this.stakeManager.address, approveAmount, {
         from: auctionValidatorAddr
       })
+
+      this.totalStakedBeforeAuction = await this.stakeManager.totalStaked()
+      this.bidderBalanceBeforeAuction = await this.stakeToken.balanceOf(auctionValidatorAddr)
     })
 
     describe('when new validator bids', function() {
       before(async function() {
         this.initialStakeAmount = stakeAmount
         this.validatorId = delegatedValidatorId
-        this.userOldBalance = await this.stakeToken.balanceOf(auctionValidatorAddr)
+        this.userOldBalance = this.bidderBalanceBeforeAuction
+      })
+
+      after('skip auction', async function() {
+        let auctionPeriod = (await this.stakeManager.auctionPeriod()).toNumber()
+        for (let i = 0; i <= auctionPeriod; i++) {
+          await checkPoint([...initialStakers, validatorUser], this.rootChainOwner, this.stakeManager)
+        }
       })
 
       testStartAuction(auctionValidatorAddr, bidAmount)
     })
 
     describe('when new validator confirm auction', function() {
-      before('skip auction', async function() {
-        let auctionPeriod = await this.stakeManager.auctionPeriod()
-        for (
-          let i = 0;
-          i <= auctionPeriod;
-          i++
-        ) {
-          // 2/3 majority vote
-          await checkPoint([...initialStakers, validatorUser], this.rootChainOwner, this.stakeManager)
-        }
-      })
-
       before(async function() {
         this.validatorId = delegatedValidatorId
         this.bidderPubKey = auctionValidatorPubKey
         this.bidder = auctionValidatorAddr
-        this.heimdallFee = this.defaultHeimdallFee
         this.newValidatorId = '4'
         this.bidAmount = bidAmount
         this.prevValidatorAddr = validatorUserAddr
         this.prevValidatorOldBalance = await this.stakeToken.balanceOf(validatorUserAddr)
-        this.validator = await this.stakeManager.validators(this.validatorId)
-        this.totalStakedBeforeAuction = await this.stakeManager.totalStaked()
-        this.bidderBalanceBeforeAuction = await this.stakeToken.balanceOf(auctionValidatorAddr)
+        this.validator = await this.stakeManager.validators(delegatedValidatorId)
+        this.validator.reward = await this.validatorContract.validatorRewards()
       })
 
       testConfirmAuctionBidForNewValidator()
