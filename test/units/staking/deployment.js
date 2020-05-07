@@ -6,8 +6,8 @@ import { BN } from '@openzeppelin/test-helpers'
 
 chai.use(chaiAsPromised).should()
 
-const wallets = generateFirstWallets(mnemonics, 10)
-const walletAmounts = {
+export const wallets = generateFirstWallets(mnemonics, 10)
+export const walletAmounts = {
   [wallets[0].getAddressString()]: {
     initialBalance: web3.utils.toWei('1200')
   },
@@ -32,56 +32,52 @@ const walletAmounts = {
   }
 }
 
-module.exports = {
-  wallets,
-  walletAmounts,
-  async freshDeploy() {
-    let contracts = await deployer.deployStakeManager(wallets)
-    this.stakeToken = contracts.stakeToken
-    this.stakeManager = contracts.stakeManager
-    this.nftContract = contracts.stakingNFT
-    this.rootChainOwner = contracts.rootChainOwner
-    this.registry = contracts.registry
-    this.governance = contracts.governance
+export async function freshDeploy() {
+  let contracts = await deployer.deployStakeManager(wallets)
+  this.stakeToken = contracts.stakeToken
+  this.stakeManager = contracts.stakeManager
+  this.nftContract = contracts.stakingNFT
+  this.rootChainOwner = contracts.rootChainOwner
+  this.registry = contracts.registry
+  this.governance = contracts.governance
 
-    await this.stakeManager.updateCheckpointReward(web3.utils.toWei('10000'))
-
-    // dummy registry address
-    await this.stakeManager.updateCheckPointBlockInterval(1)
-    // transfer tokens to other accounts
-    for (const walletAddr in walletAmounts) {
-      await this.stakeToken.mint(
-        walletAddr,
-        walletAmounts[walletAddr].initialBalance
-      )
-    }
-
-    await this.stakeToken.mint(this.stakeManager.address, web3.utils.toWei('10000000'))
-
-    this.defaultHeimdallFee = new BN(web3.utils.toWei('1'))
-  },
-  async approveAndStake({ wallet, stakeAmount, approveAmount, acceptDelegation = false, heimdallFee, noMinting = false }) {
-    const fee = heimdallFee || this.defaultHeimdallFee
-
-    const mintAmount = new BN(approveAmount || stakeAmount).add(new BN(fee))
-
-    if (noMinting) {
-      // check if allowance covers fee
-      const balance = await this.stakeToken.balanceOf(wallet.getAddressString())
-      if (balance.lt(mintAmount)) {
-        // mint more
-        await this.stakeToken.mint(wallet.getAddressString(), mintAmount.sub(balance))
-      }
-    } else {
-      await this.stakeToken.mint(wallet.getAddressString(), mintAmount)
-    }
-
-    await this.stakeToken.approve(this.stakeManager.address, new BN(mintAmount), {
-      from: wallet.getAddressString()
-    })
-
-    await this.stakeManager.stake(stakeAmount, fee, acceptDelegation, wallet.getPublicKeyString(), {
-      from: wallet.getAddressString()
-    })
+  await this.stakeManager.updateCheckpointReward(web3.utils.toWei('10000'))
+  await this.stakeManager.updateCheckPointBlockInterval(1)
+  
+  for (const walletAddr in walletAmounts) {
+    await this.stakeToken.mint(
+      walletAddr,
+      walletAmounts[walletAddr].initialBalance
+    )
   }
+
+  await this.stakeToken.mint(this.stakeManager.address, web3.utils.toWei('10000000'))
+
+  this.defaultHeimdallFee = new BN(web3.utils.toWei('1'))
 }
+
+export async function approveAndStake({ wallet, stakeAmount, approveAmount, acceptDelegation = false, heimdallFee, noMinting = false }) {
+  const fee = heimdallFee || this.defaultHeimdallFee
+
+  const mintAmount = new BN(approveAmount || stakeAmount).add(new BN(fee))
+
+  if (noMinting) {
+    // check if allowance covers fee
+    const balance = await this.stakeToken.balanceOf(wallet.getAddressString())
+    if (balance.lt(mintAmount)) {
+      // mint more
+      await this.stakeToken.mint(wallet.getAddressString(), mintAmount.sub(balance))
+    }
+  } else {
+    await this.stakeToken.mint(wallet.getAddressString(), mintAmount)
+  }
+
+  await this.stakeToken.approve(this.stakeManager.address, new BN(mintAmount), {
+    from: wallet.getAddressString()
+  })
+
+  await this.stakeManager.stake(stakeAmount, fee, acceptDelegation, wallet.getPublicKeyString(), {
+    from: wallet.getAddressString()
+  })
+}
+
