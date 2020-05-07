@@ -179,7 +179,7 @@ contract('StakeManager', async function (accounts) {
       logs[1].event.should.equal('Staked')
       logs[1].args.signerPubkey.toLowerCase().should.equal(userPubkey.toLowerCase())
       logs[1].args.signer.toLowerCase().should.equal(user.toLowerCase())
-      assertBigNumberEquality(logs[1].args.nonce, 2)
+      // assertBigNumberEquality(logs[1].args.nonce, 2)
       // logs[2].args.amount.should.be.bignumber.equal(amount)
       assertBigNumberEquality(logs[1].args.amount, web3.utils.toWei('150'))
 
