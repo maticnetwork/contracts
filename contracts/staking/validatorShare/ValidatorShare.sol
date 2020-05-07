@@ -56,7 +56,7 @@ contract ValidatorShare is IValidatorShare {
         uint256 epoch = stakeManager.epoch();
         require(
             lastUpdate.add(commissionCooldown) <= epoch,
-            "Commission rate update cool down period"
+            "Commission rate update cooldown period"
         );
         require(
             newCommissionRate <= 100,
