@@ -1,6 +1,6 @@
-import { increaseBlockTime, mineOneBlock } from '../../helpers/chain'
-const Proofs = require('../../helpers/proofs')
-const utils = require('../../helpers/utils')
+import { increaseBlockTime, mineOneBlock } from '../../../helpers/chain'
+const Proofs = require('../../../helpers/proofs')
+const utils = require('../../../helpers/utils')
 
 const MAX_LOGS = web3.utils.toBN(10)
 const BOND_AMOUNT = web3.utils.toBN(10).pow(web3.utils.toBN(17))

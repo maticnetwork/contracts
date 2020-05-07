@@ -2,26 +2,26 @@ import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import ethUtils from 'ethereumjs-util'
 
-import { getReceiptBytes } from '../../helpers/proofs'
-import { buildInFlight } from '../../mockResponses/utils'
-import * as artifacts from '../../helpers/artifacts'
+import { getReceiptBytes } from '../../../helpers/proofs'
+import { buildInFlight } from '../../../mockResponses/utils'
+import * as artifacts from '../../../helpers/artifacts'
 
-const deposit1 = require('../../mockResponses/marketplace/erc20_20_Deposit_1')
-const deposit2 = require('../../mockResponses/marketplace/erc20_20_Deposit_2')
-const executeOrder = require('../../mockResponses/marketplace/executeOrder-E20-E20')
+const deposit1 = require('../../../mockResponses/marketplace/erc20_20_Deposit_1')
+const deposit2 = require('../../../mockResponses/marketplace/erc20_20_Deposit_2')
+const executeOrder = require('../../../mockResponses/marketplace/executeOrder-E20-E20')
 
-const erc20_721_Deposit_1 = require('../../mockResponses/marketplace/erc20_721_Deposit_1')
-const erc20_721_Deposit_2 = require('../../mockResponses/marketplace/erc20_721_Deposit_2')
-const executeOrder_E20_E721 = require('../../mockResponses/marketplace/executeOrder-E20-E721')
+const erc20_721_Deposit_1 = require('../../../mockResponses/marketplace/erc20_721_Deposit_1')
+const erc20_721_Deposit_2 = require('../../../mockResponses/marketplace/erc20_721_Deposit_2')
+const executeOrder_E20_E721 = require('../../../mockResponses/marketplace/executeOrder-E20-E721')
 
-const incomingTransfer = require('../../mockResponses/incomingTransfer')
+const incomingTransfer = require('../../../mockResponses/incomingTransfer')
 
 
 chai
   .use(chaiAsPromised)
   .should()
 
-contract('MarketplacePredicate (from mocked responses)', async function(accounts) {
+contract('MarketplacePredicate (from mocked responses) @skip-on-coverage', async function(accounts) {
   let predicate, erc20Predicate, erc721Predicate
 
   before(async function() {

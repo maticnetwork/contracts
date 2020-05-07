@@ -1,21 +1,21 @@
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 
-import deployer from '../helpers/deployer.js'
-import logDecoder from '../helpers/log-decoder.js'
-import StatefulUtils from '../helpers/StatefulUtils'
-import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
-import { getSig, getTransferSig } from '../helpers/marketplaceUtils'
+import deployer from '../../helpers/deployer.js'
+import logDecoder from '../../helpers/log-decoder.js'
+import StatefulUtils from '../../helpers/StatefulUtils'
+import { generateFirstWallets, mnemonics } from '../../helpers/wallets.js'
+import { getSig, getTransferSig } from '../../helpers/marketplaceUtils'
 
 const crypto = require('crypto')
-const utils = require('../helpers/utils')
+const utils = require('../../helpers/utils')
 const predicateTestUtils = require('./predicates/predicateTestUtils')
 const web3Child = utils.web3Child
 
 chai.use(chaiAsPromised).should()
 let contracts, childContracts, rootERC20, childErc20, statefulUtils
 
-contract('Misc Predicates tests', async function(accounts) {
+contract('Misc Predicates tests @skip-on-coverage', async function(accounts) {
   before(async function() {
     contracts = await deployer.freshDeploy()
     childContracts = await deployer.initializeChildChain(accounts[0])

@@ -39,15 +39,16 @@ export async function rewradsTree(validators, accountState) {
   return new MerkleTree(leafs)
 }
 
-export async function rewradsTreeFee(validators, accountState) {
+export async function buildTreeFee(validators, accountState, checkpointIndex) {
   let leafs = []
   let i = 0
   validators.map(key => {
+    const state = accountState[key][checkpointIndex] || [0, 0]
     // validatorId, accumBalance, accumSlashedAmount, amount
     leafs[i++] = utils.keccak256(
       web3.eth.abi.encodeParameters(
         ['uint256', 'uint256', 'uint256'],
-        [key, accountState[key][0], accountState[key][1]]
+        [key, state[0].toString(), state[1].toString()]
       )
     )
   })
