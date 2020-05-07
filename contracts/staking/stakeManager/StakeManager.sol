@@ -587,7 +587,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         );
         totalRewards = totalRewards.add(_reward);
         require(
-            _stakePower >= currentValidatorSetTotalStake().mul(2).div(3).add(1)
+            _stakePower >= currentValidatorSetTotalStake().mul(2).div(3).add(1),
+            "2/3 non-majority!"
         );
         return _reward;
     }
