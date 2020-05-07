@@ -24,14 +24,17 @@ contract('StakeManager: unit test governance, delegation contract only functions
       await stakeManager.updateCheckPointBlockInterval(1)
       const user = wallets[1].getAddressString()
       const userPubkey = wallets[1].getPublicKeyString()
-      const amount = web3.utils.toWei('200')
+      const amount = web3.utils.toWei('202')
+      const heimdallFee = web3.utils.toWei('2')
+      const stakedAmount = web3.utils.toWei('200')
+      
       await stakeToken.mint(user, amount)
       // approve tranfer
       await stakeToken.approve(stakeManager.address, amount, {
         from: user
       })
       // stake now
-      await stakeManager.stake(amount, 0, false, userPubkey, {
+      await stakeManager.stake(stakedAmount, heimdallFee, false, userPubkey, {
         from: user
       })
     })

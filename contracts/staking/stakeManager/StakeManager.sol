@@ -31,7 +31,11 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     constructor() public Lockable(address(0x0)) {}
 
     // TopUp heimdall fee
-    function topUpForFee(uint256 validatorId, uint256 heimdallFee) public {
+    function topUpForFee(uint256 validatorId, uint256 heimdallFee)
+        public
+        onlyWhenUnlocked
+    {
+        require(isValidator(validatorId), "validator is not active");
         require(heimdallFee >= minHeimdallFee, "Minimum amount is 1 Matic");
         require(
             token.transferFrom(msg.sender, address(this), heimdallFee),
@@ -120,7 +124,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         return false;
     }
 
-    function startAuction(uint256 validatorId, uint256 amount) external {
+    function startAuction(uint256 validatorId, uint256 amount)
+        external
+        onlyWhenUnlocked
+    {
         require(isValidator(validatorId));
         // when dynasty period is updated validators are in cool down period
         require(
@@ -181,10 +188,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     ) external onlyWhenUnlocked {
         Auction storage auction = validatorAuction[validatorId];
         Validator storage validator = validators[validatorId];
-        /**
-            // any one can call confrimAuction
-            // require(auction.user == msg.sender);
-         */
+        require(msg.sender == auction.user, "Only bidder can confirm");
+
         require(
             currentEpoch.sub(auction.startEpoch) % auctionPeriod.add(dynasty) >=
                 auctionPeriod,
@@ -222,6 +227,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
                 acceptDelegation,
                 signerPubkey
             );
+            require(heimdallFee >= minHeimdallFee, "Minimum amount is 1 Matic");
             _topUpForFee(NFTCounter.sub(1), heimdallFee);
 
             logger.logConfirmAuction(
@@ -302,6 +308,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     ) public onlyWhenUnlocked {
         require(currentValidatorSetSize() < validatorThreshold);
         require(amount > minDeposit);
+        require(heimdallFee >= minHeimdallFee, "Minimum amount is 1 Matic");
 
         require(
             token.transferFrom(
@@ -343,6 +350,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     // slashing and jail interface
     function restake(uint256 validatorId, uint256 amount, bool stakeRewards)
         public
+        onlyWhenUnlocked
         onlyStaker(validatorId)
     {
         require(
@@ -627,6 +635,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
 
     function _unstake(uint256 validatorId, uint256 exitEpoch) internal {
         uint256 amount = validators[validatorId].amount;
+        address validator = ownerOf(validatorId);
 
         validators[validatorId].deactivationEpoch = exitEpoch;
 
@@ -641,11 +650,11 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             rewards = rewards.add(validatorShare.withdrawRewardsValidator());
             validatorShare.lock();
         }
-        require(token.transfer(msg.sender, rewards), "Rewards transfer failed");
+        require(token.transfer(validator, rewards), "Rewards transfer failed");
         //  update future
         updateTimeLine(exitEpoch, -(int256(amount) + delegationAmount), -1);
 
-        logger.logUnstakeInit(msg.sender, validatorId, exitEpoch, amount);
+        logger.logUnstakeInit(validator, validatorId, exitEpoch, amount);
     }
 
     function _finalizeCommit() internal {
