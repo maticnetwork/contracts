@@ -1,16 +1,8 @@
-import chai from 'chai'
-import chaiAsPromised from 'chai-as-promised'
-import utils from 'ethereumjs-util'
 import { BN, expectEvent, expectRevert } from '@openzeppelin/test-helpers'
-import deployer from '../../helpers/deployer.js'
-import { TestToken, ValidatorShare, StakingInfo, DummyERC20 } from '../../helpers/artifacts'
-import logDecoder from '../../helpers/log-decoder.js'
+import { TestToken, ValidatorShare, StakingInfo } from '../../helpers/artifacts'
 
-import { checkPoint, assertBigNumberEquality, assertBigNumbergt } from '../../helpers/utils.js'
-import { generateFirstWallets, mnemonics } from '../../helpers/wallets.js'
+import { checkPoint, assertBigNumberEquality } from '../../helpers/utils.js'
 import { wallets, freshDeploy } from './deployment'
-
-chai.use(chaiAsPromised).should()
 
 contract('ValidatorShare', async function() {
   const ZeroAddr = '0x0000000000000000000000000000000000000000'
@@ -67,9 +59,6 @@ contract('ValidatorShare', async function() {
         this.receipt = await this.validatorContract.buyVoucher(voucherValue, {
           from: this.user
         })
-
-        // const logs = logDecoder.decodeLogs(this.receipt.receipt.rawLogs)
-        // console.log(logs)
       })
 
       it('ValidatorShare must mint correct amount of shares', async function() {
