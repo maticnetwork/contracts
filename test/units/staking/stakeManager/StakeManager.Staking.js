@@ -6,26 +6,19 @@ import {
   assertBigNumberEquality
 } from '../../../helpers/utils.js'
 import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
-import { wallets, walletAmounts, freshDeploy } from '../deployment'
+import { wallets, walletAmounts, freshDeploy, approveAndStake } from '../deployment'
 
 module.exports = function(accounts) {
   let owner = accounts[0]
 
-  function doStake(wallet, aproveAmount, stakeAmount) {
+  function doStake(wallet, { aproveAmount, stakeAmount, noMinting = false } = {}) {
     return async function() {
       let user = wallet.getAddressString()
-      let userPubkey = wallet.getPublicKeyString()
 
       let _aproveAmount = aproveAmount || walletAmounts[user].amount
       let _stakeAmount = stakeAmount || walletAmounts[user].stakeAmount
 
-      await this.stakeToken.approve(this.stakeManager.address, _aproveAmount, {
-        from: user
-      })
-
-      await this.stakeManager.stake(_stakeAmount, 0, false, userPubkey, {
-        from: user
-      })
+      await approveAndStake.call(this, { wallet, stakeAmount: _stakeAmount, approveAmount: _aproveAmount, noMinting })
     }
   }
 
@@ -41,21 +34,22 @@ module.exports = function(accounts) {
   }
 
   describe('stake', function() {
-    function testStakeRevert(user, userPubkey, amount, stakeAmount, unspecified) {
+    function testStakeRevert(user, userPubkey, amount, stakeAmount, unspecified = false) {
       before('Approve', async function() {
         this.initialBalance = await this.stakeManager.totalStakedFor(user)
-        await this.stakeToken.approve(this.stakeManager.address, amount, {
+
+        await this.stakeToken.approve(this.stakeManager.address, new BN(amount).add(this.defaultHeimdallFee), {
           from: user
         })
       })
 
       it('must revert', async function() {
         if (unspecified) {
-          await expectRevert.unspecified(this.stakeManager.stake(stakeAmount, 0, false, userPubkey, {
+          await expectRevert.unspecified(this.stakeManager.stake(stakeAmount, this.defaultHeimdallFee, false, userPubkey, {
             from: user
           }))
         } else {
-          await expectRevert(this.stakeManager.stake(stakeAmount, 0, false, userPubkey, {
+          await expectRevert(this.stakeManager.stake(stakeAmount, this.defaultHeimdallFee, false, userPubkey, {
             from: user
           }), 'Invalid Signer key')
         }
@@ -70,12 +64,11 @@ module.exports = function(accounts) {
     function testStake(user, userPubkey, amount, stakeAmount, validatorId, fee) {
       before('Approve', async function() {
         this.user = user
+        this.fee = new BN(fee || this.defaultHeimdallFee)
 
-        await this.stakeToken.approve(this.stakeManager.address, amount, {
+        await this.stakeToken.approve(this.stakeManager.address, new BN(amount).add(this.fee), {
           from: user
         })
-
-        this.fee = new BN(fee) || 0
       })
 
       it('must stake', async function() {
@@ -253,7 +246,7 @@ module.exports = function(accounts) {
         const _wallets = [wallets[1], wallets[2], wallets[3]]
         let expectedValidatorId = 1
         for (const wallet of _wallets) {
-          await doStake(wallet, web3.utils.toWei('100'), web3.utils.toWei('100')).call(this)
+          await doStake(wallet, { approveAmount: web3.utils.toWei('100'), stakeAmount: web3.utils.toWei('100') }).call(this)
 
           const validatorId = await this.stakeManager.getValidatorId(wallet.getAddressString())
           assertBigNumberEquality(expectedValidatorId, validatorId)
@@ -565,15 +558,15 @@ module.exports = function(accounts) {
       const Bob = wallets[3]
       const Eve = wallets[1]
 
-      before('Alice stake', doStake(Alice))
-      before('Bob stake', doStake(Bob))
-      before('Eve stake', doStake(Eve))
+      before('Alice stake', doStake(Alice, { noMinting: true }))
+      before('Bob stake', doStake(Bob, { noMinting: true }))
+      before('Eve stake', doStake(Eve, { noMinting: true }))
 
       before('Alice unstake', doUnstake(Alice))
       before('Bob unstake', doUnstake(Bob))
 
       before('Checkpoint', async function() {
-        let w = [Eve]
+        const w = [Eve]
 
         await checkPoint(w, this.rootChainOwner, this.stakeManager)
         await checkPoint(w, this.rootChainOwner, this.stakeManager)
@@ -592,10 +585,10 @@ module.exports = function(accounts) {
           })
         })
 
-        it('must have pre-stake + reward balance', async function() {
+        it('must have pre-stake + reward - heimdall fee balance', async function() {
           let balance = await this.stakeToken.balanceOf(user)
 
-          assertBigNumberEquality(balance, new BN(walletAmounts[user].initialBalance.toString()).add(this.reward))
+          assertBigNumberEquality(balance, new BN(walletAmounts[user].initialBalance.toString()).add(this.reward).sub(this.defaultHeimdallFee))
         })
       })
 
@@ -612,10 +605,10 @@ module.exports = function(accounts) {
           })
         })
 
-        it('must have pre-stake + reward balance', async function() {
+        it('must have pre-stake + reward - heimdall fee balance', async function() {
           let balance = await this.stakeToken.balanceOf(user)
 
-          assertBigNumberEquality(balance, new BN(walletAmounts[user].initialBalance.toString()).add(this.reward))
+          assertBigNumberEquality(balance, new BN(walletAmounts[user].initialBalance).add(this.reward).sub(this.defaultHeimdallFee))
         })
       })
 
@@ -646,13 +639,7 @@ module.exports = function(accounts) {
         await this.stakeManager.updateCheckPointBlockInterval(1)
 
         for (const wallet of initialStakers) {
-          await this.stakeToken.mint(wallet.getAddressString(), initialStake)
-          await this.stakeToken.approve(this.stakeManager.address, initialStake, {
-            from: wallet.getAddressString()
-          })
-          await this.stakeManager.stake(initialStake, 0, acceptDelegation, wallet.getPublicKeyString(), {
-            from: wallet.getAddressString()
-          })
+          await approveAndStake.call(this, { wallet, stakeAmount: initialStake, acceptDelegation })
         }
 
         // cooldown period

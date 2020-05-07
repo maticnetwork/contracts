@@ -2,6 +2,7 @@ import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import deployer from '../../helpers/deployer.js'
 import { generateFirstWallets, mnemonics } from '../../helpers/wallets.js'
+import { BN } from '@openzeppelin/test-helpers'
 
 chai.use(chaiAsPromised).should()
 
@@ -42,7 +43,7 @@ module.exports = {
     this.rootChainOwner = contracts.rootChainOwner
     this.registry = contracts.registry
     this.governance = contracts.governance
-    
+
     await this.stakeManager.updateCheckpointReward(web3.utils.toWei('10000'))
 
     // dummy registry address
@@ -56,5 +57,31 @@ module.exports = {
     }
 
     await this.stakeToken.mint(this.stakeManager.address, web3.utils.toWei('10000000'))
+
+    this.defaultHeimdallFee = new BN(web3.utils.toWei('1'))
+  },
+  async approveAndStake({ wallet, stakeAmount, approveAmount, acceptDelegation = false, heimdallFee, noMinting = false }) {
+    const fee = heimdallFee || this.defaultHeimdallFee
+
+    const mintAmount = new BN(approveAmount || stakeAmount).add(new BN(fee))
+
+    if (noMinting) {
+      // check if allowance covers fee
+      const balance = await this.stakeToken.balanceOf(wallet.getAddressString())
+      if (balance.lt(mintAmount)) {
+        // mint more
+        await this.stakeToken.mint(wallet.getAddressString(), mintAmount.sub(balance))
+      }
+    } else {
+      await this.stakeToken.mint(wallet.getAddressString(), mintAmount)
+    }
+
+    await this.stakeToken.approve(this.stakeManager.address, new BN(mintAmount), {
+      from: wallet.getAddressString()
+    })
+
+    await this.stakeManager.stake(stakeAmount, fee, acceptDelegation, wallet.getPublicKeyString(), {
+      from: wallet.getAddressString()
+    })
   }
 }
