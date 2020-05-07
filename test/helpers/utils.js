@@ -86,8 +86,13 @@ export function assertBigNumberEquality(num1, num2) {
 }
 
 export function assertBigNumbergt(num1, num2) {
-  expect(num1.gt(web3.utils.toBN(num2))).to.be.true
-  // num1.should.be.bignumber.greaterThan(num2)
+  if (!BN.isBN(num1)) num1 = web3.utils.toBN(num1.toString())
+  if (!BN.isBN(num2)) num2 = web3.utils.toBN(num2.toString())
+
+  assert(
+    num1.gt(num2),
+    `expected ${num1.toString(10)} to be greater than ${num2.toString(10)}`
+  )
 }
 
 export const toChecksumAddress = address =>
