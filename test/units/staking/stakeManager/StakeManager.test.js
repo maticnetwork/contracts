@@ -287,11 +287,10 @@ contract('StakeManager', async function(accounts) {
     })
 
     describe('when from is not governance', function() {
+      before(freshDeploy)
+
       it('reverts', async function() {
-        await expectRevert(this.governance.update(
-          this.stakeManager.address,
-          this.stakeManager.contract.methods.setDelegationEnabled(false).encodeABI()
-        ), 'Only governance contract is authorized')
+        await expectRevert(this.stakeManager.setDelegationEnabled(false), 'Only governance contract is authorized')
       })
     })
   })
