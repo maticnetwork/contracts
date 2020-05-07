@@ -786,20 +786,46 @@ contract('StakeManager: Heimdall fee', async function (accounts) {
       ), fee)
     })
 
-    it.only('More than 2/3rd vote for yes and the rest vote no', async function () {
+    it('More than 2/3rd vote for yes and the rest vote no', async function () {
       wallets = generateFirstWallets(mnemonics, 4)
 
       const validators = [1, 2, 3, 4]
-      const amount = web3.utils.toWei('6')
+      const amount = web3.utils.toWei('4')
       let fee = web3.utils.toWei('2')
-      const user = wallets[2].getAddressString()
-      await stakeToken.mint(user, amount)
+      let stakeAmount = web3.utils.toWei('2')
+      
+      await stakeToken.mint( wallets[0].getAddressString(), amount)
       await stakeToken.approve(stakeManager.address, amount, {
-        from: user
+        from: wallets[0].getAddressString()
       })
-      await stakeManager.stake(web3.utils.toWei('4'), fee, false, wallets[2].getPublicKeyString(), {
-        from: user
+      await stakeManager.stake(stakeAmount, fee, false, wallets[0].getPublicKeyString(), {
+        from: wallets[0].getAddressString()
       })
+
+      await stakeToken.mint( wallets[1].getAddressString(), amount)
+      await stakeToken.approve(stakeManager.address, amount, {
+        from:  wallets[1].getAddressString()
+      })
+      await stakeManager.stake(stakeAmount, fee, false, wallets[1].getPublicKeyString(), {
+        from:  wallets[1].getAddressString()
+      })
+
+      await stakeToken.mint( wallets[2].getAddressString(), amount)
+      await stakeToken.approve(stakeManager.address, amount, {
+        from:  wallets[2].getAddressString()
+      })
+      await stakeManager.stake(stakeAmount, fee, false, wallets[2].getPublicKeyString(), {
+        from:  wallets[2].getAddressString()
+      })
+
+      await stakeToken.mint( wallets[3].getAddressString(), amount)
+      await stakeToken.approve(stakeManager.address, amount, {
+        from:  wallets[3].getAddressString()
+      })
+      await stakeManager.stake(stakeAmount, fee, false, wallets[3].getPublicKeyString(), {
+        from:  wallets[3].getAddressString()
+      })
+
       fee = web3.utils.toWei('1')
       accountState[1] = [web3.utils.toHex(fee.toString()), 0]
       accountState[2] = [0, 0]
@@ -811,16 +837,15 @@ contract('StakeManager: Heimdall fee', async function (accounts) {
 
       // 2/3 majority vote "Yes"
       const { data, sigs } = buildSubmitHeaderBlockPaylodWithVotes(
-        wallets[2].getAddressString(),
+        wallets[0].getAddressString(),
         0,
         22,
         '' /* root */,
         [wallets[0], wallets[1], wallets[2], wallets[3]],
-        3,
+        3, // 3 yes votes
         { rewardsRootHash: tree.getRoot(),
           allValidators: true,
-          getSigs: true,
-          totalStake: web3.utils.toWei('4')
+          getSigs: true
         }
       )
 
@@ -832,20 +857,46 @@ contract('StakeManager: Heimdall fee', async function (accounts) {
       )
     })
 
-    it.only('Less than 2/3rd vote for yes and the rest vote no', async function () {
+    it('Less than 2/3rd vote for yes and the rest vote no', async function () {
       wallets = generateFirstWallets(mnemonics, 4)
 
       const validators = [1, 2, 3, 4]
-      const amount = web3.utils.toWei('6')
+      const amount = web3.utils.toWei('4')
       let fee = web3.utils.toWei('2')
-      const user = wallets[2].getAddressString()
-      await stakeToken.mint(user, amount)
+      let stakeAmount = web3.utils.toWei('2')
+      
+      await stakeToken.mint( wallets[0].getAddressString(), amount)
       await stakeToken.approve(stakeManager.address, amount, {
-        from: user
+        from: wallets[0].getAddressString()
       })
-      await stakeManager.stake(web3.utils.toWei('4'), fee, false, wallets[2].getPublicKeyString(), {
-        from: user
+      await stakeManager.stake(stakeAmount, fee, false, wallets[0].getPublicKeyString(), {
+        from: wallets[0].getAddressString()
       })
+
+      await stakeToken.mint( wallets[1].getAddressString(), amount)
+      await stakeToken.approve(stakeManager.address, amount, {
+        from:  wallets[1].getAddressString()
+      })
+      await stakeManager.stake(stakeAmount, fee, false, wallets[1].getPublicKeyString(), {
+        from:  wallets[1].getAddressString()
+      })
+
+      await stakeToken.mint( wallets[2].getAddressString(), amount)
+      await stakeToken.approve(stakeManager.address, amount, {
+        from:  wallets[2].getAddressString()
+      })
+      await stakeManager.stake(stakeAmount, fee, false, wallets[2].getPublicKeyString(), {
+        from:  wallets[2].getAddressString()
+      })
+
+      await stakeToken.mint( wallets[3].getAddressString(), amount)
+      await stakeToken.approve(stakeManager.address, amount, {
+        from:  wallets[3].getAddressString()
+      })
+      await stakeManager.stake(stakeAmount, fee, false, wallets[3].getPublicKeyString(), {
+        from:  wallets[3].getAddressString()
+      })
+
       fee = web3.utils.toWei('1')
       accountState[1] = [web3.utils.toHex(fee.toString()), 0]
       accountState[2] = [0, 0]
@@ -857,16 +908,15 @@ contract('StakeManager: Heimdall fee', async function (accounts) {
 
       // 2/3 majority vote "Yes"
       const { data, sigs } = buildSubmitHeaderBlockPaylodWithVotes(
-        wallets[2].getAddressString(),
+        wallets[0].getAddressString(),
         0,
         22,
         '' /* root */,
         [wallets[0], wallets[1], wallets[2], wallets[3]],
-        2,
+        2, // 2 yes votes
         { rewardsRootHash: tree.getRoot(),
           allValidators: true,
-          getSigs: true,
-          totalStake: web3.utils.toWei('4')
+          getSigs: true
         }
       )
 

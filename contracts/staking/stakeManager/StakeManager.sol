@@ -306,8 +306,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         bool acceptDelegation,
         bytes memory signerPubkey
     ) public onlyWhenUnlocked {
-        require(currentValidatorSetSize() < validatorThreshold);
-        require(amount > minDeposit);
+        require(currentValidatorSetSize() < validatorThreshold, "Validator size is less than threshold!");
+        require(amount > minDeposit, "min deposit linit failed!");
         require(heimdallFee >= minHeimdallFee, "Minimum amount is 1 Matic");
 
         require(
