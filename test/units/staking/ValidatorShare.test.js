@@ -325,29 +325,30 @@ contract('ValidatorShare', async function() {
   })
 
   describe('sellVoucher', function() {
-    describe('when Alice sells voucher', function() {
-      before(doDeploy)
-      before(async function() {
-        this.user = wallets[2].getAddressString()
-        await this.stakeToken.mint(
-          this.user,
-          this.stakeAmount
-        )
-        await this.stakeToken.approve(this.stakeManager.address, web3.utils.toWei('100'), {
-          from: this.user
-        })
+    async function doDeployAndBuyVoucherForAlice() {
+      await doDeploy.call(this)
 
-        await this.validatorContract.buyVoucher(web3.utils.toWei('100'), {
-          from: this.user
-        })
-
-        this.shares = await this.validatorContract.balanceOf(this.user)
-
-        for (let i = 0; i < 4; i++) {
-          await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
-        }
+      this.user = wallets[2].getAddressString()
+      await this.stakeToken.mint(
+        this.user,
+        this.stakeAmount
+      )
+      await this.stakeToken.approve(this.stakeManager.address, web3.utils.toWei('100'), {
+        from: this.user
       })
 
+      await this.validatorContract.buyVoucher(web3.utils.toWei('100'), {
+        from: this.user
+      })
+
+      this.shares = await this.validatorContract.balanceOf(this.user)
+
+      for (let i = 0; i < 4; i++) {
+        await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
+      }
+    }
+
+    function testSellVoucher() {
       it('must sell voucher', async function() {
         this.receipt = await this.validatorContract.sellVoucher({
           from: this.user
@@ -359,6 +360,24 @@ contract('ValidatorShare', async function() {
           tokens: this.shares
         })
       })
+    }
+
+    describe('when Alice sells voucher', function() {
+      before(doDeployAndBuyVoucherForAlice)
+
+      testSellVoucher()
+    })
+
+    describe('when delegation is disabled after voucher was purchased by Alice', function() {
+      before(doDeployAndBuyVoucherForAlice)
+      before('disable delegation', async function() {
+        await this.governance.update(
+          this.stakeManager.address,
+          this.stakeManager.contract.methods.setDelegationEnabled(false).encodeABI()
+        )
+      })
+
+      testSellVoucher()
     })
   })
 
