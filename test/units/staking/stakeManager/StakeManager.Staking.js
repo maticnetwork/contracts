@@ -1,8 +1,7 @@
-import { StakingInfo, DummyERC20, StakingNFT, ValidatorShare } from '../../../helpers/artifacts'
+import { StakingInfo, DummyERC20, ValidatorShare } from '../../../helpers/artifacts'
 
 import {
   checkPoint,
-  assertBigNumbergt,
   assertBigNumberEquality
 } from '../../../helpers/utils.js'
 import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
