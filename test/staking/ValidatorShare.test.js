@@ -3,7 +3,7 @@ import chaiAsPromised from 'chai-as-promised'
 import utils from 'ethereumjs-util'
 
 import deployer from '../helpers/deployer.js'
-import { TestToken, ValidatorShare, StakingInfo } from '../helpers/artifacts'
+import { TestToken, ValidatorShare } from '../helpers/artifacts'
 import logDecoder from '../helpers/log-decoder.js'
 
 import { checkPoint, assertBigNumberEquality, assertBigNumbergt } from '../helpers/utils.js'
@@ -28,13 +28,7 @@ contract('ValidatorShare', async function (accounts) {
     registry = contracts.registry
     stakeManager = contracts.stakeManager
     stakeToken = await TestToken.new("MATIC", "MATIC")
-    await contracts.governance.update(
-      contracts.registry.address,
-      contracts.registry.contract.methods.updateContractMap(
-        utils.keccak256('stakeManager'),
-        stakeManager.address
-      ).encodeABI()
-    )
+
     await stakeManager.updateCheckPointBlockInterval(1)
     await stakeManager.updateValidatorThreshold(2)
     await stakeManager.changeRootChain(wallets[1].getAddressString())
