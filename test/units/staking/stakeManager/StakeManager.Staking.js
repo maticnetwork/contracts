@@ -10,14 +10,14 @@ import { wallets, walletAmounts, freshDeploy, approveAndStake } from '../deploym
 module.exports = function(accounts) {
   let owner = accounts[0]
 
-  function doStake(wallet, { aproveAmount, stakeAmount, noMinting = false } = {}) {
+  function doStake(wallet, { aproveAmount, stakeAmount, noMinting = false, signer } = {}) {
     return async function() {
       let user = wallet.getAddressString()
 
       let _aproveAmount = aproveAmount || walletAmounts[user].amount
       let _stakeAmount = stakeAmount || walletAmounts[user].stakeAmount
 
-      await approveAndStake.call(this, { wallet, stakeAmount: _stakeAmount, approveAmount: _aproveAmount, noMinting })
+      await approveAndStake.call(this, { wallet, stakeAmount: _stakeAmount, approveAmount: _aproveAmount, noMinting, signer })
     }
   }
 
@@ -265,6 +265,24 @@ module.exports = function(accounts) {
         1,
         web3.utils.toWei('50')
       )
+    })
+
+    describe('when Alice stakes, change signer and stakes with old signer', function() {
+      const AliceWallet = wallets[1]
+      const newSigner = wallets[2].getPublicKeyString()
+
+      before(freshDeploy)
+      before(doStake(AliceWallet))
+      before('Change signer', async function() {
+        this.validatorId = await this.stakeManager.getValidatorId(AliceWallet.getAddressString())
+        await this.stakeManager.updateSigner(this.validatorId, newSigner, {
+          from: AliceWallet.getAddressString()
+        })
+      })
+
+      it('reverts', async function() {
+        await expectRevert(doStake(wallets[3], { signer: AliceWallet.getPublicKeyString() }).call(this), 'Invalid Signer key')
+      })
     })
   })
 

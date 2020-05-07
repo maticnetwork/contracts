@@ -307,57 +307,80 @@ contract('StakeManager', async function(accounts) {
       testUpdateSigner()
     })
 
-    describe('reverts', function() {
-      beforeEach(doDeploy)
+    describe('when update signer back to staker original public key', function() {
+      before(doDeploy)
+      before(async function() {
+        this.validatorId = await this.stakeManager.getValidatorId(user)
 
-      it('when update signer back to staker original public key', async function() {
-        const validatorId = await this.stakeManager.getValidatorId(user)
-
-        await this.stakeManager.updateSigner(validatorId, wallets[0].getPublicKeyString(), {
+        await this.stakeManager.updateSigner(this.validatorId, wallets[0].getPublicKeyString(), {
           from: user
         })
+      })
 
-        await expectRevert.unspecified(this.stakeManager.updateSigner(validatorId, userOriginalPubKey, {
+      it('reverts', async function() {
+        await expectRevert.unspecified(this.stakeManager.updateSigner(this.validatorId, userOriginalPubKey, {
           from: user
         }))
       })
+    })
+    // TODO finish when https://github.com/maticnetwork/contracts/pull/232 is merged
+    describe.skip('when updating public key within signerUpdateLimit period', function() {
+      before(doDeploy)
+      before(async function() {
+        this.validatorId = await this.stakeManager.getValidatorId(user)
 
-      it('when updating public key 2 times in 1 epoch', async function() {
-        let validatorId = await this.stakeManager.getValidatorId(user)
-        await this.stakeManager.updateSigner(validatorId, wallets[0].getPublicKeyString(), {
+        await this.stakeManager.updateSigner(this.validatorId, wallets[0].getPublicKeyString(), {
           from: user
         })
+      })
 
-        validatorId = await this.stakeManager.getValidatorId(user)
-        await expectRevert.unspecified(this.stakeManager.updateSigner(validatorId, wallets[6].getPublicKeyString(), {
+      it('reverts', async function() {
+        await expectRevert.unspecified(this.stakeManager.updateSigner(this.validatorId, wallets[6].getPublicKeyString(), {
           from: user
         }))
       })
+    })
 
-      it('when from is not staker', async function() {
-        const validatorId = await this.stakeManager.getValidatorId(user)
-        await expectRevert.unspecified(this.stakeManager.updateSigner(validatorId, wallets[6].getPublicKeyString(), {
-          from: wallets[6].getAddressString()
-        }))
-      })
-
-      it('when validatorId is incorrect', async function() {
-        await expectRevert.unspecified(this.stakeManager.updateSigner('9999999', wallets[5].getPublicKeyString(), {
-          from: user
-        }))
-      })
-
-      it('when public key is already in use', async function() {
-        const newPubKey = wallets[0].getPublicKeyString()
+    describe('when public key is already in use', function() {
+      before(doDeploy)
+      before(async function() {
+        this.newPubKey = wallets[0].getPublicKeyString()
 
         let validatorId = await this.stakeManager.getValidatorId(wallets[1].getAddressString())
-        await this.stakeManager.updateSigner(validatorId, newPubKey, {
+        await this.stakeManager.updateSigner(validatorId, this.newPubKey, {
           from: wallets[1].getAddressString()
         })
 
         validatorId = await this.stakeManager.getValidatorId(wallets[2].getAddressString())
-        await expectRevert.unspecified(this.stakeManager.updateSigner(validatorId, newPubKey, {
+        this.validatorId = validatorId
+      })
+
+      it('reverts', async function() {
+        await expectRevert.unspecified(this.stakeManager.updateSigner(this.validatorId, this.newPubKey, {
           from: wallets[2].getAddressString()
+        }))
+      })
+    })
+
+    describe('when from is not staker', function() {
+      before(doDeploy)
+      before(async function() {
+        this.validatorId = await this.stakeManager.getValidatorId(user)
+      })
+
+      it('reverts', async function() {
+        await expectRevert.unspecified(this.stakeManager.updateSigner(this.validatorId, wallets[6].getPublicKeyString(), {
+          from: wallets[6].getAddressString()
+        }))
+      })
+    })
+
+    describe('when validatorId is incorrect', function() {
+      before(doDeploy)
+
+      it('reverts', async function() {
+        await expectRevert.unspecified(this.stakeManager.updateSigner('9999999', wallets[5].getPublicKeyString(), {
+          from: user
         }))
       })
     })
