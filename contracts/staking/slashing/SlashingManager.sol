@@ -21,9 +21,12 @@ contract SlashingManager is ISlashingManager, Ownable {
         _;
     }
 
-    constructor(address _registry, address _logger) public {
+    constructor(address _registry, address _logger, string memory _heimdallId)
+        public
+    {
         registry = Registry(_registry);
         logger = StakingInfo(_logger);
+        heimdallId = keccak256(abi.encodePacked(_heimdallId));
     }
 
     function updateSlashedAmounts(
@@ -53,7 +56,7 @@ contract SlashingManager is ISlashingManager, Ownable {
 
         uint256 stakePower;
         uint256 activeTwoByThree;
-        (stakePower, activeTwoByThree) = logger.verifyConsensus(
+        (stakePower, activeTwoByThree) = stakeManager.verifyConsensus(
             keccak256(vote),
             sigs
         );

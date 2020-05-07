@@ -18,7 +18,7 @@ class Deployer {
     this.validatorShareFactory = await contracts.ValidatorShareFactory.new()
     this.stakeToken = await contracts.DummyERC20.new('Stake Token', 'ST')
     this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
-    this.slashingManager = await contracts.SlashingManager.new(this.registry.address, this.stakingInfo.address)
+    this.slashingManager = await contracts.SlashingManager.new(this.registry.address, this.stakingInfo.address, 'heimdall-P5rXwg')
     await this.deployRootChain()
     this.stakingNFT = await contracts.StakingNFT.new('Matic Validator', 'MV')
 
@@ -98,7 +98,7 @@ class Deployer {
       this.governance.address
     )
     this.stakeManager = await contracts.StakeManager.at(proxy.address)
-    this.slashingManager = await contracts.SlashingManager.new(this.registry.address, this.stakingInfo.address)
+    this.slashingManager = await contracts.SlashingManager.new(this.registry.address, this.stakingInfo.address, 'heimdall-P5rXwg')
 
     await this.stakingNFT.transferOwnership(this.stakeManager.address)
     await this.updateContractMap(
