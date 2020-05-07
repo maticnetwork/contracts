@@ -29,12 +29,36 @@ export function getSigs(wallets, votedata) {
   wallets.sort((w1, w2) => {
     return w1.getAddressString().localeCompare(w2.getAddressString())
   })
-
   const h = ethUtils.toBuffer(votedata)
 
   return wallets
     .map(w => {
       const vrs = ethUtils.ecsign(h, w.getPrivateKey())
+      return ethUtils.toRpcSig(vrs.v, vrs.r, vrs.s)
+    })
+    .filter(d => d)
+}
+
+export function getSigsWithVotes(wallets, data, sigPrefix, maxYesVotes) {
+  wallets.sort((w1, w2) => {
+    return w1.getAddressString().localeCompare(w2.getAddressString())
+  })
+
+  return wallets
+    .map((w, index) => {
+      let voteData
+      
+      if (index < maxYesVotes) {
+        console.log("yes")
+        voteData = Buffer.concat([ethUtils.toBuffer(sigPrefix || '0x01'), ethUtils.toBuffer(data)])
+      } else {
+        console.log("no")
+        voteData = Buffer.concat([ethUtils.toBuffer(sigPrefix || '0x02'), ethUtils.toBuffer(data)])
+      }
+
+      const voteHash = ethUtils.keccak256(voteData)
+      voteData = ethUtils.toBuffer(voteHash)
+      const vrs = ethUtils.ecsign(voteData, w.getPrivateKey())
       return ethUtils.toRpcSig(vrs.v, vrs.r, vrs.s)
     })
     .filter(d => d)
@@ -107,6 +131,39 @@ export function buildSubmitHeaderBlockPaylod(
   const sigs = ethUtils.bufferToHex(
     options.getSigs
       ? encodeSigs(getSigs(validators, ethUtils.keccak256(sigData)))
+      : 'dummySig'
+  )
+  return { data, sigs }
+}
+
+export function buildSubmitHeaderBlockPaylodWithVotes(
+  proposer,
+  start,
+  end,
+  root,
+  wallets,
+  maxYesVotes,
+  options = { rewardsRootHash: '', allValidators: false, getSigs: false, totalStake: 1, sigPrefix: '' } // false vars are to show expected vars
+) {
+  if (!root) root = ethUtils.keccak256(encode(start, end)) // dummy root
+  if (!wallets) {
+    wallets = getWallets()
+  }
+
+  let validators = options.allValidators
+    ? wallets
+    : [wallets[1], wallets[2], wallets[3]]
+
+  let data = web3.eth.abi.encodeParameters(
+    ['address', 'uint256', 'uint256', 'bytes32', 'bytes32', 'bytes32'],
+    [proposer, start, end, root, options.rewardsRootHash, '0x0000000000000000000000000000000000000000000000000000000000003a99']
+  )
+  const sigData = ethUtils.toBuffer(data)
+
+  // in case of TestStakeManger use dummysig data
+  const sigs = ethUtils.bufferToHex(
+    options.getSigs
+      ? encodeSigs(getSigsWithVotes(validators, sigData, options.sigPrefix, maxYesVotes))
       : 'dummySig'
   )
   return { data, sigs }
