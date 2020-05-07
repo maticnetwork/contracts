@@ -550,8 +550,10 @@ contract('StakeManager', async function (accounts) {
         await stakeManager.updateSigner(validatorId, wallets[5].getPublicKeyString(), {
           from: user
         })
+        assert.fail("Signer should not have updated!")
       } catch (error) {
-        assert(error.message, "Invalid checkpoint number!")
+        const invalidOpcode = error.message.search('revert') >= 0
+        assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
       }
     })
   })
