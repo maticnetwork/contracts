@@ -259,7 +259,8 @@ contract('RootChain', async function(accounts) {
 
     describe('when numDeposits > MAX_DEPOSITS', function() {
       it('must revert', async function() {
-        const maxDeposits = await rootChain.MAX_DEPOSITS()
+        // TODO add a root chain mock where MAX_DEPOSITS can be queried
+        const maxDeposits = new BN('10000')
         await expectRevert(rootChain.updateDepositId(maxDeposits.add(new BN(1))), 'UNAUTHORIZED_DEPOSIT_MANAGER_ONLY')
       })
     })
