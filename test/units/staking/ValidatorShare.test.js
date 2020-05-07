@@ -99,6 +99,23 @@ contract('ValidatorShare', async function() {
       testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'))
     })
 
+    describe('when delegation is disabled', function() {
+      deployAliceAndBob()
+
+      before('disable delegation', async function() {
+        await this.governance.update(
+          this.stakeManager.address,
+          this.stakeManager.contract.methods.setDelegationEnabled(false).encodeABI()
+        )
+      })
+
+      it('reverts', async function() {
+        await expectRevert(this.validatorContract.buyVoucher(web3.utils.toWei('150'), {
+          from: this.alice
+        }), 'Delegation is disabled')
+      })
+    })
+
     describe('when Alice purchases voucher 3 times in a row, no checkpoints inbetween', function() {
       deployAliceAndBob()
 
