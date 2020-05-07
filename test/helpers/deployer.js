@@ -18,6 +18,7 @@ class Deployer {
     this.validatorShareFactory = await contracts.ValidatorShareFactory.new()
     this.stakeToken = await contracts.DummyERC20.new('Stake Token', 'ST')
     this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
+    this.slashingManager = await contracts.SlashingManager.new(this.registry.address, this.stakingInfo.address, 'heimdall-P5rXwg')
     await this.deployRootChain()
     this.stakingNFT = await contracts.StakingNFT.new('Matic Validator', 'MV')
 
@@ -56,7 +57,10 @@ class Deployer {
       ethUtils.keccak256('stakeManager'),
       this.stakeManager.address
     )
-
+    await this.updateContractMap(
+      ethUtils.keccak256('slashingManager'),
+      this.slashingManager.address
+    )
     let _contracts = {
       registry: this.registry,
       rootChain: this.rootChain,
@@ -94,17 +98,24 @@ class Deployer {
       this.governance.address
     )
     this.stakeManager = await contracts.StakeManager.at(proxy.address)
+    this.slashingManager = await contracts.SlashingManager.new(this.registry.address, this.stakingInfo.address, 'heimdall-P5rXwg')
 
     await this.stakingNFT.transferOwnership(this.stakeManager.address)
     await this.updateContractMap(
       ethUtils.keccak256('stakeManager'),
       this.stakeManager.address
     )
+    await this.updateContractMap(
+      ethUtils.keccak256('slashingManager'),
+      this.slashingManager.address
+    )
     let _contracts = {
       registry: this.registry,
       rootChain: this.rootChain,
       stakeManager: this.stakeManager,
       stakeToken: this.stakeToken,
+      slashingManager: this.slashingManager,
+      stakingInfo: this.stakingInfo,
       governance: this.governance,
       stakeManagerProxy: proxy,
       stakeManagerImpl: stakeManager

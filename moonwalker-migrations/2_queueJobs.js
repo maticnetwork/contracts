@@ -24,7 +24,7 @@ async function deploy() {
               ethUtils.bufferToHex(ethUtils.keccak256('depositManager')),
               getAddressForContract('DepositManagerProxy')
             ).encodeABI()
-        },
+        }
       ],
       'GovernanceProxy'
     )
@@ -40,7 +40,23 @@ async function deploy() {
               ethUtils.bufferToHex(ethUtils.keccak256('withdrawManager')),
               getAddressForContract('WithdrawManagerProxy')
             ).encodeABI()
-        },
+        }
+      ],
+      'GovernanceProxy'
+    )
+  )
+
+  await deployer.deploy(
+    tx('Governance', 'update',
+      [
+        'Registry',
+        {
+          value:
+            registry.contract.methods.updateContractMap(
+              ethUtils.bufferToHex(ethUtils.keccak256('slashingManager')),
+              getAddressForContract('SlashingManager')
+            ).encodeABI()
+        }
       ],
       'GovernanceProxy'
     )
@@ -56,7 +72,7 @@ async function deploy() {
               ethUtils.bufferToHex(ethUtils.keccak256('stakeManager')),
               getAddressForContract('StakeManagerProxy')
             ).encodeABI()
-        },
+        }
       ],
       'GovernanceProxy'
     )

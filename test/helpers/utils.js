@@ -51,12 +51,43 @@ export async function checkPoint(wallets, proposer, stakeManager, options = {}) 
   )
   const stateRoot = ethUtils.bufferToHex(ethUtils.keccak256('stateRoot'))
   // 2/3 majority vote
-
   await stakeManager.checkSignatures(
     1,
     ethUtils.bufferToHex(ethUtils.keccak256(voteData)),
     stateRoot,
     sigs,
+    {
+      from: proposer.getAddressString()
+    }
+  )
+}
+
+export async function updateSlashedAmounts(wallets, proposer, _slashingNonce, slashingInfoList, slashingManager, options = {}) {
+  const extraData = ethUtils.bufferToHex(
+    ethUtils.rlp.encode([
+      [proposer.getAddressString(), ethUtils.bufferToHex(ethUtils.sha256(ethUtils.rlp.encode(
+        slashingInfoList)))]
+    ])
+  )
+  const vote = ethUtils.bufferToHex(
+    // [chain, voteType, height, round, sha256(extraData)]
+    ethUtils.rlp.encode([
+      'heimdall-P5rXwg',
+      2,
+      _slashingNonce, // header number
+      0,
+      ethUtils.bufferToHex(ethUtils.sha256(extraData))
+    ])
+  )
+  const sigs = ethUtils.bufferToHex(
+    encodeSigs(getSigs(wallets, ethUtils.keccak256(vote)))
+  )
+  return slashingManager.updateSlashedAmounts(
+    proposer.getAddressString(),
+    vote,
+    sigs,
+    ethUtils.bufferToHex(ethUtils.rlp.encode(slashingInfoList)),
+    ethUtils.bufferToHex(extraData),
     {
       from: proposer.getAddressString()
     }

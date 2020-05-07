@@ -12,6 +12,7 @@ export const StakingNFT = artifacts.require('StakingNFT')
 export const ValidatorShare = artifacts.require('ValidatorShare')
 export const StakeManagerTest = artifacts.require('StakeManagerTest')
 export const ValidatorShareFactory = artifacts.require('ValidatorShareFactory')
+export const SlashingManager = artifacts.require('SlashingManager')
 
 export const DepositManager = artifacts.require('DepositManager')
 export const DepositManagerProxy = artifacts.require('DepositManagerProxy')
