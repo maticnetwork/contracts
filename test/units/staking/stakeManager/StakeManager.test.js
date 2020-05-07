@@ -18,7 +18,7 @@ import {
   getSigs
 } from '../../../helpers/utils.js'
 import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
-import { wallets, freshDeploy } from '../deployment'
+import { wallets, freshDeploy, approveAndStake } from '../deployment'
 
 contract('StakeManager', async function(accounts) {
   let owner = accounts[0]
@@ -95,7 +95,7 @@ contract('StakeManager', async function(accounts) {
 
     it('must emit UnstakeInit', async function() {
       await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'UnstakeInit', {
-        user: this.bidder,
+        user: this.prevValidatorAddr,
         validatorId: this.validatorId,
         deactivationEpoch: await this.stakeManager.currentEpoch(),
         amount: this.validator.amount
@@ -130,6 +130,11 @@ contract('StakeManager', async function(accounts) {
     it('new validator is validator', async function() {
       assert.ok(await this.stakeManager.isValidator(this.newValidatorId))
     })
+
+    it('bidder balance must be correct', async function() {
+      const currentBalance = await this.stakeToken.balanceOf(this.bidder)
+      assertBigNumberEquality(this.bidderBalanceBeforeAuction.sub(new BN(this.bidAmount)).sub(new BN(this.heimdallFee)), currentBalance)
+    })
   }
 
   describe('checkSignatures', function() {
@@ -146,13 +151,7 @@ contract('StakeManager', async function(accounts) {
           this.totalAmount = new BN(0)
 
           for (const wallet of _wallets) {
-            await this.stakeToken.approve(this.stakeManager.address, this.amount, {
-              from: wallet.getAddressString()
-            })
-
-            await this.stakeManager.stake(this.amount, 0, false, wallet.getPublicKeyString(), {
-              from: wallet.getAddressString()
-            })
+            await approveAndStake.call(this, { wallet, stakeAmount: this.amount })
 
             this.totalAmount = this.totalAmount.add(this.amount)
           }
@@ -215,13 +214,7 @@ contract('StakeManager', async function(accounts) {
         this.stateRoot = utils.bufferToHex(utils.keccak256('stateRoot'))
 
         for (const wallet of this.wallets) {
-          await this.stakeToken.approve(this.stakeManager.address, this.amount, {
-            from: wallet.getAddressString()
-          })
-
-          await this.stakeManager.stake(this.amount, 0, false, wallet.getPublicKeyString(), {
-            from: wallet.getAddressString()
-          })
+          await approveAndStake.call(this, { wallet, stakeAmount: this.amount })
         }
 
         this.sigs = utils.bufferToHex(
@@ -270,21 +263,16 @@ contract('StakeManager', async function(accounts) {
   })
 
   describe('updateSigner', function() {
-    let w = [wallets[1], wallets[2], wallets[3]]
-    let user = wallets[3].getChecksumAddressString()
+    const w = [wallets[1], wallets[2], wallets[3]]
+    const user = wallets[3].getChecksumAddressString()
+    const userOriginalPubKey = wallets[3].getPublicKeyString()
 
     async function doDeploy() {
       await freshDeploy.call(this)
 
       const amount = web3.utils.toWei('200')
       for (const wallet of w) {
-        await this.stakeToken.approve(this.stakeManager.address, amount, {
-          from: wallet.getAddressString()
-        })
-
-        await this.stakeManager.stake(amount, 0, false, wallet.getPublicKeyString(), {
-          from: wallet.getChecksumAddressString()
-        })
+        await approveAndStake.call(this, { wallet, stakeAmount: amount })
       }
 
       await checkPoint(w, this.rootChainOwner, this.stakeManager)
@@ -311,35 +299,31 @@ contract('StakeManager', async function(accounts) {
       })
     }
 
-    describe('must able to change to original public key. 1 epoch between stakes', function() {
+    describe('when update signer to different public key', function() {
       before(doDeploy)
 
-      describe('when update signer to different public key', function() {
-        before(function() {
-          this.signer = wallets[0].getChecksumAddressString()
-          this.userPubkey = wallets[0].getPublicKeyString()
-        })
-
-        testUpdateSigner()
+      before(function() {
+        this.signer = wallets[0].getChecksumAddressString()
+        this.userPubkey = wallets[0].getPublicKeyString()
       })
 
-      describe('when update signer back to staker original public key', function() {
-        before(async function() {
-          // include recently changed signer
-          await checkPoint([...w, wallets[0]], this.rootChainOwner, this.stakeManager)
-        })
-
-        before(function() {
-          this.signer = wallets[3].getChecksumAddressString()
-          this.userPubkey = wallets[3].getPublicKeyString()
-        })
-
-        testUpdateSigner()
-      })
+      testUpdateSigner()
     })
 
     describe('reverts', function() {
       beforeEach(doDeploy)
+
+      it('when update signer back to staker original public key', async function() {
+        const validatorId = await this.stakeManager.getValidatorId(user)
+
+        await this.stakeManager.updateSigner(validatorId, wallets[0].getPublicKeyString(), {
+          from: user
+        })
+
+        await expectRevert.unspecified(this.stakeManager.updateSigner(validatorId, userOriginalPubKey, {
+          from: user
+        }))
+      })
 
       it('when updating public key 2 times in 1 epoch', async function() {
         let validatorId = await this.stakeManager.getValidatorId(user)
@@ -431,19 +415,35 @@ contract('StakeManager', async function(accounts) {
   })
 
   describe('updateDynastyValue', function() {
-    describe('when set dynasty to 2', function() {
+    describe('when set dynasty to 10', function() {
       before(freshDeploy)
 
       it('must update dynasty', async function() {
-        this.receipt = await this.stakeManager.updateDynastyValue(2, {
+        this.receipt = await this.stakeManager.updateDynastyValue('10', {
           from: owner
         })
       })
 
       it('must emit DynastyValueChange', async function() {
         await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'DynastyValueChange', {
-          newDynasty: '2'
+          newDynasty: '10'
         })
+      })
+
+      it('WITHDRAWAL_DELAY must be 10', async function() {
+        assertBigNumberEquality('10', await this.stakeManager.WITHDRAWAL_DELAY())
+      })
+
+      it('dynasty must be 10', async function() {
+        assertBigNumberEquality('10', await this.stakeManager.dynasty())
+      })
+
+      it('auctionPeriod must be 2', async function() {
+        assertBigNumberEquality('2', await this.stakeManager.auctionPeriod())
+      })
+
+      it('replacementCooldown must be 3', async function() {
+        assertBigNumberEquality('3', await this.stakeManager.replacementCoolDown())
       })
     })
 
@@ -501,13 +501,7 @@ contract('StakeManager', async function(accounts) {
       this.totalStaked = new BN(0)
 
       for (const wallet of _wallets) {
-        await this.stakeToken.approve(this.stakeManager.address, this.amount, {
-          from: wallet.getAddressString()
-        })
-
-        await this.stakeManager.stake(this.amount, 0, false, wallet.getPublicKeyString(), {
-          from: wallet.getChecksumAddressString()
-        })
+        await approveAndStake.call(this, { wallet, stakeAmount: this.amount })
 
         this.totalStaked = this.totalStaked.add(this.amount)
       }
@@ -569,15 +563,15 @@ contract('StakeManager', async function(accounts) {
       it('when from is not staker', async function() {
         const user = Bob.getAddressString()
         const validatorId = await this.stakeManager.getValidatorId(user)
-        await this.stakeManager.withdrawRewards(validatorId, {
+        await expectRevert.unspecified(this.stakeManager.withdrawRewards(validatorId, {
           from: Alice.getAddressString()
-        })
+        }))
       })
 
       it('when validatorId is invalid', async function() {
-        await this.stakeManager.withdrawRewards('99999', {
+        await expectRevert.unspecified(this.stakeManager.withdrawRewards('99999', {
           from: Alice.getAddressString()
-        })
+        }))
       })
     })
   })
@@ -589,20 +583,12 @@ contract('StakeManager', async function(accounts) {
   describe('topUpForFee', function() {
     const wallet = wallets[1]
     const user = wallet.getAddressString()
-    const userPubkey = wallet.getPublicKeyString()
     const amount = web3.utils.toWei('200')
     const fee = new BN(web3.utils.toWei('50'))
 
     async function doDeploy() {
       await freshDeploy.call(this)
-
-      await this.stakeToken.approve(this.stakeManager.address, amount, {
-        from: user
-      })
-
-      await this.stakeManager.stake(amount, 0, false, userPubkey, {
-        from: user
-      })
+      await approveAndStake.call(this, { wallet, stakeAmount: amount })
     }
 
     describe('when user tops up', function() {
@@ -739,13 +725,7 @@ contract('StakeManager', async function(accounts) {
       this.accumulatedFees = {}
 
       for (let i = 0; i < this.validatorsCount; i++) {
-        await this.stakeToken.approve(this.stakeManager.address, amount, {
-          from: wallets[i].getAddressString()
-        })
-
-        await this.stakeManager.stake(amount, 0, false, wallets[i].getPublicKeyString(), {
-          from: wallets[i].getAddressString()
-        })
+        await approveAndStake.call(this, { wallet: wallets[i], stakeAmount: amount })
 
         const validatorId = i + 1
         this.validatorsWallets[validatorId] = wallets[i]
@@ -984,6 +964,7 @@ contract('StakeManager', async function(accounts) {
 
   describe('startAuction', function() {
     const _initialStakers = [wallets[1], wallets[2]]
+    const initialStakeAmount = web3.utils.toWei('200')
 
     async function doDeploy() {
       await freshDeploy.call(this)
@@ -991,16 +972,7 @@ contract('StakeManager', async function(accounts) {
       await this.stakeManager.updateDynastyValue(8)
 
       for (const wallet of _initialStakers) {
-        const user = wallet.getChecksumAddressString()
-        const userPubkey = wallet.getPublicKeyString()
-
-        await this.stakeToken.approve(this.stakeManager.address, initialStakeAmount, {
-          from: user
-        })
-
-        await this.stakeManager.stake(initialStakeAmount, 0, false, userPubkey, {
-          from: user
-        })
+        await approveAndStake.call(this, { wallet, stakeAmount: initialStakeAmount })
       }
 
       // cooldown period
@@ -1039,7 +1011,7 @@ contract('StakeManager', async function(accounts) {
         this.bobOldBalance = await this.stakeToken.balanceOf(Bob.getAddressString())
 
         this.validatorId = '1'
-        this.initialStakeAmount = web3.utils.toWei('200')
+        this.initialStakeAmount = initialStakeAmount
       })
 
       describe('when Alice bids', function() {
@@ -1099,59 +1071,52 @@ contract('StakeManager', async function(accounts) {
 
   describe('confirmAuctionBid', function() {
     const initialStakers = [wallets[1], wallets[2]]
-    const bidAmount = web3.utils.toWei('1200')
+    const bidAmount = new BN(web3.utils.toWei('1200'))
     const initialStakeAmount = web3.utils.toWei('200')
 
-    function doDeploy(runAuction = true) {
+    function doDeploy(skipAuctionPeriod = true) {
       return async function() {
         await freshDeploy.call(this)
 
         await this.stakeManager.updateDynastyValue(8)
 
         for (const wallet of initialStakers) {
-          const user = wallet.getChecksumAddressString()
-          const userPubkey = wallet.getPublicKeyString()
-
-          await this.stakeToken.approve(this.stakeManager.address, initialStakeAmount, {
-            from: user
-          })
-
-          await this.stakeManager.stake(initialStakeAmount, 0, false, userPubkey, {
-            from: user
-          })
+          await approveAndStake.call(this, { wallet, stakeAmount: initialStakeAmount })
         }
 
-        if (runAuction) {
-          // cooldown period
-          let auctionPeriod = (await this.stakeManager.auctionPeriod()).toNumber()
-          let currentEpoch = (await this.stakeManager.currentEpoch()).toNumber()
-          for (let i = currentEpoch; i <= auctionPeriod; i++) {
-            await checkPoint(initialStakers, this.rootChainOwner, this.stakeManager)
-          }
+        // cooldown period
+        let auctionPeriod = (await this.stakeManager.auctionPeriod()).toNumber()
+        let currentEpoch = (await this.stakeManager.currentEpoch()).toNumber()
+        for (let i = currentEpoch; i <= auctionPeriod; i++) {
+          await checkPoint(initialStakers, this.rootChainOwner, this.stakeManager)
+        }
 
-          this.amount = web3.utils.toWei('500')
-          await this.stakeToken.approve(this.stakeManager.address, this.amount, {
-            from: wallets[3].getAddressString()
-          })
+        this.amount = web3.utils.toWei('500')
+        await this.stakeToken.approve(this.stakeManager.address, this.amount, {
+          from: wallets[3].getAddressString()
+        })
 
-          // bid
-          await this.stakeToken.mint(this.bidder, bidAmount)
-          await this.stakeToken.approve(this.stakeManager.address, bidAmount, {
-            from: this.bidder
-          })
+        // bid
+        const mintAmount = bidAmount.add(new BN(this.heimdallFee || this.defaultHeimdallFee))
+        await this.stakeToken.mint(this.bidder, mintAmount)
+        await this.stakeToken.approve(this.stakeManager.address, mintAmount, {
+          from: this.bidder
+        })
 
-          await this.stakeManager.startAuction(this.validatorId, bidAmount, {
-            from: this.bidder
-          })
+        this.bidderBalanceBeforeAuction = await this.stakeToken.balanceOf(this.bidder)
+        this.totalStakedBeforeAuction = await this.stakeManager.totalStaked()
 
+        await this.stakeManager.startAuction(this.validatorId, bidAmount, {
+          from: this.bidder
+        })
+
+        if (skipAuctionPeriod) {
           let auction = await this.stakeManager.validatorAuction(this.validatorId)
           currentEpoch = await this.stakeManager.currentEpoch()
           let dynasty = await this.stakeManager.dynasty()
 
-          // skip auction period
           let end = auction.startEpoch.add(dynasty).toNumber()
           for (let i = currentEpoch.toNumber(); i <= end; i++) {
-          // 2/3 majority vote
             await checkPoint(initialStakers, this.rootChainOwner, this.stakeManager)
           }
         }
@@ -1163,7 +1128,7 @@ contract('StakeManager', async function(accounts) {
         this.validatorId = '1'
         this.bidder = initialStakers[0].getChecksumAddressString()
         this.bidderPubKey = initialStakers[0].getPublicKeyString()
-        this.heimdallFee = web3.utils.toWei('100')
+        this.heimdallFee = heimdallFee
         this.bidAmount = bidAmount
       })
 
@@ -1236,39 +1201,21 @@ contract('StakeManager', async function(accounts) {
       before(doDeploy())
 
       before(async function() {
-        await this.stakeToken.mint(this.bidder, this.heimdallFee)
-        await this.stakeToken.approve(this.stakeManager.address, this.heimdallFee, {
-          from: this.bidder
-        })
-
         this.prevValidatorAddr = initialStakers[0].getChecksumAddressString()
         this.prevValidatorOldBalance = await this.stakeToken.balanceOf(this.prevValidatorAddr)
 
         this.validator = await this.stakeManager.validators(this.validatorId)
-        this.totalStakedBeforeAuction = await this.stakeManager.totalStaked()
       })
 
       testConfirmAuctionBidForNewValidator()
     }
 
     describe('when last auctioner is validator', function() {
-      describe('with heimdall fee', function() {
-        testAuctionerIsValidator(web3.utils.toWei('100'))
-      })
-
-      describe('without heimdall fee', function() {
-        testAuctionerIsValidator('0')
-      })
+      testAuctionerIsValidator(web3.utils.toWei('100'))
     })
 
     describe('when last auctioner is not validator', function() {
-      describe('with heimdall fee', function() {
-        testAuctionerIsNotValidator(web3.utils.toWei('100'))
-      })
-
-      describe('without heimdall fee', function() {
-        testAuctionerIsNotValidator('0')
-      })
+      testAuctionerIsNotValidator(web3.utils.toWei('100'))
     })
 
     describe('when auction has not ended yet', function() {
@@ -1284,11 +1231,11 @@ contract('StakeManager', async function(accounts) {
       it('reverts', async function() {
         await expectRevert(this.stakeManager.confirmAuctionBid(
           this.validatorId,
-          0,
+          this.defaultHeimdallFee,
           false,
-          wallets[4].getPublicKeyString(),
+          this.bidderPubKey,
           {
-            from: wallets[4].getChecksumAddressString()
+            from: this.bidder
           }
         ), 'Confirmation is not allowed before auctionPeriod')
       })
@@ -1324,7 +1271,6 @@ contract('StakeManager', async function(accounts) {
     const delegator = wallets[3].getChecksumAddressString()
     const validatorUser = wallets[4]
     const validatorUserAddr = wallets[4].getChecksumAddressString()
-    const validatorUserPubKey = wallets[4].getPublicKeyString()
     const auctionValidatorAddr = wallets[5].getChecksumAddressString()
     const auctionValidatorPubKey = wallets[5].getPublicKeyString()
     const stakeAmount = web3.utils.toWei('1250')
@@ -1337,16 +1283,7 @@ contract('StakeManager', async function(accounts) {
         await this.stakeManager.updateDynastyValue(8)
 
         for (const wallet of initialStakers) {
-          const user = wallet.getChecksumAddressString()
-          const userPubkey = wallet.getPublicKeyString()
-
-          await this.stakeToken.mint(user, stakeAmount)
-          await this.stakeToken.approve(this.stakeManager.address, stakeAmount, {
-            from: user
-          })
-          await this.stakeManager.stake(stakeAmount, 0, false, userPubkey, {
-            from: user
-          })
+          await approveAndStake.call(this, { wallet, stakeAmount })
         }
       }
     }
@@ -1354,13 +1291,9 @@ contract('StakeManager', async function(accounts) {
     before('fresh deploy', doDeploy())
     before(async function() {
       await this.stakeToken.mint(this.stakeManager.address, web3.utils.toWei('1000000'))// rewards amount
-      await this.stakeToken.mint(validatorUserAddr, stakeAmount)
-      await this.stakeToken.approve(this.stakeManager.address, stakeAmount, {
-        from: validatorUserAddr
-      })
-      await this.stakeManager.stake(stakeAmount, 0, true, validatorUserPubKey, {
-        from: validatorUserAddr
-      })
+
+      await approveAndStake.call(this, { wallet: validatorUser, stakeAmount, acceptDelegation: true })
+
       let validator = await this.stakeManager.validators(delegatedValidatorId)
 
       this.validatorContract = await ValidatorShare.at(validator.contractAddress)
@@ -1412,13 +1345,14 @@ contract('StakeManager', async function(accounts) {
         this.validatorId = delegatedValidatorId
         this.bidderPubKey = auctionValidatorPubKey
         this.bidder = auctionValidatorAddr
-        this.heimdallFee = '0'
+        this.heimdallFee = this.defaultHeimdallFee
         this.newValidatorId = '4'
         this.bidAmount = bidAmount
         this.prevValidatorAddr = validatorUserAddr
         this.prevValidatorOldBalance = await this.stakeToken.balanceOf(validatorUserAddr)
         this.validator = await this.stakeManager.validators(this.validatorId)
         this.totalStakedBeforeAuction = await this.stakeManager.totalStaked()
+        this.bidderBalanceBeforeAuction = await this.stakeToken.balanceOf(auctionValidatorAddr)
       })
 
       testConfirmAuctionBidForNewValidator()
