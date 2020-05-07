@@ -2,7 +2,7 @@ import { BN, expectEvent, expectRevert } from '@openzeppelin/test-helpers'
 import { TestToken, ValidatorShare, StakingInfo } from '../../helpers/artifacts'
 
 import { checkPoint, assertBigNumberEquality } from '../../helpers/utils.js'
-import { wallets, freshDeploy } from './deployment'
+import { wallets, freshDeploy, approveAndStake } from './deployment'
 
 contract('ValidatorShare', async function() {
   const ZeroAddr = '0x0000000000000000000000000000000000000000'
@@ -20,13 +20,8 @@ contract('ValidatorShare', async function() {
 
     await this.stakeManager.updateDynastyValue(8)
     await this.stakeManager.updateValidatorThreshold(2)
-    await this.stakeToken.approve(this.stakeManager.address, this.stakeAmount, {
-      from: this.validatorUser.getChecksumAddressString()
-    })
 
-    await this.stakeManager.stake(this.stakeAmount, 0, true, this.validatorUser.getPublicKeyString(), {
-      from: this.validatorUser.getChecksumAddressString()
-    })
+    await approveAndStake.call(this, { wallet: this.validatorUser, stakeAmount: this.stakeAmount, acceptDelegation: true })
 
     let validator = await this.stakeManager.validators(this.validatorId)
     this.validatorContract = await ValidatorShare.at(validator.contractAddress)
@@ -234,7 +229,7 @@ contract('ValidatorShare', async function() {
     })
   })
 
-  describe('exchangeRate', function() {
+  describe.only('exchangeRate', function() {
     describe('when Alice purchases voucher 2 times, 1 epoch between', function() {
       before(doDeploy)
 
@@ -260,7 +255,7 @@ contract('ValidatorShare', async function() {
       })
 
       it('exchange rate must be correct', async function() {
-        assertBigNumberEquality(await this.validatorContract.exchangeRate(), this.totalStaked)
+        assertBigNumberEquality(await this.validatorContract.exchangeRate(), '100')
       })
 
       it('must buy another voucher 1 epoch later', async function() {
@@ -274,7 +269,7 @@ contract('ValidatorShare', async function() {
       })
 
       it('exchange rate must be correct', async function() {
-        assertBigNumberEquality(await this.validatorContract.exchangeRate(), this.totalStaked)
+        assertBigNumberEquality(await this.validatorContract.exchangeRate(), '5100')
       })
     })
 
@@ -601,40 +596,45 @@ contract('ValidatorShare', async function() {
           })
         })
         // get 25% of checkpoint rewards
-        testAfterComissionChange(web3.utils.toWei('2500'), web3.utils.toBN('2600'))
+        testAfterComissionChange(web3.utils.toWei('2500'), '2600')
       })
 
       testCommisionRate('50', '100')
 
       describe('after commision rate changed', function() {
         // get 0% of checkpoint rewards
-        testAfterComissionChange(web3.utils.toWei('2500'), web3.utils.toBN('2600'))
+        testAfterComissionChange(web3.utils.toWei('2500'), '2600')
       })
 
       testCommisionRate('100', '0')
 
       describe('after commision rate changed', function() {
         // get only 50% of checkpoint rewards
-        testAfterComissionChange(web3.utils.toWei('7500'), web3.utils.toBN('7600'))
+        testAfterComissionChange(web3.utils.toWei('7500'), '7600')
       })
     })
 
-    describe('reverts', function() {
-      beforeEach(batchDeploy)
+    describe('when new commision rate is greater than 100', function() {
+      before(batchDeploy)
 
-      it('when new commision rate is higher than 100', async function() {
+      it('reverts', async function() {
         await expectRevert(
           this.validatorContract.updateCommissionRate(101, { from: this.validatorUser.getAddressString() }),
           'Commission rate should be in range of 0-100'
         )
       })
+    })
 
-      it('when trying to set commision right after checkpoint', async function() {
-        await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
+    describe('when trying to set commision again within commissionCooldown period', function() {
+      before(batchDeploy)
+      before(async function() {
+        this.validatorContract.updateCommissionRate(10, { from: this.validatorUser.getAddressString() })
+      })
 
+      it('reverts', async function() {
         await expectRevert(
-          this.validatorContract.updateCommissionRate(10, { from: this.validatorUser.getAddressString() }),
-          'Commission rate should be in range of 0-100'
+          this.validatorContract.updateCommissionRate(15, { from: this.validatorUser.getAddressString() }),
+          'Commission rate update cooldown period'
         )
       })
     })
