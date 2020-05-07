@@ -431,7 +431,6 @@ class Deployer {
       const maticOwner = await this.globalMatic.childToken.owner()
       if (maticOwner === '0x0000000000000000000000000000000000000000') {
         // matic contract at 0x1010 can only be initialized once, after the bor image starts to run
-        console.log('initializing globalMatic ... ')
         await this.globalMatic.childToken.initialize(owner, utils.ZeroAddress)
       }
     }
