@@ -16,23 +16,36 @@ const BN = ethUtils.BN
 const rlp = ethUtils.rlp
 
 // constants
-export const web3Child = new web3.constructor(
-  new web3.providers.HttpProvider('http://localhost:8545')
-)
+export let web3Child
+
+if (process.env.SOLIDITY_COVERAGE) {
+  web3Child = new web3.constructor(
+    web3.currentProvider
+  )
+} else {
+  web3Child = new web3.constructor(
+    new web3.providers.HttpProvider('http://localhost:8545')
+  )
+}
 
 export const ZeroAddress = '0x0000000000000000000000000000000000000000'
-export const ChildMaticTokenAddress =
+export let ChildMaticTokenAddress =
   '0x0000000000000000000000000000000000001010'
+if (process.env.SOLIDITY_COVERAGE) {
+  ChildMaticTokenAddress = null
+}
 export const scalingFactor = web3.utils.toBN(10).pow(web3.utils.toBN(18))
 
 export function getSigs(wallets, votedata) {
-  wallets.sort((w1, w2) => {
+  // avoid any potential side effects
+  const copyWallets = [...wallets]
+  copyWallets.sort((w1, w2) => {
     return w1.getAddressString().localeCompare(w2.getAddressString())
   })
 
   const h = ethUtils.toBuffer(votedata)
 
-  return wallets
+  return copyWallets
     .map(w => {
       const vrs = ethUtils.ecsign(h, w.getPrivateKey())
       return ethUtils.toRpcSig(vrs.v, vrs.r, vrs.s)
@@ -44,7 +57,7 @@ export function encodeSigs(sigs = []) {
   return Buffer.concat(sigs.map(s => ethUtils.toBuffer(s)))
 }
 
-export async function checkPoint(wallets, proposer, stakeManager, options = {}) {
+export async function checkPoint(wallets, proposer, stakeManager, { blockInterval = 1 } = {}) {
   const voteData = 'dummyData'
   const sigs = ethUtils.bufferToHex(
     encodeSigs(getSigs(wallets, ethUtils.keccak256(voteData)))
@@ -52,7 +65,7 @@ export async function checkPoint(wallets, proposer, stakeManager, options = {}) 
   const stateRoot = ethUtils.bufferToHex(ethUtils.keccak256('stateRoot'))
   // 2/3 majority vote
   await stakeManager.checkSignatures(
-    1,
+    blockInterval,
     ethUtils.bufferToHex(ethUtils.keccak256(voteData)),
     stateRoot,
     proposer.getAddressString(),
@@ -98,15 +111,20 @@ export async function updateSlashedAmounts(wallets, proposer, _slashingNonce, sl
 export function assertBigNumberEquality(num1, num2) {
   if (!BN.isBN(num1)) num1 = web3.utils.toBN(num1.toString())
   if (!BN.isBN(num2)) num2 = web3.utils.toBN(num2.toString())
-  assert.ok(
+  assert(
     num1.eq(num2),
-    `expected ${num1.toString(16)} and ${num2.toString(16)} to be equal`
+    `expected ${num1.toString(10)} and ${num2.toString(10)} to be equal`
   )
 }
 
 export function assertBigNumbergt(num1, num2) {
-  expect(num1.gt(web3.utils.toBN(num2))).to.be.true
-  // num1.should.be.bignumber.greaterThan(num2)
+  if (!BN.isBN(num1)) num1 = web3.utils.toBN(num1.toString())
+  if (!BN.isBN(num2)) num2 = web3.utils.toBN(num2.toString())
+
+  assert(
+    num1.gt(num2),
+    `expected ${num1.toString(10)} to be greater than ${num2.toString(10)}`
+  )
 }
 
 export const toChecksumAddress = address =>

@@ -6,11 +6,11 @@ import chaiAsPromised from 'chai-as-promised'
 import {
 
   DrainStakeManager
-} from '../helpers/artifacts'
+} from '../../helpers/artifacts'
 
-import deployer from '../helpers/deployer.js'
+import deployer from '../../helpers/deployer.js'
 
-import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
+import { generateFirstWallets, mnemonics } from '../../helpers/wallets.js'
 
 chai.use(chaiAsPromised).should()
 

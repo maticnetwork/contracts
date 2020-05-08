@@ -1,20 +1,19 @@
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
-import ethUtils from 'ethereumjs-util'
 
-import deployer from '../../helpers/deployer.js'
-import logDecoder from '../../helpers/log-decoder.js'
-import { buildInFlight } from '../../mockResponses/utils'
-import StatefulUtils from '../../helpers/StatefulUtils'
+import deployer from '../../../helpers/deployer.js'
+import logDecoder from '../../../helpers/log-decoder.js'
+import { buildInFlight } from '../../../mockResponses/utils'
+import StatefulUtils from '../../../helpers/StatefulUtils'
 const predicateTestUtils = require('./predicateTestUtils')
 
-const utils = require('../../helpers/utils')
+const utils = require('../../../helpers/utils')
 const web3Child = utils.web3Child
 
 chai.use(chaiAsPromised).should()
 let contracts, childContracts, statefulUtils
 
-contract('ERC20Predicate', async function(accounts) {
+contract('ERC20Predicate @skip-on-coverage', async function(accounts) {
   const amount = web3.utils.toBN('10').mul(utils.scalingFactor)
   const halfAmount = web3.utils.toBN('5').mul(utils.scalingFactor)
   const user = accounts[0]

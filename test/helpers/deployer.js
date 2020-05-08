@@ -8,7 +8,9 @@ class Deployer {
     Object.keys(contracts.childContracts).forEach(c => {
       // hack for quick fix
       contracts[c] = contracts.childContracts[c]
-      contracts[c].web3 = utils.web3Child
+      if (!process.env.SOLIDITY_COVERAGE) {
+        contracts[c].web3 = utils.web3Child
+      }
     })
   }
 
@@ -23,7 +25,7 @@ class Deployer {
     this.stakingNFT = await contracts.StakingNFT.new('Matic Validator', 'MV')
 
     if (options.stakeManager) {
-      let stakeManager = await contracts.StakeManager.new()
+      let stakeManager = await contracts.StakeManagerTestable.new()
       let proxy = await contracts.StakeManagerProxy.new(
         stakeManager.address,
         this.registry.address,
@@ -86,18 +88,20 @@ class Deployer {
     this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
     this.stakeToken = await contracts.DummyERC20.new('Stake Token', 'STAKE')
     this.stakingNFT = await contracts.StakingNFT.new('Matic Validator', 'MV')
-    let stakeManager = await contracts.StakeManager.new()
+    let stakeManager = await contracts.StakeManagerTestable.new()
+
+    const rootChainOwner = wallets[1]
     let proxy = await contracts.StakeManagerProxy.new(
       stakeManager.address,
       this.registry.address,
-      wallets[1].getAddressString(),
+      rootChainOwner.getAddressString(),
       this.stakeToken.address,
       this.stakingNFT.address,
       this.stakingInfo.address,
       this.validatorShareFactory.address,
       this.governance.address
     )
-    this.stakeManager = await contracts.StakeManager.at(proxy.address)
+    this.stakeManager = await contracts.StakeManagerTestable.at(proxy.address)
     this.slashingManager = await contracts.SlashingManager.new(this.registry.address, this.stakingInfo.address, 'heimdall-P5rXwg')
 
     await this.stakingNFT.transferOwnership(this.stakeManager.address)
@@ -110,6 +114,7 @@ class Deployer {
       this.slashingManager.address
     )
     let _contracts = {
+      rootChainOwner: rootChainOwner,
       registry: this.registry,
       rootChain: this.rootChain,
       stakeManager: this.stakeManager,
@@ -117,6 +122,7 @@ class Deployer {
       slashingManager: this.slashingManager,
       stakingInfo: this.stakingInfo,
       governance: this.governance,
+      stakingNFT: this.stakingNFT,
       stakeManagerProxy: proxy,
       stakeManagerImpl: stakeManager
     }
@@ -384,7 +390,7 @@ class Deployer {
       'ERC721Mintable',
       'M721'
     )
-    await childErc721.transferOwnership(this.childChain.address); // required to process deposits via childChain
+    await childErc721.transferOwnership(this.childChain.address) // required to process deposits via childChain
     await this.childChain.mapToken(
       rootERC721.address,
       childErc721.address,
@@ -405,7 +411,7 @@ class Deployer {
     const childErc721 = await contracts.ChildERC721Mintable.new(
       rootERC721.address
     )
-    await childErc721.transferOwnership(this.childChain.address); // required to process deposits via childChain
+    await childErc721.transferOwnership(this.childChain.address) // required to process deposits via childChain
     await this.childChain.mapToken(
       rootERC721.address,
       childErc721.address,
@@ -427,11 +433,15 @@ class Deployer {
     await this.childChain.changeStateSyncerAddress(owner)
     if (!this.globalMatic) {
       // MRC20 comes as a genesis-contract at utils.ChildMaticTokenAddress
+      if (!utils.ChildMaticTokenAddress) {
+        utils.ChildMaticTokenAddress = (await contracts.MRC20.new()).address
+        Object.freeze(utils.ChildMaticTokenAddress)
+      }
+
       this.globalMatic = { childToken: await contracts.MRC20.at(utils.ChildMaticTokenAddress) }
       const maticOwner = await this.globalMatic.childToken.owner()
       if (maticOwner === '0x0000000000000000000000000000000000000000') {
         // matic contract at 0x1010 can only be initialized once, after the bor image starts to run
-        console.log('initializing globalMatic ... ')
         await this.globalMatic.childToken.initialize(owner, utils.ZeroAddress)
       }
     }

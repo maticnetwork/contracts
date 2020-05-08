@@ -17,7 +17,7 @@ contract ValidatorShare is IValidatorShare {
         _;
     }
 
-    function updateRewards(uint256 _reward, uint256 _totalStake)
+    function updateRewards(uint256 _reward, uint256 _stakePower)
         external
         onlyOwner
         returns (uint256)
@@ -32,12 +32,13 @@ contract ValidatorShare is IValidatorShare {
       - add rewards to pool rewards
       - returns total active stake for validator
      */
-        uint256 stakePower;
-        uint256 valStake = stakeManager.validatorStake(validatorId);
-        stakePower = valStake.add(activeAmount); // validator + delegation stake power
-        uint256 _rewards = stakePower.mul(_reward).div(_totalStake);
-        _updateRewards(_rewards, valStake, stakePower);
-        return stakePower;
+        uint256 validatorStake = stakeManager.validatorStake(validatorId);
+        uint256 combinedStakePower = validatorStake.add(activeAmount); // validator + delegation stake power
+        uint256 _rewards = combinedStakePower.mul(_reward).div(_stakePower);
+
+        uint256 _validatorRewards = validatorStake.mul(_rewards).div(combinedStakePower);
+        _updateRewards(_rewards, validatorStake, combinedStakePower);
+        return combinedStakePower;
     }
 
     function addProposerBonus(uint256 _rewards, uint256 valStake)
@@ -53,16 +54,19 @@ contract ValidatorShare is IValidatorShare {
         uint256 valStake,
         uint256 stakePower
     ) internal {
-        uint256 _valRewards = valStake.mul(_rewards).div(stakePower);
+        uint256 _validatorRewards = valStake.mul(_rewards).div(stakePower);
+
         // add validator commission from delegation rewards
         if (commissionRate > 0) {
-            _valRewards = _valRewards.add(
-                _rewards.sub(_valRewards).mul(commissionRate).div(100)
+            _validatorRewards = _validatorRewards.add(
+                _rewards.sub(_validatorRewards).mul(commissionRate).div(100)
             );
         }
-        _rewards = _rewards.sub(_valRewards);
-        validatorRewards = validatorRewards.add(_valRewards);
-        rewards = rewards.add(_rewards);
+
+        validatorRewards = validatorRewards.add(_validatorRewards);
+
+        uint256 delegatorsRewards = _rewards.sub(_validatorRewards);
+        rewards = rewards.add(delegatorsRewards);
     }
 
     function updateCommissionRate(uint256 newCommissionRate)
@@ -72,7 +76,7 @@ contract ValidatorShare is IValidatorShare {
         uint256 epoch = stakeManager.epoch();
         require(
             lastUpdate.add(commissionCooldown) <= epoch,
-            "Commission rate update cool down period"
+            "Commission rate update cooldown period"
         );
         require(
             newCommissionRate <= 100,

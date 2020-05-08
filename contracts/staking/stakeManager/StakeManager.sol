@@ -137,7 +137,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         // when dynasty period is updated validators are in cool down period
         require(
             replacementCoolDown == 0 || replacementCoolDown <= currentEpoch,
-            "Cool down period"
+            "Cooldown period"
         );
         // (auctionPeriod--dynasty)--(auctionPeriod--dynasty)--(auctionPeriod--dynasty)
         // if it's auctionPeriod then will get residue smaller then auctionPeriod
@@ -475,8 +475,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         require(newDynasty > 0);
         logger.logDynastyValueChange(newDynasty, dynasty);
         dynasty = newDynasty;
-        WITHDRAWAL_DELAY = dynasty;
-        auctionPeriod = dynasty.div(4);
+        WITHDRAWAL_DELAY = newDynasty;
+        auctionPeriod = newDynasty.div(4);
         // set cool down period
         replacementCoolDown = currentEpoch.add(auctionPeriod);
     }
@@ -628,7 +628,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         );
         totalRewards = totalRewards.add(_reward);
         require(
-            _stakePower >= currentValidatorSetTotalStake().mul(2).div(3).add(1)
+            _stakePower >= currentValidatorSetTotalStake().mul(2).div(3).add(1),
+            "not enough stake power"
         );
         return _reward;
     }

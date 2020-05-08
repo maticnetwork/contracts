@@ -38,7 +38,7 @@ contract StakeManagerStorage is ProxyStorage, Lockable, RootChainable {
     bytes32 public accountStateRoot;
 
     // Stop validator auction for some time when updating dynasty value
-    uint256 replacementCoolDown;
+    uint256 public replacementCoolDown;
 
     struct Auction {
         uint256 amount;

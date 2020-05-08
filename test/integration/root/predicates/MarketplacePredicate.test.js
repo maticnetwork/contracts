@@ -2,17 +2,17 @@ import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import ethUtils from 'ethereumjs-util'
 
-import deployer from '../../helpers/deployer.js'
-import logDecoder from '../../helpers/log-decoder.js'
-import { getSig } from '../../helpers/marketplaceUtils'
-import { generateFirstWallets, mnemonics } from '../../helpers/wallets.js'
-import StatefulUtils from '../../helpers/StatefulUtils'
+import deployer from '../../../helpers/deployer.js'
+import logDecoder from '../../../helpers/log-decoder.js'
+import { getSig } from '../../../helpers/marketplaceUtils'
+import { generateFirstWallets, mnemonics } from '../../../helpers/wallets.js'
+import StatefulUtils from '../../../helpers/StatefulUtils'
 
-import { buildInFlight } from '../../mockResponses/utils'
+import { buildInFlight } from '../../../mockResponses/utils'
 
 const crypto = require('crypto')
-const utils = require('../../helpers/utils')
-const executeOrder = require('../../mockResponses/marketplace/executeOrder-E20-E20')
+const utils = require('../../../helpers/utils')
+const executeOrder = require('../../../mockResponses/marketplace/executeOrder-E20-E20')
 const predicateTestUtils = require('./predicateTestUtils')
 
 chai
@@ -20,7 +20,7 @@ chai
   .should()
 const rlp = ethUtils.rlp
 
-contract('MarketplacePredicate', async function(accounts) {
+contract('MarketplacePredicate @skip-on-coverage', async function(accounts) {
   let contracts, childContracts, marketplace, predicate, erc20Predicate, erc721Predicate, statefulUtils
   const amount1 = web3.utils.toBN('10')
   const amount2 = web3.utils.toBN('5')
