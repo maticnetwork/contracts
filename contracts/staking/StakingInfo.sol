@@ -41,7 +41,7 @@ contract IStakeManager {
 
 contract StakingInfo {
     using SafeMath for uint256;
-    using ECVerify for bytes32;
+
     event Staked(
         address indexed signer,
         uint256 indexed validatorId,
@@ -71,7 +71,13 @@ contract StakingInfo {
         bytes signerPubkey
     );
     event ReStaked(uint256 indexed validatorId, uint256 amount, uint256 total);
-    event Jailed(uint256 indexed validatorId, uint256 indexed exitEpoch);
+    event Jailed(
+        uint256 indexed validatorId,
+        uint256 indexed exitEpoch,
+        address indexed signer
+    );
+    event UnJailed(uint256 indexed validatorId, address indexed signer);
+    event Slashed(uint256 indexed amount);
     event ThresholdChange(uint256 newThreshold, uint256 oldThreshold);
     event DynastyValueChange(uint256 newDynasty, uint256 oldDynasty);
     event RewardUpdate(uint256 newReward, uint256 oldReward);
@@ -219,11 +225,22 @@ contract StakingInfo {
         emit ReStaked(validatorId, amount, total);
     }
 
-    function logJailed(uint256 validatorId, uint256 exitEpoch)
+    function logJailed(uint256 validatorId, uint256 exitEpoch, address signer)
         public
         onlyStakeManager
     {
-        emit Jailed(validatorId, exitEpoch);
+        emit Jailed(validatorId, exitEpoch, signer);
+    }
+
+    function logUnJailed(uint256 validatorId, address signer)
+        public
+        onlyStakeManager
+    {
+        emit UnJailed(validatorId, signer);
+    }
+
+    function logSlashed(uint256 amount) public onlyStakeManager {
+        emit Slashed(amount);
     }
 
     function logThresholdChange(uint256 newThreshold, uint256 oldThreshold)
@@ -410,50 +427,6 @@ contract StakingInfo {
             validatorId,
             newCommissionRate,
             oldCommissionRate
-        );
-    }
-
-    function verifyConsensus(bytes32 voteHash, bytes memory sigs)
-        public
-        view
-        returns (uint256, uint256)
-    {
-        IStakeManager stakeManager = IStakeManager(
-            registry.getStakeManagerAddress()
-        );
-        // total voting power
-        uint256 _stakePower;
-        address lastAdd; // cannot have address(0x0) as an owner
-        for (uint64 i = 0; i < sigs.length; i += 65) {
-            bytes memory sigElement = BytesLib.slice(sigs, i, 65);
-            address signer = voteHash.ecrecovery(sigElement);
-
-            uint256 validatorId = stakeManager.signerToValidator(signer);
-            // check if signer is staker and not proposer
-            if (signer == lastAdd) {
-                break;
-            } else if (
-                stakeManager.isValidator(validatorId) && signer > lastAdd
-            ) {
-                lastAdd = signer;
-                uint256 amount;
-                address contractAddress;
-                (amount, , , , , , contractAddress, ) = stakeManager.validators(
-                    validatorId
-                );
-                // add delegation power
-                if (contractAddress != address(0x0)) {
-                    amount = amount.add(
-                        IStakeManager(contractAddress).activeAmount() // dummy interface
-                    );
-                }
-                _stakePower = _stakePower.add(amount);
-            }
-        }
-
-        return (
-            _stakePower,
-            stakeManager.currentValidatorSetTotalStake().mul(2).div(3).add(1)
         );
     }
 }
