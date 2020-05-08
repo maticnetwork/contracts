@@ -23,6 +23,7 @@ contract IStakeManager {
     }
 
     mapping(uint256 => Validator) public validators;
+    mapping(uint256 => uint256) public validatorNonce;
     bytes32 public accountStateRoot;
     uint256 public activeAmount; // delegation amount from validator contract
     uint256 public validatorRewards;
@@ -45,6 +46,7 @@ contract StakingInfo {
     event Staked(
         address indexed signer,
         uint256 indexed validatorId,
+        uint256 indexed validatorNonce,
         uint256 indexed activationEpoch,
         uint256 amount,
         uint256 total,
@@ -53,6 +55,7 @@ contract StakingInfo {
     event Unstaked(
         address indexed user,
         uint256 indexed validatorId,
+        uint256 indexed validatorNonce,
         uint256 amount,
         uint256 total
     );
@@ -60,17 +63,19 @@ contract StakingInfo {
     event UnstakeInit(
         address indexed user,
         uint256 indexed validatorId,
+        uint256 indexed validatorNonce,
         uint256 deactivationEpoch,
         uint256 indexed amount
     );
 
     event SignerChange(
         uint256 indexed validatorId,
+        uint256 indexed validatorNonce,
         address indexed oldSigner,
         address indexed newSigner,
         bytes signerPubkey
     );
-    event ReStaked(uint256 indexed validatorId, uint256 amount, uint256 total);
+    event ReStaked(uint256 indexed validatorId, uint256 indexed validatorNonce, uint256 amount, uint256 total);
     event Jailed(
         uint256 indexed validatorId,
         uint256 indexed exitEpoch,
@@ -86,7 +91,10 @@ contract StakingInfo {
     );
 
     event RewardUpdate(uint256 newReward, uint256 oldReward);
-    event StakeUpdate(uint256 indexed validatorId, uint256 indexed newAmount);
+    event StakeUpdate(
+        uint256 indexed validatorId,
+        uint256 indexed validatorNonce,
+        uint256 indexed newAmount);
     event ClaimRewards(
         uint256 indexed validatorId,
         uint256 indexed amount,
@@ -186,9 +194,11 @@ contract StakingInfo {
         uint256 amount,
         uint256 total
     ) public onlyStakeManager {
+        validatorNonce[validatorId].add(1);
         emit Staked(
             signer,
             validatorId,
+            validatorNonce[validatorId],
             activationEpoch,
             amount,
             total,
@@ -202,7 +212,8 @@ contract StakingInfo {
         uint256 amount,
         uint256 total
     ) public onlyStakeManager {
-        emit Unstaked(user, validatorId, amount, total);
+        validatorNonce[validatorId].add(1);
+        emit Unstaked(user, validatorId, validatorNonce[validatorId], amount, total);
     }
 
     function logUnstakeInit(
@@ -211,7 +222,8 @@ contract StakingInfo {
         uint256 deactivationEpoch,
         uint256 amount
     ) public onlyStakeManager {
-        emit UnstakeInit(user, validatorId, deactivationEpoch, amount);
+        validatorNonce[validatorId].add(1);
+        emit UnstakeInit(user, validatorId, validatorNonce[validatorId], deactivationEpoch, amount);
     }
 
     function logSignerChange(
@@ -220,14 +232,16 @@ contract StakingInfo {
         address newSigner,
         bytes memory signerPubkey
     ) public onlyStakeManager {
-        emit SignerChange(validatorId, oldSigner, newSigner, signerPubkey);
+        validatorNonce[validatorId].add(1);
+        emit SignerChange(validatorId, validatorNonce[validatorId], oldSigner, newSigner, signerPubkey);
     }
 
     function logReStaked(uint256 validatorId, uint256 amount, uint256 total)
         public
         onlyStakeManager
-    {
-        emit ReStaked(validatorId, amount, total);
+    {   
+        validatorNonce[validatorId].add(1);
+        emit ReStaked(validatorId, validatorNonce[validatorId], amount, total);
     }
 
     function logJailed(uint256 validatorId, uint256 exitEpoch, address signer)
@@ -280,7 +294,8 @@ contract StakingInfo {
         public
         StakeManagerOrValidatorContract(validatorId)
     {
-        emit StakeUpdate(validatorId, totalValidatorStake(validatorId));
+        validatorNonce[validatorId].add(1);
+        emit StakeUpdate(validatorId, validatorNonce[validatorId], totalValidatorStake(validatorId));
     }
 
     function logClaimRewards(
