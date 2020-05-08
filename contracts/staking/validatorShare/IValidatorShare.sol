@@ -60,6 +60,8 @@ contract IValidatorShare is ERC20, Lockable, Ownable {
 
     function withdrawRewardsValidator() external returns (uint256);
 
+    function addProposerBonus(uint256 _rewards, uint256 valStake) public;
+
     function exchangeRate() public view returns (uint256);
 
     function buyVoucher(uint256 _amount) public;

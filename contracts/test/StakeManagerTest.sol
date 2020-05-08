@@ -8,6 +8,7 @@ import {StakingInfo} from "../staking/StakingInfo.sol";
 import {StakingNFT} from "../staking/stakeManager/StakingNFT.sol";
 import "../staking/validatorShare/ValidatorShareFactory.sol";
 
+
 contract StakeManagerTest is StakeManager {
     modifier onlyRootChain() {
         _;
@@ -36,6 +37,7 @@ contract StakeManagerTest is StakeManager {
         uint256 blockInterval,
         bytes32 voteHash,
         bytes32 stateRoot,
+        address proposer,
         bytes memory sigs
     ) public onlyRootChain returns (uint256) {
         return CHECKPOINT_REWARD; // for dummy tests return full reward
