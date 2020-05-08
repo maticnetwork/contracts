@@ -481,6 +481,12 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         replacementCoolDown = currentEpoch.add(auctionPeriod);
     }
 
+    function updateProposerBonus(uint256 newProposerBonus) public onlyOwner {
+        logger.logProposerBonusChange(newProposerBonus, proposerBonus);
+        require(newProposerBonus <= 100, "Proposer bonus should be less than or equal to 100");
+        proposerBonus = newProposerBonus;
+    }
+
     function updateSignerUpdateLimit(uint256 _limit) public onlyOwner {
         signerUpdateLimit = _limit;
     }
@@ -552,6 +558,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 blockInterval,
         bytes32 voteHash,
         bytes32 stateRoot,
+        address proposer,
         bytes memory sigs
     ) public onlyRootChain returns (uint256) {
         // checkpoint rewards are based on BlockInterval multiplied on `CHECKPOINT_REWARD`
@@ -562,7 +569,18 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             checkPointBlockInterval
         );
         _reward = Math.min(CHECKPOINT_REWARD, _reward);
+        uint256 _proposerBonus = _reward.mul(proposerBonus).div(100);
+        Validator storage _proposer = validators[signerToValidator[proposer]];
+        if (_proposer.contractAddress != address(0x0)) {
+            ValidatorShare(_proposer.contractAddress).addProposerBonus(
+                _proposerBonus,
+                _proposer.amount
+            );
+        } else {
+            _proposer.reward = _proposer.reward.add(_proposerBonus);
+        }
 
+        _reward = _reward.sub(_proposerBonus);
         uint256 stakePower = currentValidatorSetTotalStake();
         // update stateMerkleTree root for accounts balance on heimdall chain
         accountStateRoot = stateRoot;
