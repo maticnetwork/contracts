@@ -481,6 +481,11 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         replacementCoolDown = currentEpoch.add(auctionPeriod);
     }
 
+    function updateProposerBonus(uint256 newProposerBonus) public onlyOwner {
+        logger.logProposerBonusChange(newProposerBonus, proposerBonus);
+        proposerBonus = newProposerBonus;
+    }
+
     function updateSignerUpdateLimit(uint256 _limit) public onlyOwner {
         signerUpdateLimit = _limit;
     }
