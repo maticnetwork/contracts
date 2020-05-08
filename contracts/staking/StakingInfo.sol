@@ -194,16 +194,16 @@ contract StakingInfo {
         uint256 amount,
         uint256 total
     ) public onlyStakeManager {
+        validatorNonce[validatorId] = validatorNonce[validatorId].add(1);
         emit Staked(
             signer,
             validatorId,
-            validatorNonce[validatorId].add(1),
+            validatorNonce[validatorId],
             activationEpoch,
             amount,
             total,
             signerPubkey
         );
-        validatorNonce[validatorId] = validatorNonce[validatorId].add(1);
     }
 
     function logUnstaked(
@@ -212,8 +212,8 @@ contract StakingInfo {
         uint256 amount,
         uint256 total
     ) public onlyStakeManager {
-        emit Unstaked(user, validatorId, validatorNonce[validatorId].add(1), amount, total);
         validatorNonce[validatorId] = validatorNonce[validatorId].add(1);
+        emit Unstaked(user, validatorId, validatorNonce[validatorId], amount, total);
     }
 
     function logUnstakeInit(
@@ -222,8 +222,8 @@ contract StakingInfo {
         uint256 deactivationEpoch,
         uint256 amount
     ) public onlyStakeManager {
-        emit UnstakeInit(user, validatorId, validatorNonce[validatorId].add(1), deactivationEpoch, amount);
         validatorNonce[validatorId] = validatorNonce[validatorId].add(1);
+        emit UnstakeInit(user, validatorId, validatorNonce[validatorId], deactivationEpoch, amount);
     }
 
     function logSignerChange(
@@ -232,16 +232,16 @@ contract StakingInfo {
         address newSigner,
         bytes memory signerPubkey
     ) public onlyStakeManager {
-        emit SignerChange(validatorId, validatorNonce[validatorId].add(1), oldSigner, newSigner, signerPubkey);
         validatorNonce[validatorId] = validatorNonce[validatorId].add(1);
+        emit SignerChange(validatorId, validatorNonce[validatorId], oldSigner, newSigner, signerPubkey);
     }
 
     function logReStaked(uint256 validatorId, uint256 amount, uint256 total)
         public
         onlyStakeManager
     {   
-        emit ReStaked(validatorId, validatorNonce[validatorId].add(1), amount, total);
         validatorNonce[validatorId] = validatorNonce[validatorId].add(1);
+        emit ReStaked(validatorId, validatorNonce[validatorId], amount, total);
     }
 
     function logJailed(uint256 validatorId, uint256 exitEpoch, address signer)
@@ -294,8 +294,8 @@ contract StakingInfo {
         public
         StakeManagerOrValidatorContract(validatorId)
     {
-        emit StakeUpdate(validatorId, validatorNonce[validatorId].add(1), totalValidatorStake(validatorId));
         validatorNonce[validatorId] = validatorNonce[validatorId].add(1);
+        emit StakeUpdate(validatorId, validatorNonce[validatorId], totalValidatorStake(validatorId));
     }
 
     function logClaimRewards(
