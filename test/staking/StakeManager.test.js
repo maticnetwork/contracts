@@ -136,7 +136,6 @@ contract('StakeManager', async function (accounts) {
       })
       // decode logs
       const logs = logDecoder.decodeLogs(stakeReceipt.receipt.rawLogs)
-
       logs.should.have.lengthOf(3)
 
       // logs[0].event.should.equal('Transfer')
@@ -146,6 +145,8 @@ contract('StakeManager', async function (accounts) {
 
       logs[1].event.should.equal('Staked')
       logs[1].args.signerPubkey.toLowerCase().should.equal(userPubkey.toLowerCase())
+      // console.log(logs[1].args.nonce)
+      // assertBigNumberEquality(logs[1].args.nonce, 1)
       // logs[2].args.amount.should.be.bignumber.equal(amount)
     })
 
@@ -166,28 +167,24 @@ contract('StakeManager', async function (accounts) {
       })
 
       // decode logs
-      const logs = logDecoder.decodeLogs(stakeReceipt.receipt.rawLogs)
+      let logs = logDecoder.decodeLogs(stakeReceipt.receipt.rawLogs)
       logs.should.have.lengthOf(3)
-
-      // logs[0].event.should.equal('Transfer')
-      // logs[0].args.from.toLowerCase().should.equal(user)
-      // logs[0].args.to.toLowerCase().should.equal(stakeManager.address)
-      // logs[0].args.value.should.be.bignumber.equal(amount)
-      // assertBigNumberEquality(logs[0].args.value, amount)
-
+      assertBigNumberEquality(logs[1].args.nonce, 1)  //  check nonce
       logs[1].event.should.equal('Staked')
       logs[1].args.signerPubkey.toLowerCase().should.equal(userPubkey.toLowerCase())
       logs[1].args.signer.toLowerCase().should.equal(user.toLowerCase())
-      // logs[2].args.amount.should.be.bignumber.equal(amount)
       assertBigNumberEquality(logs[1].args.amount, web3.utils.toWei('150'))
 
-      await stakeManager.restake(logs[1].args.validatorId, web3.utils.toWei('100'), false, {
+      const reStakeReceipt = await stakeManager.restake(logs[1].args.validatorId, web3.utils.toWei('100'), false, {
         from: user
       })
       // staked for
       const stakedFor = await stakeManager.totalStakedFor(user)
       assertBigNumberEquality(stakedFor, web3.utils.toWei('250'))
-      // stakedFor.should.be.bignumber.equal(amount)
+
+      // decode logs
+      logs = logDecoder.decodeLogs(reStakeReceipt.receipt.rawLogs)
+      assertBigNumberEquality(logs[1].args.nonce, 2)  //  check increament
     })
     it('should stake via wallets[3]', async function () {
       const user = wallets[3].getAddressString()
