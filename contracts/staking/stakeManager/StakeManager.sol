@@ -483,6 +483,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
 
     function updateProposerBonus(uint256 newProposerBonus) public onlyOwner {
         logger.logProposerBonusChange(newProposerBonus, proposerBonus);
+        require(newProposerBonus <= 100, "Proposer bonus should be less than or equal to 100");
         proposerBonus = newProposerBonus;
     }
 
