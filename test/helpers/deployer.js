@@ -25,7 +25,7 @@ class Deployer {
     this.stakingNFT = await contracts.StakingNFT.new('Matic Validator', 'MV')
 
     if (options.stakeManager) {
-      let stakeManager = await contracts.StakeManager.new()
+      let stakeManager = await contracts.StakeManagerTestable.new()
       let proxy = await contracts.StakeManagerProxy.new(
         stakeManager.address,
         this.registry.address,
@@ -88,7 +88,7 @@ class Deployer {
     this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
     this.stakeToken = await contracts.DummyERC20.new('Stake Token', 'STAKE')
     this.stakingNFT = await contracts.StakingNFT.new('Matic Validator', 'MV')
-    let stakeManager = await contracts.StakeManager.new()
+    let stakeManager = await contracts.StakeManagerTestable.new()
 
     const rootChainOwner = wallets[1]
     let proxy = await contracts.StakeManagerProxy.new(
@@ -101,7 +101,7 @@ class Deployer {
       this.validatorShareFactory.address,
       this.governance.address
     )
-    this.stakeManager = await contracts.StakeManager.at(proxy.address)
+    this.stakeManager = await contracts.StakeManagerTestable.at(proxy.address)
     this.slashingManager = await contracts.SlashingManager.new(this.registry.address, this.stakingInfo.address, 'heimdall-P5rXwg')
 
     await this.stakingNFT.transferOwnership(this.stakeManager.address)
