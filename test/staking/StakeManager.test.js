@@ -515,7 +515,7 @@ contract('StakeManager:rewards distribution', async function (accounts) {
   const totalStake = web3.utils.toWei('2000')
 
   describe('staking rewards', async function () {
-    before(async function () {
+    beforeEach(async function () {
       wallets = generateFirstWallets(mnemonics, 2)
       let contracts = await deployer.deployStakeManager(wallets)
       stakeToken = contracts.stakeToken
@@ -535,17 +535,15 @@ contract('StakeManager:rewards distribution', async function (accounts) {
           from: wallets[i].getAddressString()
         })
       }
-      //transfer checkpoint rewards
+      // transfer checkpoint rewards
       await stakeToken.mint(stakeManager.address, web3.utils.toWei('10000'))
     })
 
     it('should get rewards for validator1 for a single checkpoint', async function () {
       const reward = web3.utils.toWei('4500') // 5k - 10*% proposer commission
-
+      const proposer = wallets[1]
       // 2/3 majority vote
-      await checkPoint(wallets, wallets[1], stakeManager, {
-        from: wallets[1].getAddressString()
-      })
+      await checkPoint(wallets, proposer, stakeManager)
 
       const user = await stakeManager.ownerOf(1)
       const beforeBalance = await stakeToken.balanceOf(
@@ -563,6 +561,16 @@ contract('StakeManager:rewards distribution', async function (accounts) {
       )
       assertBigNumberEquality(afterBalance, web3.utils.toBN(reward).add(beforeBalance))
       assertBigNumbergt(afterBalance, beforeBalance)
+    })
+
+    it('should get rewards for proposer for a single checkpoint', async function () {
+      // 2/3 majority vote
+      await checkPoint(wallets, wallets[1], stakeManager)
+
+      const proposer = await stakeManager.validators(2)
+      const validator1 = await stakeManager.validators(1)
+      assertBigNumbergt(proposer.reward, validator1.reward)
+      assertBigNumberEquality(proposer.reward, web3.utils.toWei('5500'))
     })
   })
 })
