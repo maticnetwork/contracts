@@ -84,6 +84,11 @@ contract StakingInfo {
     event Slashed(uint256 indexed amount);
     event ThresholdChange(uint256 newThreshold, uint256 oldThreshold);
     event DynastyValueChange(uint256 newDynasty, uint256 oldDynasty);
+    event ProposerBonusChange(
+        uint256 newProposerBonus,
+        uint256 oldProposerBonus
+    );
+
     event RewardUpdate(uint256 newReward, uint256 oldReward);
     event StakeUpdate(
         uint256 indexed validatorId,
@@ -276,6 +281,13 @@ contract StakingInfo {
         onlyStakeManager
     {
         emit DynastyValueChange(newDynasty, oldDynasty);
+    }
+
+    function logProposerBonusChange(
+        uint256 newProposerBonus,
+        uint256 oldProposerBonus
+    ) public onlyStakeManager {
+        emit ProposerBonusChange(newProposerBonus, oldProposerBonus);
     }
 
     function logRewardUpdate(uint256 newReward, uint256 oldReward)
