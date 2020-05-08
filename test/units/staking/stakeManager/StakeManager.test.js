@@ -1077,15 +1077,12 @@ contract('StakeManager', async function(accounts) {
 
         await this.stakeManager.updateDynastyValue(8)
 
+        // cooldown period
+        const replacementCooldown = await this.stakeManager.replacementCoolDown()
+        await this.stakeManager.advanceEpoch(replacementCooldown)
+
         for (const wallet of initialStakers) {
           await approveAndStake.call(this, { wallet, stakeAmount: initialStakeAmount })
-        }
-
-        // cooldown period
-        let auctionPeriod = (await this.stakeManager.auctionPeriod()).toNumber()
-        let currentEpoch = (await this.stakeManager.currentEpoch()).toNumber()
-        for (let i = currentEpoch; i <= auctionPeriod; i++) {
-          await checkPoint(initialStakers, this.rootChainOwner, this.stakeManager)
         }
 
         this.amount = web3.utils.toWei('500')
@@ -1108,11 +1105,11 @@ contract('StakeManager', async function(accounts) {
         })
 
         if (skipAuctionPeriod) {
-          let auction = await this.stakeManager.validatorAuction(this.validatorId)
-          currentEpoch = await this.stakeManager.currentEpoch()
-          let dynasty = await this.stakeManager.dynasty()
+          const auction = await this.stakeManager.validatorAuction(this.validatorId)
+          const currentEpoch = await this.stakeManager.currentEpoch()
+          const dynasty = await this.stakeManager.dynasty()
 
-          let end = auction.startEpoch.add(dynasty).toNumber()
+          const end = auction.startEpoch.add(dynasty).toNumber()
           for (let i = currentEpoch.toNumber(); i <= end; i++) {
             await checkPoint(initialStakers, this.rootChainOwner, this.stakeManager)
           }
@@ -1120,102 +1117,132 @@ contract('StakeManager', async function(accounts) {
       }
     }
 
-    function testAuctionerIsValidator(heimdallFee) {
-      before(async function() {
-        this.validatorId = '1'
-        this.bidder = initialStakers[0].getChecksumAddressString()
-        this.bidderPubKey = initialStakers[0].getPublicKeyString()
-        this.heimdallFee = heimdallFee
-        this.bidAmount = bidAmount
-      })
-
-      before(doDeploy())
-
-      before(async function() {
-        await this.stakeToken.mint(this.bidder, this.heimdallFee)
-        await this.stakeToken.approve(this.stakeManager.address, this.heimdallFee, {
-          from: this.bidder
-        })
-
-        this.bidderPrevBalance = await this.stakeToken.balanceOf(this.bidder)
-        this.validatorPrevState = await this.stakeManager.validators(this.validatorId)
-        this.prevTotalStaked = await this.stakeManager.totalStaked()
-      })
-
-      it('must confirm with heimdal fee', async function() {
-        this.receipt = await this.stakeManager.confirmAuctionBid(
-          this.validatorId,
-          this.heimdallFee,
-          false,
-          this.bidderPubKey,
-          {
-            from: this.bidder
-          }
-        )
-      })
-
-      it('must emit StakeUpdate', async function() {
-        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'StakeUpdate', {
-          validatorId: this.validatorId,
-          newAmount: this.bidAmount
-        })
-      })
-
-      it('must emit ConfirmAuction', async function() {
-        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ConfirmAuction', {
-          newValidatorId: this.validatorId,
-          oldValidatorId: this.validatorId,
-          amount: this.bidAmount
-        })
-      })
-
-      it('must not emit TopUpFee', async function() {
-        await expectEvent.not.inTransaction(this.receipt.tx, StakingInfo, 'TopUpFee')
-      })
-
-      it('validator must be refunded', async function() {
-        const refundedBalance = await this.stakeToken.balanceOf(this.bidder)
-        assertBigNumberEquality(refundedBalance, this.bidderPrevBalance.add(this.validatorPrevState.amount))
-      })
-
-      it('totalStaked must be correct', async function() {
-        const totalStaked = await this.stakeManager.totalStaked()
-        const auctionDelta = new BN(this.bidAmount).sub(this.validatorPrevState.amount)
-        assertBigNumberEquality(totalStaked, this.prevTotalStaked.add(auctionDelta))
-      })
-    }
-
-    function testAuctionerIsNotValidator(heimdallFee) {
-      before(async function() {
-        this.validatorId = '1'
-        this.newValidatorId = '3'
-        this.bidder = wallets[3].getChecksumAddressString()
-        this.bidderPubKey = wallets[3].getPublicKeyString()
-        this.heimdallFee = heimdallFee
-        this.bidAmount = bidAmount
-      })
-
-      before(doDeploy())
-
-      before(async function() {
-        this.prevValidatorAddr = initialStakers[0].getChecksumAddressString()
-        this.prevValidatorOldBalance = await this.stakeToken.balanceOf(this.prevValidatorAddr)
-
-        this.validator = await this.stakeManager.validators(this.validatorId)
-      })
-
-      testConfirmAuctionBidForNewValidator()
-    }
-
     describe('when last auctioner is validator', function() {
-      testAuctionerIsValidator(web3.utils.toWei('100'))
+      const heimdallFee = web3.utils.toWei('100')
+
+      function prepareToTest() {
+        before(async function() {
+          this.validatorId = '1'
+          this.bidder = initialStakers[0].getChecksumAddressString()
+          this.bidderPubKey = initialStakers[0].getPublicKeyString()
+          this.heimdallFee = heimdallFee
+          this.bidAmount = bidAmount
+        })
+  
+        before(doDeploy())
+  
+        before(async function() {
+          await this.stakeToken.mint(this.bidder, this.heimdallFee)
+          await this.stakeToken.approve(this.stakeManager.address, this.heimdallFee, {
+            from: this.bidder
+          })
+  
+          this.bidderPrevBalance = await this.stakeToken.balanceOf(this.bidder)
+          this.validatorPrevState = await this.stakeManager.validators(this.validatorId)
+          this.prevTotalStaked = await this.stakeManager.totalStaked()
+        })
+      }
+
+      function testAuctionerIsValidator() {
+        it('must confirm with heimdal fee', async function() {
+          this.receipt = await this.stakeManager.confirmAuctionBid(
+            this.validatorId,
+            this.heimdallFee,
+            false,
+            this.bidderPubKey,
+            {
+              from: this.bidder
+            }
+          )
+        })
+
+        it('must emit StakeUpdate', async function() {
+          await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'StakeUpdate', {
+            validatorId: this.validatorId,
+            newAmount: this.bidAmount
+          })
+        })
+
+        it('must emit ConfirmAuction', async function() {
+          await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ConfirmAuction', {
+            newValidatorId: this.validatorId,
+            oldValidatorId: this.validatorId,
+            amount: this.bidAmount
+          })
+        })
+
+        it('must not emit TopUpFee', async function() {
+          await expectEvent.not.inTransaction(this.receipt.tx, StakingInfo, 'TopUpFee')
+        })
+
+        it('validator must be refunded', async function() {
+          const refundedBalance = await this.stakeToken.balanceOf(this.bidder)
+          assertBigNumberEquality(refundedBalance, this.bidderPrevBalance.add(this.validatorPrevState.amount))
+        })
+
+        it('totalStaked must be correct', async function() {
+          const totalStaked = await this.stakeManager.totalStaked()
+          const auctionDelta = new BN(this.bidAmount).sub(this.validatorPrevState.amount)
+          assertBigNumberEquality(totalStaked, this.prevTotalStaked.add(auctionDelta))
+        })
+      }
+
+      describe('when 0 dynasties has passed', function() {
+        prepareToTest()
+        testAuctionerIsValidator()
+      })
+
+      describe('when 1000 dynasties has passed', function() {
+        prepareToTest()
+        before(async function() {
+          const currentDynasty = await this.stakeManager.dynasty()
+          await this.stakeManager.advanceEpoch(currentDynasty.mul(new BN('1000')))
+        })
+
+        testAuctionerIsValidator()
+      })
     })
 
     describe('when last auctioner is not validator', function() {
-      testAuctionerIsNotValidator(web3.utils.toWei('100'))
+      const heimdallFee = web3.utils.toWei('100')
+
+      function prepareToTest() {
+        before(async function() {
+          this.validatorId = '1'
+          this.newValidatorId = '3'
+          this.bidder = wallets[3].getChecksumAddressString()
+          this.bidderPubKey = wallets[3].getPublicKeyString()
+          this.heimdallFee = heimdallFee
+          this.bidAmount = bidAmount
+        })
+  
+        before(doDeploy())
+  
+        before(async function() {
+          this.prevValidatorAddr = initialStakers[0].getChecksumAddressString()
+          this.prevValidatorOldBalance = await this.stakeToken.balanceOf(this.prevValidatorAddr)
+  
+          this.validator = await this.stakeManager.validators(this.validatorId)
+        })
+      }
+
+      describe('when 0 dynasties has passed', function() {
+        prepareToTest()
+        testConfirmAuctionBidForNewValidator()
+      })
+
+      describe('when 1000 dynasties has passed', function() {
+        prepareToTest()
+        before(async function() {
+          const currentDynasty = await this.stakeManager.dynasty()
+          await this.stakeManager.advanceEpoch(currentDynasty.mul(new BN('1000')))
+        })
+
+        testConfirmAuctionBidForNewValidator()
+      })
     })
 
-    describe.skip('when auction has not ended yet', function() {
+    describe('when auction period hasn\'t been passed after initial stake', function() {
       before(async function() {
         this.validatorId = '1'
         this.bidder = wallets[3].getChecksumAddressString()
@@ -1223,18 +1250,39 @@ contract('StakeManager', async function(accounts) {
         this.bidAmount = bidAmount
       })
 
-      before(doDeploy(false))
+      beforeEach(doDeploy(false))
 
-      it('reverts', async function() {
-        await expectRevert(this.stakeManager.confirmAuctionBid(
-          this.validatorId,
-          this.defaultHeimdallFee,
-          false,
-          this.bidderPubKey,
-          {
-            from: this.bidder
-          }
-        ), 'Confirmation is not allowed before auctionPeriod')
+      describe('when 0 dynasties has passed', function() {
+        it('reverts', async function() {
+          await expectRevert(this.stakeManager.confirmAuctionBid(
+            this.validatorId,
+            this.defaultHeimdallFee,
+            false,
+            this.bidderPubKey,
+            {
+              from: this.bidder
+            }
+          ), 'Confirmation is not allowed before auctionPeriod')
+        })
+      })
+
+      describe('when 1000 dynasties has passed', function() {
+        beforeEach(async function() {
+          const currentDynasty = await this.stakeManager.dynasty()
+          await this.stakeManager.advanceEpoch(currentDynasty.mul(new BN('1000')))
+        })
+
+        it('reverts', async function() {
+          await expectRevert(this.stakeManager.confirmAuctionBid(
+            this.validatorId,
+            this.defaultHeimdallFee,
+            false,
+            this.bidderPubKey,
+            {
+              from: this.bidder
+            }
+          ), 'Confirmation is not allowed before auctionPeriod')
+        })
       })
     })
 
