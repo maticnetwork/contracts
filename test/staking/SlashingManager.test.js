@@ -103,7 +103,7 @@ contract('Slashing:validator', async function (accounts) {
         from: validator1Wallet.getAddressString()
       })
       const validator2 = await stakeManager.validators(2)
-      assertBigNumbergt(validator2.reward, web3.utils.toWei('4700'))
+      assertBigNumbergt(validator2.reward, web3.utils.toWei('4260')) // 4700-10% proposer bonus
     })
   })
 })
