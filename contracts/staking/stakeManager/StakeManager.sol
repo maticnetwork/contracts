@@ -306,8 +306,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         bool acceptDelegation,
         bytes memory signerPubkey
     ) public onlyWhenUnlocked {
-        require(currentValidatorSetSize() < validatorThreshold);
-        require(amount > minDeposit);
+        require(currentValidatorSetSize() < validatorThreshold, "Validator size is less than threshold!");
+        require(amount > minDeposit, "min deposit limit failed!");
         require(heimdallFee >= minHeimdallFee, "Minimum amount is 1 Matic");
 
         require(
@@ -587,7 +587,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         );
         totalRewards = totalRewards.add(_reward);
         require(
-            _stakePower >= currentValidatorSetTotalStake().mul(2).div(3).add(1)
+            _stakePower >= currentValidatorSetTotalStake().mul(2).div(3).add(1),
+            "2/3+1 non-majority!"
         );
         return _reward;
     }

@@ -19,7 +19,8 @@ import {
   checkPoint,
   assertBigNumbergt,
   assertBigNumberEquality,
-  buildSubmitHeaderBlockPaylod
+  buildSubmitHeaderBlockPaylod,
+  buildSubmitHeaderBlockPaylodWithVotes
 } from '../helpers/utils.js'
 import { generateFirstWallets, mnemonics } from '../helpers/wallets.js'
 
@@ -783,6 +784,108 @@ contract('StakeManager: Heimdall fee', async function (accounts) {
       assertBigNumberEquality(await stakeToken.balanceOf(
         wallets[2].getAddressString()
       ), fee)
+    })
+
+    it('More than 2/3rd vote for yes and the rest vote no', async function () {
+      wallets = generateFirstWallets(mnemonics, 4)
+
+      const validators = [1, 2, 3, 4]
+      const amount = web3.utils.toWei('4')
+      let fee = web3.utils.toWei('2')
+      let stakeAmount = web3.utils.toWei('2')
+      let counter = 0
+
+      for (let i = 0; i < 4; i++) {
+        await stakeToken.mint(wallets[i].getAddressString(), amount)
+        await stakeToken.approve(stakeManager.address, amount, {
+          from: wallets[i].getAddressString()
+        })
+        await stakeManager.stake(stakeAmount, fee, false, wallets[i].getPublicKeyString(), {
+          from: wallets[i].getAddressString()
+        })
+      }
+
+      fee = web3.utils.toWei('1')
+      accountState[1] = [web3.utils.toHex(fee.toString()), 0]
+      accountState[2] = [0, 0]
+      accountState[3] = [0, 0]
+      accountState[4] = [0, 0]
+      // validatorId, accumBalance, accumSlashedAmount, amount
+      let tree = await rewradsTreeFee(validators, accountState)
+      // 2/3 majority vote "Yes"
+      const { data, sigs } = buildSubmitHeaderBlockPaylodWithVotes(
+        wallets[0].getAddressString(),
+        0,
+        22,
+        '' /* root */,
+        [wallets[0], wallets[1], wallets[2], wallets[3]],
+        3, // 3 yes votes
+        {
+          rewardsRootHash: tree.getRoot(),
+          allValidators: true,
+          getSigs: true
+        }
+      )
+      await stakeManager.checkSignatures(
+        22,
+        utils.bufferToHex(utils.keccak256(Buffer.concat([utils.toBuffer('0x01'), utils.toBuffer(data)]))),
+        utils.bufferToHex(tree.getRoot()),
+        sigs, { from: wallets[1].getAddressString() }
+      )
+    })
+
+    it('Less than 2/3rd vote for yes and the rest vote no', async function () {
+      wallets = generateFirstWallets(mnemonics, 4)
+
+      const validators = [1, 2, 3, 4]
+      const amount = web3.utils.toWei('4')
+      let fee = web3.utils.toWei('2')
+      let stakeAmount = web3.utils.toWei('2')
+
+      for (let i = 0; i < 4; i++) {
+        await stakeToken.mint(wallets[i].getAddressString(), amount)
+        await stakeToken.approve(stakeManager.address, amount, {
+          from: wallets[i].getAddressString()
+        })
+        await stakeManager.stake(stakeAmount, fee, false, wallets[i].getPublicKeyString(), {
+          from: wallets[i].getAddressString()
+        })
+      }
+
+      fee = web3.utils.toWei('1')
+      accountState[1] = [web3.utils.toHex(fee.toString()), 0]
+      accountState[2] = [0, 0]
+      accountState[3] = [0, 0]
+      accountState[4] = [0, 0]
+      // validatorId, accumBalance, accumSlashedAmount, amount
+      let tree = await rewradsTreeFee(validators, accountState)
+      // 2/3 majority vote "Yes"
+      const { data, sigs } = buildSubmitHeaderBlockPaylodWithVotes(
+        wallets[0].getAddressString(),
+        0,
+        22,
+        '' /* root */,
+        [wallets[0], wallets[1], wallets[2], wallets[3]],
+        2, // 2 yes votes
+        {
+          rewardsRootHash: tree.getRoot(),
+          allValidators: true,
+          getSigs: true
+        }
+      )
+      // should revert
+      try {
+        await stakeManager.checkSignatures(
+          22,
+          utils.bufferToHex(utils.keccak256(Buffer.concat([utils.toBuffer('0x01'), utils.toBuffer(data)]))),
+          utils.bufferToHex(tree.getRoot()),
+          sigs, { from: wallets[1].getAddressString() }
+        )
+        assert.fail('CheckSignature passed')
+      } catch (error) {
+        const invalidOpcode = error.message.search('revert') >= 0
+        assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
+      }
     })
   })
 })
