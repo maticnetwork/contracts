@@ -41,31 +41,61 @@ contract IStakeManager {
 
 contract StakingInfo {
     using SafeMath for uint256;
+    mapping(uint256 => uint256) public validatorNonce;
 
+    /// @dev Emitted when validator stakes in '_stakeFor()' in StakeManager.
+    /// @param signer validator address.
+    /// @param validatorId unique integer to identify a validator.
+    /// @param nonce to synchronize the events in heimdal.
+    /// @param activationEpoch validator's first epoch as proposer.
+    /// @param amount staking amount.
+    /// @param total total staking amount.
+    /// @param signerPubkey public key of the validator
     event Staked(
         address indexed signer,
         uint256 indexed validatorId,
+        uint256 nonce,
         uint256 indexed activationEpoch,
         uint256 amount,
         uint256 total,
         bytes signerPubkey
     );
+
+    /// @dev Emitted when validator unstakes in 'unstakeClaim()'
+    /// @param user address of the validator.
+    /// @param validatorId unique integer to identify a validator.
+    /// @param amount staking amount.
+    /// @param total total staking amount.
     event Unstaked(
         address indexed user,
         uint256 indexed validatorId,
         uint256 amount,
         uint256 total
     );
-    // event to ack unstaking which will start at deactivationEpoch
+
+    /// @dev Emitted when validator unstakes in '_unstake()'.
+    /// @param user address of the validator.
+    /// @param validatorId unique integer to identify a validator.
+    /// @param nonce to synchronize the events in heimdal.
+    /// @param deactivationEpoch last epoch for validator.
+    /// @param amount staking amount.
     event UnstakeInit(
         address indexed user,
         uint256 indexed validatorId,
+        uint256 nonce,
         uint256 deactivationEpoch,
         uint256 indexed amount
     );
 
+    /// @dev Emitted when the validator public key is updated in 'updateSigner()'.
+    /// @param validatorId unique integer to identify a validator.
+    /// @param nonce to synchronize the events in heimdal.
+    /// @param oldSigner old address of the validator.
+    /// @param newSigner new address of the validator.
+    /// @param signerPubkey public key of the validator.
     event SignerChange(
         uint256 indexed validatorId,
+        uint256 nonce,
         address indexed oldSigner,
         address indexed newSigner,
         bytes signerPubkey
@@ -86,7 +116,15 @@ contract StakingInfo {
     );
 
     event RewardUpdate(uint256 newReward, uint256 oldReward);
-    event StakeUpdate(uint256 indexed validatorId, uint256 indexed newAmount);
+
+    /// @dev Emitted when validator confirms the auction bid and at the time of restaking in confirmAuctionBid() and restake().
+    /// @param validatorId unique integer to identify a validator.
+    /// @param nonce to synchronize the events in heimdal.
+    /// @param newAmount the updated stake amount.
+    event StakeUpdate(
+        uint256 indexed validatorId,
+        uint256 indexed nonce,
+        uint256 indexed newAmount);
     event ClaimRewards(
         uint256 indexed validatorId,
         uint256 indexed amount,
@@ -186,9 +224,11 @@ contract StakingInfo {
         uint256 amount,
         uint256 total
     ) public onlyStakeManager {
+        validatorNonce[validatorId] = validatorNonce[validatorId].add(1);
         emit Staked(
             signer,
             validatorId,
+            validatorNonce[validatorId],
             activationEpoch,
             amount,
             total,
@@ -211,7 +251,8 @@ contract StakingInfo {
         uint256 deactivationEpoch,
         uint256 amount
     ) public onlyStakeManager {
-        emit UnstakeInit(user, validatorId, deactivationEpoch, amount);
+        validatorNonce[validatorId] = validatorNonce[validatorId].add(1);
+        emit UnstakeInit(user, validatorId, validatorNonce[validatorId], deactivationEpoch, amount);
     }
 
     function logSignerChange(
@@ -220,13 +261,14 @@ contract StakingInfo {
         address newSigner,
         bytes memory signerPubkey
     ) public onlyStakeManager {
-        emit SignerChange(validatorId, oldSigner, newSigner, signerPubkey);
+        validatorNonce[validatorId] = validatorNonce[validatorId].add(1);
+        emit SignerChange(validatorId, validatorNonce[validatorId], oldSigner, newSigner, signerPubkey);
     }
 
     function logReStaked(uint256 validatorId, uint256 amount, uint256 total)
         public
         onlyStakeManager
-    {
+    {   
         emit ReStaked(validatorId, amount, total);
     }
 
@@ -280,7 +322,8 @@ contract StakingInfo {
         public
         StakeManagerOrValidatorContract(validatorId)
     {
-        emit StakeUpdate(validatorId, totalValidatorStake(validatorId));
+        validatorNonce[validatorId] = validatorNonce[validatorId].add(1);
+        emit StakeUpdate(validatorId, validatorNonce[validatorId], totalValidatorStake(validatorId));
     }
 
     function logClaimRewards(
