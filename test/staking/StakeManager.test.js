@@ -182,7 +182,7 @@ contract('StakeManager', async function (accounts) {
       // assertBigNumberEquality(logs[1].args.nonce, 2)
       // logs[2].args.amount.should.be.bignumber.equal(amount)
       assertBigNumberEquality(logs[1].args.amount, web3.utils.toWei('150'))
-
+      console.log('LOOOL')
       await stakeManager.restake(logs[1].args.validatorId, web3.utils.toWei('100'), false, {
         from: user
       })

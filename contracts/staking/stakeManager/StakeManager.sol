@@ -212,8 +212,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             auction.startEpoch = currentEpoch;
             //update total stake amount
             totalStaked = totalStaked.add(validator.amount.sub(refund));
-            validators[validatorId].nonce += 1;
-            logger.logStakeUpdate(validatorId, validators[validatorId].nonce);
+            validatorNonce[validatorId] += 1;
+            logger.logStakeUpdate(validatorId, validatorNonce[validatorId]);
             logger.logConfirmAuction(
                 validatorId,
                 validatorId,
@@ -350,7 +350,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         // delete validators[validatorId];
         validators[validatorId].status = Status.Unstaked;
         require(token.transfer(msg.sender, amount), "Transfer stake failed");
-        validators[validatorId].nonce += 1;
+        validatorNonce[validatorId] += 1;
         logger.logUnstaked(
             msg.sender,
             validatorId,
@@ -396,8 +396,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         );
         validatorState[currentEpoch].amount = (validatorState[currentEpoch]
             .amount + int256(amount));
-        validators[validatorId].nonce += 1;
-        logger.logStakeUpdate(validatorId, validators[validatorId].nonce);
+        validatorNonce[validatorId] += 1;
+        logger.logStakeUpdate(validatorId, validatorNonce[validatorId]);
         logger.logReStaked(
             validatorId,
             validators[validatorId].amount,
@@ -483,8 +483,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             validators[validatorId].contractAddress == msg.sender,
             "Invalid contract address"
         );
-        validators[validatorId].nonce += 1;
-        return validators[validatorId].nonce;
+        validatorNonce[validatorId] += 1;
+        return validatorNonce[validatorId];
     }
 
     function updateDynastyValue(uint256 newDynasty) public onlyOwner {
@@ -511,11 +511,11 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     {
         address _signer = pubToAddress(signerPubkey);
         require(_signer != address(0x0) && signerToValidator[_signer] == 0);
-        validators[validatorId].nonce += 1;
+        validatorNonce[validatorId] += 1;
         // update signer event
         logger.logSignerChange(
             validatorId,
-            validators[validatorId].nonce,
+            validatorNonce[validatorId],
             validators[validatorId].signer,
             _signer,
             signerPubkey
@@ -722,7 +722,6 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         validators[NFTCounter] = Validator({
             reward: 0,
             amount: amount,
-            nonce: 1,
             activationEpoch: currentEpoch,
             deactivationEpoch: 0,
             jailTime: 0,
@@ -742,8 +741,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         logger.logStaked(
             signer,
             signerPubkey,
-            1,
             NFTCounter,
+            1,
             currentEpoch,
             amount,
             totalStaked
@@ -769,12 +768,12 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         require(token.transfer(validator, rewards), "Rewards transfer failed");
         //  update future
         updateTimeLine(exitEpoch, -(int256(amount) + delegationAmount), -1);
-        validators[validatorId].nonce += 1;
+        validatorNonce[validatorId] += 1;
 
         logger.logUnstakeInit(
             validator,
             validatorId,
-            validators[validatorId].nonce,
+            validatorNonce[validatorId],
             exitEpoch,
             amount
         );
