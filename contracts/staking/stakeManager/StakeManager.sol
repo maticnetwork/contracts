@@ -312,7 +312,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         bool acceptDelegation,
         bytes memory signerPubkey
     ) public onlyWhenUnlocked {
-        require(currentValidatorSetSize() < validatorThreshold);
+        require(
+            currentValidatorSetSize() < validatorThreshold,
+            "Validator set Threshold exceeded!"
+        );
         require(amount > minDeposit);
         require(heimdallFee >= minHeimdallFee, "Minimum amount is 1 Matic");
 
@@ -478,6 +481,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         replacementCoolDown = currentEpoch.add(auctionPeriod);
     }
 
+    function updateSignerUpdateLimit(uint256 _limit) public onlyOwner {
+        signerUpdateLimit = _limit;
+    }
+
     function updateMinAmounts(uint256 _minDeposit, uint256 _minHeimdallFee)
         public
         onlyOwner
@@ -491,7 +498,15 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         onlyStaker(validatorId)
     {
         address _signer = pubToAddress(signerPubkey);
-        require(_signer != address(0x0) && signerToValidator[_signer] == 0);
+        require(
+            _signer != address(0x0) && signerToValidator[_signer] == 0,
+            "Invalid Signer!"
+        );
+        require(
+            epoch() >=
+                latestSignerUpdateEpoch[validatorId].add(signerUpdateLimit),
+            "Invalid checkpoint number!"
+        );
 
         // update signer event
         logger.logSignerChange(
@@ -504,6 +519,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         delete signerToValidator[validators[validatorId].signer];
         signerToValidator[_signer] = validatorId;
         validators[validatorId].signer = _signer;
+        // reset update time to current time
+        latestSignerUpdateEpoch[validatorId] = epoch();
     }
 
     function currentValidatorSetSize() public view returns (uint256) {
@@ -712,6 +729,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             status: Status.Active
         });
 
+        latestSignerUpdateEpoch[NFTCounter] = currentEpoch;
         NFTContract.mint(user, NFTCounter);
 
         signerToValidator[signer] = NFTCounter;
