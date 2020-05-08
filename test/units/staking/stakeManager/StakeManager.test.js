@@ -166,6 +166,7 @@ contract('StakeManager', async function(accounts) {
       let index = 0
       for (const staker of stakers) {
         let stakerIndex = index + 1
+        index++
         it(`staker #${stakerIndex} must have ${expectedRewards[staker.wallet.getAddressString()]} reward`, async function() {
           const validatorId = await this.stakeManager.getValidatorId(staker.wallet.getAddressString())
           const validator = await this.stakeManager.validators(validatorId)
