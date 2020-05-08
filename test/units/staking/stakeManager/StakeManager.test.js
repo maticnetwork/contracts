@@ -317,7 +317,7 @@ contract('StakeManager', async function(accounts) {
         testRevert()
       })
 
-      describe('when proposer is not validator', function() {
+      describe.skip('when proposer is not validator', function() {
         beforeEach(function() {
           this.proposer = wallets[1].getAddressString()
         })
