@@ -35,7 +35,7 @@ contract('StakeManager', async function (accounts) {
   // staking
   describe('Stake', async function () {
     before(async function () {
-      wallets = generateFirstWallets(mnemonics, 10)
+      wallets = generateFirstWallets(mnemonics, 11)
       let contracts = await deployer.deployStakeManager(wallets)
       stakeToken = contracts.stakeToken
       stakeManager = contracts.stakeManager
@@ -124,7 +124,7 @@ contract('StakeManager', async function (accounts) {
       const userPubkey = wallets[1].getPublicKeyString()
       const amount = web3.utils.toWei('202')
       const heimdallFee = web3.utils.toWei('2')
-      const stakeAmount = web3.utils.toWei('200') 
+      const stakeAmount = web3.utils.toWei('200')
 
       // approve tranfer
       await stakeToken.approve(stakeManager.address, amount, {
@@ -293,7 +293,7 @@ contract('StakeManager', async function (accounts) {
       await checkPoint(w, wallets[1], stakeManager)
 
       const validatorId = await stakeManager.getValidatorId(user)
-      await stakeManager.updateSignerUpdateLimit(0, { from: owner });
+      await stakeManager.updateSignerUpdateLimit(0, { from: owner })
       let signerReceipt = await stakeManager.updateSigner(validatorId, userPubkey, {
         from: user
       })
@@ -514,9 +514,9 @@ contract('StakeManager', async function (accounts) {
 
       let user = wallets[8].getAddressString()
       let userPubkey = wallets[8].getPublicKeyString()
-      let amount = web3.utils.toWei('202')
+      let amount = web3.utils.toWei('22')
       let heimdallFee = web3.utils.toWei('2')
-      let stakeAmount = web3.utils.toWei('200') 
+      let stakeAmount = web3.utils.toWei('20')
 
       // approve tranfer
       await stakeToken.approve(stakeManager.address, amount, {
@@ -555,6 +555,30 @@ contract('StakeManager', async function (accounts) {
         const invalidOpcode = error.message.search('revert') >= 0
         assert(invalidOpcode, "Expected revert, got '" + error + "' instead")
       }
+    })
+
+    it('should update signer/pubkey after updateLimit', async function () {
+      let user = wallets[0].getAddressString()
+      let userPubkey = wallets[10].getPublicKeyString()
+      let signer = wallets[10].getAddressString()
+
+      await stakeManager.updateSignerUpdateLimit(1, { from: owner })
+      let w = [wallets[0], wallets[4], wallets[6], wallets[7], wallets[5]]
+      await checkPoint(w, wallets[1], stakeManager, {
+        from: wallets[1].getAddressString()
+      })
+      const validatorId = await stakeManager.getValidatorId(user)
+      let signerReceipt = await stakeManager.updateSigner(validatorId, userPubkey, {
+        from: user
+      })
+      const logs = logDecoder.decodeLogs(signerReceipt.receipt.rawLogs)
+      logs.should.have.lengthOf(1)
+      logs[0].event.should.equal('SignerChange')
+      logs[0].args.newSigner.toLowerCase().should.equal(signer.toLowerCase())
+
+      // staked for
+      let stakerDetails = await stakeManager.validators(validatorId)
+      stakerDetails.signer.toLowerCase().should.equal(signer)
     })
   })
 })
@@ -1040,7 +1064,7 @@ contract('StakeManager:validator replacement', async function (accounts) {
     })
 
     it('should confrim auction and secure the place', async function () {
-     const heimdallFee = web3.utils.toWei('2')
+      const heimdallFee = web3.utils.toWei('2')
 
       await stakeToken.mint(wallets[4].getAddressString(), heimdallFee)
       await stakeToken.approve(stakeManager.address, heimdallFee, {
