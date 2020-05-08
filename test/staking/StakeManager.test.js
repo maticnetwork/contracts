@@ -142,7 +142,7 @@ contract('StakeManager', async function (accounts) {
       // logs[0].args.from.toLowerCase().should.equal(user)
       // logs[0].args.to.toLowerCase().should.equal(stakeManager.address)
       // assertBigNumberEquality(logs[0].args.value, amount)
-
+      assertBigNumberEquality(logs[1].args.nonce, 1)  //  check nonce
       logs[1].event.should.equal('Staked')
       logs[1].args.signerPubkey.toLowerCase().should.equal(userPubkey.toLowerCase())
       // console.log(logs[1].args.nonce)
@@ -167,24 +167,19 @@ contract('StakeManager', async function (accounts) {
       })
 
       // decode logs
-      let logs = logDecoder.decodeLogs(stakeReceipt.receipt.rawLogs)
+      const logs = logDecoder.decodeLogs(stakeReceipt.receipt.rawLogs)
       logs.should.have.lengthOf(3)
-      assertBigNumberEquality(logs[1].args.nonce, 1)  //  check nonce
       logs[1].event.should.equal('Staked')
       logs[1].args.signerPubkey.toLowerCase().should.equal(userPubkey.toLowerCase())
       logs[1].args.signer.toLowerCase().should.equal(user.toLowerCase())
       assertBigNumberEquality(logs[1].args.amount, web3.utils.toWei('150'))
 
-      const reStakeReceipt = await stakeManager.restake(logs[1].args.validatorId, web3.utils.toWei('100'), false, {
+      await stakeManager.restake(logs[1].args.validatorId, web3.utils.toWei('100'), false, {
         from: user
       })
       // staked for
       const stakedFor = await stakeManager.totalStakedFor(user)
       assertBigNumberEquality(stakedFor, web3.utils.toWei('250'))
-
-      // decode logs
-      logs = logDecoder.decodeLogs(reStakeReceipt.receipt.rawLogs)
-      assertBigNumberEquality(logs[1].args.nonce, 2)  //  check increament
     })
     it('should stake via wallets[3]', async function () {
       const user = wallets[3].getAddressString()
