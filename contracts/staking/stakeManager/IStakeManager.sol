@@ -49,6 +49,7 @@ contract IStakeManager {
         uint256 blockInterval,
         bytes32 voteHash,
         bytes32 stateRoot,
+        address proposer,
         bytes memory sigs
     ) public returns (uint256);
 

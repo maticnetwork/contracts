@@ -68,6 +68,7 @@ export async function checkPoint(wallets, proposer, stakeManager, { blockInterva
     blockInterval,
     ethUtils.bufferToHex(ethUtils.keccak256(voteData)),
     stateRoot,
+    proposer.getAddressString(),
     sigs,
     {
       from: proposer.getAddressString()

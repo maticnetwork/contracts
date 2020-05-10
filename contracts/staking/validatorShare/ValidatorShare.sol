@@ -37,16 +37,36 @@ contract ValidatorShare is IValidatorShare {
         uint256 _rewards = combinedStakePower.mul(_reward).div(_stakePower);
 
         uint256 _validatorRewards = validatorStake.mul(_rewards).div(combinedStakePower);
+        _updateRewards(_rewards, validatorStake, combinedStakePower);
+        return combinedStakePower;
+    }
+
+    function addProposerBonus(uint256 _rewards, uint256 valStake)
+        public
+        onlyOwner
+    {
+        uint256 stakePower = valStake.add(activeAmount);
+        _updateRewards(_rewards, valStake, stakePower);
+    }
+
+    function _updateRewards(
+        uint256 _rewards,
+        uint256 valStake,
+        uint256 stakePower
+    ) internal {
+        uint256 _validatorRewards = valStake.mul(_rewards).div(stakePower);
+
         // add validator commission from delegation rewards
         if (commissionRate > 0) {
             _validatorRewards = _validatorRewards.add(
                 _rewards.sub(_validatorRewards).mul(commissionRate).div(100)
             );
         }
-        uint256 delegatorsRewards = _rewards.sub(_validatorRewards);
+
         validatorRewards = validatorRewards.add(_validatorRewards);
+
+        uint256 delegatorsRewards = _rewards.sub(_validatorRewards);
         rewards = rewards.add(delegatorsRewards);
-        return combinedStakePower;
     }
 
     function updateCommissionRate(uint256 newCommissionRate)
