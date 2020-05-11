@@ -15,6 +15,7 @@ contract Registry is Governable {
     bytes32 private constant WITHDRAW_MANAGER = keccak256("withdrawManager");
     bytes32 private constant CHILD_CHAIN = keccak256("childChain");
     bytes32 private constant STATE_SENDER = keccak256("stateSender");
+    bytes32 private constant SLASHING_MANAGER = keccak256("slashingManager");
 
     address public erc20Predicate;
     address public erc721Predicate;
@@ -124,6 +125,10 @@ contract Registry is Governable {
 
     function getStakeManagerAddress() public view returns (address) {
         return contractMap[STAKE_MANAGER];
+    }
+
+    function getSlashingManagerAddress() public view returns (address) {
+        return contractMap[SLASHING_MANAGER];
     }
 
     function getWithdrawManagerAddress() public view returns (address) {

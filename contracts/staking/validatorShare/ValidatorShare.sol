@@ -17,7 +17,7 @@ contract ValidatorShare is IValidatorShare {
         _;
     }
 
-    function updateRewards(uint256 _reward, uint256 _totalStake)
+    function updateRewards(uint256 _reward, uint256 _stakePower)
         external
         onlyOwner
         returns (uint256)
@@ -32,22 +32,41 @@ contract ValidatorShare is IValidatorShare {
       - add rewards to pool rewards
       - returns total active stake for validator
      */
-        uint256 stakePower;
-        uint256 valStake = stakeManager.validatorStake(validatorId);
-        stakePower = valStake.add(activeAmount); // validator + delegation stake power
-        uint256 _rewards = stakePower.mul(_reward).div(_totalStake);
+        uint256 validatorStake = stakeManager.validatorStake(validatorId);
+        uint256 combinedStakePower = validatorStake.add(activeAmount); // validator + delegation stake power
+        uint256 _rewards = combinedStakePower.mul(_reward).div(_stakePower);
 
-        uint256 _valRewards = valStake.mul(_rewards).div(stakePower);
+        uint256 _validatorRewards = validatorStake.mul(_rewards).div(combinedStakePower);
+        _updateRewards(_rewards, validatorStake, combinedStakePower);
+        return combinedStakePower;
+    }
+
+    function addProposerBonus(uint256 _rewards, uint256 valStake)
+        public
+        onlyOwner
+    {
+        uint256 stakePower = valStake.add(activeAmount);
+        _updateRewards(_rewards, valStake, stakePower);
+    }
+
+    function _updateRewards(
+        uint256 _rewards,
+        uint256 valStake,
+        uint256 stakePower
+    ) internal {
+        uint256 _validatorRewards = valStake.mul(_rewards).div(stakePower);
+
         // add validator commission from delegation rewards
         if (commissionRate > 0) {
-            _valRewards = _valRewards.add(
-                _rewards.sub(_valRewards).mul(commissionRate).div(100)
+            _validatorRewards = _validatorRewards.add(
+                _rewards.sub(_validatorRewards).mul(commissionRate).div(100)
             );
         }
-        _rewards = _rewards.sub(_valRewards);
-        validatorRewards = validatorRewards.add(_valRewards);
-        rewards = rewards.add(_rewards);
-        return stakePower;
+
+        validatorRewards = validatorRewards.add(_validatorRewards);
+
+        uint256 delegatorsRewards = _rewards.sub(_validatorRewards);
+        rewards = rewards.add(delegatorsRewards);
     }
 
     function updateCommissionRate(uint256 newCommissionRate)
@@ -57,7 +76,7 @@ contract ValidatorShare is IValidatorShare {
         uint256 epoch = stakeManager.epoch();
         require(
             lastUpdate.add(commissionCooldown) <= epoch,
-            "Commission rate update cool down period"
+            "Commission rate update cooldown period"
         );
         require(
             newCommissionRate <= 100,
@@ -88,10 +107,17 @@ contract ValidatorShare is IValidatorShare {
                 : activeAmount.add(rewards).mul(100).div(totalSupply());
     }
 
+    function withdrawExchangeRate() public view returns (uint256) {
+        return
+            withdrawShares == 0
+                ? 100
+                : withdrawPool.mul(100).div(withdrawShares);
+    }
+
     function buyVoucher(uint256 _amount) public onlyWhenUnlocked {
         uint256 share = _amount.mul(100).div(exchangeRate());
         require(share > 0, "Insufficient amount to buy share");
-        require(delegators[msg.sender].amount ==0, "Ongoing exit");
+        require(delegators[msg.sender].share == 0, "Ongoing exit");
 
         totalStake = totalStake.add(_amount);
         amountStaked[msg.sender] = amountStaked[msg.sender].add(_amount);
@@ -115,25 +141,25 @@ contract ValidatorShare is IValidatorShare {
             uint256 _rewards = _amount.sub(amountStaked[msg.sender]);
             //withdrawTransfer
             require(
-                stakeManager.delegationTransfer(
-                    validatorId,
-                    _rewards,
-                    msg.sender
-                ),
+                stakeManager.transferFunds(validatorId, _rewards, msg.sender),
                 "Insufficent rewards"
             );
             _amount = _amount.sub(_rewards);
         }
 
         activeAmount = activeAmount.sub(_amount);
-
-        amountStaked[msg.sender] = 0;
+        uint256 _withdrawPoolShare = _amount.mul(100).div(
+            withdrawExchangeRate()
+        );
+        withdrawPool = withdrawPool.add(_amount);
+        withdrawShares = withdrawShares.add(_withdrawPoolShare);
         delegators[msg.sender] = Delegator({
-            amount: _amount,
+            share: _withdrawPoolShare,
             withdrawEpoch: stakeManager.epoch().add(
                 stakeManager.withdrawalDelay()
             )
         });
+        amountStaked[msg.sender] = 0;
 
         stakingLogger.logShareBurned(validatorId, msg.sender, _amount, share);
         stakingLogger.logStakeUpdate(validatorId);
@@ -146,11 +172,7 @@ contract ValidatorShare is IValidatorShare {
         _burn(msg.sender, sharesToBurn);
         rewards = rewards.sub(liquidRewards);
         require(
-            stakeManager.delegationTransfer(
-                validatorId,
-                liquidRewards,
-                msg.sender
-            ),
+            stakeManager.transferFunds(validatorId, liquidRewards, msg.sender),
             "Insufficent rewards"
         );
         stakingLogger.logDelClaimRewards(
@@ -172,7 +194,7 @@ contract ValidatorShare is IValidatorShare {
         totalStake = totalStake.add(liquidRewards);
         activeAmount = activeAmount.add(liquidRewards);
         require(
-            stakeManager.delegationTransfer(
+            stakeManager.transferFunds(
                 validatorId,
                 liquidRewards,
                 address(this)
@@ -203,27 +225,58 @@ contract ValidatorShare is IValidatorShare {
 
     function unStakeClaimTokens() public {
         Delegator storage delegator = delegators[msg.sender];
-        totalStake = totalStake.sub(delegator.amount);
         require(
             delegator.withdrawEpoch <= stakeManager.epoch() &&
-                delegator.amount > 0,
+                delegator.share > 0,
             "Incomplete withdrawal period"
         );
+        uint256 _amount = withdrawExchangeRate().mul(delegator.share).div(100);
+        withdrawShares.sub(delegator.share);
+        withdrawPool.sub(_amount);
+
+        totalStake = totalStake.sub(_amount);
+
         require(
-            stakeManager.delegationTransfer(
-                validatorId,
-                delegator.amount,
-                msg.sender
-            ),
+            stakeManager.transferFunds(validatorId, _amount, msg.sender),
             "Insufficent rewards"
         );
-        stakingLogger.logDelUnstaked(validatorId, msg.sender, delegator.amount);
+        stakingLogger.logDelUnstaked(validatorId, msg.sender, _amount);
         delete delegators[msg.sender];
     }
 
-    function slash(uint256 slashRate, uint256 startEpoch, uint256 endEpoch)
-        public
-    {}
+    function slash(uint256 valPow, uint256 totalAmountToSlash)
+        external
+        onlyOwner
+        returns (uint256)
+    {
+        uint256 delegationAmount = activeAmount.add(withdrawPool);
+        if (delegationAmount == 0) {
+            return 0;
+        }
+        // total amount to be slashed from delegation pool (active + inactive)
+        uint256 _amountToSlash = delegationAmount.mul(totalAmountToSlash).div(
+            valPow.add(delegationAmount)
+        );
+        uint256 _amountToSlashWithdrawalPool = withdrawPool
+            .mul(_amountToSlash)
+            .div(delegationAmount);
+        // slash inactive pool
+        withdrawPool = withdrawPool.sub(_amountToSlashWithdrawalPool);
+        activeAmount = activeAmount.sub(
+            _amountToSlash.sub(_amountToSlashWithdrawalPool)
+        );
+        return _amountToSlash;
+    }
+
+    function unlockContract() external onlyOwner returns (uint256) {
+        locked = false;
+        return activeAmount;
+    }
+
+    function lockContract() external onlyOwner returns (uint256) {
+        locked = true;
+        return activeAmount;
+    }
 
     // function _slashActive() internal {}
     // function _slashInActive() internal {}

@@ -1,13 +1,13 @@
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 
-import deployer from '../../helpers/deployer.js'
-import logDecoder from '../../helpers/log-decoder.js'
-import StatefulUtils from '../../helpers/StatefulUtils'
-import { generateFirstWallets, mnemonics } from '../../helpers/wallets.js'
-import { getTransferSig } from '../../helpers/marketplaceUtils'
+import deployer from '../../../helpers/deployer.js'
+import logDecoder from '../../../helpers/log-decoder.js'
+import StatefulUtils from '../../../helpers/StatefulUtils'
+import { generateFirstWallets, mnemonics } from '../../../helpers/wallets.js'
+import { getTransferSig } from '../../../helpers/marketplaceUtils'
 
-const utils = require('../../helpers/utils')
+const utils = require('../../../helpers/utils')
 const web3Child = utils.web3Child
 const crypto = require('crypto')
 const predicateTestUtils = require('./predicateTestUtils')
@@ -22,7 +22,7 @@ const alice = wallets[0].getAddressString()
 const malloryPrivateKey = wallets[1].getPrivateKeyString()
 const mallory = wallets[1].getAddressString()
 
-contract('TransferWithSigPredicate', async function(accounts) {
+contract('TransferWithSigPredicate @skip-on-coverage', async function(accounts) {
   before(async function() {
     contracts = await deployer.freshDeploy()
     childContracts = await deployer.initializeChildChain(accounts[0])

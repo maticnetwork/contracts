@@ -2,21 +2,21 @@ import ethUtils from 'ethereumjs-util'
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 
-import deployer from '../../helpers/deployer.js'
-import logDecoder from '../../helpers/log-decoder.js'
-import { buildInFlight } from '../../mockResponses/utils'
-import StatefulUtils from '../../helpers/StatefulUtils'
+import deployer from '../../../helpers/deployer.js'
+import logDecoder from '../../../helpers/log-decoder.js'
+import { buildInFlight } from '../../../mockResponses/utils'
+import StatefulUtils from '../../../helpers/StatefulUtils'
 
 const predicateTestUtils = require('./predicateTestUtils')
 const crypto = require('crypto')
-const utils = require('../../helpers/utils')
+const utils = require('../../../helpers/utils')
 const web3Child = utils.web3Child
 
 chai.use(chaiAsPromised).should()
 let contracts, childContracts
 let predicate, statefulUtils
 
-contract('MintableERC721Predicate', async function(accounts) {
+contract('MintableERC721Predicate @skip-on-coverage', async function(accounts) {
   let tokenId
   const alice = accounts[0]
   const bob = accounts[1]

@@ -68,6 +68,17 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     }
 
     /**
+     During coverage tests verifyInclusion fails co compile with "stack too deep" error. 
+     */
+    struct VerifyInclusionVars {
+        uint256 headerNumber;
+        bytes branchMaskBytes;
+        uint256 blockNumber;
+        uint256 createdAt;
+        uint256 branchMask;
+    }
+
+    /**
    * @dev Verify the inclusion of the receipt in the checkpoint
    * @param data RLP encoded data of the reference tx(s) that encodes the following fields for each tx
    * headerNumber Header block number of which the reference tx was a part of
@@ -96,12 +107,14 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
         )
     {
         RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
-        uint256 headerNumber = referenceTxData[offset].toUint();
-        bytes memory branchMask = referenceTxData[offset + 8].toBytes();
+        VerifyInclusionVars memory vars;
+
+        vars.headerNumber = referenceTxData[offset].toUint();
+        vars.branchMaskBytes = referenceTxData[offset + 8].toBytes();
         require(
             MerklePatriciaProof.verify(
                 referenceTxData[offset + 6].toBytes(), // receipt
-                branchMask,
+                vars.branchMaskBytes,
                 referenceTxData[offset + 7].toBytes(), // receiptProof
                 bytes32(referenceTxData[offset + 5].toUint()) // receiptsRoot
             ),
@@ -112,7 +125,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
             require(
                 MerklePatriciaProof.verify(
                     referenceTxData[offset + 10].toBytes(), // tx
-                    branchMask,
+                    vars.branchMaskBytes,
                     referenceTxData[offset + 11].toBytes(), // txProof
                     bytes32(referenceTxData[offset + 4].toUint()) // txRoot
                 ),
@@ -120,19 +133,19 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
             );
         }
 
-        uint256 blockNumber = referenceTxData[offset + 2].toUint();
-        uint256 createdAt = checkBlockMembershipInCheckpoint(
-            blockNumber,
+        vars.blockNumber = referenceTxData[offset + 2].toUint();
+        vars.createdAt = checkBlockMembershipInCheckpoint(
+            vars.blockNumber,
             referenceTxData[offset + 3].toUint(), // blockTime
             bytes32(referenceTxData[offset + 4].toUint()), // txRoot
             bytes32(referenceTxData[offset + 5].toUint()), // receiptRoot
-            headerNumber,
+            vars.headerNumber,
             referenceTxData[offset + 1].toBytes() // blockProof
         );
 
-        uint256 _branchMask = branchMask.toRlpItem().toUint();
+        vars.branchMask = vars.branchMaskBytes.toRlpItem().toUint();
         require(
-            _branchMask &
+            vars.branchMask &
                 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000 ==
                 0,
             "Branch mask should be 32 bits"
@@ -145,9 +158,9 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
         // In predicates, the exitId will be evaluated by shifting the ageOfInput left by 1 bit
         // (Only in erc20Predicate) Last bit is to differentiate whether the sender or receiver of the in-flight tx is starting an exit
         return
-            (getExitableAt(createdAt) << 127) |
-            (blockNumber << 32) |
-            _branchMask;
+            (getExitableAt(vars.createdAt) << 127) |
+            (vars.blockNumber << 32) |
+            vars.branchMask;
     }
 
     function startExitWithDepositedTokens(

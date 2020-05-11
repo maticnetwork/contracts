@@ -48,7 +48,6 @@ contract RootChain is RootChainStorage, IRootChain {
         IStakeManager stakeManager = IStakeManager(
             registry.getStakeManagerAddress()
         );
-        // blockInterval, voteHash, stateRoot, sigs
         uint256 _reward = stakeManager.checkSignatures(
             end.sub(start).add(1),
             /**  
@@ -58,8 +57,10 @@ contract RootChain is RootChainStorage, IRootChain {
              */
             keccak256(abi.encodePacked(bytes(hex"01"), data)),
             accountHash,
+            proposer,
             sigs
         );
+
         require(_reward != 0, "Invalid checkpoint");
         emit NewHeaderBlock(
             proposer,
