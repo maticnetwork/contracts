@@ -99,6 +99,23 @@ contract('ValidatorShare', async function() {
       testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'))
     })
 
+    describe('when delegation is disabled', function() {
+      deployAliceAndBob()
+
+      before('disable delegation', async function() {
+        await this.governance.update(
+          this.stakeManager.address,
+          this.stakeManager.contract.methods.setDelegationEnabled(false).encodeABI()
+        )
+      })
+
+      it('reverts', async function() {
+        await expectRevert(this.validatorContract.buyVoucher(web3.utils.toWei('150'), {
+          from: this.alice
+        }), 'Delegation is disabled')
+      })
+    })
+
     describe('when Alice purchases voucher 3 times in a row, no checkpoints inbetween', function() {
       deployAliceAndBob()
 
@@ -139,11 +156,11 @@ contract('ValidatorShare', async function() {
 
       describe('2nd purchase', async function() {
         advanceCheckpointAfter()
-        testBuyVoucher(web3.utils.toWei('150'), web3.utils.toWei('250'), web3.utils.toWei('250'), '2941176470588235294')
+        testBuyVoucher(web3.utils.toWei('150'), web3.utils.toWei('250'), web3.utils.toWei('250'), '3260869565217391304')
       })
 
       describe('3rd purchase', async function() {
-        testBuyVoucher(web3.utils.toWei('250'), web3.utils.toWei('500'), web3.utils.toWei('500'), '2076756936368167469')
+        testBuyVoucher(web3.utils.toWei('250'), web3.utils.toWei('500'), web3.utils.toWei('500'), '2309468822170900692')
       })
     })
 
@@ -207,7 +224,7 @@ contract('ValidatorShare', async function() {
           this.user = this.bob
         })
 
-        testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('200'), '1960784313725490196')
+        testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('200'), '2173913043478260869')
       })
 
       describe('when Alice stakes 2nd time', function() {
@@ -216,7 +233,7 @@ contract('ValidatorShare', async function() {
           this.user = this.alice
         })
 
-        testBuyVoucher(web3.utils.toWei('200'), web3.utils.toWei('300'), web3.utils.toWei('400'), '1718508334765423612')
+        testBuyVoucher(web3.utils.toWei('200'), web3.utils.toWei('300'), web3.utils.toWei('400'), '1909854851031321619')
       })
 
       describe('when Bob stakes 2nd time', function() {
@@ -224,7 +241,7 @@ contract('ValidatorShare', async function() {
           this.user = this.bob
         })
 
-        testBuyVoucher(web3.utils.toWei('200'), web3.utils.toWei('300'), web3.utils.toWei('600'), '1033378113051565567')
+        testBuyVoucher(web3.utils.toWei('200'), web3.utils.toWei('300'), web3.utils.toWei('600'), '1150152395192362988')
       })
     })
   })
@@ -269,7 +286,7 @@ contract('ValidatorShare', async function() {
       })
 
       it('exchange rate must be correct', async function() {
-        assertBigNumberEquality(await this.validatorContract.exchangeRate(), '5100')
+        assertBigNumberEquality(await this.validatorContract.exchangeRate(), '4600')
       })
     })
 
@@ -308,29 +325,30 @@ contract('ValidatorShare', async function() {
   })
 
   describe('sellVoucher', function() {
-    describe('when Alice sells voucher', function() {
-      before(doDeploy)
-      before(async function() {
-        this.user = wallets[2].getAddressString()
-        await this.stakeToken.mint(
-          this.user,
-          this.stakeAmount
-        )
-        await this.stakeToken.approve(this.stakeManager.address, web3.utils.toWei('100'), {
-          from: this.user
-        })
+    async function doDeployAndBuyVoucherForAlice() {
+      await doDeploy.call(this)
 
-        await this.validatorContract.buyVoucher(web3.utils.toWei('100'), {
-          from: this.user
-        })
-
-        this.shares = await this.validatorContract.balanceOf(this.user)
-
-        for (let i = 0; i < 4; i++) {
-          await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
-        }
+      this.user = wallets[2].getAddressString()
+      await this.stakeToken.mint(
+        this.user,
+        this.stakeAmount
+      )
+      await this.stakeToken.approve(this.stakeManager.address, web3.utils.toWei('100'), {
+        from: this.user
       })
 
+      await this.validatorContract.buyVoucher(web3.utils.toWei('100'), {
+        from: this.user
+      })
+
+      this.shares = await this.validatorContract.balanceOf(this.user)
+
+      for (let i = 0; i < 4; i++) {
+        await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
+      }
+    }
+
+    function testSellVoucher() {
       it('must sell voucher', async function() {
         this.receipt = await this.validatorContract.sellVoucher({
           from: this.user
@@ -342,11 +360,29 @@ contract('ValidatorShare', async function() {
           tokens: this.shares
         })
       })
+    }
+
+    describe('when Alice sells voucher', function() {
+      before(doDeployAndBuyVoucherForAlice)
+
+      testSellVoucher()
+    })
+
+    describe('when delegation is disabled after voucher was purchased by Alice', function() {
+      before(doDeployAndBuyVoucherForAlice)
+      before('disable delegation', async function() {
+        await this.governance.update(
+          this.stakeManager.address,
+          this.stakeManager.contract.methods.setDelegationEnabled(false).encodeABI()
+        )
+      })
+
+      testSellVoucher()
     })
   })
 
   describe('withdrawRewards', function() {
-    const rewards = new BN('98039215686274509803')
+    const rewards = new BN('97826086956521739130')
 
     before(doDeploy)
     before(async function() {
@@ -382,18 +418,28 @@ contract('ValidatorShare', async function() {
     })
 
     it('must emit Transfer', async function() {
+      const proposerBonus = await this.stakeManager.proposerBonus()
+      // 1st staker had stakeAmount and voucher also has stakeAmount - 50%/50% split of reward
+      let expectedReward = (await this.stakeManager.CHECKPOINT_REWARD()).div(new BN(2))
+      expectedReward = expectedReward.mul(new BN('100').sub(proposerBonus)).div(new BN('100'))
+
       await expectEvent.inTransaction(this.receipt.tx, TestToken, 'Transfer', {
         from: this.stakeManager.address,
         to: this.user,
-        value: (await this.stakeManager.CHECKPOINT_REWARD()).div(new BN(2)) // 1st staker had stakeAmount and voucher also has stakeAmount - 50%/50% split of reward
+        value: expectedReward
       })
     })
 
     it('must emit DelClaimRewards', async function() {
+      const proposerBonus = await this.stakeManager.proposerBonus()
+      // 1st staker had stakeAmount and voucher also has stakeAmount - 50%/50% split of reward
+      let expectedReward = (await this.stakeManager.CHECKPOINT_REWARD()).div(new BN(2))
+      expectedReward = expectedReward.mul(new BN('100').sub(proposerBonus)).div(new BN('100'))
+
       await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'DelClaimRewards', {
         validatorId: this.validatorId,
         user: this.user,
-        rewards: (await this.stakeManager.CHECKPOINT_REWARD()).div(new BN(2)), // 1st staker had stakeAmount and voucher also has stakeAmount - 50%/50% split of reward
+        rewards: expectedReward,
         tokens: rewards
       })
     })
@@ -422,10 +468,10 @@ contract('ValidatorShare', async function() {
       })
 
       it('must have correct luquid rewards', async function() {
-        this.totalStaked = this.totalStaked.add(new BN(web3.utils.toWei('5000')))
+        this.totalStaked = this.totalStaked.add(new BN(web3.utils.toWei('4500')))
 
         let rewards = await this.validatorContract.getLiquidRewards(this.user)
-        assertBigNumberEquality(rewards, web3.utils.toWei('5000'))
+        assertBigNumberEquality(rewards, web3.utils.toWei('4500'))
       })
 
       it('must restake', async function() {
@@ -548,7 +594,7 @@ contract('ValidatorShare', async function() {
         })
 
         it('liquid rewards must be correct', async function() {
-          assertBigNumberEquality(await this.validatorContract.getLiquidRewards(this.user), web3.utils.toWei('2500'))
+          assertBigNumberEquality(await this.validatorContract.getLiquidRewards(this.user), web3.utils.toWei('2250'))
         })
       })
     })
@@ -596,21 +642,21 @@ contract('ValidatorShare', async function() {
           })
         })
         // get 25% of checkpoint rewards
-        testAfterComissionChange(web3.utils.toWei('2500'), '2600')
+        testAfterComissionChange(web3.utils.toWei('2250'), '2350')
       })
 
       testCommisionRate('50', '100')
 
       describe('after commision rate changed', function() {
         // get 0% of checkpoint rewards
-        testAfterComissionChange(web3.utils.toWei('2500'), '2600')
+        testAfterComissionChange(web3.utils.toWei('2250'), '2350')
       })
 
       testCommisionRate('100', '0')
 
       describe('after commision rate changed', function() {
         // get only 50% of checkpoint rewards
-        testAfterComissionChange(web3.utils.toWei('7500'), '7600')
+        testAfterComissionChange(web3.utils.toWei('6750'), '6850')
       })
     })
 

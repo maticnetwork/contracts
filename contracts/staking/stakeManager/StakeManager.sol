@@ -19,6 +19,7 @@ import {StakingNFT} from "./StakingNFT.sol";
 import "../validatorShare/ValidatorShareFactory.sol";
 import {ISlashingManager} from "../slashing/ISlashingManager.sol";
 import {StakeManagerStorage} from "./StakeManagerStorage.sol";
+import { Governable } from "../../common/governance/Governable.sol";
 
 
 contract StakeManager is IStakeManager, StakeManagerStorage {
@@ -36,6 +37,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     }
 
     constructor() public Lockable(address(0x0)) {}
+
+    function setDelegationEnabled(bool enabled) public onlyGovernance {
+        delegationEnabled = enabled;
+    }
 
     // TopUp heimdall fee
     function topUpForFee(uint256 validatorId, uint256 heimdallFee)
@@ -299,6 +304,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 amount,
         address delegator
     ) external returns (bool) {
+        require(delegationEnabled, "Delegation is disabled");
         require(
             validators[validatorId].contractAddress == msg.sender,
             "Invalid contract address"
@@ -313,7 +319,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         bool acceptDelegation,
         bytes memory signerPubkey
     ) public onlyWhenUnlocked {
-        require(currentValidatorSetSize() < validatorThreshold);
+        require(
+            currentValidatorSetSize() < validatorThreshold,
+            "Validator set Threshold exceeded!"
+        );
         require(amount > minDeposit);
         require(heimdallFee >= minHeimdallFee, "Minimum amount is 1 Matic");
 
@@ -479,6 +488,16 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         replacementCoolDown = currentEpoch.add(auctionPeriod);
     }
 
+    function updateProposerBonus(uint256 newProposerBonus) public onlyOwner {
+        logger.logProposerBonusChange(newProposerBonus, proposerBonus);
+        require(newProposerBonus <= 100, "Proposer bonus should be less than or equal to 100");
+        proposerBonus = newProposerBonus;
+    }
+
+    function updateSignerUpdateLimit(uint256 _limit) public onlyOwner {
+        signerUpdateLimit = _limit;
+    }
+
     function updateMinAmounts(uint256 _minDeposit, uint256 _minHeimdallFee)
         public
         onlyOwner
@@ -492,7 +511,15 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         onlyStaker(validatorId)
     {
         address _signer = pubToAddress(signerPubkey);
-        require(_signer != address(0x0) && signerToValidator[_signer] == 0);
+        require(
+            _signer != address(0x0) && signerToValidator[_signer] == 0,
+            "Invalid Signer!"
+        );
+        require(
+            epoch() >=
+                latestSignerUpdateEpoch[validatorId].add(signerUpdateLimit),
+            "Invalid checkpoint number!"
+        );
 
         // update signer event
         logger.logSignerChange(
@@ -505,6 +532,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         signerToValidator[validators[validatorId].signer] = INCORRECT_VALIDATOR_ID;
         signerToValidator[_signer] = validatorId;
         validators[validatorId].signer = _signer;
+        // reset update time to current time
+        latestSignerUpdateEpoch[validatorId] = epoch();
     }
 
     function currentValidatorSetSize() public view returns (uint256) {
@@ -536,6 +565,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 blockInterval,
         bytes32 voteHash,
         bytes32 stateRoot,
+        address proposer,
         bytes memory sigs
     ) public onlyRootChain returns (uint256) {
         // checkpoint rewards are based on BlockInterval multiplied on `CHECKPOINT_REWARD`
@@ -546,7 +576,18 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             checkPointBlockInterval
         );
         _reward = Math.min(CHECKPOINT_REWARD, _reward);
+        uint256 _proposerBonus = _reward.mul(proposerBonus).div(100);
+        Validator storage _proposer = validators[signerToValidator[proposer]];
+        if (_proposer.contractAddress != address(0x0)) {
+            ValidatorShare(_proposer.contractAddress).addProposerBonus(
+                _proposerBonus,
+                _proposer.amount
+            );
+        } else {
+            _proposer.reward = _proposer.reward.add(_proposerBonus);
+        }
 
+        _reward = _reward.sub(_proposerBonus);
         uint256 stakePower = currentValidatorSetTotalStake();
         // update stateMerkleTree root for accounts balance on heimdall chain
         accountStateRoot = stateRoot;
@@ -714,6 +755,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             status: Status.Active
         });
 
+        latestSignerUpdateEpoch[NFTCounter] = currentEpoch;
         NFTContract.mint(user, NFTCounter);
 
         signerToValidator[signer] = NFTCounter;

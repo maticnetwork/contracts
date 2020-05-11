@@ -97,7 +97,7 @@ contract('Slashing:validator', async function(accounts) {
       assert.equal(await stakeManager.isValidator(2), true)
       await checkPoint([validator1Wallet, validator2Wallet], validator1Wallet, stakeManager)
       const validator2 = await stakeManager.validators(2)
-      assertBigNumbergt(validator2.reward, web3.utils.toWei('4700'))
+      assertBigNumbergt(validator2.reward, web3.utils.toWei('4260')) // 4700-10% proposer bonus
     })
   })
 })

@@ -56,6 +56,7 @@ contract RootChain is RootChainStorage, IRootChain {
             headerBlock.end.sub(headerBlock.start).add(1), // blockInterval
             keccak256(vote), //voteHash
             bytes32(extraData[4].toUint()), //stateRoot
+            headerBlock.proposer,
             sigs
         );
         require(_reward != 0, "Invalid checkpoint");

@@ -274,6 +274,9 @@ module.exports = function(accounts) {
       before(freshDeploy)
       before(doStake(AliceWallet))
       before('Change signer', async function() {
+        const signerUpdateLimit = await this.stakeManager.signerUpdateLimit()
+        await this.stakeManager.advanceEpoch(signerUpdateLimit)
+
         this.validatorId = await this.stakeManager.getValidatorId(AliceWallet.getAddressString())
         await this.stakeManager.updateSigner(this.validatorId, newSigner, {
           from: AliceWallet.getAddressString()
@@ -652,8 +655,14 @@ module.exports = function(accounts) {
       return async function() {
         await freshDeploy.call(this)
 
+        const checkpointReward = new BN(web3.utils.toWei('10000'))
+
+        await this.stakeManager.updateCheckpointReward(checkpointReward)
         await this.stakeManager.updateDynastyValue(8)
         await this.stakeManager.updateCheckPointBlockInterval(1)
+
+        const proposerBonus = 10
+        await this.stakeManager.updateProposerBonus(proposerBonus)
 
         for (const wallet of initialStakers) {
           await approveAndStake.call(this, { wallet, stakeAmount: initialStake, acceptDelegation })
@@ -662,11 +671,12 @@ module.exports = function(accounts) {
         // cooldown period
         let auctionPeriod = (await this.stakeManager.auctionPeriod()).toNumber()
         let currentEpoch = (await this.stakeManager.currentEpoch()).toNumber()
-        this.validatorReward = new BN(web3.utils.toWei('10000')).mul(new BN(auctionPeriod - currentEpoch))
+
         for (let i = currentEpoch; i <= auctionPeriod; i++) {
           await checkPoint(initialStakers, this.rootChainOwner, this.stakeManager)
         }
-
+        // without 10% proposer bonus
+        this.validatorReward = checkpointReward.mul(new BN(100 - proposerBonus)).div(new BN(100)).mul(new BN(auctionPeriod - currentEpoch))
         this.validatorId = '1'
         this.user = initialStakers[0].getAddressString()
         this.amount = web3.utils.toWei('100')
