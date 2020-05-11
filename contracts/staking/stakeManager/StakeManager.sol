@@ -28,6 +28,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     using Merkle for bytes32;
     using RLPReader for bytes;
     using RLPReader for RLPReader.RLPItem;
+    
+    uint256 private constant INCORRECT_VALIDATOR_ID = 2 ** 256 - 1;
 
     modifier onlyStaker(uint256 validatorId) {
         require(NFTContract.ownerOf(validatorId) == msg.sender);
@@ -201,8 +203,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         require(msg.sender == auction.user, "Only bidder can confirm");
 
         require(
-            currentEpoch.sub(auction.startEpoch) % auctionPeriod.add(dynasty) >=
-                auctionPeriod,
+            currentEpoch.sub(auction.startEpoch) % auctionPeriod.add(dynasty) >= auctionPeriod,
             "Confirmation is not allowed before auctionPeriod"
         );
 
@@ -355,7 +356,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         totalStaked = totalStaked.sub(amount);
 
         NFTContract.burn(validatorId);
-        delete signerToValidator[validators[validatorId].signer];
+        signerToValidator[validators[validatorId].signer] = INCORRECT_VALIDATOR_ID;
         // delete validators[validatorId];
         validators[validatorId].status = Status.Unstaked;
         require(token.transfer(msg.sender, amount), "Transfer stake failed");
@@ -528,7 +529,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             signerPubkey
         );
 
-        delete signerToValidator[validators[validatorId].signer];
+        signerToValidator[validators[validatorId].signer] = INCORRECT_VALIDATOR_ID;
         signerToValidator[_signer] = validatorId;
         validators[validatorId].signer = _signer;
         // reset update time to current time
