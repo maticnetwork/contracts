@@ -92,7 +92,7 @@ contract ValidatorShare is IValidatorShare {
             commissionRate
         );
         commissionRate = newCommissionRate;
-        lastUpdate = epoch;
+        lastCommissionUpdate = epoch;
     }
 
     function withdrawRewardsValidator()

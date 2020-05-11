@@ -20,7 +20,7 @@ contract IValidatorShare is ERC20, Lockable, Ownable {
     uint256 public validatorRewards;
     uint256 public commissionRate;
     //last checkpoint where validator updated commission rate
-    uint256 public lastUpdate;
+    uint256 public lastCommissionUpdate;
     uint256 public validatorDelegatorRatio = 10;
     uint256 public minAmount = 10**18;
 
