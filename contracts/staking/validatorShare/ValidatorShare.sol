@@ -76,10 +76,9 @@ contract ValidatorShare is IValidatorShare {
         onlyValidator
     {
         uint256 epoch = stakeManager.epoch();
-        uint256 epoch = stakeManager.epoch();
-        require(
-            (lastCommissionUpdate.add(stakeManager.dynasty()) <= epoch) ||
-                lastCommissionUpdate == 0, // For initial setting of commission rate
+        require( // withdrawalDelay == dynasty
+            (lastCommissionUpdate.add(stakeManager.withdrawalDelay()) <=
+                epoch) || lastCommissionUpdate == 0, // For initial setting of commission rate
             "Commission rate update cool down period"
         );
         require(

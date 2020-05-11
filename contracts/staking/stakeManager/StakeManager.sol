@@ -19,7 +19,7 @@ import {StakingNFT} from "./StakingNFT.sol";
 import "../validatorShare/ValidatorShareFactory.sol";
 import {ISlashingManager} from "../slashing/ISlashingManager.sol";
 import {StakeManagerStorage} from "./StakeManagerStorage.sol";
-import { Governable } from "../../common/governance/Governable.sol";
+import {Governable} from "../../common/governance/Governable.sol";
 
 
 contract StakeManager is IStakeManager, StakeManagerStorage {
@@ -487,9 +487,17 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         replacementCoolDown = currentEpoch.add(auctionPeriod);
     }
 
+    // Housekeeping function. @todo remove later
+    function stopAuctions(uint256 forNCheckpoints) public onlyOwner {
+        replacementCoolDown = currentEpoch.add(forNCheckpoints);
+    }
+
     function updateProposerBonus(uint256 newProposerBonus) public onlyOwner {
         logger.logProposerBonusChange(newProposerBonus, proposerBonus);
-        require(newProposerBonus <= 100, "Proposer bonus should be less than or equal to 100");
+        require(
+            newProposerBonus <= 100,
+            "Proposer bonus should be less than or equal to 100"
+        );
         proposerBonus = newProposerBonus;
     }
 
