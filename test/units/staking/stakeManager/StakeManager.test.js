@@ -344,6 +344,42 @@ contract('StakeManager', async function(accounts) {
     })
   })
 
+  describe('setDelegationEnabled', function() {
+    describe('when from is governance', function() {
+      before(freshDeploy)
+
+      it('must disable delegation', async function() {
+        await this.governance.update(
+          this.stakeManager.address,
+          this.stakeManager.contract.methods.setDelegationEnabled(false).encodeABI()
+        )
+      })
+
+      it('delegationEnabled must be false', async function() {
+        assert.isFalse(await this.stakeManager.delegationEnabled())
+      })
+
+      it('must enable delegation', async function() {
+        await this.governance.update(
+          this.stakeManager.address,
+          this.stakeManager.contract.methods.setDelegationEnabled(true).encodeABI()
+        )
+      })
+
+      it('delegationEnabled must be true', async function() {
+        assert.isTrue(await this.stakeManager.delegationEnabled())
+      })
+    })
+
+    describe('when from is not governance', function() {
+      before(freshDeploy)
+
+      it('reverts', async function() {
+        await expectRevert(this.stakeManager.setDelegationEnabled(false), 'Only governance contract is authorized')
+      })
+    })
+  })
+
   describe('updateSigner', function() {
     const w = [wallets[3], wallets[5]]
     const user = wallets[3].getChecksumAddressString()
