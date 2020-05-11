@@ -465,12 +465,15 @@ contract('StakeManager', async function(accounts) {
         await this.stakeManager.updateSigner(this.validatorId, wallets[0].getPublicKeyString(), {
           from: user
         })
+
+        const signerUpdateLimit = await this.stakeManager.signerUpdateLimit()
+        await this.stakeManager.advanceEpoch(signerUpdateLimit)
       })
 
       it('reverts', async function() {
-        await expectRevert.unspecified(this.stakeManager.updateSigner(this.validatorId, userOriginalPubKey, {
+        await expectRevert(this.stakeManager.updateSigner(this.validatorId, userOriginalPubKey, {
           from: user
-        }))
+        }), 'Invalid Signer!')
       })
     })
 
@@ -485,9 +488,9 @@ contract('StakeManager', async function(accounts) {
       })
 
       it('reverts', async function() {
-        await expectRevert.unspecified(this.stakeManager.updateSigner(this.validatorId, wallets[6].getPublicKeyString(), {
+        await expectRevert(this.stakeManager.updateSigner(this.validatorId, wallets[6].getPublicKeyString(), {
           from: user
-        }))
+        }), 'Invalid checkpoint number!')
       })
     })
 
