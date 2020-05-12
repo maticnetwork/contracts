@@ -17,7 +17,7 @@ import {
 import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
 import { wallets, freshDeploy, approveAndStake } from '../deployment'
 
-contract('StakeManager', async function(accounts) {
+contract('StakeManager', async function (accounts) {
   let owner = accounts[0]
 
   async function calculateExpectedCheckpointReward(blockInterval, amount, totalAmount, checkpointsPassed) {
@@ -38,13 +38,13 @@ contract('StakeManager', async function(accounts) {
   }
 
   function testStartAuction(user, bidAmount) {
-    it('should bid', async function() {
+    it('should bid', async function () {
       this.receipt = await this.stakeManager.startAuction(this.validatorId, bidAmount, {
         from: user
       })
     })
 
-    it('must emit StartAuction', async function() {
+    it('must emit StartAuction', async function () {
       await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'StartAuction', {
         validatorId: this.validatorId,
         amount: this.initialStakeAmount,
@@ -52,17 +52,17 @@ contract('StakeManager', async function(accounts) {
       })
     })
 
-    it('validator auction must have correct balance equal to bid amount', async function() {
+    it('validator auction must have correct balance equal to bid amount', async function () {
       let auctionData = await this.stakeManager.validatorAuction(this.validatorId)
       assertBigNumberEquality(auctionData.amount, bidAmount)
     })
 
-    it('validator auction must have correct user', async function() {
+    it('validator auction must have correct user', async function () {
       let auctionData = await this.stakeManager.validatorAuction(this.validatorId)
       assert(auctionData.user === user)
     })
 
-    it('balance must decrease by bid amount', async function() {
+    it('balance must decrease by bid amount', async function () {
       assertBigNumberEquality(
         await this.stakeToken.balanceOf(user),
         this.userOldBalance.sub(new BN(bidAmount))
@@ -71,7 +71,7 @@ contract('StakeManager', async function(accounts) {
   }
 
   function testConfirmAuctionBidForNewValidator() {
-    it('must confirm auction with heimdall fee', async function() {
+    it('must confirm auction with heimdall fee', async function () {
       this.receipt = await this.stakeManager.confirmAuctionBid(
         this.validatorId,
         this.heimdallFee,
@@ -83,7 +83,7 @@ contract('StakeManager', async function(accounts) {
       )
     })
 
-    it('must emit Staked', async function() {
+    it('must emit Staked', async function () {
       await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'Staked', {
         signer: this.bidder,
         signerPubkey: this.bidderPubKey,
@@ -94,7 +94,7 @@ contract('StakeManager', async function(accounts) {
       })
     })
 
-    it('must emit UnstakeInit', async function() {
+    it('must emit UnstakeInit', async function () {
       await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'UnstakeInit', {
         user: this.prevValidatorAddr,
         validatorId: this.validatorId,
@@ -103,7 +103,7 @@ contract('StakeManager', async function(accounts) {
       })
     })
 
-    it('must emit ConfirmAuction', async function() {
+    it('must emit ConfirmAuction', async function () {
       await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ConfirmAuction', {
         newValidatorId: this.newValidatorId,
         oldValidatorId: this.validatorId,
@@ -111,7 +111,7 @@ contract('StakeManager', async function(accounts) {
       })
     })
 
-    it('must emit TopUpFee', async function() {
+    it('must emit TopUpFee', async function () {
       await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'TopUpFee', {
         validatorId: this.newValidatorId,
         signer: this.bidder,
@@ -119,32 +119,32 @@ contract('StakeManager', async function(accounts) {
       })
     })
 
-    it('previous validator must get his reward', async function() {
+    it('previous validator must get his reward', async function () {
       let prevValidatorBalance = await this.stakeToken.balanceOf(this.prevValidatorAddr)
       assertBigNumberEquality(prevValidatorBalance, this.prevValidatorOldBalance.add(this.validator.reward))
     })
 
-    it('previous validator is not validator anymore', async function() {
+    it('previous validator is not validator anymore', async function () {
       assert.ok(!(await this.stakeManager.isValidator(this.validatorId)))
     })
 
-    it('new validator is validator', async function() {
+    it('new validator is validator', async function () {
       assert.ok(await this.stakeManager.isValidator(this.newValidatorId))
     })
 
-    it('bidder balance must be correct', async function() {
+    it('bidder balance must be correct', async function () {
       const currentBalance = await this.stakeToken.balanceOf(this.bidder)
       assertBigNumberEquality(this.bidderBalanceBeforeAuction.sub(new BN(this.bidAmount)).sub(new BN(this.heimdallFee)), currentBalance)
     })
   }
 
-  describe('checkSignatures', function() {
+  describe('checkSignatures', function () {
     function prepareToTest(stakers, checkpointBlockInterval = 1) {
       before('Fresh deploy', freshDeploy)
-      before('updateCheckPointBlockInterval', async function() {
+      before('updateCheckPointBlockInterval', async function () {
         await this.stakeManager.updateCheckPointBlockInterval(checkpointBlockInterval)
       })
-      before('Approve and stake', async function() {
+      before('Approve and stake', async function () {
         this.totalAmount = new BN(0)
 
         for (const staker of stakers) {
@@ -156,7 +156,7 @@ contract('StakeManager', async function(accounts) {
     }
 
     function testCheckpointing(stakers, blockInterval, checkpointsPassed, expectedRewards) {
-      it('must checkpoint', async function() {
+      it('must checkpoint', async function () {
         let _count = checkpointsPassed
         while (_count-- > 0) {
           await checkPoint(stakers.map(x => x.wallet), this.rootChainOwner, this.stakeManager, { blockInterval })
@@ -167,15 +167,15 @@ contract('StakeManager', async function(accounts) {
       for (const staker of stakers) {
         let stakerIndex = index + 1
         index++
-        it(`staker #${stakerIndex} must have ${expectedRewards[staker.wallet.getAddressString()]} reward`, async function() {
+        it(`staker #${stakerIndex} must have ${expectedRewards[staker.wallet.getAddressString()]} reward`, async function () {
           const validatorId = await this.stakeManager.getValidatorId(staker.wallet.getAddressString())
           const validator = await this.stakeManager.validators(validatorId)
           assertBigNumberEquality(validator.reward, expectedRewards[staker.wallet.getAddressString()])
         })
       }
     }
-    
-    describe('when 2 validators stakes, block interval 1, 1 epoch', function() {
+
+    describe('when 2 validators stakes, block interval 1, 1 epoch', function () {
       const stakers = [
         { wallet: wallets[2], stake: new BN(web3.utils.toWei('100')) },
         { wallet: wallets[3], stake: new BN(web3.utils.toWei('200')) }
@@ -183,8 +183,8 @@ contract('StakeManager', async function(accounts) {
 
       prepareToTest(stakers)
 
-      describe('when proposer bonus is 10%', function() {
-        before(async function() {
+      describe('when proposer bonus is 10%', function () {
+        before(async function () {
           await this.stakeManager.updateProposerBonus(10)
         })
 
@@ -194,8 +194,8 @@ contract('StakeManager', async function(accounts) {
         })
       })
 
-      describe('when proposer updates bonus to 5%', function() {
-        before(async function() {
+      describe('when proposer updates bonus to 5%', function () {
+        before(async function () {
           await this.stakeManager.updateProposerBonus(5)
         })
 
@@ -206,7 +206,7 @@ contract('StakeManager', async function(accounts) {
       })
     })
 
-    describe('when 3 validators stake', function() {
+    describe('when 3 validators stake', function () {
       let stakers = [
         { wallet: wallets[2], stake: new BN(web3.utils.toWei('100')) },
         { wallet: wallets[3], stake: new BN(web3.utils.toWei('200')) },
@@ -214,14 +214,14 @@ contract('StakeManager', async function(accounts) {
       ]
 
       function runTests(checkpointBlockInterval, blockInterval, epochs, expectedRewards) {
-        describe(`when ${epochs} epoch passed`, function() {
+        describe(`when ${epochs} epoch passed`, function () {
           prepareToTest(stakers, checkpointBlockInterval)
           testCheckpointing(stakers, blockInterval, epochs, expectedRewards)
         })
       }
 
-      describe('when checkpoint block interval is 1', function() {
-        describe('when block interval is 1', function() {
+      describe('when checkpoint block interval is 1', function () {
+        describe('when block interval is 1', function () {
           runTests(1, 1, 1, {
             [stakers[0].wallet.getAddressString()]: '1500000000000000000000',
             [stakers[1].wallet.getAddressString()]: '3000000000000000000000',
@@ -233,8 +233,8 @@ contract('StakeManager', async function(accounts) {
             [stakers[2].wallet.getAddressString()]: '22500000000000000000000'
           })
         })
-  
-        describe('when block interval is 10', function() {
+
+        describe('when block interval is 10', function () {
           runTests(1, 10, 1, {
             [stakers[0].wallet.getAddressString()]: '1500000000000000000000',
             [stakers[1].wallet.getAddressString()]: '3000000000000000000000',
@@ -248,8 +248,8 @@ contract('StakeManager', async function(accounts) {
         })
       })
 
-      describe('when checkpoint block interval is 10', function() {
-        describe('when block interval is 1', function() {
+      describe('when checkpoint block interval is 10', function () {
+        describe('when block interval is 1', function () {
           runTests(10, 1, 1, {
             [stakers[0].wallet.getAddressString()]: '150000000000000000000',
             [stakers[1].wallet.getAddressString()]: '300000000000000000000',
@@ -261,8 +261,8 @@ contract('StakeManager', async function(accounts) {
             [stakers[2].wallet.getAddressString()]: '2250000000000000000000'
           })
         })
-  
-        describe('when block interval is 5', function() {
+
+        describe('when block interval is 5', function () {
           runTests(10, 5, 1, {
             [stakers[0].wallet.getAddressString()]: '750000000000000000000',
             [stakers[1].wallet.getAddressString()]: '1500000000000000000000',
@@ -277,9 +277,9 @@ contract('StakeManager', async function(accounts) {
       })
     })
 
-    describe('when payload is invalid', function() {
+    describe('when payload is invalid', function () {
       beforeEach(freshDeploy)
-      beforeEach('Prepare to test', async function() {
+      beforeEach('Prepare to test', async function () {
         this.amount = new BN(web3.utils.toWei('200'))
         this.wallets = [wallets[2]]
         this.voteData = 'dummyData'
@@ -296,7 +296,7 @@ contract('StakeManager', async function(accounts) {
       })
 
       function testRevert() {
-        it('must revert', async function() {
+        it('must revert', async function () {
           await expectRevert.unspecified(this.stakeManager.checkSignatures(
             1,
             utils.bufferToHex(utils.keccak256(this.voteData)),
@@ -310,32 +310,32 @@ contract('StakeManager', async function(accounts) {
         })
       }
 
-      describe('when sigs is empty', function() {
-        beforeEach(function() {
+      describe('when sigs is empty', function () {
+        beforeEach(function () {
           this.sigs = []
         })
 
         testRevert()
       })
 
-      describe.skip('when proposer is not validator', function() {
-        beforeEach(function() {
+      describe.skip('when proposer is not validator', function () {
+        beforeEach(function () {
           this.proposer = wallets[1].getAddressString()
         })
 
         testRevert()
       })
 
-      describe('when sigs is random string', function() {
-        beforeEach(function() {
+      describe('when sigs is random string', function () {
+        beforeEach(function () {
           this.sigs = utils.bufferToHex(utils.keccak256('random_string'))
         })
 
         testRevert()
       })
 
-      describe('when from is not root chain', function() {
-        beforeEach(function() {
+      describe('when from is not root chain', function () {
+        beforeEach(function () {
           this.rootChainOwner = wallets[2]
         })
 
@@ -344,43 +344,43 @@ contract('StakeManager', async function(accounts) {
     })
   })
 
-  describe('setDelegationEnabled', function() {
-    describe('when from is governance', function() {
+  describe('setDelegationEnabled', function () {
+    describe('when from is governance', function () {
       before(freshDeploy)
 
-      it('must disable delegation', async function() {
+      it('must disable delegation', async function () {
         await this.governance.update(
           this.stakeManager.address,
           this.stakeManager.contract.methods.setDelegationEnabled(false).encodeABI()
         )
       })
 
-      it('delegationEnabled must be false', async function() {
+      it('delegationEnabled must be false', async function () {
         assert.isFalse(await this.stakeManager.delegationEnabled())
       })
 
-      it('must enable delegation', async function() {
+      it('must enable delegation', async function () {
         await this.governance.update(
           this.stakeManager.address,
           this.stakeManager.contract.methods.setDelegationEnabled(true).encodeABI()
         )
       })
 
-      it('delegationEnabled must be true', async function() {
+      it('delegationEnabled must be true', async function () {
         assert.isTrue(await this.stakeManager.delegationEnabled())
       })
     })
 
-    describe('when from is not governance', function() {
+    describe('when from is not governance', function () {
       before(freshDeploy)
 
-      it('reverts', async function() {
+      it('reverts', async function () {
         await expectRevert(this.stakeManager.setDelegationEnabled(false), 'Only governance contract is authorized')
       })
     })
   })
 
-  describe('updateSigner', function() {
+  describe('updateSigner', function () {
     const w = [wallets[3], wallets[5]]
     const user = wallets[3].getChecksumAddressString()
     const userOriginalPubKey = wallets[3].getPublicKeyString()
@@ -398,30 +398,30 @@ contract('StakeManager', async function(accounts) {
     }
 
     function testUpdateSigner() {
-      it('must update signer', async function() {
+      it('must update signer', async function () {
         const validatorId = await this.stakeManager.getValidatorId(user)
         this.receipt = await this.stakeManager.updateSigner(validatorId, this.userPubkey, {
           from: user
         })
       })
 
-      it('must emit SignerChange', async function() {
+      it('must emit SignerChange', async function () {
         await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'SignerChange', {
           newSigner: this.signer
         })
       })
 
-      it('must have correct signer on-chain', async function() {
+      it('must have correct signer on-chain', async function () {
         const validatorId = await this.stakeManager.getValidatorId(user)
         let stakerDetails = await this.stakeManager.validators(validatorId)
         stakerDetails.signer.should.equal(this.signer)
       })
     }
 
-    describe('when update signer to different public key', function() {
+    describe('when update signer to different public key', function () {
       before(doDeploy)
 
-      before(function() {
+      before(function () {
         this.signer = wallets[0].getChecksumAddressString()
         this.userPubkey = wallets[0].getPublicKeyString()
       })
@@ -429,11 +429,11 @@ contract('StakeManager', async function(accounts) {
       testUpdateSigner()
     })
 
-    describe('when update signer after signerUpdateLimit was update to be shorter', function() {
+    describe('when update signer after signerUpdateLimit was update to be shorter', function () {
       before(doDeploy)
 
-      describe('when update signer 1st time, signerUpdateLimit is 100', function() {
-        before('set signerUpdateLimit to 100', async function() {
+      describe('when update signer 1st time, signerUpdateLimit is 100', function () {
+        before('set signerUpdateLimit to 100', async function () {
           await this.stakeManager.updateSignerUpdateLimit(100)
           await this.stakeManager.advanceEpoch(100)
 
@@ -444,11 +444,11 @@ contract('StakeManager', async function(accounts) {
         testUpdateSigner()
       })
 
-      describe('when update signer 2nd time, after signerUpdateLimit is 10', function() {
-        before('set signerUpdateLimit to 10', async function() {
+      describe('when update signer 2nd time, after signerUpdateLimit is 10', function () {
+        before('set signerUpdateLimit to 10', async function () {
           await this.stakeManager.updateSignerUpdateLimit(10)
           await this.stakeManager.advanceEpoch(10)
-  
+
           this.signer = wallets[0].getChecksumAddressString()
           this.userPubkey = wallets[0].getPublicKeyString()
         })
@@ -457,9 +457,9 @@ contract('StakeManager', async function(accounts) {
       })
     })
 
-    describe('when update signer back to staker original public key', function() {
+    describe('when update signer back to staker original public key', function () {
       before(doDeploy)
-      before(async function() {
+      before(async function () {
         this.validatorId = await this.stakeManager.getValidatorId(user)
 
         await this.stakeManager.updateSigner(this.validatorId, wallets[0].getPublicKeyString(), {
@@ -470,16 +470,16 @@ contract('StakeManager', async function(accounts) {
         await this.stakeManager.advanceEpoch(signerUpdateLimit)
       })
 
-      it('reverts', async function() {
+      it('reverts', async function () {
         await expectRevert(this.stakeManager.updateSigner(this.validatorId, userOriginalPubKey, {
           from: user
         }), 'Invalid Signer!')
       })
     })
 
-    describe('when updating public key 2 times within signerUpdateLimit period', function() {
+    describe('when updating public key 2 times within signerUpdateLimit period', function () {
       before(doDeploy)
-      before(async function() {
+      before(async function () {
         this.validatorId = await this.stakeManager.getValidatorId(user)
 
         await this.stakeManager.updateSigner(this.validatorId, wallets[0].getPublicKeyString(), {
@@ -487,16 +487,16 @@ contract('StakeManager', async function(accounts) {
         })
       })
 
-      it('reverts', async function() {
+      it('reverts', async function () {
         await expectRevert(this.stakeManager.updateSigner(this.validatorId, wallets[6].getPublicKeyString(), {
           from: user
         }), 'Invalid checkpoint number!')
       })
     })
 
-    describe('when public key is already in use', function() {
+    describe('when public key is already in use', function () {
       before(doDeploy)
-      before(async function() {
+      before(async function () {
         this.newPubKey = wallets[0].getPublicKeyString()
 
         let validatorId = await this.stakeManager.getValidatorId(wallets[5].getAddressString())
@@ -508,30 +508,30 @@ contract('StakeManager', async function(accounts) {
         this.validatorId = validatorId
       })
 
-      it('reverts', async function() {
+      it('reverts', async function () {
         await expectRevert.unspecified(this.stakeManager.updateSigner(this.validatorId, this.newPubKey, {
           from: wallets[3].getAddressString()
         }))
       })
     })
 
-    describe('when from is not staker', function() {
+    describe('when from is not staker', function () {
       before(doDeploy)
-      before(async function() {
+      before(async function () {
         this.validatorId = await this.stakeManager.getValidatorId(user)
       })
 
-      it('reverts', async function() {
+      it('reverts', async function () {
         await expectRevert.unspecified(this.stakeManager.updateSigner(this.validatorId, wallets[6].getPublicKeyString(), {
           from: wallets[6].getAddressString()
         }))
       })
     })
 
-    describe('when validatorId is incorrect', function() {
+    describe('when validatorId is incorrect', function () {
       before(doDeploy)
 
-      it('reverts', async function() {
+      it('reverts', async function () {
         await expectRevert.unspecified(this.stakeManager.updateSigner('9999999', wallets[5].getPublicKeyString(), {
           from: user
         }))
@@ -539,47 +539,47 @@ contract('StakeManager', async function(accounts) {
     })
   })
 
-  describe('updateValidatorThreshold', function() {
+  describe('updateValidatorThreshold', function () {
     before(freshDeploy)
-    before(async function() {
+    before(async function () {
       await this.stakeManager.updateDynastyValue(2, {
         from: owner
       })
     })
 
     function testUpdate(threshold) {
-      it(`'must set validator threshold to ${threshold}'`, async function() {
+      it(`'must set validator threshold to ${threshold}'`, async function () {
         this.receipt = await this.stakeManager.updateValidatorThreshold(threshold, {
           from: owner
         })
       })
 
-      it(`validatorThreshold == ${threshold}`, async function() {
+      it(`validatorThreshold == ${threshold}`, async function () {
         const newThreshold = await this.stakeManager.validatorThreshold()
         assertBigNumberEquality(newThreshold, threshold)
       })
 
-      it('must emit ThresholdChange', async function() {
+      it('must emit ThresholdChange', async function () {
         await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ThresholdChange', {
           newThreshold: threshold.toString()
         })
       })
     }
 
-    describe('must update threshold one after another', function() {
+    describe('must update threshold one after another', function () {
       testUpdate(5)
       testUpdate(6)
       testUpdate(1)
     })
 
-    describe('reverts', function() {
-      it('when from is not owner', async function() {
+    describe('reverts', function () {
+      it('when from is not owner', async function () {
         await expectRevert.unspecified(this.stakeManager.updateValidatorThreshold(7, {
           from: accounts[1]
         }))
       })
 
-      it('when threshold == 0', async function() {
+      it('when threshold == 0', async function () {
         await expectRevert.unspecified(this.stakeManager.updateValidatorThreshold(0, {
           from: owner
         }))
@@ -587,43 +587,43 @@ contract('StakeManager', async function(accounts) {
     })
   })
 
-  describe('updateDynastyValue', function() {
-    describe('when set dynasty to 10', function() {
+  describe('updateDynastyValue', function () {
+    describe('when set dynasty to 10', function () {
       before(freshDeploy)
 
-      it('must update dynasty', async function() {
+      it('must update dynasty', async function () {
         this.receipt = await this.stakeManager.updateDynastyValue('10', {
           from: owner
         })
       })
 
-      it('must emit DynastyValueChange', async function() {
+      it('must emit DynastyValueChange', async function () {
         await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'DynastyValueChange', {
           newDynasty: '10'
         })
       })
 
-      it('WITHDRAWAL_DELAY must be 10', async function() {
+      it('WITHDRAWAL_DELAY must be 10', async function () {
         assertBigNumberEquality('10', await this.stakeManager.WITHDRAWAL_DELAY())
       })
 
-      it('dynasty must be 10', async function() {
+      it('dynasty must be 10', async function () {
         assertBigNumberEquality('10', await this.stakeManager.dynasty())
       })
 
-      it('auctionPeriod must be 2', async function() {
+      it('auctionPeriod must be 2', async function () {
         assertBigNumberEquality('2', await this.stakeManager.auctionPeriod())
       })
 
-      it('replacementCooldown must be 3', async function() {
+      it('replacementCooldown must be 3', async function () {
         assertBigNumberEquality('3', await this.stakeManager.replacementCoolDown())
       })
     })
 
-    describe('when set dynasty to 0', function() {
+    describe('when set dynasty to 0', function () {
       before(freshDeploy)
 
-      it('must revert', async function() {
+      it('must revert', async function () {
         await expectRevert.unspecified(this.stakeManager.updateDynastyValue(0, {
           from: owner
         }))
@@ -631,18 +631,18 @@ contract('StakeManager', async function(accounts) {
     })
   })
 
-  describe('updateCheckpointReward', function() {
-    describe('when set reward to 20', function() {
+  describe('updateCheckpointReward', function () {
+    describe('when set reward to 20', function () {
       before(freshDeploy)
 
-      it('must update', async function() {
+      it('must update', async function () {
         this.oldReward = await this.stakeManager.CHECKPOINT_REWARD()
         this.receipt = await this.stakeManager.updateCheckpointReward(20, {
           from: owner
         })
       })
 
-      it('must emit RewardUpdate', async function() {
+      it('must emit RewardUpdate', async function () {
         await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'RewardUpdate', {
           newReward: '20',
           oldReward: this.oldReward
@@ -650,10 +650,10 @@ contract('StakeManager', async function(accounts) {
       })
     })
 
-    describe('when set reward to 0', function() {
+    describe('when set reward to 0', function () {
       before(freshDeploy)
 
-      it('must revert', async function() {
+      it('must revert', async function () {
         await expectRevert.unspecified(this.stakeManager.updateCheckpointReward(0, {
           from: owner
         }))
@@ -661,7 +661,7 @@ contract('StakeManager', async function(accounts) {
     })
   })
 
-  describe('withdrawRewards', function() {
+  describe('withdrawRewards', function () {
     const Alice = wallets[2]
     const Bob = wallets[3]
 
@@ -690,14 +690,14 @@ contract('StakeManager', async function(accounts) {
     }
 
     function runTests(epochs) {
-      describe(`when Alice and Bob stakes for ${epochs} epochs`, function() {
-        before(function() {
+      describe(`when Alice and Bob stakes for ${epochs} epochs`, function () {
+        before(function () {
           this.epochs = epochs
         })
 
         before(doDeploy)
 
-        it('Alice must have correct balance', async function() {
+        it('Alice must have correct balance', async function () {
           const user = Alice.getAddressString()
           const validatorId = await this.stakeManager.getValidatorId(user)
           const beforeBalance = await this.stakeToken.balanceOf(user)
@@ -711,7 +711,7 @@ contract('StakeManager', async function(accounts) {
           assertBigNumberEquality(afterBalance, this.expectedReward.add(beforeBalance))
         })
 
-        it('Bob must have correct balance', async function() {
+        it('Bob must have correct balance', async function () {
           const user = Bob.getAddressString()
           const validatorId = await this.stakeManager.getValidatorId(user)
           const beforeBalance = await this.stakeToken.balanceOf(user)
@@ -730,10 +730,10 @@ contract('StakeManager', async function(accounts) {
     runTests(1)
     runTests(10)
 
-    describe('reverts', function() {
+    describe('reverts', function () {
       beforeEach(doDeploy)
 
-      it('when from is not staker', async function() {
+      it('when from is not staker', async function () {
         const user = Bob.getAddressString()
         const validatorId = await this.stakeManager.getValidatorId(user)
         await expectRevert.unspecified(this.stakeManager.withdrawRewards(validatorId, {
@@ -741,7 +741,7 @@ contract('StakeManager', async function(accounts) {
         }))
       })
 
-      it('when validatorId is invalid', async function() {
+      it('when validatorId is invalid', async function () {
         await expectRevert.unspecified(this.stakeManager.withdrawRewards('99999', {
           from: Alice.getAddressString()
         }))
@@ -749,11 +749,11 @@ contract('StakeManager', async function(accounts) {
     })
   })
 
-  describe('Staking', function() {
+  describe('Staking', function () {
     require('./StakeManager.Staking')(accounts)
   })
 
-  describe('topUpForFee', function() {
+  describe('topUpForFee', function () {
     const wallet = wallets[1]
     const user = wallet.getAddressString()
     const amount = web3.utils.toWei('200')
@@ -764,9 +764,9 @@ contract('StakeManager', async function(accounts) {
       await approveAndStake.call(this, { wallet, stakeAmount: amount })
     }
 
-    describe('when user tops up', function() {
+    describe('when user tops up', function () {
       function testTopUp() {
-        it('must top up', async function() {
+        it('must top up', async function () {
           await this.stakeToken.approve(this.stakeManager.address, fee, {
             from: user
           })
@@ -777,7 +777,7 @@ contract('StakeManager', async function(accounts) {
           })
         })
 
-        it('must emit TopUpFee', async function() {
+        it('must emit TopUpFee', async function () {
           await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'TopUpFee', {
             signer: wallet.getChecksumAddressString(),
             fee
@@ -785,33 +785,33 @@ contract('StakeManager', async function(accounts) {
         })
       }
 
-      describe('once', function() {
+      describe('once', function () {
         before(doDeploy)
 
         testTopUp()
       })
 
-      describe('2 times within same checkpoint', function() {
+      describe('2 times within same checkpoint', function () {
         before(doDeploy)
 
-        describe('1st top up', function() {
+        describe('1st top up', function () {
           testTopUp()
         })
 
-        describe('2nd top up', function() {
+        describe('2nd top up', function () {
           testTopUp()
         })
       })
 
-      describe('2 times with 1 checkpoint between', function() {
+      describe('2 times with 1 checkpoint between', function () {
         before(doDeploy)
 
-        describe('1st top up', function() {
+        describe('1st top up', function () {
           testTopUp()
         })
 
-        describe('2nd top up', function() {
-          before(async function() {
+        describe('2nd top up', function () {
+          before(async function () {
             await checkPoint([wallet], this.rootChainOwner, this.stakeManager)
           })
 
@@ -820,10 +820,10 @@ contract('StakeManager', async function(accounts) {
       })
     })
 
-    describe('reverts', function() {
+    describe('reverts', function () {
       beforeEach(doDeploy)
 
-      it('when user approves less than fee', async function() {
+      it('when user approves less than fee', async function () {
         await this.stakeToken.approve(this.stakeManager.address, fee.sub(new BN(1)), {
           from: user
         })
@@ -834,7 +834,7 @@ contract('StakeManager', async function(accounts) {
         }))
       })
 
-      it('when fee is too small', async function() {
+      it('when fee is too small', async function () {
         const validatorId = await this.stakeManager.getValidatorId(user)
         const minHeimdallFee = await this.stakeManager.minHeimdallFee()
         await expectRevert(this.stakeManager.topUpForFee(validatorId, minHeimdallFee.sub(new BN(1)), {
@@ -842,7 +842,7 @@ contract('StakeManager', async function(accounts) {
         }), 'Minimum amount is 1 Matic')
       })
 
-      it('when fee overflows', async function() {
+      it('when fee overflows', async function () {
         const validatorId = await this.stakeManager.getValidatorId(user)
         const overflowFee = new BN(2).pow(new BN(256))
         await expectRevert.unspecified(this.stakeManager.topUpForFee(validatorId, overflowFee, {
@@ -852,14 +852,14 @@ contract('StakeManager', async function(accounts) {
     })
   })
 
-  describe('claimFee', function() {
+  describe('claimFee', function () {
     const amount = new BN(web3.utils.toWei('200'))
 
     async function feeCheckpoint(validatorId, start, end, proposer) {
       let tree = await buildTreeFee(this.validators, this.accumulatedFees, this.checkpointIndex)
       this.checkpointIndex++
 
-      const { vote, sigs } = buildSubmitHeaderBlockPaylod(
+      const { data, sigs } = buildSubmitHeaderBlockPaylod(
         this.validatorsWallets[validatorId].getAddressString(),
         start,
         end,
@@ -870,7 +870,7 @@ contract('StakeManager', async function(accounts) {
 
       await this.stakeManager.checkSignatures(
         end - start,
-        utils.bufferToHex(utils.keccak256(vote)),
+        utils.bufferToHex(utils.keccak256(Buffer.concat([utils.toBuffer('0x01'), utils.toBuffer(data)]))),
         utils.bufferToHex(tree.getRoot()),
         proposer || this.validatorsWallets[validatorId].getAddressString(),
         sigs,
@@ -903,6 +903,7 @@ contract('StakeManager', async function(accounts) {
 
         const validatorId = i + 1
         this.validatorsWallets[validatorId] = wallets[i]
+        console.log(this.validatorsWallets[validatorId].getAddressString(), validatorId)
         this.validators.push(validatorId)
         this.totalStaked = this.totalStaked.add(amount)
         this.accumulatedFees[validatorId] = []
@@ -913,7 +914,7 @@ contract('StakeManager', async function(accounts) {
     }
 
     function doTopUp(checkpointIndex) {
-      return async function() {
+      return async function () {
         for (const validatorId in this.topUpFeeFor) {
           const fee = this.topUpFeeFor[validatorId]
 
@@ -942,7 +943,7 @@ contract('StakeManager', async function(accounts) {
     }
 
     function testAliceClaim(AliceValidatorId) {
-      it('Alice must withdraw heimdall fee', async function() {
+      it('Alice must withdraw heimdall fee', async function () {
         this.receipt = await this.stakeManager.claimFee(
           AliceValidatorId,
           this.accumSlashedAmount,
@@ -953,7 +954,7 @@ contract('StakeManager', async function(accounts) {
         )
       })
 
-      it('must emit ClaimFee', async function() {
+      it('must emit ClaimFee', async function () {
         await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ClaimFee', {
           signer: this.signer,
           validatorId: AliceValidatorId.toString(),
@@ -961,30 +962,30 @@ contract('StakeManager', async function(accounts) {
         })
       })
 
-      it('balance must increase by fee', async function() {
+      it('balance must increase by fee', async function () {
         const newBalance = await this.stakeToken.balanceOf(this.user)
         assertBigNumberEquality(this.beforeClaimBalance.add(this.claimedFee), newBalance)
       })
 
-      it('total heimdall fee must decrease by fee', async function() {
+      it('total heimdall fee must decrease by fee', async function () {
         const totalHeimdallFee = await this.stakeManager.totalHeimdallFee()
         assertBigNumberEquality(this.beforeClaimTotalHeimdallFee.sub(this.claimedFee), totalHeimdallFee)
       })
     }
 
-    describe('when Alice topups once and claims 2 times', async function() {
+    describe('when Alice topups once and claims 2 times', async function () {
       const AliceValidatorId = 1
       const totalFee = new BN(web3.utils.toWei('100'))
       const firstFeeToClaim = new BN(web3.utils.toWei('25'))
       const secondFeeToClaim = new BN(web3.utils.toWei('100'))
 
-      before(function() {
+      before(function () {
         this.trees = []
         this.validatorsCount = 2
       })
 
       before('fresh deploy', doDeploy)
-      before('top up', async function() {
+      before('top up', async function () {
         this.user = this.validatorsWallets[AliceValidatorId].getAddressString()
         this.signer = this.validatorsWallets[AliceValidatorId].getChecksumAddressString()
 
@@ -997,8 +998,8 @@ contract('StakeManager', async function(accounts) {
         })
       })
 
-      describe('after 1st checkpoint', function() {
-        before('1st checkpoint', async function() {
+      describe('after 1st checkpoint', function () {
+        before('1st checkpoint', async function () {
           this.accumulatedFees[AliceValidatorId] = [[firstFeeToClaim, 0]]
           this.tree = await feeCheckpoint.call(this, AliceValidatorId, 0, 22)
           this.leaf = createLeafFrom.call(this, AliceValidatorId, 0)
@@ -1011,8 +1012,8 @@ contract('StakeManager', async function(accounts) {
         testAliceClaim(AliceValidatorId)
       })
 
-      describe('after 2nd checkpoint', function() {
-        before('2nd checkpoint', async function() {
+      describe('after 2nd checkpoint', function () {
+        before('2nd checkpoint', async function () {
           this.accumulatedFees[AliceValidatorId] = [[secondFeeToClaim, 0]]
           this.tree = await feeCheckpoint.call(this, AliceValidatorId, 22, 44)
           this.leaf = createLeafFrom.call(this, AliceValidatorId, 0)
@@ -1026,11 +1027,11 @@ contract('StakeManager', async function(accounts) {
       })
     })
 
-    describe('when Alice and Bob stakes, but only Alice topups heimdall fee', function() {
+    describe('when Alice and Bob stakes, but only Alice topups heimdall fee', function () {
       const AliceValidatorId = 1
       const BobValidatorId = 2
 
-      before(function() {
+      before(function () {
         this.validatorsCount = 2
         this.fee = new BN(web3.utils.toWei('50'))
         this.claimedFee = this.fee
@@ -1042,7 +1043,7 @@ contract('StakeManager', async function(accounts) {
       before(doDeploy)
       before(doTopUp(0))
 
-      before(async function() {
+      before(async function () {
         this.tree = await feeCheckpoint.call(this, AliceValidatorId, 0, 22)
         this.user = this.validatorsWallets[AliceValidatorId].getAddressString()
         this.signer = this.validatorsWallets[AliceValidatorId].getChecksumAddressString()
@@ -1050,7 +1051,7 @@ contract('StakeManager', async function(accounts) {
         this.beforeClaimBalance = await this.stakeToken.balanceOf(this.user)
       })
 
-      it('Bob must fail withdrawing', async function() {
+      it('Bob must fail withdrawing', async function () {
         await expectRevert.unspecified(this.stakeManager.claimFee(
           BobValidatorId,
           this.accumSlashedAmount,
@@ -1066,13 +1067,13 @@ contract('StakeManager', async function(accounts) {
 
     // accountStateRoot is being replaced during checkpoint
     // If i want to be able to withdraw fee from previous checkpoint - should i commit previous tree root?
-    describe.skip('when Alice top ups 2 times with different values', function() {
+    describe.skip('when Alice top ups 2 times with different values', function () {
       const AliceValidatorId = 1
       const firstFee = new BN(web3.utils.toWei('50'))
       const secondFee = new BN(web3.utils.toWei('30'))
 
-      describe('when topup', function() {
-        before(function() {
+      describe('when topup', function () {
+        before(function () {
           this.trees = []
           this.user = this.validatorsWallets[AliceValidatorId].getAddressString()
           this.signer = this.validatorsWallets[AliceValidatorId].getChecksumAddressString()
@@ -1084,19 +1085,19 @@ contract('StakeManager', async function(accounts) {
 
         before('fresh deploy', doDeploy)
         before('1st top up', doTopUp(0))
-        before('1st checkpoint', async function() {
+        before('1st checkpoint', async function () {
           this.trees.push(await feeCheckpoint.call(this, AliceValidatorId, 0, 22))
           this.topUpFeeFor = {
             [AliceValidatorId]: secondFee
           }
         })
         before('2nd top up', doTopUp(1))
-        before('2nd checkpoint', async function() {
+        before('2nd checkpoint', async function () {
           this.trees.push(await feeCheckpoint.call(this, AliceValidatorId, 22, 44))
         })
 
-        describe('claims 1st time', function() {
-          before(async function() {
+        describe('claims 1st time', function () {
+          before(async function () {
             this.beforeClaimBalance = await this.stakeToken.balanceOf(this.user)
             this.tree = this.trees[0]
             this.fee = firstFee
@@ -1106,8 +1107,8 @@ contract('StakeManager', async function(accounts) {
           testAliceClaim(AliceValidatorId)
         })
 
-        describe('claims 2nd time', function() {
-          before(async function() {
+        describe('claims 2nd time', function () {
+          before(async function () {
             this.tree = this.trees[1]
             this.fee = secondFee
             this.index = 0
@@ -1127,13 +1128,13 @@ contract('StakeManager', async function(accounts) {
         // })
       })
 
-      describe('when 1 checkpoint between claims', function() {
+      describe('when 1 checkpoint between claims', function () {
         // testAliceClaim(AliceValidatorId)
       })
     })
 
-    describe('reverts', function() {
-      beforeEach(function() {
+    describe('reverts', function () {
+      beforeEach(function () {
         this.validatorsCount = 2
         this.fee = new BN(web3.utils.toWei('50'))
         this.validatorId = 1
@@ -1144,7 +1145,7 @@ contract('StakeManager', async function(accounts) {
 
       beforeEach(doDeploy)
       beforeEach(doTopUp(0))
-      beforeEach(async function() {
+      beforeEach(async function () {
         this.tree = await feeCheckpoint.call(this, this.validatorId, 0, 22)
         this.user = this.validatorsWallets[this.validatorId].getAddressString()
         this.signer = this.validatorsWallets[this.validatorId].getChecksumAddressString()
@@ -1164,34 +1165,34 @@ contract('StakeManager', async function(accounts) {
         ))
       }
 
-      it('when index is incorrect', async function() {
+      it('when index is incorrect', async function () {
         this.index = 1
         await testRevert.call(this)
       })
 
-      it('when validator id is incorrect', async function() {
+      it('when validator id is incorrect', async function () {
         this.validatorId = 999
         await testRevert.call(this)
       })
 
-      it('when proof is incorrect', async function() {
+      it('when proof is incorrect', async function () {
         this.proof = utils.bufferToHex(Buffer.from('random_string'))
         await testRevert.call(this)
       })
 
-      it('when claim less than checkpointed balance', async function() {
+      it('when claim less than checkpointed balance', async function () {
         this.fee = this.fee.sub(new BN(1))
         await testRevert.call(this)
       })
 
-      it('when claim more than checkpointed balance', async function() {
+      it('when claim more than checkpointed balance', async function () {
         this.fee = this.fee.add(new BN(1))
         await testRevert.call(this)
       })
     })
   })
 
-  describe('startAuction', function() {
+  describe('startAuction', function () {
     const _initialStakers = [wallets[1], wallets[2]]
     const initialStakeAmount = web3.utils.toWei('200')
 
@@ -1217,7 +1218,7 @@ contract('StakeManager', async function(accounts) {
       })
     }
 
-    describe('Alice and Bob bid', function() {
+    describe('Alice and Bob bid', function () {
       const Alice = wallets[3]
       const Bob = wallets[4]
 
@@ -1225,7 +1226,7 @@ contract('StakeManager', async function(accounts) {
       let bobBidAmount = web3.utils.toWei('1250')
 
       before('deploy', doDeploy)
-      before(async function() {
+      before(async function () {
         await this.stakeToken.mint(Alice.getAddressString(), aliceBidAmount)
         await this.stakeToken.approve(this.stakeManager.address, aliceBidAmount, {
           from: Alice.getAddressString()
@@ -1243,24 +1244,24 @@ contract('StakeManager', async function(accounts) {
         this.initialStakeAmount = initialStakeAmount
       })
 
-      describe('when Alice bids', function() {
+      describe('when Alice bids', function () {
         testStartAuction(Alice.getChecksumAddressString(), aliceBidAmount)
       })
 
-      describe('when Bob bids', function() {
+      describe('when Bob bids', function () {
         testStartAuction(Bob.getChecksumAddressString(), bobBidAmount)
 
-        it('Alice must get her bid back', async function() {
+        it('Alice must get her bid back', async function () {
           const currentBalance = await this.stakeToken.balanceOf(Alice.getAddressString())
           assertBigNumberEquality(this.userOldBalance, currentBalance)
         })
       })
     })
 
-    describe('reverts', function() {
+    describe('reverts', function () {
       beforeEach('deploy', doDeploy)
 
-      it('when bid during non-auction period', async function() {
+      it('when bid during non-auction period', async function () {
         let auction = await this.stakeManager.validatorAuction(1)
         let currentEpoch = await this.stakeManager.currentEpoch()
         let dynasty = await this.stakeManager.dynasty()
@@ -1277,20 +1278,20 @@ contract('StakeManager', async function(accounts) {
         }), 'Invalid auction period')
       })
 
-      it('when bid during replacement cooldown', async function() {
+      it('when bid during replacement cooldown', async function () {
         await this.stakeManager.updateDynastyValue(7)
         await expectRevert(this.stakeManager.startAuction(1, this.amount, {
           from: wallets[3].getAddressString()
         }), 'Cooldown period')
       })
 
-      it('when validatorId is invalid', async function() {
+      it('when validatorId is invalid', async function () {
         await expectRevert.unspecified(this.stakeManager.startAuction(0, this.amount, {
           from: wallets[3].getAddressString()
         }))
       })
 
-      it('when bid is too low', async function() {
+      it('when bid is too low', async function () {
         await expectRevert(this.stakeManager.startAuction(1, web3.utils.toWei('100'), {
           from: wallets[3].getAddressString()
         }), 'Must bid higher amount')
@@ -1298,13 +1299,13 @@ contract('StakeManager', async function(accounts) {
     })
   })
 
-  describe('confirmAuctionBid', function() {
+  describe('confirmAuctionBid', function () {
     const initialStakers = [wallets[1], wallets[2]]
     const bidAmount = new BN(web3.utils.toWei('1200'))
     const initialStakeAmount = web3.utils.toWei('200')
 
     function doDeploy(skipAuctionPeriod = true) {
-      return async function() {
+      return async function () {
         await freshDeploy.call(this)
 
         await this.stakeManager.updateDynastyValue(8)
@@ -1349,11 +1350,11 @@ contract('StakeManager', async function(accounts) {
       }
     }
 
-    describe('when last auctioner is validator', function() {
+    describe('when last auctioner is validator', function () {
       const heimdallFee = web3.utils.toWei('100')
 
       function prepareToTest() {
-        before(async function() {
+        before(async function () {
           this.validatorId = '1'
           this.bidder = initialStakers[0].getChecksumAddressString()
           this.bidderPubKey = initialStakers[0].getPublicKeyString()
@@ -1363,7 +1364,7 @@ contract('StakeManager', async function(accounts) {
 
         before(doDeploy())
 
-        before(async function() {
+        before(async function () {
           await this.stakeToken.mint(this.bidder, this.heimdallFee)
           await this.stakeToken.approve(this.stakeManager.address, this.heimdallFee, {
             from: this.bidder
@@ -1376,7 +1377,7 @@ contract('StakeManager', async function(accounts) {
       }
 
       function testAuctionerIsValidator() {
-        it('must confirm with heimdal fee', async function() {
+        it('must confirm with heimdal fee', async function () {
           this.receipt = await this.stakeManager.confirmAuctionBid(
             this.validatorId,
             this.heimdallFee,
@@ -1388,14 +1389,14 @@ contract('StakeManager', async function(accounts) {
           )
         })
 
-        it('must emit StakeUpdate', async function() {
+        it('must emit StakeUpdate', async function () {
           await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'StakeUpdate', {
             validatorId: this.validatorId,
             newAmount: this.bidAmount
           })
         })
 
-        it('must emit ConfirmAuction', async function() {
+        it('must emit ConfirmAuction', async function () {
           await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ConfirmAuction', {
             newValidatorId: this.validatorId,
             oldValidatorId: this.validatorId,
@@ -1403,30 +1404,30 @@ contract('StakeManager', async function(accounts) {
           })
         })
 
-        it('must not emit TopUpFee', async function() {
+        it('must not emit TopUpFee', async function () {
           await expectEvent.not.inTransaction(this.receipt.tx, StakingInfo, 'TopUpFee')
         })
 
-        it('validator must be refunded', async function() {
+        it('validator must be refunded', async function () {
           const refundedBalance = await this.stakeToken.balanceOf(this.bidder)
           assertBigNumberEquality(refundedBalance, this.bidderPrevBalance.add(this.validatorPrevState.amount))
         })
 
-        it('totalStaked must be correct', async function() {
+        it('totalStaked must be correct', async function () {
           const totalStaked = await this.stakeManager.totalStaked()
           const auctionDelta = new BN(this.bidAmount).sub(this.validatorPrevState.amount)
           assertBigNumberEquality(totalStaked, this.prevTotalStaked.add(auctionDelta))
         })
       }
 
-      describe('when 0 dynasties has passed', function() {
+      describe('when 0 dynasties has passed', function () {
         prepareToTest()
         testAuctionerIsValidator()
       })
 
-      describe('when 1000 dynasties has passed', function() {
+      describe('when 1000 dynasties has passed', function () {
         prepareToTest()
-        before(async function() {
+        before(async function () {
           const currentDynasty = await this.stakeManager.dynasty()
           await this.stakeManager.advanceEpoch(currentDynasty.mul(new BN('1000')))
         })
@@ -1435,11 +1436,11 @@ contract('StakeManager', async function(accounts) {
       })
     })
 
-    describe('when last auctioner is not validator', function() {
+    describe('when last auctioner is not validator', function () {
       const heimdallFee = web3.utils.toWei('100')
 
       function prepareToTest() {
-        before(async function() {
+        before(async function () {
           this.validatorId = '1'
           this.newValidatorId = '3'
           this.bidder = wallets[3].getChecksumAddressString()
@@ -1450,7 +1451,7 @@ contract('StakeManager', async function(accounts) {
 
         before(doDeploy())
 
-        before(async function() {
+        before(async function () {
           this.prevValidatorAddr = initialStakers[0].getChecksumAddressString()
           this.prevValidatorOldBalance = await this.stakeToken.balanceOf(this.prevValidatorAddr)
 
@@ -1458,14 +1459,14 @@ contract('StakeManager', async function(accounts) {
         })
       }
 
-      describe('when 0 dynasties has passed', function() {
+      describe('when 0 dynasties has passed', function () {
         prepareToTest()
         testConfirmAuctionBidForNewValidator()
       })
 
-      describe('when 1000 dynasties has passed', function() {
+      describe('when 1000 dynasties has passed', function () {
         prepareToTest()
-        before(async function() {
+        before(async function () {
           const currentDynasty = await this.stakeManager.dynasty()
           await this.stakeManager.advanceEpoch(currentDynasty.mul(new BN('1000')))
         })
@@ -1474,8 +1475,8 @@ contract('StakeManager', async function(accounts) {
       })
     })
 
-    describe('when auction period hasn\'t been passed after initial stake', function() {
-      before(async function() {
+    describe('when auction period hasn\'t been passed after initial stake', function () {
+      before(async function () {
         this.validatorId = '1'
         this.bidder = wallets[3].getChecksumAddressString()
         this.bidderPubKey = wallets[3].getPublicKeyString()
@@ -1484,8 +1485,8 @@ contract('StakeManager', async function(accounts) {
 
       beforeEach(doDeploy(false))
 
-      describe('when 0 dynasties has passed', function() {
-        it('reverts', async function() {
+      describe('when 0 dynasties has passed', function () {
+        it('reverts', async function () {
           await expectRevert(this.stakeManager.confirmAuctionBid(
             this.validatorId,
             this.defaultHeimdallFee,
@@ -1498,13 +1499,13 @@ contract('StakeManager', async function(accounts) {
         })
       })
 
-      describe('when 1000 dynasties has passed', function() {
-        beforeEach(async function() {
+      describe('when 1000 dynasties has passed', function () {
+        beforeEach(async function () {
           const currentDynasty = await this.stakeManager.dynasty()
           await this.stakeManager.advanceEpoch(currentDynasty.mul(new BN('1000')))
         })
 
-        it('reverts', async function() {
+        it('reverts', async function () {
           await expectRevert(this.stakeManager.confirmAuctionBid(
             this.validatorId,
             this.defaultHeimdallFee,
@@ -1518,8 +1519,8 @@ contract('StakeManager', async function(accounts) {
       })
     })
 
-    describe('when from is not bidder', function() {
-      before(async function() {
+    describe('when from is not bidder', function () {
+      before(async function () {
         this.validatorId = '1'
         this.bidder = wallets[3].getChecksumAddressString()
         this.bidderPubKey = wallets[3].getPublicKeyString()
@@ -1528,7 +1529,7 @@ contract('StakeManager', async function(accounts) {
 
       before(doDeploy())
 
-      it('reverts', async function() {
+      it('reverts', async function () {
         await expectRevert.unspecified(this.stakeManager.confirmAuctionBid(
           this.validatorId,
           0,
@@ -1542,7 +1543,7 @@ contract('StakeManager', async function(accounts) {
     })
   })
 
-  describe('auction with delegator, 3 validators initially', async function() {
+  describe('auction with delegator, 3 validators initially', async function () {
     const initialStakers = [wallets[1], wallets[2]]
     const delegatedValidatorId = '3'
     const delegator = wallets[3].getChecksumAddressString()
@@ -1554,7 +1555,7 @@ contract('StakeManager', async function(accounts) {
     const bidAmount = web3.utils.toWei('2555')
 
     function doDeploy() {
-      return async function() {
+      return async function () {
         await freshDeploy.call(this)
 
         await this.stakeManager.updateDynastyValue(8)
@@ -1566,7 +1567,7 @@ contract('StakeManager', async function(accounts) {
     }
 
     before('fresh deploy', doDeploy())
-    before(async function() {
+    before(async function () {
       await this.stakeToken.mint(this.stakeManager.address, web3.utils.toWei('1000000'))// rewards amount
 
       await approveAndStake.call(this, { wallet: validatorUser, stakeAmount, acceptDelegation: true })
@@ -1601,14 +1602,14 @@ contract('StakeManager', async function(accounts) {
       this.bidderBalanceBeforeAuction = await this.stakeToken.balanceOf(auctionValidatorAddr)
     })
 
-    describe('when new validator bids', function() {
-      before(async function() {
+    describe('when new validator bids', function () {
+      before(async function () {
         this.initialStakeAmount = stakeAmount
         this.validatorId = delegatedValidatorId
         this.userOldBalance = this.bidderBalanceBeforeAuction
       })
 
-      after('skip auction', async function() {
+      after('skip auction', async function () {
         let auctionPeriod = (await this.stakeManager.auctionPeriod()).toNumber()
         for (let i = 0; i <= auctionPeriod; i++) {
           await checkPoint([...initialStakers, validatorUser], this.rootChainOwner, this.stakeManager)
@@ -1618,8 +1619,8 @@ contract('StakeManager', async function(accounts) {
       testStartAuction(auctionValidatorAddr, bidAmount)
     })
 
-    describe('when new validator confirm auction', function() {
-      before(async function() {
+    describe('when new validator confirm auction', function () {
+      before(async function () {
         this.validatorId = delegatedValidatorId
         this.bidderPubKey = auctionValidatorPubKey
         this.bidder = auctionValidatorAddr
