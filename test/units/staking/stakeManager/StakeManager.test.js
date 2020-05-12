@@ -11,6 +11,7 @@ import {
   checkPoint,
   assertBigNumberEquality,
   buildSubmitHeaderBlockPaylod,
+  buildSubmitHeaderBlockPaylodWithVotes,
   encodeSigs,
   getSigs
 } from '../../../helpers/utils.js'
@@ -1188,6 +1189,126 @@ contract('StakeManager', async function (accounts) {
       it('when claim more than checkpointed balance', async function () {
         this.fee = this.fee.add(new BN(1))
         await testRevert.call(this)
+      })
+    })
+  })
+
+  describe('checkSignature() with votes', function () {
+    const amount = new BN(web3.utils.toWei('200'))
+
+    async function feeCheckpointWithVotes(validatorId, start, end, votes, proposer) {
+      let tree = await buildTreeFee(this.validators, this.accumulatedFees, this.checkpointIndex)
+      this.checkpointIndex++
+
+      const { data, sigs } = buildSubmitHeaderBlockPaylodWithVotes(
+        this.validatorsWallets[validatorId].getAddressString(),
+        start,
+        end,
+        '' /* root */,
+        Object.values(this.validatorsWallets),
+        votes, // yes votes
+        { rewardsRootHash: tree.getRoot(), allValidators: true, getSigs: true, totalStake: this.totalStaked }
+      )
+
+      await this.stakeManager.checkSignatures(
+        end - start,
+        utils.bufferToHex(utils.keccak256(Buffer.concat([utils.toBuffer('0x01'), utils.toBuffer(data)]))),
+        utils.bufferToHex(tree.getRoot()),
+        proposer || this.validatorsWallets[validatorId].getAddressString(),
+        sigs,
+        { from: this.rootChainOwner.getAddressString() }
+      )
+
+      return tree
+    }
+
+    async function doDeploy() {
+      await freshDeploy.call(this)
+
+      this.checkpointIndex = 0
+      this.validators = []
+      this.validatorsWallets = {}
+      this.totalStaked = new BN(0)
+      this.accumulatedFees = {}
+
+      for (let i = 0; i < this.validatorsCount; i++) {
+        await approveAndStake.call(this, { wallet: wallets[i], stakeAmount: amount })
+
+        const validatorId = i + 1
+        this.validatorsWallets[validatorId] = wallets[i]
+        console.log(this.validatorsWallets[validatorId].getAddressString(), validatorId)
+        this.validators.push(validatorId)
+        this.totalStaked = this.totalStaked.add(amount)
+        this.accumulatedFees[validatorId] = []
+      }
+
+      this.accumSlashedAmount = 0
+      this.index = 0
+    }
+
+    function doTopUp(checkpointIndex) {
+      return async function () {
+        for (const validatorId in this.topUpFeeFor) {
+          const fee = this.topUpFeeFor[validatorId]
+
+          let newTopUp = [fee, 0]
+          if (checkpointIndex === this.accumulatedFees[validatorId].length) {
+            let newTopUpIndex = this.accumulatedFees[validatorId].push(newTopUp) - 1
+            for (let i = 0; i < newTopUpIndex; ++i) {
+              newTopUp[0] = newTopUp[0].add(this.accumulatedFees[validatorId][i][0])
+            }
+          } else {
+            this.accumulatedFees[validatorId][checkpointIndex][0] = newTopUp[0].add(this.accumulatedFees[validatorId][checkpointIndex][0])
+          }
+
+          const user = this.validatorsWallets[validatorId].getAddressString()
+          await this.stakeToken.approve(this.stakeManager.address, fee, {
+            from: user
+          })
+
+          await this.stakeManager.topUpForFee(validatorId, fee, {
+            from: user
+          })
+        }
+
+        this.beforeClaimTotalHeimdallFee = await this.stakeManager.totalHeimdallFee()
+      }
+    }
+
+    describe('Deploying and staking with 4 validators...', async function () {
+      const AliceValidatorId = 1
+      const totalFee = new BN(web3.utils.toWei('100'))
+      const firstFeeToClaim = new BN(web3.utils.toWei('25'))
+      const secondFeeToClaim = new BN(web3.utils.toWei('100'))
+
+      before(function () {
+        this.trees = []
+        this.validatorsCount = 4
+      })
+
+      before('fresh deploy', doDeploy)
+      before('top up', async function () {
+        this.user = this.validatorsWallets[AliceValidatorId].getAddressString()
+        this.signer = this.validatorsWallets[AliceValidatorId].getChecksumAddressString()
+
+        await this.stakeToken.approve(this.stakeManager.address, totalFee, {
+          from: this.user
+        })
+
+        await this.stakeManager.topUpForFee(AliceValidatorId, totalFee, {
+          from: this.user
+        })
+      })
+
+      describe('Alice proposes with votes', function () {
+        it('More than 2/3+1 yes votes', async function () {
+          this.accumulatedFees[AliceValidatorId] = [[firstFeeToClaim, 0]]
+          this.tree = await feeCheckpointWithVotes.call(this, AliceValidatorId, 0, 22,3)
+        })
+        it('Less than 2/3+1 yes votes', async function () {
+          this.accumulatedFees[AliceValidatorId] = [[firstFeeToClaim, 0]]
+          this.tree = await expectRevert.unspecified(feeCheckpointWithVotes.call(this, AliceValidatorId, 0, 22,2))
+        })
       })
     })
   })
