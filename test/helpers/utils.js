@@ -52,7 +52,8 @@ export function getSigs(wallets, votedata) {
     .filter(d => d)
 }
 
-export function getSigsWithVotes(wallets, data, sigPrefix, maxYesVotes) {
+export function getSigsWithVotes(_wallets, data, sigPrefix, maxYesVotes) {
+  let wallets = [..._wallets]
   wallets.sort((w1, w2) => {
     return w1.getAddressString().localeCompare(w2.getAddressString())
   })
