@@ -904,7 +904,6 @@ contract('StakeManager', async function (accounts) {
 
         const validatorId = i + 1
         this.validatorsWallets[validatorId] = wallets[i]
-        console.log(this.validatorsWallets[validatorId].getAddressString(), validatorId)
         this.validators.push(validatorId)
         this.totalStaked = this.totalStaked.add(amount)
         this.accumulatedFees[validatorId] = []
@@ -1193,7 +1192,7 @@ contract('StakeManager', async function (accounts) {
     })
   })
 
-  describe('checkSignature() with votes', function () {
+  describe.only('checkSignature() with votes', function () {
     const amount = new BN(web3.utils.toWei('200'))
 
     async function feeCheckpointWithVotes(validatorId, start, end, votes, proposer) {
@@ -1236,7 +1235,6 @@ contract('StakeManager', async function (accounts) {
 
         const validatorId = i + 1
         this.validatorsWallets[validatorId] = wallets[i]
-        console.log(this.validatorsWallets[validatorId].getAddressString(), validatorId)
         this.validators.push(validatorId)
         this.totalStaked = this.totalStaked.add(amount)
         this.accumulatedFees[validatorId] = []
@@ -1300,12 +1298,14 @@ contract('StakeManager', async function (accounts) {
         })
       })
 
-      describe('Alice proposes with votes', function () {
-        it('More than 2/3+1 yes votes', async function () {
+      describe('Alice proposes with more than 2/3+1 votes votes', function () {
+        it('should pass the check', async function () {
           this.accumulatedFees[AliceValidatorId] = [[firstFeeToClaim, 0]]
           this.tree = await feeCheckpointWithVotes.call(this, AliceValidatorId, 0, 22,3)
         })
-        it('Less than 2/3+1 yes votes', async function () {
+      })
+      describe('Alice proposes with less than 2/3 votes', function() {
+        it('should revert', async function () {
           this.accumulatedFees[AliceValidatorId] = [[firstFeeToClaim, 0]]
           this.tree = await expectRevert.unspecified(feeCheckpointWithVotes.call(this, AliceValidatorId, 0, 22,2))
         })
