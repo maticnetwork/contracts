@@ -29,47 +29,35 @@ contract SlashingManager is ISlashingManager, Ownable {
         heimdallId = keccak256(abi.encodePacked(_heimdallId));
     }
 
-    function updateSlashedAmounts(
-        address proposer,
-        bytes memory vote,
-        bytes memory sigs,
-        bytes memory slashingInfoList,
-        bytes memory txData
-    ) public {
-        RLPReader.RLPItem[] memory dataList = vote.toRlpItem().toList();
-        require(
-            keccak256(dataList[0].toBytes()) == heimdallId,
-            "Chain ID is invalid"
-        );
-        require(dataList[1].toUint() == VOTE_TYPE, "Vote type is invalid");
-        require(slashingNonce < dataList[2].toUint(), "Invalid slashing nonce");
-        slashingNonce = dataList[2].toUint();
-        StakeManager stakeManager = StakeManager(
-            registry.getStakeManagerAddress()
+    function updateSlashedAmounts(bytes memory data, bytes memory sigs) public {
+        (
+            address proposer,
+            /** uint256 _slashingNonce, */
+            bytes memory _slashingInfoList
+        ) = abi.decode(
+            data,
+            (
+                address,
+                /** uint256,*/
+                bytes
+            )
         );
 
-        require(
-            keccak256(dataList[4].toBytes()) ==
-                keccak256(abi.encodePacked(sha256(txData))),
-            "Extra data is invalid"
+        // require(slashingNonce < dataList[2].toUint(), "Invalid slashing nonce");
+        // slashingNonce = dataList[2].toUint();
+        StakeManager stakeManager = StakeManager(
+            registry.getStakeManagerAddress()
         );
 
         uint256 stakePower;
         uint256 activeTwoByThree;
         (stakePower, activeTwoByThree) = stakeManager.verifyConsensus(
-            keccak256(vote),
+            keccak256(abi.encodePacked(bytes(hex"01"), data)),
             sigs
         );
-        dataList = txData.toRlpItem().toList()[0].toList();
         require(stakePower >= activeTwoByThree, "2/3+1 Power required");
-        require(dataList[0].toAddress() == proposer, "Invalid proposer");
-        require(
-            keccak256(dataList[1].toBytes()) ==
-                keccak256(abi.encodePacked(sha256(slashingInfoList))),
-            "Invalid slashInfoHash"
-        );
         //slashingInfoList[]=[[valiD,am,isJailed]]
-        uint256 slashedAmount = stakeManager.slash(slashingInfoList);
+        uint256 slashedAmount = stakeManager.slash(_slashingInfoList);
         uint256 bounty = (slashedAmount.mul(reportRate)).div(100);
         slashedAmount = slashedAmount.sub(bounty);
         require(
