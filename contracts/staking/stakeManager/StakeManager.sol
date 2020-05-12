@@ -19,7 +19,7 @@ import {StakingNFT} from "./StakingNFT.sol";
 import "../validatorShare/ValidatorShareFactory.sol";
 import {ISlashingManager} from "../slashing/ISlashingManager.sol";
 import {StakeManagerStorage} from "./StakeManagerStorage.sol";
-import { Governable } from "../../common/governance/Governable.sol";
+import {Governable} from "../../common/governance/Governable.sol";
 
 
 contract StakeManager is IStakeManager, StakeManagerStorage {
@@ -28,8 +28,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     using Merkle for bytes32;
     using RLPReader for bytes;
     using RLPReader for RLPReader.RLPItem;
-    
-    uint256 private constant INCORRECT_VALIDATOR_ID = 2 ** 256 - 1;
+
+    uint256 private constant INCORRECT_VALIDATOR_ID = 2**256 - 1;
 
     modifier onlyStaker(uint256 validatorId) {
         require(NFTContract.ownerOf(validatorId) == msg.sender);
@@ -203,7 +203,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         require(msg.sender == auction.user, "Only bidder can confirm");
 
         require(
-            currentEpoch.sub(auction.startEpoch) % auctionPeriod.add(dynasty) >= auctionPeriod,
+            currentEpoch.sub(auction.startEpoch) % auctionPeriod.add(dynasty) >=
+                auctionPeriod,
             "Confirmation is not allowed before auctionPeriod"
         );
 
@@ -323,7 +324,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             currentValidatorSetSize() < validatorThreshold,
             "Validator set Threshold exceeded!"
         );
-        require(amount > minDeposit);
+        require(amount > minDeposit, "min deposit limit failed!");
         require(heimdallFee >= minHeimdallFee, "Minimum amount is 1 Matic");
 
         require(
@@ -356,7 +357,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         totalStaked = totalStaked.sub(amount);
 
         NFTContract.burn(validatorId);
-        signerToValidator[validators[validatorId].signer] = INCORRECT_VALIDATOR_ID;
+        signerToValidator[validators[validatorId]
+            .signer] = INCORRECT_VALIDATOR_ID;
         // delete validators[validatorId];
         validators[validatorId].status = Status.Unstaked;
         require(token.transfer(msg.sender, amount), "Transfer stake failed");
@@ -490,7 +492,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
 
     function updateProposerBonus(uint256 newProposerBonus) public onlyOwner {
         logger.logProposerBonusChange(newProposerBonus, proposerBonus);
-        require(newProposerBonus <= 100, "Proposer bonus should be less than or equal to 100");
+        require(
+            newProposerBonus <= 100,
+            "Proposer bonus should be less than or equal to 100"
+        );
         proposerBonus = newProposerBonus;
     }
 
@@ -529,7 +534,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             signerPubkey
         );
 
-        signerToValidator[validators[validatorId].signer] = INCORRECT_VALIDATOR_ID;
+        signerToValidator[validators[validatorId]
+            .signer] = INCORRECT_VALIDATOR_ID;
         signerToValidator[_signer] = validatorId;
         validators[validatorId].signer = _signer;
         // reset update time to current time
