@@ -60,7 +60,7 @@ export function getSigsWithVotes(wallets, data, sigPrefix, maxYesVotes) {
   return wallets
     .map((w, index) => {
       let voteData
-      
+
       if (index < maxYesVotes) {
         voteData = Buffer.concat([ethUtils.toBuffer(sigPrefix || '0x01'), ethUtils.toBuffer(data)])
       } else {
