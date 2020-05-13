@@ -36,9 +36,6 @@ contract ValidatorShare is IValidatorShare {
         uint256 combinedStakePower = validatorStake.add(activeAmount); // validator + delegation stake power
         uint256 _rewards = combinedStakePower.mul(_reward).div(_stakePower);
 
-        uint256 _validatorRewards = validatorStake.mul(_rewards).div(
-            combinedStakePower
-        );
         _updateRewards(_rewards, validatorStake, combinedStakePower);
         return combinedStakePower;
     }
