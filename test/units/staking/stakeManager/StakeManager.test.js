@@ -344,10 +344,10 @@ contract('StakeManager', async function (accounts) {
       })
     })
 
-    describe('checkSignatures with votes', function () {
+    describe('with votes', function () {
       const amount = new BN(web3.utils.toWei('200'))
   
-      async function feeCheckpointWithVotes(validatorId, start, end, votes, proposer) {
+      async function feeCheckpointWithVotes(validatorId, start, end, votes, _sigPrefix ,proposer) {
         let tree = await buildTreeFee(this.validators, this.accumulatedFees, this.checkpointIndex)
         this.checkpointIndex++
   
@@ -358,7 +358,7 @@ contract('StakeManager', async function (accounts) {
           '' /* root */,
           Object.values(this.validatorsWallets),
           votes, // yes votes
-          { rewardsRootHash: tree.getRoot(), allValidators: true, getSigs: true, totalStake: this.totalStaked }
+          { rewardsRootHash: tree.getRoot(), allValidators: true, getSigs: true, totalStake: this.totalStaked, sigPrefix:_sigPrefix}
         )
   
         await this.stakeManager.checkSignatures(
@@ -411,13 +411,21 @@ contract('StakeManager', async function (accounts) {
         describe('Alice proposes with more than 2/3+1 votes votes', function () {
           it('should pass the check', async function () {
             this.accumulatedFees[AliceValidatorId] = [[firstFeeToClaim, 0]]
-            this.tree = await feeCheckpointWithVotes.call(this, AliceValidatorId, 0, 22,3)
+            this.tree = await feeCheckpointWithVotes.call(this, AliceValidatorId, 0, 22,3,'') //  3 yes votes
+          })
+          it('sig prefix is 0x00, reverts', async function () {
+            this.accumulatedFees[AliceValidatorId] = [[firstFeeToClaim, 0]]
+            this.tree = await expectRevert.unspecified(feeCheckpointWithVotes.call(this, AliceValidatorId, 0, 22,3,'0x00'))   //  3 yes votes
+          })
+          it('sig prefix is 0x02, reverts', async function () {
+            this.accumulatedFees[AliceValidatorId] = [[firstFeeToClaim, 0]]
+            this.tree = await expectRevert.unspecified(feeCheckpointWithVotes.call(this, AliceValidatorId, 0, 22,3,'0x02')) //  3 yes votes
           })
         })
         describe('Alice proposes with less than 2/3 votes', function() {
           it('should revert', async function () {
             this.accumulatedFees[AliceValidatorId] = [[firstFeeToClaim, 0]]
-            this.tree = await expectRevert.unspecified(feeCheckpointWithVotes.call(this, AliceValidatorId, 0, 22,2))
+            this.tree = await expectRevert.unspecified(feeCheckpointWithVotes.call(this, AliceValidatorId, 0, 22,2,'')) //  2 yes votes
           })
         })
       })
