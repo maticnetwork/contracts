@@ -136,10 +136,15 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         return false;
     }
 
-    function startAuction(uint256 validatorId, uint256 amount)
+    function startAuction(uint256 validatorId, uint256 bid)
         external
         onlyWhenUnlocked
     {
+        uint256 senderValidatorId = signerToValidator[msg.sender];
+
+        // make sure that signer wasn't used already
+        require(senderValidatorId != INCORRECT_VALIDATOR_ID, "Invalid Signer!");
+
         require(isValidator(validatorId));
         // when dynasty period is updated validators are in cool down period
         require(
@@ -165,14 +170,22 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
                 ValidatorShare(_contract).activeAmount()
             );
         }
+
         perceivedStake = Math.max(
             perceivedStake,
             validatorAuction[validatorId].amount
         );
+        
+        uint256 finalBid = bid;
+        
+        if (senderValidatorId != 0) {
+            // if current validator bids, increase bid by current stake
+            finalBid = perceivedStake.add(bid);
+        }
 
-        require(perceivedStake < amount, "Must bid higher amount");
+        require(perceivedStake < finalBid, "Must bid higher amount");
         require(
-            token.transferFrom(msg.sender, address(this), amount),
+            token.transferFrom(msg.sender, address(this), bid),
             "Transfer amount failed"
         );
 
@@ -182,7 +195,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             //replace prev auction
             require(token.transfer(auction.user, auction.amount));
         }
-        auction.amount = amount;
+        auction.amount = finalBid;
         auction.user = msg.sender;
 
         logger.logStartAuction(
