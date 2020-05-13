@@ -12,7 +12,8 @@ import {
   assertBigNumberEquality,
   buildSubmitHeaderBlockPaylod,
   encodeSigs,
-  getSigs
+  getSigs,
+  assertBigNumbergt
 } from '../../../helpers/utils.js'
 import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
 import { wallets, freshDeploy, approveAndStake } from '../deployment'
@@ -1629,7 +1630,7 @@ contract('StakeManager', async function (accounts) {
       })
 
       it('should check if old replacement cool down is passed', async function () {
-        assertBigNumberEquality(this.oldReplacementCoolDownPeriod, await this.stakeManager.epoch())
+        assertBigNumbergt(await this.stakeManager.epoch(), this.oldReplacementCoolDownPeriod)
       })
 
       it('should bid and fail', async function () {
