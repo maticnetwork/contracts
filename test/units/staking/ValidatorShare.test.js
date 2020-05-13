@@ -544,6 +544,7 @@ contract('ValidatorShare', async function () {
       this.user = wallets[2].getChecksumAddressString()
 
       const approveAmount = web3.utils.toWei('20000')
+      this.stakeManager.updateDynastyValue(4)
       await this.stakeToken.mint(
         this.user,
         approveAmount
@@ -553,13 +554,18 @@ contract('ValidatorShare', async function () {
       })
     }
 
-    // function sendBatchCheckpoint(n) {
-    // await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
-    // }
-
     function testCommisionRate(previousRate, newRate) {
       describe(`when validator sets commision rate to ${newRate}%`, function () {
         it(`validator must set ${newRate}% commision rate`, async function () {
+          // simulate cool down period
+          let lastCommissionUpdate = await this.validatorContract.lastCommissionUpdate()
+          if (+lastCommissionUpdate !== 0) {
+            let n = lastCommissionUpdate.add(await this.stakeManager.WITHDRAWAL_DELAY())
+            const start = await this.stakeManager.epoch()
+            for (let i = start; i < n; i++) {
+              await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
+            }
+          }
           this.receipt = await this.validatorContract.updateCommissionRate(newRate, { from: this.validatorUser.getAddressString() })
         })
 
@@ -648,20 +654,19 @@ contract('ValidatorShare', async function () {
         // get 25% of checkpoint rewards
         testAfterComissionChange(web3.utils.toWei('2250'), '2350')
       })
-      console.log("here")
-      // this.stakeManager.updateDynastyValue(4)
+
       testCommisionRate('50', '100')
 
       describe('after commision rate changed', function () {
         // get 0% of checkpoint rewards
-        testAfterComissionChange(web3.utils.toWei('2250'), '2350')
+        testAfterComissionChange(web3.utils.toWei('9000'), '9100')
       })
 
       testCommisionRate('100', '0')
 
       describe('after commision rate changed', function () {
         // get only 50% of checkpoint rewards
-        testAfterComissionChange(web3.utils.toWei('6750'), '6850')
+        testAfterComissionChange(web3.utils.toWei('13500'), '13600')
       })
     })
 
@@ -685,7 +690,7 @@ contract('ValidatorShare', async function () {
       it('reverts', async function () {
         await expectRevert(
           this.validatorContract.updateCommissionRate(15, { from: this.validatorUser.getAddressString() }),
-          'Commission rate update cooldown period'
+          'Commission rate update cool down period'
         )
       })
     })
