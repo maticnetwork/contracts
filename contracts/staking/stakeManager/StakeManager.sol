@@ -29,6 +29,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     using RLPReader for bytes;
     using RLPReader for RLPReader.RLPItem;
 
+    uint256 private constant INCORRECT_VALIDATOR_ID = 2**256 - 1;
+
     modifier onlyStaker(uint256 validatorId) {
         require(NFTContract.ownerOf(validatorId) == msg.sender);
         _;
@@ -322,7 +324,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             currentValidatorSetSize() < validatorThreshold,
             "Validator set Threshold exceeded!"
         );
-        require(amount > minDeposit);
+        require(amount > minDeposit, "min deposit limit failed!");
         require(heimdallFee >= minHeimdallFee, "Minimum amount is 1 Matic");
 
         require(
@@ -355,7 +357,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         totalStaked = totalStaked.sub(amount);
 
         NFTContract.burn(validatorId);
-        delete signerToValidator[validators[validatorId].signer];
+        signerToValidator[validators[validatorId]
+            .signer] = INCORRECT_VALIDATOR_ID;
         // delete validators[validatorId];
         validators[validatorId].status = Status.Unstaked;
         require(token.transfer(msg.sender, amount), "Transfer stake failed");
@@ -536,7 +539,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             signerPubkey
         );
 
-        delete signerToValidator[validators[validatorId].signer];
+        signerToValidator[validators[validatorId]
+            .signer] = INCORRECT_VALIDATOR_ID;
         signerToValidator[_signer] = validatorId;
         validators[validatorId].signer = _signer;
         // reset update time to current time

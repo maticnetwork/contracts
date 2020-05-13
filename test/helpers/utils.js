@@ -42,12 +42,35 @@ export function getSigs(wallets, votedata) {
   copyWallets.sort((w1, w2) => {
     return w1.getAddressString().localeCompare(w2.getAddressString())
   })
-
   const h = ethUtils.toBuffer(votedata)
 
   return copyWallets
     .map(w => {
       const vrs = ethUtils.ecsign(h, w.getPrivateKey())
+      return ethUtils.toRpcSig(vrs.v, vrs.r, vrs.s)
+    })
+    .filter(d => d)
+}
+
+export function getSigsWithVotes(_wallets, data, sigPrefix, maxYesVotes) {
+  let wallets = [..._wallets]
+  wallets.sort((w1, w2) => {
+    return w1.getAddressString().localeCompare(w2.getAddressString())
+  })
+
+  return wallets
+    .map((w, index) => {
+      let voteData
+
+      if (index < maxYesVotes) {
+        voteData = Buffer.concat([ethUtils.toBuffer(sigPrefix || '0x01'), ethUtils.toBuffer(data)])
+      } else {
+        voteData = Buffer.concat([ethUtils.toBuffer(sigPrefix || '0x02'), ethUtils.toBuffer(data)])
+      }
+
+      const voteHash = ethUtils.keccak256(voteData)
+      voteData = ethUtils.toBuffer(voteHash)
+      const vrs = ethUtils.ecsign(voteData, w.getPrivateKey())
       return ethUtils.toRpcSig(vrs.v, vrs.r, vrs.s)
     })
     .filter(d => d)
@@ -136,40 +159,63 @@ export function buildSubmitHeaderBlockPaylod(
   end,
   root,
   wallets,
-  options = { rewardsRootHash: '', allValidators: false, getSigs: false, totalStake: 1 } // false vars are to show expected vars
+  options = { rewardsRootHash: '', allValidators: false, getSigs: false, totalStake: 1, sigPrefix: '' } // false vars are to show expected vars
 ) {
   if (!root) root = ethUtils.keccak256(encode(start, end)) // dummy root
   if (!wallets) {
     wallets = getWallets()
   }
+
   let validators = options.allValidators
     ? wallets
     : [wallets[1], wallets[2], wallets[3]]
 
-  const extraData = ethUtils.bufferToHex(
-    ethUtils.rlp.encode([
-      [proposer, start, end, root, options.rewardsRootHash, web3.utils.toHex((options.totalStake || '1').toString())] // 0th element
-    ])
+  let data = web3.eth.abi.encodeParameters(
+    ['address', 'uint256', 'uint256', 'bytes32', 'bytes32', 'uint256'],
+    [proposer, start, end, root, options.rewardsRootHash, 15001]
   )
-
-  const vote = ethUtils.bufferToHex(
-    // [chain, voteType, height, round, sha256(extraData)]
-    ethUtils.rlp.encode([
-      'heimdall-P5rXwg',
-      2,
-      0,
-      0,
-      ethUtils.bufferToHex(ethUtils.sha256(extraData))
-    ])
-  )
+  const sigData = Buffer.concat([ethUtils.toBuffer(options.sigPrefix || '0x01'), ethUtils.toBuffer(data)])
 
   // in case of TestStakeManger use dummysig data
   const sigs = ethUtils.bufferToHex(
     options.getSigs
-      ? encodeSigs(getSigs(validators, ethUtils.keccak256(vote)))
+      ? encodeSigs(getSigs(validators, ethUtils.keccak256(sigData)))
       : 'dummySig'
   )
-  return { vote, sigs, extraData, root }
+  return { data, sigs }
+}
+
+export function buildSubmitHeaderBlockPaylodWithVotes(
+  proposer,
+  start,
+  end,
+  root,
+  wallets,
+  maxYesVotes,
+  options = { rewardsRootHash: '', allValidators: false, getSigs: false, totalStake: 1, sigPrefix: '' } // false vars are to show expected vars
+) {
+  if (!root) root = ethUtils.keccak256(encode(start, end)) // dummy root
+  if (!wallets) {
+    wallets = getWallets()
+  }
+
+  let validators = options.allValidators
+    ? wallets
+    : [wallets[1], wallets[2], wallets[3]]
+
+  let data = web3.eth.abi.encodeParameters(
+    ['address', 'uint256', 'uint256', 'bytes32', 'bytes32', 'bytes32'],
+    [proposer, start, end, root, options.rewardsRootHash, '0x0000000000000000000000000000000000000000000000000000000000003a99']
+  )
+  const sigData = ethUtils.toBuffer(data)
+
+  // in case of TestStakeManger use dummysig data
+  const sigs = ethUtils.bufferToHex(
+    options.getSigs
+      ? encodeSigs(getSigsWithVotes(validators, sigData, options.sigPrefix, maxYesVotes))
+      : 'dummySig'
+  )
+  return { data, sigs }
 }
 
 export function getWallets() {

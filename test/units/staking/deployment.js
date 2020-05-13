@@ -9,6 +9,8 @@ chai.use(chaiAsPromised).should()
 export const wallets = generateFirstWallets(mnemonics, 10)
 export const walletAmounts = {
   [wallets[0].getAddressString()]: {
+    amount: web3.utils.toWei('200'),
+    stakeAmount: web3.utils.toWei('200'),
     initialBalance: web3.utils.toWei('1200')
   },
   [wallets[1].getAddressString()]: {
@@ -56,7 +58,7 @@ export async function freshDeploy() {
   this.defaultHeimdallFee = new BN(web3.utils.toWei('1'))
 }
 
-export async function approveAndStake({ wallet, stakeAmount, approveAmount, acceptDelegation = false, heimdallFee, noMinting = false }) {
+export async function approveAndStake({ wallet, stakeAmount, approveAmount, acceptDelegation = false, heimdallFee, noMinting = false, signer }) {
   const fee = heimdallFee || this.defaultHeimdallFee
 
   const mintAmount = new BN(approveAmount || stakeAmount).add(new BN(fee))
@@ -76,8 +78,7 @@ export async function approveAndStake({ wallet, stakeAmount, approveAmount, acce
     from: wallet.getAddressString()
   })
 
-  await this.stakeManager.stake(stakeAmount, fee, acceptDelegation, wallet.getPublicKeyString(), {
+  await this.stakeManager.stake(stakeAmount, fee, acceptDelegation, signer || wallet.getPublicKeyString(), {
     from: wallet.getAddressString()
   })
 }
-
