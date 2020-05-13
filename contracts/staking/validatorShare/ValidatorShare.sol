@@ -36,7 +36,6 @@ contract ValidatorShare is IValidatorShare {
         uint256 combinedStakePower = validatorStake.add(activeAmount); // validator + delegation stake power
         uint256 _rewards = combinedStakePower.mul(_reward).div(_stakePower);
 
-        uint256 _validatorRewards = validatorStake.mul(_rewards).div(combinedStakePower);
         _updateRewards(_rewards, validatorStake, combinedStakePower);
         return combinedStakePower;
     }
@@ -74,9 +73,10 @@ contract ValidatorShare is IValidatorShare {
         onlyValidator
     {
         uint256 epoch = stakeManager.epoch();
-        require(
-            lastUpdate.add(commissionCooldown) <= epoch,
-            "Commission rate update cooldown period"
+        require( // withdrawalDelay == dynasty
+            (lastCommissionUpdate.add(stakeManager.withdrawalDelay()) <=
+                epoch) || lastCommissionUpdate == 0, // For initial setting of commission rate
+            "Commission rate update cool down period"
         );
         require(
             newCommissionRate <= 100,
@@ -88,7 +88,7 @@ contract ValidatorShare is IValidatorShare {
             commissionRate
         );
         commissionRate = newCommissionRate;
-        lastUpdate = epoch;
+        lastCommissionUpdate = epoch;
     }
 
     function withdrawRewardsValidator()

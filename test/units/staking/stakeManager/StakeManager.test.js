@@ -12,7 +12,8 @@ import {
   assertBigNumberEquality,
   buildSubmitHeaderBlockPaylod,
   encodeSigs,
-  getSigs
+  getSigs,
+  assertBigNumbergt
 } from '../../../helpers/utils.js'
 import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
 import { wallets, freshDeploy, approveAndStake } from '../deployment'
@@ -903,7 +904,6 @@ contract('StakeManager', async function (accounts) {
 
         const validatorId = i + 1
         this.validatorsWallets[validatorId] = wallets[i]
-        console.log(this.validatorsWallets[validatorId].getAddressString(), validatorId)
         this.validators.push(validatorId)
         this.totalStaked = this.totalStaked.add(amount)
         this.accumulatedFees[validatorId] = []
@@ -1617,6 +1617,30 @@ contract('StakeManager', async function (accounts) {
       })
 
       testStartAuction(auctionValidatorAddr, bidAmount)
+    })
+
+    describe('test replacement lock', function () {
+      before(async function () {
+        this.initialStakeAmount = stakeAmount
+        this.validatorId = delegatedValidatorId
+        this.userOldBalance = this.bidderBalanceBeforeAuction
+        this.oldReplacementCoolDownPeriod = await this.stakeManager.replacementCoolDown()
+        this.newReplacementCoolDownPeriod = 100
+        await this.stakeManager.stopAuctions(this.newReplacementCoolDownPeriod)
+      })
+
+      it('should check if old replacement cool down is passed', async function () {
+        assertBigNumbergt(await this.stakeManager.epoch(), this.oldReplacementCoolDownPeriod)
+      })
+
+      it('should bid and fail', async function () {
+        await expectRevert(this.stakeManager.startAuction(this.validatorId, bidAmount, {
+          from: auctionValidatorAddr
+        }), 'Cooldown period')
+      })
+      after('Revert back to old cool down', async function () {
+        await this.stakeManager.stopAuctions(this.oldReplacementCoolDownPeriod)
+      })
     })
 
     describe('when new validator confirm auction', function () {

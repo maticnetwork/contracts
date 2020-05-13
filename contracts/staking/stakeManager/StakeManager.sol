@@ -490,6 +490,11 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         replacementCoolDown = currentEpoch.add(auctionPeriod);
     }
 
+    // Housekeeping function. @todo remove later
+    function stopAuctions(uint256 forNCheckpoints) public onlyOwner {
+        replacementCoolDown = currentEpoch.add(forNCheckpoints);
+    }
+
     function updateProposerBonus(uint256 newProposerBonus) public onlyOwner {
         logger.logProposerBonusChange(newProposerBonus, proposerBonus);
         require(
