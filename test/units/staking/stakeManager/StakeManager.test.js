@@ -113,7 +113,6 @@ contract('StakeManager', async function(accounts) {
 
     it('must emit TopUpFee', async function() {
       await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'TopUpFee', {
-        validatorId: this.newValidatorId,
         signer: this.bidder,
         fee: this.heimdallFee
       })
@@ -755,7 +754,7 @@ contract('StakeManager', async function(accounts) {
 
   describe('topUpForFee', function() {
     const wallet = wallets[1]
-    const user = wallet.getAddressString()
+    const validatorUser = wallet.getChecksumAddressString()
     const amount = web3.utils.toWei('200')
     const fee = new BN(web3.utils.toWei('50'))
 
@@ -764,49 +763,49 @@ contract('StakeManager', async function(accounts) {
       await approveAndStake.call(this, { wallet, stakeAmount: amount })
     }
 
-    describe('when user tops up', function() {
-      function testTopUp() {
-        it('must top up', async function() {
-          await this.stakeToken.approve(this.stakeManager.address, fee, {
-            from: user
-          })
-
-          this.receipt = await this.stakeManager.topUpForFee(user, fee, {
-            from: user
-          })
+    function testTopUp(user) {
+      it('must top up', async function() {
+        await this.stakeToken.approve(this.stakeManager.address, fee, {
+          from: user
         })
 
-        it('must emit TopUpFee', async function() {
-          await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'TopUpFee', {
-            user: wallet.getChecksumAddressString(),
-            fee
-          })
+        this.receipt = await this.stakeManager.topUpForFee(user, fee, {
+          from: user
         })
-      }
+      })
 
+      it('must emit TopUpFee', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'TopUpFee', {
+          user: user,
+          fee
+        })
+      })
+    }
+
+    function runTopUpTests(doDeploy, user) {
       describe('once', function() {
         before(doDeploy)
 
-        testTopUp()
+        testTopUp(user)
       })
 
       describe('2 times within same checkpoint', function() {
         before(doDeploy)
 
         describe('1st top up', function() {
-          testTopUp()
+          testTopUp(user)
         })
 
         describe('2nd top up', function() {
-          testTopUp()
+          testTopUp(user)
         })
       })
 
-      describe('2 times with 1 checkpoint between', function() {
+      describe('2 times with 1 checkpoint inbetween', function() {
         before(doDeploy)
 
         describe('1st top up', function() {
-          testTopUp()
+          testTopUp(user)
         })
 
         describe('2nd top up', function() {
@@ -814,9 +813,39 @@ contract('StakeManager', async function(accounts) {
             await checkPoint([wallet], this.rootChainOwner, this.stakeManager)
           })
 
-          testTopUp()
+          testTopUp(user)
         })
       })
+    }
+
+    describe('when validator tops up', function() {
+      runTopUpTests(doDeploy, validatorUser)
+    })
+
+    describe('when non-validator tops up', function() {
+      const user = wallets[2].getChecksumAddressString()
+
+      runTopUpTests(async function() {
+        await doDeploy.call(this)
+        const mintAmount = web3.utils.toWei('10000')
+        await this.stakeToken.mint(user, mintAmount)
+        await this.stakeToken.approve(this.stakeManager.address, new BN(mintAmount), {
+          from: user
+        })
+      }, user)
+    })
+
+    describe('when used signer tops up', function() {
+      before(doDeploy)
+      before('change signer', async function() {
+        const signerUpdateLimit = await this.stakeManager.signerUpdateLimit()
+        await this.stakeManager.advanceEpoch(signerUpdateLimit)
+        await this.stakeManager.updateSigner('1', wallets[5].getPublicKeyString(), {
+          from: validatorUser
+        })
+      })
+
+      testTopUp(validatorUser)
     })
 
     describe('reverts', function() {
@@ -824,25 +853,25 @@ contract('StakeManager', async function(accounts) {
 
       it('when user approves less than fee', async function() {
         await this.stakeToken.approve(this.stakeManager.address, fee.sub(new BN(1)), {
-          from: user
+          from: validatorUser
         })
 
-        await expectRevert.unspecified(this.stakeManager.topUpForFee(user, fee, {
-          from: user
+        await expectRevert.unspecified(this.stakeManager.topUpForFee(validatorUser, fee, {
+          from: validatorUser
         }))
       })
 
       it('when fee is too small', async function() {
         const minHeimdallFee = await this.stakeManager.minHeimdallFee()
-        await expectRevert(this.stakeManager.topUpForFee(user, minHeimdallFee.sub(new BN(1)), {
-          from: user
+        await expectRevert(this.stakeManager.topUpForFee(validatorUser, minHeimdallFee.sub(new BN(1)), {
+          from: validatorUser
         }), 'Minimum amount is 1 Matic')
       })
 
       it('when fee overflows', async function() {
         const overflowFee = new BN(2).pow(new BN(256))
-        await expectRevert.unspecified(this.stakeManager.topUpForFee(user, overflowFee, {
-          from: user
+        await expectRevert.unspecified(this.stakeManager.topUpForFee(validatorUser, overflowFee, {
+          from: validatorUser
         }))
       })
     })
