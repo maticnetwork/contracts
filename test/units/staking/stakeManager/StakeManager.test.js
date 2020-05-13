@@ -1624,7 +1624,6 @@ contract('StakeManager', async function (accounts) {
         this.validatorId = delegatedValidatorId
         this.userOldBalance = this.bidderBalanceBeforeAuction
         this.oldReplacementCoolDownPeriod = await this.stakeManager.replacementCoolDown()
-        console.log(this.oldReplacementCoolDownPeriod)
         this.newReplacementCoolDownPeriod = 100
         await this.stakeManager.stopAuctions(this.newReplacementCoolDownPeriod)
       })
@@ -1640,7 +1639,6 @@ contract('StakeManager', async function (accounts) {
       })
       after('Revert back to old cool down', async function () {
         await this.stakeManager.stopAuctions(this.oldReplacementCoolDownPeriod)
-        console.log(await this.stakeManager.replacementCoolDown())
       })
     })
 
