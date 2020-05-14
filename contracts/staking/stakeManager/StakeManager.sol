@@ -144,6 +144,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
 
         // make sure that signer wasn't used already
         require(senderValidatorId != INCORRECT_VALIDATOR_ID, "Invalid Signer!");
+        require(
+            validatorId == senderValidatorId || !isValidator(senderValidatorId),
+            "Existing validator can't participate in auction"
+        );
 
         require(isValidator(validatorId));
         // when dynasty period is updated validators are in cool down period
@@ -175,11 +179,24 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             perceivedStake,
             validatorAuction[validatorId].amount
         );
-        
+
+        // create new auction
+        Auction storage auction = validatorAuction[validatorId];
+
         uint256 auctionAmount = bid;
         if (senderValidatorId != 0) {
             // if current validator bids, increase bid by current stake
             auctionAmount = perceivedStake.add(bid);
+        }
+        if (validatorAuction[validatorId].amount != 0) {
+            uint256 returnAmount = auction.amount;
+            if (senderValidatorId != 0) {
+                returnAmount = auction.amount.sub(
+                    validators[validatorId].amount
+                );
+            }
+            //replace prev auction
+            require(token.transfer(auction.user, returnAmount));
         }
 
         require(perceivedStake < auctionAmount, "Must bid higher amount");
@@ -188,12 +205,6 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             "Transfer amount failed"
         );
 
-        Auction storage auction = validatorAuction[validatorId];
-        // create new auction
-        if (validatorAuction[validatorId].amount != 0) {
-            //replace prev auction
-            require(token.transfer(auction.user, auction.amount));
-        }
         auction.amount = auctionAmount;
         auction.user = msg.sender;
 
