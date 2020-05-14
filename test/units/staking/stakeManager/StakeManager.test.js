@@ -113,7 +113,7 @@ contract('StakeManager', async function(accounts) {
 
     it('must emit TopUpFee', async function() {
       await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'TopUpFee', {
-        signer: this.bidder,
+        user: this.bidder,
         fee: this.heimdallFee
       })
     })

@@ -87,7 +87,7 @@ module.exports = function(accounts) {
       if (fee) {
         it('must emit TopUpFee', async function() {
           await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'TopUpFee', {
-            signer: user,
+            user: user,
             fee: this.fee
           })
         })
