@@ -74,13 +74,24 @@ contract('StakeManager', async function(accounts) {
 
     it('validator auction must have correct user', async function() {
       let auctionData = await this.stakeManager.validatorAuction(this.validatorId)
-      assert(auctionData.user === user)
+      assert.equal(auctionData.user, user)
     })
 
     it('balance must decrease by bid amount', async function() {
       assertBigNumberEquality(
         await this.stakeToken.balanceOf(user),
         this.userOldBalance.sub(new BN(bidAmount))
+      )
+    })
+
+    it('previous bidder must get back his stake', async function() {
+      if (!this.previousBidder) {
+        this.skip()
+      }
+
+      assertBigNumberEquality(
+        await this.stakeToken.balanceOf(this.previousBidder),
+        this.previousBidderExpectedBalance
       )
     })
   }
@@ -1207,7 +1218,7 @@ contract('StakeManager', async function(accounts) {
     })
   })
 
-  describe('startAuction', function() {
+  describe.only('startAuction', function() {
     const _initialStakers = [wallets[1], wallets[2]]
     const initialStakeAmount = web3.utils.toWei('200')
 
@@ -1239,6 +1250,7 @@ contract('StakeManager', async function(accounts) {
 
       let aliceBidAmount = web3.utils.toWei('700')
       let bobBidAmount = web3.utils.toWei('1250')
+      let aliceOldBalance
 
       before('deploy', doDeploy)
       before(async function() {
@@ -1254,12 +1266,11 @@ contract('StakeManager', async function(accounts) {
 
         this.validatorId = '1'
         this.initialStakeAmount = initialStakeAmount
-
-        this.aliceOldBalance = await this.stakeToken.balanceOf(Alice.getAddressString())
       })
 
       describe('when Alice bids', function() {
         before(async function() {
+          aliceOldBalance = await this.stakeToken.balanceOf(Alice.getAddressString())
           this.userOldBalance = await this.stakeToken.balanceOf(Alice.getAddressString())
         })
 
@@ -1269,35 +1280,56 @@ contract('StakeManager', async function(accounts) {
       describe('when Bob bids', function() {
         before(async function() {
           this.userOldBalance = await this.stakeToken.balanceOf(Bob.getAddressString())
+          this.previousBidderExpectedBalance = aliceOldBalance
+          this.previousBidder = Alice.getAddressString()
         })
 
         testStartAuction(Bob.getChecksumAddressString(), bobBidAmount)
-
-        it('Alice must get her bid back', async function() {
-          const currentBalance = await this.stakeToken.balanceOf(Alice.getAddressString())
-          assertBigNumberEquality(this.aliceOldBalance, currentBalance)
-        })
       })
     })
 
-    describe('when validator bids', function() {
+    describe('when validator is overbidden', function() {
+      const Alice = wallets[3]
+      const aliceBidAmount = web3.utils.toWei('700')
       const validatorAddr = _initialStakers[0].getChecksumAddressString()
       const bidAmount = new BN(web3.utils.toWei('100'))
+      let validatorOldBalance
 
       before('deploy', doDeploy)
       before(async function() {
+        await this.stakeToken.mint(Alice.getAddressString(), aliceBidAmount)
+        await this.stakeToken.approve(this.stakeManager.address, aliceBidAmount, {
+          from: Alice.getAddressString()
+        })
+
         await this.stakeToken.mint(validatorAddr, bidAmount)
         await this.stakeToken.approve(this.stakeManager.address, bidAmount, {
           from: validatorAddr
         })
 
-        this.userOldBalance = await this.stakeToken.balanceOf(validatorAddr)
-
         this.validatorId = '1'
         this.initialStakeAmount = initialStakeAmount
       })
 
-      testStartAuction(validatorAddr, bidAmount)
+      describe('when validator bids', function() {
+        before(async function() {
+          this.userOldBalance = await this.stakeToken.balanceOf(validatorAddr)
+          validatorOldBalance = this.userOldBalance
+        })
+
+        testStartAuction(validatorAddr, bidAmount)
+      })
+
+      describe('when Alice bids', function() {
+        before(async function() {
+          this.userOldBalance = await this.stakeToken.balanceOf(Alice.getAddressString())
+          this.previousBidder = validatorAddr
+          // old balance + initial stake
+          this.previousBidderExpectedBalance = validatorOldBalance.add(new BN(initialStakeAmount))
+        })
+
+        testStartAuction(Alice.getChecksumAddressString(), aliceBidAmount)
+      })
     })
 
     describe('when bid during non-auction period', function() {
