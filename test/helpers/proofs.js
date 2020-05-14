@@ -43,11 +43,11 @@ export async function buildTreeFee(validators, accountState, checkpointIndex) {
   let leafs = []
   let i = 0
   validators.map(key => {
-    const state = accountState[key][checkpointIndex] || [0, 0]
+    const state = accountState[key][checkpointIndex] || [0]
     leafs[i++] = utils.keccak256(
       web3.eth.abi.encodeParameters(
-        ['address', 'uint256', 'uint256'],
-        [key, state[0].toString(), state[1].toString()]
+        ['address', 'uint256'],
+        [key, state[0].toString()]
       )
     )
   })
