@@ -544,6 +544,7 @@ contract('ValidatorShare', async function() {
       this.user = wallets[2].getChecksumAddressString()
 
       const approveAmount = web3.utils.toWei('20000')
+      this.stakeManager.updateDynastyValue(4)
       await this.stakeToken.mint(
         this.user,
         approveAmount
@@ -556,6 +557,15 @@ contract('ValidatorShare', async function() {
     function testCommisionRate(previousRate, newRate) {
       describe(`when validator sets commision rate to ${newRate}%`, function() {
         it(`validator must set ${newRate}% commision rate`, async function() {
+          // simulate cool down period
+          let lastCommissionUpdate = await this.validatorContract.lastCommissionUpdate()
+          if (+lastCommissionUpdate !== 0) {
+            let n = lastCommissionUpdate.add(await this.stakeManager.WITHDRAWAL_DELAY())
+            const start = await this.stakeManager.epoch()
+            for (let i = start; i < n; i++) {
+              await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
+            }
+          }
           this.receipt = await this.validatorContract.updateCommissionRate(newRate, { from: this.validatorUser.getAddressString() })
         })
 
@@ -571,8 +581,8 @@ contract('ValidatorShare', async function() {
           assertBigNumberEquality(await this.validatorContract.commissionRate(), newRate)
         })
 
-        it('lastUpdate must be equal to current epoch', async function() {
-          assertBigNumberEquality(await this.validatorContract.lastUpdate(), await this.stakeManager.epoch())
+        it('lastCommissionUpdate must be equal to current epoch', async function() {
+          assertBigNumberEquality(await this.validatorContract.lastCommissionUpdate(), await this.stakeManager.epoch())
         })
       })
     }
@@ -649,14 +659,14 @@ contract('ValidatorShare', async function() {
 
       describe('after commision rate changed', function() {
         // get 0% of checkpoint rewards
-        testAfterComissionChange(web3.utils.toWei('2250'), '2350')
+        testAfterComissionChange(web3.utils.toWei('9000'), '9100')
       })
 
       testCommisionRate('100', '0')
 
       describe('after commision rate changed', function() {
         // get only 50% of checkpoint rewards
-        testAfterComissionChange(web3.utils.toWei('6750'), '6850')
+        testAfterComissionChange(web3.utils.toWei('13500'), '13600')
       })
     })
 

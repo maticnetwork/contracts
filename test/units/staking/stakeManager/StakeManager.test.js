@@ -12,7 +12,8 @@ import {
   assertBigNumberEquality,
   buildSubmitHeaderBlockPaylod,
   encodeSigs,
-  getSigs
+  getSigs,
+  assertBigNumbergt
 } from '../../../helpers/utils.js'
 import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
 import { wallets, freshDeploy, approveAndStake } from '../deployment'
@@ -1641,6 +1642,54 @@ contract('StakeManager', async function(accounts) {
       })
 
       testConfirmAuctionBidForNewValidator()
+    })
+  })
+
+  describe('stopAuctions', function() {
+    const initialStakers = [wallets[1], wallets[2]]
+    const stakeAmount = web3.utils.toWei('1250')
+    const bidAmount = web3.utils.toWei('1350')
+
+    async function doDeploy() {
+      await freshDeploy.call(this)
+
+      await this.stakeManager.updateDynastyValue(8)
+
+      for (const wallet of initialStakers) {
+        await approveAndStake.call(this, { wallet, stakeAmount, approveAmount: web3.utils.toWei('12500') }) 
+      }
+    }
+
+    before(doDeploy)
+    before(async function() {
+      this.initialStakeAmount = stakeAmount
+      this.validatorId = '1'
+      this.oldReplacementCoolDownPeriod = await this.stakeManager.replacementCoolDown()
+      this.newReplacementCoolDownPeriod = new BN(100)
+    })
+
+    it('must increase replacement cooldown', async function() {
+      await this.stakeManager.stopAuctions(this.newReplacementCoolDownPeriod)
+      const currentReplacementCooldown = await this.stakeManager.replacementCoolDown()
+      assertBigNumberEquality(currentReplacementCooldown, this.newReplacementCoolDownPeriod.add(await this.stakeManager.epoch()))
+    })
+
+    it('bid must revert', async function() {
+      await expectRevert(this.stakeManager.startAuction(this.validatorId, bidAmount, {
+        from: initialStakers[0].getAddressString()
+      }), 'Cooldown period')
+    })
+
+    it('must reset replacement cooldown to current epoch', async function() {
+      await this.stakeManager.stopAuctions(0)
+      const currentReplacementCooldown = await this.stakeManager.replacementCoolDown()
+      assertBigNumberEquality(currentReplacementCooldown, await this.stakeManager.epoch())
+    })
+
+    it('must bid', async function() {
+      await this.stakeManager.startAuction(this.validatorId, bidAmount, {
+        from: initialStakers[0].getAddressString()
+      })
     })
   })
 })

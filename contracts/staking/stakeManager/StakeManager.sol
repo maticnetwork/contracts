@@ -140,7 +140,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         onlyWhenUnlocked
     {
         require(isValidator(validatorId));
-        // when dynasty period is updated validators are in cool down period
+        // when dynasty period is updated validators are in cooldown period
         require(
             replacementCoolDown == 0 || replacementCoolDown <= currentEpoch,
             "Cooldown period"
@@ -482,8 +482,13 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         dynasty = newDynasty;
         WITHDRAWAL_DELAY = newDynasty;
         auctionPeriod = newDynasty.div(4);
-        // set cool down period
+        // set cooldown period
         replacementCoolDown = currentEpoch.add(auctionPeriod);
+    }
+
+    // Housekeeping function. @todo remove later
+    function stopAuctions(uint256 forNCheckpoints) public onlyOwner {
+        replacementCoolDown = currentEpoch.add(forNCheckpoints);
     }
 
     function updateProposerBonus(uint256 newProposerBonus) public onlyOwner {
