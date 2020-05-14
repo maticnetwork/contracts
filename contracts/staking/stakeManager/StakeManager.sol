@@ -176,14 +176,13 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             validatorAuction[validatorId].amount
         );
         
-        uint256 finalBid = bid;
-        
+        uint256 auctionAmount = bid;
         if (senderValidatorId != 0) {
             // if current validator bids, increase bid by current stake
-            finalBid = perceivedStake.add(bid);
+            auctionAmount = perceivedStake.add(bid);
         }
 
-        require(perceivedStake < finalBid, "Must bid higher amount");
+        require(perceivedStake < auctionAmount, "Must bid higher amount");
         require(
             token.transferFrom(msg.sender, address(this), bid),
             "Transfer amount failed"
@@ -195,7 +194,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             //replace prev auction
             require(token.transfer(auction.user, auction.amount));
         }
-        auction.amount = finalBid;
+        auction.amount = auctionAmount;
         auction.user = msg.sender;
 
         logger.logStartAuction(
