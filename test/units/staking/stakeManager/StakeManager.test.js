@@ -1092,7 +1092,7 @@ contract('StakeManager', async function (accounts) {
         this.validatorsCount = 2
       })
 
-      before('fresh deploy', doDeploy)
+      beforeEach('fresh deploy', doDeploy)
       before('top up', async function () {
         this.user = this.validatorsWallets[AliceValidatorId].getChecksumAddressString()
 
