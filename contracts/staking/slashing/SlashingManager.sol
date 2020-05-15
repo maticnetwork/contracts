@@ -50,12 +50,12 @@ contract SlashingManager is ISlashingManager, Ownable {
         );
         require(stakePower >= activeTwoByThree, "2/3+1 Power required");
         //slashingInfoList[]=[[valiD,am,isJailed]]
-        uint256 slashedAmount = stakeManager.slash(
-            slashingNonce,
-            _slashingInfoList
-        );
+        uint256 slashedAmount = stakeManager.slash(_slashingInfoList);
+        logger.logSlashed(_slashingNonce, slashedAmount);
+
         uint256 bounty = (slashedAmount.mul(reportRate)).div(100);
         slashedAmount = slashedAmount.sub(bounty);
+
         require(
             stakeManager.transferFunds(
                 0, //placeholder
