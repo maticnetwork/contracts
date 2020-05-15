@@ -107,7 +107,7 @@ contract StakingInfo {
         address indexed signer
     );
     event UnJailed(uint256 indexed validatorId, address indexed signer);
-    event Slashed(uint256 indexed amount);
+    event Slashed(uint256 indexed nonce, uint256 indexed amount);
     event ThresholdChange(uint256 newThreshold, uint256 oldThreshold);
     event DynastyValueChange(uint256 newDynasty, uint256 oldDynasty);
     event ProposerBonusChange(
@@ -286,8 +286,8 @@ contract StakingInfo {
         emit UnJailed(validatorId, signer);
     }
 
-    function logSlashed(uint256 amount) public onlyStakeManager {
-        emit Slashed(amount);
+    function logSlashed(uint256 nonce, uint256 amount) public onlyStakeManager {
+        emit Slashed(nonce, amount);
     }
 
     function logThresholdChange(uint256 newThreshold, uint256 oldThreshold)

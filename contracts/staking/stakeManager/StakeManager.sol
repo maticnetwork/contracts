@@ -647,7 +647,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         return _reward;
     }
 
-    function slash(bytes memory _slashingInfoList) public returns (uint256) {
+    function slash(uint256 _slashingNonce, bytes memory _slashingInfoList) public returns (uint256) {
         require(Registry(registry).getSlashingManagerAddress() == msg.sender);
         RLPReader.RLPItem[] memory slashingInfoList = _slashingInfoList
             .toRlpItem()
@@ -683,7 +683,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             -int256(_totalAmount.add(jailedAmount)),
             -valJailed
         );
-        logger.logSlashed(_totalAmount);
+        logger.logSlashed(_slashingNonce, _totalAmount);
 
         return _totalAmount;
     }
