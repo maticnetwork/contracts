@@ -34,17 +34,8 @@ contract SlashingManager is ISlashingManager, Ownable {
             uint256 _slashingNonce,
             address proposer,
             bytes memory _slashingInfoList
-        ) = abi.decode(
-            data,
-            (
-                uint256,
-                address,
-                bytes
-            )
-        );
+        ) = abi.decode(data, (uint256, address, bytes));
 
-        // require(slashingNonce < dataList[2].toUint(), "Invalid slashing nonce");
-        // slashingNonce = dataList[2].toUint();
         slashingNonce = slashingNonce.add(1);
         require(slashingNonce == _slashingNonce, "Invalid slashing nonce");
         StakeManager stakeManager = StakeManager(
@@ -59,7 +50,10 @@ contract SlashingManager is ISlashingManager, Ownable {
         );
         require(stakePower >= activeTwoByThree, "2/3+1 Power required");
         //slashingInfoList[]=[[valiD,am,isJailed]]
-        uint256 slashedAmount = stakeManager.slash(slashingNonce, _slashingInfoList);
+        uint256 slashedAmount = stakeManager.slash(
+            slashingNonce,
+            _slashingInfoList
+        );
         uint256 bounty = (slashedAmount.mul(reportRate)).div(100);
         slashedAmount = slashedAmount.sub(bounty);
         require(
