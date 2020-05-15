@@ -186,7 +186,8 @@ contract StakingInfo {
             registry.getStakeManagerAddress()
         )
             .validators(validatorId);
-        require(_contract == msg.sender);
+        require(_contract == msg.sender,
+        "Invalid sender, not validator");
         _;
     }
 
@@ -196,16 +197,19 @@ contract StakingInfo {
         (, , , , , , _contract, ) = IStakeManager(_stakeManager).validators(
             validatorId
         );
-        require(_contract == msg.sender || _stakeManager == msg.sender);
+        require(_contract == msg.sender || _stakeManager == msg.sender,
+        "Invalid sender, not stake manager or validator contract");
         _;
     }
 
     modifier onlyStakeManager() {
-        require(registry.getStakeManagerAddress() == msg.sender);
+        require(registry.getStakeManagerAddress() == msg.sender,
+        "Invalid sender, not stake manager");
         _;
     }
     modifier onlySlashingManager() {
-        require(registry.getSlashingManagerAddress() == msg.sender);
+        require(registry.getSlashingManagerAddress() == msg.sender,
+        "Invalid sender, not slashing manager");
         _;
     }
 
