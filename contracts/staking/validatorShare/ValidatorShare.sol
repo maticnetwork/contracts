@@ -76,7 +76,7 @@ contract ValidatorShare is IValidatorShare {
         require( // withdrawalDelay == dynasty
             (lastCommissionUpdate.add(stakeManager.withdrawalDelay()) <=
                 epoch) || lastCommissionUpdate == 0, // For initial setting of commission rate
-            "Commission rate update cool down period"
+            "Commission rate update cooldown period"
         );
         require(
             newCommissionRate <= 100,

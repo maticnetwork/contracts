@@ -141,13 +141,11 @@ contract StakingInfo {
         uint256 indexed amount
     );
     event TopUpFee(
-        uint256 indexed validatorId,
-        address indexed signer,
+        address indexed user,
         uint256 indexed fee
     );
     event ClaimFee(
-        uint256 indexed validatorId,
-        address indexed signer,
+        address indexed user,
         uint256 indexed fee
     );
     // Delegator events
@@ -350,18 +348,18 @@ contract StakingInfo {
         emit ConfirmAuction(newValidatorId, oldValidatorId, amount);
     }
 
-    function logTopUpFee(uint256 validatorId, address signer, uint256 fee)
+    function logTopUpFee(address user, uint256 fee)
         public
         onlyStakeManager
     {
-        emit TopUpFee(validatorId, signer, fee);
+        emit TopUpFee(user, fee);
     }
 
-    function logClaimFee(uint256 validatorId, address signer, uint256 fee)
+    function logClaimFee(address user, uint256 fee)
         public
         onlyStakeManager
     {
-        emit ClaimFee(validatorId, signer, fee);
+        emit ClaimFee(user, fee);
     }
 
     function getStakerDetails(uint256 validatorId)
