@@ -107,7 +107,7 @@ contract StakingInfo {
         address indexed signer
     );
     event UnJailed(uint256 indexed validatorId, address indexed signer);
-    event Slashed(uint256 indexed amount);
+    event Slashed(uint256 indexed nonce, uint256 indexed amount);
     event ThresholdChange(uint256 newThreshold, uint256 oldThreshold);
     event DynastyValueChange(uint256 newDynasty, uint256 oldDynasty);
     event ProposerBonusChange(
@@ -124,7 +124,8 @@ contract StakingInfo {
     event StakeUpdate(
         uint256 indexed validatorId,
         uint256 indexed nonce,
-        uint256 indexed newAmount);
+        uint256 indexed newAmount
+    );
     event ClaimRewards(
         uint256 indexed validatorId,
         uint256 indexed amount,
@@ -140,14 +141,8 @@ contract StakingInfo {
         uint256 indexed oldValidatorId,
         uint256 indexed amount
     );
-    event TopUpFee(
-        address indexed user,
-        uint256 indexed fee
-    );
-    event ClaimFee(
-        address indexed user,
-        uint256 indexed fee
-    );
+    event TopUpFee(address indexed user, uint256 indexed fee);
+    event ClaimFee(address indexed user, uint256 indexed fee);
     // Delegator events
     event ShareMinted(
         uint256 indexed validatorId,
@@ -191,7 +186,8 @@ contract StakingInfo {
             registry.getStakeManagerAddress()
         )
             .validators(validatorId);
-        require(_contract == msg.sender);
+        require(_contract == msg.sender,
+        "Invalid sender, not validator");
         _;
     }
 
@@ -201,12 +197,19 @@ contract StakingInfo {
         (, , , , , , _contract, ) = IStakeManager(_stakeManager).validators(
             validatorId
         );
-        require(_contract == msg.sender || _stakeManager == msg.sender);
+        require(_contract == msg.sender || _stakeManager == msg.sender,
+        "Invalid sender, not stake manager or validator contract");
         _;
     }
 
     modifier onlyStakeManager() {
-        require(registry.getStakeManagerAddress() == msg.sender);
+        require(registry.getStakeManagerAddress() == msg.sender,
+        "Invalid sender, not stake manager");
+        _;
+    }
+    modifier onlySlashingManager() {
+        require(registry.getSlashingManagerAddress() == msg.sender,
+        "Invalid sender, not slashing manager");
         _;
     }
 
@@ -250,7 +253,13 @@ contract StakingInfo {
         uint256 amount
     ) public onlyStakeManager {
         validatorNonce[validatorId] = validatorNonce[validatorId].add(1);
-        emit UnstakeInit(user, validatorId, validatorNonce[validatorId], deactivationEpoch, amount);
+        emit UnstakeInit(
+            user,
+            validatorId,
+            validatorNonce[validatorId],
+            deactivationEpoch,
+            amount
+        );
     }
 
     function logSignerChange(
@@ -260,13 +269,19 @@ contract StakingInfo {
         bytes memory signerPubkey
     ) public onlyStakeManager {
         validatorNonce[validatorId] = validatorNonce[validatorId].add(1);
-        emit SignerChange(validatorId, validatorNonce[validatorId], oldSigner, newSigner, signerPubkey);
+        emit SignerChange(
+            validatorId,
+            validatorNonce[validatorId],
+            oldSigner,
+            newSigner,
+            signerPubkey
+        );
     }
 
     function logReStaked(uint256 validatorId, uint256 amount, uint256 total)
         public
         onlyStakeManager
-    {   
+    {
         emit ReStaked(validatorId, amount, total);
     }
 
@@ -284,8 +299,11 @@ contract StakingInfo {
         emit UnJailed(validatorId, signer);
     }
 
-    function logSlashed(uint256 amount) public onlyStakeManager {
-        emit Slashed(amount);
+    function logSlashed(uint256 nonce, uint256 amount)
+        public
+        onlySlashingManager
+    {
+        emit Slashed(nonce, amount);
     }
 
     function logThresholdChange(uint256 newThreshold, uint256 oldThreshold)
@@ -321,7 +339,11 @@ contract StakingInfo {
         StakeManagerOrValidatorContract(validatorId)
     {
         validatorNonce[validatorId] = validatorNonce[validatorId].add(1);
-        emit StakeUpdate(validatorId, validatorNonce[validatorId], totalValidatorStake(validatorId));
+        emit StakeUpdate(
+            validatorId,
+            validatorNonce[validatorId],
+            totalValidatorStake(validatorId)
+        );
     }
 
     function logClaimRewards(
@@ -348,17 +370,11 @@ contract StakingInfo {
         emit ConfirmAuction(newValidatorId, oldValidatorId, amount);
     }
 
-    function logTopUpFee(address user, uint256 fee)
-        public
-        onlyStakeManager
-    {
+    function logTopUpFee(address user, uint256 fee) public onlyStakeManager {
         emit TopUpFee(user, fee);
     }
 
-    function logClaimFee(address user, uint256 fee)
-        public
-        onlyStakeManager
-    {
+    function logClaimFee(address user, uint256 fee) public onlyStakeManager {
         emit ClaimFee(user, fee);
     }
 

@@ -14,14 +14,14 @@ import { generateFirstWallets, mnemonics } from '../../helpers/wallets.js'
 
 chai.use(chaiAsPromised).should()
 
-contract('Slashing:validator', async function(accounts) {
+contract('Slashing:validator', async function (accounts) {
   let stakeToken
   let stakeManager
   let slashingManager
   let wallets
 
-  describe('validator slashing', async function() {
-    beforeEach(async function() {
+  describe('validator slashing', async function () {
+    beforeEach(async function () {
       wallets = generateFirstWallets(mnemonics, 10)
       let contracts = await deployer.deployStakeManager(wallets)
       stakeToken = contracts.stakeToken
@@ -46,7 +46,7 @@ contract('Slashing:validator', async function(accounts) {
       await stakeToken.mint(stakeManager.address, web3.utils.toWei('1000000'))// rewards amount
     })
 
-    it('should slash validators', async function() {
+    it('should slash validators', async function () {
       const amount = +web3.utils.toWei('100')
       const slashingInfoList = [[1, amount, '0x0'], [2, amount, '0x0']]
 
@@ -61,7 +61,7 @@ contract('Slashing:validator', async function(accounts) {
       assertBigNumberEquality(validator2.amount, web3.utils.toWei('900'))
     })
 
-    it('should slash validator:jail and send checkpoint', async function() {
+    it('should slash validator:jail and send checkpoint', async function () {
       const amount = +web3.utils.toWei('100')
       const validator1Wallet = wallets[0]
       const slashingInfoList = [[2, amount, '0x1']]
@@ -84,7 +84,7 @@ contract('Slashing:validator', async function(accounts) {
       assertBigNumberEquality(val1AfterCheckpoint.reward, web3.utils.toWei('10000'))
     })
 
-    it('should test jail/unjail', async function() {
+    it('should test jail/unjail', async function () {
       const amount = +web3.utils.toWei('100')
       const validator1Wallet = wallets[0]
       const validator2Wallet = wallets[1]
@@ -101,14 +101,14 @@ contract('Slashing:validator', async function(accounts) {
     })
   })
 })
-contract('Slashing:delegation', async function(accounts) {
+contract('Slashing:delegation', async function (accounts) {
   let stakeToken
   let stakeManager
   let slashingManager
   let wallets
 
-  describe('validator:delegator slashing', async function() {
-    beforeEach(async function() {
+  describe('validator:delegator slashing', async function () {
+    beforeEach(async function () {
       wallets = generateFirstWallets(mnemonics, 10)
       let contracts = await deployer.deployStakeManager(wallets)
       stakeToken = contracts.stakeToken
@@ -133,7 +133,7 @@ contract('Slashing:delegation', async function(accounts) {
       await stakeToken.mint(stakeManager.address, web3.utils.toWei('1000000'))// rewards amount
     })
 
-    it('should slash validators and delegators', async function() {
+    it('should slash validators and delegators', async function () {
       let validator = await stakeManager.validators(2)
       const validatorContract = await ValidatorShare.at(validator.contractAddress)
       const delegator = wallets[3].getAddressString()
