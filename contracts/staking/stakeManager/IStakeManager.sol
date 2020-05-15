@@ -62,7 +62,7 @@ contract IStakeManager {
 
     function ownerOf(uint256 tokenId) public view returns (address);
 
-    function slash(bytes memory slashingInfoList) public returns (uint256);
+    function slash(uint256 nonce, bytes memory slashingInfoList) public returns (uint256);
 
     function validatorStake(uint256 validatorId) public view returns (uint256);
 
