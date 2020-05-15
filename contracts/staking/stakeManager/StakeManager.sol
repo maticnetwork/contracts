@@ -43,17 +43,16 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     }
 
     // TopUp heimdall fee
-    function topUpForFee(uint256 validatorId, uint256 heimdallFee)
+    function topUpForFee(address user, uint256 heimdallFee)
         public
         onlyWhenUnlocked
     {
-        require(isValidator(validatorId), "validator is not active");
         require(heimdallFee >= minHeimdallFee, "Minimum amount is 1 Matic");
         require(
             token.transferFrom(msg.sender, address(this), heimdallFee),
             "Transfer stake failed"
         );
-        _topUpForFee(validatorId, heimdallFee);
+        _topUpForFee(user, heimdallFee);
     }
 
     function ownerOf(uint256 tokenId) public view returns (address) {
@@ -72,42 +71,34 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         return validators[validatorId].amount;
     }
 
-    function _topUpForFee(uint256 validatorId, uint256 amount) private {
+    function _topUpForFee(address user, uint256 amount) private {
         totalHeimdallFee = totalHeimdallFee.add(amount);
-        logger.logTopUpFee(validatorId, validators[validatorId].signer, amount);
+        logger.logTopUpFee(user, amount);
     }
 
-    function _claimFee(uint256 validatorId, uint256 amount) private {
+    function _claimFee(address user, uint256 amount) private {
         totalHeimdallFee = totalHeimdallFee.sub(amount);
-        logger.logClaimFee(validatorId, validators[validatorId].signer, amount);
+        logger.logClaimFee(user, amount);
     }
 
-    function claimFee(
-        uint256 validatorId,
-        uint256 accumSlashedAmount,
-        uint256 accumFeeAmount,
-        uint256 index,
-        bytes memory proof
-    ) public onlyStaker(validatorId) {
+    function claimFee(uint256 accumFeeAmount, uint256 index, bytes memory proof)
+        public
+    {
+        address user = msg.sender;
         //Ignoring other params becuase rewards distribution is on chain
         require(
-            keccak256(
-                abi.encodePacked(
-                    validatorId,
-                    accumFeeAmount,
-                    accumSlashedAmount
-                )
-            )
-                .checkMembership(index, accountStateRoot, proof),
+            keccak256(abi.encode(user, accumFeeAmount)).checkMembership(
+                index,
+                accountStateRoot,
+                proof
+            ),
             "Wrong acc proof"
         );
-        uint256 withdrawAmount = accumFeeAmount.sub(
-            validatorFeeExit[validatorId]
-        );
+        uint256 withdrawAmount = accumFeeAmount.sub(userFeeExit[user]);
 
-        require(token.transfer(msg.sender, withdrawAmount));
-        _claimFee(validatorId, withdrawAmount);
-        validatorFeeExit[validatorId] = accumFeeAmount;
+        require(token.transfer(user, withdrawAmount));
+        _claimFee(user, withdrawAmount);
+        userFeeExit[user] = accumFeeAmount;
     }
 
     function stake(
@@ -141,7 +132,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         onlyWhenUnlocked
     {
         require(isValidator(validatorId));
-        // when dynasty period is updated validators are in cool down period
+        // when dynasty period is updated validators are in cooldown period
         require(
             replacementCoolDown == 0 || replacementCoolDown <= currentEpoch,
             "Cooldown period"
@@ -240,7 +231,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
                 signerPubkey
             );
             require(heimdallFee >= minHeimdallFee, "Minimum amount is 1 Matic");
-            _topUpForFee(NFTCounter.sub(1), heimdallFee);
+            _topUpForFee(auction.user, heimdallFee);
 
             logger.logConfirmAuction(
                 NFTCounter.sub(1),
@@ -337,10 +328,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         );
         _stakeFor(user, amount, acceptDelegation, signerPubkey);
         // _topup
-        _topUpForFee(
-            NFTCounter.sub(1), /** validatorId*/
-            heimdallFee
-        );
+        _topUpForFee(user, heimdallFee);
     }
 
     function unstakeClaim(uint256 validatorId) public onlyStaker(validatorId) {
@@ -486,8 +474,13 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         dynasty = newDynasty;
         WITHDRAWAL_DELAY = newDynasty;
         auctionPeriod = newDynasty.div(4);
-        // set cool down period
+        // set cooldown period
         replacementCoolDown = currentEpoch.add(auctionPeriod);
+    }
+
+    // Housekeeping function. @todo remove later
+    function stopAuctions(uint256 forNCheckpoints) public onlyOwner {
+        replacementCoolDown = currentEpoch.add(forNCheckpoints);
     }
 
     function updateProposerBonus(uint256 newProposerBonus) public onlyOwner {

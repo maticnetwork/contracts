@@ -68,7 +68,7 @@ contract StakeManagerStorage is ProxyStorage, Lockable, RootChainable {
     mapping(address => uint256) public signerToValidator;
     //Mapping for epoch to totalStake for that epoch
     mapping(uint256 => State) public validatorState;
-    mapping(uint256 => uint256) public validatorFeeExit;
+    mapping(address => uint256) public userFeeExit;
     //Ongoing auctions for validatorId
     mapping(uint256 => Auction) public validatorAuction;
     // validatorId to last signer update epoch
