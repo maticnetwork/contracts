@@ -387,12 +387,11 @@ contract('StakeManager', async function (accounts) {
 
           const validatorId = i + 1
           this.validatorsWallets[validatorId] = wallets[i]
-          this.validators.push(validatorId)
+          this.validators.push(wallets[i].getAddressString())
           this.totalStaked = this.totalStaked.add(amount)
-          this.accumulatedFees[validatorId] = []
+          this.accumulatedFees[wallets[i].getAddressString()] = []
         }
 
-        this.accumSlashedAmount = 0
         this.index = 0
       }
 
@@ -405,26 +404,28 @@ contract('StakeManager', async function (accounts) {
         before(function () {
           this.trees = []
           this.validatorsCount = 4
+
+          this.validators = [wallets[0].getAddressString()]
         })
         before('fresh deploy', doDeploy)
 
         describe('Alice proposes with more than 2/3+1 votes votes', function () {
           it('should pass the check', async function () {
-            this.accumulatedFees[AliceValidatorId] = [[firstFeeToClaim, 0]]
+            this.accumulatedFees[wallets[0].getAddressString()] = [[firstFeeToClaim]]
             this.tree = await feeCheckpointWithVotes.call(this, AliceValidatorId, 0, 22, 3, '') //  3 yes votes
           })
           it('sig prefix is 0x00, reverts', async function () {
-            this.accumulatedFees[AliceValidatorId] = [[firstFeeToClaim, 0]]
+            this.accumulatedFees[wallets[0].getAddressString()] = [[firstFeeToClaim]]
             this.tree = await expectRevert.unspecified(feeCheckpointWithVotes.call(this, AliceValidatorId, 0, 22, 3, '0x00'))   //  3 yes votes
           })
           it('sig prefix is 0x02, reverts', async function () {
-            this.accumulatedFees[AliceValidatorId] = [[firstFeeToClaim, 0]]
+            this.accumulatedFees[wallets[0].getAddressString()] = [[firstFeeToClaim]]
             this.tree = await expectRevert.unspecified(feeCheckpointWithVotes.call(this, AliceValidatorId, 0, 22, 3, '0x02')) //  3 yes votes
           })
         })
         describe('Alice proposes with less than 2/3 votes', function () {
           it('should revert', async function () {
-            this.accumulatedFees[AliceValidatorId] = [[firstFeeToClaim, 0]]
+            this.accumulatedFees[wallets[0].getAddressString()] = [[firstFeeToClaim]]
             this.tree = await expectRevert.unspecified(feeCheckpointWithVotes.call(this, AliceValidatorId, 0, 22, 2, '')) //  2 yes votes
           })
         })
@@ -1094,7 +1095,7 @@ contract('StakeManager', async function (accounts) {
 
       beforeEach('fresh deploy', doDeploy)
       before('top up', async function () {
-        this.user = this.validatorsWallets[AliceValidatorId].getChecksumAddressString()
+        this.user = wallets[0].getAddressString()
 
         await this.stakeToken.approve(this.stakeManager.address, totalFee, {
           from: this.user
