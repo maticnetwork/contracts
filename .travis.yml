@@ -11,7 +11,7 @@ services:
 matrix:
   fast_finish: true
 before_install:
-  - docker pull maticnetwork/bor:develop
+  - docker pull maticnetwork/bor:contracts-test
 before_script:
   - npm install
 script:
