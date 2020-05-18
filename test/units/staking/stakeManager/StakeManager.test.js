@@ -1094,7 +1094,7 @@ contract('StakeManager', async function(accounts) {
 
       before('fresh deploy', doDeploy)
       before('top up', async function() {
-        this.user = wallets[0].getAddressString()
+        this.user = this.validatorsWallets[AliceValidatorId].getChecksumAddressString()
 
         await this.stakeToken.approve(this.stakeManager.address, totalFee, {
           from: this.user
