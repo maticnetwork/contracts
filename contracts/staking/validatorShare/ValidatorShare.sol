@@ -190,6 +190,7 @@ contract ValidatorShare is IValidatorShare {
       - no shares are minted
      */
         uint256 liquidRewards = getLiquidRewards(msg.sender);
+        require(liquidRewards >= minAmount, "Too small rewards amount");
         amountStaked[msg.sender] = amountStaked[msg.sender].add(liquidRewards);
         totalStake = totalStake.add(liquidRewards);
         activeAmount = activeAmount.add(liquidRewards);
@@ -218,9 +219,12 @@ contract ValidatorShare is IValidatorShare {
     {
         uint256 share = balanceOf(user);
         uint256 _exchangeRate = exchangeRate();
-        require(share > 0, "Zero balance");
+        liquidRewards = 0; // default is 0
+        if (share == 0) return 0;
         uint256 totalTokens = _exchangeRate.mul(share).div(100);
-        liquidRewards = totalTokens.sub(amountStaked[user]);
+        if (totalTokens >= amountStaked[user]) {
+            liquidRewards = totalTokens.sub(amountStaked[user]);
+        }
     }
 
     function unStakeClaimTokens() public {
@@ -231,8 +235,8 @@ contract ValidatorShare is IValidatorShare {
             "Incomplete withdrawal period"
         );
         uint256 _amount = withdrawExchangeRate().mul(delegator.share).div(100);
-        withdrawShares.sub(delegator.share);
-        withdrawPool.sub(_amount);
+        withdrawShares = withdrawShares.sub(delegator.share);
+        withdrawPool = withdrawPool.sub(_amount);
 
         totalStake = totalStake.sub(_amount);
 
