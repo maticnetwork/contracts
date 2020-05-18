@@ -29,11 +29,7 @@ if (process.env.SOLIDITY_COVERAGE) {
 }
 
 export const ZeroAddress = '0x0000000000000000000000000000000000000000'
-export let ChildMaticTokenAddress =
-  '0x0000000000000000000000000000000000001010'
-if (process.env.SOLIDITY_COVERAGE) {
-  ChildMaticTokenAddress = null
-}
+export let ChildMaticTokenAddress = '0x0000000000000000000000000000000000001010'
 export const scalingFactor = web3.utils.toBN(10).pow(web3.utils.toBN(18))
 
 export function getSigs(wallets, votedata) {
