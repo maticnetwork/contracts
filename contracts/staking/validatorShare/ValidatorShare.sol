@@ -155,9 +155,7 @@ contract ValidatorShare is IValidatorShare {
         withdrawShares = withdrawShares.add(_withdrawPoolShare);
         delegators[msg.sender] = Delegator({
             share: _withdrawPoolShare,
-            withdrawEpoch: stakeManager.epoch().add(
-                stakeManager.withdrawalDelay()
-            )
+            withdrawEpoch: stakeManager.epoch()
         });
         amountStaked[msg.sender] = 0;
 
@@ -226,13 +224,14 @@ contract ValidatorShare is IValidatorShare {
     function unStakeClaimTokens() public {
         Delegator storage delegator = delegators[msg.sender];
         require(
-            delegator.withdrawEpoch <= stakeManager.epoch() &&
+            delegator.withdrawEpoch.add(stakeManager.withdrawalDelay()) <=
+                stakeManager.epoch() &&
                 delegator.share > 0,
             "Incomplete withdrawal period"
         );
         uint256 _amount = withdrawExchangeRate().mul(delegator.share).div(100);
-        withdrawShares.sub(delegator.share);
-        withdrawPool.sub(_amount);
+        withdrawShares = withdrawShares.sub(delegator.share);
+        withdrawPool = withdrawPool.sub(_amount);
 
         totalStake = totalStake.sub(_amount);
 
