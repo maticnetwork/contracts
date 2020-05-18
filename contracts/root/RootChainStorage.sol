@@ -2,6 +2,7 @@ pragma solidity ^0.5.2;
 
 import {Registry} from "../common/Registry.sol";
 import {ProxyStorage} from "../common/misc/ProxyStorage.sol";
+import {ChainIdMixin} from "../common/mixin/ChainIdMixin.sol";
 
 contract RootChainHeader {
     event NewHeaderBlock(
@@ -22,7 +23,7 @@ contract RootChainHeader {
     }
 }
 
-contract RootChainStorage is ProxyStorage, RootChainHeader {
+contract RootChainStorage is ProxyStorage, RootChainHeader, ChainIdMixin {
     bytes32 public heimdallId;
     uint8 public constant VOTE_TYPE = 2;
 

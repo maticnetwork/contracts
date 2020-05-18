@@ -19,7 +19,7 @@ import {StakingNFT} from "./StakingNFT.sol";
 import "../validatorShare/ValidatorShareFactory.sol";
 import {ISlashingManager} from "../slashing/ISlashingManager.sol";
 import {StakeManagerStorage} from "./StakeManagerStorage.sol";
-import { Governable } from "../../common/governance/Governable.sol";
+import {Governable} from "../../common/governance/Governable.sol";
 
 
 contract StakeManager is IStakeManager, StakeManagerStorage {
@@ -28,8 +28,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     using Merkle for bytes32;
     using RLPReader for bytes;
     using RLPReader for RLPReader.RLPItem;
-    
-    uint256 private constant INCORRECT_VALIDATOR_ID = 2 ** 256 - 1;
+
+    uint256 private constant INCORRECT_VALIDATOR_ID = 2**256 - 1;
 
     modifier onlyStaker(uint256 validatorId) {
         require(NFTContract.ownerOf(validatorId) == msg.sender);
@@ -43,17 +43,16 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     }
 
     // TopUp heimdall fee
-    function topUpForFee(uint256 validatorId, uint256 heimdallFee)
+    function topUpForFee(address user, uint256 heimdallFee)
         public
         onlyWhenUnlocked
     {
-        require(isValidator(validatorId), "validator is not active");
         require(heimdallFee >= minHeimdallFee, "Minimum amount is 1 Matic");
         require(
             token.transferFrom(msg.sender, address(this), heimdallFee),
             "Transfer stake failed"
         );
-        _topUpForFee(validatorId, heimdallFee);
+        _topUpForFee(user, heimdallFee);
     }
 
     function ownerOf(uint256 tokenId) public view returns (address) {
@@ -72,42 +71,34 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         return validators[validatorId].amount;
     }
 
-    function _topUpForFee(uint256 validatorId, uint256 amount) private {
+    function _topUpForFee(address user, uint256 amount) private {
         totalHeimdallFee = totalHeimdallFee.add(amount);
-        logger.logTopUpFee(validatorId, validators[validatorId].signer, amount);
+        logger.logTopUpFee(user, amount);
     }
 
-    function _claimFee(uint256 validatorId, uint256 amount) private {
+    function _claimFee(address user, uint256 amount) private {
         totalHeimdallFee = totalHeimdallFee.sub(amount);
-        logger.logClaimFee(validatorId, validators[validatorId].signer, amount);
+        logger.logClaimFee(user, amount);
     }
 
-    function claimFee(
-        uint256 validatorId,
-        uint256 accumSlashedAmount,
-        uint256 accumFeeAmount,
-        uint256 index,
-        bytes memory proof
-    ) public onlyStaker(validatorId) {
+    function claimFee(uint256 accumFeeAmount, uint256 index, bytes memory proof)
+        public
+    {
+        address user = msg.sender;
         //Ignoring other params becuase rewards distribution is on chain
         require(
-            keccak256(
-                abi.encodePacked(
-                    validatorId,
-                    accumFeeAmount,
-                    accumSlashedAmount
-                )
-            )
-                .checkMembership(index, accountStateRoot, proof),
+            keccak256(abi.encode(user, accumFeeAmount)).checkMembership(
+                index,
+                accountStateRoot,
+                proof
+            ),
             "Wrong acc proof"
         );
-        uint256 withdrawAmount = accumFeeAmount.sub(
-            validatorFeeExit[validatorId]
-        );
+        uint256 withdrawAmount = accumFeeAmount.sub(userFeeExit[user]);
 
-        require(token.transfer(msg.sender, withdrawAmount));
-        _claimFee(validatorId, withdrawAmount);
-        validatorFeeExit[validatorId] = accumFeeAmount;
+        require(token.transfer(user, withdrawAmount));
+        _claimFee(user, withdrawAmount);
+        userFeeExit[user] = accumFeeAmount;
     }
 
     function stake(
@@ -141,7 +132,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         onlyWhenUnlocked
     {
         require(isValidator(validatorId));
-        // when dynasty period is updated validators are in cool down period
+        // when dynasty period is updated validators are in cooldown period
         require(
             replacementCoolDown == 0 || replacementCoolDown <= currentEpoch,
             "Cooldown period"
@@ -203,7 +194,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         require(msg.sender == auction.user, "Only bidder can confirm");
 
         require(
-            currentEpoch.sub(auction.startEpoch) % auctionPeriod.add(dynasty) >= auctionPeriod,
+            currentEpoch.sub(auction.startEpoch) % auctionPeriod.add(dynasty) >=
+                auctionPeriod,
             "Confirmation is not allowed before auctionPeriod"
         );
 
@@ -239,7 +231,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
                 signerPubkey
             );
             require(heimdallFee >= minHeimdallFee, "Minimum amount is 1 Matic");
-            _topUpForFee(NFTCounter.sub(1), heimdallFee);
+            _topUpForFee(auction.user, heimdallFee);
 
             logger.logConfirmAuction(
                 NFTCounter.sub(1),
@@ -323,7 +315,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             currentValidatorSetSize() < validatorThreshold,
             "Validator set Threshold exceeded!"
         );
-        require(amount > minDeposit);
+        require(amount > minDeposit, "min deposit limit failed!");
         require(heimdallFee >= minHeimdallFee, "Minimum amount is 1 Matic");
 
         require(
@@ -336,10 +328,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         );
         _stakeFor(user, amount, acceptDelegation, signerPubkey);
         // _topup
-        _topUpForFee(
-            NFTCounter.sub(1), /** validatorId*/
-            heimdallFee
-        );
+        _topUpForFee(user, heimdallFee);
     }
 
     function unstakeClaim(uint256 validatorId) public onlyStaker(validatorId) {
@@ -356,7 +345,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         totalStaked = totalStaked.sub(amount);
 
         NFTContract.burn(validatorId);
-        signerToValidator[validators[validatorId].signer] = INCORRECT_VALIDATOR_ID;
+        signerToValidator[validators[validatorId]
+            .signer] = INCORRECT_VALIDATOR_ID;
         // delete validators[validatorId];
         validators[validatorId].status = Status.Unstaked;
         require(token.transfer(msg.sender, amount), "Transfer stake failed");
@@ -484,13 +474,21 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         dynasty = newDynasty;
         WITHDRAWAL_DELAY = newDynasty;
         auctionPeriod = newDynasty.div(4);
-        // set cool down period
+        // set cooldown period
         replacementCoolDown = currentEpoch.add(auctionPeriod);
+    }
+
+    // Housekeeping function. @todo remove later
+    function stopAuctions(uint256 forNCheckpoints) public onlyOwner {
+        replacementCoolDown = currentEpoch.add(forNCheckpoints);
     }
 
     function updateProposerBonus(uint256 newProposerBonus) public onlyOwner {
         logger.logProposerBonusChange(newProposerBonus, proposerBonus);
-        require(newProposerBonus <= 100, "Proposer bonus should be less than or equal to 100");
+        require(
+            newProposerBonus <= 100,
+            "Proposer bonus should be less than or equal to 100"
+        );
         proposerBonus = newProposerBonus;
     }
 
@@ -529,7 +527,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             signerPubkey
         );
 
-        signerToValidator[validators[validatorId].signer] = INCORRECT_VALIDATOR_ID;
+        signerToValidator[validators[validatorId]
+            .signer] = INCORRECT_VALIDATOR_ID;
         signerToValidator[_signer] = validatorId;
         validators[validatorId].signer = _signer;
         // reset update time to current time
@@ -642,7 +641,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     }
 
     function slash(bytes memory _slashingInfoList) public returns (uint256) {
-        require(Registry(registry).getSlashingManagerAddress() == msg.sender);
+        require(
+            Registry(registry).getSlashingManagerAddress() == msg.sender,
+            "Sender must be slashing manager!"
+        );
         RLPReader.RLPItem[] memory slashingInfoList = _slashingInfoList
             .toRlpItem()
             .toList();
@@ -677,7 +679,6 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             -int256(_totalAmount.add(jailedAmount)),
             -valJailed
         );
-        logger.logSlashed(_totalAmount);
 
         return _totalAmount;
     }

@@ -23,50 +23,52 @@ contract RootChain is RootChainStorage, IRootChain {
         _;
     }
 
-    function submitHeaderBlock(
-        bytes calldata vote,
-        bytes calldata sigs,
-        bytes calldata txData
-    ) external {
-        RLPReader.RLPItem[] memory dataList = vote.toRlpItem().toList();
-        require(
-            keccak256(dataList[0].toBytes()) == heimdallId,
-            "Chain ID is invalid"
+    function submitHeaderBlock(bytes calldata data, bytes calldata sigs)
+        external
+    {
+        (
+            address proposer,
+            uint256 start,
+            uint256 end,
+            bytes32 rootHash,
+            bytes32 accountHash,
+            uint256 _borChainID
+        ) = abi.decode(
+            data,
+            (address, uint256, uint256, bytes32, bytes32, uint256)
         );
-        require(dataList[1].toUint() == VOTE_TYPE, "Vote type is invalid");
+        require(CHAINID == _borChainID, "Invalid bor chain id");
 
-        // validate hash of txData was signed as part of the vote
         require(
-            keccak256(dataList[4].toBytes()) ==
-                keccak256(abi.encodePacked(sha256(txData))),
-            "Extra data is invalid"
+            _buildHeaderBlock(proposer, start, end, rootHash),
+            "INCORRECT_HEADER_DATA"
         );
 
-        RLPReader.RLPItem[] memory extraData = txData.toRlpItem().toList();
-        extraData = extraData[0].toList();
-        RootChainHeader.HeaderBlock memory headerBlock = _buildHeaderBlock(
-            extraData
-        );
-        headerBlocks[_nextHeaderBlock] = headerBlock;
         // check if it is better to keep it in local storage instead
         IStakeManager stakeManager = IStakeManager(
             registry.getStakeManagerAddress()
         );
         uint256 _reward = stakeManager.checkSignatures(
-            headerBlock.end.sub(headerBlock.start).add(1), // blockInterval
-            keccak256(vote), //voteHash
-            bytes32(extraData[4].toUint()), //stateRoot
-            headerBlock.proposer,
+            end.sub(start).add(1),
+            /**  
+                prefix 01 to data 
+                01 represents positive vote on data and 00 is negative vote
+                malicious validator can try to send 2/3 on negative vote so 01 is appended
+             */
+            keccak256(abi.encodePacked(bytes(hex"01"), data)),
+            accountHash,
+            proposer,
             sigs
         );
+
         require(_reward != 0, "Invalid checkpoint");
         emit NewHeaderBlock(
-            headerBlock.proposer,
+            proposer,
             _nextHeaderBlock,
             _reward,
-            headerBlock.start,
-            headerBlock.end,
-            headerBlock.root
+            start,
+            end,
+            rootHash
         );
         _nextHeaderBlock = _nextHeaderBlock.add(MAX_DEPOSITS);
         _blockDepositId = 1;
@@ -99,15 +101,12 @@ contract RootChain is RootChainStorage, IRootChain {
         return _nextHeaderBlock.sub(MAX_DEPOSITS);
     }
 
-    function _buildHeaderBlock(RLPReader.RLPItem[] memory dataList)
-        private
-        view
-        returns (HeaderBlock memory headerBlock)
-    {
-        headerBlock.proposer = dataList[0].toAddress();
-        // Is this required? Why does a proposer need to be the sender? Think validator relay networks
-        // require(msg.sender == dataList[0].toAddress(), "Invalid proposer");
-
+    function _buildHeaderBlock(
+        address proposer,
+        uint256 start,
+        uint256 end,
+        bytes32 rootHash
+    ) private returns (bool) {
         uint256 nextChildBlock;
         /*
     The ID of the 1st header block is MAX_DEPOSITS.
@@ -116,16 +115,20 @@ contract RootChain is RootChainStorage, IRootChain {
         if (_nextHeaderBlock > MAX_DEPOSITS) {
             nextChildBlock = headerBlocks[currentHeaderBlock()].end + 1;
         }
-        require(
-            nextChildBlock == dataList[1].toUint(),
-            "INCORRECT_START_BLOCK"
-        );
-        headerBlock.start = nextChildBlock;
-        headerBlock.end = dataList[2].toUint();
+        if (nextChildBlock != start) {
+            return false;
+        }
 
-        // toUintStrict returns the encoded uint. Encoded data must be padded to 32 bytes.
-        headerBlock.root = bytes32(dataList[3].toUintStrict());
-        headerBlock.createdAt = now;
+        HeaderBlock memory headerBlock = HeaderBlock({
+            root: rootHash,
+            start: nextChildBlock,
+            end: end,
+            createdAt: now,
+            proposer: proposer
+        });
+
+        headerBlocks[_nextHeaderBlock] = headerBlock;
+        return true;
     }
 
     // Housekeeping function. @todo remove later
