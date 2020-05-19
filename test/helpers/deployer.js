@@ -429,11 +429,16 @@ class Deployer {
 
   async initializeChildChain(owner, options = { updateRegistry: true }) {
     // not mentioning the gas limit fails with "The contract code couldn't be stored, please check your gas limit." intermittently which is super weird
-    this.childChain = await contracts.ChildChain.new({ gas: 7500000 })
+    if (process.env.SOLIDITY_COVERAGE) {
+      this.childChain = await contracts.ChildChain.new({ gas: 75000000 })
+    } else {
+      this.childChain = await contracts.ChildChain.new({ gas: 7500000 })
+    }
+    
     await this.childChain.changeStateSyncerAddress(owner)
     if (!this.globalMatic) {
       // MRC20 comes as a genesis-contract at utils.ChildMaticTokenAddress
-      if (!utils.ChildMaticTokenAddress) {
+      if (process.env.SOLIDITY_COVERAGE) {
         utils.ChildMaticTokenAddress = (await contracts.MRC20.new()).address
         Object.freeze(utils.ChildMaticTokenAddress)
       }
