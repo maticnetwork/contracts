@@ -532,7 +532,7 @@ contract('ValidatorShare', async function() {
       })
 
       it('reverts', async function() {
-        await expectRevert(this.validatorContract.reStake({ from: this.user }), 'No rewards to restake')
+        await expectRevert(this.validatorContract.reStake({ from: this.user }), 'Too small rewards to restake')
       })
     })
   })

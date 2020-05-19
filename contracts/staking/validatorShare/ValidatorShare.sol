@@ -191,8 +191,7 @@ contract ValidatorShare is IValidatorShare {
       - no shares are minted
      */
         uint256 liquidRewards = getLiquidRewards(msg.sender);
-
-        require(liquidRewards > 0, "No rewards to restake");
+        require(liquidRewards >= minAmount, "Too small rewards to restake");
 
         amountStaked[msg.sender] = amountStaked[msg.sender].add(liquidRewards);
         totalStake = totalStake.add(liquidRewards);
