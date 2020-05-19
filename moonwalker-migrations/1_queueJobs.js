@@ -6,6 +6,9 @@ async function deploy() {
   if (!process.env.HEIMDALL_ID) {
     throw new Error('Please export HEIMDALL_ID environment variable')
   }
+  if (!process.env.MATIC_NAME) {
+    throw new Error('Please export MATIC_NAME environment variable')
+  }
 
   const qClient = await EthDeployer.getQueue()
   const deployer = new EthDeployer.Sender(qClient)
@@ -36,7 +39,7 @@ async function deploy() {
   await deployer.deploy(transformArtifact('StakingInfo', ['Registry']))
   await deployer.deploy(transformArtifact('StakingNFT', [{ value: 'Matic Validator' }, { value: 'MV' }]))
 
-  await deployer.deploy(transformArtifact('TestToken', [{ value: 'MATIC' }, { value: 'MATIC' }]))
+  await deployer.deploy(transformArtifact('TestToken', [{ value: process.env.MATIC_NAME }, { value: process.env.MATIC_NAME }]))
   await deployer.deploy(transformArtifact('MaticWETH'))
 
   await deployer.deploy(transformArtifact('StakeManager'))
