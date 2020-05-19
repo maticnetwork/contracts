@@ -27,7 +27,7 @@ contract('ValidatorShare', async function() {
     this.validatorContract = await ValidatorShare.at(validator.contractAddress)
   }
 
-  describe('buyVoucher', function() {
+  describe.only('buyVoucher', function() {
     function deployAliceAndBob() {
       before(doDeploy)
       before(async function() {
@@ -49,7 +49,7 @@ contract('ValidatorShare', async function() {
       })
     }
 
-    function testBuyVoucher(voucherValue, userTotalStaked, totalStaked, shares) {
+    function testBuyVoucher(voucherValue, voucherValueExpected, userTotalStaked, totalStaked, shares) {
       it('must buy voucher', async function() {
         this.receipt = await this.validatorContract.buyVoucher(voucherValue, {
           from: this.user
@@ -68,7 +68,7 @@ contract('ValidatorShare', async function() {
         await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ShareMinted', {
           validatorId: this.validatorId,
           user: this.user,
-          amount: voucherValue,
+          amount: voucherValueExpected,
           tokens: shares
         })
       })
@@ -96,7 +96,7 @@ contract('ValidatorShare', async function() {
         this.user = this.alice
       })
 
-      testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'))
+      testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'))
     })
 
     describe('when delegation is disabled', function() {
@@ -124,15 +124,15 @@ contract('ValidatorShare', async function() {
       })
 
       describe('1st purchase', async function() {
-        testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'))
+        testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'))
       })
 
       describe('2nd purchase', async function() {
-        testBuyVoucher(web3.utils.toWei('150'), web3.utils.toWei('250'), web3.utils.toWei('250'), web3.utils.toWei('150'))
+        testBuyVoucher(web3.utils.toWei('150'), web3.utils.toWei('150'), web3.utils.toWei('250'), web3.utils.toWei('250'), web3.utils.toWei('150'))
       })
 
       describe('3rd purchase', async function() {
-        testBuyVoucher(web3.utils.toWei('250'), web3.utils.toWei('500'), web3.utils.toWei('500'), web3.utils.toWei('250'))
+        testBuyVoucher(web3.utils.toWei('250'), web3.utils.toWei('250'), web3.utils.toWei('500'), web3.utils.toWei('500'), web3.utils.toWei('250'))
       })
     })
 
@@ -151,16 +151,16 @@ contract('ValidatorShare', async function() {
 
       describe('1st purchase', async function() {
         advanceCheckpointAfter()
-        testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'))
+        testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'))
       })
 
       describe('2nd purchase', async function() {
         advanceCheckpointAfter()
-        testBuyVoucher(web3.utils.toWei('150'), web3.utils.toWei('250'), web3.utils.toWei('250'), '3260869565217391304')
+        testBuyVoucher(web3.utils.toWei('150'), '149999999999999999984', '249999999999999999984', '249999999999999999984', '3260869565217391304')
       })
 
       describe('3rd purchase', async function() {
-        testBuyVoucher(web3.utils.toWei('250'), web3.utils.toWei('500'), web3.utils.toWei('500'), '2309468822170900692')
+        testBuyVoucher(web3.utils.toWei('250'), '249999999999999999909', '499999999999999999893', '499999999999999999893', '2309468822170900692')
       })
     })
 
@@ -172,7 +172,7 @@ contract('ValidatorShare', async function() {
           this.user = this.alice
         })
 
-        testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'))
+        testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'))
       })
 
       describe('when Bob stakes 1st time', function() {
@@ -180,7 +180,7 @@ contract('ValidatorShare', async function() {
           this.user = this.bob
         })
 
-        testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('200'), web3.utils.toWei('100'))
+        testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('200'), web3.utils.toWei('100'))
       })
 
       describe('when Alice stakes 2nd time', function() {
@@ -188,7 +188,7 @@ contract('ValidatorShare', async function() {
           this.user = this.alice
         })
 
-        testBuyVoucher(web3.utils.toWei('200'), web3.utils.toWei('300'), web3.utils.toWei('400'), web3.utils.toWei('200'))
+        testBuyVoucher(web3.utils.toWei('200'), web3.utils.toWei('200'), web3.utils.toWei('300'), web3.utils.toWei('400'), web3.utils.toWei('200'))
       })
 
       describe('when Bob stakes 2nd time', function() {
@@ -196,7 +196,7 @@ contract('ValidatorShare', async function() {
           this.user = this.bob
         })
 
-        testBuyVoucher(web3.utils.toWei('200'), web3.utils.toWei('300'), web3.utils.toWei('600'), web3.utils.toWei('200'))
+        testBuyVoucher(web3.utils.toWei('200'), web3.utils.toWei('200'), web3.utils.toWei('300'), web3.utils.toWei('600'), web3.utils.toWei('200'))
       })
     })
 
@@ -215,7 +215,7 @@ contract('ValidatorShare', async function() {
           this.user = this.alice
         })
 
-        testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'))
+        testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'))
       })
 
       describe('when Bob stakes 1st time', function() {
@@ -224,7 +224,7 @@ contract('ValidatorShare', async function() {
           this.user = this.bob
         })
 
-        testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('200'), '2173913043478260869')
+        testBuyVoucher(web3.utils.toWei('100'), '99999999999999999974', '99999999999999999974', '199999999999999999974', '2173913043478260869')
       })
 
       describe('when Alice stakes 2nd time', function() {
@@ -233,7 +233,7 @@ contract('ValidatorShare', async function() {
           this.user = this.alice
         })
 
-        testBuyVoucher(web3.utils.toWei('200'), web3.utils.toWei('300'), web3.utils.toWei('400'), '1909854851031321619')
+        testBuyVoucher(web3.utils.toWei('200'), '199999999999999999941', '299999999999999999941', '399999999999999999915', '1909854851031321619')
       })
 
       describe('when Bob stakes 2nd time', function() {
@@ -241,7 +241,7 @@ contract('ValidatorShare', async function() {
           this.user = this.bob
         })
 
-        testBuyVoucher(web3.utils.toWei('200'), web3.utils.toWei('300'), web3.utils.toWei('600'), '1150152395192362988')
+        testBuyVoucher(web3.utils.toWei('200'), '199999999999999999983', '299999999999999999957', '599999999999999999898', '1150152395192362988')
       })
     })
 
