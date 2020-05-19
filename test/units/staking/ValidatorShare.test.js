@@ -380,7 +380,7 @@ contract('ValidatorShare', async function() {
       testSellVoucher()
     })
 
-    describe.only('when validator is slashed', function() {
+    describe('when validator is slashed', function() {
       deployAliceAndBob()
 
       let aliceStakeAmount = web3.utils.toWei('100')
