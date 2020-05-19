@@ -147,6 +147,10 @@ contract ValidatorShare is IValidatorShare {
             _amount = _amount.sub(_rewards);
         }
 
+        if (_amount > activeAmount) {
+            _amount = activeAmount;
+        }
+
         activeAmount = activeAmount.sub(_amount);
         uint256 _withdrawPoolShare = _amount.mul(100).div(
             withdrawExchangeRate()
