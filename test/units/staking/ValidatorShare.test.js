@@ -380,7 +380,7 @@ contract('ValidatorShare', async function() {
       testSellVoucher()
     })
 
-    describe('when validator is slashed', function() {
+    describe.only('when validator is slashed', function() {
       deployAliceAndBob()
 
       let aliceStakeAmount = web3.utils.toWei('100')
@@ -398,8 +398,24 @@ contract('ValidatorShare', async function() {
         await this.stakeManager.slashTest('1', activeAmount)
       })
 
-      it('Alice must sell voucher', async function() {
+      it('must sell voucher', async function() {
         await this.validatorContract.sellVoucher({ from: this.alice })
+      })
+
+      it('must have correct shares left', async function() {
+        const shares = await this.validatorContract.balanceOf(this.alice)
+        assertBigNumberEquality(shares, '98901098901098901099')
+      })
+
+      it('must have correct token balance', async function() {
+        const balance = await this.stakeToken.balanceOf(this.alice)
+        assertBigNumberEquality(balance, '74350000000000000000000')
+      })
+
+      it('stake manager must have correct validator state', async function() {
+        const currentEpoch = await this.stakeManager.epoch()
+        const validatorState = await this.stakeManager.validatorState(currentEpoch)
+        assertBigNumberEquality(validatorState.amount, '150000000000000000005')
       })
     })
   })
