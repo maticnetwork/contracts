@@ -380,40 +380,27 @@ contract('ValidatorShare', async function() {
       testSellVoucher()
     })
 
-    describe.only('when validator is slashed', function() {
+    describe('when validator is slashed', function() {
       deployAliceAndBob()
 
-      it('Alice buy voucher', async function() {
-        await this.validatorContract.buyVoucher(web3.utils.toWei('100'), {
+      let aliceStakeAmount = web3.utils.toWei('100')
+
+      before(async function() {
+        this.aliceBeforeStakeBalance = await this.stakeToken.balanceOf(this.alice)
+
+        await this.validatorContract.buyVoucher(aliceStakeAmount, {
           from: this.alice
         })
-      })
 
-      it('checkpoint', async function() {
         await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
+
+        let activeAmount = await this.validatorContract.activeAmount()
+        await this.stakeManager.slashTest('1', activeAmount)
       })
 
-      it('validator is slashed', async function() {
-        let a = await this.validatorContract.activeAmount()
-        await this.stakeManager.slashTest('1', a)
-      })
-
-      it('Alice must sell voucher at loss', async function() {
+      it('Alice must sell voucher', async function() {
         await this.validatorContract.sellVoucher({ from: this.alice })
       })
-
-      // it('rewards', async function() {
-      //   const r = await this.validatorContract.getLiquidRewards(this.bob)
-      //   console.log(`getLiquidRewards = `, r.toString())
-      // })
-
-      // it('Bob withdraw rewards', async function() {
-      //   await this.validatorContract.withdrawRewards({ from: this.bob })
-      // })
-
-      // it('Bob must sell voucher', async function() {
-      //   await this.validatorContract.sellVoucher({ from: this.alice })
-      // })
     })
   })
 
