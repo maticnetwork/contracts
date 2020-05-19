@@ -133,9 +133,8 @@ contract ValidatorShare is IValidatorShare {
     function sellVoucher() public {
         uint256 share = balanceOf(msg.sender);
         require(share > 0, "Zero balance");
-        uint256 _amount = exchangeRate().mul(share).div(100);
-        _burn(msg.sender, share);
-        stakeManager.updateValidatorState(validatorId, -int256(_amount));
+        uint256 rate = exchangeRate();
+        uint256 _amount = rate.mul(share).div(100);
 
         if (_amount > amountStaked[msg.sender]) {
             uint256 _rewards = _amount.sub(amountStaked[msg.sender]);
@@ -148,8 +147,13 @@ contract ValidatorShare is IValidatorShare {
         }
 
         if (_amount > activeAmount) {
-            _amount = activeAmount;
+            // sell maximum amount of shares
+            share = activeAmount.mul(100).div(rate);
+            _amount = rate.mul(share).div(100);
         }
+
+        _burn(msg.sender, share);
+        stakeManager.updateValidatorState(validatorId, -int256(_amount));
 
         activeAmount = activeAmount.sub(_amount);
         uint256 _withdrawPoolShare = _amount.mul(100).div(
