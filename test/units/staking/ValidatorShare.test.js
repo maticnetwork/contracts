@@ -27,7 +27,7 @@ contract('ValidatorShare', async function() {
     this.validatorContract = await ValidatorShare.at(validator.contractAddress)
   }
 
-  describe.only('buyVoucher', function() {
+  describe('buyVoucher', function() {
     function deployAliceAndBob() {
       before(doDeploy)
       before(async function() {
