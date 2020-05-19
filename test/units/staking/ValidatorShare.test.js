@@ -27,7 +27,6 @@ contract('ValidatorShare', async function() {
     this.validatorContract = await ValidatorShare.at(validator.contractAddress)
   }
 
-  describe('buyVoucher', function() {
   function deployAliceAndBob() {
     before(doDeploy)
     before(async function() {
@@ -696,39 +695,24 @@ contract('ValidatorShare', async function() {
       })
     })
   })
-  describe.only('when exchange rate is below 1', function() {
-    deployAliceAndBob()
 
-    it('Alice buy voucher', async function() {
-      await this.validatorContract.buyVoucher(web3.utils.toWei('100'), {
-        from: this.alice
+  describe.only('getLiquidRewards', function() {
+    describe('when Alice and Bob buy vouchers (1 checkpoint in-between) and Alice withdraw the rewards', function() {
+      deployAliceAndBob()
+      before(async function() {
+        await this.validatorContract.buyVoucher(web3.utils.toWei('100'), {
+          from: this.alice
+        })
+        await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
+        await this.validatorContract.buyVoucher(web3.utils.toWei('4600'), {
+          from: this.bob
+        })
+        await this.validatorContract.withdrawRewards({ from: this.alice })
       })
-    })
 
-    it('checkpoint', async function() {
-      await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
-    })
-
-    it('Bob buy voucher', async function() {
-      const rate = await this.validatorContract.exchangeRate()
-      console.log('exchangeRate', rate.toString())
-      await this.validatorContract.buyVoucher(web3.utils.toWei('4600'), {
-        from: this.bob
+      it('Bob must call getLiquidRewards', async function() {
+        await this.validatorContract.getLiquidRewards(this.bob)
       })
-    })
-
-    it('Alice withdrawRewards', async function() {
-      await this.validatorContract.withdrawRewards({ from: this.alice })
-    })
-
-    it('Bob Liquid Rewards', async function() {
-      const as = await this.validatorContract.amountStaked(this.bob)
-      const exr = await this.validatorContract.exchangeRate()
-      const bal = await this.validatorContract.balanceOf(this.bob)
-      const totalTokens = exr.mul(bal).div(new BN(100))
-      console.log(`staked = `, as.toString(), 'totalTokens', totalTokens.toString())
-
-      await this.validatorContract.getLiquidRewards(this.bob)
     })
   })
 })
