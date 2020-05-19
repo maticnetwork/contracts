@@ -512,6 +512,29 @@ contract('ValidatorShare', async function() {
         })
       })
     })
+
+    describe('when no liquid rewards', function() {
+      before(doDeploy)
+      before(async function() {
+        this.user = wallets[2].getChecksumAddressString()
+
+        await this.stakeToken.mint(
+          this.user,
+          this.stakeAmount
+        )
+        await this.stakeToken.approve(this.stakeManager.address, this.stakeAmount, {
+          from: this.user
+        })
+
+        await this.validatorContract.buyVoucher(this.stakeAmount, {
+          from: this.user
+        })
+      })
+
+      it('reverts', async function() {
+        await expectRevert(this.validatorContract.reStake({ from: this.user }), 'No rewards to restake')
+      })
+    })
   })
 
   describe('unStakeClaimTokens', function() {
