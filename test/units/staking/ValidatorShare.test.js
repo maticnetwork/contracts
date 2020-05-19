@@ -244,6 +244,32 @@ contract('ValidatorShare', async function() {
         testBuyVoucher(web3.utils.toWei('200'), web3.utils.toWei('300'), web3.utils.toWei('600'), '1150152395192362988')
       })
     })
+
+    describe('when Alice buys 1 voucher with higher amount of tokens than required', function() {
+      deployAliceAndBob()
+
+      before(async function() {
+        await this.validatorContract.buyVoucher('1', {
+          from: this.alice
+        })
+        await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
+
+        this.balanceBefore = await this.stakeToken.balanceOf(this.alice)
+      })
+
+      it('must be charged only for 1 share', async function() {
+        let rate = await this.validatorContract.exchangeRate()
+        // send 1.5% of rate per share, because exchangeRate() returns rate per 100 shares
+        await this.validatorContract.buyVoucher(rate.add(rate.div(new BN(2))).div(new BN(100)), {
+          from: this.alice
+        })
+
+        const balanceNow = await this.stakeToken.balanceOf(this.alice)
+        const diff = this.balanceBefore.sub(balanceNow)
+        // should pay for 1% of exchange rate = 1 share exactly
+        assertBigNumberEquality(rate.div(new BN(100)), diff)
+      })
+    })
   })
 
   describe('exchangeRate', function() {
@@ -255,7 +281,6 @@ contract('ValidatorShare', async function() {
         this.totalStaked = new BN(0)
 
         const voucherAmount = new BN(web3.utils.toWei('70000'))
-
         await this.stakeToken.mint(this.user, voucherAmount)
         await this.stakeToken.approve(this.stakeManager.address, voucherAmount, {
           from: this.user
