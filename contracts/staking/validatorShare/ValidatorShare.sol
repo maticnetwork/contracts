@@ -212,13 +212,20 @@ contract ValidatorShare is IValidatorShare {
     function getLiquidRewards(address user)
         public
         view
-        returns (uint256 liquidRewards)
+        returns (uint256)
     {
         uint256 share = balanceOf(user);
-        uint256 _exchangeRate = exchangeRate();
-        require(share > 0, "Zero balance");
-        uint256 totalTokens = _exchangeRate.mul(share).div(100);
-        liquidRewards = totalTokens.sub(amountStaked[user]);
+        if (share == 0) {
+            return 0;
+        }
+        
+        uint256 liquidRewards;
+        uint256 totalTokens = exchangeRate().mul(share).div(100);
+        if (totalTokens >= amountStaked[user]) {
+            liquidRewards = totalTokens.sub(amountStaked[user]);
+        }
+
+        return liquidRewards;
     }
 
     function unStakeClaimTokens() public {
