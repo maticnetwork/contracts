@@ -204,8 +204,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         require(
             msg.sender == auction.user ||
                 getValidatorId(msg.sender) == validatorId,
-            "Only bidder can confirm"
-        ); //owner of validatorID
+            "Only bidder or validator can confirm"
+        );
 
         require(
             currentEpoch.sub(auction.startEpoch) % auctionPeriod.add(dynasty) >=
@@ -221,7 +221,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         }
         // validator is last auctioner
         if (perceivedStake > auction.amount) {
-            require(token.transfer(auction.user, auction.amount));
+            require(
+                token.transfer(auction.user, auction.amount),
+                "Bid return failed"
+            );
             //cleanup auction data
             auction.amount = 0;
             auction.user = address(0x0);
