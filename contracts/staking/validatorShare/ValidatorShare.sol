@@ -192,14 +192,6 @@ contract ValidatorShare is IValidatorShare {
         amountStaked[msg.sender] = amountStaked[msg.sender].add(liquidRewards);
         totalStake = totalStake.add(liquidRewards);
         activeAmount = activeAmount.add(liquidRewards);
-        require(
-            stakeManager.transferFunds(
-                validatorId,
-                liquidRewards,
-                address(this)
-            ),
-            "Insufficent rewards"
-        );
         stakeManager.updateValidatorState(validatorId, int256(liquidRewards));
         rewards = rewards.sub(liquidRewards);
         stakingLogger.logStakeUpdate(validatorId);
