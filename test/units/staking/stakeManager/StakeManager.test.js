@@ -139,6 +139,37 @@ contract('StakeManager', async function (accounts) {
     })
   }
 
+  function testConfirmAuctionBidForOldValidator() {
+    it('must confirm auction', async function () {
+      this.receipt = await this.stakeManager.confirmAuctionBid(
+        this.validatorId,
+        0,
+        false,
+        '0x00',
+        {
+          from: this.prevValidatorAddr
+        }
+      )
+    })
+
+    it('must emit ConfirmAuction', async function () {
+      await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ConfirmAuction', {
+        newValidatorId: this.validatorId,
+        oldValidatorId: this.validatorId,
+        amount: this.validator.amount
+      })
+    })
+
+    it('validator is still a validator', async function () {
+      assert.ok(await this.stakeManager.isValidator(this.validatorId))
+    })
+
+    it('bidder balance must be correct', async function () {
+      const currentBalance = await this.stakeToken.balanceOf(this.bidder)
+      assertBigNumberEquality(this.bidderBalanceBeforeAuction, currentBalance)
+    })
+  }
+
   describe('checkSignatures', function () {
     function prepareToTest(stakers, checkpointBlockInterval = 1) {
       before('Fresh deploy', freshDeploy)
@@ -1477,6 +1508,23 @@ contract('StakeManager', async function (accounts) {
         })
 
         testConfirmAuctionBidForNewValidator()
+      })
+      describe('when validator has more stake then last bid', function () {
+        prepareToTest()
+        before(async function () {
+          let restakeAmount = web3.utils.toWei('10000')
+          await this.stakeToken.mint(this.prevValidatorAddr, restakeAmount)
+          await this.stakeToken.approve(this.stakeManager.address, restakeAmount, {
+            from: this.prevValidatorAddr
+          })
+          // restake
+          await this.stakeManager.restake(this.validatorId, restakeAmount, false, {
+            from: this.prevValidatorAddr
+          })
+          this.validator = await this.stakeManager.validators(this.validatorId)
+        })
+
+        testConfirmAuctionBidForOldValidator()
       })
     })
 
