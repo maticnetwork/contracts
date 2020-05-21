@@ -75,9 +75,12 @@ contract ValidatorShare is IValidatorShare {
     }
 
     function buyVoucher(uint256 _amount) public onlyWhenUnlocked {
-        uint256 share = _amount.mul(100).div(exchangeRate());
+        uint256 rate = exchangeRate();
+        uint256 share = _amount.mul(100).div(rate);
         require(share > 0, "Insufficient amount to buy share");
         require(delegators[msg.sender].share == 0, "Ongoing exit");
+        
+        _amount = _amount - (_amount % rate.mul(share).div(100));
 
         totalStake = totalStake.add(_amount);
         amountStaked[msg.sender] = amountStaked[msg.sender].add(_amount);
@@ -135,7 +138,8 @@ contract ValidatorShare is IValidatorShare {
         - no shares are minted
         */
         uint256 liquidRewards = getLiquidRewards(msg.sender);
-        require(liquidRewards >= minAmount, "Too small rewards amount");
+        require(liquidRewards >= minAmount, "Too small rewards to restake");
+
         amountStaked[msg.sender] = amountStaked[msg.sender].add(liquidRewards);
         totalStake = totalStake.add(liquidRewards);
         activeAmount = activeAmount.add(liquidRewards);
@@ -145,17 +149,24 @@ contract ValidatorShare is IValidatorShare {
         stakingLogger.logDelReStaked(validatorId, msg.sender, amountStaked[msg.sender]);
     }
 
-    function getLiquidRewards(address user) public view returns (uint256 liquidRewards) {
+    function getLiquidRewards(address user)
+        public
+        view
+        returns (uint256)
+    {
         uint256 share = balanceOf(user);
-        uint256 _exchangeRate = exchangeRate();
-        liquidRewards = 0; // default is 0
         if (share == 0) {
             return 0;
         }
-        uint256 totalTokens = _exchangeRate.mul(share).div(100);
-        if (totalTokens >= amountStaked[user]) {
-            liquidRewards = totalTokens.sub(amountStaked[user]);
+        
+        uint256 liquidRewards;
+        uint256 totalTokens = exchangeRate().mul(share).div(100);
+        uint256 stake = amountStaked[user];
+        if (totalTokens >= stake) {
+            liquidRewards = totalTokens.sub(stake);
         }
+
+        return liquidRewards;
     }
 
     function unStakeClaimTokens() public {

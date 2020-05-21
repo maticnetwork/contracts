@@ -78,29 +78,29 @@ contract('ValidatorShare', async function() {
     })
   })
 
-  describe('buyVoucher', function() {
-    function deployAliceAndBob() {
-      before(doDeploy)
-      before(async function() {
-        this.alice = wallets[2].getChecksumAddressString()
-        this.bob = wallets[3].getChecksumAddressString()
-        this.totalStaked = new BN(0)
+  function deployAliceAndBob() {
+    before(doDeploy)
+    before(async function() {
+      this.alice = wallets[2].getChecksumAddressString()
+      this.bob = wallets[3].getChecksumAddressString()
+      this.totalStaked = new BN(0)
 
-        const mintAmount = new BN(web3.utils.toWei('70000'))
+      const mintAmount = new BN(web3.utils.toWei('70000'))
 
-        await this.stakeToken.mint(this.alice, mintAmount)
-        await this.stakeToken.approve(this.stakeManager.address, mintAmount, {
-          from: this.alice
-        })
-
-        await this.stakeToken.mint(this.bob, mintAmount)
-        await this.stakeToken.approve(this.stakeManager.address, mintAmount, {
-          from: this.bob
-        })
+      await this.stakeToken.mint(this.alice, mintAmount)
+      await this.stakeToken.approve(this.stakeManager.address, mintAmount, {
+        from: this.alice
       })
-    }
 
-    function testBuyVoucher(voucherValue, userTotalStaked, totalStaked, shares) {
+      await this.stakeToken.mint(this.bob, mintAmount)
+      await this.stakeToken.approve(this.stakeManager.address, mintAmount, {
+        from: this.bob
+      })
+    })
+  }
+
+  describe('buyVoucher', function() {
+    function testBuyVoucher(voucherValue, voucherValueExpected, userTotalStaked, totalStaked, shares) {
       it('must buy voucher', async function() {
         this.receipt = await this.validatorContract.buyVoucher(voucherValue, {
           from: this.user
@@ -119,7 +119,7 @@ contract('ValidatorShare', async function() {
         await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ShareMinted', {
           validatorId: this.validatorId,
           user: this.user,
-          amount: voucherValue,
+          amount: voucherValueExpected,
           tokens: shares
         })
       })
@@ -147,7 +147,7 @@ contract('ValidatorShare', async function() {
         this.user = this.alice
       })
 
-      testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'))
+      testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'))
     })
 
     describe('when delegation is disabled', function() {
@@ -175,15 +175,15 @@ contract('ValidatorShare', async function() {
       })
 
       describe('1st purchase', async function() {
-        testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'))
+        testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'))
       })
 
       describe('2nd purchase', async function() {
-        testBuyVoucher(web3.utils.toWei('150'), web3.utils.toWei('250'), web3.utils.toWei('250'), web3.utils.toWei('150'))
+        testBuyVoucher(web3.utils.toWei('150'), web3.utils.toWei('150'), web3.utils.toWei('250'), web3.utils.toWei('250'), web3.utils.toWei('150'))
       })
 
       describe('3rd purchase', async function() {
-        testBuyVoucher(web3.utils.toWei('250'), web3.utils.toWei('500'), web3.utils.toWei('500'), web3.utils.toWei('250'))
+        testBuyVoucher(web3.utils.toWei('250'), web3.utils.toWei('250'), web3.utils.toWei('500'), web3.utils.toWei('500'), web3.utils.toWei('250'))
       })
     })
 
@@ -202,16 +202,16 @@ contract('ValidatorShare', async function() {
 
       describe('1st purchase', async function() {
         advanceCheckpointAfter()
-        testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'))
+        testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'))
       })
 
       describe('2nd purchase', async function() {
         advanceCheckpointAfter()
-        testBuyVoucher(web3.utils.toWei('150'), web3.utils.toWei('250'), web3.utils.toWei('250'), '3260869565217391304')
+        testBuyVoucher(web3.utils.toWei('150'), '149999999999999999984', '249999999999999999984', '249999999999999999984', '3260869565217391304')
       })
 
       describe('3rd purchase', async function() {
-        testBuyVoucher(web3.utils.toWei('250'), web3.utils.toWei('500'), web3.utils.toWei('500'), '2309468822170900692')
+        testBuyVoucher(web3.utils.toWei('250'), '249999999999999999909', '499999999999999999893', '499999999999999999893', '2309468822170900692')
       })
     })
 
@@ -223,7 +223,7 @@ contract('ValidatorShare', async function() {
           this.user = this.alice
         })
 
-        testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'))
+        testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'))
       })
 
       describe('when Bob stakes 1st time', function() {
@@ -231,7 +231,7 @@ contract('ValidatorShare', async function() {
           this.user = this.bob
         })
 
-        testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('200'), web3.utils.toWei('100'))
+        testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('200'), web3.utils.toWei('100'))
       })
 
       describe('when Alice stakes 2nd time', function() {
@@ -239,7 +239,7 @@ contract('ValidatorShare', async function() {
           this.user = this.alice
         })
 
-        testBuyVoucher(web3.utils.toWei('200'), web3.utils.toWei('300'), web3.utils.toWei('400'), web3.utils.toWei('200'))
+        testBuyVoucher(web3.utils.toWei('200'), web3.utils.toWei('200'), web3.utils.toWei('300'), web3.utils.toWei('400'), web3.utils.toWei('200'))
       })
 
       describe('when Bob stakes 2nd time', function() {
@@ -247,7 +247,7 @@ contract('ValidatorShare', async function() {
           this.user = this.bob
         })
 
-        testBuyVoucher(web3.utils.toWei('200'), web3.utils.toWei('300'), web3.utils.toWei('600'), web3.utils.toWei('200'))
+        testBuyVoucher(web3.utils.toWei('200'), web3.utils.toWei('200'), web3.utils.toWei('300'), web3.utils.toWei('600'), web3.utils.toWei('200'))
       })
     })
 
@@ -266,7 +266,7 @@ contract('ValidatorShare', async function() {
           this.user = this.alice
         })
 
-        testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'))
+        testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'))
       })
 
       describe('when Bob stakes 1st time', function() {
@@ -275,7 +275,7 @@ contract('ValidatorShare', async function() {
           this.user = this.bob
         })
 
-        testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('200'), '2173913043478260869')
+        testBuyVoucher(web3.utils.toWei('100'), '99999999999999999974', '99999999999999999974', '199999999999999999974', '2173913043478260869')
       })
 
       describe('when Alice stakes 2nd time', function() {
@@ -284,7 +284,7 @@ contract('ValidatorShare', async function() {
           this.user = this.alice
         })
 
-        testBuyVoucher(web3.utils.toWei('200'), web3.utils.toWei('300'), web3.utils.toWei('400'), '1909854851031321619')
+        testBuyVoucher(web3.utils.toWei('200'), '199999999999999999941', '299999999999999999941', '399999999999999999915', '1909854851031321619')
       })
 
       describe('when Bob stakes 2nd time', function() {
@@ -292,7 +292,33 @@ contract('ValidatorShare', async function() {
           this.user = this.bob
         })
 
-        testBuyVoucher(web3.utils.toWei('200'), web3.utils.toWei('300'), web3.utils.toWei('600'), '1150152395192362988')
+        testBuyVoucher(web3.utils.toWei('200'), '199999999999999999983', '299999999999999999957', '599999999999999999898', '1150152395192362988')
+      })
+    })
+
+    describe('when Alice buys 1 voucher with higher amount of tokens than required', function() {
+      deployAliceAndBob()
+
+      before(async function() {
+        await this.validatorContract.buyVoucher('1', {
+          from: this.alice
+        })
+        await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
+
+        this.balanceBefore = await this.stakeToken.balanceOf(this.alice)
+      })
+
+      it('must be charged only for 1 share', async function() {
+        let rate = await this.validatorContract.exchangeRate()
+        // send 1.5% of rate per share, because exchangeRate() returns rate per 100 shares
+        await this.validatorContract.buyVoucher(rate.add(rate.div(new BN(2))).div(new BN(100)), {
+          from: this.alice
+        })
+
+        const balanceNow = await this.stakeToken.balanceOf(this.alice)
+        const diff = this.balanceBefore.sub(balanceNow)
+        // should pay for 1% of exchange rate = 1 share exactly
+        assertBigNumberEquality(rate.div(new BN(100)), diff)
       })
     })
   })
@@ -306,7 +332,6 @@ contract('ValidatorShare', async function() {
         this.totalStaked = new BN(0)
 
         const voucherAmount = new BN(web3.utils.toWei('70000'))
-
         await this.stakeToken.mint(this.user, voucherAmount)
         await this.stakeToken.approve(this.stakeManager.address, voucherAmount, {
           from: this.user
@@ -538,6 +563,29 @@ contract('ValidatorShare', async function() {
         })
       })
     })
+
+    describe('when no liquid rewards', function() {
+      before(doDeploy)
+      before(async function() {
+        this.user = wallets[2].getChecksumAddressString()
+
+        await this.stakeToken.mint(
+          this.user,
+          this.stakeAmount
+        )
+        await this.stakeToken.approve(this.stakeManager.address, this.stakeAmount, {
+          from: this.user
+        })
+
+        await this.validatorContract.buyVoucher(this.stakeAmount, {
+          from: this.user
+        })
+      })
+
+      it('reverts', async function() {
+        await expectRevert(this.validatorContract.reStake({ from: this.user }), 'Too small rewards to restake')
+      })
+    })
   })
 
   describe('unStakeClaimTokens', function() {
@@ -743,6 +791,26 @@ contract('ValidatorShare', async function() {
           this.validatorContract.updateCommissionRate(15, { from: this.validatorUser.getAddressString() }),
           'Commission rate update cooldown period'
         )
+      })
+    })
+  })
+
+  describe('getLiquidRewards', function() {
+    describe('when Alice and Bob buy vouchers (1 checkpoint in-between) and Alice withdraw the rewards', function() {
+      deployAliceAndBob()
+      before(async function() {
+        await this.validatorContract.buyVoucher(web3.utils.toWei('100'), {
+          from: this.alice
+        })
+        await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
+        await this.validatorContract.buyVoucher(web3.utils.toWei('4600'), {
+          from: this.bob
+        })
+        await this.validatorContract.withdrawRewards({ from: this.alice })
+      })
+
+      it('Bob must call getLiquidRewards', async function() {
+        await this.validatorContract.getLiquidRewards(this.bob)
       })
     })
   })

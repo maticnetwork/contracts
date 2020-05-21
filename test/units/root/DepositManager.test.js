@@ -5,7 +5,7 @@ import deployer from '../../helpers/deployer.js'
 import logDecoder from '../../helpers/log-decoder.js'
 import * as utils from '../../helpers/utils'
 
-import { expectRevert } from '@openzeppelin/test-helpers'
+import { expectRevert, BN } from '@openzeppelin/test-helpers'
 
 const crypto = require('crypto')
 
@@ -16,7 +16,8 @@ chai
 contract('DepositManager', async function(accounts) {
   const amount = web3.utils.toBN('10').pow(web3.utils.toBN('18'))
 
-  async function deployRootChain() {
+  async function freshDeploy() {
+    this.contracts = await deployer.freshDeploy()
     await deployer.deployRootChain()
     this.depositManager = await deployer.deployDepositManager()
   }
@@ -25,16 +26,12 @@ contract('DepositManager', async function(accounts) {
     depositBlock.should.to.include({ owner, token })
     utils.assertBigNumberEquality(depositBlock.amountOrNFTId, amountOrNFTId)
   }
-  
+
   function validateDepositHash(depositHash, owner, token, amountOrNFTId) {
     depositHash.should.be.equal(web3.utils.soliditySha3(owner, token, amountOrNFTId))
   }
 
   describe('when not paused', async function() {
-    before(async function() {
-      await deployer.freshDeploy()
-    })
-
     function depositTest(depositFn, erc721) {
       it('must deposit', async function() {
         this.result = await depositFn.call(this)
@@ -71,8 +68,38 @@ contract('DepositManager', async function(accounts) {
       })
     }
 
+    describe('updateMaxErc20Deposit', function() {
+      before(freshDeploy)
+
+      describe('when from is governance', function() {
+        it('must update max deposit to 50 tokens', async function() {
+          this.contracts.governance.update(
+            this.depositManager.address,
+            this.depositManager.contract.methods.updateMaxErc20Deposit(50).encodeABI()
+          )
+        })
+
+        it('must have maxErc20Deposit = 50', async function() {
+          utils.assertBigNumberEquality('50', await this.depositManager.maxErc20Deposit())
+        })
+
+        it('must revert updating to 0', async function() {
+          await expectRevert(this.contracts.governance.update(
+            this.depositManager.address,
+            this.depositManager.contract.methods.updateMaxErc20Deposit(0).encodeABI()
+          ), 'Update failed')
+        })
+      })
+
+      describe('when from is not governance', function() {
+        it('reverts', async function() {
+          await expectRevert(this.depositManager.updateMaxErc20Deposit(100), 'Only governance contract is authorized')
+        })
+      })
+    })
+
     describe('depositEther', async function() {
-      before(deployRootChain)
+      before(freshDeploy)
       before(async function() {
         this.maticWeth = await deployer.deployMaticWeth()
         this.tokenAddr = this.maticWeth.address
@@ -88,40 +115,78 @@ contract('DepositManager', async function(accounts) {
       })
     })
 
-    describe('depositERC20', async function() {
-      before(deployRootChain)
+    function testErc20MaxDeposit(depositFn) {
+      before(freshDeploy)
       before(async function() {
+        this.maxAmount = await this.depositManager.maxErc20Deposit()
+
+        this.beyondMaxAmount = this.maxAmount.add(new BN('1'))
+
         const testToken = await deployer.deployTestErc20()
-        await testToken.approve(this.depositManager.address, amount)
+        await testToken.approve(this.depositManager.address, this.beyondMaxAmount)
 
         this.tokenAddr = testToken.address
-        this.depositPayload = amount
-        this.user = accounts[0]
       })
 
-      depositTest(async function() {
-        return this.depositManager.depositERC20(this.tokenAddr, this.depositPayload)
+      describe('when deposit within max amount', function() {
+        it('must deposit', async function() {
+          await depositFn.call(this, this.maxAmount)
+        })
+      })
+
+      describe('when deposit exceed max amount', function() {
+        it('reverts', async function() {
+          await expectRevert(depositFn.call(this, this.beyondMaxAmount), 'exceed maximum deposit amount')
+        })
+      })
+    }
+
+    describe('depositERC20', async function() {
+      describe('when Alice deposits', function() {
+        before(freshDeploy)
+        before(async function() {
+          const testToken = await deployer.deployTestErc20()
+          await testToken.approve(this.depositManager.address, amount)
+
+          this.tokenAddr = testToken.address
+          this.depositPayload = amount
+          this.user = accounts[0]
+        })
+
+        depositTest(async function() {
+          return this.depositManager.depositERC20(this.tokenAddr, this.depositPayload)
+        })
+      })
+
+      testErc20MaxDeposit(async function(amount) {
+        return this.depositManager.depositERC20(this.tokenAddr, amount)
       })
     })
 
     describe('depositERC20ForUser', async function() {
-      before(deployRootChain)
-      before(async function() {
-        const testToken = await deployer.deployTestErc20()
-        await testToken.approve(this.depositManager.address, amount)
+      describe('when Alice deposits', function() {
+        before(freshDeploy)
+        before(async function() {
+          const testToken = await deployer.deployTestErc20()
+          await testToken.approve(this.depositManager.address, amount)
 
-        this.tokenAddr = testToken.address
-        this.depositPayload = amount
-        this.user = accounts[1]
+          this.tokenAddr = testToken.address
+          this.depositPayload = amount
+          this.user = accounts[0]
+        })
+
+        depositTest(async function() {
+          return this.depositManager.depositERC20ForUser(this.tokenAddr, this.user, this.depositPayload)
+        })
       })
 
-      depositTest(async function() {
-        return this.depositManager.depositERC20ForUser(this.tokenAddr, this.user, this.depositPayload)
+      testErc20MaxDeposit(async function(amount) {
+        return this.depositManager.depositERC20(this.tokenAddr, amount)
       })
     })
 
     describe('depositERC721', async function() {
-      before(deployRootChain)
+      before(freshDeploy)
       before(async function() {
         const testToken = await deployer.deployTestErc721()
         let tokenId = '1212'
@@ -139,7 +204,7 @@ contract('DepositManager', async function(accounts) {
     })
 
     describe('depositERC721ForUser', async function() {
-      before(deployRootChain)
+      before(freshDeploy)
       before(async function() {
         const testToken = await deployer.deployTestErc721()
         let tokenId = '1234'
@@ -163,7 +228,7 @@ contract('DepositManager', async function(accounts) {
       const user = accounts[1]
       let logs
 
-      before(deployRootChain)
+      before(freshDeploy)
       before(async function() {
         for (let i = 0; i < NUM_DEPOSITS; i++) {
           const testToken = await deployer.deployTestErc20()
@@ -263,14 +328,7 @@ contract('DepositManager', async function(accounts) {
   })
 
   describe('when paused', async function() {
-    before(async function() {
-      this.contracts = await deployer.freshDeploy()
-    })
-
-    beforeEach(async function() {
-      await deployer.deployRootChain()
-      this.depositManager = await deployer.deployDepositManager()
-    })
+    beforeEach(freshDeploy)
 
     describe('depositEther', async function() {
       const value = web3.utils.toWei('1', 'ether')
@@ -321,7 +379,7 @@ contract('DepositManager', async function(accounts) {
 
         this.testToken = testToken
       })
-      
+
       it('must revert', async function() {
         await expectRevert(this.depositManager.depositERC721(this.testToken.address, tokenId), 'Is Locked')
       })
@@ -341,7 +399,7 @@ contract('DepositManager', async function(accounts) {
           tokens.push(testToken.address)
           amounts.push(_amount)
         }
-  
+
         for (let i = 0; i < NUM_DEPOSITS; i++) {
           const testToken = await deployer.deployTestErc721()
           const tokenId = web3.utils.toBN(crypto.randomBytes(32).toString('hex'), 16)
@@ -350,13 +408,13 @@ contract('DepositManager', async function(accounts) {
           tokens.push(testToken.address)
           amounts.push(tokenId)
         }
-        
+
         await this.contracts.governance.update(
           this.depositManager.address,
           this.depositManager.contract.methods.lock().encodeABI()
         )
       })
-      
+
       it('must revert', async function() {
         await expectRevert(this.depositManager.depositBulk(tokens, amounts, user), 'Is Locked')
       })
