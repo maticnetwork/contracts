@@ -63,7 +63,7 @@
     "eth-sig-util": "^2.1.1",
     "ethereumjs-wallet": "0.6.2",
     "ethers": "4.0.13",
-    "moonwalker": "github:atvanguard/moonwalker#cda0f642b7cf3f7795629cf698dce07b73276afd",
+    "moonwalker": "github:atvanguard/moonwalker#4c4592e2d6c1744fbcd9452cf0f00e9beb236b21",
     "pre-commit": "^1.2.2",
     "safe-buffer": "5.1.2",
     "solidity-coverage": "^0.7.4",

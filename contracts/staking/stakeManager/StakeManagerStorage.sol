@@ -19,7 +19,7 @@ contract StakeManagerStorage is ProxyStorage, Lockable, RootChainable {
     ValidatorShareFactory public factory;
     uint256 public WITHDRAWAL_DELAY = (2**13); // unit: epoch
     uint256 public currentEpoch = 1;
-    
+
     // genesis/governance variables
     uint256 public dynasty = 2**13; // unit: epoch 50 days
     uint256 public CHECKPOINT_REWARD = 10000 * (10**18); // update via governance
