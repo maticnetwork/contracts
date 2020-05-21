@@ -34,6 +34,7 @@ node moonwalker-migrations/deployWorker.js
 Wait for `job completed` msg. Moonwalker output is written to `build/status.json`.
 
 5. Queue second set of jobs, which are mostly contract initial state setup. Using truffe exec because it makes use of truffle artifacts.
+Since this is a truffle script you'll need to start a ganache-cli at 9545. This ganache instance is not actually used.
 ```
 npm run truffle exec moonwalker-migrations/2_queueJobs.js
 ```

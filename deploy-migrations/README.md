@@ -69,6 +69,5 @@ export MNEMONIC=<>
 // (Optional) Infura PROJECT ID, if required
 export API_KEY=<PROJECT_ID>
 
-npm run truffle exec scripts/stake.js -- --network <base_chain_network_name> <validator_account> <# tokens to stake>
-e.g. npm run truffle exec scripts/stake.js -- --network development 0xE0938d9fd679bB6B83bf31fA62c433646B9F749e 10
+npm run truffle exec scripts/stake.js -- --network <base_chain_network_name> <validator_account> <pub_key> <# tokens to stake> <fee_topup>
 ```

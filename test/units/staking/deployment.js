@@ -45,7 +45,7 @@ export async function freshDeploy() {
 
   await this.stakeManager.updateCheckpointReward(web3.utils.toWei('10000'))
   await this.stakeManager.updateCheckPointBlockInterval(1)
-  
+
   for (const walletAddr in walletAmounts) {
     await this.stakeToken.mint(
       walletAddr,

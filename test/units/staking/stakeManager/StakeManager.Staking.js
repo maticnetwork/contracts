@@ -201,6 +201,27 @@ module.exports = function(accounts) {
           web3.utils.toWei('150')
         )
       })
+      describe('when reStakes while on going auction', function() {
+        it('when auction is active', async function() {
+          let auctionBid = web3.utils.toWei('10000')
+          const auctionUser = wallets[4].getAddressString()
+          await this.stakeToken.mint(auctionUser, auctionBid)
+          await this.stakeToken.approve(this.stakeManager.address, auctionBid, {
+            from: auctionUser
+          })
+          const validatorId = await this.stakeManager.getValidatorId(wallets[2].getChecksumAddressString())
+          await this.stakeManager.startAuction(validatorId, auctionBid, {
+            from: auctionUser
+          })
+          testRestake(
+            wallets[2].getChecksumAddressString(),
+            amounts.restakeAmonut,
+            amounts.amount,
+            amounts.restakeAmonut,
+            amounts.amount
+          )
+        })
+      })
     })
 
     describe('stake beyond validator threshold', async function() {
@@ -435,17 +456,16 @@ module.exports = function(accounts) {
 
       it('when unstakes during auction', async function() {
         const amount = web3.utils.toWei('1200')
-        await this.stakeToken.mint(user, amount)
+        const auctionUser = wallets[4].getAddressString()
+        await this.stakeToken.mint(auctionUser, amount)
 
         await this.stakeToken.approve(this.stakeManager.address, amount, {
-          from: user
+          from: auctionUser
         })
-
         const validatorId = await this.stakeManager.getValidatorId(user)
         await this.stakeManager.startAuction(validatorId, amount, {
-          from: user
+          from: auctionUser
         })
-
         await expectRevert.unspecified(this.stakeManager.unstake(validatorId, {
           from: user
         }))
@@ -790,23 +810,6 @@ module.exports = function(accounts) {
         await expectRevert(this.stakeManager.restake(this.validatorId, this.amount, false, {
           from: this.user
         }), 'No use of restaking')
-      })
-
-      it('when auction is active', async function() {
-        let auctionBid = web3.utils.toWei('10000')
-        await this.stakeToken.mint(this.user, auctionBid)
-        await this.stakeToken.approve(this.stakeManager.address, auctionBid, {
-          from: this.user
-        })
-        await this.stakeManager.startAuction(this.validatorId, auctionBid, {
-          from: this.user
-        })
-        await checkPoint(initialStakers, this.rootChainOwner, this.stakeManager)
-        await checkPoint(initialStakers, this.rootChainOwner, this.stakeManager)
-
-        await expectRevert(this.stakeManager.restake(this.validatorId, this.amount, false, {
-          from: this.user
-        }), 'Wait for auction completion')
       })
     })
   })
