@@ -685,4 +685,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         ValidatorShare validatorShare = ValidatorShare(contractAddr);
         validatorShare.drain(token, destination, amount);
     }
+
+    function drain(address destination, uint256 amount) external onlyGovernance {
+        require(token.transfer(destination, amount), "Drain failed");
+    }
 }
