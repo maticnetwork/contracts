@@ -75,11 +75,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         logger.logClaimFee(user, amount);
     }
 
-    function claimFee(
-        uint256 accumFeeAmount,
-        uint256 index,
-        bytes memory proof
-    ) public {
+    function claimFee(uint256 accumFeeAmount, uint256 index, bytes memory proof) public {
         address user = msg.sender;
         //Ignoring other params becuase rewards distribution is on chain
         require(
@@ -93,12 +89,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         userFeeExit[user] = accumFeeAmount;
     }
 
-    function stake(
-        uint256 amount,
-        uint256 heimdallFee,
-        bool acceptDelegation,
-        bytes calldata signerPubkey
-    ) external {
+    function stake(uint256 amount, uint256 heimdallFee, bool acceptDelegation, bytes calldata signerPubkey) external {
         stakeFor(msg.sender, amount, heimdallFee, acceptDelegation, signerPubkey);
     }
 
@@ -149,10 +140,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         // create new auction
         if (validatorAuction[validatorId].amount != 0) {
             //replace prev auction
-            require(
-                token.transfer(auction.user, auction.amount),
-                "Token return failed"
-            );
+            require(token.transfer(auction.user, auction.amount), "Token return failed");
         }
         auction.amount = amount;
         auction.user = msg.sender;
@@ -169,8 +157,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         Auction storage auction = validatorAuction[validatorId];
         Validator storage validator = validators[validatorId];
         require(
-            msg.sender == auction.user ||
-                getValidatorId(msg.sender) == validatorId,
+            msg.sender == auction.user || getValidatorId(msg.sender) == validatorId,
             "Only bidder or validator can confirm"
         );
 
@@ -181,25 +168,16 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 perceivedStake = validators[validatorId].amount;
         address _contract = validators[validatorId].contractAddress;
         if (_contract != address(0x0)) {
-            perceivedStake = perceivedStake.add(
-                ValidatorShare(_contract).activeAmount()
-            );
+            perceivedStake = perceivedStake.add(ValidatorShare(_contract).activeAmount());
         }
         // validator is last auctioner
         if (perceivedStake >= auction.amount) {
-            require(
-                token.transfer(auction.user, auction.amount),
-                "Bid return failed"
-            );
+            require(token.transfer(auction.user, auction.amount), "Bid return failed");
             //cleanup auction data
             auction.amount = 0;
             auction.user = address(0x0);
             auction.startEpoch = currentEpoch;
-            logger.logConfirmAuction(
-                validatorId,
-                validatorId,
-                validator.amount
-            );
+            logger.logConfirmAuction(validatorId, validatorId, validator.amount);
         } else {
             // dethrone
             _unstake(validatorId, currentEpoch);
@@ -246,11 +224,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         factory = ValidatorShareFactory(_ValidatorShareFactory);
     }
 
-    function transferFunds(
-        uint256 validatorId,
-        uint256 amount,
-        address delegator
-    ) external returns (bool) {
+    function transferFunds(uint256 validatorId, uint256 amount, address delegator) external returns (bool) {
         require(
             Registry(registry).getSlashingManagerAddress() == msg.sender ||
                 validators[validatorId].contractAddress == msg.sender,
@@ -259,11 +233,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         return token.transfer(delegator, amount);
     }
 
-    function delegationDeposit(
-        uint256 validatorId,
-        uint256 amount,
-        address delegator
-    ) external returns (bool) {
+    function delegationDeposit(uint256 validatorId, uint256 amount, address delegator) external returns (bool) {
         require(delegationEnabled, "Delegation is disabled");
         require(validators[validatorId].contractAddress == msg.sender, "Invalid contract address");
         return token.transferFrom(delegator, address(this), amount);
@@ -310,10 +280,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         onlyWhenUnlocked
         onlyStaker(validatorId)
     {
-        require(
-            validators[validatorId].deactivationEpoch < currentEpoch,
-            "No use of restaking"
-        );
+        require(validators[validatorId].deactivationEpoch < currentEpoch, "No use of restaking");
 
         if (amount > 0) {
             require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");
@@ -387,6 +354,16 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         require(newReward > 0);
         logger.logRewardUpdate(newReward, CHECKPOINT_REWARD);
         CHECKPOINT_REWARD = newReward;
+    }
+
+    // Change delegation contract for a validator
+    // @note: Users must exit before this update or all funds may get lost
+    function updateContractAddress(uint256 validatorId, address newContractAddress) public onlyOwner {
+        require(
+            ValidatorShare(newContractAddress).owner() == address(this),
+            "Owner of validator share must be stakeManager"
+        );
+        validators[validatorId].contractAddress = newContractAddress;
     }
 
     function updateValidatorState(uint256 validatorId, int256 amount) public {
@@ -488,12 +465,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         return checkSignature(stakePower, _reward, voteHash, sigs);
     }
 
-    function checkSignature(
-        uint256 stakePower,
-        uint256 _reward,
-        bytes32 voteHash,
-        bytes memory sigs
-    ) internal returns (uint256) {
+    function checkSignature(uint256 stakePower, uint256 _reward, bytes32 voteHash, bytes memory sigs)
+        internal
+        returns (uint256)
+    {
         // total voting power
         uint256 _stakePower;
         address lastAdd; // cannot have address(0x0) as an owner
@@ -589,12 +564,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         return validators[validatorId].amount.add(delegationAmount);
     }
 
-    function _stakeFor(
-        address user,
-        uint256 amount,
-        bool acceptDelegation,
-        bytes memory signerPubkey
-    ) internal {
+    function _stakeFor(address user, uint256 amount, bool acceptDelegation, bytes memory signerPubkey) internal {
         address signer = pubToAddress(signerPubkey);
         require(signerToValidator[signer] == 0, "Invalid Signer key");
 
@@ -654,11 +624,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         currentEpoch = nextEpoch;
     }
 
-    function updateTimeLine(
-        uint256 epoch,
-        int256 amount,
-        int256 stakerCount
-    ) private {
+    function updateTimeLine(uint256 epoch, int256 amount, int256 stakerCount) private {
         validatorState[epoch].amount += amount;
         validatorState[epoch].stakerCount += stakerCount;
     }
@@ -697,12 +663,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         return (_stakePower, currentValidatorSetTotalStake().mul(2).div(3).add(1));
     }
 
-    function drainValidatorShares(
-        uint256 validatorId,
-        address token,
-        address payable destination,
-        uint256 amount
-    ) external onlyGovernance {
+    function drainValidatorShares(uint256 validatorId, address token, address payable destination, uint256 amount)
+        external
+        onlyGovernance
+    {
         address contractAddr = validators[validatorId].contractAddress;
         require(contractAddr != address(0x0), "unknown validator or no delegation enabled");
         ValidatorShare validatorShare = ValidatorShare(contractAddr);
