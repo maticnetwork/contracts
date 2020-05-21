@@ -115,9 +115,12 @@ contract ValidatorShare is IValidatorShare {
     }
 
     function buyVoucher(uint256 _amount) public onlyWhenUnlocked {
-        uint256 share = _amount.mul(100).div(exchangeRate());
+        uint256 rate = exchangeRate();
+        uint256 share = _amount.mul(100).div(rate);
         require(share > 0, "Insufficient amount to buy share");
         require(delegators[msg.sender].share == 0, "Ongoing exit");
+        
+        _amount = _amount - (_amount % rate.mul(share).div(100));
 
         totalStake = totalStake.add(_amount);
         amountStaked[msg.sender] = amountStaked[msg.sender].add(_amount);
@@ -188,7 +191,8 @@ contract ValidatorShare is IValidatorShare {
       - no shares are minted
      */
         uint256 liquidRewards = getLiquidRewards(msg.sender);
-        require(liquidRewards >= minAmount, "Too small rewards amount");
+        require(liquidRewards >= minAmount, "Too small rewards to restake");
+
         amountStaked[msg.sender] = amountStaked[msg.sender].add(liquidRewards);
         totalStake = totalStake.add(liquidRewards);
         activeAmount = activeAmount.add(liquidRewards);
