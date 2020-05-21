@@ -46,6 +46,11 @@ contract DepositManager is
         depositEther();
     }
 
+    function updateMaxErc20Deposit(uint256 maxDepositAmount) public onlyGovernance {
+        require(maxDepositAmount != 0);
+        maxErc20Deposit = maxDepositAmount;
+    }
+
     function transferAssets(
         address _token,
         address _user,
@@ -129,6 +134,7 @@ contract DepositManager is
     function depositERC20ForUser(address _token, address _user, uint256 _amount)
         public
     {
+        require(_amount <= maxErc20Deposit, "exceed maximum deposit amount");
         require(
             IERC20(_token).transferFrom(msg.sender, address(this), _amount),
             "TOKEN_TRANSFER_FAILED"
