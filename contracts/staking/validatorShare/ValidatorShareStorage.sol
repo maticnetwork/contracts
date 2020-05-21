@@ -7,7 +7,14 @@ import {StakingInfo} from "../StakingInfo.sol";
 import {IStakeManager} from "../stakeManager/IStakeManager.sol";
 import {ProxyStorage} from "../../common/misc/ProxyStorage.sol";
 
-contract ValidatorShareStorage is ProxyStorage, ERC20, Lockable {
+contract ValidatorShareHeader {
+    struct Delegator {
+        uint256 share;
+        uint256 withdrawEpoch;
+    }
+}
+
+contract ValidatorShareStorage is ProxyStorage, ERC20, Lockable, ValidatorShareHeader {
     StakingInfo public stakingLogger;
     IStakeManager public stakeManager;
     uint256 public validatorId;
@@ -26,10 +33,6 @@ contract ValidatorShareStorage is ProxyStorage, ERC20, Lockable {
     uint256 public withdrawPool;
     uint256 public withdrawShares;
 
-    struct Delegator {
-        uint256 share;
-        uint256 withdrawEpoch;
-    }
     mapping(address => uint256) public amountStaked;
     mapping(address => Delegator) public delegators;
 }
