@@ -139,6 +139,33 @@ contract('StakeManager', async function(accounts) {
     })
   }
 
+  describe('drain', function() {
+    describe('when not drained by governance', function() {
+      before('Fresh deploy', freshDeploy)
+
+      it('reverts ', async function() {
+        const balance = await this.stakeToken.balanceOf(this.stakeManager.address)
+        await expectRevert(this.stakeManager.drain(owner, balance), 'Only governance contract is authorized')
+      })
+    })
+
+    describe('when drained by governance', function() {
+      before('Fresh deploy', freshDeploy)
+
+      it('must drain all funds ', async function() {
+        const balance = await this.stakeToken.balanceOf(this.stakeManager.address)
+        await this.governance.update(
+          this.stakeManager.address,
+          this.stakeManager.contract.methods.drain(owner, balance.toString()).encodeABI()
+        )
+      })
+
+      it('stake manager must have no funds', async function() {
+        (await this.stakeToken.balanceOf(this.stakeManager.address)).toString().should.be.equal('0')
+      })
+    })
+  })
+
   describe('checkSignatures', function() {
     function prepareToTest(stakers, checkpointBlockInterval = 1) {
       before('Fresh deploy', freshDeploy)
