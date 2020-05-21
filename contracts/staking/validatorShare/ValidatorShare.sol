@@ -221,8 +221,9 @@ contract ValidatorShare is IValidatorShare {
         
         uint256 liquidRewards;
         uint256 totalTokens = exchangeRate().mul(share).div(100);
-        if (totalTokens >= amountStaked[user]) {
-            liquidRewards = totalTokens.sub(amountStaked[user]);
+        uint256 stake = amountStaked[user];
+        if (totalTokens >= stake) {
+            liquidRewards = totalTokens.sub(stake);
         }
 
         return liquidRewards;
