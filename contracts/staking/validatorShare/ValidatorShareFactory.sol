@@ -1,22 +1,22 @@
 pragma solidity ^0.5.2;
 
-import {ValidatorShare} from "./ValidatorShare.sol";
+import {ValidatorShareProxy} from "./ValidatorShareProxy.sol";
 
 contract ValidatorShareFactory {
     /**
     - factory to create new validatorShare contracts
    */
 
-    function create(uint256 validatorId, address loggerAddress)
+    function create(uint256 validatorId, address loggerAddress, address registry)
         public
         returns (address)
     {
-        ValidatorShare validatorShare = new ValidatorShare(
+        return address(new ValidatorShareProxy(
+            registry,
             validatorId,
             loggerAddress,
             msg.sender
-        );
-        return address(validatorShare);
+        ));
     }
 
 }

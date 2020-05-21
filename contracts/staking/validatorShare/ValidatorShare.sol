@@ -1,71 +1,12 @@
 pragma solidity ^0.5.2;
 
 import {Registry} from "../../common/Registry.sol";
+import {ValidatorShareStorage} from "./ValidatorShareStorage.sol";
 
-import {IValidatorShare} from "./IValidatorShare.sol";
-
-
-contract ValidatorShare is IValidatorShare {
-    constructor(
-        uint256 _validatorId,
-        address _stakingLogger,
-        address _stakeManager
-    ) public IValidatorShare(_validatorId, _stakingLogger, _stakeManager) {}
-
+contract ValidatorShare is ValidatorShareStorage {
     modifier onlyValidator() {
         require(stakeManager.ownerOf(validatorId) == msg.sender);
         _;
-    }
-
-    function updateRewards(uint256 _reward, uint256 _stakePower)
-        external
-        onlyOwner
-        returns (uint256)
-    {
-        /**
-     restaking is simply buying more shares of pool
-     but those needs to be nonswapable/transferrable(to prevent https://en.wikipedia.org/wiki/Tragedy_of_the_commons)
-
-      - calculate rewards for validator stake + delgation
-      - keep the validator rewards aside
-      - take the commission out
-      - add rewards to pool rewards
-      - returns total active stake for validator
-     */
-        uint256 validatorStake = stakeManager.validatorStake(validatorId);
-        uint256 combinedStakePower = validatorStake.add(activeAmount); // validator + delegation stake power
-        uint256 _rewards = combinedStakePower.mul(_reward).div(_stakePower);
-
-        _updateRewards(_rewards, validatorStake, combinedStakePower);
-        return combinedStakePower;
-    }
-
-    function addProposerBonus(uint256 _rewards, uint256 valStake)
-        public
-        onlyOwner
-    {
-        uint256 stakePower = valStake.add(activeAmount);
-        _updateRewards(_rewards, valStake, stakePower);
-    }
-
-    function _updateRewards(
-        uint256 _rewards,
-        uint256 valStake,
-        uint256 stakePower
-    ) internal {
-        uint256 _validatorRewards = valStake.mul(_rewards).div(stakePower);
-
-        // add validator commission from delegation rewards
-        if (commissionRate > 0) {
-            _validatorRewards = _validatorRewards.add(
-                _rewards.sub(_validatorRewards).mul(commissionRate).div(100)
-            );
-        }
-
-        validatorRewards = validatorRewards.add(_validatorRewards);
-
-        uint256 delegatorsRewards = _rewards.sub(_validatorRewards);
-        rewards = rewards.add(delegatorsRewards);
     }
 
     function updateCommissionRate(uint256 newCommissionRate)
@@ -119,7 +60,7 @@ contract ValidatorShare is IValidatorShare {
         uint256 share = _amount.mul(100).div(rate);
         require(share > 0, "Insufficient amount to buy share");
         require(delegators[msg.sender].share == 0, "Ongoing exit");
-        
+
         _amount = _amount - (_amount % rate.mul(share).div(100));
 
         totalStake = totalStake.add(_amount);
