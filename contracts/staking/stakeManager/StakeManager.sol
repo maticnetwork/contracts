@@ -220,7 +220,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             );
         }
         // validator is last auctioner
-        if (perceivedStake > auction.amount) {
+        if (perceivedStake >= auction.amount) {
             require(
                 token.transfer(auction.user, auction.amount),
                 "Bid return failed"
