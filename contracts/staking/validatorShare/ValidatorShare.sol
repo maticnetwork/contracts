@@ -265,6 +265,14 @@ contract ValidatorShare is IValidatorShare {
         return _amountToSlash;
     }
 
+    function drain(address token, address destination, uint amount) external onlyGovernance {
+        if (token == address(0x0)) {
+            destination.transfer(amount);
+        } else {
+            require(token.transfer(destination, amount), "Drain failed");
+        }
+    }
+
     function unlockContract() external onlyOwner returns (uint256) {
         locked = false;
         return activeAmount;
@@ -274,9 +282,6 @@ contract ValidatorShare is IValidatorShare {
         locked = true;
         return activeAmount;
     }
-
-    // function _slashActive() internal {}
-    // function _slashInActive() internal {}
 
     function _transfer(address from, address to, uint256 value) internal {
         revert("Disabled");
