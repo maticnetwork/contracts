@@ -16,7 +16,7 @@ import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
 
 chai.use(chaiAsPromised).should()
 
-contract('RootChain', async function (accounts) {
+contract('RootChain', async function(accounts) {
   let rootChain
   let wallets
   let stakeManager
@@ -26,7 +26,7 @@ contract('RootChain', async function (accounts) {
   const validatorsCount = 4
   const validators = []
 
-  before(async function () {
+  before(async function() {
     const stakes = {
       1: web3.utils.toWei('1000'),
       2: web3.utils.toWei('1000'),
@@ -73,7 +73,7 @@ contract('RootChain', async function (accounts) {
   }
 
   function testCheckpoint(dontBuildHeaderBlockPayload) {
-    before(async function () {
+    before(async function() {
       if (!dontBuildHeaderBlockPayload) {
         let tree = await rewradsTree(validators, accountState)
         const { data, sigs } = buildSubmitHeaderBlockPaylod(
@@ -92,11 +92,11 @@ contract('RootChain', async function (accounts) {
       this.currentEpoch = await stakeManager.currentEpoch()
     })
 
-    it('must submit', async function () {
+    it('must submit', async function() {
       this.result = await rootChain.submitHeaderBlock(this.data, this.sigs)
     })
 
-    it('must emit NewBlockHeader', async function () {
+    it('must emit NewBlockHeader', async function() {
       await expectEvent(this.result, 'NewHeaderBlock', {
         proposer: this.proposer,
         root: this.root,
@@ -107,22 +107,22 @@ contract('RootChain', async function (accounts) {
       })
     })
 
-    it('epoch must advance', async function () {
+    it('epoch must advance', async function() {
       const newCurrentEpoch = await stakeManager.currentEpoch()
       assertBigNumbergt(newCurrentEpoch, this.currentEpoch)
       this.currentEpoch = newCurrentEpoch
     })
 
-    it('header block createdAt == 0', async function () {
+    it('header block createdAt == 0', async function() {
       let block = await rootChain.headerBlocks(this.headerBlockId)
       assertBigNumbergt(block.createdAt, '0')
     })
   }
 
-  describe('submitHeaderBlock', function () {
-    describe('1 header block', function () {
+  describe('submitHeaderBlock', function() {
+    describe('1 header block', function() {
       before(freshDeploy)
-      before(function () {
+      before(function() {
         this.start = 0
         this.end = 255
         this.headerBlockId = '10000'
@@ -133,11 +133,11 @@ contract('RootChain', async function (accounts) {
       testCheckpoint()
     })
 
-    describe('multiple header blocks', async function () {
+    describe('multiple header blocks', async function() {
       before(freshDeploy)
 
-      describe('submit [0..4] blocks', async function () {
-        before(function () {
+      describe('submit [0..4] blocks', async function() {
+        before(function() {
           this.start = 0
           this.end = 4
           this.headerBlockId = '10000'
@@ -148,8 +148,8 @@ contract('RootChain', async function (accounts) {
         testCheckpoint()
       })
 
-      describe('submit [5..9] blocks', async function () {
-        before(function () {
+      describe('submit [5..9] blocks', async function() {
+        before(function() {
           this.start = 5
           this.end = 9
           this.headerBlockId = '20000'
@@ -160,8 +160,8 @@ contract('RootChain', async function (accounts) {
         testCheckpoint()
       })
 
-      describe('submit [10..14] blocks', async function () {
-        before(function () {
+      describe('submit [10..14] blocks', async function() {
+        before(function() {
           this.start = 10
           this.end = 14
           this.headerBlockId = '30000'
@@ -173,10 +173,10 @@ contract('RootChain', async function (accounts) {
       })
     })
 
-    describe('with hardcoded params', async function () {
+    describe('with hardcoded params', async function() {
       before(freshDeploy)
 
-      before(function () {
+      before(function() {
         this.reward = '10000000000000000000000'
         this.start = 0
         this.end = 255
@@ -191,11 +191,11 @@ contract('RootChain', async function (accounts) {
     })
   })
 
-  describe('checkpoints reverting', async function () {
+  describe('checkpoints reverting', async function() {
     before(freshDeploy)
 
-    describe('submit [0..4] blocks', async function () {
-      before(function () {
+    describe('submit [0..4] blocks', async function() {
+      before(function() {
         this.start = 0
         this.end = 4
         this.headerBlockId = '10000'
@@ -206,8 +206,8 @@ contract('RootChain', async function (accounts) {
       testCheckpoint()
     })
 
-    describe('submit [5..9] blocks', async function () {
-      before(function () {
+    describe('submit [5..9] blocks', async function() {
+      before(function() {
         this.start = 5
         this.end = 9
         this.headerBlockId = '20000'
@@ -218,8 +218,8 @@ contract('RootChain', async function (accounts) {
       testCheckpoint()
     })
 
-    describe('submit [10..14] blocks', async function () {
-      before(function () {
+    describe('submit [10..14] blocks', async function() {
+      before(function() {
         this.start = 10
         this.end = 14
         this.headerBlockId = '30000'
@@ -230,23 +230,23 @@ contract('RootChain', async function (accounts) {
       testCheckpoint()
     })
 
-    describe('setNextHeaderBlock', function () {
-      it('must set header block to 20000', async function () {
+    describe('setNextHeaderBlock', function() {
+      it('must set header block to 20000', async function() {
         await rootChain.setNextHeaderBlock(20000)
       })
     })
 
     function testHeaderBlock(headerBlockId, start, end) {
-      describe(`header block ${headerBlockId}`, function () {
-        before(async function () {
+      describe(`header block ${headerBlockId}`, function() {
+        before(async function() {
           this.block = await rootChain.headerBlocks(headerBlockId)
         })
 
-        it(`start == ${start}`, async function () {
+        it(`start == ${start}`, async function() {
           this.block.start.toString().should.be.equal(start.toString())
         })
 
-        it(`end == ${end}`, async function () {
+        it(`end == ${end}`, async function() {
           this.block.end.toString().should.be.equal(end.toString())
         })
       })
@@ -258,17 +258,17 @@ contract('RootChain', async function (accounts) {
     testHeaderBlock('40000', 0, 0)
   })
 
-  describe('updateDepositId', async function () {
+  describe('updateDepositId', async function() {
     beforeEach(freshDeploy)
 
-    describe('when from is not deposit manager', function () {
-      it('must revert', async function () {
+    describe('when from is not deposit manager', function() {
+      it('must revert', async function() {
         await expectRevert(rootChain.updateDepositId(1), 'UNAUTHORIZED_DEPOSIT_MANAGER_ONLY')
       })
     })
 
-    describe('when numDeposits > MAX_DEPOSITS', function () {
-      it('must revert', async function () {
+    describe('when numDeposits > MAX_DEPOSITS', function() {
+      it('must revert', async function() {
         // TODO add a root chain mock where MAX_DEPOSITS can be queried
         const maxDeposits = new BN('10000')
         await expectRevert(rootChain.updateDepositId(maxDeposits.add(new BN(1))), 'UNAUTHORIZED_DEPOSIT_MANAGER_ONLY')

@@ -132,6 +132,13 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         onlyWhenUnlocked
     {
         require(isValidator(validatorId));
+        uint256 senderValidatorId = signerToValidator[msg.sender];
+        // make sure that signer wasn't used already
+        require(
+            NFTContract.balanceOf(msg.sender) == 0 && // existing validators can't bid
+                senderValidatorId != INCORRECT_VALIDATOR_ID,
+            "Already used address"
+        );
         // when dynasty period is updated validators are in cooldown period
         require(
             replacementCoolDown == 0 || replacementCoolDown <= currentEpoch,
@@ -171,7 +178,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         // create new auction
         if (validatorAuction[validatorId].amount != 0) {
             //replace prev auction
-            require(token.transfer(auction.user, auction.amount));
+            require(
+                token.transfer(auction.user, auction.amount),
+                "Token return failed"
+            );
         }
         auction.amount = amount;
         auction.user = msg.sender;
@@ -191,27 +201,34 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     ) external onlyWhenUnlocked {
         Auction storage auction = validatorAuction[validatorId];
         Validator storage validator = validators[validatorId];
-        require(msg.sender == auction.user, "Only bidder can confirm");
+        require(
+            msg.sender == auction.user ||
+                getValidatorId(msg.sender) == validatorId,
+            "Only bidder or validator can confirm"
+        );
 
         require(
             currentEpoch.sub(auction.startEpoch) % auctionPeriod.add(dynasty) >=
                 auctionPeriod,
             "Confirmation is not allowed before auctionPeriod"
         );
-
+        uint256 perceivedStake = validators[validatorId].amount;
+        address _contract = validators[validatorId].contractAddress;
+        if (_contract != address(0x0)) {
+            perceivedStake = perceivedStake.add(
+                ValidatorShare(_contract).activeAmount()
+            );
+        }
         // validator is last auctioner
-        if (auction.user == NFTContract.ownerOf(validatorId)) {
-            uint256 refund = validator.amount;
-            require(token.transfer(auction.user, refund));
-            validator.amount = auction.amount;
-
+        if (perceivedStake >= auction.amount) {
+            require(
+                token.transfer(auction.user, auction.amount),
+                "Bid return failed"
+            );
             //cleanup auction data
             auction.amount = 0;
             auction.user = address(0x0);
             auction.startEpoch = currentEpoch;
-            //update total stake amount
-            totalStaked = totalStaked.add(validator.amount.sub(refund));
-            logger.logStakeUpdate(validatorId);
             logger.logConfirmAuction(
                 validatorId,
                 validatorId,
@@ -362,10 +379,6 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         require(
             validators[validatorId].deactivationEpoch < currentEpoch,
             "No use of restaking"
-        );
-        require(
-            validatorAuction[validatorId].amount == 0,
-            "Wait for auction completion"
         );
 
         if (amount > 0) {
