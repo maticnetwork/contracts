@@ -28,4 +28,5 @@ contract DepositManagerStorage is ProxyStorage, Lockable, DepositManagerHeader {
     mapping(uint256 => DepositBlock) public deposits;
 
     address public childChain;
+    uint256 public maxErc20Deposit = 100 * (10 ** 18);
 }
