@@ -696,7 +696,7 @@ contract('ValidatorShare', async function() {
     })
   })
 
-  describe.only('getLiquidRewards', function() {
+  describe('getLiquidRewards', function() {
     describe('when Alice and Bob buy vouchers (1 checkpoint in-between) and Alice withdraw the rewards', function() {
       deployAliceAndBob()
       before(async function() {
