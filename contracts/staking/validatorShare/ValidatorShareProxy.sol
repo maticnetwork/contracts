@@ -9,7 +9,7 @@ import {Registry} from "../../common/Registry.sol";
 
 contract ValidatorShareProxy is Proxy, ValidatorShareStorage {
   constructor(
-        address _registry,
+        address _registry, // using proxyTo storage variable as the registry address instead
         uint256 _validatorId,
         address _stakingLogger,
         address _stakeManager
@@ -25,6 +25,10 @@ contract ValidatorShareProxy is Proxy, ValidatorShareStorage {
             Registry(_registry).getValidatorShareAddress(),
             _calldata
         );
+    }
+
+    function implementation() external view returns (address) {
+        return Registry(proxyTo).getValidatorShareAddress();
     }
 
     function updateRewards(uint256 _reward, uint256 _stakePower, uint256 validatorStake)
