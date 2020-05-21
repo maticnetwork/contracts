@@ -27,28 +27,28 @@ contract('ValidatorShare', async function() {
     this.validatorContract = await ValidatorShare.at(validator.contractAddress)
   }
 
-  describe('buyVoucher', function() {
-    function deployAliceAndBob() {
-      before(doDeploy)
-      before(async function() {
-        this.alice = wallets[2].getChecksumAddressString()
-        this.bob = wallets[3].getChecksumAddressString()
-        this.totalStaked = new BN(0)
+  function deployAliceAndBob() {
+    before(doDeploy)
+    before(async function() {
+      this.alice = wallets[2].getChecksumAddressString()
+      this.bob = wallets[3].getChecksumAddressString()
+      this.totalStaked = new BN(0)
 
-        const mintAmount = new BN(web3.utils.toWei('70000'))
+      const mintAmount = new BN(web3.utils.toWei('70000'))
 
-        await this.stakeToken.mint(this.alice, mintAmount)
-        await this.stakeToken.approve(this.stakeManager.address, mintAmount, {
-          from: this.alice
-        })
-
-        await this.stakeToken.mint(this.bob, mintAmount)
-        await this.stakeToken.approve(this.stakeManager.address, mintAmount, {
-          from: this.bob
-        })
+      await this.stakeToken.mint(this.alice, mintAmount)
+      await this.stakeToken.approve(this.stakeManager.address, mintAmount, {
+        from: this.alice
       })
-    }
 
+      await this.stakeToken.mint(this.bob, mintAmount)
+      await this.stakeToken.approve(this.stakeManager.address, mintAmount, {
+        from: this.bob
+      })
+    })
+  }
+
+  describe('buyVoucher', function() {
     function testBuyVoucher(voucherValue, voucherValueExpected, userTotalStaked, totalStaked, shares) {
       it('must buy voucher', async function() {
         this.receipt = await this.validatorContract.buyVoucher(voucherValue, {
@@ -740,6 +740,26 @@ contract('ValidatorShare', async function() {
           this.validatorContract.updateCommissionRate(15, { from: this.validatorUser.getAddressString() }),
           'Commission rate update cooldown period'
         )
+      })
+    })
+  })
+
+  describe('getLiquidRewards', function() {
+    describe('when Alice and Bob buy vouchers (1 checkpoint in-between) and Alice withdraw the rewards', function() {
+      deployAliceAndBob()
+      before(async function() {
+        await this.validatorContract.buyVoucher(web3.utils.toWei('100'), {
+          from: this.alice
+        })
+        await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
+        await this.validatorContract.buyVoucher(web3.utils.toWei('4600'), {
+          from: this.bob
+        })
+        await this.validatorContract.withdrawRewards({ from: this.alice })
+      })
+
+      it('Bob must call getLiquidRewards', async function() {
+        await this.validatorContract.getLiquidRewards(this.bob)
       })
     })
   })
