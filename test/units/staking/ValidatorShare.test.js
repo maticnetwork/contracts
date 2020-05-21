@@ -73,7 +73,7 @@ contract('ValidatorShare', async function() {
         await expectRevert(this.governance.update(
           this.stakeManager.address,
           this.stakeManager.contract.methods.drainValidatorShares('9999', this.testToken.address, this.user, this.value).encodeABI()
-        ), 'unknown validator or no delegation enabled')
+        ), 'Update failed')
       })
     })
   })
