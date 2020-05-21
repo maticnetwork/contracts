@@ -7,11 +7,11 @@ import {
 import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
 import { wallets, walletAmounts, freshDeploy, approveAndStake } from '../deployment'
 
-module.exports = function (accounts) {
+module.exports = function(accounts) {
   let owner = accounts[0]
 
   function doStake(wallet, { aproveAmount, stakeAmount, noMinting = false, signer } = {}) {
-    return async function () {
+    return async function() {
       let user = wallet.getAddressString()
 
       let _aproveAmount = aproveAmount || walletAmounts[user].amount
@@ -22,7 +22,7 @@ module.exports = function (accounts) {
   }
 
   function doUnstake(wallet) {
-    return async function () {
+    return async function() {
       let user = wallet.getAddressString()
 
       const validatorId = await this.stakeManager.getValidatorId(user)
@@ -32,9 +32,9 @@ module.exports = function (accounts) {
     }
   }
 
-  describe('stake', function () {
+  describe('stake', function() {
     function testStakeRevert(user, userPubkey, amount, stakeAmount, unspecified = false) {
-      before('Approve', async function () {
+      before('Approve', async function() {
         this.initialBalance = await this.stakeManager.totalStakedFor(user)
 
         await this.stakeToken.approve(this.stakeManager.address, new BN(amount).add(this.defaultHeimdallFee), {
@@ -42,7 +42,7 @@ module.exports = function (accounts) {
         })
       })
 
-      it('must revert', async function () {
+      it('must revert', async function() {
         if (unspecified) {
           await expectRevert.unspecified(this.stakeManager.stake(stakeAmount, this.defaultHeimdallFee, false, userPubkey, {
             from: user
@@ -54,14 +54,14 @@ module.exports = function (accounts) {
         }
       })
 
-      it('must have unchanged staked balance', async function () {
+      it('must have unchanged staked balance', async function() {
         const stakedFor = await this.stakeManager.totalStakedFor(user)
         assertBigNumberEquality(stakedFor, this.initialBalance)
       })
     }
 
     function testStake(user, userPubkey, amount, stakeAmount, validatorId, fee) {
-      before('Approve', async function () {
+      before('Approve', async function() {
         this.user = user
         this.fee = new BN(fee || this.defaultHeimdallFee)
 
@@ -70,13 +70,13 @@ module.exports = function (accounts) {
         })
       })
 
-      it('must stake', async function () {
+      it('must stake', async function() {
         this.receipt = await this.stakeManager.stake(stakeAmount, this.fee, false, userPubkey, {
           from: user
         })
       })
 
-      it('must emit Staked', async function () {
+      it('must emit Staked', async function() {
         await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'Staked', {
           signerPubkey: userPubkey,
           signer: user,
@@ -85,7 +85,7 @@ module.exports = function (accounts) {
       })
 
       if (fee) {
-        it('must emit TopUpFee', async function () {
+        it('must emit TopUpFee', async function() {
           await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'TopUpFee', {
             user: user,
             fee: this.fee
@@ -93,22 +93,22 @@ module.exports = function (accounts) {
         })
       }
 
-      it(`must have correct staked amount`, async function () {
+      it(`must have correct staked amount`, async function() {
         const stakedFor = await this.stakeManager.totalStakedFor(user)
         assertBigNumberEquality(stakedFor, stakeAmount)
       })
 
-      it('must have correct total staked balance', async function () {
+      it('must have correct total staked balance', async function() {
         const stake = await this.stakeManager.currentValidatorSetTotalStake()
         assertBigNumberEquality(stake, stakeAmount)
       })
 
-      it(`must have validatorId == ${validatorId}`, async function () {
+      it(`must have validatorId == ${validatorId}`, async function() {
         const _validatorId = await this.stakeManager.getValidatorId(user)
         _validatorId.toString().should.be.equal(validatorId.toString())
       })
 
-      it('must have valid validatorId', async function () {
+      it('must have valid validatorId', async function() {
         const validatorId = await this.stakeManager.getValidatorId(user)
         const value = await this.stakeManager.isValidator(validatorId.toString())
         assert.isTrue(value)
@@ -116,7 +116,7 @@ module.exports = function (accounts) {
     }
 
     function testRestake(user, amount, stakeAmount, restakeAmount, totalStaked) {
-      before('Approve', async function () {
+      before('Approve', async function() {
         this.user = user
 
         await this.stakeToken.approve(this.stakeManager.address, amount, {
@@ -124,21 +124,21 @@ module.exports = function (accounts) {
         })
       })
 
-      it('must restake', async function () {
+      it('must restake', async function() {
         const validatorId = await this.stakeManager.getValidatorId(this.user)
         this.receipt = await this.stakeManager.restake(validatorId, restakeAmount, false, {
           from: this.user
         })
       })
 
-      it('must emit StakeUpdate', async function () {
+      it('must emit StakeUpdate', async function() {
         const validatorId = await this.stakeManager.getValidatorId(this.user)
         await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'StakeUpdate', {
           validatorId
         })
       })
 
-      it('must emit ReStaked', async function () {
+      it('must emit ReStaked', async function() {
         const validatorId = await this.stakeManager.getValidatorId(this.user)
         await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ReStaked', {
           validatorId,
@@ -147,16 +147,16 @@ module.exports = function (accounts) {
         })
       })
 
-      it(`must have correct total staked amount`, async function () {
+      it(`must have correct total staked amount`, async function() {
         const stakedFor = await this.stakeManager.totalStakedFor(user)
         assertBigNumberEquality(stakedFor, stakeAmount)
       })
     }
 
-    describe('double stake', async function () {
+    describe('double stake', async function() {
       before(freshDeploy)
 
-      describe('when stakes first time', function () {
+      describe('when stakes first time', function() {
         const amounts = walletAmounts[wallets[1].getAddressString()]
         testStake(
           wallets[1].getChecksumAddressString(),
@@ -167,7 +167,7 @@ module.exports = function (accounts) {
         )
       })
 
-      describe('when stakes again', function () {
+      describe('when stakes again', function() {
         testStakeRevert(
           wallets[1].getChecksumAddressString(),
           wallets[1].getPublicKeyString(),
@@ -177,13 +177,13 @@ module.exports = function (accounts) {
       })
     })
 
-    describe('stake and restake following by another stake', function () {
+    describe('stake and restake following by another stake', function() {
       before(freshDeploy)
 
       const amounts = walletAmounts[wallets[2].getAddressString()]
       before('Stake', doStake(wallets[2]))
 
-      describe('when restakes', function () {
+      describe('when restakes', function() {
         testRestake(
           wallets[2].getChecksumAddressString(),
           amounts.restakeAmonut,
@@ -193,7 +193,7 @@ module.exports = function (accounts) {
         )
       })
 
-      describe('when stakes again', function () {
+      describe('when stakes again', function() {
         testStakeRevert(
           wallets[2].getChecksumAddressString(),
           wallets[2].getPublicKeyString(),
@@ -201,8 +201,8 @@ module.exports = function (accounts) {
           web3.utils.toWei('150')
         )
       })
-      describe('when reStakes while on going auction', function () {
-        it('when auction is active', async function () {
+      describe('when reStakes while on going auction', function() {
+        it('when auction is active', async function() {
           let auctionBid = web3.utils.toWei('10000')
           const auctionUser = wallets[4].getAddressString()
           await this.stakeToken.mint(auctionUser, auctionBid)
@@ -224,9 +224,9 @@ module.exports = function (accounts) {
       })
     })
 
-    describe('stake beyond validator threshold', async function () {
+    describe('stake beyond validator threshold', async function() {
       before(freshDeploy)
-      before('Validator threshold and dynasty', async function () {
+      before('Validator threshold and dynasty', async function() {
         await this.stakeManager.updateValidatorThreshold(1, {
           from: owner
         })
@@ -236,7 +236,7 @@ module.exports = function (accounts) {
         })
       })
 
-      describe('when user stakes', function () {
+      describe('when user stakes', function() {
         const amounts = walletAmounts[wallets[3].getAddressString()]
         testStake(
           wallets[3].getChecksumAddressString(),
@@ -247,7 +247,7 @@ module.exports = function (accounts) {
         )
       })
 
-      describe('when other user stakes beyond validator threshold', function () {
+      describe('when other user stakes beyond validator threshold', function() {
         testStakeRevert(
           wallets[4].getChecksumAddressString(),
           wallets[4].getPublicKeyString(),
@@ -258,10 +258,10 @@ module.exports = function (accounts) {
       })
     })
 
-    describe('consecutive stakes', function () {
+    describe('consecutive stakes', function() {
       before(freshDeploy)
 
-      it('validatorId must increment 1 by 1', async function () {
+      it('validatorId must increment 1 by 1', async function() {
         const _wallets = [wallets[1], wallets[2], wallets[3]]
         let expectedValidatorId = 1
         for (const wallet of _wallets) {
@@ -274,7 +274,7 @@ module.exports = function (accounts) {
       })
     })
 
-    describe('stake with heimdall fee', function () {
+    describe('stake with heimdall fee', function() {
       before(freshDeploy)
 
       testStake(
@@ -287,13 +287,13 @@ module.exports = function (accounts) {
       )
     })
 
-    describe('when Alice stakes, change signer and stakes with old signer', function () {
+    describe('when Alice stakes, change signer and stakes with old signer', function() {
       const AliceWallet = wallets[1]
       const newSigner = wallets[2].getPublicKeyString()
 
       before(freshDeploy)
       before(doStake(AliceWallet))
-      before('Change signer', async function () {
+      before('Change signer', async function() {
         const signerUpdateLimit = await this.stakeManager.signerUpdateLimit()
         await this.stakeManager.advanceEpoch(signerUpdateLimit)
 
@@ -303,19 +303,19 @@ module.exports = function (accounts) {
         })
       })
 
-      it('reverts', async function () {
+      it('reverts', async function() {
         await expectRevert(doStake(wallets[3], { signer: AliceWallet.getPublicKeyString() }).call(this), 'Invalid Signer key')
       })
     })
   })
 
-  describe('unstake', function () {
-    describe('when user unstakes right after stake', async function () {
+  describe('unstake', function() {
+    describe('when user unstakes right after stake', async function() {
       const user = wallets[2].getChecksumAddressString()
       const amounts = walletAmounts[wallets[2].getAddressString()]
 
       before('Fresh deploy', freshDeploy)
-      before('Validator threshold and dynasty', async function () {
+      before('Validator threshold and dynasty', async function() {
         await this.stakeManager.updateValidatorThreshold(3, {
           from: owner
         })
@@ -326,7 +326,7 @@ module.exports = function (accounts) {
       })
 
       before(doStake(wallets[2]))
-      before(async function () {
+      before(async function() {
         this.validatorId = await this.stakeManager.getValidatorId(user)
 
         const validator = await this.stakeManager.validators(this.validatorId)
@@ -334,13 +334,13 @@ module.exports = function (accounts) {
         this.afterStakeBalance = await this.stakeToken.balanceOf(user)
       })
 
-      it('must unstake', async function () {
+      it('must unstake', async function() {
         this.receipt = await this.stakeManager.unstake(this.validatorId, {
           from: user
         })
       })
 
-      it('must emit UnstakeInit', async function () {
+      it('must emit UnstakeInit', async function() {
         await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'UnstakeInit', {
           amount: amounts.stakeAmount,
           validatorId: this.validatorId,
@@ -357,15 +357,15 @@ module.exports = function (accounts) {
       //   })
       // })
 
-      it('must have increased balance by reward', async function () {
+      it('must have increased balance by reward', async function() {
         const balance = await this.stakeToken.balanceOf(user)
         assertBigNumberEquality(balance, this.afterStakeBalance.add(this.reward))
       })
     })
 
-    describe('when user unstakes after 2 epochs', async function () {
+    describe('when user unstakes after 2 epochs', async function() {
       before('Fresh deploy', freshDeploy)
-      before('Validator threshold and dynasty', async function () {
+      before('Validator threshold and dynasty', async function() {
         await this.stakeManager.updateValidatorThreshold(3, {
           from: owner
         })
@@ -379,12 +379,12 @@ module.exports = function (accounts) {
       const amounts = walletAmounts[wallets[3].getAddressString()]
 
       before(doStake(wallets[3]))
-      before(async function () {
+      before(async function() {
         this.validatorId = await this.stakeManager.getValidatorId(user)
         this.afterStakeBalance = await this.stakeToken.balanceOf(user)
       })
 
-      before(async function () {
+      before(async function() {
         const w = [wallets[3]]
         await checkPoint(w, this.rootChainOwner, this.stakeManager)
         await checkPoint(w, this.rootChainOwner, this.stakeManager)
@@ -393,14 +393,14 @@ module.exports = function (accounts) {
         this.reward = validator.reward
       })
 
-      it('must unstake', async function () {
+      it('must unstake', async function() {
         const validatorId = await this.stakeManager.getValidatorId(user)
         this.receipt = await this.stakeManager.unstake(validatorId, {
           from: user
         })
       })
 
-      it('must emit UnstakeInit', async function () {
+      it('must emit UnstakeInit', async function() {
         const validatorId = await this.stakeManager.getValidatorId(user)
         await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'UnstakeInit', {
           amount: amounts.amount,
@@ -418,32 +418,32 @@ module.exports = function (accounts) {
       //   })
       // })
 
-      it('must have increased balance by reward', async function () {
+      it('must have increased balance by reward', async function() {
         const balance = await this.stakeToken.balanceOf(user)
         assertBigNumberEquality(balance, this.afterStakeBalance.add(this.reward))
       })
     })
 
-    describe('reverts', function () {
+    describe('reverts', function() {
       beforeEach('Fresh Deploy', freshDeploy)
       const user = wallets[2].getChecksumAddressString()
 
       beforeEach(doStake(wallets[2]))
 
-      it('when validatorId is invalid', async function () {
+      it('when validatorId is invalid', async function() {
         await expectRevert.unspecified(this.stakeManager.unstake('999999', {
           from: user
         }))
       })
 
-      it('when user is not staker', async function () {
+      it('when user is not staker', async function() {
         const validatorId = await this.stakeManager.getValidatorId(user)
         await expectRevert.unspecified(this.stakeManager.unstake(validatorId, {
           from: wallets[3].getAddressString()
         }))
       })
 
-      it('when unstakes 2 times', async function () {
+      it('when unstakes 2 times', async function() {
         const validatorId = await this.stakeManager.getValidatorId(user)
         await this.stakeManager.unstake(validatorId, {
           from: user
@@ -454,7 +454,7 @@ module.exports = function (accounts) {
         }))
       })
 
-      it('when unstakes during auction', async function () {
+      it('when unstakes during auction', async function() {
         const amount = web3.utils.toWei('1200')
         const auctionUser = wallets[4].getAddressString()
         await this.stakeToken.mint(auctionUser, amount)
@@ -473,10 +473,10 @@ module.exports = function (accounts) {
     })
   })
 
-  describe('unstakeClaim', function () {
-    describe('when user claims right after stake', function () {
+  describe('unstakeClaim', function() {
+    describe('when user claims right after stake', function() {
       before('Fresh Deploy', freshDeploy)
-      before('Validator dynasty', async function () {
+      before('Validator dynasty', async function() {
         await this.stakeManager.updateDynastyValue(1, {
           from: owner
         })
@@ -486,7 +486,7 @@ module.exports = function (accounts) {
 
       const user = wallets[2].getAddressString()
 
-      it('must revert', async function () {
+      it('must revert', async function() {
         const ValidatorId = await this.stakeManager.getValidatorId(user)
         await expectRevert.unspecified(this.stakeManager.unstakeClaim(ValidatorId, {
           from: user
@@ -494,12 +494,12 @@ module.exports = function (accounts) {
       })
     })
 
-    describe('when user claims after 1 epoch and 1 dynasty passed', function () {
+    describe('when user claims after 1 epoch and 1 dynasty passed', function() {
       before('Fresh Deploy', freshDeploy)
 
       let dynasties = 1
 
-      before('Validator dynasty', async function () {
+      before('Validator dynasty', async function() {
         await this.stakeManager.updateDynastyValue(dynasties, {
           from: owner
         })
@@ -509,7 +509,7 @@ module.exports = function (accounts) {
       before('Bob Stake', doStake(wallets[3]))
       before('Alice Unstake', doUnstake(wallets[2]))
 
-      before('Checkpoint', async function () {
+      before('Checkpoint', async function() {
         await checkPoint([wallets[3]], this.rootChainOwner, this.stakeManager)
         while (dynasties-- > 0) {
           await checkPoint([wallets[3]], this.rootChainOwner, this.stakeManager)
@@ -518,22 +518,22 @@ module.exports = function (accounts) {
 
       const user = wallets[2].getAddressString()
 
-      it('must claim', async function () {
+      it('must claim', async function() {
         const validatorId = await this.stakeManager.getValidatorId(user)
         this.receipt = await this.stakeManager.unstakeClaim(validatorId, {
           from: user
         })
       })
 
-      it('must have correct staked balance', async function () {
+      it('must have correct staked balance', async function() {
         const stake = await this.stakeManager.currentValidatorSetTotalStake()
         assertBigNumberEquality(stake, walletAmounts[wallets[3].getAddressString()].stakeAmount)
       })
     })
 
-    describe('when user claims next epoch', function () {
+    describe('when user claims next epoch', function() {
       before('Fresh Deploy', freshDeploy)
-      before('Validator dynasty', async function () {
+      before('Validator dynasty', async function() {
         await this.stakeManager.updateDynastyValue(1, {
           from: owner
         })
@@ -544,13 +544,13 @@ module.exports = function (accounts) {
 
       before('Alice Unstake', doUnstake(wallets[2]))
 
-      before('Checkpoint', async function () {
+      before('Checkpoint', async function() {
         await checkPoint([wallets[3]], this.rootChainOwner, this.stakeManager)
       })
 
       const user = wallets[2].getAddressString()
 
-      it('must revert', async function () {
+      it('must revert', async function() {
         const validatorId = await this.stakeManager.getValidatorId(user)
         await expectRevert.unspecified(this.stakeManager.unstakeClaim(validatorId, {
           from: user
@@ -558,9 +558,9 @@ module.exports = function (accounts) {
       })
     })
 
-    describe('when user claims before 1 dynasty passed', function () {
+    describe('when user claims before 1 dynasty passed', function() {
       before('Fresh Deploy', freshDeploy)
-      before('Validator dynasty', async function () {
+      before('Validator dynasty', async function() {
         await this.stakeManager.updateDynastyValue(2, {
           from: owner
         })
@@ -571,13 +571,13 @@ module.exports = function (accounts) {
 
       before('Alice Unstake', doUnstake(wallets[2]))
 
-      before('Checkpoint', async function () {
+      before('Checkpoint', async function() {
         await checkPoint([wallets[3]], this.rootChainOwner, this.stakeManager)
       })
 
       const user = wallets[2].getAddressString()
 
-      it('must revert', async function () {
+      it('must revert', async function() {
         const validatorId = await this.stakeManager.getValidatorId(user)
         await expectRevert.unspecified(this.stakeManager.unstakeClaim(validatorId, {
           from: user
@@ -585,9 +585,9 @@ module.exports = function (accounts) {
       })
     })
 
-    describe('when Alice, Bob and Eve stake, but Alice and Bob claim after 1 epoch and 1 dynasty passed', function () {
+    describe('when Alice, Bob and Eve stake, but Alice and Bob claim after 1 epoch and 1 dynasty passed', function() {
       before(freshDeploy)
-      before('Validator dynasty', async function () {
+      before('Validator dynasty', async function() {
         await this.stakeManager.updateDynastyValue(1, {
           from: owner
         })
@@ -604,17 +604,17 @@ module.exports = function (accounts) {
       before('Alice unstake', doUnstake(Alice))
       before('Bob unstake', doUnstake(Bob))
 
-      before('Checkpoint', async function () {
+      before('Checkpoint', async function() {
         const w = [Eve]
 
         await checkPoint(w, this.rootChainOwner, this.stakeManager)
         await checkPoint(w, this.rootChainOwner, this.stakeManager)
       })
 
-      describe('when Alice claims', function () {
+      describe('when Alice claims', function() {
         const user = Alice.getAddressString()
 
-        it('must claim', async function () {
+        it('must claim', async function() {
           const validatorId = await this.stakeManager.getValidatorId(user)
           const { reward } = await this.stakeManager.validators(validatorId)
           this.reward = reward
@@ -624,17 +624,17 @@ module.exports = function (accounts) {
           })
         })
 
-        it('must have pre-stake + reward - heimdall fee balance', async function () {
+        it('must have pre-stake + reward - heimdall fee balance', async function() {
           let balance = await this.stakeToken.balanceOf(user)
 
           assertBigNumberEquality(balance, new BN(walletAmounts[user].initialBalance.toString()).add(this.reward).sub(this.defaultHeimdallFee))
         })
       })
 
-      describe('when Bob claims', function () {
+      describe('when Bob claims', function() {
         const user = Bob.getAddressString()
 
-        it('must claim', async function () {
+        it('must claim', async function() {
           const validatorId = await this.stakeManager.getValidatorId(user)
           const { reward } = await this.stakeManager.validators(validatorId)
           this.reward = reward
@@ -644,20 +644,20 @@ module.exports = function (accounts) {
           })
         })
 
-        it('must have pre-stake + reward - heimdall fee balance', async function () {
+        it('must have pre-stake + reward - heimdall fee balance', async function() {
           let balance = await this.stakeToken.balanceOf(user)
 
           assertBigNumberEquality(balance, new BN(walletAmounts[user].initialBalance).add(this.reward).sub(this.defaultHeimdallFee))
         })
       })
 
-      describe('afterwards verification', function () {
-        it('must have corect number of validators', async function () {
+      describe('afterwards verification', function() {
+        it('must have corect number of validators', async function() {
           const validators = await this.stakeManager.getCurrentValidatorSet()
           validators.should.have.lengthOf(1)
         })
 
-        it('staked balance must have only Eve balance', async function () {
+        it('staked balance must have only Eve balance', async function() {
           const amount = walletAmounts[Eve.getAddressString()].stakeAmount
           const stake = await this.stakeManager.currentValidatorSetTotalStake()
           assertBigNumberEquality(stake, amount)
@@ -666,12 +666,12 @@ module.exports = function (accounts) {
     })
   })
 
-  describe('restake', function () {
+  describe('restake', function() {
     const initialStake = web3.utils.toWei('1000')
     const initialStakers = [wallets[0], wallets[1]]
 
     function doDeploy(acceptDelegation) {
-      return async function () {
+      return async function() {
         await freshDeploy.call(this)
 
         const checkpointReward = new BN(web3.utils.toWei('10000'))
@@ -710,7 +710,7 @@ module.exports = function (accounts) {
     function testRestake(withDelegation, withRewards) {
       before(doDeploy(withDelegation))
 
-      before(async function () {
+      before(async function() {
         this.oldTotalStaked = await this.stakeManager.totalStaked()
         this.validatorOldState = await this.stakeManager.validators(this.validatorId)
 
@@ -728,20 +728,20 @@ module.exports = function (accounts) {
         }
       })
 
-      it('must restake rewards', async function () {
+      it('must restake rewards', async function() {
         this.receipt = await this.stakeManager.restake(this.validatorId, this.amount, withRewards, {
           from: this.user
         })
       })
 
-      it('must emit StakeUpdate', async function () {
+      it('must emit StakeUpdate', async function() {
         await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'StakeUpdate', {
           validatorId: this.validatorId,
           newAmount: this.validatorOldState.amount.add(new BN(this.amount)).add(this.validatorReward)
         })
       })
 
-      it('must emit ReStaked', async function () {
+      it('must emit ReStaked', async function() {
         await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ReStaked', {
           validatorId: this.validatorId,
           amount: this.validatorOldState.amount.add(new BN(this.amount)).add(this.validatorReward),
@@ -750,7 +750,7 @@ module.exports = function (accounts) {
       })
 
       if (withRewards) {
-        it('validator rewards must be 0', async function () {
+        it('validator rewards must be 0', async function() {
           let validator = await this.stakeManager.validators(this.validatorId)
           let reward = validator.reward
 
@@ -762,7 +762,7 @@ module.exports = function (accounts) {
           assertBigNumberEquality(reward, 0)
         })
       } else {
-        it('validator rewards must be untouched', async function () {
+        it('validator rewards must be untouched', async function() {
           let validator = await this.stakeManager.validators(this.validatorId)
           let reward = validator.reward
 
@@ -776,36 +776,36 @@ module.exports = function (accounts) {
       }
     }
 
-    describe('with delegation', function () {
-      describe('with rewards', function () {
+    describe('with delegation', function() {
+      describe('with rewards', function() {
         testRestake(true, true)
       })
 
-      describe('without rewards', function () {
+      describe('without rewards', function() {
         testRestake(true, false)
       })
     })
 
-    describe('without delegation', function () {
-      describe('with rewards', function () {
+    describe('without delegation', function() {
+      describe('with rewards', function() {
         testRestake(false, true)
       })
 
-      describe('without rewards', function () {
+      describe('without rewards', function() {
         testRestake(false, false)
       })
     })
 
-    describe('reverts', function () {
+    describe('reverts', function() {
       before(doDeploy(false))
 
-      it('when validatorId is incorrect', async function () {
+      it('when validatorId is incorrect', async function() {
         await expectRevert.unspecified(this.stakeManager.restake('0', this.amount, false, {
           from: this.user
         }))
       })
 
-      it('when restake after unstake during same epoch', async function () {
+      it('when restake after unstake during same epoch', async function() {
         await this.stakeManager.unstake(this.validatorId)
         await expectRevert(this.stakeManager.restake(this.validatorId, this.amount, false, {
           from: this.user
