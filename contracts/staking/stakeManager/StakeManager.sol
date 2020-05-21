@@ -366,6 +366,11 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         validators[validatorId].contractAddress = newContractAddress;
     }
 
+    // Update delegation contract factory
+    function updateContractFactory(address newFactory) public onlyOwner {
+        factory = ValidatorShareFactory(newFactory);
+    }
+
     function updateValidatorState(uint256 validatorId, int256 amount) public {
         require(validators[validatorId].contractAddress == msg.sender, "Invalid contract address");
         validatorState[currentEpoch].amount = (validatorState[currentEpoch].amount + amount);
