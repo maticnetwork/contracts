@@ -208,22 +208,6 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         _unstake(validatorId, currentEpoch);
     }
 
-    // Housekeeping function. @todo remove later
-    // other than varibale you want to update give same values
-    function updateConstructor(
-        address _registry,
-        address _rootchain,
-        address _NFTContract,
-        address _stakingLogger,
-        address _ValidatorShareFactory
-    ) external onlyOwner {
-        registry = _registry;
-        rootChain = _rootchain;
-        NFTContract = StakingNFT(_NFTContract);
-        logger = StakingInfo(_stakingLogger);
-        factory = ValidatorShareFactory(_ValidatorShareFactory);
-    }
-
     function transferFunds(uint256 validatorId, uint256 amount, address delegator) external returns (bool) {
         require(
             Registry(registry).getSlashingManagerAddress() == msg.sender ||
@@ -311,20 +295,6 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         validators[validatorId].reward = 0;
         require(token.transfer(msg.sender, amount), "Insufficent rewards");
         logger.logClaimRewards(validatorId, amount, totalRewardsLiquidated);
-    }
-
-    // returns valid validator for current epoch
-    function getCurrentValidatorSet() public view returns (uint256[] memory) {
-        uint256[] memory _validators = new uint256[](currentValidatorSetSize());
-        uint256 validator;
-        uint256 k = 0;
-        for (uint256 i = 0; i < NFTContract.totalSupply(); i++) {
-            validator = NFTContract.tokenByIndex(i);
-            if (isValidator(validator)) {
-                _validators[k++] = validator;
-            }
-        }
-        return _validators;
     }
 
     function getValidatorId(address user) public view returns (uint256) {
