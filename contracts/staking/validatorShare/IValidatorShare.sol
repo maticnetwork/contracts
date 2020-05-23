@@ -24,6 +24,8 @@ contract IValidatorShare is ValidatorShareStorage {
 
     function updateRewards(uint256 _reward, uint256 _totalStake, uint256 validatorStake) external returns (uint256);
 
+    function reStake() public;
+
     function unlockContract() external returns (uint256);
 
     function lockContract() external returns (uint256);
