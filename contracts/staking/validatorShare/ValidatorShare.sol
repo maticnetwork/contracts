@@ -18,10 +18,6 @@ contract ValidatorShare is ValidatorShareStorage {
         Lockable(_stakeManager)
     {} // dummy constructor
 
-    function updateRewards(uint256 _reward, uint256 _stakePower, uint256 validatorStake) external {}
-
-    function addProposerBonus(uint256 _rewards, uint256 valStake) public {}
-
     function updateCommissionRate(uint256 newCommissionRate) external onlyValidator {
         uint256 epoch = stakeManager.epoch();
         require( // withdrawalDelay == dynasty
