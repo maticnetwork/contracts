@@ -7,8 +7,9 @@ import {StakingInfo} from "../StakingInfo.sol";
 import {IStakeManager} from "../stakeManager/IStakeManager.sol";
 import {Registry} from "../../common/Registry.sol";
 
+
 contract ValidatorShareProxy is Proxy, ValidatorShareStorage {
-  constructor(
+    constructor(
         address _registry, // using proxyTo storage variable as the registry address instead
         uint256 _validatorId,
         address _stakingLogger,
@@ -21,10 +22,7 @@ contract ValidatorShareProxy is Proxy, ValidatorShareStorage {
     }
 
     function delegatedFwd(address _registry, bytes memory _calldata) internal {
-        super.delegatedFwd(
-            Registry(_registry).getValidatorShareAddress(),
-            _calldata
-        );
+        super.delegatedFwd(Registry(_registry).getValidatorShareAddress(), _calldata);
     }
 
     function implementation() external view returns (address) {
@@ -53,26 +51,17 @@ contract ValidatorShareProxy is Proxy, ValidatorShareStorage {
         return combinedStakePower;
     }
 
-    function addProposerBonus(uint256 _rewards, uint256 valStake)
-        public
-        onlyOwner
-    {
+    function addProposerBonus(uint256 _rewards, uint256 valStake) public onlyOwner {
         uint256 stakePower = valStake.add(activeAmount);
         _updateRewards(_rewards, valStake, stakePower);
     }
 
-    function _updateRewards(
-        uint256 _rewards,
-        uint256 valStake,
-        uint256 stakePower
-    ) internal {
+    function _updateRewards(uint256 _rewards, uint256 valStake, uint256 stakePower) internal {
         uint256 _validatorRewards = valStake.mul(_rewards).div(stakePower);
 
         // add validator commission from delegation rewards
         if (commissionRate > 0) {
-            _validatorRewards = _validatorRewards.add(
-                _rewards.sub(_validatorRewards).mul(commissionRate).div(100)
-            );
+            _validatorRewards = _validatorRewards.add(_rewards.sub(_validatorRewards).mul(commissionRate).div(100));
         }
 
         validatorRewards = validatorRewards.add(_validatorRewards);

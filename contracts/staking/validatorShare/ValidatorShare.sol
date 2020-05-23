@@ -4,12 +4,23 @@ import {ERC20} from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import {Registry} from "../../common/Registry.sol";
 import {ValidatorShareStorage} from "./ValidatorShareStorage.sol";
 
+import {Lockable} from "../../common/mixin/Lockable.sol";
+
 
 contract ValidatorShare is ValidatorShareStorage {
     modifier onlyValidator() {
         require(stakeManager.ownerOf(validatorId) == msg.sender);
         _;
     }
+
+    constructor(address _registry, uint256 _validatorId, address _stakingLogger, address _stakeManager)
+        public
+        Lockable(_stakeManager)
+    {} // dummy constructor
+
+    function updateRewards(uint256 _reward, uint256 _stakePower, uint256 validatorStake) external {}
+
+    function addProposerBonus(uint256 _rewards, uint256 valStake) public {}
 
     function updateCommissionRate(uint256 newCommissionRate) external onlyValidator {
         uint256 epoch = stakeManager.epoch();
