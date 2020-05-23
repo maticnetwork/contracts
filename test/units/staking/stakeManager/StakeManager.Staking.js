@@ -653,8 +653,8 @@ module.exports = function(accounts) {
 
       describe('afterwards verification', function() {
         it('must have corect number of validators', async function() {
-          const validators = await this.stakeManager.getCurrentValidatorSet()
-          validators.should.have.lengthOf(1)
+          const validatorCount = await this.stakeManager.currentValidatorSetSize()
+          assertBigNumberEquality(validatorCount, '1')
         })
 
         it('staked balance must have only Eve balance', async function() {

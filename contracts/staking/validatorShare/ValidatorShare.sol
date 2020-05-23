@@ -91,10 +91,13 @@ contract ValidatorShare is ValidatorShareStorage {
 
     function reStake() public {
         /**
-      - only active amount is considers as active stake
-      - move reward amount to active stake pool
-      - no shares are minted
-     */
+        restaking is simply buying more shares of pool
+        but those needs to be nonswapable/transferrable to prevent https://en.wikipedia.org/wiki/Tragedy_of_the_commons
+
+        - only active amount is considers as active stake
+        - move reward amount to active stake pool
+        - no shares are minted
+        */
         uint256 liquidRewards = getLiquidRewards(msg.sender);
         require(liquidRewards >= minAmount, "Too small rewards to restake");
 
@@ -107,17 +110,20 @@ contract ValidatorShare is ValidatorShareStorage {
         stakingLogger.logDelReStaked(validatorId, msg.sender, amountStaked[msg.sender]);
     }
 
-    function getLiquidRewards(address user) public view returns (uint256 liquidRewards) {
+    function getLiquidRewards(address user) public view returns (uint256) {
         uint256 share = balanceOf(user);
-        uint256 _exchangeRate = exchangeRate();
-        liquidRewards = 0; // default is 0
         if (share == 0) {
             return 0;
         }
-        uint256 totalTokens = _exchangeRate.mul(share).div(100);
-        if (totalTokens >= amountStaked[user]) {
-            liquidRewards = totalTokens.sub(amountStaked[user]);
+
+        uint256 liquidRewards;
+        uint256 totalTokens = exchangeRate().mul(share).div(100);
+        uint256 stake = amountStaked[user];
+        if (totalTokens >= stake) {
+            liquidRewards = totalTokens.sub(stake);
         }
+
+        return liquidRewards;
     }
 
     function unStakeClaimTokens() public {
@@ -151,6 +157,14 @@ contract ValidatorShare is ValidatorShareStorage {
         return _amountToSlash;
     }
 
+    function drain(address token, address payable destination, uint256 amount) external onlyOwner {
+        if (token == address(0x0)) {
+            destination.transfer(amount);
+        } else {
+            require(ERC20(token).transfer(destination, amount), "Drain failed");
+        }
+    }
+
     function unlockContract() external onlyOwner returns (uint256) {
         locked = false;
         return activeAmount;
@@ -160,9 +174,6 @@ contract ValidatorShare is ValidatorShareStorage {
         locked = true;
         return activeAmount;
     }
-
-    // function _slashActive() internal {}
-    // function _slashInActive() internal {}
 
     function _transfer(address from, address to, uint256 value) internal {
         revert("Disabled");

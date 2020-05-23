@@ -27,28 +27,79 @@ contract('ValidatorShare', async function() {
     this.validatorContract = await ValidatorShare.at(validator.contractAddress)
   }
 
-  describe('buyVoucher', function() {
-    function deployAliceAndBob() {
+  describe('drain', function() {
+    function prepareForTests() {
       before(doDeploy)
       before(async function() {
-        this.alice = wallets[2].getChecksumAddressString()
-        this.bob = wallets[3].getChecksumAddressString()
-        this.totalStaked = new BN(0)
+        this.testToken = await TestToken.new('MATIC2', 'MATIC2')
+        this.value = web3.utils.toWei('10')
+        await this.testToken.mint(this.validatorContract.address, this.value)
 
-        const mintAmount = new BN(web3.utils.toWei('70000'))
-
-        await this.stakeToken.mint(this.alice, mintAmount)
-        await this.stakeToken.approve(this.stakeManager.address, mintAmount, {
-          from: this.alice
-        })
-
-        await this.stakeToken.mint(this.bob, mintAmount)
-        await this.stakeToken.approve(this.stakeManager.address, mintAmount, {
-          from: this.bob
-        })
+        this.user = wallets[2].getChecksumAddressString()
+        this.userOldBalance = await this.testToken.balanceOf(this.user)
       })
     }
 
+    describe('when Alice drain erc20 token', function() {
+      prepareForTests()
+
+      it('must drain tokens', async function() {
+        await this.governance.update(
+          this.stakeManager.address,
+          this.stakeManager.contract.methods.drainValidatorShares(this.validatorId, this.testToken.address, this.user, this.value).encodeABI()
+        )
+      })
+
+      it('Alice must have correct balance', async function() {
+        assertBigNumberEquality(this.userOldBalance.add(new BN(this.value)), await this.testToken.balanceOf(this.user))
+      })
+    })
+
+    describe('when from is not governanace', function() {
+      prepareForTests()
+
+      it('reverts', async function() {
+        await expectRevert(
+          this.stakeManager.drainValidatorShares(this.validatorId, this.testToken.address, this.user, this.value),
+          'Only governance contract is authorized'
+        )
+      })
+    })
+
+    describe('when validator id is incorrect', function() {
+      prepareForTests()
+
+      it('reverts', async function() {
+        await expectRevert(this.governance.update(
+          this.stakeManager.address,
+          this.stakeManager.contract.methods.drainValidatorShares('9999', this.testToken.address, this.user, this.value).encodeABI()
+        ), 'Update failed')
+      })
+    })
+  })
+
+  function deployAliceAndBob() {
+    before(doDeploy)
+    before(async function() {
+      this.alice = wallets[2].getChecksumAddressString()
+      this.bob = wallets[3].getChecksumAddressString()
+      this.totalStaked = new BN(0)
+
+      const mintAmount = new BN(web3.utils.toWei('70000'))
+
+      await this.stakeToken.mint(this.alice, mintAmount)
+      await this.stakeToken.approve(this.stakeManager.address, mintAmount, {
+        from: this.alice
+      })
+
+      await this.stakeToken.mint(this.bob, mintAmount)
+      await this.stakeToken.approve(this.stakeManager.address, mintAmount, {
+        from: this.bob
+      })
+    })
+  }
+
+  describe('buyVoucher', function() {
     function testBuyVoucher(voucherValue, voucherValueExpected, userTotalStaked, totalStaked, shares) {
       it('must buy voucher', async function() {
         this.receipt = await this.validatorContract.buyVoucher(voucherValue, {
@@ -740,6 +791,26 @@ contract('ValidatorShare', async function() {
           this.validatorContract.updateCommissionRate(15, { from: this.validatorUser.getAddressString() }),
           'Commission rate update cooldown period'
         )
+      })
+    })
+  })
+
+  describe('getLiquidRewards', function() {
+    describe('when Alice and Bob buy vouchers (1 checkpoint in-between) and Alice withdraw the rewards', function() {
+      deployAliceAndBob()
+      before(async function() {
+        await this.validatorContract.buyVoucher(web3.utils.toWei('100'), {
+          from: this.alice
+        })
+        await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
+        await this.validatorContract.buyVoucher(web3.utils.toWei('4600'), {
+          from: this.bob
+        })
+        await this.validatorContract.withdrawRewards({ from: this.alice })
+      })
+
+      it('Bob must call getLiquidRewards', async function() {
+        await this.validatorContract.getLiquidRewards(this.bob)
       })
     })
   })
