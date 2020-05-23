@@ -27,6 +27,7 @@ const WithdrawManager = artifacts.require('WithdrawManager')
 const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
 const StateSender = artifacts.require('StateSender')
 const StakeManager = artifacts.require('StakeManager')
+cosnt ValidatorShare = artifacts.require('ValidatorShare')
 const SlashingManager = artifacts.require('SlashingManager')
 const StakeManagerProxy = artifacts.require('StakeManagerProxy')
 const StakingInfo = artifacts.require('StakingInfo')
@@ -122,7 +123,7 @@ const libDeps = [
   }
 ]
 
-module.exports = async function (deployer) {
+module.exports = async function(deployer) {
   if (!process.env.HEIMDALL_ID) {
     throw new Error('Please export HEIMDALL_ID environment variable')
   }
@@ -153,6 +154,7 @@ module.exports = async function (deployer) {
     await deployer.deploy(StakeManager)
     await deployer.deploy(StakeManagerProxy, StakeManager.address, Registry.address, RootChainProxy.address, TestToken.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address, GovernanceProxy.address)
     await deployer.deploy(SlashingManager, Registry.address, StakingInfo.address, process.env.HEIMDALL_ID)
+    await deployer.deploy(ValidatorShare, Registry.address, 0/** dummy id */, StakingInfo.address, StakeManagerProxy.address)
     await deployer.deploy(StateSender)
 
     await deployer.deploy(DepositManager)
@@ -213,6 +215,7 @@ module.exports = async function (deployer) {
         WithdrawManagerProxy: WithdrawManagerProxy.address,
         StakeManager: StakeManager.address,
         StakeManagerProxy: StakeManagerProxy.address,
+        ValidatorShare: ValidatorShare.address,
         SlashingManager: SlashingManager.address,
         StakingInfo: StakingInfo.address,
         ExitNFT: ExitNFT.address,
