@@ -26,6 +26,10 @@ contract IValidatorShare {
 
     function lockContract() external returns (uint256);
 
+    function drain(address token, address payable destination, uint256 amount) external;
+
+    function owner() public returns (address);
+
     // public storage variable accessors
     function activeAmount() public view returns (uint256);
 }

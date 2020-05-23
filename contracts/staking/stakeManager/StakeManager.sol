@@ -330,7 +330,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     // @note: Users must exit before this update or all funds may get lost
     function updateContractAddress(uint256 validatorId, address newContractAddress) public onlyOwner {
         require(
-            ValidatorShare(newContractAddress).owner() == address(this),
+            IValidatorShare(newContractAddress).owner() == address(this),
             "Owner of validator share must be stakeManager"
         );
         validators[validatorId].contractAddress = newContractAddress;
@@ -603,9 +603,9 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         currentEpoch = nextEpoch;
     }
 
-    function updateTimeLine(uint256 epoch, int256 amount, int256 stakerCount) private {
-        validatorState[epoch].amount += amount;
-        validatorState[epoch].stakerCount += stakerCount;
+    function updateTimeLine(uint256 _epoch, int256 amount, int256 stakerCount) private {
+        validatorState[_epoch].amount += amount;
+        validatorState[_epoch].stakerCount += stakerCount;
     }
 
     function pubToAddress(bytes memory pub) public pure returns (address) {
@@ -648,7 +648,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     {
         address contractAddr = validators[validatorId].contractAddress;
         require(contractAddr != address(0x0), "unknown validator or no delegation enabled");
-        ValidatorShare validatorShare = ValidatorShare(contractAddr);
+        IValidatorShare validatorShare = IValidatorShare(contractAddr);
         validatorShare.drain(token, destination, amount);
     }
 

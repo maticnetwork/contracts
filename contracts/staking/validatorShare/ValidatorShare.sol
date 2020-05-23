@@ -1,4 +1,5 @@
 pragma solidity ^0.5.2;
+import {ERC20} from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 
 import {Registry} from "../../common/Registry.sol";
 import {ValidatorShareStorage} from "./ValidatorShareStorage.sol";
