@@ -107,7 +107,7 @@ contract('ValidatorShare', async function() {
       })
 
       it('ValidatorShare must mint correct amount of shares', async function() {
-        await expectEvent.inTransaction(this.receipt.tx, ValidatorShare, 'Transfer', {
+        await expectEvent.inTransaction(this.receipt.tx, IValidatorShare, 'Transfer', {
           from: ZeroAddr,
           to: this.user,
           value: shares
