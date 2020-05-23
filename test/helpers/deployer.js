@@ -84,6 +84,7 @@ class Deployer {
     this.governance = await this.deployGovernance()
     this.registry = await contracts.Registry.new(this.governance.address)
     this.validatorShareFactory = await contracts.ValidatorShareFactory.new()
+    this.validatorShare = await contracts.ValidatorShareImpl.new(this.registry.address, 1, utils.ZeroAddress, utils.ZeroAddress)
     this.rootChain = await this.deployRootChain()
     this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
     this.stakeToken = await contracts.DummyERC20.new('Stake Token', 'STAKE')
@@ -108,6 +109,10 @@ class Deployer {
     await this.updateContractMap(
       ethUtils.keccak256('stakeManager'),
       this.stakeManager.address
+    )
+    await this.updateContractMap(
+      ethUtils.keccak256('validatorShare'),
+      this.validatorShare.address
     )
     await this.updateContractMap(
       ethUtils.keccak256('slashingManager'),
@@ -434,7 +439,7 @@ class Deployer {
     } else {
       this.childChain = await contracts.ChildChain.new({ gas: 7500000 })
     }
-    
+
     await this.childChain.changeStateSyncerAddress(owner)
     if (!this.globalMatic) {
       // MRC20 comes as a genesis-contract at utils.ChildMaticTokenAddress
