@@ -1,7 +1,7 @@
 import utils from 'ethereumjs-util'
 
 import {
-  ValidatorShare,
+  IValidatorShare,
   StakingInfo
 } from '../../../helpers/artifacts'
 
@@ -1654,7 +1654,7 @@ contract('StakeManager', async function(accounts) {
 
       let validator = await this.stakeManager.validators(delegatedValidatorId)
 
-      this.validatorContract = await ValidatorShare.at(validator.contractAddress)
+      this.validatorContract = await IValidatorShare.at(validator.contractAddress)
 
       await this.stakeToken.mint(delegator, stakeAmount)
       await this.stakeToken.approve(this.stakeManager.address, stakeAmount, {

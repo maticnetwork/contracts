@@ -9,9 +9,7 @@ contract Registry is Governable {
     bytes32 private constant WETH_TOKEN = keccak256("wethToken");
     bytes32 private constant DEPOSIT_MANAGER = keccak256("depositManager");
     bytes32 private constant STAKE_MANAGER = keccak256("stakeManager");
-    bytes32 private constant DELEGATION_MANAGER = keccak256(
-        "delegationManager"
-    );
+    bytes32 private constant VALIDATOR_SHARE = keccak256("validatorShare");
     bytes32 private constant WITHDRAW_MANAGER = keccak256("withdrawManager");
     bytes32 private constant CHILD_CHAIN = keccak256("childChain");
     bytes32 private constant STATE_SENDER = keccak256("stateSender");
@@ -111,8 +109,8 @@ contract Registry is Governable {
         emit PredicateRemoved(predicate, msg.sender);
     }
 
-    function getDelegationManagerAddress() public view returns (address) {
-        return contractMap[DELEGATION_MANAGER];
+    function getValidatorShareAddress() public view returns (address) {
+        return contractMap[VALIDATOR_SHARE];
     }
 
     function getWethTokenAddress() public view returns (address) {

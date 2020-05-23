@@ -77,6 +77,22 @@ async function deploy() {
       'GovernanceProxy'
     )
   )
+  await deployer.deploy(
+    tx('Governance', 'update',
+      [
+        'Registry',
+        {
+          value:
+            registry.contract.methods.updateContractMap(
+              ethUtils.bufferToHex(ethUtils.keccak256('validatorShare')),
+              getAddressForContract('ValidatorShare')
+            ).encodeABI()
+        }
+      ],
+      'GovernanceProxy'
+    )
+  )
+
 
   await deployer.deploy(
     tx('Governance', 'update',
@@ -148,11 +164,11 @@ function getAddressForContract(contract) {
 
 function wait(ms) {
   return new Promise((resolve, reject) => {
-    setTimeout(function () { resolve() }, ms);
+    setTimeout(function() { resolve() }, ms);
   })
 }
 
-module.exports = async function (callback) {
+module.exports = async function(callback) {
   try {
     await deploy()
     await wait(3000) // otherwise the tasks are not queued
