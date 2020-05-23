@@ -1,6 +1,5 @@
 import { BN, expectEvent, expectRevert } from '@openzeppelin/test-helpers'
-import { TestToken, ValidatorShare, StakingInfo } from '../../helpers/artifacts'
-
+import { TestToken, IValidatorShare, StakingInfo } from '../../helpers/artifacts'
 import { checkPoint, assertBigNumberEquality } from '../../helpers/utils.js'
 import { wallets, freshDeploy, approveAndStake } from './deployment'
 
@@ -24,7 +23,7 @@ contract('ValidatorShare', async function() {
     await approveAndStake.call(this, { wallet: this.validatorUser, stakeAmount: this.stakeAmount, acceptDelegation: true })
 
     let validator = await this.stakeManager.validators(this.validatorId)
-    this.validatorContract = await ValidatorShare.at(validator.contractAddress)
+    this.validatorContract = await IValidatorShare.at(validator.contractAddress)
   }
 
   describe('drain', function() {
