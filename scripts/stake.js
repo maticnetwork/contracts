@@ -1,10 +1,15 @@
 const contracts = require('../contractAddresses.json')
 
 const RootToken = artifacts.require('TestToken')
+const Registry = artifacts.require('Registry')
 const StakeManager = artifacts.require('StakeManager')
-const ChildERC20 = artifacts.require('ChildERC20')
 const TestToken = artifacts.require('TestToken')
 const DepositManager = artifacts.require('DepositManager')
+const Governance = artifacts.require('Governance')
+const WithdrawManager = artifacts.require('WithdrawManager')
+const PriorityQueue = artifacts.require('PriorityQueue')
+
+const toBN = web3.utils.toBN
 
 async function getStakeManager() {
   return StakeManager.at(contracts.root.StakeManagerProxy)
@@ -46,6 +51,17 @@ async function topUpForFee() {
   console.log(r.tx)
 }
 
+async function mapToken(root, child, isErc721) {
+  const registry = await Registry.at(contracts.root.Registry)
+  console.log(await registry.rootToChildToken(root))
+  const governance = await Governance.at(contracts.root.GovernanceProxy)
+  await governance.update(
+    contracts.root.Registry,
+    registry.contract.methods.mapToken(root, child, isErc721).encodeABI()
+  )
+  console.log(await registry.rootToChildToken(root))
+}
+
 async function updateValidatorThreshold(number) {
   const stakeManager = await getStakeManager()
   console.log((await stakeManager.validatorThreshold()).toString())
@@ -73,11 +89,26 @@ async function deposit() {
   console.log('deposited', r.tx)
 }
 
+async function updateDynasty() {
+  const stakeManager = await getStakeManager()
+  let dynasty = await stakeManager.dynasty()
+  let auctionPeriod = await stakeManager.auctionPeriod()
+  console.log({ dynasty: dynasty.toString(), auctionPeriod: auctionPeriod.toString() })
+
+  await stakeManager.updateDynastyValue(6000)
+  dynasty = await stakeManager.dynasty()
+  auctionPeriod = await stakeManager.auctionPeriod()
+  console.log({ dynasty: dynasty.toString(), auctionPeriod: auctionPeriod.toString() })
+}
+
 module.exports = async function (callback) {
   try {
     await stake()
+    // await mapToken()
     // await topUpForFee()
-    // await updateValidatorThreshold(20)
+    // await updateDynasty()
+    // await updateWithdrawPeriod()
+    // await updateValidatorThreshold(10)
     // await deposit()
   } catch (e) {
     // truffle exec <script> doesn't throw errors, so handling it in a verbose manner here
