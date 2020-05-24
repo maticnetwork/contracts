@@ -20,20 +20,20 @@ async function stake() {
   const validatorAccount = process.argv[6]
   // pubkey should not have the leading 04 prefix
   const pubkey = process.argv[7]
-  const stakeAmount = web3.utils.toBN(process.argv[8])
-  const heimdallFee = web3.utils.toBN(process.argv[9] || '1')
-  console.log(`Staking ${amount} for ${validatorAccount}...`)
+  const stakeAmount = web3.utils.toWei(process.argv[8] || '10000')
+  const heimdallFee = web3.utils.toWei(process.argv[9] || '1')
+  console.log(`Staking ${stakeAmount} for ${validatorAccount}...`)
 
   const accounts = await web3.eth.getAccounts()
   const stakeManager = await getStakeManager()
-  const rootToken = await RootToken.at(contracts.root.tokens.TestToken)
-  console.log({ stakeManager: stakeManager.address, rootToken: rootToken.address })
-  console.log('Sender accounts has a balanceOf', (await rootToken.balanceOf(accounts[0])).toString())
-  await rootToken.approve(stakeManager.address, amount)
-  console.log('approved, staking now...')
+  const maticToken = await RootToken.at(contracts.root.tokens.MaticToken)
+  console.log({ stakeManager: stakeManager.address, maticToken: maticToken.address, stakeToken: await stakeManager.token() })
+  // console.log('Sender accounts has a balanceOf', (await rootToken.balanceOf(accounts[0])).toString())
+  // await rootToken.approve(stakeManager.address, web3.utils.toWei('1000000'))
+  // console.log('approved, staking now...')
   // Remember to change the 4th parameter to false if delegation is not required
-  const stake = await stakeManager.stakeFor(validatorAccount, stakeAmount, heimdallFee, true, pubkey)
-  console.log('staked; txHash is', stake.tx)
+  stakeManager.stakeFor(validatorAccount, stakeAmount, heimdallFee, true, pubkey)
+  return delay(5)
 }
 
 async function topUpForFee() {
@@ -101,13 +101,24 @@ async function updateDynasty() {
   console.log({ dynasty: dynasty.toString(), auctionPeriod: auctionPeriod.toString() })
 }
 
+async function updateExitPeriod() {
+  const wm = await WithdrawManager.at(contracts.root.WithdrawManagerProxy)
+  let period = await wm.HALF_EXIT_PERIOD()
+  console.log({ period: period.toString()})
+
+  await wm.updateExitPeriod('5')
+
+  period = await wm.HALF_EXIT_PERIOD()
+  console.log({ period: period.toString()})
+}
+
 module.exports = async function (callback) {
   try {
-    await stake()
+    // await stake()
     // await mapToken()
     // await topUpForFee()
     // await updateDynasty()
-    // await updateWithdrawPeriod()
+    await updateExitPeriod()
     // await updateValidatorThreshold(10)
     // await deposit()
   } catch (e) {
@@ -115,4 +126,8 @@ module.exports = async function (callback) {
     console.log(e)
   }
   callback()
+}
+
+function delay(s) {
+  return new Promise(resolve => setTimeout(resolve, s * 1000));
 }
