@@ -13,10 +13,10 @@ import {Lockable} from "../../common/mixin/Lockable.sol";
 import {RootChainable} from "../../common/mixin/RootChainable.sol";
 import {Registry} from "../../common/Registry.sol";
 import {IStakeManager} from "./IStakeManager.sol";
-import {ValidatorShare} from "../validatorShare/ValidatorShare.sol";
+import {IValidatorShare} from "../validatorShare/IValidatorShare.sol";
 import {StakingInfo} from "../StakingInfo.sol";
 import {StakingNFT} from "./StakingNFT.sol";
-import "../validatorShare/ValidatorShareFactory.sol";
+import {ValidatorShareFactory} from "../validatorShare/ValidatorShareFactory.sol";
 import {ISlashingManager} from "../slashing/ISlashingManager.sol";
 import {StakeManagerStorage} from "./StakeManagerStorage.sol";
 import {Governable} from "../../common/governance/Governable.sol";
@@ -129,7 +129,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 perceivedStake = validators[validatorId].amount;
         address _contract = validators[validatorId].contractAddress;
         if (_contract != address(0x0)) {
-            perceivedStake = perceivedStake.add(ValidatorShare(_contract).activeAmount());
+            perceivedStake = perceivedStake.add(IValidatorShare(_contract).activeAmount());
         }
         perceivedStake = Math.max(perceivedStake, validatorAuction[validatorId].amount);
 
@@ -168,7 +168,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 perceivedStake = validators[validatorId].amount;
         address _contract = validators[validatorId].contractAddress;
         if (_contract != address(0x0)) {
-            perceivedStake = perceivedStake.add(ValidatorShare(_contract).activeAmount());
+            perceivedStake = perceivedStake.add(IValidatorShare(_contract).activeAmount());
         }
         // validator is last auctioner
         if (perceivedStake >= auction.amount) {
@@ -273,7 +273,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             amount = amount.add(validators[validatorId].reward);
             address _contract = validators[validatorId].contractAddress;
             if (_contract != address(0x0)) {
-                amount = amount.add(ValidatorShare(_contract).withdrawRewardsValidator());
+                amount = amount.add(IValidatorShare(_contract).withdrawRewardsValidator());
             }
             validators[validatorId].reward = 0;
         }
@@ -289,7 +289,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 amount = validators[validatorId].reward;
         address _contract = validators[validatorId].contractAddress;
         if (_contract != address(0x0)) {
-            amount = amount.add(ValidatorShare(_contract).withdrawRewardsValidator());
+            amount = amount.add(IValidatorShare(_contract).withdrawRewardsValidator());
         }
         totalRewardsLiquidated = totalRewardsLiquidated.add(amount);
         validators[validatorId].reward = 0;
@@ -330,7 +330,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     // @note: Users must exit before this update or all funds may get lost
     function updateContractAddress(uint256 validatorId, address newContractAddress) public onlyOwner {
         require(
-            ValidatorShare(newContractAddress).owner() == address(this),
+            IValidatorShare(newContractAddress).owner() == address(this),
             "Owner of validator share must be stakeManager"
         );
         validators[validatorId].contractAddress = newContractAddress;
@@ -427,7 +427,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 _proposerBonus = _reward.mul(proposerBonus).div(100);
         Validator storage _proposer = validators[signerToValidator[proposer]];
         if (_proposer.contractAddress != address(0x0)) {
-            ValidatorShare(_proposer.contractAddress).addProposerBonus(_proposerBonus, _proposer.amount);
+            IValidatorShare(_proposer.contractAddress).addProposerBonus(_proposerBonus, _proposer.amount);
         } else {
             _proposer.reward = _proposer.reward.add(_proposerBonus);
         }
@@ -461,7 +461,11 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
                 uint256 valPow;
                 // add delegation power
                 if (validator.contractAddress != address(0x0)) {
-                    valPow = ValidatorShare(validator.contractAddress).updateRewards(_reward, stakePower);
+                    valPow = IValidatorShare(validator.contractAddress).updateRewards(
+                        _reward,
+                        stakePower,
+                        validatorStake(validatorId)
+                    );
                 } else {
                     valPow = validator.amount;
                     validator.reward = validator.reward.add(valPow.mul(_reward).div(stakePower));
@@ -488,7 +492,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             uint256 _amount = slashData[1].toUint();
             _totalAmount = _totalAmount.add(_amount);
             if (validators[validatorId].contractAddress != address(0x0)) {
-                uint256 delSlashedAmount = ValidatorShare(validators[validatorId].contractAddress).slash(
+                uint256 delSlashedAmount = IValidatorShare(validators[validatorId].contractAddress).slash(
                     validators[validatorId].amount,
                     _amount
                 );
@@ -516,7 +520,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
 
         uint256 delegationAmount = 0;
         if (validators[validatorId].contractAddress != address(0x0)) {
-            delegationAmount = ValidatorShare(validators[validatorId].contractAddress).unlockContract();
+            delegationAmount = IValidatorShare(validators[validatorId].contractAddress).unlockContract();
         }
 
         // undo timline so that validator is normal validator
@@ -530,7 +534,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     function _jail(uint256 validatorId, uint256 _jailCheckpoints) internal returns (uint256) {
         uint256 delegationAmount = 0;
         if (validators[validatorId].contractAddress != address(0x0)) {
-            delegationAmount = ValidatorShare(validators[validatorId].contractAddress).lockContract();
+            delegationAmount = IValidatorShare(validators[validatorId].contractAddress).lockContract();
         }
         validators[validatorId].deactivationEpoch = currentEpoch;
         validators[validatorId].jailTime = currentEpoch.add(_jailCheckpoints);
@@ -551,7 +555,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             deactivationEpoch: 0,
             jailTime: 0,
             signer: signer,
-            contractAddress: acceptDelegation ? factory.create(NFTCounter, address(logger)) : address(0x0),
+            contractAddress: acceptDelegation ? factory.create(NFTCounter, address(logger), registry) : address(0x0),
             status: Status.Active
         });
 
@@ -576,7 +580,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         int256 delegationAmount = 0;
         uint256 rewards = validators[validatorId].reward;
         if (validators[validatorId].contractAddress != address(0x0)) {
-            ValidatorShare validatorShare = ValidatorShare(validators[validatorId].contractAddress);
+            IValidatorShare validatorShare = IValidatorShare(validators[validatorId].contractAddress);
             rewards = rewards.add(validatorShare.withdrawRewardsValidator());
             delegationAmount = int256(validatorShare.lockContract());
         }
@@ -599,9 +603,9 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         currentEpoch = nextEpoch;
     }
 
-    function updateTimeLine(uint256 epoch, int256 amount, int256 stakerCount) private {
-        validatorState[epoch].amount += amount;
-        validatorState[epoch].stakerCount += stakerCount;
+    function updateTimeLine(uint256 _epoch, int256 amount, int256 stakerCount) private {
+        validatorState[_epoch].amount += amount;
+        validatorState[_epoch].stakerCount += stakerCount;
     }
 
     function pubToAddress(bytes memory pub) public pure returns (address) {
@@ -628,7 +632,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
                 // add delegation power
                 if (contractAddress != address(0x0)) {
                     amount = amount.add(
-                        ValidatorShare(contractAddress).activeAmount() // dummy interface
+                        IValidatorShare(contractAddress).activeAmount() // dummy interface
                     );
                 }
                 _stakePower = _stakePower.add(amount);
@@ -644,7 +648,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     {
         address contractAddr = validators[validatorId].contractAddress;
         require(contractAddr != address(0x0), "unknown validator or no delegation enabled");
-        ValidatorShare validatorShare = ValidatorShare(contractAddr);
+        IValidatorShare validatorShare = IValidatorShare(contractAddr);
         validatorShare.drain(token, destination, amount);
     }
 
@@ -652,11 +656,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         require(token.transfer(destination, amount), "Drain failed");
     }
 
-    function reinitialize(
-        address _NFTContract,
-        address _stakingLogger,
-        address _validatorShareFactory
-    ) external onlyGovernance {
+    function reinitialize(address _NFTContract, address _stakingLogger, address _validatorShareFactory)
+        external
+        onlyGovernance
+    {
         NFTContract = StakingNFT(_NFTContract);
         logger = StakingInfo(_stakingLogger);
         factory = ValidatorShareFactory(_validatorShareFactory);

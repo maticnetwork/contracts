@@ -1,53 +1,22 @@
 pragma solidity ^0.5.2;
-
-import {Registry} from "../../common/Registry.sol";
-import {IValidatorShare} from "./IValidatorShare.sol";
 import {ERC20} from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 
+import {Registry} from "../../common/Registry.sol";
+import {ValidatorShareStorage} from "./ValidatorShareStorage.sol";
 
-contract ValidatorShare is IValidatorShare {
-    constructor(
-        uint256 _validatorId,
-        address _stakingLogger,
-        address _stakeManager
-    ) public IValidatorShare(_validatorId, _stakingLogger, _stakeManager) {}
+import {Lockable} from "../../common/mixin/Lockable.sol";
 
+
+contract ValidatorShare is ValidatorShareStorage {
     modifier onlyValidator() {
         require(stakeManager.ownerOf(validatorId) == msg.sender);
         _;
     }
 
-    function updateRewards(uint256 _reward, uint256 _stakePower) external onlyOwner returns (uint256) {
-        uint256 validatorStake = stakeManager.validatorStake(validatorId);
-        uint256 combinedStakePower = validatorStake.add(activeAmount); // validator + delegation stake power
-        uint256 _rewards = combinedStakePower.mul(_reward).div(_stakePower);
-
-        _updateRewards(_rewards, validatorStake, combinedStakePower);
-        return combinedStakePower;
-    }
-
-    function addProposerBonus(uint256 _rewards, uint256 valStake) public onlyOwner {
-        uint256 stakePower = valStake.add(activeAmount);
-        _updateRewards(_rewards, valStake, stakePower);
-    }
-
-    function _updateRewards(
-        uint256 _rewards,
-        uint256 valStake,
-        uint256 stakePower
-    ) internal {
-        uint256 _validatorRewards = valStake.mul(_rewards).div(stakePower);
-
-        // add validator commission from delegation rewards
-        if (commissionRate > 0) {
-            _validatorRewards = _validatorRewards.add(_rewards.sub(_validatorRewards).mul(commissionRate).div(100));
-        }
-
-        validatorRewards = validatorRewards.add(_validatorRewards);
-
-        uint256 delegatorsRewards = _rewards.sub(_validatorRewards);
-        rewards = rewards.add(delegatorsRewards);
-    }
+    constructor(address _registry, uint256 _validatorId, address _stakingLogger, address _stakeManager)
+        public
+        Lockable(_stakeManager)
+    {} // dummy constructor
 
     function updateCommissionRate(uint256 newCommissionRate) external onlyValidator {
         uint256 epoch = stakeManager.epoch();
@@ -79,7 +48,7 @@ contract ValidatorShare is IValidatorShare {
         uint256 share = _amount.mul(100).div(rate);
         require(share > 0, "Insufficient amount to buy share");
         require(delegators[msg.sender].share == 0, "Ongoing exit");
-        
+
         _amount = _amount - (_amount % rate.mul(share).div(100));
 
         totalStake = totalStake.add(_amount);
@@ -149,16 +118,12 @@ contract ValidatorShare is IValidatorShare {
         stakingLogger.logDelReStaked(validatorId, msg.sender, amountStaked[msg.sender]);
     }
 
-    function getLiquidRewards(address user)
-        public
-        view
-        returns (uint256)
-    {
+    function getLiquidRewards(address user) public view returns (uint256) {
         uint256 share = balanceOf(user);
         if (share == 0) {
             return 0;
         }
-        
+
         uint256 liquidRewards;
         uint256 totalTokens = exchangeRate().mul(share).div(100);
         uint256 stake = amountStaked[user];
@@ -200,11 +165,7 @@ contract ValidatorShare is IValidatorShare {
         return _amountToSlash;
     }
 
-    function drain(
-        address token,
-        address payable destination,
-        uint256 amount
-    ) external onlyOwner {
+    function drain(address token, address payable destination, uint256 amount) external onlyOwner {
         if (token == address(0x0)) {
             destination.transfer(amount);
         } else {
@@ -222,11 +183,7 @@ contract ValidatorShare is IValidatorShare {
         return activeAmount;
     }
 
-    function _transfer(
-        address from,
-        address to,
-        uint256 value
-    ) internal {
+    function _transfer(address from, address to, uint256 value) internal {
         revert("Disabled");
     }
 }
