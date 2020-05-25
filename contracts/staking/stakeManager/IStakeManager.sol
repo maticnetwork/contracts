@@ -15,7 +15,8 @@ contract IStakeManager {
     function transferFunds(
         uint256 validatorId,
         uint256 amount,
-        address delegator
+        address delegator,
+        bool isReward
     ) external returns (bool);
 
     function delegationDeposit(
@@ -53,10 +54,7 @@ contract IStakeManager {
         bytes memory sigs
     ) public returns (uint256);
 
-    function verifyConsensus(bytes32 voteHash, bytes memory sigs)
-        public
-        view
-        returns (uint256, uint256);
+    function verifyConsensus(bytes32 voteHash, bytes memory sigs) public view returns (uint256, uint256);
 
     function updateValidatorState(uint256 validatorId, int256 amount) public;
 

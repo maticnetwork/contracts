@@ -13,10 +13,12 @@ contract ValidatorShare is ValidatorShareStorage {
         _;
     }
 
-    constructor(address _registry, uint256 _validatorId, address _stakingLogger, address _stakeManager)
-        public
-        Lockable(_stakeManager)
-    {} // dummy constructor
+    constructor(
+        address _registry,
+        uint256 _validatorId,
+        address _stakingLogger,
+        address _stakeManager
+    ) public Lockable(_stakeManager) {} // dummy constructor
 
     function updateCommissionRate(uint256 newCommissionRate) external onlyValidator {
         uint256 epoch = stakeManager.epoch();
@@ -72,7 +74,7 @@ contract ValidatorShare is ValidatorShareStorage {
         if (_amount > amountStaked[msg.sender]) {
             uint256 _rewards = _amount.sub(amountStaked[msg.sender]);
             //withdrawTransfer
-            require(stakeManager.transferFunds(validatorId, _rewards, msg.sender), "Insufficent rewards");
+            require(stakeManager.transferFunds(validatorId, _rewards, msg.sender, true), "Insufficent rewards");
             _amount = _amount.sub(_rewards);
         }
 
@@ -93,7 +95,7 @@ contract ValidatorShare is ValidatorShareStorage {
         uint256 sharesToBurn = liquidRewards.mul(100).div(exchangeRate());
         _burn(msg.sender, sharesToBurn);
         rewards = rewards.sub(liquidRewards);
-        require(stakeManager.transferFunds(validatorId, liquidRewards, msg.sender), "Insufficent rewards");
+        require(stakeManager.transferFunds(validatorId, liquidRewards, msg.sender, true), "Insufficent rewards");
         stakingLogger.logDelClaimRewards(validatorId, msg.sender, liquidRewards, sharesToBurn);
     }
 
@@ -146,7 +148,7 @@ contract ValidatorShare is ValidatorShareStorage {
 
         totalStake = totalStake.sub(_amount);
 
-        require(stakeManager.transferFunds(validatorId, _amount, msg.sender), "Insufficent rewards");
+        require(stakeManager.transferFunds(validatorId, _amount, msg.sender, false), "Insufficent rewards");
         stakingLogger.logDelUnstaked(validatorId, msg.sender, _amount);
         delete delegators[msg.sender];
     }
@@ -165,7 +167,11 @@ contract ValidatorShare is ValidatorShareStorage {
         return _amountToSlash;
     }
 
-    function drain(address token, address payable destination, uint256 amount) external onlyOwner {
+    function drain(
+        address token,
+        address payable destination,
+        uint256 amount
+    ) external onlyOwner {
         if (token == address(0x0)) {
             destination.transfer(amount);
         } else {
@@ -183,7 +189,11 @@ contract ValidatorShare is ValidatorShareStorage {
         return activeAmount;
     }
 
-    function _transfer(address from, address to, uint256 value) internal {
+    function _transfer(
+        address from,
+        address to,
+        uint256 value
+    ) internal {
         revert("Disabled");
     }
 }

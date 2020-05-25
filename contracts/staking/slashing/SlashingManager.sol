@@ -21,7 +21,11 @@ contract SlashingManager is ISlashingManager, Ownable {
         _;
     }
 
-    constructor(address _registry, address _logger, string memory _heimdallId) public {
+    constructor(
+        address _registry,
+        address _logger,
+        string memory _heimdallId
+    ) public {
         registry = Registry(_registry);
         logger = StakingInfo(_logger);
         heimdallId = keccak256(abi.encodePacked(_heimdallId));
@@ -55,7 +59,8 @@ contract SlashingManager is ISlashingManager, Ownable {
             stakeManager.transferFunds(
                 0, //placeholder
                 slashedAmount,
-                address(this)
+                address(this),
+                false
             ),
             "Transfer failed"
         );
@@ -67,7 +72,8 @@ contract SlashingManager is ISlashingManager, Ownable {
                 stakeManager.transferFunds(
                     0, //placeholder
                     _bounty,
-                    proposer
+                    proposer,
+                    false
                 ),
                 "Bounty transfer failed"
             );
@@ -77,7 +83,8 @@ contract SlashingManager is ISlashingManager, Ownable {
             stakeManager.transferFunds(
                 0, //placeholder
                 bounty,
-                msg.sender
+                msg.sender,
+                false
             ),
             "Bounty transfer failed"
         );
@@ -99,7 +106,11 @@ contract SlashingManager is ISlashingManager, Ownable {
     }
 
     // Housekeeping function. @todo remove later
-    function drainTokens(uint256 value, address token, address destination) external onlyOwner {
+    function drainTokens(
+        uint256 value,
+        address token,
+        address destination
+    ) external onlyOwner {
         require(IERC20(token).transfer(destination, value), "Transfer failed");
     }
 }

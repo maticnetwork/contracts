@@ -75,7 +75,11 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         logger.logClaimFee(user, amount);
     }
 
-    function claimFee(uint256 accumFeeAmount, uint256 index, bytes memory proof) public {
+    function claimFee(
+        uint256 accumFeeAmount,
+        uint256 index,
+        bytes memory proof
+    ) public {
         address user = msg.sender;
         //Ignoring other params becuase rewards distribution is on chain
         require(
@@ -89,7 +93,12 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         userFeeExit[user] = accumFeeAmount;
     }
 
-    function stake(uint256 amount, uint256 heimdallFee, bool acceptDelegation, bytes calldata signerPubkey) external {
+    function stake(
+        uint256 amount,
+        uint256 heimdallFee,
+        bool acceptDelegation,
+        bytes calldata signerPubkey
+    ) external {
         stakeFor(msg.sender, amount, heimdallFee, acceptDelegation, signerPubkey);
     }
 
@@ -208,16 +217,29 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         _unstake(validatorId, currentEpoch);
     }
 
-    function transferFunds(uint256 validatorId, uint256 amount, address delegator) external returns (bool) {
+    function transferFunds(
+        uint256 validatorId,
+        uint256 amount,
+        address delegator,
+        bool isReward
+    ) external returns (bool) {
         require(
             Registry(registry).getSlashingManagerAddress() == msg.sender ||
                 validators[validatorId].contractAddress == msg.sender,
             "Invalid contract address"
         );
+        if (isReward) {
+            totalRewardsLiquidated = totalRewardsLiquidated.add(amount);
+            require(totalRewards >= totalRewardsLiquidated, "Incorrect rewards");
+        }
         return token.transfer(delegator, amount);
     }
 
-    function delegationDeposit(uint256 validatorId, uint256 amount, address delegator) external returns (bool) {
+    function delegationDeposit(
+        uint256 validatorId,
+        uint256 amount,
+        address delegator
+    ) external returns (bool) {
         require(delegationEnabled, "Delegation is disabled");
         require(validators[validatorId].contractAddress == msg.sender, "Invalid contract address");
         return token.transferFrom(delegator, address(this), amount);
@@ -259,11 +281,11 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     }
 
     // slashing and jail interface
-    function restake(uint256 validatorId, uint256 amount, bool stakeRewards)
-        public
-        onlyWhenUnlocked
-        onlyStaker(validatorId)
-    {
+    function restake(
+        uint256 validatorId,
+        uint256 amount,
+        bool stakeRewards
+    ) public onlyWhenUnlocked onlyStaker(validatorId) {
         require(validators[validatorId].deactivationEpoch < currentEpoch, "No use of restaking");
 
         if (amount > 0) {
@@ -291,7 +313,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         if (_contract != address(0x0)) {
             amount = amount.add(IValidatorShare(_contract).withdrawRewardsValidator());
         }
+
         totalRewardsLiquidated = totalRewardsLiquidated.add(amount);
+        require(totalRewards >= totalRewardsLiquidated, "Incorrect rewards");
+
         validators[validatorId].reward = 0;
         require(token.transfer(msg.sender, amount), "Insufficent rewards");
         logger.logClaimRewards(validatorId, amount, totalRewardsLiquidated);
@@ -440,10 +465,12 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         return checkSignature(stakePower, _reward, voteHash, sigs);
     }
 
-    function checkSignature(uint256 stakePower, uint256 _reward, bytes32 voteHash, bytes memory sigs)
-        internal
-        returns (uint256)
-    {
+    function checkSignature(
+        uint256 stakePower,
+        uint256 _reward,
+        bytes32 voteHash,
+        bytes memory sigs
+    ) internal returns (uint256) {
         // total voting power
         uint256 _stakePower;
         address lastAdd; // cannot have address(0x0) as an owner
@@ -543,7 +570,12 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         return validators[validatorId].amount.add(delegationAmount);
     }
 
-    function _stakeFor(address user, uint256 amount, bool acceptDelegation, bytes memory signerPubkey) internal {
+    function _stakeFor(
+        address user,
+        uint256 amount,
+        bool acceptDelegation,
+        bytes memory signerPubkey
+    ) internal {
         address signer = pubToAddress(signerPubkey);
         require(signerToValidator[signer] == 0, "Invalid Signer key");
 
@@ -603,7 +635,11 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         currentEpoch = nextEpoch;
     }
 
-    function updateTimeLine(uint256 _epoch, int256 amount, int256 stakerCount) private {
+    function updateTimeLine(
+        uint256 _epoch,
+        int256 amount,
+        int256 stakerCount
+    ) private {
         validatorState[_epoch].amount += amount;
         validatorState[_epoch].stakerCount += stakerCount;
     }
@@ -642,10 +678,12 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         return (_stakePower, currentValidatorSetTotalStake().mul(2).div(3).add(1));
     }
 
-    function drainValidatorShares(uint256 validatorId, address token, address payable destination, uint256 amount)
-        external
-        onlyGovernance
-    {
+    function drainValidatorShares(
+        uint256 validatorId,
+        address token,
+        address payable destination,
+        uint256 amount
+    ) external onlyGovernance {
         address contractAddr = validators[validatorId].contractAddress;
         require(contractAddr != address(0x0), "unknown validator or no delegation enabled");
         IValidatorShare validatorShare = IValidatorShare(contractAddr);
@@ -656,10 +694,11 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         require(token.transfer(destination, amount), "Drain failed");
     }
 
-    function reinitialize(address _NFTContract, address _stakingLogger, address _validatorShareFactory)
-        external
-        onlyGovernance
-    {
+    function reinitialize(
+        address _NFTContract,
+        address _stakingLogger,
+        address _validatorShareFactory
+    ) external onlyGovernance {
         NFTContract = StakingNFT(_NFTContract);
         logger = StakingInfo(_stakingLogger);
         factory = ValidatorShareFactory(_validatorShareFactory);
