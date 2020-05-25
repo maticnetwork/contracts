@@ -281,7 +281,11 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 amount,
         bool stakeRewards
     ) public onlyWhenUnlocked onlyStaker(validatorId) {
-        require(validators[validatorId].deactivationEpoch < currentEpoch, "No use of restaking");
+        require(
+            (validators[validatorId].deactivationEpoch > currentEpoch &&
+                validators[validatorId].status = Status.Locked) || validators[validatorId].deactivationEpoch == 0,
+            "No use of restaking"
+        );
 
         if (amount > 0) {
             require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");
@@ -599,7 +603,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         address validator = ownerOf(validatorId);
 
         validators[validatorId].deactivationEpoch = exitEpoch;
-
+        validators[validatorId].status == Status.Inactive;
         // unbond all delegators in future
         int256 delegationAmount = 0;
         uint256 rewards = validators[validatorId].reward;
