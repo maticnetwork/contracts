@@ -694,13 +694,13 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         require(token.transfer(destination, amount), "Drain failed");
     }
 
-    function reinitialize(
-        address _NFTContract,
-        address _stakingLogger,
-        address _validatorShareFactory
-    ) external onlyGovernance {
-        NFTContract = StakingNFT(_NFTContract);
-        logger = StakingInfo(_stakingLogger);
-        factory = ValidatorShareFactory(_validatorShareFactory);
-    }
+    // function reinitialize(
+    //     address _NFTContract,
+    //     address _stakingLogger,
+    //     address _validatorShareFactory
+    // ) external onlyGovernance {
+    //     NFTContract = StakingNFT(_NFTContract);
+    //     logger = StakingInfo(_stakingLogger);
+    //     factory = ValidatorShareFactory(_validatorShareFactory);
+    // }
 }
