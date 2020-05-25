@@ -183,7 +183,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             perceivedStake = perceivedStake.add(IValidatorShare(_contract).activeAmount());
         }
         // validator is last auctioner
-        if (perceivedStake >= auction.amount && isValidator(validatorId)) {
+        if (perceivedStake >= auction.amount && validators[validatorId].deactivationEpoch != 0) {
             require(token.transfer(auction.user, auction.amount), "Bid return failed");
             //cleanup auction data
             auction.amount = 0;
