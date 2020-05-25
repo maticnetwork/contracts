@@ -114,7 +114,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     }
 
     function startAuction(uint256 validatorId, uint256 amount) external onlyWhenUnlocked {
-        require(isValidator(validatorId));
+        require(
+            validators[validatorId].deactivationEpoch == 0 && validators[validatorId].amount != 0,
+            "Invalid validator for an auction"
+        );
         uint256 senderValidatorId = signerToValidator[msg.sender];
         // make sure that signer wasn't used already
         require(
