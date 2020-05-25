@@ -53,7 +53,7 @@ contract ValidatorShare is ValidatorShareStorage {
 
         totalStake = totalStake.add(_amount);
         amountStaked[msg.sender] = amountStaked[msg.sender].add(_amount);
-        stakeManager.delegationDeposit(validatorId, _amount, msg.sender);
+        require(stakeManager.delegationDeposit(validatorId, _amount, msg.sender), "deposit failed");
         _mint(msg.sender, share);
         activeAmount = activeAmount.add(_amount);
         stakeManager.updateValidatorState(validatorId, int256(_amount));
