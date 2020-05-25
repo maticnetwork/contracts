@@ -404,11 +404,15 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     }
 
     function isValidator(uint256 validatorId) public view returns (bool) {
-        return (validators[validatorId].amount > 0 &&
-            (validators[validatorId].activationEpoch != 0 && validators[validatorId].activationEpoch <= currentEpoch) &&
-            (validators[validatorId].deactivationEpoch == 0 ||
-                validators[validatorId].deactivationEpoch > currentEpoch) &&
-            validators[validatorId].status == Status.Active);
+        uint256 activationEpoch = validators[validatorId].activationEpoch;
+        uint256 deactivationEpoch = validators[validatorId].deactivationEpoch;
+        uint256 amount = validators[validatorId].amount;
+        uint256 status = validators[validatorId].status;
+
+        return (amount > 0 &&
+            (activationEpoch != 0 && activationEpoch <= currentEpoch) &&
+            (deactivationEpoch == 0 || deactivationEpoch > currentEpoch) &&
+            status == Status.Active);
     }
 
     function checkSignatures(
