@@ -183,7 +183,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             perceivedStake = perceivedStake.add(IValidatorShare(_contract).activeAmount());
         }
         // validator is last auctioner
-        if (perceivedStake >= auction.amount && validators[validatorId].deactivationEpoch != 0) {
+        if (perceivedStake >= auction.amount && validators[validatorId].deactivationEpoch == 0) {
             require(token.transfer(auction.user, auction.amount), "Bid return failed");
             //cleanup auction data
             auction.amount = 0;
@@ -284,7 +284,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 amount,
         bool stakeRewards
     ) public onlyWhenUnlocked onlyStaker(validatorId) {
-        require(validators[validatorId].deactivationEpoch != 0, "No use of restaking");
+        require(validators[validatorId].deactivationEpoch == 0, "No use of restaking");
 
         if (amount > 0) {
             require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");
@@ -534,10 +534,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     }
 
     function unJail(uint256 validatorId) public onlyStaker(validatorId) {
-        require(
-            validators[validatorId].status == Status.Locked && validators[validatorId].deactivationEpoch != 0,
-            "Validator unstaking"
-        );
+        require(validators[validatorId].status == Status.Locked, "Validator is not jailed");
+        require(validators[validatorId].deactivationEpoch == 0, "Validator already unstaking");
         require(validators[validatorId].jailTime <= currentEpoch, "Incomplete jail period");
 
         uint256 amount = validators[validatorId].amount;
