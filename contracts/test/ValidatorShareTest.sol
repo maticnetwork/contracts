@@ -1,7 +1,9 @@
 pragma solidity ^0.5.2;
 
+import "../staking/validatorShare/ValidatorShareStorage.sol";
 
-contract IValidatorShare {
+
+contract ValidatorShareTest is ValidatorShareStorage {
     function updateCommissionRate(uint256 newCommissionRate) external;
 
     function withdrawRewardsValidator() external returns (uint256);
@@ -19,10 +21,6 @@ contract IValidatorShare {
     function unStakeClaimTokens() public;
 
     function getLiquidRewards(address user) public view returns (uint256);
-
-    function activeAmount() public view returns (uint256);
-
-    function owner() public view returns (address);
 
     function updateRewards(
         uint256 _reward,
