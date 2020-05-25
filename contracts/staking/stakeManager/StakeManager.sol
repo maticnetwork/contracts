@@ -281,7 +281,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 amount,
         bool stakeRewards
     ) public onlyWhenUnlocked onlyStaker(validatorId) {
-        require(isValidator(validatorId), "No use of restaking");
+        require(validators[validatorId].deactivationEpoch != 0, "No use of restaking");
 
         if (amount > 0) {
             require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");
@@ -545,7 +545,6 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         // undo timline so that validator is normal validator
         updateTimeLine(currentEpoch, int256(amount.add(delegationAmount)), 1);
 
-        validators[validatorId].deactivationEpoch = 0;
         validators[validatorId].status = Status.Active;
         logger.logUnJailed(validatorId, validators[validatorId].signer);
     }
@@ -555,7 +554,6 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         if (validators[validatorId].contractAddress != address(0x0)) {
             delegationAmount = IValidatorShare(validators[validatorId].contractAddress).lockContract();
         }
-        validators[validatorId].deactivationEpoch = currentEpoch;
         validators[validatorId].jailTime = currentEpoch.add(_jailCheckpoints);
         validators[validatorId].status = Status.Locked;
         logger.logJailed(validatorId, currentEpoch, validators[validatorId].signer);
@@ -599,7 +597,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         address validator = ownerOf(validatorId);
 
         validators[validatorId].deactivationEpoch = exitEpoch;
-        validators[validatorId].status = Status.Inactive;
+
         // unbond all delegators in future
         int256 delegationAmount = 0;
         uint256 rewards = validators[validatorId].reward;
