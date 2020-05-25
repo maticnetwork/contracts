@@ -210,7 +210,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         require(
             validators[validatorId].activationEpoch > 0 &&
                 validators[validatorId].deactivationEpoch == 0 &&
-                validators[validatorId].status == Status.Active
+                (validators[validatorId].status == Status.Active || validators[validatorId].status == Status.Locked)
         );
         _unstake(validatorId, exitEpoch);
     }
@@ -534,7 +534,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     }
 
     function unJail(uint256 validatorId) public onlyStaker(validatorId) {
-        require(validators[validatorId].status == Status.Locked);
+        require(
+            validators[validatorId].status == Status.Locked && validators[validatorId].deactivationEpoch != 0,
+            "Validator unstaking"
+        );
         require(validators[validatorId].jailTime <= currentEpoch, "Incomplete jail period");
 
         uint256 amount = validators[validatorId].amount;
