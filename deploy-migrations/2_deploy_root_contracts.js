@@ -69,6 +69,7 @@ const libDeps = [
     lib: ECVerify,
     contracts: [
       StakeManager,
+      SlashingManager,
       MarketplacePredicate,
       TransferWithSigPredicate
     ]
