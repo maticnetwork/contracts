@@ -44,8 +44,6 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
 
     // TopUp heimdall fee
     function topUpForFee(address user, uint256 heimdallFee) public onlyWhenUnlocked {
-        require(heimdallFee >= minHeimdallFee, "Minimum amount is 1 Matic");
-        require(token.transferFrom(msg.sender, address(this), heimdallFee), "Transfer stake failed");
         _topUpForFee(user, heimdallFee);
     }
 
@@ -66,6 +64,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     }
 
     function _topUpForFee(address user, uint256 amount) private {
+        require(amount >= minHeimdallFee, "Minimum amount is 1 Matic");
+        require(token.transferFrom(msg.sender, address(this), heimdallFee), "Transfer stake failed");
         totalHeimdallFee = totalHeimdallFee.add(amount);
         logger.logTopUpFee(user, amount);
     }
@@ -181,9 +181,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         } else {
             // dethrone
             _unstake(validatorId, currentEpoch);
-            require(token.transferFrom(msg.sender, address(this), heimdallFee), "Transfer fee failed");
             _stakeFor(auction.user, auction.amount, acceptDelegation, signerPubkey);
-            require(heimdallFee >= minHeimdallFee, "Minimum amount is 1 Matic");
             _topUpForFee(auction.user, heimdallFee);
 
             logger.logConfirmAuction(NFTCounter.sub(1), validatorId, auction.amount);
@@ -232,12 +230,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     ) public onlyWhenUnlocked {
         require(currentValidatorSetSize() < validatorThreshold, "Validator set Threshold exceeded!");
         require(amount > minDeposit, "min deposit limit failed!");
-        require(heimdallFee >= minHeimdallFee, "Minimum amount is 1 Matic");
 
-        require(token.transferFrom(msg.sender, address(this), amount.add(heimdallFee)), "Transfer stake failed");
-        _stakeFor(user, amount, acceptDelegation, signerPubkey);
-        // _topup
         _topUpForFee(user, heimdallFee);
+
+        _stakeFor(user, amount, acceptDelegation, signerPubkey);
     }
 
     function unstakeClaim(uint256 validatorId) public onlyStaker(validatorId) {
