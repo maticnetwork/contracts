@@ -657,7 +657,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
 
     function verifyConsensus(bytes32 voteHash, bytes memory sigs) public view returns (uint256, uint256) {
         // total voting power
-        uint256 _stakePower;
+        uint256 stakePower;
         address lastAdd; // cannot have address(0x0) as an owner
         for (uint64 i = 0; i < sigs.length; i += 65) {
             bytes memory sigElement = BytesLib.slice(sigs, i, 65);
@@ -677,11 +677,11 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
                         IValidatorShare(contractAddress).activeAmount() // dummy interface
                     );
                 }
-                _stakePower = _stakePower.add(amount);
+                stakePower = stakePower.add(amount);
             }
         }
 
-        return (_stakePower, currentValidatorSetTotalStake().mul(2).div(3).add(1));
+        return (stakePower, currentValidatorSetTotalStake().mul(2).div(3).add(1));
     }
 
     function drainValidatorShares(uint256 validatorId, address token, address payable destination, uint256 amount)
