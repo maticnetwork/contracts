@@ -515,12 +515,13 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         RLPReader.RLPItem[] memory slashingInfoList = _slashingInfoList.toRlpItem().toList();
         int256 valJailed = 0;
         uint256 jailedAmount = 0;
-        uint256 _totalAmount;
+        uint256 totalAmount;
         for (uint256 i = 0; i < slashingInfoList.length; i++) {
             RLPReader.RLPItem[] memory slashData = slashingInfoList[i].toList();
             uint256 validatorId = slashData[0].toUint();
             uint256 _amount = slashData[1].toUint();
-            _totalAmount = _totalAmount.add(_amount);
+            totalAmount = totalAmount.add(_amount);
+
             if (validators[validatorId].contractAddress != address(0x0)) {
                 uint256 delSlashedAmount = IValidatorShare(validators[validatorId].contractAddress).slash(
                     validators[validatorId].amount,
@@ -528,6 +529,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
                 );
                 _amount = _amount.sub(delSlashedAmount);
             }
+
             validators[validatorId].amount = validators[validatorId].amount.sub(_amount);
             if (slashData[2].toBoolean()) {
                 jailedAmount = jailedAmount.add(_jail(validatorId, 1));
@@ -536,9 +538,9 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         }
 
         //update timeline
-        updateTimeLine(currentEpoch, -int256(_totalAmount.add(jailedAmount)), -valJailed);
+        updateTimeLine(currentEpoch, -int256(totalAmount.add(jailedAmount)), -valJailed);
 
-        return _totalAmount;
+        return totalAmount;
     }
 
     function unJail(uint256 validatorId) public onlyStaker(validatorId) {
