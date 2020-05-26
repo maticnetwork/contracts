@@ -30,9 +30,10 @@ contract ValidatorShare is ValidatorShareStorage {
         lastCommissionUpdate = epoch;
     }
 
-    function withdrawRewardsValidator() external onlyOwner returns (uint256 _rewards) {
-        _rewards = validatorRewards;
+    function withdrawRewardsValidator() external onlyOwner returns (uint256) {
+        uint256 _validatorRewards = validatorRewards;
         validatorRewards = 0;
+        return _validatorRewards;
     }
 
     function exchangeRate() public view returns (uint256) {
