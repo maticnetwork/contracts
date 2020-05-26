@@ -284,20 +284,23 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         if (amount > 0) {
             require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake failed");
         }
+
         if (stakeRewards) {
             amount = amount.add(validators[validatorId].reward);
-            address _contract = validators[validatorId].contractAddress;
-            if (_contract != address(0x0)) {
-                amount = amount.add(IValidatorShare(_contract).withdrawRewardsValidator());
+            address contractAddr = validators[validatorId].contractAddress;
+            if (contractAddr != address(0x0)) {
+                amount = amount.add(IValidatorShare(contractAddr).withdrawRewardsValidator());
             }
             validators[validatorId].reward = 0;
         }
-        totalStaked = totalStaked.add(amount);
+        
+        uint256 newTotalStaked = totalStaked.add(amount);
+        totalStaked = newTotalStaked;
         validators[validatorId].amount = validators[validatorId].amount.add(amount);
         validatorState[currentEpoch].amount = (validatorState[currentEpoch].amount + int256(amount));
 
         logger.logStakeUpdate(validatorId);
-        logger.logReStaked(validatorId, validators[validatorId].amount, totalStaked);
+        logger.logReStaked(validatorId, validators[validatorId].amount, newTotalStaked);
     }
 
     function withdrawRewards(uint256 validatorId) public onlyStaker(validatorId) {
