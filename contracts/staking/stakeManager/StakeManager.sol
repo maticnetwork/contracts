@@ -645,9 +645,9 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         currentEpoch = nextEpoch;
     }
 
-    function updateTimeLine(uint256 _epoch, int256 amount, int256 stakerCount) private {
-        validatorState[_epoch].amount += amount;
-        validatorState[_epoch].stakerCount += stakerCount;
+    function updateTimeLine(uint256 targetEpoch, int256 amount, int256 stakerCount) private {
+        validatorState[targetEpoch].amount += amount;
+        validatorState[targetEpoch].stakerCount += stakerCount;
     }
 
     function pubToAddress(bytes memory pub) public pure returns (address) {
