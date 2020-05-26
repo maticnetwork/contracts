@@ -633,14 +633,15 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     }
 
     function _finalizeCommit() internal {
-        uint256 nextEpoch = currentEpoch.add(1);
+        uint256 _currentEpoch = currentEpoch;
+        uint256 nextEpoch = _currentEpoch.add(1);
         // update totalstake and validator count
-        validatorState[nextEpoch].amount = (validatorState[currentEpoch].amount + validatorState[nextEpoch].amount);
-        validatorState[nextEpoch].stakerCount = (validatorState[currentEpoch].stakerCount +
+        validatorState[nextEpoch].amount = (validatorState[_currentEpoch].amount + validatorState[nextEpoch].amount);
+        validatorState[nextEpoch].stakerCount = (validatorState[_currentEpoch].stakerCount +
             validatorState[nextEpoch].stakerCount);
 
         // erase old data/history
-        delete validatorState[currentEpoch];
+        delete validatorState[_currentEpoch];
         currentEpoch = nextEpoch;
     }
 
