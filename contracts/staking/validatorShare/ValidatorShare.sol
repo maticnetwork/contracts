@@ -3,7 +3,7 @@ import {ERC20} from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 
 import {Registry} from "../../common/Registry.sol";
 import {ValidatorShareStorage} from "./ValidatorShareStorage.sol";
-
+import {StakingInfo} from "./../StakingInfo.sol";
 import {Lockable} from "../../common/mixin/Lockable.sol";
 
 
