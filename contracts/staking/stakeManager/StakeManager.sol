@@ -362,7 +362,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
 
     function updateValidatorState(uint256 validatorId, int256 amount) public {
         require(validators[validatorId].contractAddress == msg.sender, "Invalid contract address");
-        validatorState[currentEpoch].amount = (validatorState[currentEpoch].amount + amount);
+        uint256 _currentEpoch = currentEpoch;
+        validatorState[_currentEpoch].amount = (validatorState[_currentEpoch].amount + amount);
     }
 
     function updateDynastyValue(uint256 newDynasty) public onlyOwner {
