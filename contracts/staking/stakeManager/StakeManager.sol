@@ -65,7 +65,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
 
     function _topUpForFee(address user, uint256 amount) private {
         require(amount >= minHeimdallFee, "Minimum amount is 1 Matic");
-        require(token.transferFrom(msg.sender, address(this), heimdallFee), "Transfer stake failed");
+        require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake failed");
         totalHeimdallFee = totalHeimdallFee.add(amount);
         logger.logTopUpFee(user, amount);
     }
@@ -126,26 +126,32 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             (currentEpoch.sub(validators[validatorId].activationEpoch) % dynasty.add(auctionPeriod)) <= auctionPeriod,
             "Invalid auction period"
         );
-        uint256 perceivedStake = validators[validatorId].amount;
+
+        uint256 currentValidatorAmount = validators[validatorId].amount;
+        uint256 perceivedStake = currentValidatorAmount;
         address _contract = validators[validatorId].contractAddress;
         if (_contract != address(0x0)) {
             perceivedStake = perceivedStake.add(IValidatorShare(_contract).activeAmount());
         }
-        perceivedStake = Math.max(perceivedStake, validatorAuction[validatorId].amount);
-
-        require(perceivedStake < amount, "Must bid higher amount");
-        require(token.transferFrom(msg.sender, address(this), amount), "Transfer amount failed");
 
         Auction storage auction = validatorAuction[validatorId];
-        // create new auction
-        if (validatorAuction[validatorId].amount != 0) {
-            //replace prev auction
-            require(token.transfer(auction.user, auction.amount), "Token return failed");
+        uint256 currentAuctionAmount = auction.amount;
+
+        perceivedStake = Math.max(perceivedStake, currentAuctionAmount);
+
+        require(perceivedStake < amount, "Must bid higher");
+        require(token.transferFrom(msg.sender, address(this), amount), "Transfer amount failed");
+        
+        //replace prev auction
+        if (currentAuctionAmount != 0) {
+            require(token.transfer(auction.user, currentAuctionAmount), "Bid return failed");
         }
+
+        // create new auction
         auction.amount = amount;
         auction.user = msg.sender;
 
-        logger.logStartAuction(validatorId, validators[validatorId].amount, validatorAuction[validatorId].amount);
+        logger.logStartAuction(validatorId, currentValidatorAmount, amount);
     }
 
     function confirmAuctionBid(
@@ -372,16 +378,16 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     }
 
     function updateSigner(uint256 validatorId, bytes memory signerPubkey) public onlyStaker(validatorId) {
-        address _signer = pubToAddress(signerPubkey);
-        require(_signer != address(0x0) && signerToValidator[_signer] == 0, "Invalid signer");
+        address signer = pubToAddress(signerPubkey);
+        require(signer != address(0x0) && signerToValidator[signer] == 0, "Invalid signer");
         require(epoch() >= latestSignerUpdateEpoch[validatorId].add(signerUpdateLimit), "Invalid checkpoint number!");
 
         // update signer event
-        logger.logSignerChange(validatorId, validators[validatorId].signer, _signer, signerPubkey);
+        logger.logSignerChange(validatorId, validators[validatorId].signer, signer, signerPubkey);
 
         signerToValidator[validators[validatorId].signer] = INCORRECT_VALIDATOR_ID;
-        signerToValidator[_signer] = validatorId;
-        validators[validatorId].signer = _signer;
+        signerToValidator[signer] = validatorId;
+        validators[validatorId].signer = signer;
         // reset update time to current time
         latestSignerUpdateEpoch[validatorId] = epoch();
     }
@@ -402,7 +408,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 activationEpoch = validators[validatorId].activationEpoch;
         uint256 deactivationEpoch = validators[validatorId].deactivationEpoch;
         uint256 amount = validators[validatorId].amount;
-        uint256 status = validators[validatorId].status;
+        Status status = validators[validatorId].status;
 
         return (amount > 0 &&
             (activationEpoch != 0 && activationEpoch <= currentEpoch) &&
@@ -544,7 +550,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
 
     function _stakeFor(address user, uint256 amount, bool acceptDelegation, bytes memory signerPubkey) internal {
         address signer = pubToAddress(signerPubkey);
-        require(_signer != address(0x0) && signerToValidator[signer] == 0, "Invalid signer");
+        require(signer != address(0x0) && signerToValidator[signer] == 0, "Invalid signer");
 
         totalStaked = totalStaked.add(amount);
         validators[NFTCounter] = Validator({
