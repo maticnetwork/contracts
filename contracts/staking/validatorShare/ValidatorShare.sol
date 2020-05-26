@@ -26,7 +26,7 @@ contract ValidatorShare is ValidatorShareStorage {
             (_lastCommissionUpdate.add(stakeManager.withdrawalDelay()) <= epoch) || _lastCommissionUpdate == 0, // For initial setting of commission rate
             "Commission rate update cooldown period"
         );
-        
+
         require(newCommissionRate <= 100, "Commission rate should be in range of 0-100");
         stakingLogger.logUpdateCommissionRate(validatorId, newCommissionRate, commissionRate);
         commissionRate = newCommissionRate;
@@ -104,10 +104,10 @@ contract ValidatorShare is ValidatorShareStorage {
         _burn(msg.sender, sharesToBurn);
         rewards = rewards.sub(liquidRewards);
         require(stakeManager.transferFunds(validatorId, liquidRewards, msg.sender), "Insufficent rewards");
-        stakingLogger.logDelClaimRewards(validatorId, msg.sender, liquidRewards, sharesToBurn);
+        stakingLogger.logDelegatorClaimRewards(validatorId, msg.sender, liquidRewards, sharesToBurn);
     }
 
-    function reStake() public {
+    function restake() public {
         /**
         restaking is simply buying more shares of pool
         but those needs to be nonswapable/transferrable to prevent https://en.wikipedia.org/wiki/Tragedy_of_the_commons
@@ -127,7 +127,7 @@ contract ValidatorShare is ValidatorShareStorage {
 
         StakingInfo logger = stakingLogger;
         logger.logStakeUpdate(validatorId);
-        logger.logDelReStaked(validatorId, msg.sender, amountStaked[msg.sender]);
+        logger.logDelegatorRestaked(validatorId, msg.sender, amountStaked[msg.sender]);
     }
 
     function getLiquidRewards(address user) public view returns (uint256) {
@@ -146,7 +146,7 @@ contract ValidatorShare is ValidatorShareStorage {
         return liquidRewards;
     }
 
-    function unStakeClaimTokens() public {
+    function unstakeClaimTokens() public {
         Delegator storage delegator = delegators[msg.sender];
 
         uint256 share = delegator.share;
@@ -162,7 +162,7 @@ contract ValidatorShare is ValidatorShareStorage {
         totalStake = totalStake.sub(_amount);
 
         require(stakeManager.transferFunds(validatorId, _amount, msg.sender), "Insufficent rewards");
-        stakingLogger.logDelUnstaked(validatorId, msg.sender, _amount);
+        stakingLogger.logDelegatorUnstaked(validatorId, msg.sender, _amount);
         delete delegators[msg.sender];
     }
 

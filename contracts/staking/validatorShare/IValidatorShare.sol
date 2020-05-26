@@ -18,13 +18,13 @@ contract IValidatorShare is ValidatorShareStorage {
 
     function withdrawRewards() public;
 
-    function unStakeClaimTokens() public;
+    function unstakeClaimTokens() public;
 
     function getLiquidRewards(address user) public view returns (uint256);
 
     function updateRewards(uint256 _reward, uint256 _totalStake, uint256 validatorStake) external returns (uint256);
 
-    function reStake() public;
+    function restake() public;
 
     function unlockContract() external returns (uint256);
 

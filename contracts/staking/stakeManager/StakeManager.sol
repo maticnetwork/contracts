@@ -300,7 +300,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         validatorState[currentEpoch].amount = (validatorState[currentEpoch].amount + int256(amount));
 
         logger.logStakeUpdate(validatorId);
-        logger.logReStaked(validatorId, validators[validatorId].amount, newTotalStaked);
+        logger.logRestaked(validatorId, validators[validatorId].amount, newTotalStaked);
     }
 
     function withdrawRewards(uint256 validatorId) public onlyStaker(validatorId) {
@@ -543,7 +543,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         return totalAmount;
     }
 
-    function unJail(uint256 validatorId) public onlyStaker(validatorId) {
+    function release(uint256 validatorId) public onlyStaker(validatorId) {
         require(validators[validatorId].status == Status.Locked);
 
         uint256 _currentEpoch = currentEpoch;
@@ -562,7 +562,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
 
         validators[validatorId].deactivationEpoch = 0;
         validators[validatorId].status = Status.Active;
-        logger.logUnJailed(validatorId, validators[validatorId].signer);
+        logger.logReleased(validatorId, validators[validatorId].signer);
     }
 
     function _jail(uint256 validatorId, uint256 jailCheckpoints) internal returns (uint256) {
