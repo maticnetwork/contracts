@@ -60,6 +60,7 @@ const libDeps = [
     lib: ECVerify,
     contracts: [
       StakeManager,
+      SlashingManager,
       StakeManagerTest,
       StakeManagerTestable,
       MarketplacePredicate,
@@ -139,7 +140,7 @@ const libDeps = [
   }
 ]
 
-module.exports = async function (deployer, network) {
+module.exports = async function(deployer, network) {
   deployer.then(async () => {
     console.log('linking libs...')
     await bluebird.map(libDeps, async e => {
