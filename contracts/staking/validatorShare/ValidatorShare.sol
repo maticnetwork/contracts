@@ -114,8 +114,10 @@ contract ValidatorShare is ValidatorShareStorage {
         activeAmount = activeAmount.add(liquidRewards);
         stakeManager.updateValidatorState(validatorId, int256(liquidRewards));
         rewards = rewards.sub(liquidRewards);
-        stakingLogger.logStakeUpdate(validatorId);
-        stakingLogger.logDelReStaked(validatorId, msg.sender, amountStaked[msg.sender]);
+
+        StakingInfo logger = stakingLogger;
+        logger.logStakeUpdate(validatorId);
+        logger.logDelReStaked(validatorId, msg.sender, amountStaked[msg.sender]);
     }
 
     function getLiquidRewards(address user) public view returns (uint256) {
