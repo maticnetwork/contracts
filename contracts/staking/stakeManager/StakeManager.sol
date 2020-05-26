@@ -431,10 +431,11 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 deactivationEpoch = validators[validatorId].deactivationEpoch;
         uint256 amount = validators[validatorId].amount;
         Status status = validators[validatorId].status;
+        uint256 _currentEpoch = currentEpoch;
 
         return (amount > 0 &&
-            (activationEpoch != 0 && activationEpoch <= currentEpoch) &&
-            (deactivationEpoch == 0 || deactivationEpoch > currentEpoch) &&
+            (activationEpoch != 0 && activationEpoch <= _currentEpoch) &&
+            (deactivationEpoch == 0 || deactivationEpoch > _currentEpoch) &&
             status == Status.Active);
     }
 
