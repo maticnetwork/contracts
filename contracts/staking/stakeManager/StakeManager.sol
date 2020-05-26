@@ -583,30 +583,32 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         address signer = pubToAddress(signerPubkey);
         require(signer != address(0x0) && signerToValidator[signer] == 0, "Invalid signer");
 
+        uint256 _currentEpoch = currentEpoch;
         uint256 validatorId = NFTCounter;
+        StakingInfo _logger = logger;
         totalStaked = totalStaked.add(amount);
         validators[validatorId] = Validator({
             reward: 0,
             amount: amount,
-            activationEpoch: currentEpoch,
+            activationEpoch: _currentEpoch,
             deactivationEpoch: 0,
             jailTime: 0,
             signer: signer,
-            contractAddress: acceptDelegation ? factory.create(validatorId, address(logger), registry) : address(0x0),
+            contractAddress: acceptDelegation ? factory.create(validatorId, address(_logger), registry) : address(0x0),
             status: Status.Active
         });
 
-        latestSignerUpdateEpoch[validatorId] = currentEpoch;
+        latestSignerUpdateEpoch[validatorId] = _currentEpoch;
         NFTContract.mint(user, validatorId);
 
         signerToValidator[signer] = validatorId;
-        updateTimeLine(currentEpoch, int256(amount), 1);
+        updateTimeLine(_currentEpoch, int256(amount), 1);
         // no Auctions for 1 dynasty
-        validatorAuction[validatorId].startEpoch = currentEpoch;
-        logger.logStaked(signer, signerPubkey, validatorId, currentEpoch, amount, totalStaked);
+        validatorAuction[validatorId].startEpoch = _currentEpoch;
+        _logger.logStaked(signer, signerPubkey, validatorId, _currentEpoch, amount, totalStaked);
         NFTCounter = validatorId.add(1);
 
-        return validatorId.add(1);
+        return validatorId;
     }
 
     function _unstake(uint256 validatorId, uint256 exitEpoch) internal {
