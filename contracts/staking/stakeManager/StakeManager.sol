@@ -163,7 +163,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
 
         require(
             currentEpoch.sub(auction.startEpoch) % auctionPeriod.add(dynasty) >= auctionPeriod,
-            "Confirmation is not allowed before auctionPeriod"
+            "Not allowed before auctionPeriod"
         );
         uint256 perceivedStake = validators[validatorId].amount;
         address _contract = validators[validatorId].contractAddress;
@@ -232,7 +232,6 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         require(amount > minDeposit, "min deposit limit failed!");
 
         _topUpForFee(user, heimdallFee);
-
         _stakeFor(user, amount, acceptDelegation, signerPubkey);
     }
 
@@ -263,7 +262,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         require(validators[validatorId].deactivationEpoch < currentEpoch, "No use of restaking");
 
         if (amount > 0) {
-            require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake");
+            require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake failed");
         }
         if (stakeRewards) {
             amount = amount.add(validators[validatorId].reward);
@@ -327,7 +326,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     function updateContractAddress(uint256 validatorId, address newContractAddress) public onlyOwner {
         require(
             IValidatorShare(newContractAddress).owner() == address(this),
-            "Owner of validator share must be stakeManager"
+            "Owner of contract must be stakeManager"
         );
         validators[validatorId].contractAddress = newContractAddress;
     }
@@ -359,7 +358,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
 
     function updateProposerBonus(uint256 newProposerBonus) public onlyOwner {
         logger.logProposerBonusChange(newProposerBonus, proposerBonus);
-        require(newProposerBonus <= 100, "Proposer bonus should be less than or equal to 100");
+        require(newProposerBonus <= 100, "too big");
         proposerBonus = newProposerBonus;
     }
 
@@ -374,7 +373,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
 
     function updateSigner(uint256 validatorId, bytes memory signerPubkey) public onlyStaker(validatorId) {
         address _signer = pubToAddress(signerPubkey);
-        require(_signer != address(0x0) && signerToValidator[_signer] == 0, "Invalid Signer!");
+        require(_signer != address(0x0) && signerToValidator[_signer] == 0, "Invalid signer");
         require(epoch() >= latestSignerUpdateEpoch[validatorId].add(signerUpdateLimit), "Invalid checkpoint number!");
 
         // update signer event
@@ -545,7 +544,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
 
     function _stakeFor(address user, uint256 amount, bool acceptDelegation, bytes memory signerPubkey) internal {
         address signer = pubToAddress(signerPubkey);
-        require(signerToValidator[signer] == 0, "Invalid Signer key");
+        require(_signer != address(0x0) && signerToValidator[signer] == 0, "Invalid signer");
 
         totalStaked = totalStaked.add(amount);
         validators[NFTCounter] = Validator({
