@@ -248,8 +248,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     ) public onlyWhenUnlocked {
         require(currentValidatorSetSize() < validatorThreshold, "Validator set Threshold exceeded!");
         require(amount > minDeposit, "min deposit limit failed!");
-
         _topUpForFee(user, heimdallFee);
+        require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake failed");
         _stakeFor(user, amount, acceptDelegation, signerPubkey);
     }
 
