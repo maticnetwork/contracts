@@ -136,12 +136,15 @@ contract ValidatorShare is ValidatorShareStorage {
 
     function unStakeClaimTokens() public {
         Delegator storage delegator = delegators[msg.sender];
+
+        uint256 share = delegator.share;
         require(
-            delegator.withdrawEpoch.add(stakeManager.withdrawalDelay()) <= stakeManager.epoch() && delegator.share > 0,
+            delegator.withdrawEpoch.add(stakeManager.withdrawalDelay()) <= stakeManager.epoch() && share > 0,
             "Incomplete withdrawal period"
         );
-        uint256 _amount = withdrawExchangeRate().mul(delegator.share).div(100);
-        withdrawShares = withdrawShares.sub(delegator.share);
+        
+        uint256 _amount = withdrawExchangeRate().mul(share).div(100);
+        withdrawShares = withdrawShares.sub(share);
         withdrawPool = withdrawPool.sub(_amount);
 
         totalStake = totalStake.sub(_amount);
