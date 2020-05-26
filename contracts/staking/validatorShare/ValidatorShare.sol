@@ -20,10 +20,13 @@ contract ValidatorShare is ValidatorShareStorage {
 
     function updateCommissionRate(uint256 newCommissionRate) external onlyValidator {
         uint256 epoch = stakeManager.epoch();
+        uint256 _lastCommissionUpdate = lastCommissionUpdate;
+
         require( // withdrawalDelay == dynasty
-            (lastCommissionUpdate.add(stakeManager.withdrawalDelay()) <= epoch) || lastCommissionUpdate == 0, // For initial setting of commission rate
+            (_lastCommissionUpdate.add(stakeManager.withdrawalDelay()) <= epoch) || _lastCommissionUpdate == 0, // For initial setting of commission rate
             "Commission rate update cooldown period"
         );
+        
         require(newCommissionRate <= 100, "Commission rate should be in range of 0-100");
         stakingLogger.logUpdateCommissionRate(validatorId, newCommissionRate, commissionRate);
         commissionRate = newCommissionRate;
