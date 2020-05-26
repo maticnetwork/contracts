@@ -83,8 +83,9 @@ contract ValidatorShare is ValidatorShareStorage {
         delegators[msg.sender] = Delegator({share: _withdrawPoolShare, withdrawEpoch: stakeManager.epoch()});
         amountStaked[msg.sender] = 0;
 
-        stakingLogger.logShareBurned(validatorId, msg.sender, _amount, share);
-        stakingLogger.logStakeUpdate(validatorId);
+        StakingInfo logger = stakingLogger;
+        logger.logShareBurned(validatorId, msg.sender, _amount, share);
+        logger.logStakeUpdate(validatorId);
     }
 
     function withdrawRewards() public {
