@@ -545,7 +545,9 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
 
     function unJail(uint256 validatorId) public onlyStaker(validatorId) {
         require(validators[validatorId].status == Status.Locked);
-        require(validators[validatorId].jailTime <= currentEpoch, "Incomplete jail period");
+
+        uint256 _currentEpoch = currentEpoch;
+        require(validators[validatorId].jailTime <= _currentEpoch, "Incomplete jail period");
 
         uint256 amount = validators[validatorId].amount;
         require(amount >= minDeposit);
@@ -556,7 +558,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         }
 
         // undo timline so that validator is normal validator
-        updateTimeLine(currentEpoch, int256(amount.add(delegationAmount)), 1);
+        updateTimeLine(_currentEpoch, int256(amount.add(delegationAmount)), 1);
 
         validators[validatorId].deactivationEpoch = 0;
         validators[validatorId].status = Status.Active;
