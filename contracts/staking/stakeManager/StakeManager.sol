@@ -106,6 +106,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
 
     function startAuction(uint256 validatorId, uint256 amount) external onlyWhenUnlocked {
         require(isValidator(validatorId));
+
         uint256 senderValidatorId = signerToValidator[msg.sender];
         // make sure that signer wasn't used already
         require(
@@ -113,8 +114,11 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
                 senderValidatorId != INCORRECT_VALIDATOR_ID,
             "Already used address"
         );
+
+        uint256 _currentEpoch = currentEpoch;
+        uint256 _replacementCoolDown = replacementCoolDown;
         // when dynasty period is updated validators are in cooldown period
-        require(replacementCoolDown == 0 || replacementCoolDown <= currentEpoch, "Cooldown period");
+        require(_replacementCoolDown == 0 || _replacementCoolDown <= _currentEpoch, "Cooldown period");
         // (auctionPeriod--dynasty)--(auctionPeriod--dynasty)--(auctionPeriod--dynasty)
         // if it's auctionPeriod then will get residue smaller then auctionPeriod
         // from (CurrentPeriod of validator )%(auctionPeriod--dynasty)
@@ -123,13 +127,14 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         // residue 1 = (39-1)% (7+30), if residue <= auctionPeriod it's `auctionPeriod`
 
         require(
-            (currentEpoch.sub(validators[validatorId].activationEpoch) % dynasty.add(auctionPeriod)) <= auctionPeriod,
+            (_currentEpoch.sub(validators[validatorId].activationEpoch) % dynasty.add(auctionPeriod)) <= auctionPeriod,
             "Invalid auction period"
         );
 
         uint256 currentValidatorAmount = validators[validatorId].amount;
         uint256 perceivedStake = currentValidatorAmount;
         address _contract = validators[validatorId].contractAddress;
+
         if (_contract != address(0x0)) {
             perceivedStake = perceivedStake.add(IValidatorShare(_contract).activeAmount());
         }
