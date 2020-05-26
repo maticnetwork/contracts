@@ -399,16 +399,19 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     function updateSigner(uint256 validatorId, bytes memory signerPubkey) public onlyStaker(validatorId) {
         address signer = pubToAddress(signerPubkey);
         require(signer != address(0x0) && signerToValidator[signer] == 0, "Invalid signer");
-        require(epoch() >= latestSignerUpdateEpoch[validatorId].add(signerUpdateLimit), "Invalid checkpoint number!");
 
+        uint256 _currentEpoch = currentEpoch;
+        require(_currentEpoch >= latestSignerUpdateEpoch[validatorId].add(signerUpdateLimit), "Invalid checkpoint number!");
+
+        address currentSigner = validators[validatorId].signer;
         // update signer event
-        logger.logSignerChange(validatorId, validators[validatorId].signer, signer, signerPubkey);
+        logger.logSignerChange(validatorId, currentSigner, signer, signerPubkey);
 
-        signerToValidator[validators[validatorId].signer] = INCORRECT_VALIDATOR_ID;
+        signerToValidator[currentSigner] = INCORRECT_VALIDATOR_ID;
         signerToValidator[signer] = validatorId;
         validators[validatorId].signer = signer;
         // reset update time to current time
-        latestSignerUpdateEpoch[validatorId] = epoch();
+        latestSignerUpdateEpoch[validatorId] = _currentEpoch;
     }
 
     function currentValidatorSetSize() public view returns (uint256) {
