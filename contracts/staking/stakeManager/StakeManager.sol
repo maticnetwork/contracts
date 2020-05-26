@@ -166,37 +166,38 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         bytes calldata signerPubkey
     ) external onlyWhenUnlocked {
         Auction storage auction = validatorAuction[validatorId];
-        Validator storage validator = validators[validatorId];
+        address auctionUser = auction.user;
 
         require(
-            msg.sender == auction.user || getValidatorId(msg.sender) == validatorId,
+            msg.sender == auctionUser || getValidatorId(msg.sender) == validatorId,
             "Only bidder or validator can confirm"
         );
 
+        uint256 _currentEpoch = currentEpoch;
         require(
-            currentEpoch.sub(auction.startEpoch) % auctionPeriod.add(dynasty) >= auctionPeriod,
+            _currentEpoch.sub(auction.startEpoch) % auctionPeriod.add(dynasty) >= auctionPeriod,
             "Not allowed before auctionPeriod"
         );
 
-        uint256 validatorAmount = validator.amount;
-        address auctionUser = auction.user;
+        uint256 validatorAmount = validators[validatorId].amount;
         uint256 perceivedStake = validatorAmount;
         uint256 auctionAmount = auction.amount;
-        address contractAddr = validator.contractAddress;
+        address contractAddr = validators[validatorId].contractAddress;
         
         if (contractAddr != address(0x0)) {
             perceivedStake = perceivedStake.add(IValidatorShare(contractAddr).activeAmount());
         }
+
         // validator is last auctioner
         if (perceivedStake >= auctionAmount) {
             require(token.transfer(auctionUser, auctionAmount), "Bid return failed");
             //cleanup auction data
-            auction.startEpoch = currentEpoch;
+            auction.startEpoch = _currentEpoch;
             logger.logConfirmAuction(validatorId, validatorId, validatorAmount);
         } else {
             // dethrone
             _topUpForFee(auctionUser, heimdallFee);
-            _unstake(validatorId, currentEpoch);
+            _unstake(validatorId, _currentEpoch);
 
             uint256 newValidatorId = _stakeFor(auctionUser, auctionAmount, acceptDelegation, signerPubkey);
             logger.logConfirmAuction(newValidatorId, validatorId, auctionAmount);
