@@ -469,44 +469,45 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         return checkSignature(stakePower, reward, voteHash, sigs);
     }
 
-    function checkSignature(uint256 stakePower, uint256 _reward, bytes32 voteHash, bytes memory sigs)
+    function checkSignature(uint256 checkpointStakePower, uint256 reward, bytes32 voteHash, bytes memory sigs)
         internal
         returns (uint256)
     {
         // total voting power
-        uint256 _stakePower;
+        uint256 totalStakePower;
         address lastAdd; // cannot have address(0x0) as an owner
         for (uint64 i = 0; i < sigs.length; i += 65) {
-            bytes memory sigElement = BytesLib.slice(sigs, i, 65);
-            address signer = voteHash.ecrecovery(sigElement);
-
+            address signer = voteHash.ecrecovery(BytesLib.slice(sigs, i, 65));
             uint256 validatorId = signerToValidator[signer];
             // check if signer is staker and not proposer
             if (signer == lastAdd) {
                 break;
             } else if (isValidator(validatorId) && signer > lastAdd) {
                 lastAdd = signer;
+
                 Validator storage validator = validators[validatorId];
                 uint256 valPow;
                 // add delegation power
-                if (validator.contractAddress != address(0x0)) {
-                    valPow = IValidatorShare(validator.contractAddress).updateRewards(
-                        _reward,
-                        stakePower,
+                address contractAddr = validator.contractAddress;
+                if (contractAddr != address(0x0)) {
+                    valPow = IValidatorShare(contractAddr).updateRewards(
+                        reward,
+                        checkpointStakePower,
                         validatorStake(validatorId)
                     );
                 } else {
                     valPow = validator.amount;
-                    validator.reward = validator.reward.add(valPow.mul(_reward).div(stakePower));
+                    validator.reward = validator.reward.add(valPow.mul(reward).div(checkpointStakePower));
                 }
-                _stakePower = _stakePower.add(valPow);
+                totalStakePower = totalStakePower.add(valPow);
             }
         }
 
-        _reward = CHECKPOINT_REWARD.mul(_stakePower).div(currentValidatorSetTotalStake());
-        totalRewards = totalRewards.add(_reward);
-        require(_stakePower >= currentValidatorSetTotalStake().mul(2).div(3).add(1), "2/3+1 non-majority!");
-        return _reward;
+        reward = CHECKPOINT_REWARD.mul(totalStakePower).div(currentValidatorSetTotalStake());
+        totalRewards = totalRewards.add(reward);
+        require(totalStakePower >= currentValidatorSetTotalStake().mul(2).div(3).add(1), "2/3+1 non-majority!");
+
+        return reward;
     }
 
     function slash(bytes memory _slashingInfoList) public returns (uint256) {
