@@ -152,15 +152,17 @@ contract ValidatorShare is ValidatorShareStorage {
     }
 
     function slash(uint256 valPow, uint256 totalAmountToSlash) external onlyOwner returns (uint256) {
-        uint256 delegationAmount = activeAmount.add(withdrawPool);
+        uint256 _withdrawPool = withdrawPool;
+        uint256 delegationAmount = activeAmount.add(_withdrawPool);
         if (delegationAmount == 0) {
             return 0;
         }
         // total amount to be slashed from delegation pool (active + inactive)
         uint256 _amountToSlash = delegationAmount.mul(totalAmountToSlash).div(valPow.add(delegationAmount));
-        uint256 _amountToSlashWithdrawalPool = withdrawPool.mul(_amountToSlash).div(delegationAmount);
+        uint256 _amountToSlashWithdrawalPool = _withdrawPool.mul(_amountToSlash).div(delegationAmount);
+
         // slash inactive pool
-        withdrawPool = withdrawPool.sub(_amountToSlashWithdrawalPool);
+        withdrawPool = _withdrawPool.sub(_amountToSlashWithdrawalPool);
         activeAmount = activeAmount.sub(_amountToSlash.sub(_amountToSlashWithdrawalPool));
         return _amountToSlash;
     }
