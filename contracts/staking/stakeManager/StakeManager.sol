@@ -305,10 +305,11 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
 
     function withdrawRewards(uint256 validatorId) public onlyStaker(validatorId) {
         uint256 amount = validators[validatorId].reward;
-        address _contract = validators[validatorId].contractAddress;
-        if (_contract != address(0x0)) {
-            amount = amount.add(IValidatorShare(_contract).withdrawRewardsValidator());
+        address contractAddr = validators[validatorId].contractAddress;
+        if (contractAddr != address(0x0)) {
+            amount = amount.add(IValidatorShare(contractAddr).withdrawRewardsValidator());
         }
+
         totalRewardsLiquidated = totalRewardsLiquidated.add(amount);
         validators[validatorId].reward = 0;
         require(token.transfer(msg.sender, amount), "Insufficent rewards");
