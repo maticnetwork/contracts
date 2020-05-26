@@ -450,9 +450,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         // for bigger checkpoints reward is capped at `CHECKPOINT_REWARD`
         // if interval is 50% of checkPointBlockInterval then reward R is half of `CHECKPOINT_REWARD`
         // and then stakePower is 90% of currentValidatorSetTotalStake then final reward is 90% of R
-        uint256 _reward = blockInterval.mul(CHECKPOINT_REWARD).div(checkPointBlockInterval);
-        _reward = Math.min(CHECKPOINT_REWARD, _reward);
-        uint256 _proposerBonus = _reward.mul(proposerBonus).div(100);
+        uint256 reward = blockInterval.mul(CHECKPOINT_REWARD).div(checkPointBlockInterval);
+        reward = Math.min(CHECKPOINT_REWARD, reward);
+
+        uint256 _proposerBonus = reward.mul(proposerBonus).div(100);
         Validator storage _proposer = validators[signerToValidator[proposer]];
         if (_proposer.contractAddress != address(0x0)) {
             IValidatorShare(_proposer.contractAddress).addProposerBonus(_proposerBonus, _proposer.amount);
@@ -460,12 +461,12 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             _proposer.reward = _proposer.reward.add(_proposerBonus);
         }
 
-        _reward = _reward.sub(_proposerBonus);
+        reward = reward.sub(_proposerBonus);
         uint256 stakePower = currentValidatorSetTotalStake();
         // update stateMerkleTree root for accounts balance on heimdall chain
         accountStateRoot = stateRoot;
         _finalizeCommit();
-        return checkSignature(stakePower, _reward, voteHash, sigs);
+        return checkSignature(stakePower, reward, voteHash, sigs);
     }
 
     function checkSignature(uint256 stakePower, uint256 _reward, bytes32 voteHash, bytes memory sigs)
