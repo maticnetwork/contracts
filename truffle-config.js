@@ -24,8 +24,11 @@ module.exports = {
       gas: 7000000
     },
     bor: {
-      host: 'localhost',
-      port: 8545,
+      provider: () =>
+        new HDWalletProvider(
+          MNEMONIC,
+          `http://localhost:8545`
+        ),
       network_id: '*', // match any network
       gasPrice: '0'
     },

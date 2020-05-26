@@ -35,7 +35,6 @@ async function deploy() {
     { value: process.env.HEIMDALL_ID }
   ]))
 
-  // id = 14
   await deployer.deploy(transformArtifact('ValidatorShareFactory'))
   await deployer.deploy(transformArtifact('StakingInfo', ['Registry']))
   await deployer.deploy(transformArtifact('StakingNFT', [{ value: 'Matic Validator' }, { value: 'MV' }]))
@@ -48,7 +47,7 @@ async function deploy() {
   await deployer.deploy(transformArtifact('StakeManager'))
   await deployer.deploy(transformArtifact('StakeManagerProxy', ['StakeManager', 'Registry', 'RootChainProxy', 'TestToken', 'StakingNFT', 'StakingInfo', 'ValidatorShareFactory', 'GovernanceProxy']))
   await deployer.deploy(transformArtifact('SlashingManager', ['Registry', 'StakingInfo', { value: process.env.HEIMDALL_ID }]))
-  await deployer.deploy(transformArtifact('ValidatorShare', ['Registry', 0/** dummy id */, 'StakingNFT', 'StakeManagerProxy']))
+  await deployer.deploy(transformArtifact('ValidatorShare', ['Registry', { value: '0' }, 'StakingNFT', 'StakeManagerProxy']))
   await deployer.deploy(transformArtifact('StateSender'))
 
   await deployer.deploy(transformArtifact('DepositManager'))
