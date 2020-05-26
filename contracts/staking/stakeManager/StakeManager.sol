@@ -248,21 +248,23 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     }
 
     function unstakeClaim(uint256 validatorId) public onlyStaker(validatorId) {
+        uint256 deactivationEpoch = validators[validatorId].deactivationEpoch;
         // can only claim stake back after WITHDRAWAL_DELAY
         require(
-            validators[validatorId].deactivationEpoch > 0 &&
-                validators[validatorId].deactivationEpoch.add(WITHDRAWAL_DELAY) <= currentEpoch &&
-                validators[validatorId].status != Status.Unstaked
+            deactivationEpoch > 0 && deactivationEpoch.add(WITHDRAWAL_DELAY) <= currentEpoch &&
+            validators[validatorId].status != Status.Unstaked
         );
+
         uint256 amount = validators[validatorId].amount;
-        totalStaked = totalStaked.sub(amount);
+        uint256 newTotalStaked = totalStaked.sub(amount);
+        totalStaked = newTotalStaked;
 
         NFTContract.burn(validatorId);
+
         signerToValidator[validators[validatorId].signer] = INCORRECT_VALIDATOR_ID;
-        // delete validators[validatorId];
         validators[validatorId].status = Status.Unstaked;
         require(token.transfer(msg.sender, amount), "Transfer stake failed");
-        logger.logUnstaked(msg.sender, validatorId, amount, totalStaked);
+        logger.logUnstaked(msg.sender, validatorId, amount, newTotalStaked);
     }
 
     // slashing and jail interface
