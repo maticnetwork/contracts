@@ -50,7 +50,7 @@ module.exports = function(accounts) {
         } else {
           await expectRevert(this.stakeManager.stake(stakeAmount, this.defaultHeimdallFee, false, userPubkey, {
             from: user
-          }), 'Invalid Signer key')
+          }), 'Invalid signer')
         }
       })
 
@@ -304,7 +304,7 @@ module.exports = function(accounts) {
       })
 
       it('reverts', async function() {
-        await expectRevert(doStake(wallets[3], { signer: AliceWallet.getPublicKeyString() }).call(this), 'Invalid Signer key')
+        await expectRevert(doStake(wallets[3], { signer: AliceWallet.getPublicKeyString() }).call(this), 'Invalid signer')
       })
     })
   })

@@ -619,7 +619,7 @@ contract('StakeManager', async function(accounts) {
       it('reverts', async function() {
         await expectRevert(this.stakeManager.updateSigner(this.validatorId, userOriginalPubKey, {
           from: user
-        }), 'Invalid Signer!')
+        }), 'Invalid signer')
       })
     })
 
@@ -1443,7 +1443,7 @@ contract('StakeManager', async function(accounts) {
       it('when bid is too low', async function() {
         await expectRevert(this.stakeManager.startAuction(1, web3.utils.toWei('100'), {
           from: wallets[3].getAddressString()
-        }), 'Must bid higher amount')
+        }), 'Must bid higher')
       })
     })
   })
@@ -1575,7 +1575,7 @@ contract('StakeManager', async function(accounts) {
             {
               from: this.bidder
             }
-          ), 'Confirmation is not allowed before auctionPeriod')
+          ), 'Not allowed before auctionPeriod')
         })
       })
 
@@ -1594,7 +1594,7 @@ contract('StakeManager', async function(accounts) {
             {
               from: this.bidder
             }
-          ), 'Confirmation is not allowed before auctionPeriod')
+          ), 'Not allowed before auctionPeriod')
         })
       })
     })
