@@ -36,7 +36,8 @@ contract ValidatorShare is ValidatorShareStorage {
     }
 
     function exchangeRate() public view returns (uint256) {
-        return totalSupply() == 0 ? 100 : activeAmount.add(rewards).mul(100).div(totalSupply());
+        uint256 totalStaked = totalSupply();
+        return totalStaked == 0 ? 100 : activeAmount.add(rewards).mul(100).div(totalStaked);
     }
 
     function withdrawExchangeRate() public view returns (uint256) {
