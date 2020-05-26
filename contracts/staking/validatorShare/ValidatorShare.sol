@@ -40,7 +40,8 @@ contract ValidatorShare is ValidatorShareStorage {
     }
 
     function withdrawExchangeRate() public view returns (uint256) {
-        return withdrawShares == 0 ? 100 : withdrawPool.mul(100).div(withdrawShares);
+        uint256 _withdrawShares = withdrawShares;
+        return _withdrawShares == 0 ? 100 : withdrawPool.mul(100).div(_withdrawShares);
     }
 
     function buyVoucher(uint256 _amount) public onlyWhenUnlocked {
