@@ -13,10 +13,12 @@ contract ValidatorShare is ValidatorShareStorage {
         _;
     }
 
-    constructor(address _registry, uint256 _validatorId, address _stakingLogger, address _stakeManager)
-        public
-        Lockable(_stakeManager)
-    {} // dummy constructor
+    constructor(
+        address _registry,
+        uint256 _validatorId,
+        address _stakingLogger,
+        address _stakeManager
+    ) public Lockable(_stakeManager) {} // dummy constructor
 
     function updateCommissionRate(uint256 newCommissionRate) external onlyValidator {
         uint256 epoch = stakeManager.epoch();
@@ -165,7 +167,11 @@ contract ValidatorShare is ValidatorShareStorage {
         return _amountToSlash;
     }
 
-    function drain(address token, address payable destination, uint256 amount) external onlyOwner {
+    function drain(
+        address token,
+        address payable destination,
+        uint256 amount
+    ) external onlyOwner {
         if (token == address(0x0)) {
             destination.transfer(amount);
         } else {
@@ -183,7 +189,11 @@ contract ValidatorShare is ValidatorShareStorage {
         return activeAmount;
     }
 
-    function _transfer(address from, address to, uint256 value) internal {
+    function _transfer(
+        address from,
+        address to,
+        uint256 value
+    ) internal {
         revert("Disabled");
     }
 }

@@ -10,6 +10,7 @@ import {
   assertBigNumbergt,
   assertBigNumberEquality
 } from '../../helpers/utils.js'
+import { expectEvent } from '@openzeppelin/test-helpers'
 import { generateFirstWallets, mnemonics } from '../../helpers/wallets.js'
 
 chai.use(chaiAsPromised).should()
@@ -98,6 +99,22 @@ contract('Slashing:validator', async function(accounts) {
       await checkPoint([validator1Wallet, validator2Wallet], validator1Wallet, stakeManager)
       const validator2 = await stakeManager.validators(2)
       assertBigNumbergt(validator2.reward, web3.utils.toWei('4260')) // 4700-10% proposer bonus
+    })
+
+    it('should test jail => unstake', async function() {
+      const amount = +web3.utils.toWei('100')
+      const validator2Wallet = wallets[1]
+      const slashingInfoList = [[2, amount, '0x1']]
+
+      await updateSlashedAmounts([wallets[0], wallets[1]], wallets[1], 1, slashingInfoList, slashingManager)
+
+      const result = await stakeManager.unstake(2, { from: validator2Wallet.getAddressString() })
+
+      const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
+      logs.should.have.lengthOf(1)
+      logs[0].event.should.equal('UnstakeInit')
+      assertBigNumberEquality(logs[0].args.amount, web3.utils.toWei('900'))
+      assertBigNumberEquality(logs[0].args.validatorId, '2')
     })
   })
 })
