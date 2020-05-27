@@ -4,22 +4,21 @@ const HDWalletProvider = require('truffle-hdwallet-provider')
 const MNEMONIC = process.env.MNEMONIC || 'clock radar mass judge dismiss just intact mind resemble fringe diary casino'
 const API_KEY =  process.env.API_KEY
 
-// const url = `https://ropsten.infura.io/v3/${API_KEY}`
-// const url = `https://mainnet.infura.io/v3/${API_KEY}`
-const url = `http://localhost:8545`
+const url = `https://goerli.infura.io/v3/${API_KEY}`
+// const url = `http://localhost:8545`
 
-const wallet = new HDWalletProvider(MNEMONIC, url, 0, 2)
+const wallet = new HDWalletProvider(MNEMONIC, url)
 
 async function consume() {
   const q = await EthDeployer.getQueue()
   const worker = new EthDeployer.Worker(
     wallet, q, {
-      from: '0x9fB29AAc15b9A4B7F17c3385939b007540f4d791',
+      from: process.env.FROM || '0x9fB29AAc15b9A4B7F17c3385939b007540f4d791',
       gas: 7000000,
-      gasPrice: '10000000000' // 10 gwei
+      gasPrice: '5000000000' // 5 gwei
     },
     `${process.cwd()}/build`,
-    1 // blockConfirmation
+    0 // blockConfirmation
   )
   await worker.start('default-deposit-q')
   return 'worker started...'

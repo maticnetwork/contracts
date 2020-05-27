@@ -2,20 +2,21 @@ import ethUtils from 'ethereumjs-util'
 
 import { getBlockHeader } from './blocks'
 import MerkleTree from './merkle-tree'
+
+import { build } from '../mockResponses/utils'
 import {
   getTxProof,
   verifyTxProof,
   getReceiptProof,
   verifyReceiptProof
 } from './proofs'
-import { build } from '../mockResponses/utils'
 
 const utils = require('./utils')
 const web3Child = utils.web3Child
 
 export default class StatefulUtils {
   constructor() {
-    this.start = 0
+    this.lastEndBlock = -1
   }
 
   async submitCheckpoint(rootChain, receipt, proposer) {
@@ -30,29 +31,43 @@ export default class StatefulUtils {
       )
     }
 
+    // rootChain expects the first checkpoint to start from block 0.
+    // However, ganache would already be running and would be much ahead of block 0.
+    // offset is used to treat the block of the first checkpoint to be 0
+    if (this.offset == null) {
+      this.offset = event.block.number
+    }
+    event.block.number -= this.offset // rootChain will thank you for this
+    const start = this.lastEndBlock + 1
+    const end = event.block.number
+    this.lastEndBlock = end
+    if (start > end) {
+      throw new Error(`Invalid end block number for checkpoint`, { start, end });
+    }
+
+    const headers = []
+    for (let i = start; i <= end; i++) {
+      const block = await web3Child.eth.getBlock(i + this.offset)
+      block.number = i
+      headers.push(getBlockHeader(block))
+    }
     const blockHeader = getBlockHeader(event.block)
-    const headers = [blockHeader]
     const tree = new MerkleTree(headers)
     const root = ethUtils.bufferToHex(tree.getRoot())
-    const end = event.tx.blockNumber
     const blockProof = await tree.getProof(blockHeader)
-    this.start = Math.min(this.start, end)
     // tree
-    //   .verify(blockHeader, event.block.number - start, tree.getRoot(), blockProof)
+    //   .verify(blockHeader, end - start, tree.getRoot(), blockProof)
     //   .should.equal(true)
-    const { vote, sigs, extraData } = utils.buildSubmitHeaderBlockPaylod(
+    const { data, sigs } = utils.buildSubmitHeaderBlockPaylod(
       proposer[0],
-      this.start,
+      start,
       end,
       root,
       proposer,
       { rewardsRootHash: ethUtils.keccak256('RandomState') }
     )
     const submitHeaderBlock = await rootChain.submitHeaderBlock(
-      vote,
-      sigs,
-      extraData
-    )
+      data, sigs)
 
     // const txProof = await getTxProof(event.tx, event.block)
     // assert.isTrue(verifyTxProof(txProof), 'Tx proof must be valid (failed in js)')
@@ -62,7 +77,6 @@ export default class StatefulUtils {
     const NewHeaderBlockEvent = submitHeaderBlock.logs.find(
       log => log.event === 'NewHeaderBlock'
     )
-    this.start = end + 1
     return {
       block: event.block,
       blockProof,

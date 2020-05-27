@@ -1,10 +1,10 @@
 pragma solidity ^0.5.2;
 
-import {StakeManagerStorage} from "./StakeManagerStorage.sol";
 
-contract IStakeManager is StakeManagerStorage {
+contract IStakeManager {
     // validator replacement
     function startAuction(uint256 validatorId, uint256 amount) external;
+
     function confirmAuctionBid(
         uint256 validatorId,
         uint256 heimdallFee,
@@ -12,7 +12,7 @@ contract IStakeManager is StakeManagerStorage {
         bytes calldata signerPubkey
     ) external;
 
-    function delegationTransfer(
+    function transferFunds(
         uint256 validatorId,
         uint256 amount,
         address delegator
@@ -30,9 +30,13 @@ contract IStakeManager is StakeManagerStorage {
         bool acceptDelegation,
         bytes calldata signerPubkey
     ) external;
+
     function unstake(uint256 validatorId) external;
+
     function totalStakedFor(address addr) external view returns (uint256);
+
     function supportsHistory() external pure returns (bool);
+
     function stakeFor(
         address user,
         uint256 amount,
@@ -40,16 +44,24 @@ contract IStakeManager is StakeManagerStorage {
         bool acceptDelegation,
         bytes memory signerPubkey
     ) public;
+
     function checkSignatures(
         uint256 blockInterval,
         bytes32 voteHash,
         bytes32 stateRoot,
+        address proposer,
         bytes memory sigs
     ) public returns (uint256);
+
     function updateValidatorState(uint256 validatorId, int256 amount) public;
+
     function ownerOf(uint256 tokenId) public view returns (address);
-    // optional
-    // function lastStakedFor(address addr) external view returns (uint256);
-    // function totalStakedForAt(address addr, uint256 blockNumber) external view returns (uint256);
-    // function totalStakedAt(uint256 blockNumber) external view returns (uint256);
+
+    function slash(bytes memory slashingInfoList) public returns (uint256);
+
+    function validatorStake(uint256 validatorId) public view returns (uint256);
+
+    function epoch() public view returns (uint256);
+
+    function withdrawalDelay() public view returns (uint256);
 }

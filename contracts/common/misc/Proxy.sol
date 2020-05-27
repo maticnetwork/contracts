@@ -2,6 +2,7 @@ pragma solidity ^0.5.2;
 import {DelegateProxy} from "./DelegateProxy.sol";
 import {ProxyStorage} from "./ProxyStorage.sol";
 
+
 contract Proxy is ProxyStorage, DelegateProxy {
     event ProxyUpdated(address indexed _new, address indexed _old);
     event OwnerUpdate(address _prevOwner, address _newOwner);
@@ -22,10 +23,7 @@ contract Proxy is ProxyStorage, DelegateProxy {
 
     function updateImplementation(address _newProxyTo) public onlyOwner {
         require(_newProxyTo != address(0x0), "INVALID_PROXY_ADDRESS");
-        require(
-            isContract(_newProxyTo),
-            "DESTINATION_ADDRESS_IS_NOT_A_CONTRACT"
-        );
+        require(isContract(_newProxyTo), "DESTINATION_ADDRESS_IS_NOT_A_CONTRACT");
         emit ProxyUpdated(_newProxyTo, proxyTo);
         proxyTo = _newProxyTo;
     }

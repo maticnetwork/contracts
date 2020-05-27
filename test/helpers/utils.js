@@ -16,25 +16,57 @@ const BN = ethUtils.BN
 const rlp = ethUtils.rlp
 
 // constants
-export const web3Child = new web3.constructor(
-  new web3.providers.HttpProvider('http://localhost:8545')
-)
+export let web3Child
+
+if (process.env.SOLIDITY_COVERAGE) {
+  web3Child = new web3.constructor(
+    web3.currentProvider
+  )
+} else {
+  web3Child = new web3.constructor(
+    new web3.providers.HttpProvider('http://localhost:8545')
+  )
+}
 
 export const ZeroAddress = '0x0000000000000000000000000000000000000000'
-export const ChildMaticTokenAddress =
-  '0x0000000000000000000000000000000000001010'
+export let ChildMaticTokenAddress = '0x0000000000000000000000000000000000001010'
 export const scalingFactor = web3.utils.toBN(10).pow(web3.utils.toBN(18))
 
 export function getSigs(wallets, votedata) {
+  // avoid any potential side effects
+  const copyWallets = [...wallets]
+  copyWallets.sort((w1, w2) => {
+    return w1.getAddressString().localeCompare(w2.getAddressString())
+  })
+  const h = ethUtils.toBuffer(votedata)
+
+  return copyWallets
+    .map(w => {
+      const vrs = ethUtils.ecsign(h, w.getPrivateKey())
+      return ethUtils.toRpcSig(vrs.v, vrs.r, vrs.s)
+    })
+    .filter(d => d)
+}
+
+export function getSigsWithVotes(_wallets, data, sigPrefix, maxYesVotes) {
+  let wallets = [..._wallets]
   wallets.sort((w1, w2) => {
     return w1.getAddressString().localeCompare(w2.getAddressString())
   })
 
-  const h = ethUtils.toBuffer(votedata)
-
   return wallets
-    .map(w => {
-      const vrs = ethUtils.ecsign(h, w.getPrivateKey())
+    .map((w, index) => {
+      let voteData
+
+      if (index < maxYesVotes) {
+        voteData = Buffer.concat([ethUtils.toBuffer(sigPrefix || '0x01'), ethUtils.toBuffer(data)])
+      } else {
+        voteData = Buffer.concat([ethUtils.toBuffer(sigPrefix || '0x02'), ethUtils.toBuffer(data)])
+      }
+
+      const voteHash = ethUtils.keccak256(voteData)
+      voteData = ethUtils.toBuffer(voteHash)
+      const vrs = ethUtils.ecsign(voteData, w.getPrivateKey())
       return ethUtils.toRpcSig(vrs.v, vrs.r, vrs.s)
     })
     .filter(d => d)
@@ -44,18 +76,38 @@ export function encodeSigs(sigs = []) {
   return Buffer.concat(sigs.map(s => ethUtils.toBuffer(s)))
 }
 
-export async function checkPoint(wallets, proposer, stakeManager, options = {}) {
+export async function checkPoint(wallets, proposer, stakeManager, { blockInterval = 1 } = {}) {
   const voteData = 'dummyData'
   const sigs = ethUtils.bufferToHex(
     encodeSigs(getSigs(wallets, ethUtils.keccak256(voteData)))
   )
   const stateRoot = ethUtils.bufferToHex(ethUtils.keccak256('stateRoot'))
   // 2/3 majority vote
-
   await stakeManager.checkSignatures(
-    1,
+    blockInterval,
     ethUtils.bufferToHex(ethUtils.keccak256(voteData)),
     stateRoot,
+    proposer.getAddressString(),
+    sigs,
+    {
+      from: proposer.getAddressString()
+    }
+  )
+}
+
+export async function updateSlashedAmounts(wallets, proposer, _slashingNonce, slashingInfoList, slashingManager, options = {}) {
+  let data = web3.eth.abi.encodeParameters(
+    ['uint256', 'address', 'bytes'],
+    [_slashingNonce, proposer.getAddressString(),
+      ethUtils.bufferToHex(ethUtils.rlp.encode(slashingInfoList))
+    ]
+  )
+  const sigData = Buffer.concat([ethUtils.toBuffer('' || '0x01'), ethUtils.toBuffer(data)])
+  const sigs = ethUtils.bufferToHex(
+    encodeSigs(getSigs(wallets, ethUtils.keccak256(sigData)))
+  )
+  return slashingManager.updateSlashedAmounts(
+    data,
     sigs,
     {
       from: proposer.getAddressString()
@@ -66,15 +118,20 @@ export async function checkPoint(wallets, proposer, stakeManager, options = {}) 
 export function assertBigNumberEquality(num1, num2) {
   if (!BN.isBN(num1)) num1 = web3.utils.toBN(num1.toString())
   if (!BN.isBN(num2)) num2 = web3.utils.toBN(num2.toString())
-  assert.ok(
+  assert(
     num1.eq(num2),
-    `expected ${num1.toString(16)} and ${num2.toString(16)} to be equal`
+    `expected ${num1.toString(10)} and ${num2.toString(10)} to be equal`
   )
 }
 
 export function assertBigNumbergt(num1, num2) {
-  expect(num1.gt(web3.utils.toBN(num2))).to.be.true
-  // num1.should.be.bignumber.greaterThan(num2)
+  if (!BN.isBN(num1)) num1 = web3.utils.toBN(num1.toString())
+  if (!BN.isBN(num2)) num2 = web3.utils.toBN(num2.toString())
+
+  assert(
+    num1.gt(num2),
+    `expected ${num1.toString(10)} to be greater than ${num2.toString(10)}`
+  )
 }
 
 export const toChecksumAddress = address =>
@@ -86,40 +143,63 @@ export function buildSubmitHeaderBlockPaylod(
   end,
   root,
   wallets,
-  options = { rewardsRootHash: '', allValidators: false, getSigs: false, totalStake: 1 } // false vars are to show expected vars
+  options = { rewardsRootHash: '', allValidators: false, getSigs: false, totalStake: 1, sigPrefix: '' } // false vars are to show expected vars
 ) {
   if (!root) root = ethUtils.keccak256(encode(start, end)) // dummy root
   if (!wallets) {
     wallets = getWallets()
   }
+
   let validators = options.allValidators
     ? wallets
     : [wallets[1], wallets[2], wallets[3]]
 
-  const extraData = ethUtils.bufferToHex(
-    ethUtils.rlp.encode([
-      [proposer, start, end, root, options.rewardsRootHash, web3.utils.toHex((options.totalStake || '1').toString())] // 0th element
-    ])
+  let data = web3.eth.abi.encodeParameters(
+    ['address', 'uint256', 'uint256', 'bytes32', 'bytes32', 'uint256'],
+    [proposer, start, end, root, options.rewardsRootHash, 15001]
   )
-
-  const vote = ethUtils.bufferToHex(
-    // [chain, voteType, height, round, sha256(extraData)]
-    ethUtils.rlp.encode([
-      'heimdall-P5rXwg',
-      2,
-      0,
-      0,
-      ethUtils.bufferToHex(ethUtils.sha256(extraData))
-    ])
-  )
+  const sigData = Buffer.concat([ethUtils.toBuffer(options.sigPrefix || '0x01'), ethUtils.toBuffer(data)])
 
   // in case of TestStakeManger use dummysig data
   const sigs = ethUtils.bufferToHex(
     options.getSigs
-      ? encodeSigs(getSigs(validators, ethUtils.keccak256(vote)))
+      ? encodeSigs(getSigs(validators, ethUtils.keccak256(sigData)))
       : 'dummySig'
   )
-  return { vote, sigs, extraData, root }
+  return { data, sigs }
+}
+
+export function buildSubmitHeaderBlockPaylodWithVotes(
+  proposer,
+  start,
+  end,
+  root,
+  wallets,
+  maxYesVotes,
+  options = { rewardsRootHash: '', allValidators: false, getSigs: false, totalStake: 1, sigPrefix: '' } // false vars are to show expected vars
+) {
+  if (!root) root = ethUtils.keccak256(encode(start, end)) // dummy root
+  if (!wallets) {
+    wallets = getWallets()
+  }
+
+  let validators = options.allValidators
+    ? wallets
+    : [wallets[1], wallets[2], wallets[3]]
+
+  let data = web3.eth.abi.encodeParameters(
+    ['address', 'uint256', 'uint256', 'bytes32', 'bytes32', 'bytes32'],
+    [proposer, start, end, root, options.rewardsRootHash, '0x0000000000000000000000000000000000000000000000000000000000003a99']
+  )
+  const sigData = ethUtils.toBuffer(data)
+
+  // in case of TestStakeManger use dummysig data
+  const sigs = ethUtils.bufferToHex(
+    options.getSigs
+      ? encodeSigs(getSigsWithVotes(validators, sigData, options.sigPrefix, maxYesVotes))
+      : 'dummySig'
+  )
+  return { data, sigs }
 }
 
 export function getWallets() {

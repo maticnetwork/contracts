@@ -8,6 +8,9 @@ const Governance = artifacts.require('Governance')
 const GovernanceProxy = artifacts.require('GovernanceProxy')
 const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
 const StakeManager = artifacts.require('StakeManager')
+const ValidatorShare = artifacts.require('ValidatorShare')
+const SlashingManager = artifacts.require('SlashingManager')
+
 const StakingNFT = artifacts.require('StakingNFT')
 const StakeManagerProxy = artifacts.require('StakeManagerProxy')
 const ERC20Predicate = artifacts.require('ERC20Predicate')
@@ -17,7 +20,7 @@ const TransferWithSigPredicate = artifacts.require('TransferWithSigPredicate')
 const MaticWeth = artifacts.require('MaticWETH')
 const TestToken = artifacts.require('TestToken')
 
-module.exports = async function (deployer, network) {
+module.exports = async function(deployer, network) {
   deployer.then(async () => {
     console.log('initializing contract state...')
     await bluebird
@@ -29,6 +32,8 @@ module.exports = async function (deployer, network) {
         StateSender.deployed(),
         WithdrawManagerProxy.deployed(),
         StakeManagerProxy.deployed(),
+        SlashingManager.deployed(),
+        ValidatorShare.deployed(),
         StakingNFT.deployed(),
         MaticWeth.deployed(),
         ERC20Predicate.deployed(),
@@ -36,7 +41,7 @@ module.exports = async function (deployer, network) {
         MarketplacePredicate.deployed(),
         TransferWithSigPredicate.deployed()
       ])
-      .spread(async function (
+      .spread(async function(
         testToken,
         registry,
         governanceProxy,
@@ -44,6 +49,8 @@ module.exports = async function (deployer, network) {
         stateSender,
         withdrawManagerProxy,
         stakeManagerProxy,
+        slashingManager,
+        validatorShare,
         stakingNFT,
         maticWeth,
         ERC20Predicate,
@@ -71,6 +78,20 @@ module.exports = async function (deployer, network) {
           registry.contract.methods.updateContractMap(
             ethUtils.bufferToHex(ethUtils.keccak256('stakeManager')),
             StakeManagerProxy.address
+          ).encodeABI()
+        )
+        await governance.update(
+          registry.address,
+          registry.contract.methods.updateContractMap(
+            ethUtils.bufferToHex(ethUtils.keccak256('validatorShare')),
+            validatorShare.address
+          ).encodeABI()
+        )
+        await governance.update(
+          registry.address,
+          registry.contract.methods.updateContractMap(
+            ethUtils.bufferToHex(ethUtils.keccak256('slashingManager')),
+            slashingManager.address
           ).encodeABI()
         )
         await governance.update(

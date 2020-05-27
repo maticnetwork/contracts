@@ -5,7 +5,7 @@ const Registry = artifacts.require('Registry')
 const ethUtils = require('ethereumjs-util')
 const EthDeployer = require('moonwalker').default
 
-let id = 28 // THIS SHOULD BE NUMBER OF JOBS PROCESSED IN THE PREVIOUS SCRIPT
+let id = 33 // THIS SHOULD BE NUMBER OF JOBS PROCESSED IN THE PREVIOUS SCRIPT
 
 async function deploy() {
   const qClient = await EthDeployer.getQueue()
@@ -24,7 +24,7 @@ async function deploy() {
               ethUtils.bufferToHex(ethUtils.keccak256('depositManager')),
               getAddressForContract('DepositManagerProxy')
             ).encodeABI()
-        },
+        }
       ],
       'GovernanceProxy'
     )
@@ -40,7 +40,23 @@ async function deploy() {
               ethUtils.bufferToHex(ethUtils.keccak256('withdrawManager')),
               getAddressForContract('WithdrawManagerProxy')
             ).encodeABI()
-        },
+        }
+      ],
+      'GovernanceProxy'
+    )
+  )
+
+  await deployer.deploy(
+    tx('Governance', 'update',
+      [
+        'Registry',
+        {
+          value:
+            registry.contract.methods.updateContractMap(
+              ethUtils.bufferToHex(ethUtils.keccak256('slashingManager')),
+              getAddressForContract('SlashingManager')
+            ).encodeABI()
+        }
       ],
       'GovernanceProxy'
     )
@@ -56,11 +72,27 @@ async function deploy() {
               ethUtils.bufferToHex(ethUtils.keccak256('stakeManager')),
               getAddressForContract('StakeManagerProxy')
             ).encodeABI()
-        },
+        }
       ],
       'GovernanceProxy'
     )
   )
+  await deployer.deploy(
+    tx('Governance', 'update',
+      [
+        'Registry',
+        {
+          value:
+            registry.contract.methods.updateContractMap(
+              ethUtils.bufferToHex(ethUtils.keccak256('validatorShare')),
+              getAddressForContract('ValidatorShare')
+            ).encodeABI()
+        }
+      ],
+      'GovernanceProxy'
+    )
+  )
+
 
   await deployer.deploy(
     tx('Governance', 'update',
@@ -87,6 +119,36 @@ async function deploy() {
             registry.contract.methods.updateContractMap(
               ethUtils.bufferToHex(ethUtils.keccak256('wethToken')),
               getAddressForContract('MaticWETH')
+            ).encodeABI()
+        },
+      ],
+      'GovernanceProxy'
+    )
+  )
+
+  await deployer.deploy(
+    tx('Governance', 'update',
+      [
+        'Registry',
+        {
+          value:
+            registry.contract.methods.addErc20Predicate(
+              getAddressForContract('ERC20Predicate')
+            ).encodeABI()
+        },
+      ],
+      'GovernanceProxy'
+    )
+  )
+
+  await deployer.deploy(
+    tx('Governance', 'update',
+      [
+        'Registry',
+        {
+          value:
+            registry.contract.methods.addErc721Predicate(
+              getAddressForContract('ERC721Predicate')
             ).encodeABI()
         },
       ],
@@ -132,11 +194,11 @@ function getAddressForContract(contract) {
 
 function wait(ms) {
   return new Promise((resolve, reject) => {
-    setTimeout(function () { resolve() }, ms);
+    setTimeout(function() { resolve() }, ms);
   })
 }
 
-module.exports = async function (callback) {
+module.exports = async function(callback) {
   try {
     await deploy()
     await wait(3000) // otherwise the tasks are not queued
