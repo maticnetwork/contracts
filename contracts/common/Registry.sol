@@ -18,7 +18,7 @@ contract Registry is Governable {
     address public erc20Predicate;
     address public erc721Predicate;
 
-    mapping(bytes32 => address) contractMap;
+    mapping(bytes32 => address) internal contractMap;
     mapping(address => address) public rootToChildToken;
     mapping(address => address) public childToRootToken;
     mapping(address => bool) public proofValidatorContracts;
@@ -32,24 +32,14 @@ contract Registry is Governable {
 
     event TokenMapped(address indexed rootToken, address indexed childToken);
     event ProofValidatorAdded(address indexed validator, address indexed from);
-    event ProofValidatorRemoved(
-        address indexed validator,
-        address indexed from
-    );
+    event ProofValidatorRemoved(address indexed validator, address indexed from);
     event PredicateAdded(address indexed predicate, address indexed from);
     event PredicateRemoved(address indexed predicate, address indexed from);
-    event ContractMapUpdated(
-        bytes32 indexed key,
-        address indexed previousContract,
-        address indexed newContract
-    );
+    event ContractMapUpdated(bytes32 indexed key, address indexed previousContract, address indexed newContract);
 
     constructor(address _governance) public Governable(_governance) {}
 
-    function updateContractMap(bytes32 _key, address _address)
-        external
-        onlyGovernance
-    {
+    function updateContractMap(bytes32 _key, address _address) external onlyGovernance {
         emit ContractMapUpdated(_key, contractMap[_key], _address);
         contractMap[_key] = _address;
     }
@@ -60,28 +50,21 @@ contract Registry is Governable {
      * @param _childToken Token address on the child chain
      * @param _isERC721 Is the token being mapped ERC721
      */
-    function mapToken(address _rootToken, address _childToken, bool _isERC721)
-        external
-        onlyGovernance
-    {
-        require(
-            _rootToken != address(0x0) && _childToken != address(0x0),
-            "INVALID_TOKEN_ADDRESS"
-        );
+    function mapToken(
+        address _rootToken,
+        address _childToken,
+        bool _isERC721
+    ) external onlyGovernance {
+        require(_rootToken != address(0x0) && _childToken != address(0x0), "INVALID_TOKEN_ADDRESS");
         rootToChildToken[_rootToken] = _childToken;
         childToRootToken[_childToken] = _rootToken;
         isERC721[_rootToken] = _isERC721;
-        IWithdrawManager(contractMap[WITHDRAW_MANAGER]).createExitQueue(
-            _rootToken
-        );
+        IWithdrawManager(contractMap[WITHDRAW_MANAGER]).createExitQueue(_rootToken);
         emit TokenMapped(_rootToken, _childToken);
     }
 
     function addErc20Predicate(address predicate) public onlyGovernance {
-        require(
-            predicate != address(0x0),
-            "Can not add null address as predicate"
-        );
+        require(predicate != address(0x0), "Can not add null address as predicate");
         erc20Predicate = predicate;
         addPredicate(predicate, Type.ERC20);
     }
@@ -92,19 +75,13 @@ contract Registry is Governable {
     }
 
     function addPredicate(address predicate, Type _type) public onlyGovernance {
-        require(
-            predicates[predicate]._type == Type.Invalid,
-            "Predicate already added"
-        );
+        require(predicates[predicate]._type == Type.Invalid, "Predicate already added");
         predicates[predicate]._type = _type;
         emit PredicateAdded(predicate, msg.sender);
     }
 
     function removePredicate(address predicate) public onlyGovernance {
-        require(
-            predicates[predicate]._type != Type.Invalid,
-            "Predicate does not exist"
-        );
+        require(predicates[predicate]._type != Type.Invalid, "Predicate does not exist");
         delete predicates[predicate];
         emit PredicateRemoved(predicate, msg.sender);
     }
@@ -133,11 +110,7 @@ contract Registry is Governable {
         return contractMap[WITHDRAW_MANAGER];
     }
 
-    function getChildChainAndStateSender()
-        public
-        view
-        returns (address, address)
-    {
+    function getChildChainAndStateSender() public view returns (address, address) {
         return (contractMap[CHILD_CHAIN], contractMap[STATE_SENDER]);
     }
 
@@ -145,20 +118,12 @@ contract Registry is Governable {
         return rootToChildToken[_token] != address(0x0);
     }
 
-    function isTokenMappedAndIsErc721(address _token)
-        public
-        view
-        returns (bool)
-    {
+    function isTokenMappedAndIsErc721(address _token) public view returns (bool) {
         require(isTokenMapped(_token), "TOKEN_NOT_MAPPED");
         return isERC721[_token];
     }
 
-    function isTokenMappedAndGetPredicate(address _token)
-        public
-        view
-        returns (address)
-    {
+    function isTokenMappedAndGetPredicate(address _token) public view returns (address) {
         if (isTokenMappedAndIsErc721(_token)) {
             return erc721Predicate;
         }
