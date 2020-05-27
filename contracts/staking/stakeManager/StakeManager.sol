@@ -565,9 +565,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     }
 
     function unjail(uint256 validatorId) public onlyStaker(validatorId) {
-        uint256 _currentEpoch = currentEpoch;
         require(validators[validatorId].status == Status.Locked, "Validator is not jailed");
         require(validators[validatorId].deactivationEpoch == 0, "Validator already unstaking");
+
+        uint256 _currentEpoch = currentEpoch;
         require(validators[validatorId].jailTime <= _currentEpoch, "Incomplete jail period");
 
         uint256 amount = validators[validatorId].amount;
@@ -610,7 +611,9 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 _currentEpoch = currentEpoch;
         uint256 validatorId = NFTCounter;
         StakingInfo _logger = logger;
-        totalStaked = totalStaked.add(amount);
+        uint256 newTotalStaked = totalStaked.add(amount);
+        totalStaked = newTotalStaked;
+
         validators[validatorId] = Validator({
             reward: 0,
             amount: amount,
@@ -629,7 +632,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         updateTimeLine(_currentEpoch, int256(amount), 1);
         // no Auctions for 1 dynasty
         validatorAuction[validatorId].startEpoch = _currentEpoch;
-        _logger.logStaked(signer, signerPubkey, validatorId, _currentEpoch, amount, totalStaked);
+        _logger.logStaked(signer, signerPubkey, validatorId, _currentEpoch, amount, newTotalStaked);
         NFTCounter = validatorId.add(1);
 
         return validatorId;

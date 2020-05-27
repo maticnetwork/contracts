@@ -77,18 +77,22 @@ contract ValidatorShare is ValidatorShareStorage {
         uint256 share = balanceOf(msg.sender);
         require(share > 0, "Zero balance");
         uint256 _amount = exchangeRate().mul(share).div(100);
+
         _burn(msg.sender, share);
         stakeManager.updateValidatorState(validatorId, -int256(_amount));
 
-        if (_amount > amountStaked[msg.sender]) {
-            uint256 _rewards = _amount.sub(amountStaked[msg.sender]);
+        uint256 userStake = amountStaked[msg.sender];
+
+        if (_amount > userStake) {
+            uint256 _rewards = _amount.sub(userStake);
             //withdrawTransfer
             require(stakeManager.transferFunds(validatorId, _rewards, msg.sender), "Insufficent rewards");
-            _amount = _amount.sub(_rewards);
+            _amount = userStake;
         }
 
         activeAmount = activeAmount.sub(_amount);
         uint256 _withdrawPoolShare = _amount.mul(100).div(withdrawExchangeRate());
+
         withdrawPool = withdrawPool.add(_amount);
         withdrawShares = withdrawShares.add(_withdrawPoolShare);
         delegators[msg.sender] = Delegator({share: _withdrawPoolShare, withdrawEpoch: stakeManager.epoch()});
