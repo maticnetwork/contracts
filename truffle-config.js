@@ -11,7 +11,7 @@ const MNEMONIC =
   process.env.MNEMONIC ||
   'clock radar mass judge dismiss just intact mind resemble fringe diary casino'
 const API_KEY = process.env.API_KEY
-
+const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY
 module.exports = {
   // See <http://truffleframework.com/docs/advanced/configuration>
   // to customize your Truffle configuration!
@@ -96,5 +96,11 @@ module.exports = {
       showTimeSpent: true
     }
   },
-  plugins: ['solidity-coverage']
+  plugins: ['solidity-coverage', 'truffle-plugin-verify'],
+  verify: {
+    preamble: 'Matic network contracts'
+  },
+  api_keys: {
+    etherscan: ETHERSCAN_API_KEY
+  }
 }
