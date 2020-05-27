@@ -18,7 +18,7 @@ contract Registry is Governable {
     address public erc20Predicate;
     address public erc721Predicate;
 
-    mapping(bytes32 => address) internal contractMap;
+    mapping(bytes32 => address) public contractMap;
     mapping(address => address) public rootToChildToken;
     mapping(address => address) public childToRootToken;
     mapping(address => bool) public proofValidatorContracts;
