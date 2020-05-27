@@ -94,7 +94,7 @@ contract('Slashing:validator', async function(accounts) {
       await updateSlashedAmounts([wallets[0], wallets[1]], wallets[1], 1, slashingInfoList, slashingManager)
 
       await checkPoint([validator1Wallet], validator1Wallet, stakeManager)
-      await stakeManager.unJail(2, { from: validator2Wallet.getAddressString() })
+      await stakeManager.unjail(2, { from: validator2Wallet.getAddressString() })
       assert.equal(await stakeManager.isValidator(2), true)
       await checkPoint([validator1Wallet, validator2Wallet], validator1Wallet, stakeManager)
       const validator2 = await stakeManager.validators(2)
