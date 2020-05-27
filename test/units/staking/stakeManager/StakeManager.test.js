@@ -1434,6 +1434,31 @@ contract('StakeManager', async function(accounts) {
         }), 'Cooldown period')
       })
 
+      it('when bid on unstaking validator', async function() {
+        await this.stakeManager.unstake(1, { from: _initialStakers[0].getAddressString() })
+        await expectRevert(this.stakeManager.startAuction(1, this.amount, {
+          from: wallets[3].getAddressString()
+        }), 'Invalid validator for an auction')
+      })
+
+      it('when restake on unstaking validator', async function() {
+        await this.stakeManager.unstake(1, { from: _initialStakers[0].getAddressString() })
+        await expectRevert(this.stakeManager.restake(1, this.amount, false, {
+          from: _initialStakers[0].getAddressString()
+        }), 'No use of restaking')
+      })
+
+      // since all the rewards are given in unstake already
+      it('Must not transfer any rewards after unstaking', async function() {
+        await this.stakeManager.unstake(1, { from: _initialStakers[0].getAddressString() })
+        const receipt = await this.stakeManager.withdrawRewards(1, { from: _initialStakers[0].getAddressString() })
+        await expectEvent.inTransaction(receipt.tx, StakingInfo, 'ClaimRewards', {
+          validatorId: '1',
+          amount: '0',
+          totalAmount: await this.stakeManager.totalRewardsLiquidated()
+        })
+      })
+
       it('when validatorId is invalid', async function() {
         await expectRevert.unspecified(this.stakeManager.startAuction(0, this.amount, {
           from: wallets[3].getAddressString()
@@ -1446,6 +1471,7 @@ contract('StakeManager', async function(accounts) {
         }), 'Must bid higher')
       })
     })
+
   })
 
   describe('confirmAuctionBid', function() {

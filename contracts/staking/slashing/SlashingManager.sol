@@ -5,7 +5,11 @@ import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import {RLPReader} from "solidity-rlp/contracts/RLPReader.sol";
 import {IERC20} from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
+import {BytesLib} from "../../common/lib/BytesLib.sol";
+import {ECVerify} from "../../common/lib/ECVerify.sol";
+
 import {StakeManager} from "../stakeManager/StakeManager.sol";
+import {IValidatorShare} from "../validatorShare/IValidatorShare.sol";
 import {Registry} from "../../common/Registry.sol";
 import {StakingInfo} from "../StakingInfo.sol";
 import "./ISlashingManager.sol";
@@ -13,6 +17,7 @@ import "./ISlashingManager.sol";
 
 contract SlashingManager is ISlashingManager, Ownable {
     using SafeMath for uint256;
+    using ECVerify for bytes32;
     using RLPReader for bytes;
     using RLPReader for RLPReader.RLPItem;
 
@@ -21,7 +26,11 @@ contract SlashingManager is ISlashingManager, Ownable {
         _;
     }
 
-    constructor(address _registry, address _logger, string memory _heimdallId) public {
+    constructor(
+        address _registry,
+        address _logger,
+        string memory _heimdallId
+    ) public {
         registry = Registry(_registry);
         logger = StakingInfo(_logger);
         heimdallId = keccak256(abi.encodePacked(_heimdallId));
@@ -39,11 +48,7 @@ contract SlashingManager is ISlashingManager, Ownable {
 
         uint256 stakePower;
         uint256 activeTwoByThree;
-        (stakePower, activeTwoByThree) = stakeManager.verifyConsensus(
-            keccak256(abi.encodePacked(bytes(hex"01"), data)),
-            sigs
-        );
-        require(stakePower >= activeTwoByThree, "2/3+1 Power required");
+        require(verifyConsensus(keccak256(abi.encodePacked(bytes(hex"01"), data)), sigs), "2/3+1 Power required");
         //slashingInfoList[]=[[valiD,am,isJailed]]
         uint256 slashedAmount = stakeManager.slash(_slashingInfoList);
         logger.logSlashed(_slashingNonce, slashedAmount);
@@ -83,6 +88,35 @@ contract SlashingManager is ISlashingManager, Ownable {
         );
     }
 
+    function verifyConsensus(bytes32 voteHash, bytes memory sigs) public view returns (bool) {
+        StakeManager stakeManager = StakeManager(registry.getStakeManagerAddress());
+        // total voting power
+        uint256 _stakePower;
+        address lastAdd; // cannot have address(0x0) as an owner
+        for (uint64 i = 0; i < sigs.length; i += 65) {
+            bytes memory sigElement = BytesLib.slice(sigs, i, 65);
+            address signer = voteHash.ecrecovery(sigElement);
+
+            uint256 validatorId = stakeManager.signerToValidator(signer);
+            // check if signer is staker and not proposer
+            if (signer == lastAdd) {
+                break;
+            } else if (stakeManager.isValidator(validatorId) && signer > lastAdd) {
+                lastAdd = signer;
+                uint256 amount;
+                address contractAddress;
+                (amount, , , , , , contractAddress, ) = stakeManager.validators(validatorId);
+
+                // add delegation power
+                if (contractAddress != address(0x0)) {
+                    amount = amount.add(IValidatorShare(contractAddress).activeAmount());
+                }
+                _stakePower = _stakePower.add(amount);
+            }
+        }
+        return (_stakePower >= stakeManager.currentValidatorSetTotalStake().mul(2).div(3).add(1));
+    }
+
     function updateReportRate(uint256 newReportRate) public onlyOwner {
         require(newReportRate > 0);
         reportRate = newReportRate;
@@ -99,7 +133,11 @@ contract SlashingManager is ISlashingManager, Ownable {
     }
 
     // Housekeeping function. @todo remove later
-    function drainTokens(uint256 value, address token, address destination) external onlyOwner {
+    function drainTokens(
+        uint256 value,
+        address token,
+        address destination
+    ) external onlyOwner {
         require(IERC20(token).transfer(destination, value), "Transfer failed");
     }
 }

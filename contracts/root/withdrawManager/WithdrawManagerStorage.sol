@@ -58,6 +58,7 @@ contract WithdrawManagerStorage is ProxyStorage, WithdrawManagerHeader {
     Registry internal registry;
     RootChain internal rootChain;
 
+    mapping(uint128 => bool) isKnownExit;
     mapping(uint256 => PlasmaExit) public exits;
     // mapping with token => (owner => exitId) keccak(token+owner) keccak(token+owner+tokenId)
     mapping(bytes32 => uint256) public ownerExits;
