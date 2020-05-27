@@ -44,7 +44,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
 
     // TopUp heimdall fee
     function topUpForFee(address user, uint256 heimdallFee) public onlyWhenUnlocked {
-        _topUpForFee(user, heimdallFee);
+        _transferAndTopUp(user, heimdallFee, 0);
     }
 
     function ownerOf(uint256 tokenId) public view returns (address) {
@@ -63,11 +63,11 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         return validators[validatorId].amount;
     }
 
-    function _topUpForFee(address user, uint256 amount) private {
-        require(amount >= minHeimdallFee, "Minimum amount is 1 Matic");
-        require(token.transferFrom(msg.sender, address(this), amount), "Fee transfer failed");
-        totalHeimdallFee = totalHeimdallFee.add(amount);
-        logger.logTopUpFee(user, amount);
+    function _transferAndTopUp(address user, uint256 fee, uint256 additionalAmount) private {
+        require(fee >= minHeimdallFee, "Minimum amount is 1 Matic");
+        require(token.transferFrom(msg.sender, address(this), fee.add(additionalAmount)), "Fee transfer failed");
+        totalHeimdallFee = totalHeimdallFee.add(fee);
+        logger.logTopUpFee(user, fee);
     }
 
     function _claimFee(address user, uint256 amount) private {
@@ -207,7 +207,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             logger.logConfirmAuction(validatorId, validatorId, validatorAmount);
         } else {
             // dethrone
-            _topUpForFee(auctionUser, heimdallFee);
+            _transferAndTopUp(auctionUser, heimdallFee, 0);
             _unstake(validatorId, _currentEpoch);
 
             uint256 newValidatorId = _stakeFor(auctionUser, auctionAmount, acceptDelegation, signerPubkey);
@@ -267,8 +267,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     ) public onlyWhenUnlocked {
         require(currentValidatorSetSize() < validatorThreshold, "Validator set Threshold exceeded!");
         require(amount > minDeposit, "min deposit limit failed!");
-        _topUpForFee(user, heimdallFee);
-        require(token.transferFrom(msg.sender, address(this), amount), "Transfer stake failed");
+        _transferAndTopUp(user, heimdallFee, amount);
         _stakeFor(user, amount, acceptDelegation, signerPubkey);
     }
 
