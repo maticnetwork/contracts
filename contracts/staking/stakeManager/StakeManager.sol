@@ -592,7 +592,6 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         }
 
         uint256 _currentEpoch = currentEpoch;
-        validators[validatorId].deactivationEpoch = _currentEpoch;
         validators[validatorId].jailTime = _currentEpoch.add(jailCheckpoints);
         validators[validatorId].status = Status.Locked;
         logger.logJailed(validatorId, _currentEpoch, validators[validatorId].signer);
