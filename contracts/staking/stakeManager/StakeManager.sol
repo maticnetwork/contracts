@@ -564,7 +564,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         return totalAmount;
     }
 
-    function release(uint256 validatorId) public onlyStaker(validatorId) {
+    function unjail(uint256 validatorId) public onlyStaker(validatorId) {
         uint256 _currentEpoch = currentEpoch;
         require(validators[validatorId].status == Status.Locked, "Validator is not jailed");
         require(validators[validatorId].deactivationEpoch == 0, "Validator already unstaking");
@@ -582,7 +582,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         updateTimeLine(_currentEpoch, int256(amount.add(delegationAmount)), 1);
 
         validators[validatorId].status = Status.Active;
-        logger.logReleased(validatorId, validators[validatorId].signer);
+        logger.logUnjailed(validatorId, validators[validatorId].signer);
     }
 
     function _jail(uint256 validatorId, uint256 jailCheckpoints) internal returns (uint256) {
@@ -645,11 +645,13 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         // unbond all delegators in future
         int256 delegationAmount = 0;
         uint256 rewards = validators[validatorId].reward;
-        if (validators[validatorId].contractAddress != address(0x0)) {
-            IValidatorShare validatorShare = IValidatorShare(validators[validatorId].contractAddress);
+        address contractAddr = validators[validatorId].contractAddress;
+        if (contractAddr != address(0x0)) {
+            IValidatorShare validatorShare = IValidatorShare(contractAddr);
             rewards = rewards.add(validatorShare.withdrawRewardsValidator());
             delegationAmount = int256(validatorShare.lockContract());
         }
+
         validators[validatorId].reward = 0;
         require(token.transfer(validator, rewards), "Rewards transfer failed");
         //  update future
