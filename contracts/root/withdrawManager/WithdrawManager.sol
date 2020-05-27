@@ -68,7 +68,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     }
 
     /**
-     During coverage tests verifyInclusion fails co compile with "stack too deep" error. 
+     During coverage tests verifyInclusion fails co compile with "stack too deep" error.
      */
     struct VerifyInclusionVars {
         uint256 headerNumber;
@@ -279,7 +279,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
             address exitor = currentExit.owner;
 
             // limit the gas amount that predicate.onFinalizeExit() can use, to be able to make gas estimations for bulk process exits
-            
+
             // If finalizing a particular exit is reverting, it will block any following exits from being processed.
             // Hence, call predicate.onFinalizeExit in a revertless manner.
             // (bool success, bytes memory result) =
@@ -406,7 +406,11 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
             _exitObject.receiptAmountOrNFTId
         );
 
-        if (!isRegularExit) {
+
+        if (isRegularExit) {
+            require(!isKnownExit[uint128(exitId)], "KNOWN_EXIT");
+            isKnownExit[uint128(exitId)] = true;
+        } else {
             // a user cannot start 2 MoreVP exits for the same erc20 token or nft
             require(ownerExits[key] == 0, "EXIT_ALREADY_IN_PROGRESS");
             ownerExits[key] = exitId;

@@ -2,6 +2,7 @@ pragma solidity ^0.5.2;
 
 import {WETH} from "./WETH.sol";
 
+
 contract MaticWETH is WETH {
     string public name = "Wrapped Ether";
     string public symbol = "WETH";
@@ -21,8 +22,8 @@ contract MaticWETH is WETH {
 
     function withdraw(uint256 wad, address user) public {
         require(balanceOf(msg.sender) >= wad);
-        address(uint160(user)).transfer(wad);
         _burn(msg.sender, wad);
+        address(uint160(user)).transfer(wad);
         emit Withdrawal(user, wad);
     }
 }

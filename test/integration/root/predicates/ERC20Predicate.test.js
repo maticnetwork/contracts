@@ -49,7 +49,6 @@ contract('ERC20Predicate @skip-on-coverage', async function(accounts) {
         { headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 }
       )
       const logs = logDecoder.decodeLogs(startExitTx.receipt.rawLogs)
-      // console.log(startExitTx, logs)
       let log = logs[utils.filterEvent(logs, 'ExitStarted')]
       expect(log.args).to.include({
         exitor: user,
@@ -57,6 +56,21 @@ contract('ERC20Predicate @skip-on-coverage', async function(accounts) {
         isRegularExit: true
       })
       utils.assertBigNumberEquality(log.args.amount, amount)
+
+      const processExits = await predicateTestUtils.processExits(contracts.withdrawManager, childContracts.rootERC20.address)
+      processExits.logs.forEach(log => {
+        log.event.should.equal('Withdraw')
+        expect(log.args).to.include({ token: rootERC20.address })
+      })
+      try {
+        await utils.startExitWithBurntTokens(
+          contracts.ERC20Predicate,
+          { headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 }
+        )
+        assert.fail('was able to start an exit again with the same tx')
+      } catch(e) {
+        assert(e.message.search('KNOWN_EXIT') >= 0)
+      }
     })
 
     it('Exit with burnt Matic tokens', async function() {
