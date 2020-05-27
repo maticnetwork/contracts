@@ -114,8 +114,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     }
 
     function startAuction(uint256 validatorId, uint256 amount) external onlyWhenUnlocked {
+        uint256 currentValidatorAmount = validators[validatorId].amount;
+
         require(
-            validators[validatorId].deactivationEpoch == 0 && validators[validatorId].amount != 0,
+            validators[validatorId].deactivationEpoch == 0 && currentValidatorAmount != 0,
             "Invalid validator for an auction"
         );
         uint256 senderValidatorId = signerToValidator[msg.sender];
@@ -141,8 +143,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             (_currentEpoch.sub(validators[validatorId].activationEpoch) % dynasty.add(auctionPeriod)) <= auctionPeriod,
             "Invalid auction period"
         );
-
-        uint256 currentValidatorAmount = validators[validatorId].amount;
+        
         uint256 perceivedStake = currentValidatorAmount;
         address _contract = validators[validatorId].contractAddress;
 
