@@ -17,11 +17,6 @@ contract IValidatorShare {
     function owner() public view returns (address);
 
     function restake() public;
-    function updateRewards(
-        uint256 _reward,
-        uint256 _totalStake,
-        uint256 validatorStake
-    ) external returns (uint256);
 
     function unlockContract() external returns (uint256);
 
