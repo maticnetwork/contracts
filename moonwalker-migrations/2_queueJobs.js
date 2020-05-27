@@ -5,7 +5,7 @@ const Registry = artifacts.require('Registry')
 const ethUtils = require('ethereumjs-util')
 const EthDeployer = require('moonwalker').default
 
-let id = 28 // THIS SHOULD BE NUMBER OF JOBS PROCESSED IN THE PREVIOUS SCRIPT
+let id = 33 // THIS SHOULD BE NUMBER OF JOBS PROCESSED IN THE PREVIOUS SCRIPT
 
 async function deploy() {
   const qClient = await EthDeployer.getQueue()
@@ -119,6 +119,36 @@ async function deploy() {
             registry.contract.methods.updateContractMap(
               ethUtils.bufferToHex(ethUtils.keccak256('wethToken')),
               getAddressForContract('MaticWETH')
+            ).encodeABI()
+        },
+      ],
+      'GovernanceProxy'
+    )
+  )
+
+  await deployer.deploy(
+    tx('Governance', 'update',
+      [
+        'Registry',
+        {
+          value:
+            registry.contract.methods.addErc20Predicate(
+              getAddressForContract('ERC20Predicate')
+            ).encodeABI()
+        },
+      ],
+      'GovernanceProxy'
+    )
+  )
+
+  await deployer.deploy(
+    tx('Governance', 'update',
+      [
+        'Registry',
+        {
+          value:
+            registry.contract.methods.addErc721Predicate(
+              getAddressForContract('ERC721Predicate')
             ).encodeABI()
         },
       ],

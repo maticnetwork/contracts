@@ -1,10 +1,15 @@
 const contracts = require('../contractAddresses.json')
 
 const RootToken = artifacts.require('TestToken')
+const Registry = artifacts.require('Registry')
 const StakeManager = artifacts.require('StakeManager')
-const ChildERC20 = artifacts.require('ChildERC20')
 const TestToken = artifacts.require('TestToken')
 const DepositManager = artifacts.require('DepositManager')
+const Governance = artifacts.require('Governance')
+const WithdrawManager = artifacts.require('WithdrawManager')
+const MRC20 = artifacts.require('MRC20')
+
+const toBN = web3.utils.toBN
 
 async function getStakeManager() {
   return StakeManager.at(contracts.root.StakeManagerProxy)
@@ -15,20 +20,21 @@ async function stake() {
   const validatorAccount = process.argv[6]
   // pubkey should not have the leading 04 prefix
   const pubkey = process.argv[7]
-  const stakeAmount = web3.utils.toBN(process.argv[8])
-  const heimdallFee = web3.utils.toBN(process.argv[9] || '1')
-  console.log(`Staking ${amount} for ${validatorAccount}...`)
+  const stakeAmount = web3.utils.toWei(process.argv[8] || '10000')
+  const heimdallFee = web3.utils.toWei(process.argv[9] || '1')
+  console.log(`Staking ${stakeAmount} for ${validatorAccount}...`)
 
   const accounts = await web3.eth.getAccounts()
   const stakeManager = await getStakeManager()
-  const rootToken = await RootToken.at(contracts.root.tokens.TestToken)
-  console.log({ stakeManager: stakeManager.address, rootToken: rootToken.address })
-  console.log('Sender accounts has a balanceOf', (await rootToken.balanceOf(accounts[0])).toString())
-  await rootToken.approve(stakeManager.address, amount)
-  console.log('approved, staking now...')
+  const maticToken = await RootToken.at(contracts.root.tokens.MaticToken)
+  console.log({ stakeManager: stakeManager.address, maticToken: maticToken.address, stakeToken: await stakeManager.token() })
+  console.log('Sender accounts has a balanceOf', (await maticToken.balanceOf(accounts[0])).toString())
+  maticToken.approve(stakeManager.address, web3.utils.toWei('1000000'))
+  await delay(5)
+  console.log('sent approve tx, staking now...')
   // Remember to change the 4th parameter to false if delegation is not required
-  const stake = await stakeManager.stakeFor(validatorAccount, stakeAmount, heimdallFee, true, pubkey)
-  console.log('staked; txHash is', stake.tx)
+  stakeManager.stakeFor(validatorAccount, stakeAmount, heimdallFee, true, pubkey)
+  return delay(5)
 }
 
 async function topUpForFee() {
@@ -44,6 +50,17 @@ async function topUpForFee() {
   console.log(validatorId.toString())
   let r = await stakeManager.topUpForFee(validatorId.toString(), amount)
   console.log(r.tx)
+}
+
+async function mapToken(root, child, isErc721) {
+  const registry = await Registry.at(contracts.root.Registry)
+  console.log(await registry.rootToChildToken(root))
+  const governance = await Governance.at(contracts.root.GovernanceProxy)
+  await governance.update(
+    contracts.root.Registry,
+    registry.contract.methods.mapToken(root, child, isErc721).encodeABI()
+  )
+  console.log(await registry.rootToChildToken(root))
 }
 
 async function updateValidatorThreshold(number) {
@@ -73,15 +90,53 @@ async function deposit() {
   console.log('deposited', r.tx)
 }
 
+async function updateDynasty() {
+  const stakeManager = await getStakeManager()
+  let auctionPeriod = await stakeManager.auctionPeriod()
+  let dynasty = await stakeManager.dynasty()
+  console.log({ dynasty: dynasty.toString(), auctionPeriod: auctionPeriod.toString(), signerUpdateLimit: await stakeManager.signerUpdateLimit() })
+
+  stakeManager.updateSignerUpdateLimit(10)
+  await delay(5)
+  await stakeManager.updateDynastyValue(8)
+  dynasty = await stakeManager.dynasty()
+  auctionPeriod = await stakeManager.auctionPeriod()
+  console.log({ dynasty: dynasty.toString(), auctionPeriod: auctionPeriod.toString() })
+}
+
+async function updateExitPeriod() {
+  const wm = await WithdrawManager.at(contracts.root.WithdrawManagerProxy)
+  let period = await wm.HALF_EXIT_PERIOD()
+  console.log({ period: period.toString()})
+
+  await wm.updateExitPeriod('5')
+
+  period = await wm.HALF_EXIT_PERIOD()
+  console.log({ period: period.toString()})
+}
+
+async function child() {
+  const mrc20 = await MRC20.at('0x0000000000000000000000000000000000001010')
+  console.log(await mrc20.owner())
+}
+
 module.exports = async function (callback) {
   try {
     await stake()
+    // await child()
+    // await mapToken()
     // await topUpForFee()
-    // await updateValidatorThreshold(20)
+    // await updateDynasty()
+    // await updateExitPeriod()
+    // await updateValidatorThreshold(12)
     // await deposit()
   } catch (e) {
     // truffle exec <script> doesn't throw errors, so handling it in a verbose manner here
     console.log(e)
   }
   callback()
+}
+
+function delay(s) {
+  return new Promise(resolve => setTimeout(resolve, s * 1000));
 }
