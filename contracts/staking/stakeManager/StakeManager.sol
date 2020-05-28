@@ -698,14 +698,14 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
 
     function drainValidatorShares(
         uint256 validatorId,
-        address token,
+        address _token,
         address payable destination,
         uint256 amount
     ) external onlyGovernance {
         address contractAddr = validators[validatorId].contractAddress;
         require(contractAddr != address(0x0), "unknown validator or no delegation enabled");
         IValidatorShare validatorShare = IValidatorShare(contractAddr);
-        validatorShare.drain(token, destination, amount);
+        validatorShare.drain(_token, destination, amount);
     }
 
     function drain(address destination, uint256 amount) external onlyGovernance {

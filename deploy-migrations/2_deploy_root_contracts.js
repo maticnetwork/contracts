@@ -43,6 +43,7 @@ const ExitNFT = artifacts.require('ExitNFT')
 // tokens
 const MaticWeth = artifacts.require('MaticWETH')
 const TestToken = artifacts.require('TestToken')
+const RootERC721 = artifacts.require('RootERC721')
 
 const libDeps = [
   {
@@ -150,7 +151,9 @@ module.exports = async function(deployer) {
 
     console.log('deploying tokens...')
     await deployer.deploy(MaticWeth)
-    await deployer.deploy(TestToken, 'Test Token', 'TST')
+    await deployer.deploy(TestToken, 'MATIC', 'MATIC')
+    const testToken = await TestToken.new('Test ERC20', 'TST20')
+    await deployer.deploy(RootERC721, 'Test ERC721', 'TST721')
 
     await deployer.deploy(StakeManager)
     await deployer.deploy(StakeManagerProxy, StakeManager.address, Registry.address, RootChainProxy.address, TestToken.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address, GovernanceProxy.address)
@@ -229,7 +232,9 @@ module.exports = async function(deployer) {
         },
         tokens: {
           MaticWeth: MaticWeth.address,
-          TestToken: TestToken.address
+          MaticToken: TestToken.address,
+          TestToken: testToken.address,
+          RootERC721: RootERC721.address
         }
       }
     }

@@ -11,7 +11,7 @@ const MNEMONIC =
   process.env.MNEMONIC ||
   'clock radar mass judge dismiss just intact mind resemble fringe diary casino'
 const API_KEY = process.env.API_KEY
-
+const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY
 module.exports = {
   // See <http://truffleframework.com/docs/advanced/configuration>
   // to customize your Truffle configuration!
@@ -24,9 +24,13 @@ module.exports = {
       gas: 7000000
     },
     bor: {
-      host: 'localhost',
-      port: 8545,
-      network_id: '*' // match any network
+      provider: () =>
+        new HDWalletProvider(
+          MNEMONIC,
+          `http://localhost:8545`
+        ),
+      network_id: '*', // match any network
+      gasPrice: '0'
     },
     ropsten: {
       provider: () =>
@@ -92,5 +96,11 @@ module.exports = {
       showTimeSpent: true
     }
   },
-  plugins: ['solidity-coverage']
+  plugins: ['solidity-coverage', 'truffle-plugin-verify'],
+  verify: {
+    preamble: 'Matic network contracts'
+  },
+  api_keys: {
+    etherscan: ETHERSCAN_API_KEY
+  }
 }
