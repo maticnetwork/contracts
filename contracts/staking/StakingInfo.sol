@@ -106,7 +106,7 @@ contract StakingInfo {
         uint256 indexed exitEpoch,
         address indexed signer
     );
-    event Unjailed(uint256 indexed validatorId, address indexed signer);
+    event UnJailed(uint256 indexed validatorId, address indexed signer);
     event Slashed(uint256 indexed nonce, uint256 indexed amount);
     event ThresholdChange(uint256 newThreshold, uint256 oldThreshold);
     event DynastyValueChange(uint256 newDynasty, uint256 oldDynasty);
@@ -296,7 +296,7 @@ contract StakingInfo {
         public
         onlyStakeManager
     {
-        emit Unjailed(validatorId, signer);
+        emit UnJailed(validatorId, signer);
     }
 
     function logSlashed(uint256 nonce, uint256 amount)
