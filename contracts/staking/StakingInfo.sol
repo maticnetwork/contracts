@@ -100,7 +100,7 @@ contract StakingInfo {
         address indexed newSigner,
         bytes signerPubkey
     );
-    event ReStaked(uint256 indexed validatorId, uint256 amount, uint256 total);
+    event Restaked(uint256 indexed validatorId, uint256 amount, uint256 total);
     event Jailed(
         uint256 indexed validatorId,
         uint256 indexed exitEpoch,
@@ -156,18 +156,18 @@ contract StakingInfo {
         uint256 indexed amount,
         uint256 tokens
     );
-    event DelClaimRewards(
+    event DelegatorClaimedRewards(
         uint256 indexed validatorId,
         address indexed user,
         uint256 indexed rewards,
         uint256 tokens
     );
-    event DelReStaked(
+    event DelegatorRestaked(
         uint256 indexed validatorId,
         address indexed user,
         uint256 indexed totalStaked
     );
-    event DelUnstaked(
+    event DelegatorUnstaked(
         uint256 indexed validatorId,
         address indexed user,
         uint256 amount
@@ -278,11 +278,11 @@ contract StakingInfo {
         );
     }
 
-    function logReStaked(uint256 validatorId, uint256 amount, uint256 total)
+    function logRestaked(uint256 validatorId, uint256 amount, uint256 total)
         public
         onlyStakeManager
     {
-        emit ReStaked(validatorId, amount, total);
+        emit Restaked(validatorId, amount, total);
     }
 
     function logJailed(uint256 validatorId, uint256 exitEpoch, address signer)
@@ -292,7 +292,7 @@ contract StakingInfo {
         emit Jailed(validatorId, exitEpoch, signer);
     }
 
-    function logUnJailed(uint256 validatorId, address signer)
+    function logUnjailed(uint256 validatorId, address signer)
         public
         onlyStakeManager
     {
@@ -463,28 +463,28 @@ contract StakingInfo {
         emit ShareBurned(validatorId, user, amount, tokens);
     }
 
-    function logDelClaimRewards(
+    function logDelegatorClaimRewards(
         uint256 validatorId,
         address user,
         uint256 rewards,
         uint256 tokens
     ) public onlyValidatorContract(validatorId) {
-        emit DelClaimRewards(validatorId, user, rewards, tokens);
+        emit DelegatorClaimedRewards(validatorId, user, rewards, tokens);
     }
 
-    function logDelReStaked(
+    function logDelegatorRestaked(
         uint256 validatorId,
         address user,
         uint256 totalStaked
     ) public onlyValidatorContract(validatorId) {
-        emit DelReStaked(validatorId, user, totalStaked);
+        emit DelegatorRestaked(validatorId, user, totalStaked);
     }
 
-    function logDelUnstaked(uint256 validatorId, address user, uint256 amount)
+    function logDelegatorUnstaked(uint256 validatorId, address user, uint256 amount)
         public
         onlyValidatorContract(validatorId)
     {
-        emit DelUnstaked(validatorId, user, amount);
+        emit DelegatorUnstaked(validatorId, user, amount);
     }
 
     function logUpdateCommissionRate(

@@ -2,7 +2,7 @@ import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import deployer from '../../helpers/deployer.js'
 import logDecoder from '../../helpers/log-decoder.js'
-import { IValidatorShare } from '../../helpers/artifacts'
+import { ValidatorShareTest } from '../../helpers/artifacts'
 
 import {
   checkPoint,
@@ -94,7 +94,7 @@ contract('Slashing:validator', async function(accounts) {
       await updateSlashedAmounts([wallets[0], wallets[1]], wallets[1], 1, slashingInfoList, slashingManager)
 
       await checkPoint([validator1Wallet], validator1Wallet, stakeManager)
-      await stakeManager.unJail(2, { from: validator2Wallet.getAddressString() })
+      await stakeManager.unjail(2, { from: validator2Wallet.getAddressString() })
       assert.equal(await stakeManager.isValidator(2), true)
       await checkPoint([validator1Wallet, validator2Wallet], validator1Wallet, stakeManager)
       const validator2 = await stakeManager.validators(2)
@@ -152,7 +152,7 @@ contract('Slashing:delegation', async function(accounts) {
 
     it('should slash validators and delegators', async function() {
       let validator = await stakeManager.validators(2)
-      const validatorContract = await IValidatorShare.at(validator.contractAddress)
+      const validatorContract = await ValidatorShareTest.at(validator.contractAddress)
       const delegator = wallets[3].getAddressString()
       await stakeToken.mint(
         delegator,

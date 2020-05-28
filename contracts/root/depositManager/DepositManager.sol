@@ -88,10 +88,11 @@ contract DepositManager is
     {
         require(_tokens.length == _amountOrTokens.length, "Invalid Input");
         uint256 depositId = rootChain.updateDepositId(_tokens.length);
-
+        Registry _registry = registry;
+        
         for (uint256 i = 0; i < _tokens.length; i++) {
             // will revert if token is not mapped
-            if (registry.isTokenMappedAndIsErc721(_tokens[i])) {
+            if (_registry.isTokenMappedAndIsErc721(_tokens[i])) {
                 IERC721(_tokens[i]).transferFrom(
                     msg.sender,
                     address(this),

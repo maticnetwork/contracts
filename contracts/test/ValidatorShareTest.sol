@@ -18,7 +18,7 @@ contract ValidatorShareTest is ValidatorShareStorage {
 
     function withdrawRewards() public;
 
-    function unStakeClaimTokens() public;
+    function unstakeClaimTokens() public;
 
     function getLiquidRewards(address user) public view returns (uint256);
 
@@ -28,7 +28,7 @@ contract ValidatorShareTest is ValidatorShareStorage {
         uint256 validatorStake
     ) external returns (uint256);
 
-    function reStake() public;
+    function restake() public;
 
     function unlockContract() external returns (uint256);
 

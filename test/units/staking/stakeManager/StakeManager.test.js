@@ -1,7 +1,7 @@
 import utils from 'ethereumjs-util'
 
 import {
-  IValidatorShare,
+  ValidatorShareTest,
   StakingInfo
 } from '../../../helpers/artifacts'
 
@@ -619,7 +619,7 @@ contract('StakeManager', async function(accounts) {
       it('reverts', async function() {
         await expectRevert(this.stakeManager.updateSigner(this.validatorId, userOriginalPubKey, {
           from: user
-        }), 'Invalid Signer!')
+        }), 'Invalid signer')
       })
     })
 
@@ -1012,7 +1012,7 @@ contract('StakeManager', async function(accounts) {
         const minHeimdallFee = await this.stakeManager.minHeimdallFee()
         await expectRevert(this.stakeManager.topUpForFee(validatorUser, minHeimdallFee.sub(new BN(1)), {
           from: validatorUser
-        }), 'Minimum amount is 1 Matic')
+        }), 'Not enough heimdall fee')
       })
 
       it('when fee overflows', async function() {
@@ -1468,7 +1468,7 @@ contract('StakeManager', async function(accounts) {
       it('when bid is too low', async function() {
         await expectRevert(this.stakeManager.startAuction(1, web3.utils.toWei('100'), {
           from: wallets[3].getAddressString()
-        }), 'Must bid higher amount')
+        }), 'Must bid higher')
       })
     })
 
@@ -1601,7 +1601,7 @@ contract('StakeManager', async function(accounts) {
             {
               from: this.bidder
             }
-          ), 'Confirmation is not allowed before auctionPeriod')
+          ), 'Not allowed before auctionPeriod')
         })
       })
 
@@ -1620,7 +1620,7 @@ contract('StakeManager', async function(accounts) {
             {
               from: this.bidder
             }
-          ), 'Confirmation is not allowed before auctionPeriod')
+          ), 'Not allowed before auctionPeriod')
         })
       })
     })
@@ -1680,7 +1680,7 @@ contract('StakeManager', async function(accounts) {
 
       let validator = await this.stakeManager.validators(delegatedValidatorId)
 
-      this.validatorContract = await IValidatorShare.at(validator.contractAddress)
+      this.validatorContract = await ValidatorShareTest.at(validator.contractAddress)
 
       await this.stakeToken.mint(delegator, stakeAmount)
       await this.stakeToken.approve(this.stakeManager.address, stakeAmount, {

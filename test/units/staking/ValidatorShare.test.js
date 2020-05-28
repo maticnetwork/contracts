@@ -1,5 +1,5 @@
 import { BN, expectEvent, expectRevert } from '@openzeppelin/test-helpers'
-import { TestToken, IValidatorShare, StakingInfo } from '../../helpers/artifacts'
+import { TestToken, ValidatorShareTest, StakingInfo } from '../../helpers/artifacts'
 import { checkPoint, assertBigNumberEquality } from '../../helpers/utils.js'
 import { wallets, freshDeploy, approveAndStake } from './deployment'
 
@@ -23,7 +23,7 @@ contract('ValidatorShare', async function() {
     await approveAndStake.call(this, { wallet: this.validatorUser, stakeAmount: this.stakeAmount, acceptDelegation: true })
 
     let validator = await this.stakeManager.validators(this.validatorId)
-    this.validatorContract = await IValidatorShare.at(validator.contractAddress)
+    this.validatorContract = await ValidatorShareTest.at(validator.contractAddress)
   }
 
   describe('drain', function() {
@@ -107,7 +107,7 @@ contract('ValidatorShare', async function() {
       })
 
       it('ValidatorShare must mint correct amount of shares', async function() {
-        await expectEvent.inTransaction(this.receipt.tx, IValidatorShare, 'Transfer', {
+        await expectEvent.inTransaction(this.receipt.tx, ValidatorShareTest, 'Transfer', {
           from: ZeroAddr,
           to: this.user,
           value: shares
@@ -505,13 +505,13 @@ contract('ValidatorShare', async function() {
       })
     })
 
-    it('must emit DelClaimRewards', async function() {
+    it('must emit DelegatorClaimedRewards', async function() {
       const proposerBonus = await this.stakeManager.proposerBonus()
       // 1st staker had stakeAmount and voucher also has stakeAmount - 50%/50% split of reward
       let expectedReward = (await this.stakeManager.CHECKPOINT_REWARD()).div(new BN(2))
       expectedReward = expectedReward.mul(new BN('100').sub(proposerBonus)).div(new BN('100'))
 
-      await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'DelClaimRewards', {
+      await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'DelegatorClaimedRewards', {
         validatorId: this.validatorId,
         user: this.user,
         rewards: expectedReward,
@@ -520,7 +520,7 @@ contract('ValidatorShare', async function() {
     })
   })
 
-  describe('reStake', function() {
+  describe('restake', function() {
     describe('when Alice restakes', function() {
       before(doDeploy)
       before(async function() {
@@ -550,13 +550,13 @@ contract('ValidatorShare', async function() {
       })
 
       it('must restake', async function() {
-        this.receipt = await this.validatorContract.reStake({
+        this.receipt = await this.validatorContract.restake({
           from: this.user
         })
       })
 
-      it('must emit DelReStaked', async function() {
-        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'DelReStaked', {
+      it('must emit DelegatorRestaked', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'DelegatorRestaked', {
           validatorId: this.validatorId,
           totalStaked: this.totalStaked
         })
@@ -582,12 +582,12 @@ contract('ValidatorShare', async function() {
       })
 
       it('reverts', async function() {
-        await expectRevert(this.validatorContract.reStake({ from: this.user }), 'Too small rewards to restake')
+        await expectRevert(this.validatorContract.restake({ from: this.user }), 'Too small rewards to restake')
       })
     })
   })
 
-  describe('unStakeClaimTokens', function() {
+  describe('unstakeClaimTokens', function() {
     describe('when Alice unstakes right after voucher sell', function() {
       before(doDeploy)
       before(async function() {
@@ -620,13 +620,13 @@ contract('ValidatorShare', async function() {
       })
 
       it('must unstake', async function() {
-        this.receipt = await this.validatorContract.unStakeClaimTokens({
+        this.receipt = await this.validatorContract.unstakeClaimTokens({
           from: this.user
         })
       })
 
-      it('must emit DelUnstaked', async function() {
-        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'DelUnstaked', {
+      it('must emit DelegatorUnstaked', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'DelegatorUnstaked', {
           validatorId: this.validatorId,
           user: this.user,
           amount: this.stakeAmount
