@@ -63,7 +63,11 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         return validators[validatorId].amount;
     }
 
-    function _transferAndTopUp(address user, uint256 fee, uint256 additionalAmount) private {
+    function _transferAndTopUp(
+        address user,
+        uint256 fee,
+        uint256 additionalAmount
+    ) private {
         require(fee >= minHeimdallFee, "Not enough heimdall fee");
         require(token.transferFrom(msg.sender, address(this), fee.add(additionalAmount)), "Fee transfer failed");
         totalHeimdallFee = totalHeimdallFee.add(fee);
@@ -143,7 +147,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             (_currentEpoch.sub(validators[validatorId].activationEpoch) % dynasty.add(auctionPeriod)) <= auctionPeriod,
             "Invalid auction period"
         );
-        
+
         uint256 perceivedStake = currentValidatorAmount;
         address _contract = validators[validatorId].contractAddress;
 
@@ -158,7 +162,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
 
         require(perceivedStake < amount, "Must bid higher");
         require(token.transferFrom(msg.sender, address(this), amount), "Transfer amount failed");
-        
+
         //replace prev auction
         if (currentAuctionAmount != 0) {
             require(token.transfer(auction.user, currentAuctionAmount), "Bid return failed");
@@ -195,7 +199,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 perceivedStake = validatorAmount;
         uint256 auctionAmount = auction.amount;
         address contractAddr = validators[validatorId].contractAddress;
-        
+
         if (contractAddr != address(0x0)) {
             perceivedStake = perceivedStake.add(IValidatorShare(contractAddr).activeAmount());
         }
@@ -276,8 +280,9 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 deactivationEpoch = validators[validatorId].deactivationEpoch;
         // can only claim stake back after WITHDRAWAL_DELAY
         require(
-            deactivationEpoch > 0 && deactivationEpoch.add(WITHDRAWAL_DELAY) <= currentEpoch &&
-            validators[validatorId].status != Status.Unstaked
+            deactivationEpoch > 0 &&
+                deactivationEpoch.add(WITHDRAWAL_DELAY) <= currentEpoch &&
+                validators[validatorId].status != Status.Unstaked
         );
 
         uint256 amount = validators[validatorId].amount;
@@ -312,7 +317,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             }
             validators[validatorId].reward = 0;
         }
-        
+
         uint256 newTotalStaked = totalStaked.add(amount);
         totalStaked = newTotalStaked;
         validators[validatorId].amount = validators[validatorId].amount.add(amount);
@@ -369,10 +374,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     // Change delegation contract for a validator
     // @note: Users must exit before this update or all funds may get lost
     function updateContractAddress(uint256 validatorId, address newContractAddress) public onlyOwner {
-        require(
-            IValidatorShare(newContractAddress).owner() == address(this),
-            "Owner of contract must be stakeManager"
-        );
+        require(IValidatorShare(newContractAddress).owner() == address(this), "Owner of contract must be stakeManager");
         validators[validatorId].contractAddress = newContractAddress;
     }
 
@@ -422,7 +424,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         require(signer != address(0x0) && signerToValidator[signer] == 0, "Invalid signer");
 
         uint256 _currentEpoch = currentEpoch;
-        require(_currentEpoch >= latestSignerUpdateEpoch[validatorId].add(signerUpdateLimit), "Invalid checkpoint number!");
+        require(
+            _currentEpoch >= latestSignerUpdateEpoch[validatorId].add(signerUpdateLimit),
+            "Invalid checkpoint number!"
+        );
 
         address currentSigner = validators[validatorId].signer;
         // update signer event
@@ -490,10 +495,12 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         return checkSignature(stakePower, reward, voteHash, sigs);
     }
 
-    function checkSignature(uint256 checkpointStakePower, uint256 reward, bytes32 voteHash, bytes memory sigs)
-        internal
-        returns (uint256)
-    {
+    function checkSignature(
+        uint256 checkpointStakePower,
+        uint256 reward,
+        bytes32 voteHash,
+        bytes memory sigs
+    ) internal returns (uint256) {
         // total voting power
         uint256 totalStakePower;
         address lastAdd; // cannot have address(0x0) as an owner
@@ -604,7 +611,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 amount,
         bool acceptDelegation,
         bytes memory signerPubkey
-    ) internal returns(uint256) {
+    ) internal returns (uint256) {
         address signer = pubToAddress(signerPubkey);
         require(signer != address(0x0) && signerToValidator[signer] == 0, "Invalid signer");
 
@@ -675,7 +682,11 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         currentEpoch = nextEpoch;
     }
 
-    function updateTimeLine(uint256 targetEpoch, int256 amount, int256 stakerCount) private {
+    function updateTimeLine(
+        uint256 targetEpoch,
+        int256 amount,
+        int256 stakerCount
+    ) private {
         validatorState[targetEpoch].amount += amount;
         validatorState[targetEpoch].stakerCount += stakerCount;
     }
