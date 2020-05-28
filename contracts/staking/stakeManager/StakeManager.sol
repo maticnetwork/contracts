@@ -64,7 +64,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     }
 
     function _transferAndTopUp(address user, uint256 fee, uint256 additionalAmount) private {
-        require(fee >= minHeimdallFee, "Minimum amount is 1 Matic");
+        require(fee >= minHeimdallFee, "Not enough heimdall fee");
         require(token.transferFrom(msg.sender, address(this), fee.add(additionalAmount)), "Fee transfer failed");
         totalHeimdallFee = totalHeimdallFee.add(fee);
         logger.logTopUpFee(user, fee);
