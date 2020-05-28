@@ -1012,7 +1012,7 @@ contract('StakeManager', async function(accounts) {
         const minHeimdallFee = await this.stakeManager.minHeimdallFee()
         await expectRevert(this.stakeManager.topUpForFee(validatorUser, minHeimdallFee.sub(new BN(1)), {
           from: validatorUser
-        }), 'Minimum amount is 1 Matic')
+        }), 'Not enough heimdall fee')
       })
 
       it('when fee overflows', async function() {
