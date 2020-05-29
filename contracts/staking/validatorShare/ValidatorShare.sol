@@ -8,7 +8,7 @@ import {Lockable} from "../../common/mixin/Lockable.sol";
 
 
 contract ValidatorShare is ValidatorShareStorage {
-    uint256 constant EXCHANGE_RATE_PRECISION = 10000;
+    uint256 constant EXCHANGE_RATE_PRECISION = 100;
 
     modifier onlyValidator() {
         require(stakeManager.ownerOf(validatorId) == msg.sender);
