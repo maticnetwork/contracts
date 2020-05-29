@@ -86,8 +86,8 @@ contract ValidatorShare is ValidatorShareStorage {
         uint256 share = balanceOf(msg.sender);
         require(share > 0, "Zero balance");
         uint256 rate = exchangeRate();
-        uint256 _amount = rate.mul(share).div(EXCHANGE_RATE_PRECISION);
         require(rate >= expectedExchangeRate, "More slippage then expectedExchangeRate");
+        uint256 _amount = rate.mul(share).div(EXCHANGE_RATE_PRECISION);
         _burn(msg.sender, share);
         stakeManager.updateValidatorState(validatorId, -int256(_amount));
 
