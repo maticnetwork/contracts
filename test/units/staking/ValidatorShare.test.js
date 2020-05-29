@@ -773,4 +773,36 @@ contract('ValidatorShare', async function() {
       })
     })
   })
+  describe('Buy/sell with slippage', function() {
+    describe('buy/sell', function() {
+      deployAliceAndBob()
+      before(async function() {
+      })
+
+      it('Must try to buy with slippage and revert', async function() {
+        const exchangeRate = 60
+        await expectRevert(this.validatorContract.buyVoucher(web3.utils.toWei('100'), exchangeRate, { from: this.alice }), 'More slippage then expectedExchangeRate')
+      })
+      it('Must try to buy with slippage and revert', async function() {
+        const exchangeRate = 120
+        await buyVoucher(this.validatorContract, web3.utils.toWei('100'), this.alice)
+        await expectRevert(this.validatorContract.sellVoucher(exchangeRate, { from: this.alice }), 'More slippage then expectedExchangeRate')
+      })
+    })
+  })
+
+  describe('Share transfer', function() {
+    describe('Transfer', function() {
+      deployAliceAndBob()
+      before(async function() {
+        await buyVoucher(this.validatorContract, web3.utils.toWei('100'), this.alice)
+      })
+
+      it('Transfer of shares must revert', async function() {
+        await this.validatorContract.Transfer(this.bob)
+        const balance = await this.validatorContract.balanceOf(this.bob)
+        await expectRevert(this.validatorContract.transfer(this.alice, balance), 'Disabled')
+      })
+    })
+  })
 })
