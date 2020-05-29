@@ -8,6 +8,8 @@ import {Lockable} from "../../common/mixin/Lockable.sol";
 
 
 contract ValidatorShare is ValidatorShareStorage {
+    uint256 constant EXCHANGE_RATE_PRECISION = 10000;
+
     modifier onlyValidator() {
         require(stakeManager.ownerOf(validatorId) == msg.sender);
         _;
@@ -43,28 +45,34 @@ contract ValidatorShare is ValidatorShareStorage {
 
     function exchangeRate() public view returns (uint256) {
         uint256 totalStaked = totalSupply();
-        return totalStaked == 0 ? 100 : activeAmount.add(rewards).mul(100).div(totalStaked);
+        return
+            totalStaked == 0
+                ? EXCHANGE_RATE_PRECISION
+                : activeAmount.add(rewards).mul(EXCHANGE_RATE_PRECISION).div(totalStaked);
     }
 
     function withdrawExchangeRate() public view returns (uint256) {
         uint256 _withdrawShares = withdrawShares;
-        return _withdrawShares == 0 ? 100 : withdrawPool.mul(100).div(_withdrawShares);
+        return
+            _withdrawShares == 0
+                ? EXCHANGE_RATE_PRECISION
+                : withdrawPool.mul(EXCHANGE_RATE_PRECISION).div(_withdrawShares);
     }
 
     function buyVoucher(uint256 _amount) public onlyWhenUnlocked {
         uint256 rate = exchangeRate();
-        uint256 share = _amount.mul(100).div(rate);
-        
+        uint256 share = _amount.mul(EXCHANGE_RATE_PRECISION).div(rate);
+
         require(share > 0, "Insufficient amount to buy share");
         require(delegators[msg.sender].share == 0, "Ongoing exit");
 
         _mint(msg.sender, share);
-        _amount = _amount - (_amount % rate.mul(share).div(100));
+        _amount = _amount - (_amount % rate.mul(share).div(EXCHANGE_RATE_PRECISION));
 
         totalStake = totalStake.add(_amount);
         amountStaked[msg.sender] = amountStaked[msg.sender].add(_amount);
         require(stakeManager.delegationDeposit(validatorId, _amount, msg.sender), "deposit failed");
-        
+
         activeAmount = activeAmount.add(_amount);
         stakeManager.updateValidatorState(validatorId, int256(_amount));
 
@@ -76,7 +84,7 @@ contract ValidatorShare is ValidatorShareStorage {
     function sellVoucher() public {
         uint256 share = balanceOf(msg.sender);
         require(share > 0, "Zero balance");
-        uint256 _amount = exchangeRate().mul(share).div(100);
+        uint256 _amount = exchangeRate().mul(share).div(EXCHANGE_RATE_PRECISION);
 
         _burn(msg.sender, share);
         stakeManager.updateValidatorState(validatorId, -int256(_amount));
@@ -91,7 +99,7 @@ contract ValidatorShare is ValidatorShareStorage {
         }
 
         activeAmount = activeAmount.sub(_amount);
-        uint256 _withdrawPoolShare = _amount.mul(100).div(withdrawExchangeRate());
+        uint256 _withdrawPoolShare = _amount.mul(EXCHANGE_RATE_PRECISION).div(withdrawExchangeRate());
 
         withdrawPool = withdrawPool.add(_amount);
         withdrawShares = withdrawShares.add(_withdrawPoolShare);
@@ -106,7 +114,7 @@ contract ValidatorShare is ValidatorShareStorage {
     function withdrawRewards() public {
         uint256 liquidRewards = getLiquidRewards(msg.sender);
         require(liquidRewards >= minAmount, "Too small rewards amount");
-        uint256 sharesToBurn = liquidRewards.mul(100).div(exchangeRate());
+        uint256 sharesToBurn = liquidRewards.mul(EXCHANGE_RATE_PRECISION).div(exchangeRate());
         _burn(msg.sender, sharesToBurn);
         rewards = rewards.sub(liquidRewards);
         require(stakeManager.transferFunds(validatorId, liquidRewards, msg.sender), "Insufficent rewards");
@@ -143,7 +151,7 @@ contract ValidatorShare is ValidatorShareStorage {
         }
 
         uint256 liquidRewards;
-        uint256 totalTokens = exchangeRate().mul(share).div(100);
+        uint256 totalTokens = exchangeRate().mul(share).div(EXCHANGE_RATE_PRECISION);
         uint256 stake = amountStaked[user];
         if (totalTokens >= stake) {
             liquidRewards = totalTokens.sub(stake);
@@ -160,8 +168,8 @@ contract ValidatorShare is ValidatorShareStorage {
             delegator.withdrawEpoch.add(stakeManager.withdrawalDelay()) <= stakeManager.epoch() && share > 0,
             "Incomplete withdrawal period"
         );
-        
-        uint256 _amount = withdrawExchangeRate().mul(share).div(100);
+
+        uint256 _amount = withdrawExchangeRate().mul(share).div(EXCHANGE_RATE_PRECISION);
         withdrawShares = withdrawShares.sub(share);
         withdrawPool = withdrawPool.sub(_amount);
 
