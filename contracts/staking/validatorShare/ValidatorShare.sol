@@ -59,8 +59,9 @@ contract ValidatorShare is ValidatorShareStorage {
                 : withdrawPool.mul(EXCHANGE_RATE_PRECISION).div(_withdrawShares);
     }
 
-    function buyVoucher(uint256 _amount) public onlyWhenUnlocked {
+    function buyVoucher(uint256 _amount, uint256 expectedExchangeRate) public onlyWhenUnlocked {
         uint256 rate = exchangeRate();
+        require(rate <= expectedExchangeRate, "More slippage then expectedExchangeRate");
         uint256 share = _amount.mul(EXCHANGE_RATE_PRECISION).div(rate);
 
         require(share > 0, "Insufficient amount to buy share");
@@ -81,11 +82,12 @@ contract ValidatorShare is ValidatorShareStorage {
         logger.logStakeUpdate(validatorId);
     }
 
-    function sellVoucher() public {
+    function sellVoucher(uint256 expectedExchangeRate) public {
         uint256 share = balanceOf(msg.sender);
         require(share > 0, "Zero balance");
-        uint256 _amount = exchangeRate().mul(share).div(EXCHANGE_RATE_PRECISION);
-
+        uint256 rate = exchangeRate();
+        uint256 _amount = rate.mul(share).div(EXCHANGE_RATE_PRECISION);
+        require(rate >= expectedExchangeRate, "More slippage then expectedExchangeRate");
         _burn(msg.sender, share);
         stakeManager.updateValidatorState(validatorId, -int256(_amount));
 
@@ -216,13 +218,5 @@ contract ValidatorShare is ValidatorShareStorage {
     function lockContract() external onlyOwner returns (uint256) {
         locked = true;
         return activeAmount;
-    }
-
-    function _transfer(
-        address from,
-        address to,
-        uint256 value
-    ) internal {
-        revert("Disabled");
     }
 }
