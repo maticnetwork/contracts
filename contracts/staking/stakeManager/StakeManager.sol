@@ -91,10 +91,9 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             "Wrong acc proof"
         );
         uint256 withdrawAmount = accumFeeAmount.sub(userFeeExit[user]);
-
-        require(token.transfer(user, withdrawAmount));
         _claimFee(user, withdrawAmount);
         userFeeExit[user] = accumFeeAmount;
+        require(token.transfer(user, withdrawAmount));
     }
 
     function stake(
