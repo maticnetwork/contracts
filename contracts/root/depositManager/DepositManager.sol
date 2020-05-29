@@ -1,12 +1,8 @@
 pragma solidity ^0.5.2;
 
-import {
-    IERC721Receiver
-} from "openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol";
+import {IERC721Receiver} from "openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol";
 import {IERC20} from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
-import {
-    IERC721
-} from "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
+import {IERC721} from "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
 import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import {ContractReceiver} from "../../common/misc/ContractReceiver.sol";
@@ -18,12 +14,8 @@ import {StateSender} from "../stateSyncer/StateSender.sol";
 import {Lockable} from "../../common/mixin/Lockable.sol";
 import {RootChain} from "../RootChain.sol";
 
-contract DepositManager is
-    DepositManagerStorage,
-    IDepositManager,
-    IERC721Receiver,
-    ContractReceiver
-{
+
+contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiver, ContractReceiver {
     using SafeMath for uint256;
 
     modifier isTokenMapped(address _token) {
@@ -32,10 +24,7 @@ contract DepositManager is
     }
 
     modifier isPredicateAuthorized() {
-        require(
-            uint8(registry.predicates(msg.sender)) != 0,
-            "Not a valid predicate"
-        );
+        require(uint8(registry.predicates(msg.sender)) != 0, "Not a valid predicate");
         _;
     }
 
@@ -48,6 +37,7 @@ contract DepositManager is
 
     function updateMaxErc20Deposit(uint256 maxDepositAmount) public onlyGovernance {
         require(maxDepositAmount != 0);
+        emit MaxErc20DepositUpdate(maxErc20Deposit, maxDepositAmount);
         maxErc20Deposit = maxDepositAmount;
     }
 
@@ -63,10 +53,7 @@ contract DepositManager is
             WETH t = WETH(_token);
             t.withdraw(_amountOrNFTId, _user);
         } else {
-            require(
-                IERC20(_token).transfer(_user, _amountOrNFTId),
-                "TRANSFER_FAILED"
-            );
+            require(IERC20(_token).transfer(_user, _amountOrNFTId), "TRANSFER_FAILED");
         }
     }
 
@@ -89,41 +76,27 @@ contract DepositManager is
         require(_tokens.length == _amountOrTokens.length, "Invalid Input");
         uint256 depositId = rootChain.updateDepositId(_tokens.length);
         Registry _registry = registry;
-        
+
         for (uint256 i = 0; i < _tokens.length; i++) {
             // will revert if token is not mapped
             if (_registry.isTokenMappedAndIsErc721(_tokens[i])) {
-                IERC721(_tokens[i]).transferFrom(
-                    msg.sender,
-                    address(this),
-                    _amountOrTokens[i]
-                );
+                IERC721(_tokens[i]).transferFrom(msg.sender, address(this), _amountOrTokens[i]);
             } else {
                 require(
-                    IERC20(_tokens[i]).transferFrom(
-                        msg.sender,
-                        address(this),
-                        _amountOrTokens[i]
-                    ),
+                    IERC20(_tokens[i]).transferFrom(msg.sender, address(this), _amountOrTokens[i]),
                     "TOKEN_TRANSFER_FAILED"
                 );
             }
-            _createDepositBlock(
-                _user,
-                _tokens[i],
-                _amountOrTokens[i],
-                depositId
-            );
+            _createDepositBlock(_user, _tokens[i], _amountOrTokens[i], depositId);
             depositId = depositId.add(1);
         }
     }
 
     /**
-   * @dev Caches childChain and stateSender (frequently used variables) from registry
-   */
+     * @dev Caches childChain and stateSender (frequently used variables) from registry
+     */
     function updateChildChainAndStateSender() public {
-        (address _childChain, address _stateSender) = registry
-            .getChildChainAndStateSender();
+        (address _childChain, address _stateSender) = registry.getChildChainAndStateSender();
         require(
             _stateSender != address(stateSender) || _childChain != childChain,
             "Atleast one of stateSender or childChain address should change"
@@ -132,14 +105,13 @@ contract DepositManager is
         stateSender = StateSender(_stateSender);
     }
 
-    function depositERC20ForUser(address _token, address _user, uint256 _amount)
-        public
-    {
+    function depositERC20ForUser(
+        address _token,
+        address _user,
+        uint256 _amount
+    ) public {
         require(_amount <= maxErc20Deposit, "exceed maximum deposit amount");
-        require(
-            IERC20(_token).transferFrom(msg.sender, address(this), _amount),
-            "TOKEN_TRANSFER_FAILED"
-        );
+        require(IERC20(_token).transferFrom(msg.sender, address(this), _amount), "TOKEN_TRANSFER_FAILED");
         _safeCreateDepositBlock(_user, _token, _amount);
     }
 
@@ -219,14 +191,8 @@ contract DepositManager is
         uint256 _amountOrToken,
         uint256 _depositId
     ) internal {
-        deposits[_depositId] = DepositBlock(
-            keccak256(abi.encodePacked(_user, _token, _amountOrToken)),
-            now
-        );
-        stateSender.syncState(
-            childChain,
-            abi.encode(_user, _token, _amountOrToken, _depositId)
-        );
+        deposits[_depositId] = DepositBlock(keccak256(abi.encodePacked(_user, _token, _amountOrToken)), now);
+        stateSender.syncState(childChain, abi.encode(_user, _token, _amountOrToken, _depositId));
         emit NewDepositBlock(_user, _token, _amountOrToken, _depositId);
     }
 

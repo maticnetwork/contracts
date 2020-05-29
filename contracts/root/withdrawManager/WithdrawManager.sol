@@ -17,6 +17,7 @@ import {RootChainHeader} from "../RootChainStorage.sol";
 import {Registry} from "../../common/Registry.sol";
 import {WithdrawManagerStorage} from "./WithdrawManagerStorage.sol";
 
+
 contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     using RLPReader for bytes;
     using RLPReader for RLPReader.RLPItem;
@@ -28,29 +29,17 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     }
 
     modifier isPredicateAuthorized() {
-        require(
-            registry.predicates(msg.sender) != Registry.Type.Invalid,
-            "PREDICATE_NOT_AUTHORIZED"
-        );
+        require(registry.predicates(msg.sender) != Registry.Type.Invalid, "PREDICATE_NOT_AUTHORIZED");
         _;
     }
 
     modifier checkPredicateAndTokenMapping(address rootToken) {
         Registry.Type _type = registry.predicates(msg.sender);
-        require(
-            registry.rootToChildToken(rootToken) != address(0x0),
-            "rootToken not supported"
-        );
+        require(registry.rootToChildToken(rootToken) != address(0x0), "rootToken not supported");
         if (_type == Registry.Type.ERC20) {
-            require(
-                registry.isERC721(rootToken) == false,
-                "Predicate supports only ERC20 tokens"
-            );
+            require(registry.isERC721(rootToken) == false, "Predicate supports only ERC20 tokens");
         } else if (_type == Registry.Type.ERC721) {
-            require(
-                registry.isERC721(rootToken) == true,
-                "Predicate supports only ERC721 tokens"
-            );
+            require(registry.isERC721(rootToken) == true, "Predicate supports only ERC721 tokens");
         } else if (_type == Registry.Type.Custom) {} else {
             revert("PREDICATE_NOT_AUTHORIZED");
         }
@@ -58,8 +47,8 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     }
 
     /**
-   * @dev Receive bond for bonded exits
-   */
+     * @dev Receive bond for bonded exits
+     */
     function() external payable {}
 
     function createExitQueue(address token) external {
@@ -79,22 +68,22 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     }
 
     /**
-   * @dev Verify the inclusion of the receipt in the checkpoint
-   * @param data RLP encoded data of the reference tx(s) that encodes the following fields for each tx
-   * headerNumber Header block number of which the reference tx was a part of
-   * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
-   * blockNumber Block number of which the reference tx is a part of
-   * blockTime Reference tx block time
-   * blocktxRoot Transactions root of block
-   * blockReceiptsRoot Receipts root of block
-   * receipt Receipt of the reference transaction
-   * receiptProof Merkle proof of the reference receipt
-   * branchMask Merkle proof branchMask for the receipt
-   * logIndex Log Index to read from the receipt
-   * @param offset offset in the data array
-   * @param verifyTxInclusion Whether to also verify the inclusion of the raw tx in the txRoot
-   * @return ageOfInput Measure of the position of the receipt and the log in the child chain
-   */
+     * @dev Verify the inclusion of the receipt in the checkpoint
+     * @param data RLP encoded data of the reference tx(s) that encodes the following fields for each tx
+     * headerNumber Header block number of which the reference tx was a part of
+     * blockProof Proof that the block header (in the child chain) is a leaf in the submitted merkle root
+     * blockNumber Block number of which the reference tx is a part of
+     * blockTime Reference tx block time
+     * blocktxRoot Transactions root of block
+     * blockReceiptsRoot Receipts root of block
+     * receipt Receipt of the reference transaction
+     * receiptProof Merkle proof of the reference receipt
+     * branchMask Merkle proof branchMask for the receipt
+     * logIndex Log Index to read from the receipt
+     * @param offset offset in the data array
+     * @param verifyTxInclusion Whether to also verify the inclusion of the raw tx in the txRoot
+     * @return ageOfInput Measure of the position of the receipt and the log in the child chain
+     */
     function verifyInclusion(
         bytes calldata data,
         uint8 offset,
@@ -145,9 +134,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
 
         vars.branchMask = vars.branchMaskBytes.toRlpItem().toUint();
         require(
-            vars.branchMask &
-                0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000 ==
-                0,
+            vars.branchMask & 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000 == 0,
             "Branch mask should be 32 bits"
         );
         // ageOfInput is denoted as
@@ -157,10 +144,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
         // 32 bits for receiptPos + logIndex * MAX_LOGS + oIndex
         // In predicates, the exitId will be evaluated by shifting the ageOfInput left by 1 bit
         // (Only in erc20Predicate) Last bit is to differentiate whether the sender or receiver of the in-flight tx is starting an exit
-        return
-            (getExitableAt(vars.createdAt) << 127) |
-            (vars.blockNumber << 32) |
-            vars.branchMask;
+        return (getExitableAt(vars.createdAt) << 127) | (vars.blockNumber << 32) | vars.branchMask;
     }
 
     function startExitWithDepositedTokens(
@@ -168,14 +152,8 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
         address token,
         uint256 amountOrToken
     ) external payable isBondProvided {
-        (bytes32 depositHash, uint256 createdAt) = getDepositManager().deposits(
-            depositId
-        );
-        require(
-            keccak256(abi.encodePacked(msg.sender, token, amountOrToken)) ==
-                depositHash,
-            "UNAUTHORIZED_EXIT"
-        );
+        (bytes32 depositHash, uint256 createdAt) = getDepositManager().deposits(depositId);
+        require(keccak256(abi.encodePacked(msg.sender, token, amountOrToken)) == depositHash, "UNAUTHORIZED_EXIT");
         uint256 ageOfInput = getExitableAt(createdAt) << 127;
         uint256 exitId = ageOfInput << 1;
         address predicate = registry.isTokenMappedAndGetPredicate(token);
@@ -206,18 +184,8 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
         bool isRegularExit,
         uint256 priority
     ) external checkPredicateAndTokenMapping(rootToken) {
-        require(
-            registry.rootToChildToken(rootToken) == childToken,
-            "INVALID_ROOT_TO_CHILD_TOKEN_MAPPING"
-        );
-        _addExitToQueue(
-            exitor,
-            rootToken,
-            exitAmountOrTokenId,
-            txHash,
-            isRegularExit,
-            priority
-        );
+        require(registry.rootToChildToken(rootToken) == childToken, "INVALID_ROOT_TO_CHILD_TOKEN_MAPPING");
+        _addExitToQueue(exitor, rootToken, exitAmountOrTokenId, txHash, isRegularExit, priority);
     }
 
     function challengeExit(
@@ -228,14 +196,8 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     ) external {
         PlasmaExit storage exit = exits[exitId];
         Input storage input = exit.inputs[inputId];
-        require(
-            exit.owner != address(0x0) && input.utxoOwner != address(0x0),
-            "Invalid exit or input id"
-        );
-        require(
-            registry.predicates(adjudicatorPredicate) != Registry.Type.Invalid,
-            "INVALID_PREDICATE"
-        );
+        require(exit.owner != address(0x0) && input.utxoOwner != address(0x0), "Invalid exit or input id");
+        require(registry.predicates(adjudicatorPredicate) != Registry.Type.Invalid, "INVALID_PREDICATE");
         require(
             IPredicate(adjudicatorPredicate).verifyDeprecation(
                 encodeExit(exit),
@@ -260,9 +222,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
 
         PriorityQueue exitQueue = PriorityQueue(exitsQueues[_token]);
 
-        while (
-            exitQueue.currentSize() > 0 && gasleft() > ON_FINALIZE_GAS_LIMIT
-        ) {
+        while (exitQueue.currentSize() > 0 && gasleft() > ON_FINALIZE_GAS_LIMIT) {
             (exitableAt, exitId) = exitQueue.getMin();
             exitId = (exitableAt << 128) | exitId;
             PlasmaExit memory currentExit = exits[exitId];
@@ -283,14 +243,11 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
             // If finalizing a particular exit is reverting, it will block any following exits from being processed.
             // Hence, call predicate.onFinalizeExit in a revertless manner.
             // (bool success, bytes memory result) =
-            currentExit.predicate.call(abi.encodeWithSignature("onFinalizeExit(bytes)", encodeExitForProcessExit(exitId)));
-
-            emit Withdraw(
-                exitId,
-                exitor,
-                _token,
-                currentExit.receiptAmountOrNFTId
+            currentExit.predicate.call(
+                abi.encodeWithSignature("onFinalizeExit(bytes)", encodeExitForProcessExit(exitId))
             );
+
+            emit Withdraw(exitId, exitor, _token, currentExit.receiptAmountOrNFTId);
 
             if (!currentExit.isRegularExit) {
                 // return the bond amount if this was a MoreVp style exit
@@ -300,13 +257,13 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     }
 
     /**
-   * @dev Add a state update (UTXO style input) to an exit
-   * @param exitId Exit ID
-   * @param age age of the UTXO style input
-   * @param utxoOwner User for whom the input acts as a proof-of-funds
-      * (alternate expression) User who could have potentially spent this UTXO
-   * @param token Token (Think of it like Utxo color)
-   */
+     * @dev Add a state update (UTXO style input) to an exit
+     * @param exitId Exit ID
+     * @param age age of the UTXO style input
+     * @param utxoOwner User for whom the input acts as a proof-of-funds
+     * (alternate expression) User who could have potentially spent this UTXO
+     * @param token Token (Think of it like Utxo color)
+     */
     function addInput(
         uint256 exitId,
         uint256 age,
@@ -336,11 +293,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
         emit ExitUpdated(exitId, age, utxoOwner);
     }
 
-    function encodeExit(PlasmaExit storage exit)
-        internal
-        view
-        returns (bytes memory)
-    {
+    function encodeExit(PlasmaExit storage exit) internal view returns (bytes memory) {
         return
             abi.encode(
                 exit.owner,
@@ -351,33 +304,13 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
             );
     }
 
-    function encodeExitForProcessExit(uint256 exitId)
-        internal
-        view
-        returns (bytes memory)
-    {
+    function encodeExitForProcessExit(uint256 exitId) internal view returns (bytes memory) {
         PlasmaExit storage exit = exits[exitId];
-        return
-            abi.encode(
-                exitId,
-                exit.token,
-                exit.owner,
-                exit.receiptAmountOrNFTId
-            );
+        return abi.encode(exitId, exit.token, exit.owner, exit.receiptAmountOrNFTId);
     }
 
-    function encodeInputUtxo(uint256 age, Input storage input)
-        internal
-        view
-        returns (bytes memory)
-    {
-        return
-            abi.encode(
-                age,
-                input.utxoOwner,
-                input.predicate,
-                registry.rootToChildToken(input.token)
-            );
+    function encodeInputUtxo(uint256 age, Input storage input) internal view returns (bytes memory) {
+        return abi.encode(age, input.utxoOwner, input.predicate, registry.rootToChildToken(input.token));
     }
 
     function _addExitToQueue(
@@ -400,12 +333,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
         );
         PlasmaExit storage _exitObject = exits[exitId];
 
-        bytes32 key = getKey(
-            _exitObject.token,
-            _exitObject.owner,
-            _exitObject.receiptAmountOrNFTId
-        );
-
+        bytes32 key = getKey(_exitObject.token, _exitObject.owner, _exitObject.receiptAmountOrNFTId);
 
         if (isRegularExit) {
             require(!isKnownExit[uint128(exitId)], "KNOWN_EXIT");
@@ -427,13 +355,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
 
         // create exit nft
         exitNft.mint(_exitObject.owner, exitId);
-        emit ExitStarted(
-            exitor,
-            exitId,
-            rootToken,
-            exitAmountOrTokenId,
-            isRegularExit
-        );
+        emit ExitStarted(exitor, exitId, rootToken, exitAmountOrTokenId, isRegularExit);
     }
 
     function checkBlockMembershipInCheckpoint(
@@ -450,13 +372,9 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
             uint256 /* createdAt */
         )
     {
-        (bytes32 headerRoot, uint256 startBlock, , uint256 createdAt, ) = rootChain
-            .headerBlocks(headerNumber);
+        (bytes32 headerRoot, uint256 startBlock, , uint256 createdAt, ) = rootChain.headerBlocks(headerNumber);
         require(
-            keccak256(
-                abi.encodePacked(blockNumber, blockTime, txRoot, receiptRoot)
-            )
-                .checkMembership(
+            keccak256(abi.encodePacked(blockNumber, blockTime, txRoot, receiptRoot)).checkMembership(
                 blockNumber - startBlock,
                 headerRoot,
                 blockProof
@@ -466,11 +384,11 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
         return createdAt;
     }
 
-    function getKey(address token, address exitor, uint256 amountOrToken)
-        internal
-        view
-        returns (bytes32 key)
-    {
+    function getKey(
+        address token,
+        address exitor,
+        uint256 amountOrToken
+    ) internal view returns (bytes32 key) {
         if (registry.isERC721(token)) {
             key = keccak256(abi.encodePacked(token, exitor, amountOrToken));
         } else {
@@ -481,19 +399,16 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     }
 
     function getDepositManager() internal view returns (DepositManager) {
-        return
-            DepositManager(
-                address(uint160(registry.getDepositManagerAddress()))
-            );
+        return DepositManager(address(uint160(registry.getDepositManagerAddress())));
     }
 
     function getExitableAt(uint256 createdAt) internal view returns (uint256) {
-        return
-            Math.max(createdAt + 2 * HALF_EXIT_PERIOD, now + HALF_EXIT_PERIOD);
+        return Math.max(createdAt + 2 * HALF_EXIT_PERIOD, now + HALF_EXIT_PERIOD);
     }
 
     // Housekeeping function. @todo remove later
     function updateExitPeriod(uint256 halfExitPeriod) public onlyOwner {
+        emit ExitPeriodUpdate(HALF_EXIT_PERIOD, halfExitPeriod);
         HALF_EXIT_PERIOD = halfExitPeriod;
     }
 }
