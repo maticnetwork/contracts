@@ -1,10 +1,15 @@
 import { BN, expectEvent, expectRevert } from '@openzeppelin/test-helpers'
-import { TestToken, IValidatorShare, StakingInfo } from '../../helpers/artifacts'
+import { TestToken, ValidatorShareTest, StakingInfo } from '../../helpers/artifacts'
 import { checkPoint, assertBigNumberEquality } from '../../helpers/utils.js'
 import { wallets, freshDeploy, approveAndStake } from './deployment'
+import { buyVoucher, sellVoucher } from './ValidatorShareHelper.js'
+
+const toBN = web3.utils.toBN
+const toWei = web3.utils.toWei
 
 contract('ValidatorShare', async function() {
   const ZeroAddr = '0x0000000000000000000000000000000000000000'
+  const wei100 = toWei('100')
 
   async function doDeploy() {
     await freshDeploy.call(this)
@@ -23,7 +28,7 @@ contract('ValidatorShare', async function() {
     await approveAndStake.call(this, { wallet: this.validatorUser, stakeAmount: this.stakeAmount, acceptDelegation: true })
 
     let validator = await this.stakeManager.validators(this.validatorId)
-    this.validatorContract = await IValidatorShare.at(validator.contractAddress)
+    this.validatorContract = await ValidatorShareTest.at(validator.contractAddress)
   }
 
   describe('drain', function() {
@@ -101,13 +106,11 @@ contract('ValidatorShare', async function() {
   describe('buyVoucher', function() {
     function testBuyVoucher(voucherValue, voucherValueExpected, userTotalStaked, totalStaked, shares) {
       it('must buy voucher', async function() {
-        this.receipt = await this.validatorContract.buyVoucher(voucherValue, {
-          from: this.user
-        })
+        this.receipt = await buyVoucher(this.validatorContract, voucherValue, this.user, shares)
       })
 
       it('ValidatorShare must mint correct amount of shares', async function() {
-        await expectEvent.inTransaction(this.receipt.tx, IValidatorShare, 'Transfer', {
+        await expectEvent.inTransaction(this.receipt.tx, ValidatorShareTest, 'Transfer', {
           from: ZeroAddr,
           to: this.user,
           value: shares
@@ -149,6 +152,15 @@ contract('ValidatorShare', async function() {
       testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'))
     })
 
+    describe('when Alice purchases voucher with exact minSharesToMint', function() {
+      deployAliceAndBob()
+
+      before(function() {
+        this.user = this.alice
+      })
+      testBuyVoucher(wei100, wei100, wei100, wei100, wei100)
+    })
+
     describe('when delegation is disabled', function() {
       deployAliceAndBob()
 
@@ -160,9 +172,7 @@ contract('ValidatorShare', async function() {
       })
 
       it('reverts', async function() {
-        await expectRevert(this.validatorContract.buyVoucher(web3.utils.toWei('150'), {
-          from: this.alice
-        }), 'Delegation is disabled')
+        await expectRevert(buyVoucher(this.validatorContract, web3.utils.toWei('150'), this.alice), 'Delegation is disabled')
       })
     })
 
@@ -299,9 +309,7 @@ contract('ValidatorShare', async function() {
       deployAliceAndBob()
 
       before(async function() {
-        await this.validatorContract.buyVoucher('1', {
-          from: this.alice
-        })
+        await buyVoucher(this.validatorContract, '1', this.alice)
         await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
 
         this.balanceBefore = await this.stakeToken.balanceOf(this.alice)
@@ -310,9 +318,7 @@ contract('ValidatorShare', async function() {
       it('must be charged only for 1 share', async function() {
         let rate = await this.validatorContract.exchangeRate()
         // send 1.5% of rate per share, because exchangeRate() returns rate per 100 shares
-        await this.validatorContract.buyVoucher(rate.add(rate.div(new BN(2))).div(new BN(100)), {
-          from: this.alice
-        })
+        await buyVoucher(this.validatorContract, rate.add(rate.div(new BN(2))).div(new BN(100)), this.alice)
 
         const balanceNow = await this.stakeToken.balanceOf(this.alice)
         const diff = this.balanceBefore.sub(balanceNow)
@@ -341,9 +347,7 @@ contract('ValidatorShare', async function() {
         const voucherValue = web3.utils.toWei('100')
         this.totalStaked = this.totalStaked.add(new BN(voucherValue))
 
-        await this.validatorContract.buyVoucher(voucherValue, {
-          from: this.user
-        })
+        await buyVoucher(this.validatorContract, voucherValue, this.user)
       })
 
       it('exchange rate must be correct', async function() {
@@ -355,9 +359,7 @@ contract('ValidatorShare', async function() {
 
         const voucherValue = web3.utils.toWei('5000')
         this.totalStaked = this.totalStaked.add(new BN(voucherValue))
-        await this.validatorContract.buyVoucher(voucherValue, {
-          from: this.user
-        })
+        await buyVoucher(this.validatorContract, voucherValue, this.user)
       })
 
       it('exchange rate must be correct', async function() {
@@ -381,15 +383,11 @@ contract('ValidatorShare', async function() {
       })
 
       it('must purchase voucher', async function() {
-        await this.validatorContract.buyVoucher(web3.utils.toWei('100'), {
-          from: this.user
-        })
+        await buyVoucher(this.validatorContract, web3.utils.toWei('100'), this.user)
       })
 
       it('must sell voucher', async function() {
-        await this.validatorContract.sellVoucher({
-          from: this.user
-        })
+        await sellVoucher(this.validatorContract, this.user)
       })
 
       it('must have initial exchange rate', async function() {
@@ -412,10 +410,7 @@ contract('ValidatorShare', async function() {
         from: this.user
       })
 
-      await this.validatorContract.buyVoucher(web3.utils.toWei('100'), {
-        from: this.user
-      })
-
+      await buyVoucher(this.validatorContract, web3.utils.toWei('100'), this.user)
       this.shares = await this.validatorContract.balanceOf(this.user)
 
       for (let i = 0; i < 4; i++) {
@@ -425,9 +420,7 @@ contract('ValidatorShare', async function() {
 
     function testSellVoucher() {
       it('must sell voucher', async function() {
-        this.receipt = await this.validatorContract.sellVoucher({
-          from: this.user
-        })
+        this.receipt = await sellVoucher(this.validatorContract, this.user)
       })
 
       it('must emit ShareBurned', async function() {
@@ -441,6 +434,23 @@ contract('ValidatorShare', async function() {
       before(doDeployAndBuyVoucherForAlice)
 
       testSellVoucher()
+    })
+
+    describe('when Alice sells voucher with minClaimAmount', function() {
+      before(doDeployAndBuyVoucherForAlice)
+
+      it('must sell voucher', async function() {
+        const initialBalance = await this.stakeToken.balanceOf(this.user)
+        const minClaimAmount = this.shares.mul(await this.validatorContract.exchangeRate()).div(toBN('100')) /* EXCHANGE_RATE_PRECISION */
+        this.receipt = await sellVoucher(this.validatorContract, this.user, minClaimAmount)
+        assertBigNumberEquality(await this.stakeToken.balanceOf(this.user), initialBalance.add(minClaimAmount).sub(toBN(wei100)))
+      })
+
+      it('must emit ShareBurned', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ShareBurned', {
+          tokens: this.shares
+        })
+      })
     })
 
     describe('when delegation is disabled after voucher was purchased by Alice', function() {
@@ -471,9 +481,7 @@ contract('ValidatorShare', async function() {
         from: this.user
       })
 
-      await this.validatorContract.buyVoucher(this.stakeAmount, {
-        from: this.user
-      })
+      await buyVoucher(this.validatorContract, this.stakeAmount, this.user)
 
       await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
     })
@@ -505,13 +513,13 @@ contract('ValidatorShare', async function() {
       })
     })
 
-    it('must emit DelClaimRewards', async function() {
+    it('must emit DelegatorClaimedRewards', async function() {
       const proposerBonus = await this.stakeManager.proposerBonus()
       // 1st staker had stakeAmount and voucher also has stakeAmount - 50%/50% split of reward
       let expectedReward = (await this.stakeManager.CHECKPOINT_REWARD()).div(new BN(2))
       expectedReward = expectedReward.mul(new BN('100').sub(proposerBonus)).div(new BN('100'))
 
-      await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'DelClaimRewards', {
+      await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'DelegatorClaimedRewards', {
         validatorId: this.validatorId,
         user: this.user,
         rewards: expectedReward,
@@ -520,7 +528,7 @@ contract('ValidatorShare', async function() {
     })
   })
 
-  describe('reStake', function() {
+  describe('restake', function() {
     describe('when Alice restakes', function() {
       before(doDeploy)
       before(async function() {
@@ -534,10 +542,7 @@ contract('ValidatorShare', async function() {
           from: this.user
         })
 
-        await this.validatorContract.buyVoucher(this.stakeAmount, {
-          from: this.user
-        })
-
+        await buyVoucher(this.validatorContract, this.stakeAmount, this.user)
         await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
         this.totalStaked = new BN(this.stakeAmount)
       })
@@ -550,13 +555,13 @@ contract('ValidatorShare', async function() {
       })
 
       it('must restake', async function() {
-        this.receipt = await this.validatorContract.reStake({
+        this.receipt = await this.validatorContract.restake({
           from: this.user
         })
       })
 
-      it('must emit DelReStaked', async function() {
-        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'DelReStaked', {
+      it('must emit DelegatorRestaked', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'DelegatorRestaked', {
           validatorId: this.validatorId,
           totalStaked: this.totalStaked
         })
@@ -576,18 +581,16 @@ contract('ValidatorShare', async function() {
           from: this.user
         })
 
-        await this.validatorContract.buyVoucher(this.stakeAmount, {
-          from: this.user
-        })
+        await buyVoucher(this.validatorContract, this.stakeAmount, this.user)
       })
 
       it('reverts', async function() {
-        await expectRevert(this.validatorContract.reStake({ from: this.user }), 'Too small rewards to restake')
+        await expectRevert(this.validatorContract.restake({ from: this.user }), 'Too small rewards to restake')
       })
     })
   })
 
-  describe('unStakeClaimTokens', function() {
+  describe('unstakeClaimTokens', function() {
     describe('when Alice unstakes right after voucher sell', function() {
       before(doDeploy)
       before(async function() {
@@ -601,15 +604,10 @@ contract('ValidatorShare', async function() {
           from: this.user
         })
 
-        await this.validatorContract.buyVoucher(this.stakeAmount, {
-          from: this.user
-        })
-
+        await buyVoucher(this.validatorContract, this.stakeAmount, this.user)
         this.totalStaked = this.stakeAmount
 
-        await this.validatorContract.sellVoucher({
-          from: this.user
-        })
+        await sellVoucher(this.validatorContract, this.user)
 
         let currentEpoch = await this.stakeManager.currentEpoch()
         let exitEpoch = currentEpoch.add(await this.stakeManager.WITHDRAWAL_DELAY())
@@ -620,13 +618,13 @@ contract('ValidatorShare', async function() {
       })
 
       it('must unstake', async function() {
-        this.receipt = await this.validatorContract.unStakeClaimTokens({
+        this.receipt = await this.validatorContract.unstakeClaimTokens({
           from: this.user
         })
       })
 
-      it('must emit DelUnstaked', async function() {
-        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'DelUnstaked', {
+      it('must emit DelegatorUnstaked', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'DelegatorUnstaked', {
           validatorId: this.validatorId,
           user: this.user,
           amount: this.stakeAmount
@@ -692,9 +690,7 @@ contract('ValidatorShare', async function() {
 
       describe('after commision rate changed', function() {
         it('Alice must purchase voucher', async function() {
-          await this.validatorContract.buyVoucher(web3.utils.toWei('100'), {
-            from: this.user
-          })
+          await buyVoucher(this.validatorContract, web3.utils.toWei('100'), this.user)
         })
 
         it('1 checkpoint must be commited', async function() {
@@ -745,9 +741,7 @@ contract('ValidatorShare', async function() {
 
       describe('after commision rate changed', function() {
         it('Alice must purchase voucher', async function() {
-          await this.validatorContract.buyVoucher(this.stakeAmount, {
-            from: this.user
-          })
+          await buyVoucher(this.validatorContract, this.stakeAmount, this.user)
         })
         // get 25% of checkpoint rewards
         testAfterComissionChange(web3.utils.toWei('2250'), '2350')
@@ -798,18 +792,45 @@ contract('ValidatorShare', async function() {
     describe('when Alice and Bob buy vouchers (1 checkpoint in-between) and Alice withdraw the rewards', function() {
       deployAliceAndBob()
       before(async function() {
-        await this.validatorContract.buyVoucher(web3.utils.toWei('100'), {
-          from: this.alice
-        })
+        await buyVoucher(this.validatorContract, web3.utils.toWei('100'), this.alice)
         await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
-        await this.validatorContract.buyVoucher(web3.utils.toWei('4600'), {
-          from: this.bob
-        })
+        await buyVoucher(this.validatorContract, web3.utils.toWei('4600'), this.bob)
         await this.validatorContract.withdrawRewards({ from: this.alice })
       })
 
       it('Bob must call getLiquidRewards', async function() {
         await this.validatorContract.getLiquidRewards(this.bob)
+      })
+    })
+  })
+  describe('Buy/sell with slippage', function() {
+    describe('buy/sell', function() {
+      deployAliceAndBob()
+      before(async function() {
+      })
+
+      it('Must try to buy with slippage and revert', async function() {
+        await expectRevert(this.validatorContract.buyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100.0001'), { from: this.alice }), 'Too much slippage')
+      })
+      it('Must try to buy with slippage and revert', async function() {
+        const exchangeRate = 120
+        await buyVoucher(this.validatorContract, web3.utils.toWei('100'), this.alice)
+        await expectRevert(this.validatorContract.sellVoucher(web3.utils.toWei('100.00001'), { from: this.alice }), 'Too much slippage')
+      })
+    })
+  })
+
+  describe('Share transfer', function() {
+    describe('Transfer', function() {
+      deployAliceAndBob()
+      before(async function() {
+        await buyVoucher(this.validatorContract, web3.utils.toWei('100'), this.alice)
+      })
+
+      it('Transfer of shares must revert', async function() {
+        await this.validatorContract.Transfer(this.bob)
+        const balance = await this.validatorContract.balanceOf(this.bob)
+        await expectRevert(this.validatorContract.transfer(this.alice, balance), 'Disabled')
       })
     })
   })

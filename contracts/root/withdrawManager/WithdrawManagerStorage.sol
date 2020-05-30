@@ -5,6 +5,7 @@ import {Registry} from "../../common/Registry.sol";
 import {RootChain} from "../RootChain.sol";
 import {ExitNFT} from "./ExitNFT.sol";
 
+
 contract ExitsDataStructure {
     struct Input {
         address utxoOwner;
@@ -24,13 +25,9 @@ contract ExitsDataStructure {
     }
 }
 
+
 contract WithdrawManagerHeader is ExitsDataStructure {
-    event Withdraw(
-        uint256 indexed exitId,
-        address indexed user,
-        address indexed token,
-        uint256 amount
-    );
+    event Withdraw(uint256 indexed exitId, address indexed user, address indexed token, uint256 amount);
 
     event ExitStarted(
         address indexed exitor,
@@ -40,14 +37,12 @@ contract WithdrawManagerHeader is ExitsDataStructure {
         bool isRegularExit
     );
 
-    event ExitUpdated(
-        uint256 indexed exitId,
-        uint256 indexed age,
-        address signer
-    );
+    event ExitUpdated(uint256 indexed exitId, uint256 indexed age, address signer);
+    event ExitPeriodUpdate(uint256 indexed oldExitPeriod, uint256 indexed newExitPeriod);
 
     event ExitCancelled(uint256 indexed exitId);
 }
+
 
 contract WithdrawManagerStorage is ProxyStorage, WithdrawManagerHeader {
     uint256 public HALF_EXIT_PERIOD = 1 weeks;

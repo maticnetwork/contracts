@@ -50,7 +50,7 @@ module.exports = function(accounts) {
         } else {
           await expectRevert(this.stakeManager.stake(stakeAmount, this.defaultHeimdallFee, false, userPubkey, {
             from: user
-          }), 'Invalid Signer key')
+          }), 'Invalid signer')
         }
       })
 
@@ -138,9 +138,9 @@ module.exports = function(accounts) {
         })
       })
 
-      it('must emit ReStaked', async function() {
+      it('must emit Restaked', async function() {
         const validatorId = await this.stakeManager.getValidatorId(this.user)
-        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ReStaked', {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'Restaked', {
           validatorId,
           amount: stakeAmount,
           total: totalStaked
@@ -304,7 +304,7 @@ module.exports = function(accounts) {
       })
 
       it('reverts', async function() {
-        await expectRevert(doStake(wallets[3], { signer: AliceWallet.getPublicKeyString() }).call(this), 'Invalid Signer key')
+        await expectRevert(doStake(wallets[3], { signer: AliceWallet.getPublicKeyString() }).call(this), 'Invalid signer')
       })
     })
   })
@@ -741,8 +741,8 @@ module.exports = function(accounts) {
         })
       })
 
-      it('must emit ReStaked', async function() {
-        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ReStaked', {
+      it('must emit Restaked', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'Restaked', {
           validatorId: this.validatorId,
           amount: this.validatorOldState.amount.add(new BN(this.amount)).add(this.validatorReward),
           total: this.oldTotalStaked.add(new BN(this.amount)).add(this.validatorReward)

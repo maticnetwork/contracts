@@ -7,6 +7,7 @@ import {StakingInfo} from "../StakingInfo.sol";
 import {IStakeManager} from "../stakeManager/IStakeManager.sol";
 import {ProxyStorage} from "../../common/misc/ProxyStorage.sol";
 
+
 contract ValidatorShareHeader {
     struct Delegator {
         uint256 share;
@@ -14,7 +15,19 @@ contract ValidatorShareHeader {
     }
 }
 
-contract ValidatorShareStorage is ProxyStorage, ERC20, Lockable, ValidatorShareHeader {
+
+contract ERC20Disabled is ERC20 {
+    function _transfer(
+        address from,
+        address to,
+        uint256 value
+    ) internal {
+        revert("Disabled");
+    }
+}
+
+
+contract ValidatorShareStorage is ProxyStorage, ERC20Disabled, Lockable, ValidatorShareHeader {
     StakingInfo public stakingLogger;
     IStakeManager public stakeManager;
     uint256 public validatorId;
@@ -22,7 +35,6 @@ contract ValidatorShareStorage is ProxyStorage, ERC20, Lockable, ValidatorShareH
     uint256 public commissionRate;
     //last checkpoint where validator updated commission rate
     uint256 public lastCommissionUpdate;
-    uint256 public validatorDelegatorRatio = 10;
     uint256 public minAmount = 10**18;
 
     uint256 public totalStake;
@@ -35,4 +47,6 @@ contract ValidatorShareStorage is ProxyStorage, ERC20, Lockable, ValidatorShareH
 
     mapping(address => uint256) public amountStaked;
     mapping(address => Delegator) public delegators;
+    
+    uint256 constant EXCHANGE_RATE_PRECISION = 100;
 }
