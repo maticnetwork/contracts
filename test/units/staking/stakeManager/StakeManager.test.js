@@ -18,6 +18,7 @@ import {
 } from '../../../helpers/utils.js'
 import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
 import { wallets, freshDeploy, approveAndStake } from '../deployment'
+import { buyVoucher } from '../ValidatorShareHelper.js'
 
 contract('StakeManager', async function(accounts) {
   let owner = accounts[0]
@@ -1694,7 +1695,7 @@ contract('StakeManager', async function(accounts) {
         await checkPoint([...initialStakers, validatorUser], this.rootChainOwner, this.stakeManager)
       }
 
-      await this.validatorContract.buyVoucher(stakeAmount, { from: delegator })
+      await buyVoucher(this.validatorContract, stakeAmount, delegator)
 
       this.heimdallFee = this.defaultHeimdallFee
 

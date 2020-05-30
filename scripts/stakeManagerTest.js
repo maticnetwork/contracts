@@ -36,9 +36,9 @@ async function stake() {
   const _validator = await stakeManager.validators(validatorId)
   const validator = await ValidatorShare.at(_validator.contractAddress)
   console.log('approved, delegating now...')
-  result = await validator.buyVoucher(web3.utils.toWei('100'))
+  result = await validator.buyVoucher(web3.utils.toWei('100'), 0)
   console.log(`Bond ${web3.utils.toWei('100')} tokens to ${validatorId}: txHash ${result.tx}`)
-  result = await validator.sellVoucher()
+  result = await validator.sellVoucher(web3.utils.toWei('100'))
   console.log(`UnBond from ${validatorId}: txHash ${result.tx}`)
   console.log('UnStaking now...')
   result = await stakeManager.unstake(validatorId)
@@ -58,13 +58,13 @@ async function delegate(validatorId) {
   const _validator = await stakeManager.validators(validatorId)
   const validator = await ValidatorShare.at(_validator.contractAddress)
   console.log('approved, delegating now...')
-  let result = await validator.buyVoucher(web3.utils.toWei('100'))
+  let result = await validator.buyVoucher(web3.utils.toWei('100'), 0)
   console.log(`Bond ${web3.utils.toWei('100')} to ${validatorId}: txHash ${result.tx}`)
-  result = await validator.sellVoucher()
+  result = await validator.sellVoucher(web3.utils.toWei('100'))
   console.log(`UnBond from ${validatorId}: txHash ${result.tx}`)
 }
 
-module.exports = async function (callback) {
+module.exports = async function(callback) {
   try {
     await stake()
   } catch (e) {

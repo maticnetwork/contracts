@@ -12,9 +12,9 @@ contract ValidatorShareTest is ValidatorShareStorage {
 
     function exchangeRate() public view returns (uint256);
 
-    function buyVoucher(uint256 _amount) public;
+    function buyVoucher(uint256 _amount, uint256 _minSharesToMint) public;
 
-    function sellVoucher() public;
+    function sellVoucher(uint256 _minClaimAmount) public;
 
     function withdrawRewards() public;
 

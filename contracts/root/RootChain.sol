@@ -16,38 +16,19 @@ contract RootChain is RootChainStorage, IRootChain {
     using RLPReader for RLPReader.RLPItem;
 
     modifier onlyDepositManager() {
-        require(
-            msg.sender == registry.getDepositManagerAddress(),
-            "UNAUTHORIZED_DEPOSIT_MANAGER_ONLY"
-        );
+        require(msg.sender == registry.getDepositManagerAddress(), "UNAUTHORIZED_DEPOSIT_MANAGER_ONLY");
         _;
     }
 
-    function submitHeaderBlock(bytes calldata data, bytes calldata sigs)
-        external
-    {
-        (
-            address proposer,
-            uint256 start,
-            uint256 end,
-            bytes32 rootHash,
-            bytes32 accountHash,
-            uint256 _borChainID
-        ) = abi.decode(
-            data,
-            (address, uint256, uint256, bytes32, bytes32, uint256)
-        );
+    function submitHeaderBlock(bytes calldata data, bytes calldata sigs) external {
+        (address proposer, uint256 start, uint256 end, bytes32 rootHash, bytes32 accountHash, uint256 _borChainID) = abi
+            .decode(data, (address, uint256, uint256, bytes32, bytes32, uint256));
         require(CHAINID == _borChainID, "Invalid bor chain id");
 
-        require(
-            _buildHeaderBlock(proposer, start, end, rootHash),
-            "INCORRECT_HEADER_DATA"
-        );
+        require(_buildHeaderBlock(proposer, start, end, rootHash), "INCORRECT_HEADER_DATA");
 
         // check if it is better to keep it in local storage instead
-        IStakeManager stakeManager = IStakeManager(
-            registry.getStakeManagerAddress()
-        );
+        IStakeManager stakeManager = IStakeManager(registry.getStakeManagerAddress());
         uint256 _reward = stakeManager.checkSignatures(
             end.sub(start).add(1),
             /**  
@@ -62,23 +43,12 @@ contract RootChain is RootChainStorage, IRootChain {
         );
 
         require(_reward != 0, "Invalid checkpoint");
-        emit NewHeaderBlock(
-            proposer,
-            _nextHeaderBlock,
-            _reward,
-            start,
-            end,
-            rootHash
-        );
+        emit NewHeaderBlock(proposer, _nextHeaderBlock, _reward, start, end, rootHash);
         _nextHeaderBlock = _nextHeaderBlock.add(MAX_DEPOSITS);
         _blockDepositId = 1;
     }
 
-    function updateDepositId(uint256 numDeposits)
-        external
-        onlyDepositManager
-        returns (uint256 depositId)
-    {
+    function updateDepositId(uint256 numDeposits) external onlyDepositManager returns (uint256 depositId) {
         depositId = currentHeaderBlock().add(_blockDepositId);
         // deposit ids will be (_blockDepositId, _blockDepositId + 1, .... _blockDepositId + numDeposits - 1)
         _blockDepositId = _blockDepositId.add(numDeposits);
@@ -139,6 +109,7 @@ contract RootChain is RootChainStorage, IRootChain {
         }
         _nextHeaderBlock = _value;
         _blockDepositId = 1;
+        emit ResetHeaderBlock(msg.sender, _nextHeaderBlock);
     }
 
     // Housekeeping function. @todo remove later

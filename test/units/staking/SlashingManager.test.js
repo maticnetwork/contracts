@@ -10,8 +10,8 @@ import {
   assertBigNumbergt,
   assertBigNumberEquality
 } from '../../helpers/utils.js'
-import { expectEvent } from '@openzeppelin/test-helpers'
 import { generateFirstWallets, mnemonics } from '../../helpers/wallets.js'
+import { buyVoucher } from './ValidatorShareHelper.js'
 
 chai.use(chaiAsPromised).should()
 
@@ -161,9 +161,7 @@ contract('Slashing:delegation', async function(accounts) {
       await stakeToken.approve(stakeManager.address, web3.utils.toWei('250'), {
         from: delegator
       })
-      let result = await validatorContract.buyVoucher(web3.utils.toWei('250'), {
-        from: delegator
-      })
+      let result = await buyVoucher(validatorContract, web3.utils.toWei('250'), delegator)
       const amount = +web3.utils.toWei('100')
 
       const slashingInfoList = [[1, amount, '0x0'], [2, amount, '0x0']]

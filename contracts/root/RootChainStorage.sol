@@ -4,6 +4,7 @@ import {Registry} from "../common/Registry.sol";
 import {ProxyStorage} from "../common/misc/ProxyStorage.sol";
 import {ChainIdMixin} from "../common/mixin/ChainIdMixin.sol";
 
+
 contract RootChainHeader {
     event NewHeaderBlock(
         address indexed proposer,
@@ -13,7 +14,8 @@ contract RootChainHeader {
         uint256 end,
         bytes32 root
     );
-
+    // housekeeping event
+    event ResetHeaderBlock(address indexed proposer, uint256 indexed headerBlockId);
     struct HeaderBlock {
         bytes32 root;
         uint256 start;
@@ -22,6 +24,7 @@ contract RootChainHeader {
         address proposer;
     }
 }
+
 
 contract RootChainStorage is ProxyStorage, RootChainHeader, ChainIdMixin {
     bytes32 public heimdallId;
