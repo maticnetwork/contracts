@@ -17,18 +17,18 @@ contract StakeManagerStorage is ProxyStorage, Lockable, RootChainable {
     StakingInfo public logger;
     StakingNFT public NFTContract;
     ValidatorShareFactory public factory;
-    uint256 public WITHDRAWAL_DELAY = (2**13); // unit: epoch
+    uint256 public WITHDRAWAL_DELAY = 3544; // unit: epoch
     uint256 public currentEpoch = 1;
 
     // genesis/governance variables
-    uint256 public dynasty = 2**13; // unit: epoch 50 days
-    uint256 public CHECKPOINT_REWARD = 10000 * (10**18); // update via governance
+    uint256 public dynasty = 3544; // unit: epoch 50 days
+    uint256 public CHECKPOINT_REWARD = 5047 * (10**18); // update via governance
     uint256 public minDeposit = (10**18); // in ERC20 token
     uint256 public minHeimdallFee = (10**18); // in ERC20 token
-    uint256 public checkPointBlockInterval = 255;
+    uint256 public checkPointBlockInterval = 256;
     uint256 public signerUpdateLimit = 100;
 
-    uint256 public validatorThreshold = 10; //128
+    uint256 public validatorThreshold = 11;
     uint256 public totalStaked;
     uint256 public NFTCounter = 1;
     uint256 public totalRewards;
