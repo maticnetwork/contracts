@@ -780,13 +780,12 @@ contract('ValidatorShare', async function() {
       })
 
       it('Must try to buy with slippage and revert', async function() {
-        const exchangeRate = 60
-        await expectRevert(this.validatorContract.buyVoucher(web3.utils.toWei('100'), exchangeRate, { from: this.alice }), 'More slippage then expectedExchangeRate')
+        await expectRevert(this.validatorContract.buyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100.1'), { from: this.alice }), 'Too much slippage')
       })
       it('Must try to buy with slippage and revert', async function() {
         const exchangeRate = 120
         await buyVoucher(this.validatorContract, web3.utils.toWei('100'), this.alice)
-        await expectRevert(this.validatorContract.sellVoucher(exchangeRate, { from: this.alice }), 'More slippage then expectedExchangeRate')
+        await expectRevert(this.validatorContract.sellVoucher(web3.utils.toWei('100.1'), { from: this.alice }), 'Too much slippage')
       })
     })
   })
