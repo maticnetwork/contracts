@@ -177,7 +177,7 @@ contract('RootChain', async function(accounts) {
       before(freshDeploy)
 
       before(function() {
-        this.reward = '10000000000000000000000'
+        this.reward = '5047000000000000000000'
         this.start = 0
         this.end = 255
         this.headerBlockId = '10000'

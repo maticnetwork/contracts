@@ -82,7 +82,7 @@ contract('Slashing:validator', async function(accounts) {
       await checkPoint([validator1Wallet], validator1Wallet, stakeManager)
       const val1AfterCheckpoint = await stakeManager.validators(1)
       assertBigNumbergt(val1AfterCheckpoint.reward, validator1.reward)
-      assertBigNumberEquality(val1AfterCheckpoint.reward, web3.utils.toWei('10000'))
+      assertBigNumberEquality(val1AfterCheckpoint.reward, web3.utils.toWei('5047'))
     })
 
     it('should test jail/unjail', async function() {
@@ -98,7 +98,7 @@ contract('Slashing:validator', async function(accounts) {
       assert.equal(await stakeManager.isValidator(2), true)
       await checkPoint([validator1Wallet, validator2Wallet], validator1Wallet, stakeManager)
       const validator2 = await stakeManager.validators(2)
-      assertBigNumbergt(validator2.reward, web3.utils.toWei('4260')) // 4700-10% proposer bonus
+      assertBigNumbergt(validator2.reward, web3.utils.toWei('2151'))// change due to updated rewards 5047
     })
 
     it('should test jail => unstake', async function() {
