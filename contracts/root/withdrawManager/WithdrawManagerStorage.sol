@@ -66,7 +66,7 @@ contract WithdrawManagerStorage is ProxyStorage, WithdrawManagerHeader {
     // uint32 constant internal ITERATION_GAS = 52000;
 
     // So putting an upper limit of 155000 + 52000 + leeway
-    uint32 internal constant ON_FINALIZE_GAS_LIMIT = 300000;
+    uint32 public ON_FINALIZE_GAS_LIMIT = 300000;
 
     uint256 public exitWindow;
 }
