@@ -4,8 +4,12 @@ import { checkPoint, assertBigNumberEquality } from '../../helpers/utils.js'
 import { wallets, freshDeploy, approveAndStake } from './deployment'
 import { buyVoucher, sellVoucher } from './ValidatorShareHelper.js'
 
+const toBN = web3.utils.toBN
+const toWei = web3.utils.toWei
+
 contract('ValidatorShare', async function() {
   const ZeroAddr = '0x0000000000000000000000000000000000000000'
+  const wei100 = toWei('100')
 
   async function doDeploy() {
     await freshDeploy.call(this)
@@ -102,7 +106,7 @@ contract('ValidatorShare', async function() {
   describe('buyVoucher', function() {
     function testBuyVoucher(voucherValue, voucherValueExpected, userTotalStaked, totalStaked, shares) {
       it('must buy voucher', async function() {
-        this.receipt = await buyVoucher(this.validatorContract, voucherValue, this.user)
+        this.receipt = await buyVoucher(this.validatorContract, voucherValue, this.user, shares)
       })
 
       it('ValidatorShare must mint correct amount of shares', async function() {
@@ -146,6 +150,15 @@ contract('ValidatorShare', async function() {
       })
 
       testBuyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'), web3.utils.toWei('100'))
+    })
+
+    describe('when Alice purchases voucher with exact minSharesToMint', function() {
+      deployAliceAndBob()
+
+      before(function() {
+        this.user = this.alice
+      })
+      testBuyVoucher(wei100, wei100, wei100, wei100, wei100)
     })
 
     describe('when delegation is disabled', function() {
@@ -421,6 +434,23 @@ contract('ValidatorShare', async function() {
       before(doDeployAndBuyVoucherForAlice)
 
       testSellVoucher()
+    })
+
+    describe('when Alice sells voucher with minClaimAmount', function() {
+      before(doDeployAndBuyVoucherForAlice)
+
+      it('must sell voucher', async function() {
+        const initialBalance = await this.stakeToken.balanceOf(this.user)
+        const minClaimAmount = this.shares.mul(await this.validatorContract.exchangeRate()).div(toBN('100')) /* EXCHANGE_RATE_PRECISION */
+        this.receipt = await sellVoucher(this.validatorContract, this.user, minClaimAmount)
+        assertBigNumberEquality(await this.stakeToken.balanceOf(this.user), initialBalance.add(minClaimAmount).sub(toBN(wei100)))
+      })
+
+      it('must emit ShareBurned', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ShareBurned', {
+          tokens: this.shares
+        })
+      })
     })
 
     describe('when delegation is disabled after voucher was purchased by Alice', function() {
@@ -780,12 +810,12 @@ contract('ValidatorShare', async function() {
       })
 
       it('Must try to buy with slippage and revert', async function() {
-        await expectRevert(this.validatorContract.buyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100.1'), { from: this.alice }), 'Too much slippage')
+        await expectRevert(this.validatorContract.buyVoucher(web3.utils.toWei('100'), web3.utils.toWei('100.0001'), { from: this.alice }), 'Too much slippage')
       })
       it('Must try to buy with slippage and revert', async function() {
         const exchangeRate = 120
         await buyVoucher(this.validatorContract, web3.utils.toWei('100'), this.alice)
-        await expectRevert(this.validatorContract.sellVoucher(web3.utils.toWei('100.1'), { from: this.alice }), 'Too much slippage')
+        await expectRevert(this.validatorContract.sellVoucher(web3.utils.toWei('100.00001'), { from: this.alice }), 'Too much slippage')
       })
     })
   })

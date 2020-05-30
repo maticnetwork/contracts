@@ -1,13 +1,12 @@
 
-export async function buyVoucher(validatorContract, amount, delegator) {
-  return validatorContract.buyVoucher(amount, 0 /* minSharesToMint */, {
+export async function buyVoucher(validatorContract, amount, delegator, minSharesToMint) {
+  return validatorContract.buyVoucher(amount, minSharesToMint || 0, {
     from: delegator
   })
 }
 
-export async function sellVoucher(validatorContract, delegator) {
-  const expectedExchangeRate = await validatorContract.exchangeRate()
-  return validatorContract.sellVoucher(0 /* minClaimAmount */, {
+export async function sellVoucher(validatorContract, delegator, minClaimAmount) {
+  return validatorContract.sellVoucher(minClaimAmount || 0, {
     from: delegator
   })
 }

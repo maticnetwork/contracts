@@ -38,7 +38,7 @@ async function stake() {
   console.log('approved, delegating now...')
   result = await validator.buyVoucher(web3.utils.toWei('100'), 0)
   console.log(`Bond ${web3.utils.toWei('100')} tokens to ${validatorId}: txHash ${result.tx}`)
-  result = await validator.sellVoucher(await validator.exchangeRate())
+  result = await validator.sellVoucher(web3.utils.toWei('100'))
   console.log(`UnBond from ${validatorId}: txHash ${result.tx}`)
   console.log('UnStaking now...')
   result = await stakeManager.unstake(validatorId)
@@ -60,7 +60,7 @@ async function delegate(validatorId) {
   console.log('approved, delegating now...')
   let result = await validator.buyVoucher(web3.utils.toWei('100'), 0)
   console.log(`Bond ${web3.utils.toWei('100')} to ${validatorId}: txHash ${result.tx}`)
-  result = await validator.sellVoucher(await validator.exchangeRate())
+  result = await validator.sellVoucher(web3.utils.toWei('100'))
   console.log(`UnBond from ${validatorId}: txHash ${result.tx}`)
 }
 
