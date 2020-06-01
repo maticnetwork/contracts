@@ -41,4 +41,6 @@ contract ValidatorShareTest is ValidatorShareStorage {
     ) external;
 
     function slash(uint256 valPow, uint256 totalAmountToSlash) external returns (uint256);
+
+    function updateDelegation(bool delegation) external;
 }
