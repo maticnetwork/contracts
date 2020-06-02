@@ -58,6 +58,8 @@ contract ValidatorShare is ValidatorShareStorage {
     }
 
     function buyVoucher(uint256 _amount, uint256 _minSharesToMint) public onlyWhenUnlocked {
+        require(delegation, "Delegation is disabled");
+
         uint256 rate = exchangeRate();
         uint256 share = _amount.mul(EXCHANGE_RATE_PRECISION).div(rate);
         require(share >= _minSharesToMint, "Too much slippage");
@@ -193,6 +195,10 @@ contract ValidatorShare is ValidatorShareStorage {
         withdrawPool = _withdrawPool.sub(_amountToSlashWithdrawalPool);
         activeAmount = activeAmount.sub(_amountToSlash.sub(_amountToSlashWithdrawalPool));
         return _amountToSlash;
+    }
+
+    function updateDelegation(bool _delegation) external onlyOwner {
+        delegation = _delegation;
     }
 
     function drain(

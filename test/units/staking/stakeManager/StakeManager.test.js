@@ -13,8 +13,7 @@ import {
   buildSubmitHeaderBlockPaylod,
   buildSubmitHeaderBlockPaylodWithVotes,
   encodeSigs,
-  getSigs,
-  assertBigNumbergt
+  getSigs
 } from '../../../helpers/utils.js'
 import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
 import { wallets, freshDeploy, approveAndStake } from '../deployment'
@@ -139,6 +138,59 @@ contract('StakeManager', async function(accounts) {
       assertBigNumberEquality(this.bidderBalanceBeforeAuction.sub(new BN(this.bidAmount)).sub(new BN(this.heimdallFee)), currentBalance)
     })
   }
+
+  describe('updateValidatorDelegation', function() {
+    let staker = wallets[1]
+    let stakeAmount = web3.utils.toWei('100')
+
+    function doDeploy(acceptDelegation) {
+      before('Fresh deploy', freshDeploy)
+      before('Approve and stake', async function() {
+        await approveAndStake.call(this, { wallet: staker, stakeAmount: stakeAmount, acceptDelegation })
+
+        if (acceptDelegation) {
+          const validator = await this.stakeManager.validators('1')
+          this.validatorShares = await ValidatorShareTest.at(validator.contractAddress)
+        }
+      })
+    }
+
+    describe('when from is not validator', function() {
+      doDeploy(true)
+
+      it('reverts ', async function() {
+        await expectRevert(this.stakeManager.updateValidatorDelegation(false, { from: wallets[2].getAddressString() }), 'not a validator')
+      })
+    })
+
+    describe('when validator has no delegation', function() {
+      doDeploy(false)
+
+      it('reverts ', async function() {
+        await expectRevert(this.stakeManager.updateValidatorDelegation(false, { from: staker.getAddressString() }), 'delegation not enabled')
+      })
+    })
+
+    describe('when validator is valid', function() {
+      doDeploy(true)
+
+      it('disables delegation ', async function() {
+        await this.stakeManager.updateValidatorDelegation(false, { from: staker.getAddressString() })
+      })
+
+      it('validatorShares delegation == false', async function() {
+        assert.isFalse(await this.validatorShares.delegation())
+      })
+
+      it('enables delegation ', async function() {
+        await this.stakeManager.updateValidatorDelegation(true, { from: staker.getAddressString() })
+      })
+
+      it('validatorShares delegation == true', async function() {
+        assert.isTrue(await this.validatorShares.delegation())
+      })
+    })
+  })
 
   describe('drain', function() {
     describe('when not drained by governance', function() {
@@ -1472,7 +1524,6 @@ contract('StakeManager', async function(accounts) {
         }), 'Must bid higher')
       })
     })
-
   })
 
   describe('confirmAuctionBid', function() {
