@@ -50,5 +50,5 @@ contract ValidatorShareStorage is ProxyStorage, ERC20Disabled, Lockable, Validat
 
     mapping(address => uint256) public amountStaked;
     mapping(address => Delegator) public delegators;
-    mapping(address => uint256) public ininitalRewardPerShare;
+    mapping(address => uint256) public initalRewardPerShare;
 }

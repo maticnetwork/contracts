@@ -72,7 +72,7 @@ contract ValidatorShare is ValidatorShareStorage {
         amountStaked[msg.sender] = amountStaked[msg.sender].add(_amount);
         require(stakeManager.delegationDeposit(validatorId, _amount, msg.sender), "deposit failed");
 
-        ininitalRewardPerShare[msg.sender] = rewardPerShare;
+        initalRewardPerShare[msg.sender] = rewardPerShare;
         activeAmount = activeAmount.add(_amount);
         stakeManager.updateValidatorState(validatorId, int256(_amount));
 
@@ -149,7 +149,7 @@ contract ValidatorShare is ValidatorShareStorage {
             return 0;
         }
 
-        return rewardPerShare.sub(ininitalRewardPerShare[user]).mul(shares).div(REWARD_PRECISION);
+        return rewardPerShare.sub(initalRewardPerShare[user]).mul(shares).div(REWARD_PRECISION);
     }
 
     function unstakeClaimTokens() public {
