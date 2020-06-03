@@ -10,7 +10,7 @@ import {ProxyStorage} from "../../common/misc/ProxyStorage.sol";
 
 contract ValidatorShareHeader {
     struct Delegator {
-        uint256 share;
+        uint256 shares;
         uint256 withdrawEpoch;
     }
 }
@@ -28,6 +28,9 @@ contract ERC20Disabled is ERC20 {
 
 
 contract ValidatorShareStorage is ProxyStorage, ERC20Disabled, Lockable, ValidatorShareHeader {
+    uint256 constant EXCHANGE_RATE_PRECISION = 100;
+    uint256 constant REWARD_PRECISION = 10000;
+
     StakingInfo public stakingLogger;
     IStakeManager public stakeManager;
     uint256 public validatorId;
@@ -38,7 +41,7 @@ contract ValidatorShareStorage is ProxyStorage, ERC20Disabled, Lockable, Validat
     uint256 public minAmount = 10**18;
 
     uint256 public totalStake;
-    uint256 public rewards;
+    uint256 public rewardPerShare;
     uint256 public activeAmount;
     bool public delegation = true;
 
@@ -47,6 +50,5 @@ contract ValidatorShareStorage is ProxyStorage, ERC20Disabled, Lockable, Validat
 
     mapping(address => uint256) public amountStaked;
     mapping(address => Delegator) public delegators;
-    
-    uint256 constant EXCHANGE_RATE_PRECISION = 100;
+    mapping(address => uint256) public ininitalRewardPerShare;
 }

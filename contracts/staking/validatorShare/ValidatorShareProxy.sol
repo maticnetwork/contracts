@@ -67,6 +67,10 @@ contract ValidatorShareProxy is Proxy, ValidatorShareStorage {
         validatorRewards = validatorRewards.add(_validatorRewards);
 
         uint256 delegatorsRewards = _rewards.sub(_validatorRewards);
-        rewards = rewards.add(delegatorsRewards);
+
+        uint256 totalShares = totalSupply();
+        if (totalShares > 0) {
+            rewardPerShare = rewardPerShare.add(delegatorsRewards.mul(REWARD_PRECISION).div(totalShares));
+        }
     }
 }
