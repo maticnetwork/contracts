@@ -134,6 +134,7 @@ contract ValidatorShare is ValidatorShareStorage {
         require(liquidRewards >= minAmount, "Too small rewards to restake");
 
         amountStaked[msg.sender] = amountStaked[msg.sender].add(liquidRewards);
+        initalRewardPerShare[msg.sender] = rewardPerShare;
         totalStake = totalStake.add(liquidRewards);
         activeAmount = activeAmount.add(liquidRewards);
         stakeManager.updateValidatorState(validatorId, int256(liquidRewards));
