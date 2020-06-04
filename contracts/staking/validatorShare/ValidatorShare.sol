@@ -29,7 +29,7 @@ contract ValidatorShare is ValidatorShareStorage {
             "Commission rate update cooldown period"
         );
 
-        require(newCommissionRate <= 100, "Commission rate should be in range of 0-100");
+        require(newCommissionRate <= MAX_COMMISION_RATE, "Commission rate should be in range of 0-100");
         stakingLogger.logUpdateCommissionRate(validatorId, newCommissionRate, commissionRate);
         commissionRate = newCommissionRate;
         lastCommissionUpdate = epoch;
@@ -66,6 +66,7 @@ contract ValidatorShare is ValidatorShareStorage {
         withdrawAndTransferRewards();
 
         _mint(msg.sender, shares);
+        
         _amount = _amount.sub(_amount % rate.mul(shares).div(EXCHANGE_RATE_PRECISION));
 
         totalStake = totalStake.add(_amount);

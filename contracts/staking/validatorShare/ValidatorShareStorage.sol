@@ -29,6 +29,7 @@ contract ERC20Disabled is ERC20 {
 
 contract ValidatorShareStorage is ProxyStorage, ERC20Disabled, Lockable, ValidatorShareHeader {
     uint256 constant EXCHANGE_RATE_PRECISION = 100;
+    uint256 constant MAX_COMMISION_RATE = 100;
     uint256 constant REWARD_PRECISION = 10000;
 
     StakingInfo public stakingLogger;

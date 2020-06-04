@@ -29,7 +29,7 @@ contract ValidatorShareProxy is Proxy, ValidatorShareStorage {
         return Registry(proxyTo).getValidatorShareAddress();
     }
 
-    function updateRewards(uint256 _reward, uint256 _stakePower, uint256 validatorStake)
+    function updateRewards(uint256 reward, uint256 checkpointStakePower, uint256 validatorStake)
         external
         onlyOwner
         returns (uint256)
@@ -45,32 +45,35 @@ contract ValidatorShareProxy is Proxy, ValidatorShareStorage {
         - returns total active stake for validator
         */
         uint256 combinedStakePower = validatorStake.add(activeAmount); // validator + delegation stake power
-        uint256 _rewards = combinedStakePower.mul(_reward).div(_stakePower);
+        uint256 rewards = combinedStakePower.mul(reward).div(checkpointStakePower);
 
-        _updateRewards(_rewards, validatorStake, combinedStakePower);
+        _updateRewards(rewards, validatorStake, combinedStakePower);
         return combinedStakePower;
     }
 
-    function addProposerBonus(uint256 _rewards, uint256 valStake) public onlyOwner {
-        uint256 stakePower = valStake.add(activeAmount);
-        _updateRewards(_rewards, valStake, stakePower);
+    function addProposerBonus(uint256 rewards, uint256 validatorStake) public onlyOwner {
+        uint256 combinedStakePower = validatorStake.add(activeAmount);
+        _updateRewards(rewards, validatorStake, combinedStakePower);
     }
 
-    function _updateRewards(uint256 _rewards, uint256 valStake, uint256 stakePower) internal {
-        uint256 _validatorRewards = valStake.mul(_rewards).div(stakePower);
+    function _updateRewards(uint256 rewards, uint256 validatorStake, uint256 combinedStakePower) internal {
+        uint256 _validatorRewards = validatorStake.mul(rewards).div(combinedStakePower);
 
         // add validator commission from delegation rewards
         if (commissionRate > 0) {
-            _validatorRewards = _validatorRewards.add(_rewards.sub(_validatorRewards).mul(commissionRate).div(100));
+            _validatorRewards = _validatorRewards.add(
+                rewards.sub(_validatorRewards).mul(commissionRate).div(MAX_COMMISION_RATE)
+            );
         }
 
         validatorRewards = validatorRewards.add(_validatorRewards);
 
-        uint256 delegatorsRewards = _rewards.sub(_validatorRewards);
-
+        uint256 delegatorsRewards = rewards.sub(_validatorRewards);
         uint256 totalShares = totalSupply();
         if (totalShares > 0) {
-            rewardPerShare = rewardPerShare.add(delegatorsRewards.mul(REWARD_PRECISION).div(totalShares));
+            rewardPerShare = rewardPerShare.add(
+                delegatorsRewards.mul(REWARD_PRECISION).div(totalShares)
+            );
         }
     }
 }
