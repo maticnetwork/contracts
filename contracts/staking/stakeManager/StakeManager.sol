@@ -9,7 +9,7 @@ import {RLPReader} from "solidity-rlp/contracts/RLPReader.sol";
 import {BytesLib} from "../../common/lib/BytesLib.sol";
 import {ECVerify} from "../../common/lib/ECVerify.sol";
 import {Merkle} from "../../common/lib/Merkle.sol";
-import {Lockable} from "../../common/mixin/Lockable.sol";
+import {GovernanceLockable} from "../../common/mixin/GovernanceLockable.sol";
 import {RootChainable} from "../../common/mixin/RootChainable.sol";
 import {Registry} from "../../common/Registry.sol";
 import {IStakeManager} from "./IStakeManager.sol";
@@ -36,7 +36,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         _;
     }
 
-    constructor() public Lockable(address(0x0)) {}
+    constructor() public GovernanceLockable(address(0x0)) {}
 
     function setDelegationEnabled(bool enabled) public onlyGovernance {
         delegationEnabled = enabled;

@@ -2,7 +2,7 @@ pragma solidity ^0.5.2;
 
 import {Proxy} from "../../common/misc/Proxy.sol";
 import {ValidatorShareStorage} from "./ValidatorShareStorage.sol";
-import {Lockable} from "../../common/mixin/Lockable.sol";
+import {GovernanceLockable} from "../../common/mixin/GovernanceLockable.sol";
 import {StakingInfo} from "../StakingInfo.sol";
 import {IStakeManager} from "../stakeManager/IStakeManager.sol";
 import {Registry} from "../../common/Registry.sol";
@@ -14,7 +14,7 @@ contract ValidatorShareProxy is Proxy, ValidatorShareStorage {
         uint256 _validatorId,
         address _stakingLogger,
         address _stakeManager
-    ) public Proxy(_registry) Lockable(_stakeManager) {
+    ) public Proxy(_registry) GovernanceLockable(_stakeManager) {
         validatorId = _validatorId;
         stakingLogger = StakingInfo(_stakingLogger);
         stakeManager = IStakeManager(_stakeManager);

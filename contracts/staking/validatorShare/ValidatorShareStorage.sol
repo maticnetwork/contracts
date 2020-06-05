@@ -2,7 +2,7 @@ pragma solidity ^0.5.2;
 
 import {ERC20} from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 
-import {Lockable} from "../../common/mixin/Lockable.sol";
+import {GovernanceLockable} from "../../common/mixin/GovernanceLockable.sol";
 import {StakingInfo} from "../StakingInfo.sol";
 import {IStakeManager} from "../stakeManager/IStakeManager.sol";
 import {ProxyStorage} from "../../common/misc/ProxyStorage.sol";
@@ -27,7 +27,7 @@ contract ERC20Disabled is ERC20 {
 }
 
 
-contract ValidatorShareStorage is ProxyStorage, ERC20Disabled, Lockable, ValidatorShareHeader {
+contract ValidatorShareStorage is ProxyStorage, ERC20Disabled, GovernanceLockable, ValidatorShareHeader {
     StakingInfo public stakingLogger;
     IStakeManager public stakeManager;
     uint256 public validatorId;
