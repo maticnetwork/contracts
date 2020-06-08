@@ -90,7 +90,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         return combinedStakePower;
     }
 
-    function addProposerBonus(uint256 _rewards, uint256 valStake) public onlyValidator {
+    function addProposerBonus(uint256 _rewards, uint256 valStake) public onlyOwner {
         uint256 stakePower = valStake.add(activeAmount);
         _updateRewards(_rewards, valStake, stakePower);
     }
