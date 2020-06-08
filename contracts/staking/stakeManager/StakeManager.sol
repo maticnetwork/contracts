@@ -720,4 +720,14 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         logger = StakingInfo(_stakingLogger);
         factory = ValidatorShareFactory(_validatorShareFactory);
     }
+
+    function updateValidatorDelegation(bool delegation) external {
+        uint256 validatorId = signerToValidator[msg.sender];
+        require(isValidator(validatorId), "not a validator");
+
+        address contractAddr = validators[validatorId].contractAddress;
+        require(contractAddr != address(0x0), "delegation not enabled");
+
+        IValidatorShare(contractAddr).updateDelegation(delegation);
+    }
 }
