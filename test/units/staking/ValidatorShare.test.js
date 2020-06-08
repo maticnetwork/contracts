@@ -40,6 +40,24 @@ contract('ValidatorShare', async function() {
     this.validatorContract = await ValidatorShareTest.at(validator.contractAddress)
   }
 
+  describe('updateDelegation', function() {
+    describe('when from is not stake manager', function() {
+      before(doDeploy)
+
+      it('reverts', async function() {
+        await expectRevert.unspecified(this.validatorContract.updateDelegation(false, { from: wallets[1].getAddressString() }))
+      })
+    })
+
+    describe('when from is stake manager', function() {
+      before(doDeploy)
+
+      it('updates delegation', async function() {
+        await this.stakeManager.updateValidatorDelegation(false, { from: this.validatorUser.getAddressString() })
+      })
+    })
+  })
+
   describe('drain', function() {
     function prepareForTests() {
       before(doDeploy)
@@ -176,18 +194,19 @@ contract('ValidatorShare', async function() {
       testBuyVoucher(wei100, wei100, wei100, wei100, wei100)
     })
 
-    describe('when Alice purchases voucher with minSharesToMint greater than expected', function() {
+    describe('when validator turns off delegation', function() {
       deployAliceAndBob()
 
+      before('disable delegation', async function() {
+        await this.stakeManager.updateValidatorDelegation(false, { from: this.validatorUser.getChecksumAddressString() })
+      })
+
       it('reverts', async function() {
-        await expectRevert(
-          buyVoucher(this.validatorContract, web3.utils.toWei('100'), this.alice, web3.utils.toWei('101')),
-          'Too much slippage'
-        )
+        await expectRevert(buyVoucher(this.validatorContract, web3.utils.toWei('150'), this.alice), 'Delegation is disabled')
       })
     })
 
-    describe('when delegation is disabled', function() {
+    describe('when staking manager delegation is disabled', function() {
       deployAliceAndBob()
 
       before('disable delegation', async function() {
