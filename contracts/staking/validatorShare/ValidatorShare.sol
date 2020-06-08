@@ -1,24 +1,57 @@
 pragma solidity ^0.5.2;
+
+import {ERC20NonTransferable} from "../../common/tokens/ERC20NonTransferable.sol";
 import {ERC20} from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
-
-import {Registry} from "../../common/Registry.sol";
-import {ValidatorShareStorage} from "./ValidatorShareStorage.sol";
 import {StakingInfo} from "./../StakingInfo.sol";
-import {GovernanceLockable} from "../../common/mixin/GovernanceLockable.sol";
+import {OwnableLockable} from "../../common/mixin/OwnableLockable.sol";
+import {IStakeManager} from "../stakeManager/IStakeManager.sol";
+import {IValidatorShare} from "./IValidatorShare.sol";
+import {Initializable} from "../../common/mixin/Initializable.sol";
 
+contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockable, Initializable {
+    struct Delegator {
+        uint256 share;
+        uint256 withdrawEpoch;
+    }
 
-contract ValidatorShare is ValidatorShareStorage {
+    uint256 constant EXCHANGE_RATE_PRECISION = 100;
+
+    StakingInfo public stakingLogger;
+    IStakeManager public stakeManager;
+
+    uint256 public validatorId;
+    uint256 public validatorRewards;
+    uint256 public commissionRate;
+    uint256 public lastCommissionUpdate;
+    uint256 public minAmount;
+
+    uint256 public totalStake;
+    uint256 public rewards;
+    uint256 public activeAmount;
+
+    bool public delegation;
+
+    uint256 public withdrawPool;
+    uint256 public withdrawShares;
+
+    mapping(address => uint256) public amountStaked;
+    mapping(address => Delegator) public delegators;
+
     modifier onlyValidator() {
-        require(stakeManager.ownerOf(validatorId) == msg.sender);
+        require(stakeManager.ownerOf(validatorId) == msg.sender, "not validator");
         _;
     }
 
-    constructor(
-        address _registry,
-        uint256 _validatorId,
-        address _stakingLogger,
-        address _stakeManager
-    ) public GovernanceLockable(_stakeManager) {} // dummy constructor
+    // onlyOwner will prevent this contract from initializing, since it's owner is going to be 0x0 address
+    function initialize(uint256 _validatorId, address _stakingLogger, address _stakeManager) external initializer  {
+        validatorId = _validatorId;
+        stakingLogger = StakingInfo(_stakingLogger);
+        stakeManager = IStakeManager(_stakeManager);
+        _transferOwnership(_stakeManager);
+
+        minAmount = 10**18;
+        delegation = true;
+    }
 
     function updateCommissionRate(uint256 newCommissionRate) external onlyValidator {
         uint256 epoch = stakeManager.epoch();
@@ -33,6 +66,47 @@ contract ValidatorShare is ValidatorShareStorage {
         stakingLogger.logUpdateCommissionRate(validatorId, newCommissionRate, commissionRate);
         commissionRate = newCommissionRate;
         lastCommissionUpdate = epoch;
+    }
+
+    function updateRewards(uint256 _reward, uint256 _stakePower, uint256 validatorStake)
+        external
+        onlyOwner
+        returns (uint256)
+    {
+        /**
+        restaking is simply buying more shares of pool
+        but those needs to be nonswapable/transferrable(to prevent https://en.wikipedia.org/wiki/Tragedy_of_the_commons)
+
+        - calculate rewards for validator stake + delgation
+        - keep the validator rewards aside
+        - take the commission out
+        - add rewards to pool rewards
+        - returns total active stake for validator
+        */
+        uint256 combinedStakePower = validatorStake.add(activeAmount); // validator + delegation stake power
+        uint256 _rewards = combinedStakePower.mul(_reward).div(_stakePower);
+
+        _updateRewards(_rewards, validatorStake, combinedStakePower);
+        return combinedStakePower;
+    }
+
+    function addProposerBonus(uint256 _rewards, uint256 valStake) public onlyValidator {
+        uint256 stakePower = valStake.add(activeAmount);
+        _updateRewards(_rewards, valStake, stakePower);
+    }
+
+    function _updateRewards(uint256 _rewards, uint256 valStake, uint256 stakePower) internal {
+        uint256 _validatorRewards = valStake.mul(_rewards).div(stakePower);
+
+        // add validator commission from delegation rewards
+        if (commissionRate > 0) {
+            _validatorRewards = _validatorRewards.add(_rewards.sub(_validatorRewards).mul(commissionRate).div(100));
+        }
+
+        validatorRewards = validatorRewards.add(_validatorRewards);
+
+        uint256 delegatorsRewards = _rewards.sub(_validatorRewards);
+        rewards = rewards.add(delegatorsRewards);
     }
 
     function withdrawRewardsValidator() external onlyOwner returns (uint256) {
@@ -207,13 +281,17 @@ contract ValidatorShare is ValidatorShareStorage {
         }
     }
 
+    function getActiveAmount() external view returns(uint256) {
+        return activeAmount;
+    }
+
     function unlockContract() external onlyOwner returns (uint256) {
-        locked = false;
+        lock();
         return activeAmount;
     }
 
     function lockContract() external onlyOwner returns (uint256) {
-        locked = true;
+        unlock();
         return activeAmount;
     }
 }

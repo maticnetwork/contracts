@@ -109,7 +109,7 @@ contract SlashingManager is ISlashingManager, Ownable {
 
                 // add delegation power
                 if (contractAddress != address(0x0)) {
-                    amount = amount.add(IValidatorShare(contractAddress).activeAmount());
+                    amount = amount.add(IValidatorShare(contractAddress).getActiveAmount());
                 }
                 _stakePower = _stakePower.add(amount);
             }

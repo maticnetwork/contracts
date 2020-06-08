@@ -151,7 +151,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         address _contract = validators[validatorId].contractAddress;
 
         if (_contract != address(0x0)) {
-            perceivedStake = perceivedStake.add(IValidatorShare(_contract).activeAmount());
+            perceivedStake = perceivedStake.add(IValidatorShare(_contract).getActiveAmount());
         }
 
         Auction storage auction = validatorAuction[validatorId];
@@ -200,7 +200,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         address contractAddr = validators[validatorId].contractAddress;
 
         if (contractAddr != address(0x0)) {
-            perceivedStake = perceivedStake.add(IValidatorShare(contractAddr).activeAmount());
+            perceivedStake = perceivedStake.add(IValidatorShare(contractAddr).getActiveAmount());
         }
 
         // validator is last auctioner
