@@ -1,5 +1,5 @@
 import { BN, expectEvent, expectRevert } from '@openzeppelin/test-helpers'
-import { TestToken, ValidatorShareTest, StakingInfo } from '../../helpers/artifacts'
+import { TestToken, ValidatorShare, StakingInfo } from '../../helpers/artifacts'
 import { checkPoint, assertBigNumberEquality } from '../../helpers/utils.js'
 import { wallets, freshDeploy, approveAndStake } from './deployment'
 import { buyVoucher, sellVoucher } from './ValidatorShareHelper.js'
@@ -28,8 +28,56 @@ contract('ValidatorShare', async function() {
     await approveAndStake.call(this, { wallet: this.validatorUser, stakeAmount: this.stakeAmount, acceptDelegation: true })
 
     let validator = await this.stakeManager.validators(this.validatorId)
-    this.validatorContract = await ValidatorShareTest.at(validator.contractAddress)
+    this.validatorContract = await ValidatorShare.at(validator.contractAddress)
   }
+
+  describe('locking', function() {
+    before(doDeploy)
+
+    describe('lock', function() {
+      describe('when from is not stake manager', function() {
+        it('reverts', async function() {
+          await expectRevert.unspecified(this.validatorContract.lock())
+        })
+      })
+    })
+
+    describe('unlock', function() {
+      describe('when from is not stake manager', function() {
+        it('reverts', async function() {
+          await expectRevert.unspecified(this.validatorContract.unlock())
+        })
+      })
+    })
+
+    describe('lockContract', function() {
+      describe('when from is not stake manager', function() {
+        it('reverts', async function() {
+          await expectRevert.unspecified(this.validatorContract.lockContract())
+        })
+      })
+
+      describe('when from is stake manager', function() {
+        it('must lock contract', async function() {
+          await this.stakeManager.testLockShareContract(this.validatorId, true)
+        })
+      })
+    })
+
+    describe('unlockContract', function() {
+      describe('when from is not stake manager', function() {
+        it('reverts', async function() {
+          await expectRevert.unspecified(this.validatorContract.unlockContract())
+        })
+      })
+
+      describe('when from is stake manager', function() {
+        it('must unlock contract', async function() {
+          await this.stakeManager.testLockShareContract(this.validatorId, false)
+        })
+      })
+    })
+  })
 
   describe('drain', function() {
     function prepareForTests() {
@@ -110,7 +158,7 @@ contract('ValidatorShare', async function() {
       })
 
       it('ValidatorShare must mint correct amount of shares', async function() {
-        await expectEvent.inTransaction(this.receipt.tx, ValidatorShareTest, 'Transfer', {
+        await expectEvent.inTransaction(this.receipt.tx, ValidatorShare, 'Transfer', {
           from: ZeroAddr,
           to: this.user,
           value: shares
