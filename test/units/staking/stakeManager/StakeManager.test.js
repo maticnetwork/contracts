@@ -150,7 +150,7 @@ contract('StakeManager', async function(accounts) {
 
         if (acceptDelegation) {
           const validator = await this.stakeManager.validators('1')
-          this.validatorShares = await ValidatorShareTest.at(validator.contractAddress)
+          this.validatorShares = await ValidatorShare.at(validator.contractAddress)
         }
       })
     }
