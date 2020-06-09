@@ -118,6 +118,14 @@ contract('UpgradableProxy', function() {
     })
   })
 
+  describe('when implementation is not contract', function() {
+    before(doDeploy)
+
+    it('reverts', async function() {
+      await expectRevert(this.proxy.updateImplementation(wallets[1].getAddressString()), 'DESTINATION_ADDRESS_IS_NOT_A_CONTRACT')
+    })
+  })
+
   describe('when implementation changes storage layout', function() {
     before(doDeploy)
     before(async function() {
