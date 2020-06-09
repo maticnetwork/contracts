@@ -6,8 +6,8 @@ contract UpgradableProxy is DelegateProxy {
     event ProxyUpdated(address indexed _new, address indexed _old);
     event OwnerUpdate(address _new, address _old);
 
-    bytes32 constant IMPLEMENTATION_SLOT = keccak256("matic.proxy.implementation");
-    bytes32 constant OWNER_SLOT = keccak256("matic.proxy.owner");
+    bytes32 constant IMPLEMENTATION_SLOT = keccak256("matic.network.proxy.implementation");
+    bytes32 constant OWNER_SLOT = keccak256("matic.network.proxy.owner");
 
     constructor(address _proxyTo) public {
         setOwner(msg.sender);
