@@ -159,8 +159,7 @@ contract StakingInfo {
     event DelegatorClaimedRewards(
         uint256 indexed validatorId,
         address indexed user,
-        uint256 indexed rewards,
-        uint256 tokens
+        uint256 indexed rewards
     );
     event DelegatorRestaked(
         uint256 indexed validatorId,
@@ -466,10 +465,9 @@ contract StakingInfo {
     function logDelegatorClaimRewards(
         uint256 validatorId,
         address user,
-        uint256 rewards,
-        uint256 tokens
+        uint256 rewards
     ) public onlyValidatorContract(validatorId) {
-        emit DelegatorClaimedRewards(validatorId, user, rewards, tokens);
+        emit DelegatorClaimedRewards(validatorId, user, rewards);
     }
 
     function logDelegatorRestaked(

@@ -43,6 +43,7 @@ export async function freshDeploy() {
   this.registry = contracts.registry
   this.governance = contracts.governance
   this.validatorShare = deployer.validatorShare
+  this.slashingManager = contracts.slashingManager
 
   await this.stakeManager.updateCheckpointReward(web3.utils.toWei('10000'))
   await this.stakeManager.updateCheckPointBlockInterval(1)

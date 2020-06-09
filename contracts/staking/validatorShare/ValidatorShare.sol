@@ -62,13 +62,13 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
             "Commission rate update cooldown period"
         );
 
-        require(newCommissionRate <= 100, "Commission rate should be in range of 0-100");
+        require(newCommissionRate <= MAX_COMMISION_RATE, "Commission rate should be in range of 0-100");
         stakingLogger.logUpdateCommissionRate(validatorId, newCommissionRate, commissionRate);
         commissionRate = newCommissionRate;
         lastCommissionUpdate = epoch;
     }
 
-    function updateRewards(uint256 _reward, uint256 _stakePower, uint256 validatorStake)
+    function updateRewards(uint256 reward, uint256 checkpointStakePower, uint256 validatorStake)
         external
         onlyOwner
         returns (uint256)
@@ -84,29 +84,36 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         - returns total active stake for validator
         */
         uint256 combinedStakePower = validatorStake.add(activeAmount); // validator + delegation stake power
-        uint256 _rewards = combinedStakePower.mul(_reward).div(_stakePower);
+        uint256 rewards = combinedStakePower.mul(reward).div(checkpointStakePower);
 
-        _updateRewards(_rewards, validatorStake, combinedStakePower);
+        _updateRewards(rewards, validatorStake, combinedStakePower);
         return combinedStakePower;
     }
 
-    function addProposerBonus(uint256 _rewards, uint256 valStake) public onlyOwner {
-        uint256 stakePower = valStake.add(activeAmount);
-        _updateRewards(_rewards, valStake, stakePower);
+    function addProposerBonus(uint256 rewards, uint256 validatorStake) public onlyOwner {
+        uint256 combinedStakePower = validatorStake.add(activeAmount);
+        _updateRewards(rewards, validatorStake, combinedStakePower);
     }
 
-    function _updateRewards(uint256 _rewards, uint256 valStake, uint256 stakePower) internal {
-        uint256 _validatorRewards = valStake.mul(_rewards).div(stakePower);
+    function _updateRewards(uint256 rewards, uint256 validatorStake, uint256 combinedStakePower) internal {
+        uint256 _validatorRewards = validatorStake.mul(rewards).div(combinedStakePower);
 
         // add validator commission from delegation rewards
         if (commissionRate > 0) {
-            _validatorRewards = _validatorRewards.add(_rewards.sub(_validatorRewards).mul(commissionRate).div(100));
+            _validatorRewards = _validatorRewards.add(
+                rewards.sub(_validatorRewards).mul(commissionRate).div(MAX_COMMISION_RATE)
+            );
         }
 
         validatorRewards = validatorRewards.add(_validatorRewards);
 
-        uint256 delegatorsRewards = _rewards.sub(_validatorRewards);
-        rewards = rewards.add(delegatorsRewards);
+        uint256 delegatorsRewards = rewards.sub(_validatorRewards);
+        uint256 totalShares = totalSupply();
+        if (totalShares > 0) {
+            rewardPerShare = rewardPerShare.add(
+                delegatorsRewards.mul(REWARD_PRECISION).div(totalShares)
+            );
+        }
     }
 
     function withdrawRewardsValidator() external onlyOwner returns (uint256) {
@@ -116,11 +123,11 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
     }
 
     function exchangeRate() public view returns (uint256) {
-        uint256 totalStaked = totalSupply();
+        uint256 totalShares = totalSupply();
         return
-            totalStaked == 0
+            totalShares == 0
                 ? EXCHANGE_RATE_PRECISION
-                : activeAmount.add(rewards).mul(EXCHANGE_RATE_PRECISION).div(totalStaked);
+                : activeAmount.mul(EXCHANGE_RATE_PRECISION).div(totalShares);
     }
 
     function withdrawExchangeRate() public view returns (uint256) {
@@ -135,65 +142,67 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         require(delegation, "Delegation is disabled");
 
         uint256 rate = exchangeRate();
-        uint256 share = _amount.mul(EXCHANGE_RATE_PRECISION).div(rate);
-        require(share >= _minSharesToMint, "Too much slippage");
+        uint256 shares = _amount.mul(EXCHANGE_RATE_PRECISION).div(rate);
+        require(shares >= _minSharesToMint, "Too much slippage");
+        require(delegators[msg.sender].shares == 0, "Ongoing exit");
 
-        require(delegators[msg.sender].share == 0, "Ongoing exit");
+        withdrawAndTransferRewards();
 
-        _mint(msg.sender, share);
-        _amount = _amount.sub(_amount % rate.mul(share).div(EXCHANGE_RATE_PRECISION));
+        _mint(msg.sender, shares);
+        
+        _amount = _amount.sub(_amount % rate.mul(shares).div(EXCHANGE_RATE_PRECISION));
 
         totalStake = totalStake.add(_amount);
         amountStaked[msg.sender] = amountStaked[msg.sender].add(_amount);
         require(stakeManager.delegationDeposit(validatorId, _amount, msg.sender), "deposit failed");
 
+        initalRewardPerShare[msg.sender] = rewardPerShare;
         activeAmount = activeAmount.add(_amount);
         stakeManager.updateValidatorState(validatorId, int256(_amount));
 
         StakingInfo logger = stakingLogger;
-        logger.logShareMinted(validatorId, msg.sender, _amount, share);
+        logger.logShareMinted(validatorId, msg.sender, _amount, shares);
         logger.logStakeUpdate(validatorId);
     }
 
     function sellVoucher(uint256 _minClaimAmount) public {
-        uint256 share = balanceOf(msg.sender);
-        require(share > 0, "Zero balance");
+        uint256 shares = balanceOf(msg.sender);
+        require(shares > 0, "Zero balance");
+
         uint256 rate = exchangeRate();
-        uint256 _amount = rate.mul(share).div(EXCHANGE_RATE_PRECISION);
+        uint256 _amount = rate.mul(shares).div(EXCHANGE_RATE_PRECISION);
         require(_amount >= _minClaimAmount, "Too much slippage");
-        _burn(msg.sender, share);
+
+        _burn(msg.sender, shares);
         stakeManager.updateValidatorState(validatorId, -int256(_amount));
 
-        uint256 userStake = amountStaked[msg.sender];
-
-        if (_amount > userStake) {
-            uint256 _rewards = _amount.sub(userStake);
-            //withdrawTransfer
-            require(stakeManager.transferFunds(validatorId, _rewards, msg.sender), "Insufficent rewards");
-            _amount = userStake;
-        }
+        withdrawAndTransferRewards();
 
         activeAmount = activeAmount.sub(_amount);
         uint256 _withdrawPoolShare = _amount.mul(EXCHANGE_RATE_PRECISION).div(withdrawExchangeRate());
 
         withdrawPool = withdrawPool.add(_amount);
         withdrawShares = withdrawShares.add(_withdrawPoolShare);
-        delegators[msg.sender] = Delegator({share: _withdrawPoolShare, withdrawEpoch: stakeManager.epoch()});
+        delegators[msg.sender] = Delegator({shares: _withdrawPoolShare, withdrawEpoch: stakeManager.epoch()});
         amountStaked[msg.sender] = 0;
 
         StakingInfo logger = stakingLogger;
-        logger.logShareBurned(validatorId, msg.sender, _amount, share);
+        logger.logShareBurned(validatorId, msg.sender, _amount, shares);
         logger.logStakeUpdate(validatorId);
     }
 
-    function withdrawRewards() public {
+    function withdrawAndTransferRewards() private returns(uint256) {
         uint256 liquidRewards = getLiquidRewards(msg.sender);
-        require(liquidRewards >= minAmount, "Too small rewards amount");
-        uint256 sharesToBurn = liquidRewards.mul(EXCHANGE_RATE_PRECISION).div(exchangeRate());
-        _burn(msg.sender, sharesToBurn);
-        rewards = rewards.sub(liquidRewards);
-        require(stakeManager.transferFunds(validatorId, liquidRewards, msg.sender), "Insufficent rewards");
-        stakingLogger.logDelegatorClaimRewards(validatorId, msg.sender, liquidRewards, sharesToBurn);
+        if (liquidRewards >= minAmount) {
+            require(stakeManager.transferFunds(validatorId, liquidRewards, msg.sender), "Insufficent rewards");
+        }
+        return liquidRewards;
+    }
+
+    function withdrawRewards() public {
+        uint256 rewards = withdrawAndTransferRewards();
+        require(rewards >= minAmount, "Too small rewards amount");
+        stakingLogger.logDelegatorClaimRewards(validatorId, msg.sender, rewards);
     }
 
     function restake() public {
@@ -209,10 +218,10 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         require(liquidRewards >= minAmount, "Too small rewards to restake");
 
         amountStaked[msg.sender] = amountStaked[msg.sender].add(liquidRewards);
+        initalRewardPerShare[msg.sender] = rewardPerShare;
         totalStake = totalStake.add(liquidRewards);
         activeAmount = activeAmount.add(liquidRewards);
         stakeManager.updateValidatorState(validatorId, int256(liquidRewards));
-        rewards = rewards.sub(liquidRewards);
 
         StakingInfo logger = stakingLogger;
         logger.logStakeUpdate(validatorId);
@@ -220,32 +229,25 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
     }
 
     function getLiquidRewards(address user) public view returns (uint256) {
-        uint256 share = balanceOf(user);
-        if (share == 0) {
+        uint256 shares = balanceOf(user);
+        if (shares == 0) {
             return 0;
         }
 
-        uint256 liquidRewards;
-        uint256 totalTokens = exchangeRate().mul(share).div(EXCHANGE_RATE_PRECISION);
-        uint256 stake = amountStaked[user];
-        if (totalTokens >= stake) {
-            liquidRewards = totalTokens.sub(stake);
-        }
-
-        return liquidRewards;
+        return rewardPerShare.sub(initalRewardPerShare[user]).mul(shares).div(REWARD_PRECISION);
     }
 
     function unstakeClaimTokens() public {
         Delegator storage delegator = delegators[msg.sender];
 
-        uint256 share = delegator.share;
+        uint256 shares = delegator.shares;
         require(
-            delegator.withdrawEpoch.add(stakeManager.withdrawalDelay()) <= stakeManager.epoch() && share > 0,
+            delegator.withdrawEpoch.add(stakeManager.withdrawalDelay()) <= stakeManager.epoch() && shares > 0,
             "Incomplete withdrawal period"
         );
 
-        uint256 _amount = withdrawExchangeRate().mul(share).div(EXCHANGE_RATE_PRECISION);
-        withdrawShares = withdrawShares.sub(share);
+        uint256 _amount = withdrawExchangeRate().mul(shares).div(EXCHANGE_RATE_PRECISION);
+        withdrawShares = withdrawShares.sub(shares);
         withdrawPool = withdrawPool.sub(_amount);
 
         totalStake = totalStake.sub(_amount);
