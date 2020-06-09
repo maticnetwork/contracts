@@ -10,32 +10,34 @@ import {Initializable} from "../../common/mixin/Initializable.sol";
 
 contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockable, Initializable {
     struct Delegator {
-        uint256 share;
+        uint256 shares;
         uint256 withdrawEpoch;
     }
 
     uint256 constant EXCHANGE_RATE_PRECISION = 100;
+    uint256 constant MAX_COMMISION_RATE = 100;
+    uint256 constant REWARD_PRECISION = 10**25;
 
     StakingInfo public stakingLogger;
     IStakeManager public stakeManager;
-
     uint256 public validatorId;
     uint256 public validatorRewards;
     uint256 public commissionRate;
+    //last checkpoint where validator updated commission rate
     uint256 public lastCommissionUpdate;
-    uint256 public minAmount;
+    uint256 public minAmount = 10**18;
 
     uint256 public totalStake;
-    uint256 public rewards;
+    uint256 public rewardPerShare;
     uint256 public activeAmount;
-
-    bool public delegation;
+    bool public delegation = true;
 
     uint256 public withdrawPool;
     uint256 public withdrawShares;
 
     mapping(address => uint256) public amountStaked;
     mapping(address => Delegator) public delegators;
+    mapping(address => uint256) public initalRewardPerShare;
 
     modifier onlyValidator() {
         require(stakeManager.ownerOf(validatorId) == msg.sender, "not validator");

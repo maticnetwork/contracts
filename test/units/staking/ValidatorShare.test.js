@@ -1,3 +1,4 @@
+import { TestToken, ValidatorShare, StakingInfo } from '../../helpers/artifacts'
 import { BN, expectEvent, expectRevert } from '@openzeppelin/test-helpers'
 import { checkPoint, assertBigNumberEquality, updateSlashedAmounts } from '../../helpers/utils.js'
 import { wallets, freshDeploy, approveAndStake } from './deployment'
