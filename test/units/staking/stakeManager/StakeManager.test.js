@@ -888,6 +888,29 @@ contract('StakeManager', async function(accounts) {
       this.expectedReward = await calculateExpectedCheckpointReward.call(this, blockInterval, this.amount, this.totalStaked, this.epochs)
     }
 
+    function testWithRewards() {
+      it('must have correct balance', async function() {
+        this.validatorId = await this.stakeManager.getValidatorId(this.user)
+        const beforeBalance = await this.stakeToken.balanceOf(this.user)
+
+        this.receipt = await this.stakeManager.withdrawRewards(this.validatorId, {
+          from: this.user
+        })
+
+        const afterBalance = await this.stakeToken.balanceOf(this.user)
+
+        assertBigNumberEquality(afterBalance, this.expectedReward.add(beforeBalance))
+      })
+
+      it('must emit ClaimRewards', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ClaimRewards', {
+          validatorId: this.validatorId,
+          amount: this.expectedReward,
+          totalAmount: await this.stakeManager.totalRewardsLiquidated()
+        })
+      })
+    }
+
     function runTests(epochs) {
       describe(`when Alice and Bob stakes for ${epochs} epochs`, function() {
         before(function() {
@@ -896,32 +919,20 @@ contract('StakeManager', async function(accounts) {
 
         before(doDeploy)
 
-        it('Alice must have correct balance', async function() {
-          const user = Alice.getAddressString()
-          const validatorId = await this.stakeManager.getValidatorId(user)
-          const beforeBalance = await this.stakeToken.balanceOf(user)
-
-          await this.stakeManager.withdrawRewards(validatorId, {
-            from: user
+        describe('when Alice claims reward', function() {
+          before(function() {
+            this.user = Alice.getAddressString()
           })
-
-          const afterBalance = await this.stakeToken.balanceOf(user)
-
-          assertBigNumberEquality(afterBalance, this.expectedReward.add(beforeBalance))
+  
+          testWithRewards()
         })
 
-        it('Bob must have correct balance', async function() {
-          const user = Bob.getAddressString()
-          const validatorId = await this.stakeManager.getValidatorId(user)
-          const beforeBalance = await this.stakeToken.balanceOf(user)
-
-          await this.stakeManager.withdrawRewards(validatorId, {
-            from: user
+        describe('when Bob claims reward', function() {
+          before(function() {
+            this.user = Bob.getAddressString()
           })
-
-          const afterBalance = await this.stakeToken.balanceOf(user)
-
-          assertBigNumberEquality(afterBalance, this.expectedReward.add(beforeBalance))
+  
+          testWithRewards()
         })
       })
     }
