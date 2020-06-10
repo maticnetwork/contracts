@@ -18,7 +18,7 @@ class Deployer {
     this.governance = await this.deployGovernance()
     this.registry = await contracts.Registry.new(this.governance.address)
     this.validatorShareFactory = await contracts.ValidatorShareFactory.new()
-    this.stakeToken = await contracts.DummyERC20.new('Stake Token', 'ST')
+    this.stakeToken = await contracts.TestToken.new('Stake Token', 'ST')
     this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
     this.slashingManager = await contracts.SlashingManager.new(this.registry.address, this.stakingInfo.address, 'heimdall-P5rXwg')
     await this.deployRootChain()
@@ -87,7 +87,7 @@ class Deployer {
     this.validatorShare = await contracts.ValidatorShareImpl.new(this.registry.address, 1, utils.ZeroAddress, utils.ZeroAddress)
     this.rootChain = await this.deployRootChain()
     this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
-    this.stakeToken = await contracts.DummyERC20.new('Stake Token', 'STAKE')
+    this.stakeToken = await contracts.TestToken.new('Stake Token', 'STAKE')
     this.stakingNFT = await contracts.StakingNFT.new('Matic Validator', 'MV')
     let stakeManager = await contracts.StakeManagerTestable.new()
 

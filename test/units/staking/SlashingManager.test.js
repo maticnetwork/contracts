@@ -21,7 +21,7 @@ contract('Slashing:validator', async function(accounts) {
   let slashingManager
   let wallets
 
-  describe('validator slashing', async function() {
+  describe.only('validator slashing', async function() {
     beforeEach(async function() {
       wallets = generateFirstWallets(mnemonics, 10)
       let contracts = await deployer.deployStakeManager(wallets)
@@ -53,6 +53,7 @@ contract('Slashing:validator', async function(accounts) {
 
       const result = await updateSlashedAmounts([wallets[0], wallets[1]], wallets[1], 1, slashingInfoList, slashingManager)
       const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
+      console.log(logs)
       logs.should.have.lengthOf(1)
       logs[0].event.should.equal('Slashed')
       assertBigNumberEquality(logs[0].args.amount, web3.utils.toWei('200'))

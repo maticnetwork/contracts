@@ -1,4 +1,4 @@
-import { StakingInfo, DummyERC20, ValidatorShare } from '../../../helpers/artifacts'
+import { StakingInfo, TestToken, ValidatorShare } from '../../../helpers/artifacts'
 
 import {
   checkPoint,
@@ -348,10 +348,10 @@ module.exports = function(accounts) {
         })
       })
 
-      // for some reason DummyERC20 doesn't have Transfer event
+      // for some reason TestToken doesn't have Transfer event
 
       // it('must emit Transfer', async function() {
-      //   await expectEvent.inTransaction(this.receipt.tx, DummyERC20, 'Transfer', {
+      //   await expectEvent.inTransaction(this.receipt.tx, TestToken, 'Transfer', {
       //     value: this.reward,
       //     to: user
       //   })
@@ -409,10 +409,10 @@ module.exports = function(accounts) {
         })
       })
 
-      // for some reason DummyERC20 doesn't have Transfer event
+      // for some reason TestToken doesn't have Transfer event
 
       // it('must emit Transfer', async function() {
-      //   await expectEvent.inTransaction(this.receipt.tx, DummyERC20, 'Transfer', {
+      //   await expectEvent.inTransaction(this.receipt.tx, TestToken, 'Transfer', {
       //     value: this.reward,
       //     to: user
       //   })

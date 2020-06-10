@@ -8,7 +8,7 @@ import {ECVerify} from "../common/lib/ECVerify.sol";
 
 
 // dummy interface to avoid cyclic dependency
-contract IStakeManager {
+contract IStakeManagerLocal {
     enum Status {Inactive, Active, Locked, Unstaked}
 
     struct Validator {
@@ -181,7 +181,7 @@ contract StakingInfo {
 
     modifier onlyValidatorContract(uint256 validatorId) {
         address _contract;
-        (, , , , , , _contract, ) = IStakeManager(
+        (, , , , , , _contract, ) = IStakeManagerLocal(
             registry.getStakeManagerAddress()
         )
             .validators(validatorId);
@@ -193,7 +193,7 @@ contract StakingInfo {
     modifier StakeManagerOrValidatorContract(uint256 validatorId) {
         address _contract;
         address _stakeManager = registry.getStakeManagerAddress();
-        (, , , , , , _contract, ) = IStakeManager(_stakeManager).validators(
+        (, , , , , , _contract, ) = IStakeManagerLocal(_stakeManager).validators(
             validatorId
         );
         require(_contract == msg.sender || _stakeManager == msg.sender,
@@ -389,11 +389,11 @@ contract StakingInfo {
             uint256 _status
         )
     {
-        IStakeManager stakeManager = IStakeManager(
+        IStakeManagerLocal stakeManager = IStakeManagerLocal(
             registry.getStakeManagerAddress()
         );
         address _contract;
-        IStakeManager.Status status;
+        IStakeManagerLocal.Status status;
         (
             amount,
             reward,
@@ -404,8 +404,10 @@ contract StakingInfo {
             _contract,
             status
         ) = stakeManager.validators(validatorId);
-        reward += IStakeManager(_contract).validatorRewards();
-        _status = uint256(status);
+        if (_contract != address(0x0)) {
+            reward += IStakeManagerLocal(_contract).validatorRewards();
+            _status = uint256(status);
+        }
     }
 
     function totalValidatorStake(uint256 validatorId)
@@ -414,12 +416,12 @@ contract StakingInfo {
         returns (uint256 validatorStake)
     {
         address contractAddress;
-        (validatorStake, , , , , , contractAddress, ) = IStakeManager(
+        (validatorStake, , , , , , contractAddress, ) = IStakeManagerLocal(
             registry.getStakeManagerAddress()
         )
             .validators(validatorId);
         if (contractAddress != address(0x0)) {
-            validatorStake += IStakeManager(contractAddress).activeAmount();
+            validatorStake += IStakeManagerLocal(contractAddress).activeAmount();
         }
     }
 
@@ -428,7 +430,7 @@ contract StakingInfo {
         view
         returns (bytes32 accountStateRoot)
     {
-        accountStateRoot = IStakeManager(registry.getStakeManagerAddress())
+        accountStateRoot = IStakeManagerLocal(registry.getStakeManagerAddress())
             .accountStateRoot();
     }
 
@@ -437,7 +439,7 @@ contract StakingInfo {
         view
         returns (address ValidatorContract)
     {
-        (, , , , , , ValidatorContract, ) = IStakeManager(
+        (, , , , , , ValidatorContract, ) = IStakeManagerLocal(
             registry.getStakeManagerAddress()
         )
             .validators(validatorId);
