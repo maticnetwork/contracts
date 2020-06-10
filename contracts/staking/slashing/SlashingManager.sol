@@ -105,11 +105,12 @@ contract SlashingManager is ISlashingManager, Ownable {
                 lastAdd = signer;
                 uint256 amount;
                 address contractAddress;
-                (amount, , , , , , contractAddress, ) = stakeManager.validators(validatorId);
+                uint256 delegatedAmount;
+                (amount, , , , , , contractAddress,,,,,delegatedAmount) = stakeManager.validators(validatorId);
 
                 // add delegation power
                 if (contractAddress != address(0x0)) {
-                    amount = amount.add(IValidatorShare(contractAddress).getActiveAmount());
+                    amount = amount.add(delegatedAmount);
                 }
                 _stakePower = _stakePower.add(amount);
             }

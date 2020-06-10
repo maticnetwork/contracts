@@ -12,6 +12,8 @@ import "../validatorShare/ValidatorShareFactory.sol";
 
 
 contract StakeManagerStorage is ProxyStorage, GovernanceLockable, RootChainable {
+    uint256 constant MAX_COMMISION_RATE = 100;
+
     IERC20 public token;
     address public registry;
     StakingInfo public logger;
@@ -61,6 +63,10 @@ contract StakeManagerStorage is ProxyStorage, GovernanceLockable, RootChainable 
         address signer;
         address contractAddress;
         Status status;
+        uint256 commissionRate;
+        uint256 lastCommissionUpdate;
+        uint256 accumulatedReward;
+        uint256 delegatedAmount;
     }
 
     mapping(uint256 => Validator) public validators;

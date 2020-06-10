@@ -20,6 +20,10 @@ contract IStakeManager {
         address signer;
         address contractAddress;
         Status status;
+        uint256 commissionRate;
+        uint256 lastCommissionUpdate;
+        uint256 accumulatedReward;
+        uint256 delegatedAmount;
     }
 
     mapping(uint256 => Validator) public validators;
@@ -181,7 +185,7 @@ contract StakingInfo {
 
     modifier onlyValidatorContract(uint256 validatorId) {
         address _contract;
-        (, , , , , , _contract, ) = IStakeManager(
+        (, , , , , , _contract, , , , ,) = IStakeManager(
             registry.getStakeManagerAddress()
         )
             .validators(validatorId);
@@ -193,7 +197,7 @@ contract StakingInfo {
     modifier StakeManagerOrValidatorContract(uint256 validatorId) {
         address _contract;
         address _stakeManager = registry.getStakeManagerAddress();
-        (, , , , , , _contract, ) = IStakeManager(_stakeManager).validators(
+        (, , , , , , _contract, , , , ,) = IStakeManager(_stakeManager).validators(
             validatorId
         );
         require(_contract == msg.sender || _stakeManager == msg.sender,
@@ -386,14 +390,13 @@ contract StakingInfo {
             uint256 activationEpoch,
             uint256 deactivationEpoch,
             address signer,
-            uint256 _status
+            IStakeManager.Status status
         )
     {
         IStakeManager stakeManager = IStakeManager(
             registry.getStakeManagerAddress()
         );
-        address _contract;
-        IStakeManager.Status status;
+        uint256 delegatedAmount;
         (
             amount,
             reward,
@@ -401,11 +404,10 @@ contract StakingInfo {
             deactivationEpoch,
             ,
             signer,
-            _contract,
-            status
+            ,
+            status, , , ,delegatedAmount
         ) = stakeManager.validators(validatorId);
-        reward += IStakeManager(_contract).validatorRewards();
-        _status = uint256(status);
+        reward = reward.add(delegatedAmount);
     }
 
     function totalValidatorStake(uint256 validatorId)
@@ -414,13 +416,12 @@ contract StakingInfo {
         returns (uint256 validatorStake)
     {
         address contractAddress;
-        (validatorStake, , , , , , contractAddress, ) = IStakeManager(
+        uint256 delegatedAmount;
+        (validatorStake, , , , , ,contractAddress, , , , ,delegatedAmount) = IStakeManager(
             registry.getStakeManagerAddress()
         )
             .validators(validatorId);
-        if (contractAddress != address(0x0)) {
-            validatorStake += IStakeManager(contractAddress).activeAmount();
-        }
+        validatorStake = validatorStake.add(delegatedAmount);
     }
 
     function getAccountStateRoot()
@@ -437,7 +438,7 @@ contract StakingInfo {
         view
         returns (address ValidatorContract)
     {
-        (, , , , , , ValidatorContract, ) = IStakeManager(
+        (, , , , , , ValidatorContract, , , , ,) = IStakeManager(
             registry.getStakeManagerAddress()
         )
             .validators(validatorId);
@@ -489,7 +490,7 @@ contract StakingInfo {
         uint256 validatorId,
         uint256 newCommissionRate,
         uint256 oldCommissionRate
-    ) public onlyValidatorContract(validatorId) {
+    ) public onlyStakeManager {
         emit UpdateCommissionRate(
             validatorId,
             newCommissionRate,
