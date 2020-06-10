@@ -190,7 +190,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
 
         uint256 _currentEpoch = currentEpoch;
         require(
-            _currentEpoch.sub(auction.startEpoch) % auctionPeriod.add(dynasty) >= auctionPeriod,
+            _currentEpoch.sub(auction.startEpoch) % auctionPeriod.add(dynasty) > auctionPeriod,
             "Not allowed before auctionPeriod"
         );
 
