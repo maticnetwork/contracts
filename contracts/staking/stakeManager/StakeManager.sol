@@ -24,7 +24,6 @@ import {Governable} from "../../common/governance/Governable.sol";
 
 contract StakeManager is IStakeManager, StakeManagerStorage {
     using SafeMath for uint256;
-    using ECVerify for bytes32;
     using Merkle for bytes32;
     using RLPReader for bytes;
     using RLPReader for RLPReader.RLPItem;
@@ -479,8 +478,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         bytes32 voteHash,
         bytes32 stateRoot,
         address proposer,
-        bytes memory sigs
-    ) public onlyRootChain returns (uint256) {
+        bytes calldata sigs
+    ) external onlyRootChain returns (uint256) {
         // checkpoint rewards are based on BlockInterval multiplied on `CHECKPOINT_REWARD`
         // for bigger checkpoints reward is capped at `CHECKPOINT_REWARD`
         // if interval is 50% of checkPointBlockInterval then reward R is half of `CHECKPOINT_REWARD`
@@ -501,7 +500,6 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 stakePower = currentValidatorSetTotalStake();
         // update stateMerkleTree root for accounts balance on heimdall chain
         accountStateRoot = stateRoot;
-        _finalizeCommit();
         return checkSignature(stakePower, reward, voteHash, sigs);
     }
 
@@ -515,7 +513,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 totalStakePower;
         address lastAdd; // cannot have address(0x0) as an owner
         for (uint64 i = 0; i < sigs.length; i += 65) {
-            address signer = voteHash.ecrecovery(BytesLib.slice(sigs, i, 65));
+            address signer = ECVerify.ecrecovery(voteHash, BytesLib.slice(sigs, i, 65));
             uint256 validatorId = signerToValidator[signer];
             // check if signer is staker and not proposer
             if (signer == lastAdd) {
@@ -548,7 +546,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     }
 
     function _increaseRewardAndAssertConsensus(uint256 totalStakePower) private returns(uint256) {
-        uint256 totalStake = currentValidatorSetTotalStake();
+        uint256 totalStake = _finalizeCommit();
         uint256 reward = CHECKPOINT_REWARD.mul(totalStakePower).div(totalStake);
         totalRewards = totalRewards.add(reward);
         require(totalStakePower >= totalStake.mul(2).div(3).add(1), "2/3+1 non-majority!");
@@ -657,7 +655,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     }
 
     function slash(bytes memory _slashingInfoList) public returns (uint256) {
-        require(Registry(registry).getSlashingManagerAddress() == msg.sender, "Sender must be slashing manager!");
+        require(Registry(registry).getSlashingManagerAddress() == msg.sender, "Not slash manager");
         RLPReader.RLPItem[] memory slashingInfoList = _slashingInfoList.toRlpItem().toList();
         int256 valJailed;
         uint256 jailedAmount;
@@ -790,24 +788,27 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         }
 
         validators[validatorId].reward = 0;
-        require(token.transfer(validator, rewards), "Rewards transfer failed");
+        require(token.transfer(validator, rewards), "Transfer fail");
         //  update future
         updateTimeLine(exitEpoch, -(int256(amount) + delegationAmount), -1);
 
         logger.logUnstakeInit(validator, validatorId, exitEpoch, amount);
     }
 
-    function _finalizeCommit() internal {
+    function _finalizeCommit() internal returns(uint256) {
         uint256 _currentEpoch = currentEpoch;
         uint256 nextEpoch = _currentEpoch.add(1);
         // update totalstake and validator count
-        validatorState[nextEpoch].amount = (validatorState[_currentEpoch].amount + validatorState[nextEpoch].amount);
+        int256 newAmount = (validatorState[_currentEpoch].amount + validatorState[nextEpoch].amount);
+        validatorState[nextEpoch].amount = newAmount;
         validatorState[nextEpoch].stakerCount = (validatorState[_currentEpoch].stakerCount +
             validatorState[nextEpoch].stakerCount);
 
         // erase old data/history
         delete validatorState[_currentEpoch];
         currentEpoch = nextEpoch;
+
+        return uint256(newAmount);
     }
 
     function updateTimeLine(
@@ -820,7 +821,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     }
 
     function pubToAddress(bytes memory pub) public pure returns (address) {
-        require(pub.length == 64, "Invalid pubkey");
+        require(pub.length == 64, "Not pub");
         return address(uint160(uint256(keccak256(pub))));
     }
 
@@ -831,13 +832,13 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 amount
     ) external onlyGovernance {
         address contractAddr = validators[validatorId].contractAddress;
-        require(contractAddr != address(0x0), "unknown validator or no delegation enabled");
+        require(contractAddr != address(0x0), "not validator");
         IValidatorShare validatorShare = IValidatorShare(contractAddr);
         validatorShare.drain(_token, destination, amount);
     }
 
     function drain(address destination, uint256 amount) external onlyGovernance {
-        require(token.transfer(destination, amount), "Drain failed");
+        require(token.transfer(destination, amount));
     }
 
     function reinitialize(
@@ -852,10 +853,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
 
     function updateValidatorDelegation(bool delegation) external {
         uint256 validatorId = signerToValidator[msg.sender];
-        require(_isValidator(validatorId), "not a validator");
+        require(_isValidator(validatorId), "not validator");
 
         address contractAddr = validators[validatorId].contractAddress;
-        require(contractAddr != address(0x0), "delegation not enabled");
+        require(contractAddr != address(0x0), "no delegation");
 
         IValidatorShare(contractAddr).updateDelegation(delegation);
     }

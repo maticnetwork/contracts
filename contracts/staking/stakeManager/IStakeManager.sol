@@ -50,8 +50,8 @@ contract IStakeManager {
         bytes32 voteHash,
         bytes32 stateRoot,
         address proposer,
-        bytes memory sigs
-    ) public returns (uint256);
+        bytes calldata sigs
+    ) external returns (uint256);
 
     function updateValidatorState(uint256 validatorId, int256 amount) public;
 
