@@ -53,7 +53,7 @@ contract StakeManagerStorage is ProxyStorage, GovernanceLockable, RootChainable 
         int256 stakerCount;
     }
 
-    enum Status {Inactive, Active, Locked, Unstaked}
+    enum Status {Inactive, Active, Locked, Unstaked, UnstakeInProgress}
     struct Validator {
         uint256 amount;
         uint256 reward;

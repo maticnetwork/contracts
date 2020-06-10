@@ -467,16 +467,11 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     }
 
     function isValidator(uint256 validatorId) public view returns (bool) {
-        uint256 activationEpoch = validators[validatorId].activationEpoch;
-        uint256 deactivationEpoch = validators[validatorId].deactivationEpoch;
-        uint256 amount = validators[validatorId].amount;
-        Status status = validators[validatorId].status;
-        uint256 _currentEpoch = currentEpoch;
+        return _isValidator(validatorId);
+    }
 
-        return (amount > 0 &&
-            (activationEpoch != 0 && activationEpoch <= _currentEpoch) &&
-            (deactivationEpoch == 0 || deactivationEpoch > _currentEpoch) &&
-            status == Status.Active);
+    function _isValidator(uint256 validatorId) private view returns(bool) {
+        return (validators[validatorId].amount > 0 && validators[validatorId].status == Status.Active);
     }
 
     function checkSignatures(
@@ -525,16 +520,16 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             // check if signer is staker and not proposer
             if (signer == lastAdd) {
                 break;
-            } else if (isValidator(validatorId) && signer > lastAdd) {
+            } else if (_isValidator(validatorId) && signer > lastAdd) {
                 lastAdd = signer;
 
                 Validator storage validator = validators[validatorId];
-                uint256 validatorStakePower;
+                uint256 validatorStakePower = validator.delegatedAmount;
                 // add delegation power
-                if (validator.contractAddress != address(0x0)) {
+                if (validatorStakePower > 0) {
                     validatorStakePower = _increaseValidatorRewardWithDelegation(
                         validatorId,
-                        validator.amount,
+                        validatorStakePower,
                         reward,
                         checkpointStakePower
                     );
@@ -583,12 +578,13 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
 
     function _increaseValidatorRewardWithDelegation(
         uint256 validatorId, 
-        uint256 validatorsStake,
+        uint256 delegatedAmount,
         uint256 reward, 
         uint256 checkpointStakePower
     ) private returns (uint256)
     {
-        uint256 combinedStakePower = validatorsStake.add(validators[validatorId].delegatedAmount);
+        uint256 validatorsStake = validators[validatorId].amount;
+        uint256 combinedStakePower = validatorsStake.add(delegatedAmount);
         _updateValidatorRewardWithDelegation(
             validatorId, 
             validatorsStake, 
@@ -782,6 +778,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         address validator = ownerOf(validatorId);
 
         validators[validatorId].deactivationEpoch = exitEpoch;
+        validators[validatorId].status = Status.UnstakeInProgress;
 
         // unbond all delegators in future
         int256 delegationAmount;
@@ -855,7 +852,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
 
     function updateValidatorDelegation(bool delegation) external {
         uint256 validatorId = signerToValidator[msg.sender];
-        require(isValidator(validatorId), "not a validator");
+        require(_isValidator(validatorId), "not a validator");
 
         address contractAddr = validators[validatorId].contractAddress;
         require(contractAddr != address(0x0), "delegation not enabled");
