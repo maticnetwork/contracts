@@ -257,7 +257,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         require(
             Registry(registry).getSlashingManagerAddress() == msg.sender ||
                 validators[validatorId].contractAddress == msg.sender,
-            "Invalid contract address"
+            "not allowed"
         );
         return token.transfer(delegator, amount);
     }
@@ -267,7 +267,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 amount,
         address delegator
     ) external onlyDelegation(validatorId) returns (bool) {
-        require(delegationEnabled, "Delegation is disabled");
+        require(delegationEnabled, "no delegation");
         updateValidatorState(validatorId, int256(amount));
         return token.transferFrom(delegator, address(this), amount);
     }
@@ -279,8 +279,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         bool acceptDelegation,
         bytes memory signerPubkey
     ) public onlyWhenUnlocked {
-        require(currentValidatorSetSize() < validatorThreshold, "Validator set Threshold exceeded!");
-        require(amount > minDeposit, "min deposit limit failed!");
+        require(currentValidatorSetSize() < validatorThreshold, "no more slots");
+        require(amount > minDeposit, "not enough deposit");
         _transferAndTopUp(user, heimdallFee, amount);
         _stakeFor(user, amount, acceptDelegation, signerPubkey);
     }
@@ -497,10 +497,9 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         }
 
         reward = reward.sub(_proposerBonus);
-        uint256 stakePower = currentValidatorSetTotalStake();
         // update stateMerkleTree root for accounts balance on heimdall chain
         accountStateRoot = stateRoot;
-        return checkSignature(stakePower, reward, voteHash, sigs);
+        return checkSignature(currentValidatorSetTotalStake(), reward, voteHash, sigs);
     }
 
     function checkSignature(
