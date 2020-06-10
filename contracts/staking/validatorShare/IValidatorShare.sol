@@ -1,6 +1,5 @@
 pragma solidity ^0.5.2;
 
-
 // note this contract interface is only for stakeManager use
 contract IValidatorShare {
     function withdrawRewardsValidator() external returns (uint256);
@@ -13,7 +12,7 @@ contract IValidatorShare {
 
     function getLiquidRewards(address user) public view returns (uint256);
     
-    function activeAmount() public view returns (uint256);
+    function getActiveAmount() external view returns (uint256);
 
     function owner() public view returns (address);
 
