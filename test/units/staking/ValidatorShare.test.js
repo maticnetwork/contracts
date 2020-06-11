@@ -237,7 +237,7 @@ contract('ValidatorShare', async function() {
       })
 
       it('reverts', async function() {
-        await expectRevert(buyVoucher(this.validatorContract, web3.utils.toWei('150'), this.alice), 'Delegation is disabled')
+        await expectRevert(buyVoucher(this.validatorContract, web3.utils.toWei('150'), this.alice), 'no delegation')
       })
     })
 
@@ -548,9 +548,9 @@ contract('ValidatorShare', async function() {
       }
     }
 
-    function testSellVoucher(returnedStake) {
+    function testSellVoucher(returnedStake, minClaimAmount) {
       it('must sell voucher', async function() {
-        this.receipt = await sellVoucher(this.validatorContract, this.user)
+        this.receipt = await sellVoucher(this.validatorContract, this.user, minClaimAmount)
       })
 
       it('must emit ShareBurned', async function() {
@@ -579,18 +579,7 @@ contract('ValidatorShare', async function() {
     describe('when Alice sells voucher with minClaimAmount', function() {
       before(doDeployAndBuyVoucherForAlice)
 
-      it('must sell voucher', async function() {
-        const initialBalance = await this.stakeToken.balanceOf(this.user)
-        const minClaimAmount = this.shares.mul(await this.validatorContract.exchangeRate()).div(toBN('100')) /* EXCHANGE_RATE_PRECISION */
-        this.receipt = await sellVoucher(this.validatorContract, this.user, minClaimAmount)
-        assertBigNumberEquality(await this.stakeToken.balanceOf(this.user), initialBalance.add(minClaimAmount).sub(toBN(wei100)))
-      })
-
-      it('must emit ShareBurned', async function() {
-        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ShareBurned', {
-          tokens: this.shares
-        })
-      })
+      testSellVoucher(aliceStake, aliceStake)
     })
 
     describe('when delegation is disabled after voucher was purchased by Alice', function() {
@@ -663,9 +652,6 @@ contract('ValidatorShare', async function() {
         it(`${amount.toString()} wei`, async function() {
           await slash.call(this, [{ validator: this.validatorId, amount: amount }], [this.validatorUser], this.validatorUser, nonce)
           totalSlashed = totalSlashed.add(new BN(amount))
-
-          const validator = await this.stakeManager.validators(this.validatorId)
-          console.log('validator.delegatedAmount = ', validator.delegatedAmount.toString())
         })
       })
     }
@@ -845,20 +831,20 @@ contract('ValidatorShare', async function() {
         { slash: { amount: new BN(web3.utils.toWei('350')) } },
         { checkpoints: 1 },
         { liquidRewards: { user: Alice, label: 'Alice', expectedReward: '5785714285714285714285' } },
-        { liquidRewards: { user: Bob, label: 'Bob', expectedReward: '6428571428571428571429' } },
+        { liquidRewards: { user: Bob, label: 'Bob', expectedReward: '6428571428571428571428' } },
         { stake: { user: Carol, label: 'Carol', amount: new BN(web3.utils.toWei('500')) } },
         { checkpoints: 1 },
-        { liquidRewards: { user: Alice, label: 'Alice', expectedReward: '6315126050420168067227' } },
-        { liquidRewards: { user: Bob, label: 'Bob', expectedReward: '9075630252100840336135' } },
+        { liquidRewards: { user: Alice, label: 'Alice', expectedReward: '6315126050420168067226' } },
+        { liquidRewards: { user: Bob, label: 'Bob', expectedReward: '9075630252100840336133' } },
         { liquidRewards: { user: Carol, label: 'Carol', expectedReward: '5294117647058823529411' } },
         { slash: { amount: new BN(web3.utils.toWei('167')), nonce: 2 } },
         { stake: { user: Eve, label: 'Eve', amount: new BN(web3.utils.toWei('500')) } },
         { checkpoints: 1 },
         { withdraw: { user: Alice, label: 'Alice', expectedReward: '6620190835599266177975' } },
-        { withdraw: { user: Bob, label: 'Bob', expectedReward: '10600954177996330889878' } },
-        { withdraw: { user: Carol, label: 'Carol', expectedReward: '8344765498849804636898' } },
+        { withdraw: { user: Bob, label: 'Bob', expectedReward: '10600954177996330889877' } },
+        { withdraw: { user: Carol, label: 'Carol', expectedReward: '8344765498849804636897' } },
         { withdraw: { user: Eve, label: 'Eve', expectedReward: '3813309814738726384358' } },
-        { allRewards: { validatorReward: '6620779672815871910888', totalExpectedRewards: '35999999999999999999997' } }
+        { allRewards: { validatorReward: '6620779672815871910888', totalExpectedRewards: '35999999999999999999995' } }
       ])
     })
 
@@ -871,21 +857,21 @@ contract('ValidatorShare', async function() {
         { slash: { amount: new BN(web3.utils.toWei('350')) } },
         { checkpoints: 1 },
         { liquidRewards: { user: Alice, label: 'Alice', expectedReward: '5785714285714285714285' } },
-        { liquidRewards: { user: Bob, label: 'Bob', expectedReward: '6428571428571428571429' } },
+        { liquidRewards: { user: Bob, label: 'Bob', expectedReward: '6428571428571428571428' } },
         { stake: { user: Carol, label: 'Carol', amount: new BN(web3.utils.toWei('500')) } },
         { slash: { amount: new BN(web3.utils.toWei('425')), nonce: 2 } },
         { checkpoints: 1 },
-        { liquidRewards: { user: Alice, label: 'Alice', expectedReward: '6315126050420168067227' } },
-        { liquidRewards: { user: Bob, label: 'Bob', expectedReward: '9075630252100840336135' } },
+        { liquidRewards: { user: Alice, label: 'Alice', expectedReward: '6315126050420168067226' } },
+        { liquidRewards: { user: Bob, label: 'Bob', expectedReward: '9075630252100840336133' } },
         { liquidRewards: { user: Carol, label: 'Carol', expectedReward: '5294117647058823529411' } },
         { slash: { amount: new BN(web3.utils.toWei('215')), nonce: 3 } },
         { stake: { user: Eve, label: 'Eve', amount: new BN(web3.utils.toWei('500')) } },
         { checkpoints: 1 },
         { withdraw: { user: Alice, label: 'Alice', expectedReward: '6468480040391960740984' } },
-        { withdraw: { user: Bob, label: 'Bob', expectedReward: '9842400201959803704923' } },
-        { withdraw: { user: Carol, label: 'Carol', expectedReward: '6827657546776750266988' } },
+        { withdraw: { user: Bob, label: 'Bob', expectedReward: '9842400201959803704922' } },
+        { withdraw: { user: Carol, label: 'Carol', expectedReward: '6827657546776750266987' } },
         { withdraw: { user: Eve, label: 'Eve', expectedReward: '6389749582158028073235' } },
-        { allRewards: { validatorReward: '6471712628713457213867', totalExpectedRewards: '35999999999999999999997' } }
+        { allRewards: { validatorReward: '6471712628713457213867', totalExpectedRewards: '35999999999999999999995' } }
       ])
     })
 
