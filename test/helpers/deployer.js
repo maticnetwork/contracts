@@ -84,7 +84,7 @@ class Deployer {
     this.governance = await this.deployGovernance()
     this.registry = await contracts.Registry.new(this.governance.address)
     this.validatorShareFactory = await contracts.ValidatorShareFactory.new()
-    this.validatorShare = await contracts.ValidatorShareImpl.new(this.registry.address, 1, utils.ZeroAddress, utils.ZeroAddress)
+    this.validatorShare = await contracts.ValidatorShare.new()
     this.rootChain = await this.deployRootChain()
     this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
     this.stakeToken = await contracts.DummyERC20.new('Stake Token', 'STAKE')

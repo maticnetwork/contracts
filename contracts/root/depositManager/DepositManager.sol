@@ -11,7 +11,7 @@ import {WETH} from "../../common/tokens/WETH.sol";
 import {IDepositManager} from "./IDepositManager.sol";
 import {DepositManagerStorage} from "./DepositManagerStorage.sol";
 import {StateSender} from "../stateSyncer/StateSender.sol";
-import {Lockable} from "../../common/mixin/Lockable.sol";
+import {GovernanceLockable} from "../../common/mixin/GovernanceLockable.sol";
 import {RootChain} from "../RootChain.sol";
 
 
@@ -28,7 +28,7 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
         _;
     }
 
-    constructor() public Lockable(address(0x0)) {}
+    constructor() public GovernanceLockable(address(0x0)) {}
 
     // deposit ETH by sending to this contract
     function() external payable {
