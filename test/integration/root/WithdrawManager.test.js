@@ -1,7 +1,7 @@
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 
-const ContractActor = artifacts.require('ContractActor')
+const ContractWithFallback = artifacts.require('ContractWithFallback')
 const ContractWithoutFallback = artifacts.require('ContractWithoutFallback')
 const ContractWitRevertingFallback = artifacts.require('ContractWitRevertingFallback')
 
@@ -32,7 +32,7 @@ contract.skip('WithdrawManager @skip-on-coverage', async function(accounts) {
     })
 
     it('deposit / start exit from a contract', async function() {
-      const c1 = await ContractActor.new()
+      const c1 = await ContractWithFallback.new()
       const c2 = await ContractWithoutFallback.new()
       const c3 = await ContractWitRevertingFallback.new()
 
