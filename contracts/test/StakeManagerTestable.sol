@@ -26,6 +26,6 @@ contract StakeManagerTestable is StakeManager {
             eligibleReward.mul(combinedStakePower).div(REWARD_PRECISION),
             combinedStakePower
         );
-        return validatorReward;
+        return validators[validatorId].reward.add(validatorReward);
     }
 }
