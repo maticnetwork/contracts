@@ -39,9 +39,9 @@ contract('StakeManager', async function(accounts) {
     return expectedBalance.mul(new BN(checkpointsPassed))
   }
 
-  function testStartAuction(user, bidAmount) {
+  function testStartAuction(user, signerPubkey, bidAmount) {
     it('should bid', async function() {
-      this.receipt = await this.stakeManager.startAuction(this.validatorId, bidAmount, {
+      this.receipt = await this.stakeManager.startAuction(this.validatorId, bidAmount, false, signerPubkey, {
         from: user
       })
     })
@@ -77,8 +77,6 @@ contract('StakeManager', async function(accounts) {
       this.receipt = await this.stakeManager.confirmAuctionBid(
         this.validatorId,
         this.heimdallFee,
-        false,
-        this.bidderPubKey,
         {
           from: this.bidder
         }
@@ -224,8 +222,6 @@ contract('StakeManager', async function(accounts) {
       this.receipt = await this.stakeManager.confirmAuctionBid(
         this.validatorId,
         0,
-        false,
-        '0x00',
         {
           from: this.prevValidatorAddr
         }
@@ -1447,11 +1443,11 @@ contract('StakeManager', async function(accounts) {
       })
 
       describe('when Alice bids', function() {
-        testStartAuction(Alice.getChecksumAddressString(), aliceBidAmount)
+        testStartAuction(Alice.getChecksumAddressString(), Alice.getPrivateKeyString(), aliceBidAmount)
       })
 
       describe('when Bob bids', function() {
-        testStartAuction(Bob.getChecksumAddressString(), bobBidAmount)
+        testStartAuction(Bob.getChecksumAddressString(), Bob.getPublicKeyString(), bobBidAmount)
 
         it('Alice must get her bid back', async function() {
           const currentBalance = await this.stakeToken.balanceOf(Alice.getAddressString())
@@ -1466,14 +1462,14 @@ contract('StakeManager', async function(accounts) {
       it('when bid during non-auction period', async function() {
         let auctionPeriod = await this.stakeManager.auctionPeriod()
         await this.stakeManager.advanceEpoch((auctionPeriod).toNumber())
-        await expectRevert(this.stakeManager.startAuction(1, this.amount, {
+        await expectRevert(this.stakeManager.startAuction(1, this.amount, false, wallets[3].getPrivateKeyString(), {
           from: wallets[3].getAddressString()
         }), 'Invalid auction period')
       })
       it('when trying to start and confirm in last epoch', async function() {
         this.validatorId = 1
         await this.stakeManager.advanceEpoch(1)
-        await this.stakeManager.startAuction(this.validatorId, this.amount, {
+        await this.stakeManager.startAuction(this.validatorId, this.amount, false, wallets[3].getPublicKeyString(), {
           from: wallets[3].getAddressString()
         })
         await this.stakeToken.approve(this.stakeManager.address, web3.utils.toWei('1'), {
@@ -1482,8 +1478,6 @@ contract('StakeManager', async function(accounts) {
         await expectRevert(this.stakeManager.confirmAuctionBid(
           this.validatorId,
           web3.utils.toWei('1'),
-          false,
-          wallets[3].getPublicKeyString(),
           {
             from: wallets[3].getAddressString()
           }
@@ -1492,8 +1486,6 @@ contract('StakeManager', async function(accounts) {
         await this.stakeManager.confirmAuctionBid(
           this.validatorId,
           web3.utils.toWei('1'),
-          false,
-          wallets[3].getPublicKeyString(),
           {
             from: wallets[3].getAddressString()
           }
@@ -1503,14 +1495,14 @@ contract('StakeManager', async function(accounts) {
 
       it('when bid during replacement cooldown', async function() {
         await this.stakeManager.updateDynastyValue(7)
-        await expectRevert(this.stakeManager.startAuction(1, this.amount, {
+        await expectRevert(this.stakeManager.startAuction(1, this.amount, false, wallets[3].getPrivateKeyString(), {
           from: wallets[3].getAddressString()
         }), 'Cooldown period')
       })
 
       it('when bid on unstaking validator', async function() {
         await this.stakeManager.unstake(1, { from: _initialStakers[0].getAddressString() })
-        await expectRevert(this.stakeManager.startAuction(1, this.amount, {
+        await expectRevert(this.stakeManager.startAuction(1, this.amount, false, wallets[3].getPrivateKeyString(), {
           from: wallets[3].getAddressString()
         }), 'Invalid validator for an auction')
       })
@@ -1534,13 +1526,13 @@ contract('StakeManager', async function(accounts) {
       })
 
       it('when validatorId is invalid', async function() {
-        await expectRevert.unspecified(this.stakeManager.startAuction(0, this.amount, {
+        await expectRevert.unspecified(this.stakeManager.startAuction(0, this.amount, false, wallets[3].getPrivateKeyString(), {
           from: wallets[3].getAddressString()
         }))
       })
 
       it('when bid is too low', async function() {
-        await expectRevert(this.stakeManager.startAuction(1, web3.utils.toWei('100'), {
+        await expectRevert(this.stakeManager.startAuction(1, web3.utils.toWei('100'), false, wallets[3].getPrivateKeyString(), {
           from: wallets[3].getAddressString()
         }), 'Must bid higher')
       })
@@ -1581,7 +1573,7 @@ contract('StakeManager', async function(accounts) {
         this.bidderBalanceBeforeAuction = await this.stakeToken.balanceOf(this.bidder)
         this.totalStakedBeforeAuction = await this.stakeManager.totalStaked()
 
-        await this.stakeManager.startAuction(this.validatorId, bidAmount, {
+        await this.stakeManager.startAuction(this.validatorId, bidAmount, false, this.bidderPubKey, {
           from: this.bidder
         })
 
@@ -1668,8 +1660,6 @@ contract('StakeManager', async function(accounts) {
           await expectRevert(this.stakeManager.confirmAuctionBid(
             this.validatorId,
             this.defaultHeimdallFee,
-            false,
-            this.bidderPubKey,
             {
               from: this.bidder
             }
@@ -1687,8 +1677,6 @@ contract('StakeManager', async function(accounts) {
           await expectRevert(this.stakeManager.confirmAuctionBid(
             this.validatorId,
             this.defaultHeimdallFee,
-            false,
-            this.bidderPubKey,
             {
               from: this.bidder
             }
@@ -1711,8 +1699,6 @@ contract('StakeManager', async function(accounts) {
         await expectRevert.unspecified(this.stakeManager.confirmAuctionBid(
           this.validatorId,
           0,
-          false,
-          wallets[4].getPublicKeyString(),
           {
             from: wallets[4].getChecksumAddressString()
           }
@@ -1794,7 +1780,7 @@ contract('StakeManager', async function(accounts) {
         }
       })
 
-      testStartAuction(auctionValidatorAddr, bidAmount)
+      testStartAuction(auctionValidatorAddr, auctionValidatorPubKey, bidAmount)
     })
 
     describe('when new validator confirm auction', function() {
@@ -1819,6 +1805,7 @@ contract('StakeManager', async function(accounts) {
     const stakeAmount = web3.utils.toWei('1250')
     const bidAmount = web3.utils.toWei('1350')
     const bidder = wallets[3].getChecksumAddressString()
+    const bidderPubKey = wallets[3].getPublicKeyString()
 
     async function doDeploy() {
       await freshDeploy.call(this)
@@ -1845,7 +1832,7 @@ contract('StakeManager', async function(accounts) {
     })
 
     it('bid must revert', async function() {
-      await expectRevert(this.stakeManager.startAuction(this.validatorId, bidAmount, {
+      await expectRevert(this.stakeManager.startAuction(this.validatorId, bidAmount, false, bidderPubKey, {
         from: bidder
       }), 'Cooldown period')
     })
@@ -1859,7 +1846,7 @@ contract('StakeManager', async function(accounts) {
     it('must bid', async function() {
       await this.stakeToken.mint(bidder, bidAmount)
       await this.stakeToken.approve(this.stakeManager.address, bidAmount, { from: bidder })
-      await this.stakeManager.startAuction(this.validatorId, bidAmount, {
+      await this.stakeManager.startAuction(this.validatorId, bidAmount, false, bidderPubKey, {
         from: bidder
       })
     })

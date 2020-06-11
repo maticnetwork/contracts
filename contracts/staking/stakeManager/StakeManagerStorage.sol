@@ -44,6 +44,8 @@ contract StakeManagerStorage is ProxyStorage, GovernanceLockable, RootChainable 
         uint256 amount;
         uint256 startEpoch;
         address user;
+        bool acceptDelegation;
+        bytes signerPubkey;
     }
 
     struct State {
