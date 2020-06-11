@@ -1411,7 +1411,7 @@ contract('StakeManager', async function(accounts) {
       // cooldown period
       let auctionPeriod = (await this.stakeManager.auctionPeriod()).toNumber()
       let currentEpoch = (await this.stakeManager.currentEpoch()).toNumber()
-      for (let i = currentEpoch; i <= auctionPeriod; i++) {
+      for (let i = currentEpoch; i <= auctionPeriod + (await this.stakeManager.dynasty()).toNumber(); i++) {
         await checkPoint(_initialStakers, this.rootChainOwner, this.stakeManager)
       }
       this.amount = web3.utils.toWei('500')
@@ -1464,24 +1464,15 @@ contract('StakeManager', async function(accounts) {
       beforeEach('deploy', doDeploy)
 
       it('when bid during non-auction period', async function() {
-        let auction = await this.stakeManager.validatorAuction(1)
-        let currentEpoch = await this.stakeManager.currentEpoch()
-        let dynasty = await this.stakeManager.dynasty()
-
-        // skip auction period
-        let end = auction.startEpoch.add(dynasty).toNumber()
-        for (let i = currentEpoch.toNumber(); i <= end; i++) {
-          // 2/3 majority vote
-          await checkPoint(_initialStakers, this.rootChainOwner, this.stakeManager)
-        }
-
+        let auctionPeriod = await this.stakeManager.auctionPeriod()
+        await this.stakeManager.advanceEpoch((auctionPeriod).toNumber())
         await expectRevert(this.stakeManager.startAuction(1, this.amount, {
           from: wallets[3].getAddressString()
         }), 'Invalid auction period')
       })
       it('when trying to start and confirm in last epoch', async function() {
         this.validatorId = 1
-        await this.stakeManager.advanceEpoch(9)
+        await this.stakeManager.advanceEpoch(1)
         await this.stakeManager.startAuction(this.validatorId, this.amount, {
           from: wallets[3].getAddressString()
         })
@@ -1771,7 +1762,7 @@ contract('StakeManager', async function(accounts) {
       // cooldown period
       let auctionPeriod = (await this.stakeManager.auctionPeriod()).toNumber()
       let currentEpoch = (await this.stakeManager.currentEpoch()).toNumber()
-      for (let i = currentEpoch; i <= auctionPeriod; i++) {
+      for (let i = currentEpoch; i <= auctionPeriod + (await this.stakeManager.dynasty()).toNumber(); i++) {
         await checkPoint([...initialStakers, validatorUser], this.rootChainOwner, this.stakeManager)
       }
 
