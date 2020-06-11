@@ -14,7 +14,7 @@ const utils = require('../../helpers/utils')
 chai.use(chaiAsPromised).should()
 let contracts, childContracts, statefulUtils, erc20Predicate
 
-contract('WithdrawManager @skip-on-coverage', async function(accounts) {
+contract.skip('WithdrawManager @skip-on-coverage', async function(accounts) {
   const amount = web3.utils.toBN('10')
   const owner = accounts[0]
   const user = accounts[1]

@@ -152,27 +152,27 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
         address token,
         uint256 amountOrToken
     ) external payable isBondProvided {
-        (bytes32 depositHash, uint256 createdAt) = getDepositManager().deposits(depositId);
-        require(keccak256(abi.encodePacked(msg.sender, token, amountOrToken)) == depositHash, "UNAUTHORIZED_EXIT");
-        uint256 ageOfInput = getExitableAt(createdAt) << 127 | (depositId % 10000 /* MAX_DEPOSITS */);
-        uint256 exitId = ageOfInput << 1;
-        address predicate = registry.isTokenMappedAndGetPredicate(token);
-        _addExitToQueue(
-            msg.sender,
-            token,
-            amountOrToken,
-            bytes32(0), /* txHash */
-            false, /* isRegularExit */
-            exitId,
-            predicate
-        );
-        _addInput(
-            exitId,
-            ageOfInput,
-            msg.sender, /* utxoOwner */
-            predicate,
-            token
-        );
+        // (bytes32 depositHash, uint256 createdAt) = getDepositManager().deposits(depositId);
+        // require(keccak256(abi.encodePacked(msg.sender, token, amountOrToken)) == depositHash, "UNAUTHORIZED_EXIT");
+        // uint256 ageOfInput = getExitableAt(createdAt) << 127 | (depositId % 10000 /* MAX_DEPOSITS */);
+        // uint256 exitId = ageOfInput << 1;
+        // address predicate = registry.isTokenMappedAndGetPredicate(token);
+        // _addExitToQueue(
+        //     msg.sender,
+        //     token,
+        //     amountOrToken,
+        //     bytes32(0), /* txHash */
+        //     false, /* isRegularExit */
+        //     exitId,
+        //     predicate
+        // );
+        // _addInput(
+        //     exitId,
+        //     ageOfInput,
+        //     msg.sender, /* utxoOwner */
+        //     predicate,
+        //     token
+        // );
     }
 
     function addExitToQueue(
