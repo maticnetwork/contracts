@@ -348,6 +348,13 @@ module.exports = function(accounts) {
         })
       })
 
+      it('must emit Transfer', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, TestToken, 'Transfer', {
+          value: this.reward,
+          to: user
+        })
+      })
+
       it('must have increased balance by reward', async function() {
         const balance = await this.stakeToken.balanceOf(user)
         assertBigNumberEquality(balance, this.afterStakeBalance.add(this.reward))
@@ -397,6 +404,13 @@ module.exports = function(accounts) {
           amount: amounts.amount,
           validatorId,
           user
+        })
+      })
+
+      it('must emit Transfer', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, TestToken, 'Transfer', {
+          value: this.reward,
+          to: user
         })
       })
 
