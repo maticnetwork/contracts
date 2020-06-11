@@ -498,10 +498,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             _proposer.reward = _proposer.reward.add(_proposerBonus);
         }
 
-        reward = reward.sub(_proposerBonus);
         // update stateMerkleTree root for accounts balance on heimdall chain
         accountStateRoot = stateRoot;
-        return checkSignature(currentValidatorSetTotalStake(), reward, voteHash, sigs);
+        checkSignature(currentValidatorSetTotalStake(), reward.sub(_proposerBonus), voteHash, sigs);
+        return reward;
     }
 
     function checkSignature(
@@ -509,7 +509,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 reward,
         bytes32 voteHash,
         bytes memory sigs
-    ) internal returns (uint256) {
+    ) internal {
         // total voting power
         uint256 totalStakePower;
         address lastAdd; // cannot have address(0x0) as an owner
@@ -529,10 +529,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             }
         }
 
-        return _increaseRewardAndAssertConsensus(checkpointStakePower, totalStakePower, reward);
+        _increaseRewardAndAssertConsensus(checkpointStakePower, totalStakePower, reward);
     }
 
-    function _increaseRewardAndAssertConsensus(uint256 checkpointStakePower, uint256 totalStakePower, uint256 reward) private returns(uint256) {
+    function _increaseRewardAndAssertConsensus(uint256 checkpointStakePower, uint256 totalStakePower, uint256 reward) private {
         rewardPerStake = rewardPerStake.add(reward.mul(REWARD_PRECISION).div(totalStakePower));
 
         uint256 totalStake = _finalizeCommit();
