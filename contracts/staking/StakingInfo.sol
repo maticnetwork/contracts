@@ -24,6 +24,7 @@ contract IStakeManager {
         uint256 lastCommissionUpdate;
         uint256 accumulatedReward;
         uint256 delegatedAmount;
+        uint256 initialRewardPerStake;
     }
 
     mapping(uint256 => Validator) public validators;
@@ -185,7 +186,7 @@ contract StakingInfo {
 
     modifier onlyValidatorContract(uint256 validatorId) {
         address _contract;
-        (, , , , , , _contract, , , , ,) = IStakeManager(
+        (, , , , , , _contract, , , , ,,) = IStakeManager(
             registry.getStakeManagerAddress()
         )
             .validators(validatorId);
@@ -197,7 +198,7 @@ contract StakingInfo {
     modifier StakeManagerOrValidatorContract(uint256 validatorId) {
         address _contract;
         address _stakeManager = registry.getStakeManagerAddress();
-        (, , , , , , _contract, , , , ,) = IStakeManager(_stakeManager).validators(
+        (, , , , , , _contract, , , , ,,) = IStakeManager(_stakeManager).validators(
             validatorId
         );
         require(_contract == msg.sender || _stakeManager == msg.sender,
@@ -405,7 +406,7 @@ contract StakingInfo {
             ,
             signer,
             ,
-            status, , , ,delegatedAmount
+            status, , , ,delegatedAmount,
         ) = stakeManager.validators(validatorId);
         reward = reward.add(delegatedAmount);
     }
@@ -417,7 +418,7 @@ contract StakingInfo {
     {
         address contractAddress;
         uint256 delegatedAmount;
-        (validatorStake, , , , , ,contractAddress, , , , ,delegatedAmount) = IStakeManager(
+        (validatorStake, , , , , ,contractAddress, , , , ,delegatedAmount,) = IStakeManager(
             registry.getStakeManagerAddress()
         )
             .validators(validatorId);
@@ -438,7 +439,7 @@ contract StakingInfo {
         view
         returns (address ValidatorContract)
     {
-        (, , , , , , ValidatorContract, , , , ,) = IStakeManager(
+        (, , , , , , ValidatorContract, , , , ,,) = IStakeManager(
             registry.getStakeManagerAddress()
         )
             .validators(validatorId);

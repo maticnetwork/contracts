@@ -13,6 +13,7 @@ import "../validatorShare/ValidatorShareFactory.sol";
 
 contract StakeManagerStorage is ProxyStorage, GovernanceLockable, RootChainable {
     uint256 constant MAX_COMMISION_RATE = 100;
+    uint256 constant REWARD_PRECISION = 10**25;
 
     IERC20 public token;
     address public registry;
@@ -33,7 +34,7 @@ contract StakeManagerStorage is ProxyStorage, GovernanceLockable, RootChainable 
     uint256 public validatorThreshold = 10; //128
     uint256 public totalStaked;
     uint256 public NFTCounter = 1;
-    uint256 public totalRewards;
+    uint256 public rewardPerStake;
     uint256 public totalRewardsLiquidated;
     uint256 public auctionPeriod = dynasty / 4; // 1 week in epochs
     uint256 public proposerBonus = 10; // 10 % of total rewards
@@ -67,6 +68,7 @@ contract StakeManagerStorage is ProxyStorage, GovernanceLockable, RootChainable 
         uint256 lastCommissionUpdate;
         uint256 accumulatedReward;
         uint256 delegatedAmount;
+        uint256 initialRewardPerStake;
     }
 
     mapping(uint256 => Validator) public validators;

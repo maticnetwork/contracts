@@ -23,7 +23,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
     uint256 public minAmount = 10**18;
 
     uint256 public totalStake;
-    uint256 rewardPerShare;
+    uint256 public rewardPerShare;
     // uint256 public activeAmount;
     bool public delegation = true;
 
@@ -33,11 +33,6 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
     mapping(address => uint256) public amountStaked;
     mapping(address => Delegator) public delegators;
     mapping(address => uint256) public initalRewardPerShare;
-
-    modifier onlyValidator() {
-        require(stakeManager.ownerOf(validatorId) == msg.sender, "not validator");
-        _;
-    }
 
     // onlyOwner will prevent this contract from initializing, since it's owner is going to be 0x0 address
     function initialize(uint256 _validatorId, address _stakingLogger, address _stakeManager) external initializer  {
@@ -84,7 +79,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         amountStaked[msg.sender] = amountStaked[msg.sender].add(_amount);
         require(stakeManager.delegationDeposit(validatorId, _amount, msg.sender), "deposit failed");
 
-        initalRewardPerShare[msg.sender] = getRewardPerShare();
+        initalRewardPerShare[msg.sender] = _commitRewardPerShare();
 
         StakingInfo logger = stakingLogger;
         logger.logShareMinted(validatorId, msg.sender, _amount, shares);
@@ -99,10 +94,10 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         uint256 _amount = rate.mul(shares).div(EXCHANGE_RATE_PRECISION);
         require(_amount >= _minClaimAmount, "Too much slippage");
 
+        _withdrawAndTransferRewards();
+
         _burn(msg.sender, shares);
         stakeManager.updateValidatorState(validatorId, -int256(_amount));
-
-        _withdrawAndTransferRewards();
 
         uint256 _withdrawPoolShare = _amount.mul(EXCHANGE_RATE_PRECISION).div(withdrawExchangeRate());
 
@@ -117,7 +112,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
     }
 
     function _withdrawAndTransferRewards() private returns(uint256) {
-        uint256 currentRewardPerShare = _commitRewardPerShare(msg.sender);
+        uint256 currentRewardPerShare = _commitRewardPerShare();
         uint256 liquidRewards = _calculateReward(msg.sender, currentRewardPerShare);
         if (liquidRewards >= minAmount) {
             require(stakeManager.transferFunds(validatorId, liquidRewards, msg.sender), "Insufficent rewards");
@@ -141,12 +136,12 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
             - move reward amount to active stake pool
             - no shares are minted
         */
-        uint256 currentRewardPerShare = _commitRewardPerShare(msg.sender);
+        uint256 currentRewardPerShare = _commitRewardPerShare();
         uint256 liquidRewards = _calculateReward(msg.sender, currentRewardPerShare);
         require(liquidRewards >= minAmount, "Too small rewards to restake");
 
         amountStaked[msg.sender] = amountStaked[msg.sender].add(liquidRewards);
-        initalRewardPerShare[msg.sender] = getRewardPerShare();
+        initalRewardPerShare[msg.sender] = _commitRewardPerShare();
         totalStake = totalStake.add(liquidRewards);
         stakeManager.updateValidatorState(validatorId, int256(liquidRewards));
 
@@ -155,7 +150,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         logger.logDelegatorRestaked(validatorId, msg.sender, amountStaked[msg.sender]);
     }
 
-    function _commitRewardPerShare(address user) private returns(uint256) {
+    function _commitRewardPerShare() private returns(uint256) {
         uint256 _rewardPerShare = _calculateRewardPerShareWithRewards(stakeManager.withdrawAccumulatedReward(validatorId));
         rewardPerShare = _rewardPerShare;
         return _rewardPerShare;
