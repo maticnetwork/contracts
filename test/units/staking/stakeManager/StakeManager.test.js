@@ -342,7 +342,7 @@ contract('StakeManager', async function(accounts) {
       doDeploy(false)
 
       it('reverts ', async function() {
-        await expectRevert(this.stakeManager.updateValidatorDelegation(false, { from: staker.getAddressString() }), 'delegation not enabled')
+        await expectRevert(this.stakeManager.updateValidatorDelegation(false, { from: staker.getAddressString() }), 'no delegation')
       })
     })
 
@@ -456,8 +456,8 @@ contract('StakeManager', async function(accounts) {
         index++
         it(`staker #${stakerIndex} must have ${expectedRewards[staker.wallet.getAddressString()]} reward`, async function() {
           const validatorId = await this.stakeManager.getValidatorId(staker.wallet.getAddressString())
-          const validator = await this.stakeManager.validators(validatorId)
-          assertBigNumberEquality(validator.reward, expectedRewards[staker.wallet.getAddressString()])
+          const reward = await this.stakeManager.getCurrentReward(validatorId)
+          assertBigNumberEquality(reward, expectedRewards[staker.wallet.getAddressString()])
         })
       }
     }
