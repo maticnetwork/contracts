@@ -21,7 +21,7 @@ contract('Slashing:validator', async function(accounts) {
   let slashingManager
   let wallets
 
-  describe.only('validator slashing', async function() {
+  describe('validator slashing', async function() {
     beforeEach(async function() {
       wallets = generateFirstWallets(mnemonics, 10)
       let contracts = await deployer.deployStakeManager(wallets)
@@ -53,9 +53,10 @@ contract('Slashing:validator', async function(accounts) {
 
       const result = await updateSlashedAmounts([wallets[0], wallets[1]], wallets[1], 1, slashingInfoList, slashingManager)
       const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
-      console.log(logs)
-      logs.should.have.lengthOf(1)
+      logs.should.have.lengthOf(3)
       logs[0].event.should.equal('Slashed')
+      logs[1].event.should.equal('Transfer')
+      logs[2].event.should.equal('Transfer')
       assertBigNumberEquality(logs[0].args.amount, web3.utils.toWei('200'))
       const validator1 = await stakeManager.validators(1)
       const validator2 = await stakeManager.validators(2)
@@ -71,7 +72,7 @@ contract('Slashing:validator', async function(accounts) {
       const result = await updateSlashedAmounts([wallets[0], wallets[1]], wallets[1], 1, slashingInfoList, slashingManager)
 
       const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
-      logs.should.have.lengthOf(2)
+      logs.should.have.lengthOf(4)
       logs[0].event.should.equal('Jailed')
       logs[1].event.should.equal('Slashed')
       assertBigNumberEquality(logs[1].args.amount, web3.utils.toWei('100'))
@@ -112,10 +113,11 @@ contract('Slashing:validator', async function(accounts) {
       const result = await stakeManager.unstake(2, { from: validator2Wallet.getAddressString() })
 
       const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
-      logs.should.have.lengthOf(1)
-      logs[0].event.should.equal('UnstakeInit')
-      assertBigNumberEquality(logs[0].args.amount, web3.utils.toWei('900'))
-      assertBigNumberEquality(logs[0].args.validatorId, '2')
+      logs.should.have.lengthOf(2)
+      logs[0].event.should.equal('Transfer')
+      logs[1].event.should.equal('UnstakeInit')
+      assertBigNumberEquality(logs[1].args.amount, web3.utils.toWei('900'))
+      assertBigNumberEquality(logs[1].args.validatorId, '2')
     })
   })
 })
@@ -169,7 +171,7 @@ contract('Slashing:delegation', async function(accounts) {
 
       result = await updateSlashedAmounts([wallets[0], wallets[1]], wallets[1], 1, slashingInfoList, slashingManager)
       const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
-      logs.should.have.lengthOf(1)
+      logs.should.have.lengthOf(3)
       logs[0].event.should.equal('Slashed')
       assertBigNumberEquality(logs[0].args.amount, web3.utils.toWei('200'))
       const validator1 = await stakeManager.validators(1)
