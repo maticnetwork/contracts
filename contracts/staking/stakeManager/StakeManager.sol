@@ -796,7 +796,6 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         address validator = ownerOf(validatorId);
 
         validators[validatorId].deactivationEpoch = exitEpoch;
-        validators[validatorId].status = Status.UnstakeInProgress;
 
         // unbond all delegators in future
         int256 delegationAmount;
