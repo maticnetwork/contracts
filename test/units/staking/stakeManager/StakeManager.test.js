@@ -1469,7 +1469,7 @@ contract('StakeManager', async function(accounts) {
       it('when trying to start and confirm in last epoch', async function() {
         this.validatorId = 1
         await this.stakeManager.advanceEpoch(1)
-        await this.stakeManager.startAuction(this.validatorId, this.amount, {
+        await this.stakeManager.startAuction(this.validatorId, this.amount, false, wallets[3].getPublicKeyString(), {
           from: wallets[3].getAddressString()
         })
         await this.stakeToken.approve(this.stakeManager.address, web3.utils.toWei('1'), {
@@ -1478,8 +1478,6 @@ contract('StakeManager', async function(accounts) {
         await expectRevert(this.stakeManager.confirmAuctionBid(
           this.validatorId,
           web3.utils.toWei('1'),
-          false,
-          wallets[3].getPublicKeyString(),
           {
             from: wallets[3].getAddressString()
           }
@@ -1488,8 +1486,6 @@ contract('StakeManager', async function(accounts) {
         await this.stakeManager.confirmAuctionBid(
           this.validatorId,
           web3.utils.toWei('1'),
-          false,
-          wallets[3].getPublicKeyString(),
           {
             from: wallets[3].getAddressString()
           }

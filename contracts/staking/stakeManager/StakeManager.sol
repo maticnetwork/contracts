@@ -245,10 +245,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         _unstake(validatorId, exitEpoch);
     }
 
-    // Housekeeping function. @todo remove later
-    function forceUnstake(uint256 validatorId) external onlyOwner {
-        _unstake(validatorId, currentEpoch);
-    }
+    // // Housekeeping function. @todo remove later
+    // function forceUnstake(uint256 validatorId) external onlyOwner {
+    //     _unstake(validatorId, currentEpoch);
+    // }
 
     function transferFunds(
         uint256 validatorId,
