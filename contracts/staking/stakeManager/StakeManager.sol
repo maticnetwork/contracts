@@ -143,7 +143,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         // residue 1 = (39-1)% (7+30), if residue <= auctionPeriod it's `auctionPeriod`
 
         require(
-            (_currentEpoch.sub(validators[validatorId].activationEpoch) % dynasty.add(auctionPeriod)) <= auctionPeriod,
+            (_currentEpoch.sub(validators[validatorId].activationEpoch) % dynasty.add(auctionPeriod)) < auctionPeriod,
             "Invalid auction period"
         );
 
@@ -193,6 +193,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             _currentEpoch.sub(auction.startEpoch) % auctionPeriod.add(dynasty) >= auctionPeriod,
             "Not allowed before auctionPeriod"
         );
+        require(auction.user != address(0x0), "Invalid auction");
 
         uint256 validatorAmount = validators[validatorId].amount;
         uint256 perceivedStake = validatorAmount;
