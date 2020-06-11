@@ -404,9 +404,9 @@ contract StakingInfo {
             _contract,
             status
         ) = stakeManager.validators(validatorId);
+        _status = uint256(status);
         if (_contract != address(0x0)) {
             reward += IStakeManagerLocal(_contract).validatorRewards();
-            _status = uint256(status);
         }
     }
 
