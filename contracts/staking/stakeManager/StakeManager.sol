@@ -468,11 +468,17 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     }
 
     function isValidator(uint256 validatorId) public view returns (bool) {
-        return _isValidator(validatorId);
+        return _isValidator(validatorId, validators[validatorId].amount, currentEpoch);
     }
 
-    function _isValidator(uint256 validatorId) private view returns(bool) {
-        return (validators[validatorId].amount > 0 && validators[validatorId].status == Status.Active);
+    function _isValidator(uint256 validatorId, uint256 amount, uint256 _currentEpoch) private view returns(bool) {
+        uint256 activationEpoch = validators[validatorId].activationEpoch;	      
+        uint256 deactivationEpoch = validators[validatorId].deactivationEpoch;	    
+
+        return (amount > 0 &&
+            (activationEpoch != 0 && activationEpoch <= _currentEpoch) &&
+            (deactivationEpoch == 0 || deactivationEpoch > _currentEpoch) &&	
+            validators[validatorId].status == Status.Active);	
     }
 
     function checkSignatures(
@@ -511,20 +517,22 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         bytes memory sigs
     ) internal {
         // total voting power
+        uint256 _currentEpoch = currentEpoch;
         uint256 totalStakePower;
         address lastAdd; // cannot have address(0x0) as an owner
         for (uint64 i = 0; i < sigs.length; i += 65) {
             address signer = ECVerify.ecrecovery(voteHash, BytesLib.slice(sigs, i, 65));
             uint256 validatorId = signerToValidator[signer];
+            Validator storage validator = validators[validatorId];
+            uint256 amount = validator.amount;
             // check if signer is staker and not proposer
             if (signer == lastAdd) {
                 break;
-            } else if (_isValidator(validatorId) && signer > lastAdd) {
+            } else if (_isValidator(validatorId, amount, _currentEpoch) && signer > lastAdd) {
                 lastAdd = signer;
-
-                Validator storage validator = validators[validatorId];
+                
                 totalStakePower = totalStakePower.add(
-                    validator.delegatedAmount.add(validator.amount)
+                    validator.delegatedAmount.add(amount)
                 );
             }
         }
@@ -583,14 +591,20 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         );
 
         if (delegatorsReward > 0) {
-            validators[validatorId].accumulatedReward = validators[validatorId].accumulatedReward.add(delegatorsReward);
+            validators[validatorId].accumulatedReward 
+                = validators[validatorId].accumulatedReward.add(delegatorsReward);
         }
 
         validators[validatorId].reward = validators[validatorId].reward.add(validatorReward);
     }
 
     function _increaseProposerReward(uint256 validatorId, uint256 validatorsStake, uint256 reward) private {
-        _increaseValidatorRewardWithDelegation(validatorId, validatorsStake, validators[validatorId].delegatedAmount, reward);
+        _increaseValidatorRewardWithDelegation(
+            validatorId, 
+            validatorsStake, 
+            validators[validatorId].delegatedAmount, 
+            reward
+        );
     }
 
     function _updateValidatorRewardWithDelegation(
@@ -598,7 +612,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 validatorsStake,
         uint256 reward, 
         uint256 combinedStakePower
-    ) private view returns(uint256, uint256) {
+    ) internal view returns(uint256, uint256) {
         uint256 validatorReward = validatorsStake.mul(reward).div(combinedStakePower);
 
         // add validator commission from delegation reward
@@ -859,7 +873,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
 
     function updateValidatorDelegation(bool delegation) external {
         uint256 validatorId = signerToValidator[msg.sender];
-        require(_isValidator(validatorId), "not validator");
+        require(_isValidator(validatorId, validators[validatorId].amount, currentEpoch), "not validator");
 
         address contractAddr = validators[validatorId].contractAddress;
         require(contractAddr != address(0x0), "no delegation");
