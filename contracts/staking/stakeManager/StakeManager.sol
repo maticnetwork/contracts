@@ -112,10 +112,6 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         return validators[NFTContract.tokenOfOwnerByIndex(user, 0)].amount;
     }
 
-    function supportsHistory() external pure returns (bool) {
-        return false;
-    }
-
     function startAuction(
         uint256 validatorId,
         uint256 amount,
@@ -245,10 +241,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         _unstake(validatorId, exitEpoch);
     }
 
-    // // Housekeeping function. @todo remove later
-    // function forceUnstake(uint256 validatorId) external onlyOwner {
-    //     _unstake(validatorId, currentEpoch);
-    // }
+    // Housekeeping function. @todo remove later
+    function forceUnstake(uint256 validatorId) external onlyOwner {
+        _unstake(validatorId, currentEpoch);
+    }
 
     function transferFunds(
         uint256 validatorId,
@@ -386,11 +382,6 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     function updateContractAddress(uint256 validatorId, address newContractAddress) public onlyOwner {
         require(IValidatorShare(newContractAddress).owner() == address(this), "Owner of contract must be stakeManager");
         validators[validatorId].contractAddress = newContractAddress;
-    }
-
-    // Update delegation contract factory
-    function updateContractFactory(address newFactory) public onlyOwner {
-        factory = ValidatorShareFactory(newFactory);
     }
 
     function updateValidatorState(uint256 validatorId, int256 amount) public {
@@ -701,7 +692,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         validatorState[targetEpoch].stakerCount += stakerCount;
     }
 
-    function pubToAddress(bytes memory pub) public pure returns (address) {
+    function pubToAddress(bytes memory pub) private pure returns (address) {
         require(pub.length == 64, "Invalid pubkey");
         return address(uint160(uint256(keccak256(pub))));
     }
@@ -722,15 +713,15 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         require(token.transfer(destination, amount), "Drain failed");
     }
 
-    // function reinitialize(
-    //     address _NFTContract,
-    //     address _stakingLogger,
-    //     address _validatorShareFactory
-    // ) external onlyGovernance {
-    //     NFTContract = StakingNFT(_NFTContract);
-    //     logger = StakingInfo(_stakingLogger);
-    //     factory = ValidatorShareFactory(_validatorShareFactory);
-    // }
+    function reinitialize(
+        address _NFTContract,
+        address _stakingLogger,
+        address _validatorShareFactory
+    ) external onlyGovernance {
+        NFTContract = StakingNFT(_NFTContract);
+        logger = StakingInfo(_stakingLogger);
+        factory = ValidatorShareFactory(_validatorShareFactory);
+    }
 
     function updateValidatorDelegation(bool delegation) external {
         uint256 validatorId = signerToValidator[msg.sender];

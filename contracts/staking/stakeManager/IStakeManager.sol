@@ -35,8 +35,6 @@ contract IStakeManager {
 
     function totalStakedFor(address addr) external view returns (uint256);
 
-    function supportsHistory() external pure returns (bool);
-
     function stakeFor(
         address user,
         uint256 amount,
