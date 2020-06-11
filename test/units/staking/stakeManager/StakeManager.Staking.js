@@ -348,15 +348,6 @@ module.exports = function(accounts) {
         })
       })
 
-      // for some reason TestToken doesn't have Transfer event
-
-      // it('must emit Transfer', async function() {
-      //   await expectEvent.inTransaction(this.receipt.tx, TestToken, 'Transfer', {
-      //     value: this.reward,
-      //     to: user
-      //   })
-      // })
-
       it('must have increased balance by reward', async function() {
         const balance = await this.stakeToken.balanceOf(user)
         assertBigNumberEquality(balance, this.afterStakeBalance.add(this.reward))
@@ -408,15 +399,6 @@ module.exports = function(accounts) {
           user
         })
       })
-
-      // for some reason TestToken doesn't have Transfer event
-
-      // it('must emit Transfer', async function() {
-      //   await expectEvent.inTransaction(this.receipt.tx, TestToken, 'Transfer', {
-      //     value: this.reward,
-      //     to: user
-      //   })
-      // })
 
       it('must have increased balance by reward', async function() {
         const balance = await this.stakeToken.balanceOf(user)
