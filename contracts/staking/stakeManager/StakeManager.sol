@@ -116,7 +116,12 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         return false;
     }
 
-    function startAuction(uint256 validatorId, uint256 amount) external onlyWhenUnlocked {
+    function startAuction(
+        uint256 validatorId,
+        uint256 amount,
+        bool _acceptDelegation,
+        bytes calldata _signerPubkey
+    ) external onlyWhenUnlocked {
         uint256 currentValidatorAmount = validators[validatorId].amount;
 
         require(
@@ -170,15 +175,15 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         // create new auction
         auction.amount = amount;
         auction.user = msg.sender;
+        auction.acceptDelegation = _acceptDelegation;
+        auction.signerPubkey = _signerPubkey;
 
         logger.logStartAuction(validatorId, currentValidatorAmount, amount);
     }
 
     function confirmAuctionBid(
         uint256 validatorId,
-        uint256 heimdallFee, /** for new validator */
-        bool acceptDelegation,
-        bytes calldata signerPubkey
+        uint256 heimdallFee /** for new validator */
     ) external onlyWhenUnlocked {
         Auction storage auction = validatorAuction[validatorId];
         address auctionUser = auction.user;
@@ -214,12 +219,17 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             _transferAndTopUp(auctionUser, heimdallFee, 0);
             _unstake(validatorId, _currentEpoch);
 
-            uint256 newValidatorId = _stakeFor(auctionUser, auctionAmount, acceptDelegation, signerPubkey);
+            uint256 newValidatorId = _stakeFor(
+                auctionUser,
+                auctionAmount,
+                auction.acceptDelegation,
+                auction.signerPubkey
+            );
             logger.logConfirmAuction(newValidatorId, validatorId, auctionAmount);
         }
-
-        auction.amount = 0;
-        auction.user = address(0x0);
+        uint256 startEpoch = auction.startEpoch;
+        delete validatorAuction[validatorId];
+        validatorAuction[validatorId].startEpoch = startEpoch;
     }
 
     function unstake(uint256 validatorId) external onlyStaker(validatorId) {
@@ -711,15 +721,15 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         require(token.transfer(destination, amount), "Drain failed");
     }
 
-    function reinitialize(
-        address _NFTContract,
-        address _stakingLogger,
-        address _validatorShareFactory
-    ) external onlyGovernance {
-        NFTContract = StakingNFT(_NFTContract);
-        logger = StakingInfo(_stakingLogger);
-        factory = ValidatorShareFactory(_validatorShareFactory);
-    }
+    // function reinitialize(
+    //     address _NFTContract,
+    //     address _stakingLogger,
+    //     address _validatorShareFactory
+    // ) external onlyGovernance {
+    //     NFTContract = StakingNFT(_NFTContract);
+    //     logger = StakingInfo(_stakingLogger);
+    //     factory = ValidatorShareFactory(_validatorShareFactory);
+    // }
 
     function updateValidatorDelegation(bool delegation) external {
         uint256 validatorId = signerToValidator[msg.sender];

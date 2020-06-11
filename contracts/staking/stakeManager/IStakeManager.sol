@@ -3,14 +3,14 @@ pragma solidity ^0.5.2;
 
 contract IStakeManager {
     // validator replacement
-    function startAuction(uint256 validatorId, uint256 amount) external;
-
-    function confirmAuctionBid(
+    function startAuction(
         uint256 validatorId,
-        uint256 heimdallFee,
+        uint256 amount,
         bool acceptDelegation,
         bytes calldata signerPubkey
     ) external;
+
+    function confirmAuctionBid(uint256 validatorId, uint256 heimdallFee) external;
 
     function transferFunds(
         uint256 validatorId,

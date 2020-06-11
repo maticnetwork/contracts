@@ -210,7 +210,7 @@ module.exports = function(accounts) {
             from: auctionUser
           })
           const validatorId = await this.stakeManager.getValidatorId(wallets[2].getChecksumAddressString())
-          await this.stakeManager.startAuction(validatorId, auctionBid, {
+          await this.stakeManager.startAuction(validatorId, auctionBid, false, wallets[4].getPublicKeyString(), {
             from: auctionUser
           })
           testRestake(
@@ -463,7 +463,7 @@ module.exports = function(accounts) {
           from: auctionUser
         })
         const validatorId = await this.stakeManager.getValidatorId(user)
-        await this.stakeManager.startAuction(validatorId, amount, {
+        await this.stakeManager.startAuction(validatorId, amount, false, wallets[4].getPublicKeyString(), {
           from: auctionUser
         })
         await expectRevert.unspecified(this.stakeManager.unstake(validatorId, {
