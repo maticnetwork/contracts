@@ -1479,6 +1479,36 @@ contract('StakeManager', async function(accounts) {
           from: wallets[3].getAddressString()
         }), 'Invalid auction period')
       })
+      it('when trying to start and confirm in last epoch', async function() {
+        this.validatorId = 1
+        await this.stakeManager.advanceEpoch(9)
+        await this.stakeManager.startAuction(this.validatorId, this.amount, {
+          from: wallets[3].getAddressString()
+        })
+        await this.stakeToken.approve(this.stakeManager.address, web3.utils.toWei('1'), {
+          from: wallets[3].getAddressString()
+        })
+        await expectRevert(this.stakeManager.confirmAuctionBid(
+          this.validatorId,
+          web3.utils.toWei('1'),
+          false,
+          wallets[3].getPublicKeyString(),
+          {
+            from: wallets[3].getAddressString()
+          }
+        ), 'Not allowed before auctionPeriod')
+        await this.stakeManager.advanceEpoch(1)
+        await this.stakeManager.confirmAuctionBid(
+          this.validatorId,
+          web3.utils.toWei('1'),
+          false,
+          wallets[3].getPublicKeyString(),
+          {
+            from: wallets[3].getAddressString()
+          }
+        )
+        assert.ok(!(await this.stakeManager.isValidator(this.validatorId)))
+      })
 
       it('when bid during replacement cooldown', async function() {
         await this.stakeManager.updateDynastyValue(7)
@@ -1604,7 +1634,6 @@ contract('StakeManager', async function(accounts) {
         prepareToTest()
         testConfirmAuctionBidForNewValidator()
       })
-
       describe('when 1000 dynasties has passed', function() {
         prepareToTest()
         before(async function() {
