@@ -123,7 +123,7 @@ contract('StakeManager', async function(accounts) {
 
     it('previous validator must get his reward', async function() {
       let prevValidatorBalance = await this.stakeToken.balanceOf(this.prevValidatorAddr)
-      assertBigNumberEquality(prevValidatorBalance, this.prevValidatorOldBalance.add(this.validator.reward))
+      assertBigNumberEquality(prevValidatorBalance, this.prevValidatorOldBalance.add(this.reward))
     })
 
     it('previous validator is not validator anymore', async function() {
@@ -334,7 +334,7 @@ contract('StakeManager', async function(accounts) {
       doDeploy(true)
 
       it('reverts ', async function() {
-        await expectRevert(this.stakeManager.updateValidatorDelegation(false, { from: wallets[2].getAddressString() }), 'not a validator')
+        await expectRevert(this.stakeManager.updateValidatorDelegation(false, { from: wallets[2].getAddressString() }), 'not validator')
       })
     })
 
@@ -864,7 +864,7 @@ contract('StakeManager', async function(accounts) {
       it('reverts', async function() {
         await expectRevert(this.stakeManager.updateSigner(this.validatorId, wallets[6].getPublicKeyString(), {
           from: user
-        }), 'Invalid checkpoint number!')
+        }), 'Not allowed')
       })
     })
 
@@ -1240,7 +1240,7 @@ contract('StakeManager', async function(accounts) {
         const minHeimdallFee = await this.stakeManager.minHeimdallFee()
         await expectRevert(this.stakeManager.topUpForFee(validatorUser, minHeimdallFee.sub(new BN(1)), {
           from: validatorUser
-        }), 'Not enough heimdall fee')
+        }), 'fee too small')
       })
 
       it('when fee overflows', async function() {
@@ -1673,7 +1673,7 @@ contract('StakeManager', async function(accounts) {
         await this.stakeManager.unstake(1, { from: _initialStakers[0].getAddressString() })
         await expectRevert(this.stakeManager.restake(1, this.amount, false, {
           from: _initialStakers[0].getAddressString()
-        }), 'No use of restaking')
+        }), 'No restaking')
       })
 
       // since all the rewards are given in unstake already
@@ -1772,6 +1772,7 @@ contract('StakeManager', async function(accounts) {
           this.prevValidatorOldBalance = await this.stakeToken.balanceOf(this.prevValidatorAddr)
 
           this.validator = await this.stakeManager.validators(this.validatorId)
+          this.reward = await this.stakeManager.getCurrentReward(this.validatorId)
         })
       }
 
@@ -1962,7 +1963,7 @@ contract('StakeManager', async function(accounts) {
         this.prevValidatorAddr = validatorUserAddr
         this.prevValidatorOldBalance = await this.stakeToken.balanceOf(validatorUserAddr)
         this.validator = await this.stakeManager.validators(delegatedValidatorId)
-        this.validator.reward = await this.validatorContract.validatorRewards()
+        this.reward = await this.stakeManager.getCurrentReward(delegatedValidatorId)
       })
 
       testConfirmAuctionBidForNewValidator()

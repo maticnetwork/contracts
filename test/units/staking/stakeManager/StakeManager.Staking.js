@@ -329,8 +329,8 @@ module.exports = function(accounts) {
       before(async function() {
         this.validatorId = await this.stakeManager.getValidatorId(user)
 
-        const validator = await this.stakeManager.validators(this.validatorId)
-        this.reward = validator.reward
+        const reward = await this.stakeManager.getCurrentReward(this.validatorId)
+        this.reward = reward
         this.afterStakeBalance = await this.stakeToken.balanceOf(user)
       })
 
@@ -389,8 +389,7 @@ module.exports = function(accounts) {
         await checkPoint(w, this.rootChainOwner, this.stakeManager)
         await checkPoint(w, this.rootChainOwner, this.stakeManager)
 
-        const validator = await this.stakeManager.validators(this.validatorId)
-        this.reward = validator.reward
+        this.reward = await this.stakeManager.getCurrentReward(this.validatorId)
       })
 
       it('must unstake', async function() {
@@ -716,15 +715,7 @@ module.exports = function(accounts) {
 
         if (!withRewards) {
           this.validatorReward = new BN(0)
-
-          let reward = this.validatorOldState.reward
-
-          if (this.validatorOldState.contractAddress !== '0x0000000000000000000000000000000000000000') {
-            let validatorContract = await ValidatorShare.at(this.validatorOldState.contractAddress)
-            reward = await validatorContract.validatorRewards()
-          }
-
-          this.oldReward = reward
+          this.oldReward = await this.stakeManager.getCurrentReward(this.validatorId)
         }
       })
 
@@ -751,25 +742,13 @@ module.exports = function(accounts) {
 
       if (withRewards) {
         it('validator rewards must be 0', async function() {
-          let validator = await this.stakeManager.validators(this.validatorId)
-          let reward = validator.reward
-
-          if (validator.contractAddress !== '0x0000000000000000000000000000000000000000') {
-            let validatorContract = await ValidatorShare.at(validator.contractAddress)
-            reward = await validatorContract.validatorRewards()
-          }
+          const reward = await this.stakeManager.getCurrentReward(this.validatorId)
 
           assertBigNumberEquality(reward, 0)
         })
       } else {
         it('validator rewards must be untouched', async function() {
-          let validator = await this.stakeManager.validators(this.validatorId)
-          let reward = validator.reward
-
-          if (validator.contractAddress !== '0x0000000000000000000000000000000000000000') {
-            let validatorContract = await ValidatorShare.at(validator.contractAddress)
-            reward = await validatorContract.validatorRewards()
-          }
+          const reward = await this.stakeManager.getCurrentReward(this.validatorId)
 
           assertBigNumberEquality(reward, this.oldReward)
         })
@@ -809,7 +788,7 @@ module.exports = function(accounts) {
         await this.stakeManager.unstake(this.validatorId)
         await expectRevert(this.stakeManager.restake(this.validatorId, this.amount, false, {
           from: this.user
-        }), 'No use of restaking')
+        }), 'No restaking')
       })
     })
   })
