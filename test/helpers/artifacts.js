@@ -40,7 +40,6 @@ export const TransferWithSigPredicate = artifacts.require(
 // tokens
 export const MaticWETH = artifacts.require('MaticWETH')
 export const TestToken = artifacts.require('TestToken')
-export const DummyERC20 = artifacts.require('DummyERC20')
 export const RootERC721 = artifacts.require('RootERC721')
 export const ERC721PlasmaMintable = artifacts.require('ERC721PlasmaMintable')
 export const ExitNFT = artifacts.require('ExitNFT')
