@@ -216,7 +216,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
         emit ExitCancelled(exitId);
     }
 
-    function processExits(address _token) external {
+    function processExits(address _token) public {
         uint256 exitableAt;
         uint256 exitId;
 
@@ -251,6 +251,12 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
                 // return the bond amount if this was a MoreVp style exit
                 address(uint160(exitor)).send(BOND_AMOUNT);
             }
+        }
+    }
+
+    function processExitsBatch(address[] calldata _tokens) external {
+        for (uint256 i = 0; i < _tokens.length; i++) {
+            processExits(_tokens[i]);
         }
     }
 
