@@ -335,17 +335,21 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         logger.logRestaked(validatorId, validators[validatorId].amount, newTotalStaked);
     }
 
+    function _liquidateRewards(uint256 validatorId, address validatorUser, uint256 reward) private {
+        totalRewardsLiquidated = totalRewardsLiquidated.add(reward);
+        validators[validatorId].reward = 0;
+        require(token.transfer(validatorUser, reward), "Insufficent rewards");
+        logger.logClaimRewards(validatorId, reward, totalRewardsLiquidated);
+    }
+
     function withdrawRewards(uint256 validatorId) public onlyStaker(validatorId) {
-        uint256 amount = validators[validatorId].reward;
+        uint256 reward = validators[validatorId].reward;
         address contractAddr = validators[validatorId].contractAddress;
         if (contractAddr != address(0x0)) {
-            amount = amount.add(IValidatorShare(contractAddr).withdrawRewardsValidator());
+            reward = reward.add(IValidatorShare(contractAddr).withdrawRewardsValidator());
         }
 
-        totalRewardsLiquidated = totalRewardsLiquidated.add(amount);
-        validators[validatorId].reward = 0;
-        require(token.transfer(msg.sender, amount), "Insufficent rewards");
-        logger.logClaimRewards(validatorId, amount, totalRewardsLiquidated);
+        _liquidateRewards(validatorId, msg.sender, reward);
     }
 
     function getValidatorId(address user) public view returns (uint256) {
@@ -662,8 +666,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             delegationAmount = int256(validatorShare.lockContract());
         }
 
-        validators[validatorId].reward = 0;
-        require(token.transfer(validator, rewards), "Rewards transfer failed");
+        _liquidateRewards(validatorId, validator, rewards);
+
         //  update future
         updateTimeLine(exitEpoch, -(int256(amount) + delegationAmount), -1);
 

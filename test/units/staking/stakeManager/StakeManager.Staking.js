@@ -348,6 +348,14 @@ module.exports = function(accounts) {
         })
       })
 
+      it('must emit ClaimRewards', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ClaimRewards', {
+          validatorId: this.validatorId,
+          amount: '0',
+          totalAmount: '0'
+        })
+      })
+
       it('must emit Transfer', async function() {
         await expectEvent.inTransaction(this.receipt.tx, TestToken, 'Transfer', {
           value: this.reward,
@@ -404,6 +412,14 @@ module.exports = function(accounts) {
           amount: amounts.amount,
           validatorId,
           user
+        })
+      })
+
+      it('must emit ClaimRewards', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ClaimRewards', {
+          validatorId: this.validatorId,
+          amount: this.reward,
+          totalAmount: this.reward
         })
       })
 
@@ -494,6 +510,7 @@ module.exports = function(accounts) {
       before('Fresh Deploy', freshDeploy)
 
       let dynasties = 1
+      const user = wallets[2].getAddressString()
 
       before('Validator dynasty', async function() {
         await this.stakeManager.updateDynastyValue(dynasties, {
@@ -510,13 +527,11 @@ module.exports = function(accounts) {
         while (dynasties-- > 0) {
           await checkPoint([wallets[3]], this.rootChainOwner, this.stakeManager)
         }
+        this.validatorId = await this.stakeManager.getValidatorId(user)
       })
 
-      const user = wallets[2].getAddressString()
-
       it('must claim', async function() {
-        const validatorId = await this.stakeManager.getValidatorId(user)
-        this.receipt = await this.stakeManager.unstakeClaim(validatorId, {
+        this.receipt = await this.stakeManager.unstakeClaim(this.validatorId, {
           from: user
         })
       })
