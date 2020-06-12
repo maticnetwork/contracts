@@ -160,10 +160,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         );
 
         uint256 perceivedStake = currentValidatorAmount;
-
-        if (validators[validatorId].contractAddress != address(0x0)) {
-            perceivedStake = perceivedStake.add(validators[validatorId].delegatedAmount);
-        }
+        perceivedStake = perceivedStake.add(validators[validatorId].delegatedAmount);
 
         Auction storage auction = validatorAuction[validatorId];
         uint256 currentAuctionAmount = auction.amount;
@@ -196,7 +193,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
 
         require(
             msg.sender == auctionUser || getValidatorId(msg.sender) == validatorId,
-            "Only bidder or validator can confirm"
+            "Only bidder can confirm"
         );
 
         uint256 _currentEpoch = currentEpoch;
@@ -209,9 +206,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 perceivedStake = validatorAmount;
         uint256 auctionAmount = auction.amount;
 
-        if (validators[validatorId].contractAddress != address(0x0)) {
-            perceivedStake = perceivedStake.add(validators[validatorId].delegatedAmount);
-        }
+        perceivedStake = perceivedStake.add(validators[validatorId].delegatedAmount);
 
         // validator is last auctioner
         if (perceivedStake >= auctionAmount && validators[validatorId].deactivationEpoch == 0) {
@@ -234,10 +229,12 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
 
     function unstake(uint256 validatorId) external onlyStaker(validatorId) {
         require(validatorAuction[validatorId].amount == 0, "Wait for auction completion");
+
+        Status status = validators[validatorId].status;
         require(
             validators[validatorId].activationEpoch > 0 &&
                 validators[validatorId].deactivationEpoch == 0 &&
-                (validators[validatorId].status == Status.Active || validators[validatorId].status == Status.Locked)
+                (status == Status.Active || status == Status.Locked)
         );
 
         uint256 exitEpoch = currentEpoch.add(1); // notice period
@@ -337,6 +334,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     }
 
     function withdrawRewards(uint256 validatorId) public onlyStaker(validatorId) {
+        _updateRewards(validatorId);
+
         uint256 amount = validators[validatorId].reward;
         totalRewardsLiquidated = totalRewardsLiquidated.add(amount);
         validators[validatorId].reward = 0;
@@ -498,8 +497,14 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 _proposerBonus = reward.mul(proposerBonus).div(100);
         uint256 proposerId = signerToValidator[proposer];
         Validator storage _proposer = validators[proposerId];
-        if (_proposer.contractAddress != address(0x0)) {
-            _increaseProposerReward(proposerId, _proposer.amount, _proposerBonus);
+        uint256 delegatedAmount = _proposer.delegatedAmount;
+        if (delegatedAmount > 0) {
+            _increaseValidatorRewardWithDelegation(
+                proposerId, 
+                _proposer.amount, 
+                delegatedAmount, 
+                _proposerBonus
+            );
         } else {
             _proposer.reward = _proposer.reward.add(_proposerBonus);
         }
@@ -570,9 +575,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     }
 
     function _increaseValidatorReward(uint256 validatorId) private {
-        validators[validatorId].reward = validators[validatorId].reward.add(
-            _getEligibleReward(validatorId, validators[validatorId].amount)
-        );
+        uint256 reward = _getEligibleReward(validatorId, validators[validatorId].amount);
+        if (reward > 0) {
+            validators[validatorId].reward = validators[validatorId].reward.add(reward);
+        }
     }
 
     function _increaseValidatorRewardWithDelegation(
@@ -598,15 +604,6 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         validators[validatorId].reward = validators[validatorId].reward.add(validatorReward);
     }
 
-    function _increaseProposerReward(uint256 validatorId, uint256 validatorsStake, uint256 reward) private {
-        _increaseValidatorRewardWithDelegation(
-            validatorId, 
-            validatorsStake, 
-            validators[validatorId].delegatedAmount, 
-            reward
-        );
-    }
-
     function _updateValidatorRewardWithDelegation(
         uint256 validatorId, 
         uint256 validatorsStake,
@@ -628,6 +625,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     }
 
     function updateCommissionRate(uint256 validatorId, uint256 newCommissionRate) external onlyStaker(validatorId) {
+        _updateRewards(validatorId);
+
         uint256 _epoch = currentEpoch;
         uint256 _lastCommissionUpdate = validators[validatorId].lastCommissionUpdate;
 
@@ -684,8 +683,9 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             uint256 _amount = slashData[1].toUint();
             totalAmount = totalAmount.add(_amount);
 
-            if (validators[validatorId].contractAddress != address(0x0)) {
-                uint256 delSlashedAmount = IValidatorShare(validators[validatorId].contractAddress).slash(
+            address addr = validators[validatorId].contractAddress;
+            if (addr != address(0x0)) {
+                uint256 delSlashedAmount = IValidatorShare(addr).slash(
                     validators[validatorId].amount,
                     validators[validatorId].delegatedAmount,
                     _amount
@@ -799,7 +799,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
 
         // unbond all delegators in future
         int256 delegationAmount;
-        uint256 rewards = validators[validatorId].reward;
+        uint256 reward = validators[validatorId].reward;
         address contractAddr = validators[validatorId].contractAddress;
         if (contractAddr != address(0x0)) {
             IValidatorShare(contractAddr).lock();
@@ -807,7 +807,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         }
 
         validators[validatorId].reward = 0;
-        require(token.transfer(validator, rewards), "Transfer fail");
+        require(token.transfer(validator, reward), "Transfer fail");
         //  update future
         updateTimeLine(exitEpoch, -(int256(amount) + delegationAmount), -1);
 
