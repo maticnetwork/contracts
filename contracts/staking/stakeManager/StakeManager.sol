@@ -9,7 +9,7 @@ import {RLPReader} from "solidity-rlp/contracts/RLPReader.sol";
 import {BytesLib} from "../../common/lib/BytesLib.sol";
 import {ECVerify} from "../../common/lib/ECVerify.sol";
 import {Merkle} from "../../common/lib/Merkle.sol";
-import {Lockable} from "../../common/mixin/Lockable.sol";
+import {GovernanceLockable} from "../../common/mixin/GovernanceLockable.sol";
 import {RootChainable} from "../../common/mixin/RootChainable.sol";
 import {Registry} from "../../common/Registry.sol";
 import {IStakeManager} from "./IStakeManager.sol";
@@ -36,7 +36,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         _;
     }
 
-    constructor() public Lockable(address(0x0)) {}
+    constructor() public GovernanceLockable(address(0x0)) {}
 
     function setDelegationEnabled(bool enabled) public onlyGovernance {
         delegationEnabled = enabled;
@@ -112,11 +112,12 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         return validators[NFTContract.tokenOfOwnerByIndex(user, 0)].amount;
     }
 
-    function supportsHistory() external pure returns (bool) {
-        return false;
-    }
-
-    function startAuction(uint256 validatorId, uint256 amount) external onlyWhenUnlocked {
+    function startAuction(
+        uint256 validatorId,
+        uint256 amount,
+        bool _acceptDelegation,
+        bytes calldata _signerPubkey
+    ) external onlyWhenUnlocked {
         uint256 currentValidatorAmount = validators[validatorId].amount;
 
         require(
@@ -143,7 +144,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         // residue 1 = (39-1)% (7+30), if residue <= auctionPeriod it's `auctionPeriod`
 
         require(
-            (_currentEpoch.sub(validators[validatorId].activationEpoch) % dynasty.add(auctionPeriod)) <= auctionPeriod,
+            (_currentEpoch.sub(validators[validatorId].activationEpoch) % dynasty.add(auctionPeriod)) < auctionPeriod,
             "Invalid auction period"
         );
 
@@ -151,7 +152,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         address _contract = validators[validatorId].contractAddress;
 
         if (_contract != address(0x0)) {
-            perceivedStake = perceivedStake.add(IValidatorShare(_contract).activeAmount());
+            perceivedStake = perceivedStake.add(IValidatorShare(_contract).getActiveAmount());
         }
 
         Auction storage auction = validatorAuction[validatorId];
@@ -170,15 +171,15 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         // create new auction
         auction.amount = amount;
         auction.user = msg.sender;
+        auction.acceptDelegation = _acceptDelegation;
+        auction.signerPubkey = _signerPubkey;
 
         logger.logStartAuction(validatorId, currentValidatorAmount, amount);
     }
 
     function confirmAuctionBid(
         uint256 validatorId,
-        uint256 heimdallFee, /** for new validator */
-        bool acceptDelegation,
-        bytes calldata signerPubkey
+        uint256 heimdallFee /** for new validator */
     ) external onlyWhenUnlocked {
         Auction storage auction = validatorAuction[validatorId];
         address auctionUser = auction.user;
@@ -193,6 +194,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             _currentEpoch.sub(auction.startEpoch) % auctionPeriod.add(dynasty) >= auctionPeriod,
             "Not allowed before auctionPeriod"
         );
+        require(auction.user != address(0x0), "Invalid auction");
 
         uint256 validatorAmount = validators[validatorId].amount;
         uint256 perceivedStake = validatorAmount;
@@ -200,7 +202,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         address contractAddr = validators[validatorId].contractAddress;
 
         if (contractAddr != address(0x0)) {
-            perceivedStake = perceivedStake.add(IValidatorShare(contractAddr).activeAmount());
+            perceivedStake = perceivedStake.add(IValidatorShare(contractAddr).getActiveAmount());
         }
 
         // validator is last auctioner
@@ -214,12 +216,17 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
             _transferAndTopUp(auctionUser, heimdallFee, 0);
             _unstake(validatorId, _currentEpoch);
 
-            uint256 newValidatorId = _stakeFor(auctionUser, auctionAmount, acceptDelegation, signerPubkey);
+            uint256 newValidatorId = _stakeFor(
+                auctionUser,
+                auctionAmount,
+                auction.acceptDelegation,
+                auction.signerPubkey
+            );
             logger.logConfirmAuction(newValidatorId, validatorId, auctionAmount);
         }
-
-        auction.amount = 0;
-        auction.user = address(0x0);
+        uint256 startEpoch = auction.startEpoch;
+        delete validatorAuction[validatorId];
+        validatorAuction[validatorId].startEpoch = startEpoch;
     }
 
     function unstake(uint256 validatorId) external onlyStaker(validatorId) {
@@ -379,11 +386,6 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     function updateContractAddress(uint256 validatorId, address newContractAddress) public onlyOwner {
         require(IValidatorShare(newContractAddress).owner() == address(this), "Owner of contract must be stakeManager");
         validators[validatorId].contractAddress = newContractAddress;
-    }
-
-    // Update delegation contract factory
-    function updateContractFactory(address newFactory) public onlyOwner {
-        factory = ValidatorShareFactory(newFactory);
     }
 
     function updateValidatorState(uint256 validatorId, int256 amount) public {
@@ -694,7 +696,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         validatorState[targetEpoch].stakerCount += stakerCount;
     }
 
-    function pubToAddress(bytes memory pub) public pure returns (address) {
+    function pubToAddress(bytes memory pub) private pure returns (address) {
         require(pub.length == 64, "Invalid pubkey");
         return address(uint160(uint256(keccak256(pub))));
     }

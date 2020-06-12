@@ -6,7 +6,7 @@ import {IGovernance} from "../../common/governance/IGovernance.sol";
 import {StakeManagerStorage} from "./StakeManagerStorage.sol";
 import {Proxy} from "../../common/misc/Proxy.sol";
 import {Registry} from "../../common/Registry.sol";
-import {Lockable} from "../../common/mixin/Lockable.sol";
+import {GovernanceLockable} from "../../common/mixin/GovernanceLockable.sol";
 import {StakingInfo} from "../StakingInfo.sol";
 import {StakingNFT} from "./StakingNFT.sol";
 import "../validatorShare/ValidatorShareFactory.sol";
@@ -21,7 +21,7 @@ contract StakeManagerProxy is Proxy, StakeManagerStorage {
         address _stakingLogger,
         address _validatorShareFactory,
         address _governance
-    ) public Proxy(_proxyTo) Lockable(_governance) {
+    ) public Proxy(_proxyTo) GovernanceLockable(_governance) {
         registry = _registry;
         rootChain = _rootchain;
         token = IERC20(_token);
