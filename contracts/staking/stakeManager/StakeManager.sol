@@ -471,11 +471,9 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     }
 
     function _isValidator(uint256 validatorId, uint256 amount, uint256 _currentEpoch) private view returns(bool) {
-        uint256 activationEpoch = validators[validatorId].activationEpoch;	      
         uint256 deactivationEpoch = validators[validatorId].deactivationEpoch;	    
 
         return (amount > 0 &&
-            (activationEpoch != 0 && activationEpoch <= _currentEpoch) &&
             (deactivationEpoch == 0 || deactivationEpoch > _currentEpoch) &&	
             validators[validatorId].status == Status.Active);	
     }
