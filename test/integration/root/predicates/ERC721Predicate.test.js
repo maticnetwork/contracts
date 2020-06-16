@@ -22,7 +22,7 @@ contract('ERC721Predicate @skip-on-coverage', async function(accounts) {
   const bob = accounts[1]
 
   before(async function() {
-    contracts = await deployer.freshDeploy()
+    contracts = await deployer.freshDeploy(accounts[0])
     contracts.ERC721Predicate = await deployer.deployErc721Predicate()
     childContracts = await deployer.initializeChildChain(accounts[0])
     statefulUtils = new StatefulUtils()
