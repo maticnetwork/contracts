@@ -23,7 +23,7 @@ import {Governable} from "../../common/governance/Governable.sol";
 import {IGovernance} from "../../common/governance/IGovernance.sol";
 import {Initializable} from "../../common/mixin/Initializable.sol";
 
-contract StakeManager is StakeManagerStorage {
+contract StakeManager is IStakeManager, StakeManagerStorage, Initializable {
     using SafeMath for uint256;
     using ECVerify for bytes32;
     using Merkle for bytes32;
@@ -33,8 +33,12 @@ contract StakeManager is StakeManagerStorage {
     uint256 private constant INCORRECT_VALIDATOR_ID = 2**256 - 1;
 
     modifier onlyStaker(uint256 validatorId) {
-        require(NFTContract.ownerOf(validatorId) == msg.sender);
+        _assertOnlyStaker(validatorId);
         _;
+    }
+
+    function _assertOnlyStaker(uint256 validatorId) private view {
+        require(NFTContract.ownerOf(validatorId) == msg.sender);
     }
 
     constructor() public GovernanceLockable(address(0x0)) {}
@@ -46,8 +50,9 @@ contract StakeManager is StakeManagerStorage {
         address _NFTContract,
         address _stakingLogger,
         address _validatorShareFactory,
-        address _governance
-    ) external  {
+        address _governance,
+        address _owner
+    ) external initializer {
         governance = IGovernance(_governance);
         registry = _registry;
         rootChain = _rootchain;
@@ -55,6 +60,22 @@ contract StakeManager is StakeManagerStorage {
         NFTContract = StakingNFT(_NFTContract);
         logger = StakingInfo(_stakingLogger);
         factory = ValidatorShareFactory(_validatorShareFactory);
+        _transferOwnership(_owner);
+
+        WITHDRAWAL_DELAY = (2**13); // unit: epoch
+        currentEpoch = 1;
+        dynasty = 2**13; // unit: epoch 50 days
+        CHECKPOINT_REWARD = 10000 * (10**18); // update via governance
+        minDeposit = (10**18); // in ERC20 token
+        minHeimdallFee = (10**18); // in ERC20 token
+        checkPointBlockInterval = 255;
+        signerUpdateLimit = 100;
+
+        validatorThreshold = 10; //128
+        NFTCounter = 1;
+        auctionPeriod = (2**13) / 4; // 1 week in epochs
+        proposerBonus = 10; // 10 % of total rewards
+        delegationEnabled = true;
     }
 
     function setDelegationEnabled(bool enabled) public onlyGovernance {
