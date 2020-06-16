@@ -367,8 +367,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable {
         totalStaked = newTotalStaked;
         validators[validatorId].amount = validators[validatorId].amount.add(amount);
 
-        uint256 _currentEpoch = currentEpoch;
-        validatorState[_currentEpoch].amount = (validatorState[_currentEpoch].amount + int256(amount));
+        updateTimeline(int256(amount), 0, 0);
 
         logger.logStakeUpdate(validatorId);
         logger.logRestaked(validatorId, validators[validatorId].amount, newTotalStaked);
@@ -429,8 +428,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable {
 
     function updateValidatorState(uint256 validatorId, int256 amount) public {
         require(validators[validatorId].contractAddress == msg.sender, "Invalid contract address");
-        uint256 _currentEpoch = currentEpoch;
-        validatorState[_currentEpoch].amount = (validatorState[_currentEpoch].amount + amount);
+        updateTimeline(amount, 0, 0);
     }
 
     function updateDynastyValue(uint256 newDynasty) public onlyOwner {
@@ -485,11 +483,11 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable {
     }
 
     function currentValidatorSetSize() public view returns (uint256) {
-        return uint256(validatorState[currentEpoch].stakerCount);
+        return validatorState.stakerCount;
     }
 
     function currentValidatorSetTotalStake() public view returns (uint256) {
-        return uint256(validatorState[currentEpoch].amount);
+        return validatorState.amount;
     }
 
     function getValidatorContract(uint256 validatorId) public view returns (address) {
@@ -610,7 +608,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable {
         }
 
         //update timeline
-        updateTimeLine(currentEpoch, -int256(totalAmount.add(jailedAmount)), -valJailed);
+        updateTimeline(-int256(totalAmount.add(jailedAmount)), -valJailed, 0);
 
         return totalAmount;
     }
@@ -631,7 +629,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable {
         }
 
         // undo timline so that validator is normal validator
-        updateTimeLine(_currentEpoch, int256(amount.add(delegationAmount)), 1);
+        updateTimeline(int256(amount.add(delegationAmount)), 1, 0);
 
         validators[validatorId].status = Status.Active;
         logger.logUnjailed(validatorId, validators[validatorId].signer);
@@ -680,7 +678,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable {
         NFTContract.mint(user, validatorId);
 
         signerToValidator[signer] = validatorId;
-        updateTimeLine(_currentEpoch, int256(amount), 1);
+        updateTimeline(int256(amount), 1, 0);
         // no Auctions for 1 dynasty
         validatorAuction[validatorId].startEpoch = _currentEpoch;
         _logger.logStaked(signer, signerPubkey, validatorId, _currentEpoch, amount, newTotalStaked);
@@ -708,7 +706,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable {
         _liquidateRewards(validatorId, validator, rewards);
 
         //  update future
-        updateTimeLine(exitEpoch, -(int256(amount) + delegationAmount), -1);
+        updateTimeline(-(int256(amount) + delegationAmount), -1, exitEpoch);
 
         logger.logUnstakeInit(validator, validatorId, exitEpoch, amount);
     }
@@ -716,23 +714,37 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable {
     function _finalizeCommit() internal {
         uint256 _currentEpoch = currentEpoch;
         uint256 nextEpoch = _currentEpoch.add(1);
-        // update totalstake and validator count
-        validatorState[nextEpoch].amount = (validatorState[_currentEpoch].amount + validatorState[nextEpoch].amount);
-        validatorState[nextEpoch].stakerCount = (validatorState[_currentEpoch].stakerCount +
-            validatorState[nextEpoch].stakerCount);
 
-        // erase old data/history
-        delete validatorState[_currentEpoch];
+        StateChange memory changes = validatorStateChanges[nextEpoch];
+        updateTimeline(changes.amount, changes.stakerCount, 0);
+
+        delete validatorStateChanges[_currentEpoch];
+
         currentEpoch = nextEpoch;
     }
 
-    function updateTimeLine(
-        uint256 targetEpoch,
+    function updateTimeline(
         int256 amount,
-        int256 stakerCount
+        int256 stakerCount,
+        uint256 targetEpoch
     ) private {
-        validatorState[targetEpoch].amount += amount;
-        validatorState[targetEpoch].stakerCount += stakerCount;
+        if (targetEpoch == 0) {
+            // update totalstake and validator count
+            if (amount > 0) {
+                validatorState.amount = validatorState.amount.add(uint256(amount));
+            } else if (amount < 0) {
+                validatorState.amount = validatorState.amount.sub(uint256(amount * -1));
+            }
+
+            if (stakerCount > 0) {
+                validatorState.stakerCount = validatorState.stakerCount.add(uint256(stakerCount));
+            } else if (stakerCount < 0) {
+                validatorState.stakerCount = validatorState.stakerCount.sub(uint256(stakerCount * -1));
+            }
+        } else {
+            validatorStateChanges[targetEpoch].amount += amount;
+            validatorStateChanges[targetEpoch].stakerCount += stakerCount;
+        }
     }
 
     function pubToAddress(bytes memory pub) private pure returns (address) {

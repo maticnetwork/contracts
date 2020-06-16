@@ -48,6 +48,11 @@ contract StakeManagerStorage is GovernanceLockable, RootChainable {
     }
 
     struct State {
+        uint256 amount;
+        uint256 stakerCount;
+    }
+
+    struct StateChange {
         int256 amount;
         int256 stakerCount;
     }
@@ -67,8 +72,9 @@ contract StakeManagerStorage is GovernanceLockable, RootChainable {
     mapping(uint256 => Validator) public validators;
     // signer to Validator mapping
     mapping(address => uint256) public signerToValidator;
-    //Mapping for epoch to totalStake for that epoch
-    mapping(uint256 => State) public validatorState;
+    State public validatorState;
+    mapping(uint256 => StateChange) public validatorStateChanges;
+
     mapping(address => uint256) public userFeeExit;
     //Ongoing auctions for validatorId
     mapping(uint256 => Auction) public validatorAuction;
