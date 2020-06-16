@@ -124,7 +124,7 @@ class Deployer {
       stakingInfo: this.stakingInfo,
       governance: this.governance,
       stakingNFT: this.stakingNFT,
-      UpgradableProxy: proxy,
+      stakeManagerProxy: proxy,
       stakeManagerImpl: stakeManager
     }
     return _contracts
