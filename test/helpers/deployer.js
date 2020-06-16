@@ -27,7 +27,7 @@ class Deployer {
     let proxy = await contracts.StakeManagerProxy.new(
       utils.ZeroAddress
     )
-    let stakeManager = await contracts.StakeManagerTestable.new()
+    let stakeManager = await contracts.StakeManagerTest.new()
     await proxy.updateAndCall(stakeManager.address, stakeManager.contract.methods.initialize(
       this.registry.address,
       this.rootChain.address,
@@ -40,6 +40,8 @@ class Deployer {
     ).encodeABI())
 
     this.stakeManager = await contracts.StakeManager.at(proxy.address)
+    await this.stakeManager.updateCheckPointBlockInterval(1)
+    
     await this.stakingNFT.transferOwnership(this.stakeManager.address)
     this.exitNFT = await contracts.ExitNFT.new(this.registry.address)
 

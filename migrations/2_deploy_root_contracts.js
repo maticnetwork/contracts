@@ -38,6 +38,7 @@ const TransferWithSigPredicate = artifacts.require('TransferWithSigPredicate')
 const TransferWithSigUtils = artifacts.require('TransferWithSigUtils')
 
 const StakeManagerTestable = artifacts.require('StakeManagerTestable')
+const StakeManagerTest = artifacts.require('StakeManagerTest')
 
 const libDeps = [
   {
@@ -75,7 +76,8 @@ const libDeps = [
       ERC721Predicate,
       MintableERC721Predicate,
       StakeManager,
-      StakeManagerTestable
+      StakeManagerTestable,
+      StakeManagerTest
     ]
   },
   {
@@ -161,6 +163,7 @@ module.exports = async function(deployer, network, accounts) {
     ])
 
     await deployer.deploy(StakeManagerTestable)
+    await deployer.deploy(StakeManagerTest)
     const stakeManager = await deployer.deploy(StakeManager)
     const proxy = await deployer.deploy(StakeManagerProxy, '0x0000000000000000000000000000000000000000')
     await proxy.updateAndCall(

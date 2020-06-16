@@ -5,6 +5,7 @@ export const Governance = artifacts.require('Governance')
 export const GovernanceLockableTest = artifacts.require('GovernanceLockableTest')
 export const GovernanceProxy = artifacts.require('GovernanceProxy')
 export const StakeManager = artifacts.require('StakeManager')
+export const StakeManagerTest = artifacts.require('StakeManagerTest')
 export const StakeManagerProxy = artifacts.require('StakeManagerProxy')
 export const DrainStakeManager = artifacts.require('DrainStakeManager')
 

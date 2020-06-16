@@ -8,8 +8,8 @@ contract Lockable {
         _;
     }
 
-    function _assertUnlocked() private {
-        require(!locked, "Is Locked");
+    function _assertUnlocked() private view {
+        require(!locked, "locked");
     }
 
     function lock() public {
