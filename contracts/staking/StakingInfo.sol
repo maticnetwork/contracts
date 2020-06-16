@@ -2,7 +2,7 @@ pragma solidity ^0.5.2;
 
 import {Registry} from "../common/Registry.sol";
 import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-
+import {Ownable} from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import {BytesLib} from "../common/lib/BytesLib.sol";
 import {ECVerify} from "../common/lib/ECVerify.sol";
 
@@ -39,7 +39,7 @@ contract IStakeManagerLocal {
 }
 
 
-contract StakingInfo {
+contract StakingInfo is Ownable {
     using SafeMath for uint256;
     mapping(uint256 => uint256) public validatorNonce;
 
@@ -215,6 +215,17 @@ contract StakingInfo {
     constructor(address _registry) public {
         registry = Registry(_registry);
     }
+
+    function updateNonce(
+        uint256[] calldata validatorIds,
+        uint256[] calldata nonces
+    ) external onlyOwner {
+        require(validatorIds.length == nonces.length, "args length mismatch");
+
+        for (uint256 i = 0; i < validatorIds.length; ++i) {
+            validatorNonce[validatorIds[i]] = nonces[i];
+        }
+    } 
 
     function logStaked(
         address signer,
