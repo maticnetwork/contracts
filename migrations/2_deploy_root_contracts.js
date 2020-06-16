@@ -162,9 +162,10 @@ module.exports = async function(deployer, network) {
       deployer.deploy(DepositManager)
     ])
 
-    await deployer.deploy(StakeManager)
-    await deployer.deploy(StakeManagerProxy, StakeManager.address, Registry.address, RootChain.address, TestToken.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address, Governance.address)
-    await deployer.deploy(StakeManagerTest, Registry.address, RootChain.address, TestToken.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address, Governance.address)
+    const stakeManager = await deployer.deploy(StakeManager)
+    const proxy = await deployer.deploy(StakeManagerProxy, '0x0000000000000000000000000000000000000000')
+    await proxy.updateAndCall(StakeManager.address, stakeManager.contract.methods.initialize(Registry.address, RootChain.address, TestToken.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address, Governance.address).encodeABI())
+    
     await deployer.deploy(StakeManagerTestable, Registry.address, RootChain.address, TestToken.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address, Governance.address)
     await deployer.deploy(SlashingManager, Registry.address, StakingInfo.address, 'heimdall-P5rXwg')
     let stakingNFT = await StakingNFT.deployed()

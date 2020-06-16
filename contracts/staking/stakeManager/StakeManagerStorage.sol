@@ -4,14 +4,13 @@ import {IERC20} from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
 import {Registry} from "../../common/Registry.sol";
 import {GovernanceLockable} from "../../common/mixin/GovernanceLockable.sol";
-import {ProxyStorage} from "../../common/misc/ProxyStorage.sol";
 import {RootChainable} from "../../common/mixin/RootChainable.sol";
 import {StakingInfo} from "../StakingInfo.sol";
 import {StakingNFT} from "./StakingNFT.sol";
 import "../validatorShare/ValidatorShareFactory.sol";
 
 
-contract StakeManagerStorage is ProxyStorage, GovernanceLockable, RootChainable {
+contract StakeManagerStorage is GovernanceLockable, RootChainable {
     IERC20 public token;
     address public registry;
     StakingInfo public logger;

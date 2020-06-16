@@ -26,8 +26,10 @@ class Deployer {
 
     if (options.stakeManager) {
       let stakeManager = await contracts.StakeManagerTestable.new()
-      let proxy = await contracts.StakeManagerProxy.new(
-        stakeManager.address,
+      let proxy = await contracts.UpgradableProxy.new(
+        utils.ZeroAddress
+      )
+      await proxy.updateAndCall(stakeManager.address, stakeManager.contract.methods.initialize(
         this.registry.address,
         this.rootChain.address,
         this.stakeToken.address,
@@ -35,7 +37,7 @@ class Deployer {
         this.stakingInfo.address,
         this.validatorShareFactory.address,
         this.governance.address
-      )
+      ).encodeABI())
       this.stakeManager = await contracts.StakeManager.at(proxy.address)
     } else {
       this.stakeManager = await contracts.StakeManagerTest.new(
@@ -92,16 +94,18 @@ class Deployer {
     let stakeManager = await contracts.StakeManagerTestable.new()
 
     const rootChainOwner = wallets[1]
-    let proxy = await contracts.StakeManagerProxy.new(
-      stakeManager.address,
+    let proxy = await contracts.UpgradableProxy.new(
+      utils.ZeroAddress
+    )
+    await proxy.updateAndCall(stakeManager.address, stakeManager.contract.methods.initialize(
       this.registry.address,
-      rootChainOwner.getAddressString(),
+      this.rootChain.address,
       this.stakeToken.address,
       this.stakingNFT.address,
       this.stakingInfo.address,
       this.validatorShareFactory.address,
       this.governance.address
-    )
+    ).encodeABI())
     this.stakeManager = await contracts.StakeManagerTestable.at(proxy.address)
     this.slashingManager = await contracts.SlashingManager.new(this.registry.address, this.stakingInfo.address, 'heimdall-P5rXwg')
 
@@ -128,7 +132,7 @@ class Deployer {
       stakingInfo: this.stakingInfo,
       governance: this.governance,
       stakingNFT: this.stakingNFT,
-      stakeManagerProxy: proxy,
+      UpgradableProxy: proxy,
       stakeManagerImpl: stakeManager
     }
     return _contracts
