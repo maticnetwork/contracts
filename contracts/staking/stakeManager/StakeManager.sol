@@ -20,9 +20,10 @@ import {ValidatorShareFactory} from "../validatorShare/ValidatorShareFactory.sol
 import {ISlashingManager} from "../slashing/ISlashingManager.sol";
 import {StakeManagerStorage} from "./StakeManagerStorage.sol";
 import {Governable} from "../../common/governance/Governable.sol";
+import {IGovernance} from "../../common/governance/IGovernance.sol";
+import {Initializable} from "../../common/mixin/Initializable.sol";
 
-
-contract StakeManager is IStakeManager, StakeManagerStorage {
+contract StakeManager is IStakeManager, StakeManagerStorage, Initializable {
     using SafeMath for uint256;
     using ECVerify for bytes32;
     using Merkle for bytes32;
@@ -32,11 +33,50 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
     uint256 private constant INCORRECT_VALIDATOR_ID = 2**256 - 1;
 
     modifier onlyStaker(uint256 validatorId) {
-        require(NFTContract.ownerOf(validatorId) == msg.sender);
+        _assertOnlyStaker(validatorId);
         _;
     }
 
+    function _assertOnlyStaker(uint256 validatorId) private view {
+        require(NFTContract.ownerOf(validatorId) == msg.sender);
+    }
+
     constructor() public GovernanceLockable(address(0x0)) {}
+
+    function initialize(
+        address _registry,
+        address _rootchain,
+        address _token,
+        address _NFTContract,
+        address _stakingLogger,
+        address _validatorShareFactory,
+        address _governance,
+        address _owner
+    ) external initializer {
+        governance = IGovernance(_governance);
+        registry = _registry;
+        rootChain = _rootchain;
+        token = IERC20(_token);
+        NFTContract = StakingNFT(_NFTContract);
+        logger = StakingInfo(_stakingLogger);
+        factory = ValidatorShareFactory(_validatorShareFactory);
+        _transferOwnership(_owner);
+
+        WITHDRAWAL_DELAY = (2**13); // unit: epoch
+        currentEpoch = 1;
+        dynasty = 2**13; // unit: epoch 50 days
+        CHECKPOINT_REWARD = 10000 * (10**18); // update via governance
+        minDeposit = (10**18); // in ERC20 token
+        minHeimdallFee = (10**18); // in ERC20 token
+        checkPointBlockInterval = 255;
+        signerUpdateLimit = 100;
+
+        validatorThreshold = 10; //128
+        NFTCounter = 1;
+        auctionPeriod = (2**13) / 4; // 1 week in epochs
+        proposerBonus = 10; // 10 % of total rewards
+        delegationEnabled = true;
+    }
 
     function setDelegationEnabled(bool enabled) public onlyGovernance {
         delegationEnabled = enabled;
@@ -84,16 +124,15 @@ contract StakeManager is IStakeManager, StakeManagerStorage {
         uint256 index,
         bytes memory proof
     ) public {
-        address user = msg.sender;
         //Ignoring other params becuase rewards distribution is on chain
         require(
-            keccak256(abi.encode(user, accumFeeAmount)).checkMembership(index, accountStateRoot, proof),
+            keccak256(abi.encode(msg.sender, accumFeeAmount)).checkMembership(index, accountStateRoot, proof),
             "Wrong acc proof"
         );
-        uint256 withdrawAmount = accumFeeAmount.sub(userFeeExit[user]);
-        _claimFee(user, withdrawAmount);
-        userFeeExit[user] = accumFeeAmount;
-        require(token.transfer(user, withdrawAmount));
+        uint256 withdrawAmount = accumFeeAmount.sub(userFeeExit[msg.sender]);
+        _claimFee(msg.sender, withdrawAmount);
+        userFeeExit[msg.sender] = accumFeeAmount;
+        require(token.transfer(msg.sender, withdrawAmount));
     }
 
     function stake(

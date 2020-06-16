@@ -18,7 +18,7 @@ contract('WithdrawManager @skip-on-coverage', async function(accounts) {
 
   describe('startExitWithDepositedTokens', async function() {
     before(async function() {
-      contracts = await deployer.freshDeploy()
+      contracts = await deployer.freshDeploy(owner)
       statefulUtils = new StatefulUtils()
       erc20Predicate = await deployer.deployErc20Predicate()
       childContracts = await deployer.initializeChildChain(owner)

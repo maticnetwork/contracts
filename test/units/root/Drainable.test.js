@@ -12,7 +12,7 @@ contract('Drainable', async function(accounts) {
   const amount = web3.utils.toBN('2').pow(web3.utils.toBN('18'))
 
   async function freshDeploy() {
-    this.contracts = await deployer.freshDeploy()
+    this.contracts = await deployer.freshDeploy(accounts[0])
     await deployer.deployRootChain()
     this.depositManager = await deployer.deployDepositManager()
     let randomUser = await web3.eth.accounts.create()

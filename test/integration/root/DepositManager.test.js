@@ -17,7 +17,7 @@ contract('DepositManager @skip-on-coverage', async function(accounts) {
   describe('deposits on root and child', async function() {
 
     beforeEach(async function() {
-      const contracts = await deployer.freshDeploy()
+      const contracts = await deployer.freshDeploy(accounts[0])
       depositManager = contracts.depositManager
       childContracts = await deployer.initializeChildChain(accounts[0])
     })

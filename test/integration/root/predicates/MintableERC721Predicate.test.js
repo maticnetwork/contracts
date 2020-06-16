@@ -22,7 +22,7 @@ contract('MintableERC721Predicate @skip-on-coverage', async function(accounts) {
   const bob = accounts[1]
 
   before(async function() {
-    contracts = await deployer.freshDeploy()
+    contracts = await deployer.freshDeploy(accounts[0])
     predicate = await deployer.deployMintableErc721Predicate()
     childContracts = await deployer.initializeChildChain(accounts[0])
     statefulUtils = new StatefulUtils()
