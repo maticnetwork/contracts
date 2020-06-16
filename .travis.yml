@@ -13,6 +13,7 @@ matrix:
 before_install:
   - docker pull maticnetwork/bor:contracts-test
 before_script:
+  - npm cache clear --force
   - npm install
 script:
   - npm run template:process

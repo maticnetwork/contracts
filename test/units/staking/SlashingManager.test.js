@@ -2,7 +2,7 @@ import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import deployer from '../../helpers/deployer.js'
 import logDecoder from '../../helpers/log-decoder.js'
-import { ValidatorShare } from '../../helpers/artifacts'
+import { ValidatorShare, StakingInfo } from '../../helpers/artifacts'
 
 import {
   checkPoint,
@@ -12,6 +12,7 @@ import {
 } from '../../helpers/utils.js'
 import { generateFirstWallets, mnemonics } from '../../helpers/wallets.js'
 import { buyVoucher } from './ValidatorShareHelper.js'
+import { expectEvent } from "@openzeppelin/test-helpers"
 
 chai.use(chaiAsPromised).should()
 
@@ -112,12 +113,10 @@ contract('Slashing:validator', async function(accounts) {
 
       const result = await stakeManager.unstake(2, { from: validator2Wallet.getAddressString() })
 
-      const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
-      logs.should.have.lengthOf(2)
-      logs[0].event.should.equal('Transfer')
-      logs[1].event.should.equal('UnstakeInit')
-      assertBigNumberEquality(logs[1].args.amount, web3.utils.toWei('900'))
-      assertBigNumberEquality(logs[1].args.validatorId, '2')
+      await expectEvent.inTransaction(result.tx, StakingInfo, 'UnstakeInit', {
+        amount: web3.utils.toWei('900'),
+        validatorId: '2'
+      })
     })
   })
 })
