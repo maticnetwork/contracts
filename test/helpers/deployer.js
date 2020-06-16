@@ -14,42 +14,32 @@ class Deployer {
     })
   }
 
-  async freshDeploy(options = {}) {
+  async freshDeploy(owner) {
     this.governance = await this.deployGovernance()
     this.registry = await contracts.Registry.new(this.governance.address)
     this.validatorShareFactory = await contracts.ValidatorShareFactory.new()
     this.stakeToken = await contracts.TestToken.new('Stake Token', 'ST')
     this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
     this.slashingManager = await contracts.SlashingManager.new(this.registry.address, this.stakingInfo.address, 'heimdall-P5rXwg')
-    await this.deployRootChain()
+    this.rootChain = await this.deployRootChain()
     this.stakingNFT = await contracts.StakingNFT.new('Matic Validator', 'MV')
 
-    if (options.stakeManager) {
-      let stakeManager = await contracts.StakeManagerTestable.new()
-      let proxy = await contracts.UpgradableProxy.new(
-        utils.ZeroAddress
-      )
-      await proxy.updateAndCall(stakeManager.address, stakeManager.contract.methods.initialize(
-        this.registry.address,
-        this.rootChain.address,
-        this.stakeToken.address,
-        this.stakingNFT.address,
-        this.stakingInfo.address,
-        this.validatorShareFactory.address,
-        this.governance.address
-      ).encodeABI())
-      this.stakeManager = await contracts.StakeManager.at(proxy.address)
-    } else {
-      this.stakeManager = await contracts.StakeManagerTest.new(
-        this.registry.address,
-        this.rootChain.address,
-        this.stakeToken.address,
-        this.stakingNFT.address,
-        this.stakingInfo.address,
-        this.validatorShareFactory.address,
-        this.governance.address
-      )
-    }
+    let proxy = await contracts.StakeManagerProxy.new(
+      utils.ZeroAddress
+    )
+    let stakeManager = await contracts.StakeManagerTestable.new()
+    await proxy.updateAndCall(stakeManager.address, stakeManager.contract.methods.initialize(
+      this.registry.address,
+      this.rootChain.address,
+      this.stakeToken.address,
+      this.stakingNFT.address,
+      this.stakingInfo.address,
+      this.validatorShareFactory.address,
+      this.governance.address,
+      owner
+    ).encodeABI())
+
+    this.stakeManager = await contracts.StakeManager.at(proxy.address)
     await this.stakingNFT.transferOwnership(this.stakeManager.address)
     this.exitNFT = await contracts.ExitNFT.new(this.registry.address)
 
@@ -75,9 +65,7 @@ class Deployer {
       governance: this.governance
     }
 
-    if (options.deployTestErc20) {
-      _contracts.testToken = await this.deployTestErc20()
-    }
+    _contracts.testToken = await this.deployTestErc20()
 
     return _contracts
   }
@@ -91,21 +79,23 @@ class Deployer {
     this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
     this.stakeToken = await contracts.TestToken.new('Stake Token', 'STAKE')
     this.stakingNFT = await contracts.StakingNFT.new('Matic Validator', 'MV')
-    let stakeManager = await contracts.StakeManagerTestable.new()
 
+    let stakeManager = await contracts.StakeManagerTestable.new()
     const rootChainOwner = wallets[1]
-    let proxy = await contracts.UpgradableProxy.new(
+    let proxy = await contracts.StakeManagerProxy.new(
       utils.ZeroAddress
     )
     await proxy.updateAndCall(stakeManager.address, stakeManager.contract.methods.initialize(
       this.registry.address,
-      this.rootChain.address,
+      rootChainOwner.getAddressString(),
       this.stakeToken.address,
       this.stakingNFT.address,
       this.stakingInfo.address,
       this.validatorShareFactory.address,
-      this.governance.address
+      this.governance.address,
+      wallets[0].getAddressString()
     ).encodeABI())
+
     this.stakeManager = await contracts.StakeManagerTestable.at(proxy.address)
     this.slashingManager = await contracts.SlashingManager.new(this.registry.address, this.stakingInfo.address, 'heimdall-P5rXwg')
 

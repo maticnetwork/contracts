@@ -39,7 +39,7 @@ contract('RootChain', async function(accounts) {
   })
 
   async function freshDeploy() {
-    const contracts = await deployer.freshDeploy({ stakeManager: true })
+    const contracts = await deployer.freshDeploy(accounts[0])
     rootChain = contracts.rootChain
     stakeManager = contracts.stakeManager
     stakeToken = await TestToken.new('Stake Token', 'STAKE')

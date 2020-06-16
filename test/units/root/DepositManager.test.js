@@ -17,7 +17,7 @@ contract('DepositManager', async function(accounts) {
   const amount = web3.utils.toBN('10').pow(web3.utils.toBN('18'))
 
   async function freshDeploy() {
-    this.contracts = await deployer.freshDeploy()
+    this.contracts = await deployer.freshDeploy(accounts[0])
     await deployer.deployRootChain()
     this.depositManager = await deployer.deployDepositManager()
   }

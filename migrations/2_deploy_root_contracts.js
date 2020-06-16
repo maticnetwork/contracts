@@ -31,12 +31,12 @@ const ValidatorShareFactory = artifacts.require('ValidatorShareFactory')
 const ERC20Predicate = artifacts.require('ERC20Predicate')
 const ERC721Predicate = artifacts.require('ERC721Predicate')
 const MintableERC721Predicate = artifacts.require('MintableERC721Predicate')
+const Marketplace = artifacts.require('Marketplace')
 const MarketplacePredicate = artifacts.require('MarketplacePredicate')
 const MarketplacePredicateTest = artifacts.require('MarketplacePredicateTest')
 const TransferWithSigPredicate = artifacts.require('TransferWithSigPredicate')
 const TransferWithSigUtils = artifacts.require('TransferWithSigUtils')
 
-const StakeManagerTest = artifacts.require('StakeManagerTest')
 const StakeManagerTestable = artifacts.require('StakeManagerTestable')
 
 const libDeps = [
@@ -61,7 +61,6 @@ const libDeps = [
     contracts: [
       StakeManager,
       SlashingManager,
-      StakeManagerTest,
       StakeManagerTestable,
       MarketplacePredicate,
       MarketplacePredicateTest,
@@ -76,7 +75,6 @@ const libDeps = [
       ERC721Predicate,
       MintableERC721Predicate,
       StakeManager,
-      StakeManagerTest,
       StakeManagerTestable
     ]
   },
@@ -140,8 +138,8 @@ const libDeps = [
   }
 ]
 
-module.exports = async function(deployer, network) {
-  deployer.then(async () => {
+module.exports = async function(deployer, network, accounts) {
+  deployer.then(async() => {
     console.log('linking libs...')
     await bluebird.map(libDeps, async e => {
       await deployer.deploy(e.lib)
@@ -162,11 +160,23 @@ module.exports = async function(deployer, network) {
       deployer.deploy(DepositManager)
     ])
 
+    await deployer.deploy(StakeManagerTestable)
     const stakeManager = await deployer.deploy(StakeManager)
     const proxy = await deployer.deploy(StakeManagerProxy, '0x0000000000000000000000000000000000000000')
-    await proxy.updateAndCall(StakeManager.address, stakeManager.contract.methods.initialize(Registry.address, RootChain.address, TestToken.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address, Governance.address).encodeABI())
-    
-    await deployer.deploy(StakeManagerTestable, Registry.address, RootChain.address, TestToken.address, StakingNFT.address, StakingInfo.address, ValidatorShareFactory.address, Governance.address)
+    await proxy.updateAndCall(
+      StakeManager.address,
+      stakeManager.contract.methods.initialize(
+        Registry.address,
+        RootChain.address,
+        TestToken.address,
+        StakingNFT.address,
+        StakingInfo.address,
+        ValidatorShareFactory.address,
+        Governance.address,
+        accounts[0]
+      ).encodeABI()
+    )
+
     await deployer.deploy(SlashingManager, Registry.address, StakingInfo.address, 'heimdall-P5rXwg')
     let stakingNFT = await StakingNFT.deployed()
     await stakingNFT.transferOwnership(StakeManagerProxy.address)
@@ -188,6 +198,7 @@ module.exports = async function(deployer, network) {
         WithdrawManager.address,
         DepositManager.address
       ),
+      deployer.deploy(Marketplace),
       deployer.deploy(MarketplacePredicateTest),
       deployer.deploy(
         MarketplacePredicate,
