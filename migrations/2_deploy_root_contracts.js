@@ -38,6 +38,7 @@ const TransferWithSigUtils = artifacts.require('TransferWithSigUtils')
 
 const StakeManagerTest = artifacts.require('StakeManagerTest')
 const StakeManagerTestable = artifacts.require('StakeManagerTestable')
+const SignerListTest = artifacts.require('SignerListTest')
 
 const libDeps = [
   {
@@ -149,6 +150,7 @@ module.exports = async function(deployer, network) {
     })
 
     console.log('deploying contracts...')
+    await deployer.deploy(SignerListTest)
     await deployer.deploy(Governance)
     await deployer.deploy(Registry, Governance.address)
     await deployer.deploy(ValidatorShareFactory)
