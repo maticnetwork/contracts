@@ -29,14 +29,14 @@ contract OrderedListTest is SignerList {
     }
 
     function getBucketByIndex(uint index) public view returns(SignerList.Bucket memory) {
-        return buckets[bucketsByIndex[index]];
+        return getBucket(index);
     }
 
     function getBucketById(uint id) public view returns(SignerList.Bucket memory) {
         return buckets[id];
     }
 
-    function getMaxBucketSize() public view returns(uint256) {
+    function getMaxBucketSize() public pure returns(uint256) {
         return MAX_BUCKET_SIZE;
     }
 

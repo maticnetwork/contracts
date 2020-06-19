@@ -1,5 +1,10 @@
 pragma solidity ^0.5.2;
 
+/**
+    List of signers in ascending order.
+    Uses buckets for optimized gas usage of reordering.
+*/
+
 contract SignerList {
     uint256 constant internal MAX_BUCKET_SIZE = 10;
 
@@ -10,12 +15,15 @@ contract SignerList {
 
     // index => bucket id
     mapping(uint256 => uint256) internal bucketsByIndex;
-
     // id => bucket
     mapping(uint256 => Bucket) internal buckets;
 
     uint256 internal totalBuckets;
     uint256 internal lastBucketId;
+
+    function getBucket(uint256 index) internal view returns(Bucket storage) {
+        return buckets[bucketsByIndex[index]];
+    }
 
     function insertSigner(address signer) internal {
         (
@@ -48,11 +56,19 @@ contract SignerList {
 
         if (bucketSize == 1) {
             // delete bucket
-            for (uint i = bucketIndex - 1; i < bucketSize - 1; ++i) {
-                bucketsByIndex[i] = bucketsByIndex[i + 1];
+            uint256 _totalBuckets = totalBuckets;
+            uint256 bucketIdForSwap = bucketsByIndex[_totalBuckets - 1];
+            bucketsByIndex[_totalBuckets - 1] = 0;
+            
+            for (uint i = totalBuckets - 1; i != bucketIndex; --i) {
+                uint256 bucketId = bucketsByIndex[i - 1];
+                bucketsByIndex[i - 1] = bucketIdForSwap;
+                bucketIdForSwap = bucketId;
             }
+            
             bucket.size = 0;
             bucket.elements[0] = address(0);
+            totalBuckets--;
         } else {
             // delete from the bucket 
             // pop last element
@@ -153,14 +169,6 @@ contract SignerList {
         }
         
         return (bucket, bucketSize, low);
-    }
-
-    function getNextBucket(uint256 bucketId) internal returns(Bucket storage) {
-        // uint256 bucketIndex = index / MAX_BUCKET_SIZE;
-        // uint256 indexInBucket = index - bucketIndex;
-
-        Bucket storage bucket = buckets[bucketId];
-        return bucket;
     }
 
     function _insertIntoBucket(address newSigner, Bucket storage targetBucket, uint256 bucketSize, uint256 bucketIndex) private {
