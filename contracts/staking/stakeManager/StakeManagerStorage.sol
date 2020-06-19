@@ -43,11 +43,11 @@ contract StakeManagerStorage is ProxyStorage, GovernanceLockable, RootChainable 
     uint256 public replacementCoolDown;
     bool public delegationEnabled = true;
 
-    struct Auction {
-        uint256 amount;
-        uint256 startEpoch;
-        address user;
-    }
+    // struct Auction {
+    //     uint256 amount;
+    //     uint256 startEpoch;
+    //     address user;
+    // }
 
     struct State {
         int256 amount;
@@ -78,7 +78,7 @@ contract StakeManagerStorage is ProxyStorage, GovernanceLockable, RootChainable 
     mapping(uint256 => State) public validatorState;
     mapping(address => uint256) public userFeeExit;
     //Ongoing auctions for validatorId
-    mapping(uint256 => Auction) public validatorAuction;
+    // mapping(uint256 => Auction) public validatorAuction;
     // validatorId to last signer update epoch
     mapping(uint256 => uint256) public latestSignerUpdateEpoch;
 
