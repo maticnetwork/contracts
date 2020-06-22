@@ -8,6 +8,10 @@ const EthDeployer = require('moonwalker').default
 let id = 22 // THIS SHOULD BE NUMBER OF JOBS PROCESSED IN THE PREVIOUS SCRIPT
 
 async function deploy() {
+  if (!process.env.FROM) {
+    throw new Error('Please export FROM env variable - which is the owner of stakeManager')
+  }
+
   const qClient = await EthDeployer.getQueue()
   const deployer = new EthDeployer.Sender(qClient)
 
@@ -71,7 +75,7 @@ async function deploy() {
       'StakingInfo',
       'ValidatorShareFactory',
       'GovernanceProxy',
-      { value: process.env.FROM || '0x9fB29AAc15b9A4B7F17c3385939b007540f4d791'} // owner
+      { value: process.env.FROM } // owner
     ],
     'StakeManagerProxy'
   ))

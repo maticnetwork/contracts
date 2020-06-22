@@ -124,10 +124,14 @@ async function child() {
 
 async function updateImplementation() {
   let stakeManager = await StakeManagerProxy.at(contracts.root.StakeManagerProxy)
-  await stakeManager.updateImplementation('0x8e8fAec9d1493e2aFF8816909B184609989E0e61')
+  await stakeManager.updateImplementation('0x8e8fAec9d1493e2aFF8816909B184609989E0e61') // drainable contract
 
   stakeManager = await DrainStakeManager.at(contracts.root.StakeManagerProxy)
-  await stakeManager.drain('0x907f2e1F4A477319A700fC9a28374BA47527050e', web3.utils.toWei('50500'))
+  const governance = await Governance.at(contracts.root.GovernanceProxy)
+  await governance.update(
+    contracts.root.StakeManagerProxy,
+    stakeManager.contract.methods.drain(process.env.FROM, web3.utils.toWei('50500')).encodeABI()
+  )
 }
 
 module.exports = async function (callback) {
