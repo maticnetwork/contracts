@@ -24,13 +24,6 @@ contract IStakeManager {
         address delegator
     ) external returns (bool);
 
-    function stake(
-        uint256 amount,
-        uint256 heimdallFee,
-        bool acceptDelegation,
-        bytes calldata signerPubkey
-    ) external;
-
     function unstake(uint256 validatorId) external;
 
     function totalStakedFor(address addr) external view returns (uint256);
@@ -55,7 +48,7 @@ contract IStakeManager {
 
     function ownerOf(uint256 tokenId) public view returns (address);
 
-    function slash(bytes memory slashingInfoList) public returns (uint256);
+    function slash(bytes calldata slashingInfoList) external returns (uint256);
 
     function validatorStake(uint256 validatorId) public view returns (uint256);
 

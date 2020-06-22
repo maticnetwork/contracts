@@ -161,8 +161,9 @@ contract SignerList {
             
             bucket = buckets[bucketsByIndex[low]];
             bucketSize = bucket.size;
-            // if bucket fits signer set size to bucket's size
-            // otherwise reset to 0 to indicate that bucket wasn't found
+            // if found bucket index is last bucket index
+            // or if bucket is FULL and doesn't fit signer
+            // reset bucketSize to indicate that bucket wasn't found
             if (low == _totalBuckets || (bucketSize == MAX_BUCKET_SIZE && bucket.elements[0] > signer)) {
                 bucketSize = 0;
             }
