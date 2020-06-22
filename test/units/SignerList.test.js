@@ -1,7 +1,7 @@
 import { expectRevert } from '@openzeppelin/test-helpers'
 import { assertBigNumberEquality } from '../helpers/utils'
 
-const OrderedListTest = artifacts.require('OrderedListTest')
+const SignerListTest = artifacts.require('SignerListTest')
 
 const MAX_BUCKET_SIZE = 10
 
@@ -75,7 +75,7 @@ contract('SignerList', function() {
 
     describe('when list is empty', function() {
       before(async function() {
-        this.signerList = await OrderedListTest.new()
+        this.signerList = await SignerListTest.new()
         this.targetElements = []
       })
 
@@ -89,7 +89,7 @@ contract('SignerList', function() {
 
     describe('when 1 element was inserted', function() {
       before(async function() {
-        this.signerList = await OrderedListTest.new()
+        this.signerList = await SignerListTest.new()
         await this.signerList.insert(1)
         this.targetElements = [1]
       })
@@ -105,7 +105,7 @@ contract('SignerList', function() {
     describe('when searching with 1 bucket', function() {
       describe('when bucket is not full', function() {
         before(async function() {
-          this.signerList = await OrderedListTest.new()
+          this.signerList = await SignerListTest.new()
           this.targetElements = []
 
           for (let i = 0; i < MAX_BUCKET_SIZE / 2; ++i) {
@@ -135,7 +135,7 @@ contract('SignerList', function() {
 
       describe('when bucket is full', function() {
         before(async function() {
-          this.signerList = await OrderedListTest.new()
+          this.signerList = await SignerListTest.new()
           this.targetElements = []
 
           for (let i = 0; i < MAX_BUCKET_SIZE; ++i) {
@@ -155,7 +155,7 @@ contract('SignerList', function() {
 
     describe('3 buckets. Signer fits within 2nd bucket range.', function() {
       before(async function() {
-        this.signerList = await OrderedListTest.new()
+        this.signerList = await SignerListTest.new()
         this.targetElements = []
 
         let element = 1
@@ -197,7 +197,7 @@ contract('SignerList', function() {
 
     describe('when list is empty', function() {
       before(async function() {
-        this.signerList = await OrderedListTest.new()
+        this.signerList = await SignerListTest.new()
         this.targetElements = [1]
       })
 
@@ -212,7 +212,7 @@ contract('SignerList', function() {
 
     describe('when list has 1 element', function() {
       before(async function() {
-        this.signerList = await OrderedListTest.new()
+        this.signerList = await SignerListTest.new()
         this.targetElements = [1, 2]
 
         await this.signerList.insert(1)
@@ -230,7 +230,7 @@ contract('SignerList', function() {
     describe(`when list has ${MAX_BUCKET_SIZE} elements`, function() {
       describe('when signer is greater than last element', function() {
         before(async function() {
-          this.signerList = await OrderedListTest.new()
+          this.signerList = await SignerListTest.new()
 
           for (let i = 0; i < MAX_BUCKET_SIZE; ++i) {
             await this.signerList.insert(i + 1)
@@ -263,7 +263,7 @@ contract('SignerList', function() {
         testElements.pop()
 
         before(async function() {
-          this.signerList = await OrderedListTest.new()
+          this.signerList = await SignerListTest.new()
 
           for (let i = 0; i < MAX_BUCKET_SIZE; ++i) {
             await this.signerList.insert(elements[i])
@@ -306,7 +306,7 @@ contract('SignerList', function() {
         testElements.pop()
 
         before(async function() {
-          this.signerList = await OrderedListTest.new()
+          this.signerList = await SignerListTest.new()
 
           for (let i = 0; i < MAX_BUCKET_SIZE; ++i) {
             await this.signerList.insert(initialElements[i])
@@ -344,7 +344,7 @@ contract('SignerList', function() {
         }
 
         before(async function() {
-          this.signerList = await OrderedListTest.new()
+          this.signerList = await SignerListTest.new()
           this.targetElements = [1]
 
           for (const element of initialBucket) {
@@ -403,7 +403,7 @@ contract('SignerList', function() {
           }
 
           before(async function() {
-            this.signerList = await OrderedListTest.new()
+            this.signerList = await SignerListTest.new()
           })
 
           testBucketInsertion({
@@ -469,7 +469,7 @@ contract('SignerList', function() {
           }
 
           before(async function() {
-            this.signerList = await OrderedListTest.new()
+            this.signerList = await SignerListTest.new()
           })
 
           testBucketInsertion({
@@ -537,7 +537,7 @@ contract('SignerList', function() {
           }
 
           before(async function() {
-            this.signerList = await OrderedListTest.new()
+            this.signerList = await SignerListTest.new()
           })
 
           testBucketInsertion({
@@ -628,7 +628,7 @@ contract('SignerList', function() {
         }
 
         before(async function() {
-          this.signerList = await OrderedListTest.new()
+          this.signerList = await SignerListTest.new()
           for (let i = 0; i < MAX_BUCKET_SIZE; ++i) {
             await this.signerList.insert(signers[i])
           }
@@ -646,7 +646,7 @@ contract('SignerList', function() {
         }
 
         before(async function() {
-          this.signerList = await OrderedListTest.new()
+          this.signerList = await SignerListTest.new()
           for (let i = 0; i < MAX_BUCKET_SIZE; ++i) {
             await this.signerList.insert(signers[i])
           }
@@ -669,7 +669,7 @@ contract('SignerList', function() {
         shuffledSigners.sort(() => random() - 0.5)
 
         before(async function() {
-          this.signerList = await OrderedListTest.new()
+          this.signerList = await SignerListTest.new()
           for (let i = 0; i < MAX_BUCKET_SIZE; ++i) {
             await this.signerList.insert(signers[i])
           }
@@ -694,7 +694,7 @@ contract('SignerList', function() {
         const signer = 1
 
         before(async function() {
-          this.signerList = await OrderedListTest.new()
+          this.signerList = await SignerListTest.new()
           await this.signerList.insert(signer)
         })
 
@@ -723,7 +723,7 @@ contract('SignerList', function() {
         }
 
         before(async function() {
-          this.signerList = await OrderedListTest.new()
+          this.signerList = await SignerListTest.new()
 
           for (const id in initialSigners) {
             for (const signer of initialSigners[id]) {
@@ -785,7 +785,7 @@ contract('SignerList', function() {
         testElements.splice(0, 1)
 
         before(async function() {
-          this.signerList = await OrderedListTest.new()
+          this.signerList = await SignerListTest.new()
 
           for (let i = 0; i < bucketSize; ++i) {
             await this.signerList.insert(elements[i])
@@ -823,7 +823,7 @@ contract('SignerList', function() {
         testElements.pop()
 
         before(async function() {
-          this.signerList = await OrderedListTest.new()
+          this.signerList = await SignerListTest.new()
 
           for (let i = 0; i < bucketSize; ++i) {
             await this.signerList.insert(elements[i])
@@ -860,7 +860,7 @@ contract('SignerList', function() {
       const signer = 999
 
       before(async function() {
-        this.signerList = await OrderedListTest.new()
+        this.signerList = await SignerListTest.new()
 
         await this.signerList.insert(element)
       })
@@ -883,7 +883,7 @@ contract('SignerList', function() {
 
     describe('when trying to update unknown signer', function() {
       before(async function() {
-        this.signerList = await OrderedListTest.new()
+        this.signerList = await SignerListTest.new()
 
         for (let i = 0; i < MAX_BUCKET_SIZE; ++i) {
           await this.signerList.insert(i + 1)
