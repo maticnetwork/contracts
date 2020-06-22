@@ -3,7 +3,7 @@ pragma experimental ABIEncoderV2;
 
 import { SignerList } from "../staking/stakeManager/SignerList.sol";
 
-contract OrderedListTest is SignerList {
+contract SignerListTest is SignerList {
     function insert(uint160 signer) public {
         insertSigner(address(signer));
     }
