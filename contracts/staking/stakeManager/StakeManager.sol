@@ -435,7 +435,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
 
     function updateValidatorState(uint256 validatorId, int256 amount) public onlyDelegation(validatorId) {
         uint256 _currentEpoch = currentEpoch;
-        validatorState[_currentEpoch].amount = (validatorState[_currentEpoch].amount + amount);
+        updateTimeline(amount, 0, 0);
         
         if (amount >= 0) {
             increaseValidatorDelegatedAmount(validatorId, uint256(amount));
@@ -580,7 +580,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
         address lastAdd; // cannot have address(0x0) as an owner
         
         UnsignedValidatorsContext memory context;
-        context.unsignedValidators = new uint256[](uint256(validatorState[_currentEpoch].stakerCount));
+        context.unsignedValidators = new uint256[](validatorState.stakerCount);
         context.bucket = getBucket(context.bucketIndex);
 
         for (uint i = 0; i < sigs.length; i += 65) {
@@ -623,7 +623,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
         uint256[] memory unsignedValidators,
         uint256 totalUnsignedValidators
     ) private returns(uint256) {
-        uint256 currentTotalStake = uint256(validatorState[currentEpoch].amount);
+        uint256 currentTotalStake = validatorState.amount;
         require(signedStakePower >= currentTotalStake.mul(2).div(3).add(1), "2/3+1 non-majority!");
 
         // checkpoint rewards are based on BlockInterval multiplied on `CHECKPOINT_REWARD`
