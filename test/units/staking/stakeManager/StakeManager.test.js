@@ -1652,7 +1652,7 @@ contract('StakeManager', async function(accounts) {
     })
   })
 
-  describe.skip('startAuction', function() {
+  describe('startAuction', function() {
     const _initialStakers = [wallets[1], wallets[2]]
     const initialStakeAmount = web3.utils.toWei('200')
 
@@ -1726,6 +1726,7 @@ contract('StakeManager', async function(accounts) {
           from: wallets[3].getAddressString()
         }), 'Invalid auction period')
       })
+
       it('when trying to start and confirm in last epoch', async function() {
         this.validatorId = 1
         await this.stakeManager.advanceEpoch(1)
@@ -1799,7 +1800,7 @@ contract('StakeManager', async function(accounts) {
     })
   })
 
-  describe.skip('confirmAuctionBid', function() {
+  describe('confirmAuctionBid', function() {
     const initialStakers = [wallets[1], wallets[2]]
     const bidAmount = new BN(web3.utils.toWei('1200'))
     const initialStakeAmount = web3.utils.toWei('200')

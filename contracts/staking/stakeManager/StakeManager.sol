@@ -93,7 +93,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
 
     // TopUp heimdall fee
     function topUpForFee(address user, uint256 heimdallFee) public onlyWhenUnlocked {
-        _transferAndTopUp(user, heimdallFee, 0);
+        _transferAndTopUp(user, msg.sender, heimdallFee, 0);
     }
 
     function ownerOf(uint256 tokenId) public view returns (address) {
@@ -114,11 +114,12 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
 
     function _transferAndTopUp(
         address user,
+        address from,
         uint256 fee,
         uint256 additionalAmount
     ) private {
         require(fee >= minHeimdallFee, "fee too small");
-        _transferTokenFrom(msg.sender, address(this), fee.add(additionalAmount));
+        _transferTokenFrom(from, address(this), fee.add(additionalAmount));
         totalHeimdallFee = totalHeimdallFee.add(fee);
         logger.logTopUpFee(user, fee);
     }
@@ -194,7 +195,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
     ) external {
         require(msg.sender == address(this), "not allowed");
         // dethrone
-        _transferAndTopUp(auctionUser, heimdallFee, 0);
+        _transferAndTopUp(auctionUser, auctionUser, heimdallFee, 0);
         _unstake(validatorId, currentEpoch);
 
         uint256 newValidatorId = _stakeFor(
@@ -257,7 +258,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
     ) public onlyWhenUnlocked {
         require(currentValidatorSetSize() < validatorThreshold, "no more slots");
         require(amount > minDeposit, "not enough deposit");
-        _transferAndTopUp(user, heimdallFee, amount);
+        _transferAndTopUp(user, msg.sender, heimdallFee, amount);
         _stakeFor(user, amount, acceptDelegation, signerPubkey);
     }
 
