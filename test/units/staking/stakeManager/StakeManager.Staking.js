@@ -44,11 +44,11 @@ module.exports = function(accounts) {
 
       it('must revert', async function() {
         if (unspecified) {
-          await expectRevert.unspecified(this.stakeManager.stake(stakeAmount, this.defaultHeimdallFee, false, userPubkey, {
+          await expectRevert.unspecified(this.stakeManager.stakeFor(user, stakeAmount, this.defaultHeimdallFee, false, userPubkey, {
             from: user
           }))
         } else {
-          await expectRevert(this.stakeManager.stake(stakeAmount, this.defaultHeimdallFee, false, userPubkey, {
+          await expectRevert(this.stakeManager.stakeFor(user, stakeAmount, this.defaultHeimdallFee, false, userPubkey, {
             from: user
           }), 'Invalid signer')
         }
@@ -71,7 +71,7 @@ module.exports = function(accounts) {
       })
 
       it('must stake', async function() {
-        this.receipt = await this.stakeManager.stake(stakeAmount, this.fee, false, userPubkey, {
+        this.receipt = await this.stakeManager.stakeFor(user, stakeAmount, this.fee, false, userPubkey, {
           from: user
         })
       })
@@ -509,7 +509,7 @@ module.exports = function(accounts) {
       before('Fresh Deploy', freshDeploy)
 
       let dynasties = 1
-      const user = wallets[2].getAddressString()
+      const Alice = wallets[2].getChecksumAddressString()
 
       before('Validator dynasty', async function() {
         await this.stakeManager.updateDynastyValue(dynasties, {
@@ -522,16 +522,27 @@ module.exports = function(accounts) {
       before('Alice Unstake', doUnstake(wallets[2]))
 
       before('Checkpoint', async function() {
-        await checkPoint([wallets[3]], this.rootChainOwner, this.stakeManager)
+        this.validatorId = await this.stakeManager.getValidatorId(Alice)
+        this.aliceStakeAmount = await this.stakeManager.validatorStake(this.validatorId)
+        await checkPoint([wallets[3], wallets[2]], this.rootChainOwner, this.stakeManager)
         while (dynasties-- > 0) {
           await checkPoint([wallets[3]], this.rootChainOwner, this.stakeManager)
         }
-        this.validatorId = await this.stakeManager.getValidatorId(user)
       })
 
       it('must claim', async function() {
         this.receipt = await this.stakeManager.unstakeClaim(this.validatorId, {
-          from: user
+          from: Alice
+        })
+      })
+
+      it('must emit Unstaked', async function() {
+        const stake = await this.stakeManager.currentValidatorSetTotalStake()
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'Unstaked', {
+          user: Alice,
+          validatorId: this.validatorId,
+          amount: this.aliceStakeAmount,
+          total: stake
         })
       })
 
@@ -555,7 +566,7 @@ module.exports = function(accounts) {
       before('Alice Unstake', doUnstake(wallets[2]))
 
       before('Checkpoint', async function() {
-        await checkPoint([wallets[3]], this.rootChainOwner, this.stakeManager)
+        await checkPoint([wallets[3], wallets[2]], this.rootChainOwner, this.stakeManager)
       })
 
       const user = wallets[2].getAddressString()
@@ -582,7 +593,7 @@ module.exports = function(accounts) {
       before('Alice Unstake', doUnstake(wallets[2]))
 
       before('Checkpoint', async function() {
-        await checkPoint([wallets[3]], this.rootChainOwner, this.stakeManager)
+        await checkPoint([wallets[3], wallets[2]], this.rootChainOwner, this.stakeManager)
       })
 
       const user = wallets[2].getAddressString()
@@ -615,10 +626,8 @@ module.exports = function(accounts) {
       before('Bob unstake', doUnstake(Bob))
 
       before('Checkpoint', async function() {
-        const w = [Eve]
-
-        await checkPoint(w, this.rootChainOwner, this.stakeManager)
-        await checkPoint(w, this.rootChainOwner, this.stakeManager)
+        await checkPoint([Eve, Bob, Alice], this.rootChainOwner, this.stakeManager)
+        await checkPoint([Eve], this.rootChainOwner, this.stakeManager)
       })
 
       describe('when Alice claims', function() {

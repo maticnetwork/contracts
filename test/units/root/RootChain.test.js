@@ -58,7 +58,7 @@ contract('RootChain', async function(accounts) {
         from: wallets[i].getAddressString()
       })
 
-      await stakeManager.stake(amount, this.defaultHeimdallFee, false, wallets[i].getPublicKeyString(), {
+      await stakeManager.stakeFor(wallets[i].getAddressString(), amount, this.defaultHeimdallFee, false, wallets[i].getPublicKeyString(), {
         from: wallets[i].getAddressString()
       })
       accountState[i + 1] = 0

@@ -41,6 +41,8 @@ const StakeManagerTestable = artifacts.require('StakeManagerTestable')
 const StakeManagerTest = artifacts.require('StakeManagerTest')
 const SignerListTest = artifacts.require('SignerListTest')
 
+const ValidatorAuction = artifacts.require('ValidatorAuction')
+
 const libDeps = [
   {
     lib: BytesLib,
@@ -124,7 +126,8 @@ const libDeps = [
       TransferWithSigPredicate,
       StakeManager,
       SlashingManager,
-      StakingInfo
+      StakingInfo,
+      ValidatorAuction
     ]
   },
   {
@@ -168,6 +171,8 @@ module.exports = async function(deployer, network, accounts) {
     await deployer.deploy(StakeManagerTest)
     const stakeManager = await deployer.deploy(StakeManager)
     const proxy = await deployer.deploy(StakeManagerProxy, '0x0000000000000000000000000000000000000000')
+
+    const auctionImpl = await deployer.deploy(ValidatorAuction)
     await proxy.updateAndCall(
       StakeManager.address,
       stakeManager.contract.methods.initialize(
@@ -178,7 +183,8 @@ module.exports = async function(deployer, network, accounts) {
         StakingInfo.address,
         ValidatorShareFactory.address,
         Governance.address,
-        accounts[0]
+        accounts[0],
+        auctionImpl.address
       ).encodeABI()
     )
 

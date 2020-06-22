@@ -17,7 +17,7 @@ import {
   getSigs
 } from '../../../helpers/utils.js'
 import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
-import { wallets, freshDeploy, approveAndStake } from '../deployment'
+import { wallets, freshDeploy, approveAndStake, walletAmounts } from '../deployment'
 import { buyVoucher } from '../ValidatorShareHelper.js'
 import { web3 } from '@openzeppelin/test-helpers/src/setup'
 
@@ -590,7 +590,13 @@ contract('StakeManager', async function(accounts) {
 
       prepareToTest(stakers, 1)
       testCheckpointing(stakers, stakers.slice(0, 1).map(x => x.wallet), 1, 1, {
-        [stakers[0].wallet.getAddressString()]: '8490566037735849056604'
+        [stakers[0].wallet.getAddressString()]: '8490566037735849056604',
+        [stakers[1].wallet.getAddressString()]: '0',
+        [stakers[2].wallet.getAddressString()]: '0',
+        [stakers[3].wallet.getAddressString()]: '0',
+        [stakers[4].wallet.getAddressString()]: '0',
+        [stakers[5].wallet.getAddressString()]: '0',
+        [stakers[6].wallet.getAddressString()]: '0'
       })
     })
 
@@ -744,6 +750,40 @@ contract('StakeManager', async function(accounts) {
             this.tree = await expectRevert.unspecified(feeCheckpointWithVotes.call(this, AliceValidatorId, 0, 22, 2, '')) //  2 yes votes
           })
         })
+      })
+    })
+
+    describe('when trying to checkpoint when 1 of the validators unstakes with more than 1/3 stake and don\'t sign', function() {
+      before('Fresh Deploy', freshDeploy)
+      before('Alice And Bob Stake', async function() {
+        for (const wallet of [wallets[2], wallets[3]]) {
+          await approveAndStake.call(this, { wallet: wallet, stakeAmount: walletAmounts[wallet.getAddressString()].stakeAmount })
+        }
+      })
+      before('Alice unstakes', async function() {
+        const validatorId = await this.stakeManager.getValidatorId(wallets[2].getAddressString())
+        await this.stakeManager.unstake(validatorId, { from: wallets[2].getAddressString() })
+      })
+
+      it('reverts', async function() {
+        await expectRevert(checkPoint([wallets[3]], this.rootChainOwner, this.stakeManager), '2/3+1 non-majority!')
+      })
+    })
+  })
+
+  describe('dethroneAndStake', function() {
+    describe('when from is not stake manager', function() {
+      before('Fresh Deploy', freshDeploy)
+
+      it('reverts', async function() {
+        await expectRevert(this.stakeManager.dethroneAndStake(
+          wallets[2].getAddressString(),
+          this.defaultHeimdallFee,
+          '1',
+          '1000',
+          true,
+          wallets[2].getPublicKeyString()
+        ), 'not allowed')
       })
     })
   })
