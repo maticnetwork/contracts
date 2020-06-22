@@ -3,6 +3,8 @@ const contracts = require('../contractAddresses.json')
 const RootToken = artifacts.require('TestToken')
 const Registry = artifacts.require('Registry')
 const StakeManager = artifacts.require('StakeManager')
+const DrainStakeManager = artifacts.require('DrainStakeManager')
+const StakeManagerProxy = artifacts.require('StakeManagerProxy')
 const TestToken = artifacts.require('TestToken')
 const DepositManager = artifacts.require('DepositManager')
 const Governance = artifacts.require('Governance')
@@ -118,6 +120,18 @@ async function updateExitPeriod() {
 async function child() {
   const mrc20 = await MRC20.at('0x0000000000000000000000000000000000001010')
   console.log(await mrc20.owner())
+}
+
+async function updateImplementation() {
+  let stakeManager = await StakeManagerProxy.at(contracts.root.StakeManagerProxy)
+  await stakeManager.updateImplementation('0x8e8fAec9d1493e2aFF8816909B184609989E0e61') // drainable contract
+
+  stakeManager = await DrainStakeManager.at(contracts.root.StakeManagerProxy)
+  const governance = await Governance.at(contracts.root.GovernanceProxy)
+  await governance.update(
+    contracts.root.StakeManagerProxy,
+    stakeManager.contract.methods.drain(process.env.FROM, web3.utils.toWei('50500')).encodeABI()
+  )
 }
 
 module.exports = async function (callback) {

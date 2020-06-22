@@ -285,6 +285,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable {
         _unstake(validatorId, currentEpoch);
     }
 
+    function setCurrentEpoch(uint256 _currentEpoch) external onlyOwner {
+        currentEpoch = _currentEpoch;
+    }
+
     function transferFunds(
         uint256 validatorId,
         uint256 amount,
