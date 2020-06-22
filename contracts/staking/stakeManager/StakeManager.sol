@@ -60,6 +60,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
         address _owner,
         address _auctionImplementation
     ) external initializer {
+        require(isContract(_auctionImplementation), "auction impl incorrect");
         auctionImplementation = _auctionImplementation;
         governance = IGovernance(_governance);
         registry = _registry;
@@ -936,6 +937,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
         address _validatorShareFactory,
         address _auctionImplementation
     ) external onlyGovernance {
+        require(isContract(_auctionImplementation), "auction impl incorrect");
         auctionImplementation = _auctionImplementation;
         NFTContract = StakingNFT(_NFTContract);
         logger = StakingInfo(_stakingLogger);
