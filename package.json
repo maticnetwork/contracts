@@ -13,7 +13,7 @@
     "truffle:test": "truffle test",
     "truffle:coverage": "truffle run coverage",
     "truffle:compile": "truffle compile",
-    "truffle:migrate": "truffle migrate --network ropsten",
+    "truffle:migrate": "truffle migrate",
     "truffle:verify": "truffle run verify $npm_package_verify_contracts --network ropsten",
     "truffle:migrate:deploy:1": "truffle migrate --network development --to 2",
     "truffle:migrate:deploy:2": "truffle migrate --network matic_dev --from 3 --to 3",

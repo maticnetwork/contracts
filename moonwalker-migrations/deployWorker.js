@@ -5,7 +5,7 @@ const MNEMONIC = process.env.MNEMONIC || 'clock radar mass judge dismiss just in
 const API_KEY =  process.env.API_KEY
 
 const url = `https://goerli.infura.io/v3/${API_KEY}`
-// const url = `http://localhost:8545`
+// const url = `http://localhost:9545`
 
 const wallet = new HDWalletProvider(MNEMONIC, url)
 
