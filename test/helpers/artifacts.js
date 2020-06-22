@@ -5,6 +5,7 @@ export const Governance = artifacts.require('Governance')
 export const GovernanceLockableTest = artifacts.require('GovernanceLockableTest')
 export const GovernanceProxy = artifacts.require('GovernanceProxy')
 export const StakeManager = artifacts.require('StakeManager')
+export const StakeManagerTest = artifacts.require('StakeManagerTest')
 export const StakeManagerProxy = artifacts.require('StakeManagerProxy')
 export const DrainStakeManager = artifacts.require('DrainStakeManager')
 
@@ -14,7 +15,6 @@ export const ValidatorShareProxy = artifacts.require('ValidatorShareProxy')
 export const ValidatorShare = artifacts.require('ValidatorShare')
 export const IValidatorShare = artifacts.require('IValidatorShare')
 
-export const StakeManagerTest = artifacts.require('StakeManagerTest')
 export const StakeManagerTestable = artifacts.require('StakeManagerTestable')
 export const ValidatorShareFactory = artifacts.require('ValidatorShareFactory')
 export const SlashingManager = artifacts.require('SlashingManager')
@@ -40,7 +40,6 @@ export const TransferWithSigPredicate = artifacts.require(
 // tokens
 export const MaticWETH = artifacts.require('MaticWETH')
 export const TestToken = artifacts.require('TestToken')
-export const DummyERC20 = artifacts.require('DummyERC20')
 export const RootERC721 = artifacts.require('RootERC721')
 export const ERC721PlasmaMintable = artifacts.require('ERC721PlasmaMintable')
 export const ExitNFT = artifacts.require('ExitNFT')

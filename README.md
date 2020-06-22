@@ -1,6 +1,6 @@
 # Matic contracts
 
-[![Build Status](https://travis-ci.org/maticnetwork/contracts.svg?branch=master)](https://travis-ci.org/maticnetwork/contracts)
+![Build Status](https://github.com/maticnetwork/contracts/workflows/CI/badge.svg)
 
 Ethereum smart contracts that power the [Matic Network](https://matic.network).
 

@@ -1,4 +1,4 @@
-import { StakingInfo, DummyERC20, ValidatorShare } from '../../../helpers/artifacts'
+import { StakingInfo, TestToken, ValidatorShare } from '../../../helpers/artifacts'
 
 import {
   checkPoint,
@@ -210,7 +210,7 @@ module.exports = function(accounts) {
             from: auctionUser
           })
           const validatorId = await this.stakeManager.getValidatorId(wallets[2].getChecksumAddressString())
-          await this.stakeManager.startAuction(validatorId, auctionBid, {
+          await this.stakeManager.startAuction(validatorId, auctionBid, false, wallets[4].getPublicKeyString(), {
             from: auctionUser
           })
           testRestake(
@@ -348,14 +348,20 @@ module.exports = function(accounts) {
         })
       })
 
-      // for some reason DummyERC20 doesn't have Transfer event
+      it('must emit ClaimRewards', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ClaimRewards', {
+          validatorId: this.validatorId,
+          amount: '0',
+          totalAmount: '0'
+        })
+      })
 
-      // it('must emit Transfer', async function() {
-      //   await expectEvent.inTransaction(this.receipt.tx, DummyERC20, 'Transfer', {
-      //     value: this.reward,
-      //     to: user
-      //   })
-      // })
+      it('must emit Transfer', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, TestToken, 'Transfer', {
+          value: this.reward,
+          to: user
+        })
+      })
 
       it('must have increased balance by reward', async function() {
         const balance = await this.stakeToken.balanceOf(user)
@@ -408,14 +414,20 @@ module.exports = function(accounts) {
         })
       })
 
-      // for some reason DummyERC20 doesn't have Transfer event
+      it('must emit ClaimRewards', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ClaimRewards', {
+          validatorId: this.validatorId,
+          amount: this.reward,
+          totalAmount: this.reward
+        })
+      })
 
-      // it('must emit Transfer', async function() {
-      //   await expectEvent.inTransaction(this.receipt.tx, DummyERC20, 'Transfer', {
-      //     value: this.reward,
-      //     to: user
-      //   })
-      // })
+      it('must emit Transfer', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, TestToken, 'Transfer', {
+          value: this.reward,
+          to: user
+        })
+      })
 
       it('must have increased balance by reward', async function() {
         const balance = await this.stakeToken.balanceOf(user)
@@ -462,7 +474,7 @@ module.exports = function(accounts) {
           from: auctionUser
         })
         const validatorId = await this.stakeManager.getValidatorId(user)
-        await this.stakeManager.startAuction(validatorId, amount, {
+        await this.stakeManager.startAuction(validatorId, amount, false, wallets[4].getPublicKeyString(), {
           from: auctionUser
         })
         await expectRevert.unspecified(this.stakeManager.unstake(validatorId, {
@@ -497,6 +509,7 @@ module.exports = function(accounts) {
       before('Fresh Deploy', freshDeploy)
 
       let dynasties = 1
+      const user = wallets[2].getAddressString()
 
       before('Validator dynasty', async function() {
         await this.stakeManager.updateDynastyValue(dynasties, {
@@ -513,13 +526,11 @@ module.exports = function(accounts) {
         while (dynasties-- > 0) {
           await checkPoint([wallets[3]], this.rootChainOwner, this.stakeManager)
         }
+        this.validatorId = await this.stakeManager.getValidatorId(user)
       })
 
-      const user = wallets[2].getAddressString()
-
       it('must claim', async function() {
-        const validatorId = await this.stakeManager.getValidatorId(user)
-        this.receipt = await this.stakeManager.unstakeClaim(validatorId, {
+        this.receipt = await this.stakeManager.unstakeClaim(this.validatorId, {
           from: user
         })
       })

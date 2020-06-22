@@ -17,7 +17,7 @@ let contracts, childContracts, rootERC20, childErc20, statefulUtils
 
 contract('Misc Predicates tests @skip-on-coverage', async function(accounts) {
   before(async function() {
-    contracts = await deployer.freshDeploy()
+    contracts = await deployer.freshDeploy(accounts[0])
     childContracts = await deployer.initializeChildChain(accounts[0])
     statefulUtils = new StatefulUtils()
   })

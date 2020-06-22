@@ -77,7 +77,9 @@ module.exports = {
   },
   compilers: {
     solc: {
-      version: '0.5.11',
+      version: '0.5.17',
+      docker: true,
+      parser: 'solcjs',
       settings: {
         optimizer: {
           enabled: true,
@@ -96,7 +98,7 @@ module.exports = {
       showTimeSpent: true
     }
   },
-  plugins: ['solidity-coverage', 'truffle-plugin-verify'],
+  plugins: ['solidity-coverage', 'truffle-plugin-verify', 'truffle-contract-size'],
   verify: {
     preamble: 'Matic network contracts'
   },

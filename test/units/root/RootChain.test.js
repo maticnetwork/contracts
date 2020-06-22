@@ -5,7 +5,7 @@ import encode from 'ethereumjs-abi'
 
 import { rewradsTree } from '../../helpers/proofs.js'
 import deployer from '../../helpers/deployer.js'
-import { DummyERC20 } from '../../helpers/artifacts.js'
+import { TestToken } from '../../helpers/artifacts'
 import {
   assertBigNumberEquality,
   assertBigNumbergt,
@@ -39,10 +39,10 @@ contract('RootChain', async function(accounts) {
   })
 
   async function freshDeploy() {
-    const contracts = await deployer.freshDeploy({ stakeManager: true })
+    const contracts = await deployer.deployStakeManager(wallets)
     rootChain = contracts.rootChain
     stakeManager = contracts.stakeManager
-    stakeToken = await DummyERC20.new('Stake Token', 'STAKE')
+    stakeToken = await TestToken.new('Stake Token', 'STAKE')
     await stakeManager.setToken(stakeToken.address)
     await stakeManager.changeRootChain(rootChain.address)
     await stakeManager.updateCheckPointBlockInterval(1)

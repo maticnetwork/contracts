@@ -2,13 +2,13 @@ pragma solidity ^0.5.2;
 
 import {Registry} from "../common/Registry.sol";
 import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-
+import {Ownable} from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import {BytesLib} from "../common/lib/BytesLib.sol";
 import {ECVerify} from "../common/lib/ECVerify.sol";
 
 
 // dummy interface to avoid cyclic dependency
-contract IStakeManager {
+contract IStakeManagerLocal {
     enum Status {Inactive, Active, Locked, Unstaked}
 
     struct Validator {
@@ -44,7 +44,7 @@ contract IStakeManager {
 }
 
 
-contract StakingInfo {
+contract StakingInfo is Ownable {
     using SafeMath for uint256;
     mapping(uint256 => uint256) public validatorNonce;
 
@@ -186,7 +186,7 @@ contract StakingInfo {
 
     modifier onlyValidatorContract(uint256 validatorId) {
         address _contract;
-        (, , , , , , _contract, , , , ,,) = IStakeManager(
+        (, , , , , , _contract, , , , ,,) = IStakeManagerLocal(
             registry.getStakeManagerAddress()
         )
             .validators(validatorId);
@@ -198,7 +198,7 @@ contract StakingInfo {
     modifier StakeManagerOrValidatorContract(uint256 validatorId) {
         address _contract;
         address _stakeManager = registry.getStakeManagerAddress();
-        (, , , , , , _contract, , , , ,,) = IStakeManager(_stakeManager).validators(
+        (, , , , , , _contract, , , , ,,) = IStakeManagerLocal(_stakeManager).validators(
             validatorId
         );
         require(_contract == msg.sender || _stakeManager == msg.sender,
@@ -220,6 +220,17 @@ contract StakingInfo {
     constructor(address _registry) public {
         registry = Registry(_registry);
     }
+
+    function updateNonce(
+        uint256[] calldata validatorIds,
+        uint256[] calldata nonces
+    ) external onlyOwner {
+        require(validatorIds.length == nonces.length, "args length mismatch");
+
+        for (uint256 i = 0; i < validatorIds.length; ++i) {
+            validatorNonce[validatorIds[i]] = nonces[i];
+        }
+    } 
 
     function logStaked(
         address signer,
@@ -391,10 +402,10 @@ contract StakingInfo {
             uint256 activationEpoch,
             uint256 deactivationEpoch,
             address signer,
-            IStakeManager.Status status
+            IStakeManagerLocal.Status status
         )
     {
-        IStakeManager stakeManager = IStakeManager(
+        IStakeManagerLocal stakeManager = IStakeManagerLocal(
             registry.getStakeManagerAddress()
         );
         uint256 delegatedAmount;
@@ -418,7 +429,7 @@ contract StakingInfo {
     {
         address contractAddress;
         uint256 delegatedAmount;
-        (validatorStake, , , , , ,contractAddress, , , , ,delegatedAmount,) = IStakeManager(
+        (validatorStake, , , , , ,contractAddress, , , , ,delegatedAmount,) = IStakeManagerLocal(
             registry.getStakeManagerAddress()
         )
             .validators(validatorId);
@@ -430,7 +441,7 @@ contract StakingInfo {
         view
         returns (bytes32 accountStateRoot)
     {
-        accountStateRoot = IStakeManager(registry.getStakeManagerAddress())
+        accountStateRoot = IStakeManagerLocal(registry.getStakeManagerAddress())
             .accountStateRoot();
     }
 
@@ -439,7 +450,7 @@ contract StakingInfo {
         view
         returns (address ValidatorContract)
     {
-        (, , , , , , ValidatorContract, , , , ,,) = IStakeManager(
+        (, , , , , , ValidatorContract, , , , ,,) = IStakeManagerLocal(
             registry.getStakeManagerAddress()
         )
             .validators(validatorId);

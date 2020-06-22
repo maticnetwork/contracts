@@ -4,8 +4,12 @@ contract Lockable {
     bool public locked;
 
     modifier onlyWhenUnlocked() {
-        require(!locked, "Is Locked");
+        _assertUnlocked();
         _;
+    }
+
+    function _assertUnlocked() private view {
+        require(!locked, "locked");
     }
 
     function lock() public {
