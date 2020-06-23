@@ -124,9 +124,9 @@ async function child() {
 
 async function updateImplementation() {
   let stakeManager = await StakeManagerProxy.at(contracts.root.StakeManagerProxy)
-  await stakeManager.updateImplementation('0x8e8fAec9d1493e2aFF8816909B184609989E0e61') // drainable contract
-
-  stakeManager = await DrainStakeManager.at(contracts.root.StakeManagerProxy)
+  const drainContract = '0xF6Fc3a5f0D6389cD96727955c813069B1d47F358' // on goerli for Mumbai
+  await stakeManager.updateImplementation(drainContract)
+  let stakeManager = await DrainStakeManager.at(contracts.root.StakeManagerProxy)
   const governance = await Governance.at(contracts.root.GovernanceProxy)
   await governance.update(
     contracts.root.StakeManagerProxy,
@@ -134,9 +134,18 @@ async function updateImplementation() {
   )
 }
 
+async function setEpoch() {
+  let stakeManager = await StakeManager.at(contracts.root.StakeManagerProxy)
+  console.log((await stakeManager.currentEpoch()).toString())
+  await stakeManager.setCurrentEpoch('2753')
+  console.log((await stakeManager.currentEpoch()).toString())
+}
+
 module.exports = async function (callback) {
   try {
     await stake()
+    // await setEpoch()
+    // await updateImplementation()
     // await child()
     // await mapToken()
     // await topUpForFee()
