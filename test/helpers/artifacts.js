@@ -27,7 +27,9 @@ export const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
 export const StateSender = artifacts.require('StateSender')
 
 export const ERC20Predicate = artifacts.require('ERC20Predicate')
+export const ERC20PredicateBurnOnly = artifacts.require('ERC20PredicateBurnOnly')
 export const ERC721Predicate = artifacts.require('ERC721Predicate')
+export const ERC721PredicateBurnOnly = artifacts.require('ERC721PredicateBurnOnly')
 export const MintableERC721Predicate = artifacts.require('MintableERC721Predicate')
 export const MarketplacePredicate = artifacts.require('MarketplacePredicate')
 export const MarketplacePredicateTest = artifacts.require(

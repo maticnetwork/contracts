@@ -216,8 +216,10 @@ class Deployer {
     return contracts.WithdrawManager.at(this.withdrawManagerProxy.address)
   }
 
-  async deployErc20Predicate() {
-    const ERC20Predicate = await contracts.ERC20Predicate.new(
+  async deployErc20Predicate(burnOnly) {
+    let predicate = contracts.ERC20Predicate
+    if (burnOnly) predicate = contracts.ERC20PredicateBurnOnly
+    const ERC20Predicate = await predicate.new(
       this.withdrawManagerProxy.address,
       this.depositManagerProxy.address,
       this.registry.address
@@ -229,8 +231,10 @@ class Deployer {
     return ERC20Predicate
   }
 
-  async deployErc721Predicate() {
-    const ERC721Predicate = await contracts.ERC721Predicate.new(
+  async deployErc721Predicate(burnOnly) {
+    let predicate = contracts.ERC721Predicate
+    if (burnOnly) predicate = contracts.ERC721PredicateBurnOnly
+    const ERC721Predicate = await predicate.new(
       this.withdrawManagerProxy.address,
       this.depositManagerProxy.address
     )
