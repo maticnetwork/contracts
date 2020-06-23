@@ -586,9 +586,9 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
         // update stateMerkleTree root for accounts balance on heimdall chain
         accountStateRoot = stateRoot;
 
-        reward = reward.sub(_proposerBonus);
-
-        uint256 newRewardPerStake = rewardPerStake.add(reward.mul(REWARD_PRECISION).div(signedStakePower));
+        uint256 newRewardPerStake = rewardPerStake.add(
+            reward.sub(_proposerBonus).mul(REWARD_PRECISION).div(signedStakePower)
+        );
         _updateUnsignedValidatorsRewards(unsignedValidators, totalUnsignedValidators, newRewardPerStake);
 
         // distribute rewards between signed validators
