@@ -20,7 +20,7 @@ contract('ERC20PredicateBurnOnly @skip-on-coverage', async function(accounts) {
   const other = accounts[1]
 
   before(async function() {
-    contracts = await deployer.freshDeploy()
+    contracts = await deployer.freshDeploy(accounts[0])
     childContracts = await deployer.initializeChildChain(accounts[0])
     statefulUtils = new StatefulUtils()
   })
