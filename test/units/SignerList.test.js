@@ -589,7 +589,7 @@ contract('SignerList', function() {
   })
 
   describe('removeSigner', function() {
-    function testRemoval({ signers, testSignersFn, ascended, bucketsLeft }) {
+    function testRemoval({ signers, testSignersFn, ascended, bucketId, bucketsLeft }) {
       let i = ascended ? 0 : signers.length - 1
       while (ascended ? i < signers.length : i >= 0) {
         const signer = signers[i]
@@ -600,12 +600,12 @@ contract('SignerList', function() {
 
           const testSigners = testSignersFn(signers, i)
           if (testSigners.length === 0) {
-            it(`total buckets left must be ${bucketsLeft}`, async function() {
-              assertBigNumberEquality(await this.signerList.getTotalBuckets(), 0)
+            it(`${bucketsLeft} buckets left`, async function() {
+              assertBigNumberEquality(await this.signerList.getTotalBuckets(), bucketsLeft)
             })
           } else {
             it('must have correct elements', async function() {
-              const bucket = await this.signerList.getBucketById(1)
+              const bucket = await this.signerList.getBucketById(bucketId)
               let index = 0
               for (const signer of testSigners) {
                 assertBigNumberEquality(bucket.elements[index], signer)
@@ -634,7 +634,13 @@ contract('SignerList', function() {
           }
         })
 
-        testRemoval({ signers, testSignersFn: (s, i) => s.slice(i + 1), ascended: true, bucketsLeft: 0 })
+        testRemoval({ 
+          signers, 
+          testSignersFn: (s, i) => s.slice(i + 1), 
+          ascended: true, 
+          bucketsLeft: 0,
+          bucketId: 1
+        })
       })
 
       describe('in descending order', function() {
@@ -652,7 +658,13 @@ contract('SignerList', function() {
           }
         })
 
-        testRemoval({ signers, testSignersFn: (s, i) => s.slice(0, i), ascended: false, bucketsLeft: 0 })
+        testRemoval({
+          signers, 
+          testSignersFn: (s, i) => s.slice(0, i), 
+          ascended: false, 
+          bucketsLeft: 0,
+          bucketId: 1
+        })
       })
 
       describe('in random order', function() {
@@ -684,7 +696,8 @@ contract('SignerList', function() {
             return testSigners
           },
           ascended: true,
-          bucketsLeft: 0
+          bucketsLeft: 0,
+          bucketId: 1
         })
       })
     })
@@ -737,7 +750,8 @@ contract('SignerList', function() {
             signers: initialSigners[targetBucketId],
             testSignersFn: (s, i) => s.slice(i + 1),
             ascended: true,
-            bucketsLeft: bucketsToCreate - 1
+            bucketsLeft: bucketsToCreate - 1,
+            bucketId: targetBucketId
           })
         })
 
