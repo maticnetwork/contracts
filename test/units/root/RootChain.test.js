@@ -5,7 +5,7 @@ import encode from 'ethereumjs-abi'
 
 import { rewradsTree } from '../../helpers/proofs.js'
 import deployer from '../../helpers/deployer.js'
-import { TestToken } from '../../helpers/artifacts'
+import { TestToken, TransferWithSigPredicate } from '../../helpers/artifacts'
 import {
   assertBigNumberEquality,
   assertBigNumbergt,
@@ -188,6 +188,23 @@ contract('RootChain', async function(accounts) {
       })
 
       testCheckpoint(true)
+    })
+
+    describe('when blockInterval is less than checkPointBlockInterval', function() {
+      before(freshDeploy)
+
+      before(async function() {
+        await stakeManager.updateCheckPointBlockInterval(2)
+
+        this.start = 0
+        this.end = 0
+        this.headerBlockId = '10000'
+        this.proposer = accounts[0]
+        this.root = buildRoot(this)
+        this.reward = this.reward.div(new BN(2))
+      })
+
+      testCheckpoint()
     })
   })
 
