@@ -1,6 +1,5 @@
 pragma solidity ^0.5.2;
 
-
 contract IStakeManager {
     // validator replacement
     function startAuction(
@@ -41,7 +40,7 @@ contract IStakeManager {
         bytes32 voteHash,
         bytes32 stateRoot,
         address proposer,
-        bytes calldata sigs
+        uint[3][] calldata sigs
     ) external returns (uint256);
 
     function updateValidatorState(uint256 validatorId, int256 amount) public;

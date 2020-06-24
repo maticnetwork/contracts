@@ -476,27 +476,28 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
     view 
     returns(UnsignedValidatorsContext memory) 
     {
-        context.bucketSigner = context.bucket.elements[context.bucketSignerIndex];
-        while (context.bucketSigner != signer) {
-            // validator didn't sign
-            if (context.bucketSigner != address(0)) {
-                context.unsignedValidators[context.unsignedValidatorIndex] = signerToValidator[context.bucketSigner];
-                context.unsignedValidatorIndex++;
-                context.bucketSignerIndex++;
-            }
+        while (context.bucket.size != 0) {
+            context.bucketSigner = context.bucket.elements[context.bucketSignerIndex];
+            context.bucketSignerIndex++;
 
             if (context.bucketSigner == address(0) || context.bucketSignerIndex == MAX_BUCKET_SIZE) {
                 context.bucketIndex++;
                 context.bucket = getBucket(context.bucketIndex);
-                if (context.bucket.size == 0) {
-                    break;
-                }
                 context.bucketSignerIndex = 0;
             }
 
-            context.bucketSigner = context.bucket.elements[context.bucketSignerIndex];
+            if (context.bucketSigner == address(0)) {
+                continue;
+            }
+
+            if (context.bucketSigner == signer) {
+                break;
+            }
+
+            // validator didn't sign
+            context.unsignedValidators[context.unsignedValidatorIndex] = signerToValidator[context.bucketSigner];
+            context.unsignedValidatorIndex++;
         }
-        context.bucketSignerIndex++;
         
         return context;
     }
@@ -506,7 +507,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
         bytes32 voteHash,
         bytes32 stateRoot,
         address proposer,
-        bytes calldata sigs
+        uint[3][] calldata sigs
     ) external onlyRootChain returns (uint256) {
         uint256 _currentEpoch = currentEpoch;
         uint256 signedStakePower;
@@ -515,24 +516,25 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
         UnsignedValidatorsContext memory context;
         context.unsignedValidators = new uint256[](validatorState.stakerCount);
         context.bucket = getBucket(context.bucketIndex);
-
-        for (uint i = 0; i < sigs.length; i += 65) {
-            address signer = ECVerify.ecrecovery(voteHash, BytesLib.slice(sigs, i, 65));
+        
+        uint validatorId = 1;
+        for (uint i = 0; i < sigs.length; ++i) {
+            address signer = ECVerify.ecrecovery(voteHash, sigs[i]);
+            signer = address(uint160(uint256(signer) + validatorId));
 
             context = _fillUnsignedValidators(context, signer);
 
-            uint256 validatorId = signerToValidator[signer];
+            // uint256 validatorId = signerToValidator[signer];
             uint256 amount = validators[validatorId].amount;
-            // check if signer is staker and not proposer
-            if (signer == lastAdd) {
-                break;
-            } else if (_isValidator(validatorId, amount, _currentEpoch) && signer > lastAdd) {
+            if (_isValidator(validatorId, amount, _currentEpoch)) {
                 lastAdd = signer;
                 
                 signedStakePower = signedStakePower.add(
                     validators[validatorId].delegatedAmount.add(amount)
                 );
             }
+
+            validatorId++;
         }
 
         // find the rest of validators without signature
@@ -556,6 +558,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
         uint256[] memory unsignedValidators,
         uint256 totalUnsignedValidators
     ) private returns(uint256) {
+        // signedStakePower = 10000;
         uint256 currentTotalStake = validatorState.amount;
         require(signedStakePower >= currentTotalStake.mul(2).div(3).add(1), "2/3+1 non-majority!");
 
@@ -603,12 +606,11 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
         uint256 newRewardPerStake
     ) private {
         for (uint i = 0; i < totalUnsignedValidators; ++i) {
-            _updateRewards(unsignedValidators[i]);
-            validators[unsignedValidators[i]].initialRewardPerStake = newRewardPerStake;
+            _updateRewardsAndCommit(unsignedValidators[i], newRewardPerStake);
         }
     }
 
-    function _updateRewards(uint256 validatorId) private {
+    function _updateRewardsAndCommit(uint256 validatorId, uint256 newRewardPerStake) private {
         uint256 delegatedAmount = validators[validatorId].delegatedAmount;
         if (delegatedAmount > 0) {
             uint256 validatorsStake = validators[validatorId].amount;
@@ -620,18 +622,25 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
                 _getEligibleReward(validatorId, combinedStakePower)
             );
         } else {
-            _increaseValidatorReward(validatorId);
+            _increaseValidatorReward(
+                validatorId, 
+                _getEligibleReward(validatorId, validators[validatorId].amount)
+            );
         }
+
+        validators[validatorId].initialRewardPerStake = newRewardPerStake;
+    }
+
+    function _updateRewards(uint256 validatorId) private {
+        _updateRewardsAndCommit(validatorId, rewardPerStake);
     }
 
     function _getEligibleReward(uint256 validatorId, uint256 validatorStakePower) private returns(uint256) {
         uint256 eligibleReward = rewardPerStake - validators[validatorId].initialRewardPerStake;
-        validators[validatorId].initialRewardPerStake = rewardPerStake;
         return eligibleReward.mul(validatorStakePower).div(REWARD_PRECISION);
     }
 
-    function _increaseValidatorReward(uint256 validatorId) private {
-        uint256 reward = _getEligibleReward(validatorId, validators[validatorId].amount);
+    function _increaseValidatorReward(uint256 validatorId, uint256 reward) private {
         if (reward > 0) {
             validators[validatorId].reward = validators[validatorId].reward.add(reward);
         }
@@ -882,7 +891,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
         int256 amount,
         int256 stakerCount,
         uint256 targetEpoch
-    ) private {
+    ) internal {
         if (targetEpoch == 0) {
             // update totalstake and validator count
             if (amount > 0) {
