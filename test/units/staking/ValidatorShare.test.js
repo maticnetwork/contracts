@@ -918,7 +918,7 @@ contract('ValidatorShare', async function() {
       })
     })
 
-    describe.only('when Alice withdraws 2 times in a row', async function() {
+    describe('when Alice withdraws 2 times in a row', async function() {
       runWithdrawRewardsTest([
         { stake: { user: Alice, label: 'Alice', amount: new BN(web3.utils.toWei('100')) } },
         { checkpoints: 1 },
