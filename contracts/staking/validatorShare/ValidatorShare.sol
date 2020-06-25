@@ -158,7 +158,6 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         amountStaked[msg.sender] = amountStaked[msg.sender].add(_amount);
         require(stakeManager.delegationDeposit(validatorId, _amount, msg.sender), "deposit failed");
 
-        initalRewardPerShare[msg.sender] = rewardPerShare;
         activeAmount = activeAmount.add(_amount);
         stakeManager.updateValidatorState(validatorId, int256(_amount));
 
@@ -175,10 +174,10 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         uint256 _amount = rate.mul(shares).div(EXCHANGE_RATE_PRECISION);
         require(_amount >= _minClaimAmount, "Too much slippage");
 
+        withdrawAndTransferRewards();
+        
         _burn(msg.sender, shares);
         stakeManager.updateValidatorState(validatorId, -int256(_amount));
-
-        withdrawAndTransferRewards();
 
         activeAmount = activeAmount.sub(_amount);
         uint256 _withdrawPoolShare = _amount.mul(EXCHANGE_RATE_PRECISION).div(withdrawExchangeRate());
@@ -195,16 +194,15 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
 
     function withdrawAndTransferRewards() private returns(uint256) {
         uint256 liquidRewards = getLiquidRewards(msg.sender);
-        if (liquidRewards >= minAmount) {
-            require(stakeManager.transferFunds(validatorId, liquidRewards, msg.sender), "Insufficent rewards");
-        }
+        initalRewardPerShare[msg.sender] = rewardPerShare;
+        require(stakeManager.transferFunds(validatorId, liquidRewards, msg.sender), "Insufficent rewards");
+        stakingLogger.logDelegatorClaimRewards(validatorId, msg.sender, liquidRewards);
         return liquidRewards;
     }
 
     function withdrawRewards() public {
         uint256 rewards = withdrawAndTransferRewards();
         require(rewards >= minAmount, "Too small rewards amount");
-        stakingLogger.logDelegatorClaimRewards(validatorId, msg.sender, rewards);
     }
 
     function restake() public {
