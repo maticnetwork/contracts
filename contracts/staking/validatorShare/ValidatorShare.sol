@@ -158,7 +158,6 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         amountStaked[msg.sender] = amountStaked[msg.sender].add(_amount);
         require(stakeManager.delegationDeposit(validatorId, _amount, msg.sender), "deposit failed");
 
-        initalRewardPerShare[msg.sender] = rewardPerShare;
         activeAmount = activeAmount.add(_amount);
         stakeManager.updateValidatorState(validatorId, int256(_amount));
 
@@ -198,13 +197,13 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         if (liquidRewards >= minAmount) {
             require(stakeManager.transferFunds(validatorId, liquidRewards, msg.sender), "Insufficent rewards");
         }
+        initalRewardPerShare[msg.sender] = rewardPerShare;
         return liquidRewards;
     }
 
     function withdrawRewards() public {
         uint256 rewards = withdrawAndTransferRewards();
         require(rewards >= minAmount, "Too small rewards amount");
-        initalRewardPerShare[msg.sender] = rewardPerShare;
         stakingLogger.logDelegatorClaimRewards(validatorId, msg.sender, rewards);
     }
 
