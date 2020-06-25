@@ -204,6 +204,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
     function withdrawRewards() public {
         uint256 rewards = withdrawAndTransferRewards();
         require(rewards >= minAmount, "Too small rewards amount");
+        initalRewardPerShare[msg.sender] = rewardPerShare;
         stakingLogger.logDelegatorClaimRewards(validatorId, msg.sender, rewards);
     }
 

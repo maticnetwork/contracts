@@ -917,6 +917,15 @@ contract('ValidatorShare', async function() {
         await expectRevert(this.validatorContract.withdrawRewards({ from: Alice }), 'Too small rewards amount')
       })
     })
+
+    describe.only('when Alice withdraws 2 times in a row', async function() {
+      runWithdrawRewardsTest([
+        { stake: { user: Alice, label: 'Alice', amount: new BN(web3.utils.toWei('100')) } },
+        { checkpoints: 1 },
+        { withdraw: { user: Alice, label: 'Alice', expectedReward: '4500000000000000000000' } },
+        { withdraw: { user: Alice, label: 'Alice', expectedReward: '0' } }
+      ])
+    })
   })
 
   describe('restake', function() {
