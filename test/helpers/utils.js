@@ -83,10 +83,10 @@ export function encodeSigs(sigs = []) {
   })
 }
 
-export async function checkPoint(wallets, proposer, stakeManager, { blockInterval = 1 } = {}) {
+export async function checkPoint(wallets, proposer, stakeManager, { blockInterval = 1, rootchainOwner } = {}) {
   const voteData = 'dummyData'
   const sigs = encodeSigs(getSigs(wallets, ethUtils.keccak256(voteData)))
-  
+
   const stateRoot = ethUtils.bufferToHex(ethUtils.keccak256('stateRoot'))
   // 2/3 majority vote
   await stakeManager.checkSignatures(
@@ -96,7 +96,7 @@ export async function checkPoint(wallets, proposer, stakeManager, { blockInterva
     proposer.getAddressString(),
     sigs,
     {
-      from: proposer.getAddressString()
+      from: (rootchainOwner || proposer).getAddressString()
     }
   )
 }

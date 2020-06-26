@@ -649,9 +649,13 @@ contract('StakeManager', async function(accounts) {
         testRevert()
       })
 
-      describe('when sigs is random string', function() {
+      describe('when sigs are random', function() {
         beforeEach(function() {
-          this.sigs = utils.bufferToHex(utils.keccak256('random_string'))
+          this.sigs = [[
+            new BN(utils.keccak256('random_string')),
+            new BN(utils.keccak256('abvcsdsds')),
+            new BN(27)
+          ]]
         })
 
         testRevert()
