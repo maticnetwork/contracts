@@ -14,7 +14,7 @@ library ECVerify {
         assembly {
             r := mload(sig)
             s := mload(add(sig, 32))
-            v := byte(0, mload(add(sig, 64)))
+            v := byte(31, mload(add(sig, 64)))
         }
 
         if (uint256(s) > 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0) {
