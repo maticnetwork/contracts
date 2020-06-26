@@ -6,8 +6,54 @@ import { buyVoucher, sellVoucher } from './ValidatorShareHelper.js'
 import { web3 } from '@openzeppelin/test-helpers/src/setup'
 
 const toWei = web3.utils.toWei
+const ZeroAddr = '0x0000000000000000000000000000000000000000'
 
-function shouldWithdrawReward({ initialBalance, validatorId, user, reward }) {
+function shouldBuyShares({ shares, voucherValueExpected, totalStaked, reward, initialBalance, userTotalStaked }) {
+  it('ValidatorShare must mint correct amount of shares', async function() {
+    await expectEvent.inTransaction(this.receipt.tx, ValidatorShare, 'Transfer', {
+      from: ZeroAddr,
+      to: this.user,
+      value: shares
+    })
+  })
+
+  it('must emit ShareMinted', async function() {
+    await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ShareMinted', {
+      validatorId: this.validatorId,
+      user: this.user,
+      amount: voucherValueExpected,
+      tokens: shares
+    })
+  })
+
+  it('must emit StakeUpdate', async function() {
+    await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'StakeUpdate', {
+      validatorId: this.validatorId,
+      newAmount: this.stakeAmount.add(new BN(totalStaked))
+    })
+  })
+
+  it('must have correct total staked', async function() {
+    assertBigNumberEquality(await this.validatorContract.amountStaked(this.user), userTotalStaked)
+  })
+
+  it('validator state must have correct amount', async function() {
+    assertBigNumberEquality(await this.stakeManager.currentValidatorSetTotalStake(), this.stakeAmount.add(new BN(totalStaked)))
+  })
+
+  it('must have liquid rewards == 0', async function() {
+    let rewards = await this.validatorContract.getLiquidRewards(this.user)
+    assertBigNumberEquality('0', rewards)
+  })
+
+  it('must have correct initalRewardPerShare', async function() {
+    const currrentRewardPerShare = await this.validatorContract.rewardPerShare()
+    const userRewardPerShare = await this.validatorContract.initalRewardPerShare(this.user)
+    assertBigNumberEquality(currrentRewardPerShare, userRewardPerShare)
+  })
+}
+
+function shouldWithdrawReward({ initialBalance, validatorId, user, reward, checkBalance = true }) {
   if (reward > 0) {
     it('must emit Transfer', async function() {
       await expectEvent.inTransaction(this.receipt.tx, TestToken, 'Transfer', {
@@ -26,10 +72,12 @@ function shouldWithdrawReward({ initialBalance, validatorId, user, reward }) {
     })
   }
 
-  it('must have updated balance', async function() {
-    const balance = await this.stakeToken.balanceOf(user || this.user)
-    assertBigNumberEquality(balance, new BN(initialBalance).add(new BN(reward)))
-  })
+  if (checkBalance) {
+    it('must have updated balance', async function() {
+      const balance = await this.stakeToken.balanceOf(user || this.user)
+      assertBigNumberEquality(balance, new BN(initialBalance).add(new BN(reward)))
+    })
+  }
 
   it('must have correct initialRewardPerShare', async function() {
     const currentRewardPerShare = await this.validatorContract.rewardPerShare()
@@ -39,7 +87,6 @@ function shouldWithdrawReward({ initialBalance, validatorId, user, reward }) {
 }
 
 contract('ValidatorShare', async function() {
-  const ZeroAddr = '0x0000000000000000000000000000000000000000'
   const wei100 = toWei('100')
 
   async function slash(slashes = [], validators = [], proposer = wallets[1], nonce = 1) {
@@ -215,42 +262,19 @@ contract('ValidatorShare', async function() {
         this.receipt = await buyVoucher(this.validatorContract, voucherValue, this.user, shares)
       })
 
-      it('ValidatorShare must mint correct amount of shares', async function() {
-        await expectEvent.inTransaction(this.receipt.tx, ValidatorShare, 'Transfer', {
-          from: ZeroAddr,
-          to: this.user,
-          value: shares
-        })
-      })
-
-      it('must emit ShareMinted', async function() {
-        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ShareMinted', {
-          validatorId: this.validatorId,
-          user: this.user,
-          amount: voucherValueExpected,
-          tokens: shares
-        })
-      })
-
-      it('must emit StakeUpdate', async function() {
-        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'StakeUpdate', {
-          validatorId: this.validatorId,
-          newAmount: this.stakeAmount.add(new BN(totalStaked))
-        })
+      shouldBuyShares({
+        voucherValueExpected,
+        userTotalStaked,
+        totalStaked,
+        shares,
+        reward,
+        initialBalance
       })
 
       shouldWithdrawReward({
-        reward: reward,
-        initialBalance: initialBalance,
+        initialBalance,
+        reward,
         validatorId: '1'
-      })
-
-      it('must have correct total staked', async function() {
-        assertBigNumberEquality(await this.validatorContract.amountStaked(this.user), userTotalStaked)
-      })
-
-      it('validator state must have correct amount', async function() {
-        assertBigNumberEquality(await this.stakeManager.currentValidatorSetTotalStake(), this.stakeAmount.add(new BN(totalStaked)))
       })
     }
 
@@ -974,6 +998,13 @@ contract('ValidatorShare', async function() {
 
   describe('restake', function() {
     describe('when Alice restakes', function() {
+      const voucherValueExpected = new BN(toWei('4500'))
+      const reward = new BN(toWei('4500'))
+      const userTotalStaked = new BN(toWei('4600'))
+      const shares = new BN(toWei('4500'))
+      const totalStaked = new BN(toWei('4600'))
+      const initialBalance = new BN(toWei('100'))
+
       before(doDeploy)
       before(async function() {
         this.user = wallets[2].getChecksumAddressString()
@@ -988,22 +1019,7 @@ contract('ValidatorShare', async function() {
 
         await buyVoucher(this.validatorContract, this.stakeAmount, this.user)
         await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
-        this.totalStaked = new BN(this.stakeAmount)
-        this.reward = new BN(toWei('4500'))
         this.shares = await this.validatorContract.balanceOf(this.user)
-        this.exchangeRate = await this.validatorContract.exchangeRate()
-      })
-
-      it('must have initalRewardPerShare == 0', async function() {
-        const userRewardPerShare = await this.validatorContract.initalRewardPerShare(this.user)
-        assertBigNumberEquality('0', userRewardPerShare)
-      })
-
-      it('must have correct liquid rewards', async function() {
-        this.totalStaked = this.totalStaked.add(this.reward)
-
-        let rewards = await this.validatorContract.getLiquidRewards(this.user)
-        assertBigNumberEquality(rewards, this.reward)
       })
 
       it('must restake', async function() {
@@ -1012,27 +1028,27 @@ contract('ValidatorShare', async function() {
         })
       })
 
-      it('must have correct initalRewardPerShare', async function() {
-        const currrentRewardPerShare = await this.validatorContract.rewardPerShare()
-        const userRewardPerShare = await this.validatorContract.initalRewardPerShare(this.user)
-        assertBigNumberEquality(currrentRewardPerShare, userRewardPerShare)
+      shouldBuyShares({
+        voucherValueExpected,
+        userTotalStaked,
+        totalStaked,
+        shares,
+        reward,
+        initialBalance
       })
 
-      it('must have liquid rewards == 0', async function() {
-        let rewards = await this.validatorContract.getLiquidRewards(this.user)
-        assertBigNumberEquality('0', rewards)
+      shouldWithdrawReward({
+        reward: '0', // we need only partial test here, reward is not really claimed
+        initialBalance,
+        checkBalance: false,
+        validatorId: '1'
       })
 
       it('must emit DelegatorRestaked', async function() {
         await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'DelegatorRestaked', {
           validatorId: this.validatorId,
-          totalStaked: this.totalStaked
+          totalStaked: totalStaked
         })
-      })
-
-      it('shares must be correct', async function() {
-        const newShares = this.reward.mul(new BN(100)).div(this.exchangeRate)
-        assertBigNumberEquality(this.shares.add(newShares), await this.validatorContract.balanceOf(this.user))
       })
     })
 
