@@ -8,21 +8,23 @@ import { web3 } from '@openzeppelin/test-helpers/src/setup'
 const toWei = web3.utils.toWei
 
 function shouldWithdrawReward({ initialBalance, validatorId, user, reward }) {
-  it('must emit Transfer', async function() {
-    await expectEvent.inTransaction(this.receipt.tx, TestToken, 'Transfer', {
-      from: this.stakeManager.address,
-      to: user || this.user,
-      value: reward
+  if (reward > 0) {
+    it('must emit Transfer', async function() {
+      await expectEvent.inTransaction(this.receipt.tx, TestToken, 'Transfer', {
+        from: this.stakeManager.address,
+        to: user || this.user,
+        value: reward
+      })
     })
-  })
 
-  it('must emit DelegatorClaimedRewards', async function() {
-    await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'DelegatorClaimedRewards', {
-      validatorId: validatorId.toString(),
-      user: user || this.user,
-      rewards: reward
+    it('must emit DelegatorClaimedRewards', async function() {
+      await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'DelegatorClaimedRewards', {
+        validatorId: validatorId.toString(),
+        user: user || this.user,
+        rewards: reward
+      })
     })
-  })
+  }
 
   it('must have updated balance', async function() {
     const balance = await this.stakeToken.balanceOf(user || this.user)
