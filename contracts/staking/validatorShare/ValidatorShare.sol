@@ -294,12 +294,12 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
     }
 
     function unlockContract() external onlyOwner returns (uint256) {
-        lock();
+        unlock();
         return activeAmount;
     }
 
     function lockContract() external onlyOwner returns (uint256) {
-        unlock();
+        lock();
         return activeAmount;
     }
 }
