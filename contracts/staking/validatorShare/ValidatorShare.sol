@@ -189,7 +189,6 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         require(_amount >= _minClaimAmount, "Too much slippage");
 
         _withdrawAndTransferReward();
-
         _burn(msg.sender, shares);
         stakeManager.updateValidatorState(validatorId, -int256(_amount));
 
@@ -214,12 +213,10 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
 
     function _withdrawAndTransferReward() private returns(uint256) {
         uint256 liquidRewards = _withdrawReward(msg.sender);
-
         if (liquidRewards > 0) {
             require(stakeManager.transferFunds(validatorId, liquidRewards, msg.sender), "Insufficent rewards");
             stakingLogger.logDelegatorClaimRewards(validatorId, msg.sender, liquidRewards);
         }
-
         return liquidRewards;
     }
 
@@ -294,12 +291,12 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
     }
 
     function unlockContract() external onlyOwner returns (uint256) {
-        lock();
+        unlock();
         return activeAmount;
     }
 
     function lockContract() external onlyOwner returns (uint256) {
-        unlock();
+        lock();
         return activeAmount;
     }
 }
