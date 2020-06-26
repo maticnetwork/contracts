@@ -8,7 +8,17 @@ import { web3 } from '@openzeppelin/test-helpers/src/setup'
 const toWei = web3.utils.toWei
 const ZeroAddr = '0x0000000000000000000000000000000000000000'
 
-function shouldBuyShares({ shares, voucherValueExpected, totalStaked, reward, initialBalance, userTotalStaked }) {
+function shouldHaveCorrectStakes({ userTotalStaked, totalStaked }) {
+  it('must have correct total staked', async function() {
+    assertBigNumberEquality(await this.validatorContract.amountStaked(this.user), userTotalStaked)
+  })
+
+  it('validator state must have correct amount', async function() {
+    assertBigNumberEquality(await this.stakeManager.currentValidatorSetTotalStake(), this.stakeAmount.add(new BN(totalStaked)))
+  })
+}
+
+function shouldBuyShares({ shares, voucherValueExpected, totalStaked }) {
   it('ValidatorShare must mint correct amount of shares', async function() {
     await expectEvent.inTransaction(this.receipt.tx, ValidatorShare, 'Transfer', {
       from: ZeroAddr,
@@ -31,25 +41,6 @@ function shouldBuyShares({ shares, voucherValueExpected, totalStaked, reward, in
       validatorId: this.validatorId,
       newAmount: this.stakeAmount.add(new BN(totalStaked))
     })
-  })
-
-  it('must have correct total staked', async function() {
-    assertBigNumberEquality(await this.validatorContract.amountStaked(this.user), userTotalStaked)
-  })
-
-  it('validator state must have correct amount', async function() {
-    assertBigNumberEquality(await this.stakeManager.currentValidatorSetTotalStake(), this.stakeAmount.add(new BN(totalStaked)))
-  })
-
-  it('must have liquid rewards == 0', async function() {
-    let rewards = await this.validatorContract.getLiquidRewards(this.user)
-    assertBigNumberEquality('0', rewards)
-  })
-
-  it('must have correct initalRewardPerShare', async function() {
-    const currrentRewardPerShare = await this.validatorContract.rewardPerShare()
-    const userRewardPerShare = await this.validatorContract.initalRewardPerShare(this.user)
-    assertBigNumberEquality(currrentRewardPerShare, userRewardPerShare)
   })
 }
 
@@ -78,6 +69,11 @@ function shouldWithdrawReward({ initialBalance, validatorId, user, reward, check
       assertBigNumberEquality(balance, new BN(initialBalance).add(new BN(reward)))
     })
   }
+
+  it('must have liquid rewards == 0', async function() {
+    let rewards = await this.validatorContract.getLiquidRewards(this.user)
+    assertBigNumberEquality('0', rewards)
+  })
 
   it('must have correct initialRewardPerShare', async function() {
     const currentRewardPerShare = await this.validatorContract.rewardPerShare()
@@ -264,11 +260,13 @@ contract('ValidatorShare', async function() {
 
       shouldBuyShares({
         voucherValueExpected,
-        userTotalStaked,
-        totalStaked,
         shares,
-        reward,
-        initialBalance
+        totalStaked
+      })
+
+      shouldHaveCorrectStakes({
+        userTotalStaked,
+        totalStaked
       })
 
       shouldWithdrawReward({
@@ -629,7 +627,7 @@ contract('ValidatorShare', async function() {
       }
     }
 
-    function testSellVoucher({ returnedStake, reward, initialBalance, validatorId, user, minClaimAmount }) {
+    function testSellVoucher({ returnedStake, reward, initialBalance, validatorId, user, minClaimAmount, userTotalStaked, totalStaked }) {
       if (minClaimAmount) {
         it('must sell voucher with slippage', async function() {
           this.receipt = await sellVoucher(this.validatorContract, this.user, minClaimAmount)
@@ -650,6 +648,11 @@ contract('ValidatorShare', async function() {
       })
 
       shouldWithdrawReward({ initialBalance, validatorId, user, reward })
+
+      shouldHaveCorrectStakes({
+        userTotalStaked,
+        totalStaked
+      })
     }
 
     describe('when Alice sells voucher', function() {
@@ -660,7 +663,9 @@ contract('ValidatorShare', async function() {
         reward: toWei('18000'),
         initialBalance: new BN(0),
         validatorId: '1',
-        user: Alice
+        user: Alice,
+        userTotalStaked: toWei('100'),
+        totalStaked: toWei('100')
       })
     })
 
@@ -675,7 +680,9 @@ contract('ValidatorShare', async function() {
         reward: toWei('18000'),
         initialBalance: new BN(0),
         validatorId: '1',
-        user: Alice
+        user: Alice,
+        userTotalStaked: toWei('50'),
+        totalStaked: toWei('50')
       })
     })
 
@@ -688,7 +695,9 @@ contract('ValidatorShare', async function() {
         initialBalance: new BN(0),
         validatorId: '1',
         user: Alice,
-        minClaimAmount: aliceStake
+        minClaimAmount: aliceStake,
+        userTotalStaked: toWei('100'),
+        totalStaked: toWei('100')
       })
     })
 
@@ -706,7 +715,9 @@ contract('ValidatorShare', async function() {
         reward: toWei('18000'),
         initialBalance: new BN(0),
         validatorId: '1',
-        user: Alice
+        user: Alice,
+        userTotalStaked: toWei('100'),
+        totalStaked: toWei('100')
       })
     })
 
