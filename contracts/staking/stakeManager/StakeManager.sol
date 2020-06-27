@@ -64,14 +64,14 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable {
 
         WITHDRAWAL_DELAY = (2**13); // unit: epoch
         currentEpoch = 1;
-        dynasty = 2**13; // unit: epoch 50 days
-        CHECKPOINT_REWARD = 10000 * (10**18); // update via governance
+        dynasty = 886; // unit: epoch 50 days
+        CHECKPOINT_REWARD = 20188 * (10**18); // update via governance
         minDeposit = (10**18); // in ERC20 token
         minHeimdallFee = (10**18); // in ERC20 token
-        checkPointBlockInterval = 255;
+        checkPointBlockInterval = 1024;
         signerUpdateLimit = 100;
 
-        validatorThreshold = 10; //128
+        validatorThreshold = 7; //128
         NFTCounter = 1;
         auctionPeriod = (2**13) / 4; // 1 week in epochs
         proposerBonus = 10; // 10 % of total rewards

@@ -60,7 +60,8 @@ module.exports = {
         )
       },
       network_id: 1,
-      gas: 4000000
+      gas: 3000000,
+      gasPrice: '45000000000'
     }
   },
   compilers: {

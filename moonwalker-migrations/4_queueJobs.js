@@ -1,6 +1,7 @@
 const fs = require('fs')
 
 const Registry = artifacts.require('Registry')
+const StakeManager = artifacts.require('StakeManager')
 
 const ethUtils = require('ethereumjs-util')
 const EthDeployer = require('moonwalker').default
@@ -17,6 +18,7 @@ async function deploy() {
 
   // just need this for encodeABI()
   const registry = await Registry.new('0x0000000000000000000000000000000000000000')
+  const stakeManager = await StakeManager.deployed() //new('0x0000000000000000000000000000000000000000')
 
   await deployer.deploy(
     tx('Governance', 'update',
@@ -79,6 +81,23 @@ async function deploy() {
     ],
     'StakeManagerProxy'
   ))
+  
+  // await deployer.deploy(
+  //   tx('Governance', 'update',
+  //     [
+  //       'StakeManagerProxy',
+  //       {
+  //         value:
+  //           stakeManager.contract.methods.reinitialize(
+  //             getAddressForContract('StakingNFT'),
+  //             getAddressForContract('StakingInfo'),
+  //             getAddressForContract('ValidatorShareFactory')
+  //           ).encodeABI()
+  //       }
+  //     ],
+  //     'GovernanceProxy'
+  //   )
+  // )
 }
 
 function tx(contract, method, args, addressArtifact) {
