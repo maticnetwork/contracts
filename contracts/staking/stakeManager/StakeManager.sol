@@ -244,7 +244,6 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
         uint256 amount,
         address delegator
     ) external onlyDelegation(validatorId) returns (bool) {
-        require(delegationEnabled, "no delegation");
         return token.transferFrom(delegator, address(this), amount);
     }
 
@@ -363,12 +362,12 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
     }
 
     // Update delegation contract factory
-    function updateContractFactory(address newFactory) public onlyOwner {
-        factory = ValidatorShareFactory(newFactory);
-    }
-
     function updateValidatorState(uint256 validatorId, int256 amount) public onlyDelegation(validatorId) {
-        uint256 _currentEpoch = currentEpoch;
+        if (amount > 0) {
+            // deposit during shares purchase
+            require(delegationEnabled, "Delegation is disabled");
+        }
+
         updateTimeline(amount, 0, 0);
         
         if (amount >= 0) {
