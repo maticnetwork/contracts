@@ -76,7 +76,7 @@ export function encodeSigs(sigs = []) {
   return Buffer.concat(sigs.map(s => ethUtils.toBuffer(s)))
 }
 
-function encodeSigsForCheckpoint(sigs = []) {
+export function encodeSigsForCheckpoint(sigs = []) {
   return sigs.map(s => {
     const buffer = [...ethUtils.toBuffer(s)]
     return [

@@ -13,7 +13,7 @@ import {
   assertBigNumberEquality,
   buildSubmitHeaderBlockPaylod,
   buildSubmitHeaderBlockPaylodWithVotes,
-  encodeSigs,
+  encodeSigsForCheckpoint,
   getSigs
 } from '../../../helpers/utils.js'
 import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
@@ -613,9 +613,8 @@ contract('StakeManager', async function(accounts) {
           await approveAndStake.call(this, { wallet, stakeAmount: this.amount })
         }
 
-        this.sigs = utils.bufferToHex(
-          encodeSigs(getSigs(this.wallets, utils.keccak256(this.voteData)))
-        )
+        this.sigs = encodeSigsForCheckpoint(getSigs(this.wallets, utils.keccak256(this.voteData)))
+
       })
 
       function testRevert() {
