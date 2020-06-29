@@ -23,7 +23,7 @@ contract StakeManagerStorage is GovernanceLockable, RootChainable {
     StakingNFT public NFTContract;
     ValidatorShareFactory public factory;
     uint256 public WITHDRAWAL_DELAY; // unit: epoch
-    uint256 public currentEpoch; 
+    uint256 public currentEpoch;
 
     // genesis/governance variables
     uint256 public dynasty ; // unit: epoch 50 days
