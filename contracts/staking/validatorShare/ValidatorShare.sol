@@ -127,7 +127,9 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
 
     function _withdrawReward(address user) private returns(uint256) {
         uint256 liquidRewards = getLiquidRewards(user);
-        initalRewardPerShare[user] = rewardPerShare;
+        uint256 _rewardPerShare = _calculateRewardPerShareWithRewards(stakeManager.withdrawAccumulatedReward(validatorId));
+        rewardPerShare = _rewardPerShare;
+        initalRewardPerShare[user] = _rewardPerShare;
         return liquidRewards;
     }
 
@@ -144,12 +146,6 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
     function withdrawRewards() public {
         uint256 rewards = _withdrawAndTransferReward();
         require(rewards >= minAmount, "Too small rewards amount");
-    }
-
-    function _commitRewardPerShare() private returns(uint256) {
-        uint256 _rewardPerShare = _calculateRewardPerShareWithRewards(stakeManager.withdrawAccumulatedReward(validatorId));
-        rewardPerShare = _rewardPerShare;
-        return _rewardPerShare;
     }
 
     function getLiquidRewards(address user) public view returns (uint256) {
