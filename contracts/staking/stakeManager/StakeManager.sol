@@ -706,18 +706,26 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
         return validators[validatorId].delegatedAmount;
     }
 
-    function accumulatedReward(uint256 validatorId) public view returns(uint256) {
+    function _evaluateValidatorAndDelegationReward(uint256 validatorId) private view returns(uint256 validatorReward, uint256 delegatorsReward) {
         uint256 validatorsStake = validators[validatorId].amount;
         uint256 combinedStakePower = validatorsStake.add(validators[validatorId].delegatedAmount);
         uint256 eligibleReward = rewardPerStake - validators[validatorId].initialRewardPerStake;
-        (uint256 validatorReward, uint256 delegatorsReward) =  _getValidatorAndDelegationReward(
+        return _getValidatorAndDelegationReward(
             validatorId, 
             validatorsStake, 
             eligibleReward.mul(combinedStakePower).div(REWARD_PRECISION),
             combinedStakePower
         );
+    }
 
+    function accumulatedReward(uint256 validatorId) public view returns(uint256) {
+        (, uint256 delegatorsReward) = _evaluateValidatorAndDelegationReward(validatorId);
         return validators[validatorId].accumulatedReward.add(delegatorsReward).sub(INITIALIZED_AMOUNT);
+    }
+
+    function reward(uint256 validatorId) public view returns(uint256) {
+        (uint256 validatorReward,) = _evaluateValidatorAndDelegationReward(validatorId);
+        return validators[validatorId].reward.add(validatorReward).sub(INITIALIZED_AMOUNT);
     }
 
     function withdrawAccumulatedReward(uint256 validatorId) public onlyDelegation(validatorId) returns(uint256) {
