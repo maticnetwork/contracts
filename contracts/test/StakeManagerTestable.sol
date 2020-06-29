@@ -15,17 +15,4 @@ contract StakeManagerTestable is StakeManager {
             IValidatorShare(validators[validatorId].contractAddress).unlock();
         }
     }
-
-    function getCurrentReward(uint256 validatorId) public view returns(uint256) {
-        uint256 validatorsStake = validators[validatorId].amount;
-        uint256 combinedStakePower = validatorsStake.add(validators[validatorId].delegatedAmount);
-        uint256 eligibleReward = rewardPerStake - validators[validatorId].initialRewardPerStake;
-        (uint256 validatorReward, ) =  _getValidatorAndDelegationReward(
-            validatorId, 
-            validatorsStake, 
-            eligibleReward.mul(combinedStakePower).div(REWARD_PRECISION),
-            combinedStakePower
-        );
-        return validators[validatorId].reward.add(validatorReward).sub(INITIALIZED_AMOUNT);
-    }
 }
