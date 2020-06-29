@@ -91,7 +91,6 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         totalStake = totalStake.add(_amount);
         amountStaked[msg.sender] = amountStaked[msg.sender].add(_amount);
 
-        activeAmount = activeAmount.add(_amount);
         stakeManager.updateValidatorState(validatorId, int256(_amount));
 
         StakingInfo logger = stakingLogger;
@@ -114,7 +113,6 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         _burn(msg.sender, shares);
         stakeManager.updateValidatorState(validatorId, -int256(_amount));
 
-        activeAmount = activeAmount.sub(_amount);
         uint256 _withdrawPoolShare = _amount.mul(EXCHANGE_RATE_PRECISION).div(withdrawExchangeRate());
 
         withdrawPool = withdrawPool.add(_amount);
