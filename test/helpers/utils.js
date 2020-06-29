@@ -76,9 +76,8 @@ export function encodeSigs(sigs = []) {
   return Buffer.concat(sigs.map(s => ethUtils.toBuffer(s)))
 }
 
-export async function checkPoint(wallets, proposer, stakeManager, { blockInterval = 1, rootchainOwner } = {}) {
-  const voteData = 'dummyData'
-  const sigs = getSigs(wallets, ethUtils.keccak256(voteData)).map(s => {
+function encodeSigsFoCheckpoint(sigs = []) {
+  return sigs.map(s => {
     const buffer = [...ethUtils.toBuffer(s)]
     return [
       new BN(buffer.slice(0, 32)),
@@ -86,6 +85,11 @@ export async function checkPoint(wallets, proposer, stakeManager, { blockInterva
       new BN(buffer.slice(64, 96))
     ]
   })
+}
+
+export async function checkPoint(wallets, proposer, stakeManager, { blockInterval = 1, rootchainOwner } = {}) {
+  const voteData = 'dummyData'
+  const sigs = encodeSigsFoCheckpoint(getSigs(wallets, ethUtils.keccak256(voteData)))
 
   const stateRoot = ethUtils.bufferToHex(ethUtils.keccak256('stateRoot'))
   // 2/3 majority vote
@@ -167,7 +171,7 @@ export function buildSubmitHeaderBlockPaylod(
   const sigData = Buffer.concat([ethUtils.toBuffer(options.sigPrefix || '0x01'), ethUtils.toBuffer(data)])
 
   // in case of TestStakeManger use dummysig data
-  const sigs = ethUtils.bufferToHex(
+  const sigs = encodeSigsFoCheckpoint(
     options.getSigs
       ? encodeSigs(getSigs(validators, ethUtils.keccak256(sigData)))
       : 'dummySig'
@@ -200,7 +204,7 @@ export function buildSubmitHeaderBlockPaylodWithVotes(
   const sigData = ethUtils.toBuffer(data)
 
   // in case of TestStakeManger use dummysig data
-  const sigs = ethUtils.bufferToHex(
+  const sigs = encodeSigsFoCheckpoint(
     options.getSigs
       ? encodeSigs(getSigsWithVotes(validators, sigData, options.sigPrefix, maxYesVotes))
       : 'dummySig'
