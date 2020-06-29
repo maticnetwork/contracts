@@ -61,7 +61,22 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
                 : withdrawPool.mul(EXCHANGE_RATE_PRECISION).div(_withdrawShares);
     }
 
-    function buyVoucher(uint256 _amount, uint256 _minSharesToMint) public onlyWhenUnlocked {
+    function buyVoucher(uint256 _amount, uint256 _minSharesToMint) public {
+        _withdrawAndTransferReward();
+        uint256 amountToDeposit = _buyShares(_amount, _minSharesToMint);
+        require(stakeManager.delegationDeposit(validatorId, amountToDeposit, msg.sender), "deposit failed");
+    }
+
+    function restake() public {
+        uint256 liquidReward = _withdrawReward(msg.sender);
+        require(liquidReward >= minAmount, "Too small rewards to restake");
+
+        _buyShares(liquidReward, 0);
+
+        stakingLogger.logDelegatorRestaked(validatorId, msg.sender, amountStaked[msg.sender]);
+    }
+
+    function _buyShares(uint256 _amount, uint256 _minSharesToMint) private onlyWhenUnlocked returns(uint256) {
         require(delegation, "Delegation is disabled");
 
         uint256 rate = exchangeRate();
@@ -69,21 +84,21 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         require(shares >= _minSharesToMint, "Too much slippage");
         require(delegators[msg.sender].shares == 0, "Ongoing exit");
 
-        _withdrawAndTransferRewards();
-
         _mint(msg.sender, shares);
         
         _amount = _amount.sub(_amount % rate.mul(shares).div(EXCHANGE_RATE_PRECISION));
 
         totalStake = totalStake.add(_amount);
         amountStaked[msg.sender] = amountStaked[msg.sender].add(_amount);
-        require(stakeManager.delegationDeposit(validatorId, _amount, msg.sender), "deposit failed");
 
-        initalRewardPerShare[msg.sender] = _commitRewardPerShare();
+        activeAmount = activeAmount.add(_amount);
+        stakeManager.updateValidatorState(validatorId, int256(_amount));
 
         StakingInfo logger = stakingLogger;
         logger.logShareMinted(validatorId, msg.sender, _amount, shares);
         logger.logStakeUpdate(validatorId);
+
+        return _amount;
     }
 
     function sellVoucher(uint256 _minClaimAmount) public {
@@ -94,11 +109,12 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         uint256 _amount = rate.mul(shares).div(EXCHANGE_RATE_PRECISION);
         require(_amount >= _minClaimAmount, "Too much slippage");
 
-        _withdrawAndTransferRewards();
-
+        _withdrawAndTransferReward();
+        
         _burn(msg.sender, shares);
         stakeManager.updateValidatorState(validatorId, -int256(_amount));
 
+        activeAmount = activeAmount.sub(_amount);
         uint256 _withdrawPoolShare = _amount.mul(EXCHANGE_RATE_PRECISION).div(withdrawExchangeRate());
 
         withdrawPool = withdrawPool.add(_amount);
@@ -111,43 +127,25 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         logger.logStakeUpdate(validatorId);
     }
 
-    function _withdrawAndTransferRewards() private returns(uint256) {
-        uint256 currentRewardPerShare = _commitRewardPerShare();
-        uint256 liquidRewards = _calculateReward(msg.sender, currentRewardPerShare);
-        if (liquidRewards >= minAmount) {
-            require(stakeManager.transferFunds(validatorId, liquidRewards, msg.sender), "Insufficent rewards");
-        }
+    function _withdrawReward(address user) private returns(uint256) {
+        uint256 liquidRewards = getLiquidRewards(user);
+        initalRewardPerShare[user] = rewardPerShare;
+        return liquidRewards;
+    }
 
+    function _withdrawAndTransferReward() private returns(uint256) {
+        uint256 liquidRewards = _withdrawReward(msg.sender);
+        
+        if (liquidRewards > 0) {
+            require(stakeManager.transferFunds(validatorId, liquidRewards, msg.sender), "Insufficent rewards");
+            stakingLogger.logDelegatorClaimRewards(validatorId, msg.sender, liquidRewards);
+        }
         return liquidRewards;
     }
 
     function withdrawRewards() public {
-        uint256 rewards = _withdrawAndTransferRewards();
+        uint256 rewards = _withdrawAndTransferReward();
         require(rewards >= minAmount, "Too small rewards amount");
-        stakingLogger.logDelegatorClaimRewards(validatorId, msg.sender, rewards);
-    }
-
-    function restake() public {
-        /**
-            restaking is simply buying more shares of pool
-            but those needs to be nonswapable/transferrable to prevent https://en.wikipedia.org/wiki/Tragedy_of_the_commons
-
-            - only active amount is considers as active stake
-            - move reward amount to active stake pool
-            - no shares are minted
-        */
-        uint256 currentRewardPerShare = _commitRewardPerShare();
-        uint256 liquidRewards = _calculateReward(msg.sender, currentRewardPerShare);
-        require(liquidRewards >= minAmount, "Too small rewards to restake");
-
-        amountStaked[msg.sender] = amountStaked[msg.sender].add(liquidRewards);
-        initalRewardPerShare[msg.sender] = _commitRewardPerShare();
-        totalStake = totalStake.add(liquidRewards);
-        stakeManager.updateValidatorState(validatorId, int256(liquidRewards));
-
-        StakingInfo logger = stakingLogger;
-        logger.logStakeUpdate(validatorId);
-        logger.logDelegatorRestaked(validatorId, msg.sender, amountStaked[msg.sender]);
     }
 
     function _commitRewardPerShare() private returns(uint256) {
