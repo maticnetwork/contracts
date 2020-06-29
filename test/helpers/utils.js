@@ -73,7 +73,12 @@ export function getSigsWithVotes(_wallets, data, sigPrefix, maxYesVotes) {
 }
 
 export function encodeSigs(sigs = []) {
-  return sigs.map(s => {
+  return Buffer.concat(sigs.map(s => ethUtils.toBuffer(s)))
+}
+
+export async function checkPoint(wallets, proposer, stakeManager, { blockInterval = 1, rootchainOwner } = {}) {
+  const voteData = 'dummyData'
+  const sigs = getSigs(wallets, ethUtils.keccak256(voteData)).map(s => {
     const buffer = [...ethUtils.toBuffer(s)]
     return [
       new BN(buffer.slice(0, 32)),
@@ -81,11 +86,6 @@ export function encodeSigs(sigs = []) {
       new BN(buffer.slice(64, 96))
     ]
   })
-}
-
-export async function checkPoint(wallets, proposer, stakeManager, { blockInterval = 1, rootchainOwner } = {}) {
-  const voteData = 'dummyData'
-  const sigs = encodeSigs(getSigs(wallets, ethUtils.keccak256(voteData)))
 
   const stateRoot = ethUtils.bufferToHex(ethUtils.keccak256('stateRoot'))
   // 2/3 majority vote
