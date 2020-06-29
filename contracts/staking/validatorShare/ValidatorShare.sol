@@ -20,12 +20,12 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
     StakingInfo public stakingLogger;
     IStakeManager public stakeManager;
     uint256 public validatorId;
-    uint256 public minAmount = 10**18;
+    uint256 public minAmount;
 
     uint256 public totalStake;
     uint256 public rewardPerShare;
-    // uint256 public activeAmount;
-    bool public delegation = true;
+    uint256 public activeAmount;
+    bool public delegation;
 
     uint256 public withdrawPool;
     uint256 public withdrawShares;
