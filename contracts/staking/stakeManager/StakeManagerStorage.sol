@@ -36,7 +36,7 @@ contract StakeManagerStorage is GovernanceLockable, RootChainable {
     uint256 public validatorThreshold; //128
     uint256 public totalStaked;
     uint256 public NFTCounter;
-    uint256 public rewardPerStake;
+    uint256 public totalRewards;
     uint256 public totalRewardsLiquidated;
     uint256 public auctionPeriod; // 1 week in epochs
     uint256 public proposerBonus; // 10 % of total rewards
@@ -95,4 +95,5 @@ contract StakeManagerStorage is GovernanceLockable, RootChainable {
     uint256 public totalHeimdallFee;
 
     address auctionImplementation;
+    uint256 public rewardPerStake;
 }
