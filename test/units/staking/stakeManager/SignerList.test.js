@@ -43,8 +43,7 @@ contract('SignerList', function() {
     }
 
     it(`must get bucket id ${bucketId} at index ${bucketIndex}`, async function() {
-      const bucketId = await this.signerList.getBucketIdByIndex(bucketIndex)
-      assertBigNumberEquality(bucketId, bucketId)
+      assertBigNumberEquality(await this.signerList.getBucketIdByIndex(bucketIndex), bucketId)
     })
   }
 
@@ -227,7 +226,7 @@ contract('SignerList', function() {
       })
     })
 
-    describe(`when list has ${MAX_BUCKET_SIZE} elements`, function() {
+    describe(`when list has 1 full bucket`, function() {
       describe('when signer is greater than last element', function() {
         before(async function() {
           this.signerList = await SignerListTest.new()
@@ -605,6 +604,104 @@ contract('SignerList', function() {
               bucketIndex: 0,
               elements: initialBuckets[1]
             })
+          })
+        })
+      })
+    })
+
+    describe('when list has 2 full buckets', function() {
+      describe('when signer is less than 1st element of bucket #1', function() {
+        let elements = []
+        let element = 2
+        for (let i = 0; i < MAX_BUCKET_SIZE * 2; ++i) {
+          elements.push(element)
+          element += 2
+        }
+
+        before(async function() {
+          this.signerList = await SignerListTest.new()
+
+          for (const el of elements) {
+            await this.signerList.insert(el)
+          }
+        })
+
+        describe('inserting', function() {
+          testInsertSigner({
+            signer: 1,
+            bucketId: 3,
+            bucketSize: 1,
+            bucketIndex: 0,
+            totalBuckets: 3,
+            elements: [1]
+          })
+        })
+
+        describe('after', function() {
+          testBucket({
+            bucketId: 1,
+            bucketSize: MAX_BUCKET_SIZE,
+            bucketIndex: 1,
+            elements: elements.slice(0, MAX_BUCKET_SIZE)
+          })
+
+          testBucket({
+            bucketId: 2,
+            bucketSize: MAX_BUCKET_SIZE,
+            bucketIndex: 2,
+            elements: elements.slice(MAX_BUCKET_SIZE)
+          })
+        })
+      })
+
+      describe('when signer is greater than 1st element of bucket #1', function() {
+        let elements = []
+        let testElements = []
+        let element = 2
+        for (let i = 0; i < MAX_BUCKET_SIZE * 2; ++i) {
+          elements.push(element)
+          testElements.push(element)
+          element += 2
+        }
+
+        testElements.splice(1, 0, 3)
+
+        const testElements2 = testElements.slice(MAX_BUCKET_SIZE, MAX_BUCKET_SIZE * 2)
+
+        testElements.splice(MAX_BUCKET_SIZE)
+
+        before(async function() {
+          this.signerList = await SignerListTest.new()
+
+          for (const el of elements) {
+            await this.signerList.insert(el)
+          }
+        })
+
+        describe('inserting', function() {
+          testInsertSigner({
+            signer: 3,
+            bucketId: 1,
+            bucketSize: MAX_BUCKET_SIZE,
+            bucketIndex: 0,
+            totalBuckets: 3,
+            elements: testElements
+          })
+        })
+
+        describe('after', function() {
+          testBucket({
+            bucketId: 2,
+            bucketSize: MAX_BUCKET_SIZE,
+            bucketIndex: 1,
+            elements: testElements2
+          })
+
+          testBucket({
+            bucketId: 3,
+            bucketSize: 1,
+            bucketIndex: 2,
+            elements: [MAX_BUCKET_SIZE * 2 * 2]
           })
         })
       })
