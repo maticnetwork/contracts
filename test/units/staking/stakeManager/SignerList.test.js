@@ -1,5 +1,5 @@
 import { expectRevert } from '@openzeppelin/test-helpers'
-import { assertBigNumberEquality } from '../helpers/utils'
+import { assertBigNumberEquality } from '../../../helpers/utils'
 
 const SignerListTest = artifacts.require('SignerListTest')
 
@@ -257,10 +257,13 @@ contract('SignerList', function() {
           element += 2
         }
 
-        const signer = 3
         // replace second element and remove last
-        testElements.splice(1, 0, signer)
+        testElements.splice(1, 0, 3)
         testElements.pop()
+
+        const testElements2 = [...testElements]
+        testElements2.splice(3, 0, 5)
+        testElements2.pop()
 
         before(async function() {
           this.signerList = await SignerListTest.new()
@@ -270,9 +273,9 @@ contract('SignerList', function() {
           }
         })
 
-        describe('inserting', function() {
+        describe('inserting 1st element', function() {
           testInsertSigner({
-            signer: signer,
+            signer: 3,
             bucketId: 1,
             bucketSize: MAX_BUCKET_SIZE,
             bucketIndex: 0,
@@ -287,6 +290,26 @@ contract('SignerList', function() {
             bucketIndex: 1,
             bucketSize: 1,
             elements: [MAX_BUCKET_SIZE * 2]
+          })
+        })
+
+        describe('inserting 2nd element', function() {
+          testInsertSigner({
+            signer: 5,
+            bucketId: 1,
+            bucketSize: MAX_BUCKET_SIZE,
+            bucketIndex: 0,
+            totalBuckets: 2,
+            elements: testElements2
+          })
+        })
+
+        describe('after', function() {
+          testBucket({
+            bucketId: 2,
+            bucketIndex: 1,
+            bucketSize: 2,
+            elements: [(MAX_BUCKET_SIZE - 1) * 2, MAX_BUCKET_SIZE * 2]
           })
         })
       })
@@ -634,10 +657,10 @@ contract('SignerList', function() {
           }
         })
 
-        testRemoval({ 
-          signers, 
-          testSignersFn: (s, i) => s.slice(i + 1), 
-          ascended: true, 
+        testRemoval({
+          signers,
+          testSignersFn: (s, i) => s.slice(i + 1),
+          ascended: true,
           bucketsLeft: 0,
           bucketId: 1
         })
@@ -659,9 +682,9 @@ contract('SignerList', function() {
         })
 
         testRemoval({
-          signers, 
-          testSignersFn: (s, i) => s.slice(0, i), 
-          ascended: false, 
+          signers,
+          testSignersFn: (s, i) => s.slice(0, i),
+          ascended: false,
           bucketsLeft: 0,
           bucketId: 1
         })

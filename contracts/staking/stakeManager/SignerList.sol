@@ -175,7 +175,14 @@ contract SignerList {
     function _insertIntoBucket(address newSigner, Bucket storage targetBucket, uint256 bucketSize, uint256 bucketIndex) private {
         if (bucketSize == MAX_BUCKET_SIZE) {
             // bucket is full, move last element to the new bucket first
-            _insertIntoNewBucket(targetBucket.elements[bucketSize - 1], bucketIndex + 1);
+            Bucket storage nextBucket = buckets[bucketsByIndex[bucketIndex + 1]];
+            uint nextBucketSize = nextBucket.size;
+            if (bucketIndex + 1 == totalBuckets || nextBucketSize == MAX_BUCKET_SIZE) {
+                _insertIntoNewBucket(targetBucket.elements[bucketSize - 1], bucketIndex + 1);
+            } else {
+                _insertIntoBucket(targetBucket.elements[bucketSize - 1], nextBucket, nextBucketSize, bucketIndex + 1);
+            }
+            
             bucketSize--;
         }
 
