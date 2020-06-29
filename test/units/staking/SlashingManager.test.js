@@ -79,7 +79,7 @@ contract('Slashing:validator', async function(accounts) {
       assertBigNumberEquality(logs[1].args.amount, web3.utils.toWei('100'))
 
       const validator1 = await stakeManager.validators(1)
-      const validator1RewardBefore = await stakeManager.getCurrentReward(1)
+      const validator1RewardBefore = await stakeManager.reward(1)
       const validator2 = await stakeManager.validators(2)
       assertBigNumberEquality(validator2.amount, web3.utils.toWei('900'))
       assert.equal(await stakeManager.isValidator(2), false)
@@ -87,7 +87,7 @@ contract('Slashing:validator', async function(accounts) {
 
       await checkPoint([validator1Wallet], validator1Wallet, stakeManager)
 
-      const validator1RewardAfter = await stakeManager.getCurrentReward(1)
+      const validator1RewardAfter = await stakeManager.reward(1)
       assertBigNumbergt(validator1RewardAfter, validator1RewardBefore)
       assertBigNumberEquality(validator1RewardAfter, web3.utils.toWei('10000'))
     })
@@ -104,7 +104,7 @@ contract('Slashing:validator', async function(accounts) {
       await stakeManager.unjail(2, { from: validator2Wallet.getAddressString() })
       assert.equal(await stakeManager.isValidator(2), true)
       await checkPoint([validator1Wallet, validator2Wallet], validator1Wallet, stakeManager)
-      const validator2reward = await stakeManager.getCurrentReward(2)
+      const validator2reward = await stakeManager.reward(2)
       assertBigNumbergt(validator2reward, web3.utils.toWei('4260')) // 4700-10% proposer bonus
     })
 

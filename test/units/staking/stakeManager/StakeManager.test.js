@@ -453,7 +453,7 @@ contract('StakeManager', async function(accounts) {
         index++
         it(`staker #${stakerIndex} must have ${expectedRewards[staker.wallet.getAddressString()]} reward`, async function() {
           const validatorId = await this.stakeManager.getValidatorId(staker.wallet.getAddressString())
-          const reward = await this.stakeManager.getCurrentReward(validatorId)
+          const reward = await this.stakeManager.reward(validatorId)
           assertBigNumberEquality(reward, expectedRewards[staker.wallet.getAddressString()])
         })
       }
@@ -1875,7 +1875,7 @@ contract('StakeManager', async function(accounts) {
           this.prevValidatorOldBalance = await this.stakeToken.balanceOf(this.prevValidatorAddr)
 
           this.validator = await this.stakeManager.validators(this.validatorId)
-          this.reward = await this.stakeManager.getCurrentReward(this.validatorId)
+          this.reward = await this.stakeManager.reward(this.validatorId)
         })
       }
 
@@ -2059,7 +2059,7 @@ contract('StakeManager', async function(accounts) {
         this.prevValidatorAddr = validatorUserAddr
         this.prevValidatorOldBalance = await this.stakeToken.balanceOf(validatorUserAddr)
         this.validator = await this.stakeManager.validators(delegatedValidatorId)
-        this.reward = await this.stakeManager.getCurrentReward(delegatedValidatorId)
+        this.reward = await this.stakeManager.reward(delegatedValidatorId)
       })
 
       testConfirmAuctionBidForNewValidator()
