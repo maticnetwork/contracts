@@ -245,7 +245,6 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
         address delegator
     ) external onlyDelegation(validatorId) returns (bool) {
         require(delegationEnabled, "no delegation");
-        updateValidatorState(validatorId, int256(amount));
         return token.transferFrom(delegator, address(this), amount);
     }
 
