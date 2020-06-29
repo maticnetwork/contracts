@@ -876,9 +876,8 @@ contract('SignerList', function() {
         })
 
         describe('after bucket was removed', function() {
-          let bucketIndex = -1
+          let bucketIndex = 0
           for (const bucketId in initialSigners) {
-            bucketIndex++
             if (bucketId == targetBucketId) {
               continue
             }
@@ -889,6 +888,8 @@ contract('SignerList', function() {
               bucketIndex: bucketIndex,
               elements: initialSigners[bucketId]
             })
+
+            bucketIndex++
           }
         })
       }
