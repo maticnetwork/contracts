@@ -337,11 +337,11 @@ contract('StakeManager', async function(accounts) {
       })
     })
 
-    describe('when validator has no delegation', function() {
+    describe('when validator has Delegation is disabled', function() {
       doDeploy(false)
 
       it('reverts ', async function() {
-        await expectRevert(this.stakeManager.updateValidatorDelegation(false, { from: staker.getAddressString() }), 'no delegation')
+        await expectRevert(this.stakeManager.updateValidatorDelegation(false, { from: staker.getAddressString() }), 'Delegation is disabled')
       })
     })
 

@@ -290,7 +290,7 @@ contract('ValidatorShare', async function() {
       })
 
       it('reverts', async function() {
-        await expectRevert(buyVoucher(this.validatorContract, web3.utils.toWei('150'), this.alice), 'no delegation')
+        await expectRevert(buyVoucher(this.validatorContract, web3.utils.toWei('150'), this.alice), 'Delegation is disabled')
       })
     })
 

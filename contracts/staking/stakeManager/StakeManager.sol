@@ -962,7 +962,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
         require(_isValidator(validatorId, validators[validatorId].amount, currentEpoch), "not validator");
 
         address contractAddr = validators[validatorId].contractAddress;
-        require(contractAddr != address(0x0), "no delegation");
+        require(contractAddr != address(0x0), "Delegation is disabled");
 
         IValidatorShare(contractAddr).updateDelegation(delegation);
     }
