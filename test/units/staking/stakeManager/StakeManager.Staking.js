@@ -616,11 +616,12 @@ module.exports = function(accounts) {
 
       const Alice = wallets[2]
       const Bob = wallets[3]
-      const Eve = wallets[1]
+      const Eve = wallets[4]
+      const stakeAmount = web3.utils.toWei('100')
 
-      before('Alice stake', doStake(Alice, { noMinting: true }))
-      before('Bob stake', doStake(Bob, { noMinting: true }))
-      before('Eve stake', doStake(Eve, { noMinting: true }))
+      before('Alice stake', doStake(Alice, { noMinting: true, stakeAmount }))
+      before('Bob stake', doStake(Bob, { noMinting: true, stakeAmount }))
+      before('Eve stake', doStake(Eve, { noMinting: true, stakeAmount }))
 
       before('Alice unstake', doUnstake(Alice))
       before('Bob unstake', doUnstake(Bob))
@@ -634,17 +635,28 @@ module.exports = function(accounts) {
         const user = Alice.getAddressString()
 
         it('must claim', async function() {
-          const validatorId = await this.stakeManager.getValidatorId(user)
-          this.reward = await this.stakeManager.reward(validatorId)
-
-          await this.stakeManager.unstakeClaim(validatorId, {
+          this.validatorId = await this.stakeManager.getValidatorId(user)
+          this.reward = await this.stakeManager.reward(this.validatorId)
+          this.receipt = await this.stakeManager.unstakeClaim(this.validatorId, {
             from: user
+          })
+        })
+
+        it('must have correct reward', async function() {
+          assertBigNumberEquality(this.reward, web3.utils.toWei('3000'))
+        })
+
+        it('must emit ClaimRewards', async function() {
+          await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ClaimRewards', {
+            validatorId: this.validatorId,
+            amount: web3.utils.toWei('3000'),
+            totalAmount: await this.stakeManager.totalRewardsLiquidated()
           })
         })
 
         it('must have pre-stake + reward - heimdall fee balance', async function() {
           let balance = await this.stakeToken.balanceOf(user)
-          assertBigNumberEquality(balance, new BN(walletAmounts[user].initialBalance.toString()).add(this.reward).sub(this.defaultHeimdallFee))
+          assertBigNumberEquality(balance, new BN(walletAmounts[user].initialBalance).add(this.reward).sub(this.defaultHeimdallFee))
         })
       })
 
@@ -652,11 +664,22 @@ module.exports = function(accounts) {
         const user = Bob.getAddressString()
 
         it('must claim', async function() {
-          const validatorId = await this.stakeManager.getValidatorId(user)
-          this.reward = await this.stakeManager.reward(validatorId)
-
-          await this.stakeManager.unstakeClaim(validatorId, {
+          this.validatorId = await this.stakeManager.getValidatorId(user)
+          this.reward = await this.stakeManager.reward(this.validatorId)
+          this.receipt = await this.stakeManager.unstakeClaim(this.validatorId, {
             from: user
+          })
+        })
+
+        it('must have correct reward', async function() {
+          assertBigNumberEquality(this.reward, web3.utils.toWei('3000'))
+        })
+
+        it('must emit ClaimRewards', async function() {
+          await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ClaimRewards', {
+            validatorId: this.validatorId,
+            amount: web3.utils.toWei('3000'),
+            totalAmount: await this.stakeManager.totalRewardsLiquidated()
           })
         })
 
@@ -673,9 +696,14 @@ module.exports = function(accounts) {
         })
 
         it('staked balance must have only Eve balance', async function() {
-          const amount = walletAmounts[Eve.getAddressString()].stakeAmount
           const stake = await this.stakeManager.currentValidatorSetTotalStake()
-          assertBigNumberEquality(stake, amount)
+          assertBigNumberEquality(stake, stakeAmount)
+        })
+
+        it('Eve must have correct rewards', async function() {
+          const validatorId = await this.stakeManager.getValidatorId(Eve.getAddressString())
+          this.reward = await this.stakeManager.reward(validatorId)
+          assertBigNumberEquality(this.reward, web3.utils.toWei('12000'))
         })
       })
     })
