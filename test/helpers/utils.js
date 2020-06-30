@@ -206,7 +206,7 @@ export function buildSubmitHeaderBlockPaylodWithVotes(
   // in case of TestStakeManger use dummysig data
   const sigs = encodeSigsForCheckpoint(
     options.getSigs
-      ? encodeSigs(getSigsWithVotes(validators, sigData, options.sigPrefix, maxYesVotes))
+      ? getSigsWithVotes(validators, sigData, options.sigPrefix, maxYesVotes)
       : 'dummySig'
   )
   return { data, sigs }

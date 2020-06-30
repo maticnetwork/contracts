@@ -635,8 +635,7 @@ module.exports = function(accounts) {
 
         it('must claim', async function() {
           const validatorId = await this.stakeManager.getValidatorId(user)
-          const { reward } = await this.stakeManager.validators(validatorId)
-          this.reward = reward
+          this.reward = await this.stakeManager.reward(validatorId)
 
           await this.stakeManager.unstakeClaim(validatorId, {
             from: user
@@ -645,7 +644,6 @@ module.exports = function(accounts) {
 
         it('must have pre-stake + reward - heimdall fee balance', async function() {
           let balance = await this.stakeToken.balanceOf(user)
-
           assertBigNumberEquality(balance, new BN(walletAmounts[user].initialBalance.toString()).add(this.reward).sub(this.defaultHeimdallFee))
         })
       })
@@ -655,8 +653,7 @@ module.exports = function(accounts) {
 
         it('must claim', async function() {
           const validatorId = await this.stakeManager.getValidatorId(user)
-          const { reward } = await this.stakeManager.validators(validatorId)
-          this.reward = reward
+          this.reward = await this.stakeManager.reward(validatorId)
 
           await this.stakeManager.unstakeClaim(validatorId, {
             from: user
@@ -665,7 +662,6 @@ module.exports = function(accounts) {
 
         it('must have pre-stake + reward - heimdall fee balance', async function() {
           let balance = await this.stakeToken.balanceOf(user)
-
           assertBigNumberEquality(balance, new BN(walletAmounts[user].initialBalance).add(this.reward).sub(this.defaultHeimdallFee))
         })
       })
