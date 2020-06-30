@@ -81,8 +81,8 @@ contract StakeManagerStorage is GovernanceLockable, RootChainable {
     }
 
     mapping(uint256 => Validator) public validators;
-    // signer to Validator mapping
     mapping(address => uint256) public signerToValidator;
+    // current epoch stake power and stakers count
     State public validatorState;
     mapping(uint256 => StateChange) public validatorStateChanges;
 
