@@ -21,6 +21,26 @@ import { wallets, freshDeploy, approveAndStake, walletAmounts } from '../deploym
 import { buyVoucher } from '../ValidatorShareHelper.js'
 import { web3 } from '@openzeppelin/test-helpers/src/setup'
 
+function testCheckpointing(stakers, signers, blockInterval, checkpointsPassed, expectedRewards) {
+  it('must checkpoint', async function() {
+    let _count = checkpointsPassed
+    while (_count-- > 0) {
+      await checkPoint(signers, this.rootChainOwner, this.stakeManager, { blockInterval })
+    }
+  })
+
+  let index = 0
+  for (const staker of stakers) {
+    let stakerIndex = index + 1
+    index++
+    it(`staker #${stakerIndex} must have ${expectedRewards[staker.wallet.getAddressString()]} reward`, async function() {
+      const validatorId = await this.stakeManager.getValidatorId(staker.wallet.getAddressString())
+      const reward = await this.stakeManager.reward(validatorId)
+      assertBigNumberEquality(reward, expectedRewards[staker.wallet.getAddressString()])
+    })
+  }
+}
+
 contract('StakeManager', async function(accounts) {
   let owner = accounts[0]
 
@@ -439,26 +459,6 @@ contract('StakeManager', async function(accounts) {
       })
     }
 
-    function testCheckpointing(stakers, signers, blockInterval, checkpointsPassed, expectedRewards) {
-      it('must checkpoint', async function() {
-        let _count = checkpointsPassed
-        while (_count-- > 0) {
-          await checkPoint(signers, this.rootChainOwner, this.stakeManager, { blockInterval })
-        }
-      })
-
-      let index = 0
-      for (const staker of stakers) {
-        let stakerIndex = index + 1
-        index++
-        it(`staker #${stakerIndex} must have ${expectedRewards[staker.wallet.getAddressString()]} reward`, async function() {
-          const validatorId = await this.stakeManager.getValidatorId(staker.wallet.getAddressString())
-          const reward = await this.stakeManager.reward(validatorId)
-          assertBigNumberEquality(reward, expectedRewards[staker.wallet.getAddressString()])
-        })
-      }
-    }
-
     describe('when 2 validators stakes, block interval 1, 1 epoch', function() {
       const stakers = [
         { wallet: wallets[2], stake: new BN(web3.utils.toWei('100')) },
@@ -489,7 +489,6 @@ contract('StakeManager', async function(accounts) {
         })
       })
     })
-
 
     describe('when 3 validators stake', function() {
       let stakers = [
@@ -614,7 +613,6 @@ contract('StakeManager', async function(accounts) {
         }
 
         this.sigs = encodeSigsForCheckpoint(getSigs(this.wallets, utils.keccak256(this.voteData)))
-
       })
 
       function testRevert() {
@@ -874,6 +872,14 @@ contract('StakeManager', async function(accounts) {
       })
 
       testUpdateSigner()
+
+      testCheckpointing([
+        { wallet: wallets[5] },
+        { wallet: wallets[3] }
+      ], [wallets[5], wallets[0]], 1, 1, {
+        [wallets[5].getAddressString()]: web3.utils.toWei('4500'),
+        [wallets[3].getAddressString()]: web3.utils.toWei('4500')
+      })
     })
 
     describe('when update signer after signerUpdateLimit was update to be shorter', function() {
@@ -1171,7 +1177,7 @@ contract('StakeManager', async function(accounts) {
           before(function() {
             this.user = Alice.getAddressString()
           })
-  
+
           testWithRewards()
         })
 
@@ -1179,7 +1185,7 @@ contract('StakeManager', async function(accounts) {
           before(function() {
             this.user = Bob.getAddressString()
           })
-  
+
           testWithRewards()
         })
       })
