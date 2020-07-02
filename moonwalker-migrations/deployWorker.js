@@ -3,9 +3,16 @@ const HDWalletProvider = require('truffle-hdwallet-provider')
 
 const MNEMONIC = process.env.MNEMONIC || 'clock radar mass judge dismiss just intact mind resemble fringe diary casino'
 const API_KEY =  process.env.API_KEY
+const NETWORK_URL =  process.env.NETWORK_URL
 
-const url = `https://goerli.infura.io/v3/${API_KEY}`
-// const url = `http://localhost:8545`
+// set url
+if (NETWORK_URL && API_KEY) {
+  url = `${NETWORK_URL}/${API_KEY}`
+} else if (NETWORK_URL) {
+  url = `${NETWORK_URL}`
+} else {
+  url = `http://localhost:8545`
+}
 
 const wallet = new HDWalletProvider(MNEMONIC, url)
 

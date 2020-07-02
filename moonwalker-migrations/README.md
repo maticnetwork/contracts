@@ -12,6 +12,7 @@ docker run -d -p 5672:5672 -p 15672:15672 rabbitmq:3-management
 export MNEMONIC=
 export FROM=
 export API_KEY=
+export NETWORK_URL=https://goerli.infura.io/v3
 export HEIMDALL_ID=heimdall-15001
 export MATIC_NAME=MATIC15001
 export BOR_ID=15001
