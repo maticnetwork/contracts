@@ -41,7 +41,7 @@ class Deployer {
 
     this.stakeManager = await contracts.StakeManager.at(proxy.address)
     await this.stakeManager.updateCheckPointBlockInterval(1)
-    
+
     await this.stakingNFT.transferOwnership(this.stakeManager.address)
     this.exitNFT = await contracts.ExitNFT.new(this.registry.address)
 
@@ -486,6 +486,16 @@ class Deployer {
 
   async deployMarketplace(owner) {
     return contracts.Marketplace.new()
+  }
+
+  async deployGnosisMultisig(signers) {
+    let gnosisSafe = await contracts.GnosisSafe.new()
+    let proxy = await contracts.GnosisSafeProxy.new(gnosisSafe.address)
+    gnosisSafe = await contracts.GnosisSafe.at(proxy.address)
+    await gnosisSafe.setup(
+      [...signers], 2, utils.ZeroAddress, "0x", utils.ZeroAddress, utils.ZeroAddress, 0, utils.ZeroAddress
+    )
+  return gnosisSafe
   }
 }
 

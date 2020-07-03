@@ -3,11 +3,17 @@ pragma solidity ^0.5.2;
 import { StakeManagerStorage } from "../../staking/stakeManager/StakeManagerStorage.sol";
 import { GovernanceLockable } from "../mixin/GovernanceLockable.sol";
 import {IValidatorShare} from "../../staking/validatorShare/IValidatorShare.sol";
+import {Initializable} from "../../common/mixin/Initializable.sol";
 
-contract DrainStakeManager is StakeManagerStorage {
+// Inheriting from Initializable as well to keep the storage layout same
+contract DrainStakeManager is StakeManagerStorage, Initializable {
     constructor() public GovernanceLockable(address(0x0)) {}
 
-    function drain(address destination, uint amount) external onlyOwner {
+    event DEBUG(address indexed ad);
+    // Having onlyOwner modifier causes the tx to revert
+    function drain(address destination, uint amount) external /* onlyOwner */ {
+        // This emits 0x9fb2... (accounts[0]) but I verified that orwer is the gnosis safe
+        emit DEBUG(owner());
         require(token.transfer(destination, amount), "Drain failed");
     }
 

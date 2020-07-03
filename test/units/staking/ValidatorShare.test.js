@@ -164,28 +164,6 @@ contract('ValidatorShare', async function() {
         assertBigNumberEquality(this.userOldBalance.add(new BN(this.value)), await this.testToken.balanceOf(this.user))
       })
     })
-
-    describe('when from is not governanace', function() {
-      prepareForTests()
-
-      it('reverts', async function() {
-        await expectRevert(
-          this.stakeManager.drainValidatorShares(this.validatorId, this.testToken.address, this.user, this.value),
-          'Only governance contract is authorized'
-        )
-      })
-    })
-
-    describe('when validator id is incorrect', function() {
-      prepareForTests()
-
-      it('reverts', async function() {
-        await expectRevert(this.governance.update(
-          this.stakeManager.address,
-          this.stakeManager.contract.methods.drainValidatorShares('9999', this.testToken.address, this.user, this.value).encodeABI()
-        ), 'Update failed')
-      })
-    })
   })
 
   function deployAliceAndBob() {
