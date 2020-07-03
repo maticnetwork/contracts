@@ -2,9 +2,9 @@
 
 import chai, { assert } from 'chai'
 import chaiAsPromised from 'chai-as-promised'
+import { expectRevert } from '@openzeppelin/test-helpers'
 
 import {
-
   DrainStakeManager
 } from '../../helpers/artifacts'
 
@@ -15,7 +15,7 @@ import { generateFirstWallets, mnemonics } from '../../helpers/wallets.js'
 
 chai.use(chaiAsPromised).should()
 
-contract.only('DrainStakeManager', async function(accounts) {
+contract('DrainStakeManager', async function(accounts) {
   const owner = accounts[0]
   describe('Upgrade and drain staking contract', async function() {
     before(async function() {
@@ -30,9 +30,7 @@ contract.only('DrainStakeManager', async function(accounts) {
       this.stakeManagerImpl = contracts.stakeManagerImpl
 
       this.gSafe = await deployer.deployGnosisMultisig(accounts.slice(0, 3))
-      console.log({ owner: await this.stakeManager.owner() })
       await this.stakeManager.transferOwnership(this.gSafe.address)
-      console.log({ owner: await this.stakeManager.owner(), gSafe: this.gSafe.address })
     })
 
     it('must have some tokens', async function() {
@@ -63,7 +61,7 @@ contract.only('DrainStakeManager', async function(accounts) {
       assert.equal(await this.proxy.implementation(), this.stakeManagerDrainable.address)
     })
 
-    it.skip('must fail draining when not drained owner', async function() {
+    it('must fail draining when not drained owner', async function() {
       const balance = await this.stakeToken.balanceOf(this.stakeManager.address)
       try {
         await this.stakeManagerDrainable.drain(owner, balance)
@@ -75,19 +73,13 @@ contract.only('DrainStakeManager', async function(accounts) {
 
     it('must drain all funds when drained by owner (Gnosis safe)', async function() {
       const balance = await this.stakeToken.balanceOf(this.stakeManager.address)
-      console.log({ balance: balance.toString() })
-      console.log({
-        owner: await this.stakeManager.owner(),
-        stakeManager: this.stakeManager.address,
-        proxy: this.proxy.address
-      })
       const data = this.stakeManagerDrainable.contract.methods.drain(owner, balance.toString()).encodeABI()
-      console.log(await execSafe(
+      await execSafe(
         this.gSafe,
         this.stakeManager.address,
         data,
         [accounts[1], accounts[2]]
-      ))
+      )
       assert.equal((await this.stakeToken.balanceOf(this.stakeManager.address)).toString(), '0')
     })
 
@@ -111,8 +103,6 @@ contract.only('DrainStakeManager', async function(accounts) {
   })
 
   describe.skip('when from is not governanace', function() {
-    prepareForTests()
-
     it('reverts', async function() {
       await expectRevert(
         this.stakeManager.drainValidatorShares(this.validatorId, this.testToken.address, this.user, this.value),
@@ -122,8 +112,6 @@ contract.only('DrainStakeManager', async function(accounts) {
   })
 
   describe.skip('when validator id is incorrect', function() {
-    prepareForTests()
-
     it('reverts', async function() {
       await expectRevert(this.governance.update(
         this.stakeManager.address,

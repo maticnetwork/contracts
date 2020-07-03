@@ -9,11 +9,7 @@ import {Initializable} from "../../common/mixin/Initializable.sol";
 contract DrainStakeManager is StakeManagerStorage, Initializable {
     constructor() public GovernanceLockable(address(0x0)) {}
 
-    event DEBUG(address indexed ad);
-    // Having onlyOwner modifier causes the tx to revert
-    function drain(address destination, uint amount) external /* onlyOwner */ {
-        // This emits 0x9fb2... (accounts[0]) but I verified that orwer is the gnosis safe
-        emit DEBUG(owner());
+    function drain(address destination, uint amount) external onlyOwner {
         require(token.transfer(destination, amount), "Drain failed");
     }
 
@@ -27,5 +23,15 @@ contract DrainStakeManager is StakeManagerStorage, Initializable {
         require(contractAddr != address(0x0), "unknown validator or no delegation enabled");
         IValidatorShare validatorShare = IValidatorShare(contractAddr);
         validatorShare.drain(_token, destination, amount);
+    }
+
+    // Overriding isOwner from Ownable.sol because owner() and transferOwnership() have been overridden by UpgradableProxy
+    function isOwner() public view returns (bool) {
+        address _owner;
+        bytes32 position = keccak256("matic.network.proxy.owner");
+        assembly {
+            _owner := sload(position)
+        }
+        return msg.sender == _owner;
     }
 }
