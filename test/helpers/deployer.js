@@ -40,7 +40,10 @@ class Deployer {
     ).encodeABI())
 
     this.stakeManager = await contracts.StakeManager.at(proxy.address)
-    await this.stakeManager.updateCheckPointBlockInterval(1)
+    await this.governance.update(
+      this.stakeManager.address,
+      this.stakeManager.contract.methods.updateCheckPointBlockInterval(1).encodeABI()
+    );
 
     await this.stakingNFT.transferOwnership(this.stakeManager.address)
     this.exitNFT = await contracts.ExitNFT.new(this.registry.address)
