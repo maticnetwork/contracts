@@ -104,7 +104,6 @@ contract('DrainStakeManager', async function(accounts) {
 })
 
 async function execSafe(gSafe, address, data, confirmingAccounts) {
-  console.log(address, data, confirmingAccounts)
   const params = safeParams(address, data, await gSafe.nonce())
   const txHash = await gSafe.getTransactionHash(...params)
   let signatureBytes = "0x"

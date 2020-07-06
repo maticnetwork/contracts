@@ -96,13 +96,9 @@ class Deployer {
     }
 
     stakeManager.updateValidatorThreshold = (val, options) => {
-      if (options) {
-        return stakeManager.contract.methods.updateValidatorThreshold(val).send(options)
-      }
-      return governance.update(
-        stakeManager.address,
-        stakeManager.contract.methods.updateValidatorThreshold(val).encodeABI()
-      )
+      const params = [stakeManager.address, stakeManager.contract.methods.updateValidatorThreshold(val).encodeABI()]
+      if (options) params.push(options)
+      return governance.update(...params)
     }
 
     stakeManager.updateCheckpointReward = (val) => {

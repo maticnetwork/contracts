@@ -716,7 +716,7 @@ contract('StakeManager', async function(accounts) {
     })
 
     function testUpdate(threshold) {
-      it(`'must set validator threshold to ${threshold}'`, async function() {
+      it(`must set validator threshold to ${threshold}`, async function() {
         this.receipt = await this.stakeManager.updateValidatorThreshold(threshold, {
           from: owner
         })
