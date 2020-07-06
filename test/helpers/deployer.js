@@ -95,7 +95,10 @@ class Deployer {
       )
     }
 
-    stakeManager.updateValidatorThreshold = (val) => {
+    stakeManager.updateValidatorThreshold = (val, options) => {
+      if (options) {
+        return stakeManager.contract.methods.updateValidatorThreshold(val).send(options)
+      }
       return governance.update(
         stakeManager.address,
         stakeManager.contract.methods.updateValidatorThreshold(val).encodeABI()

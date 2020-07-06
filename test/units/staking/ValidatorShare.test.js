@@ -149,21 +149,6 @@ contract('ValidatorShare', async function() {
         this.userOldBalance = await this.testToken.balanceOf(this.user)
       })
     }
-
-    describe('when Alice drain erc20 token', function() {
-      prepareForTests()
-
-      it('must drain tokens', async function() {
-        await this.governance.update(
-          this.stakeManager.address,
-          this.stakeManager.contract.methods.drainValidatorShares(this.validatorId, this.testToken.address, this.user, this.value).encodeABI()
-        )
-      })
-
-      it('Alice must have correct balance', async function() {
-        assertBigNumberEquality(this.userOldBalance.add(new BN(this.value)), await this.testToken.balanceOf(this.user))
-      })
-    })
   })
 
   function deployAliceAndBob() {

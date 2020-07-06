@@ -1810,7 +1810,7 @@ contract('StakeManager', async function(accounts) {
     })
 
     it('must increase replacement cooldown', async function() {
-      await this.stakeManager.stopAuctions(this.newReplacementCoolDownPeriod)
+      await this.stakeManager.stopAuctions(this.newReplacementCoolDownPeriod.toString())
       const currentReplacementCooldown = await this.stakeManager.replacementCoolDown()
       assertBigNumberEquality(currentReplacementCooldown, this.newReplacementCoolDownPeriod.add(await this.stakeManager.epoch()))
     })

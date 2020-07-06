@@ -101,24 +101,6 @@ contract('DrainStakeManager', async function(accounts) {
       (await this.stakeManager.locked()).should.be.equal(false)
     })
   })
-
-  describe.skip('when from is not governanace', function() {
-    it('reverts', async function() {
-      await expectRevert(
-        this.stakeManager.drainValidatorShares(this.validatorId, this.testToken.address, this.user, this.value),
-        expectRevert.unspecified
-      )
-    })
-  })
-
-  describe.skip('when validator id is incorrect', function() {
-    it('reverts', async function() {
-      await expectRevert(this.governance.update(
-        this.stakeManager.address,
-        this.stakeManager.contract.methods.drainValidatorShares('9999', this.testToken.address, this.user, this.value).encodeABI()
-      ), 'Update failed')
-    })
-  })
 })
 
 async function execSafe(gSafe, address, data, confirmingAccounts) {
