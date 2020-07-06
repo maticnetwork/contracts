@@ -687,7 +687,7 @@ module.exports = function(accounts) {
 
         const checkpointReward = new BN(web3.utils.toWei('10000'))
 
-        await this.stakeManager.updateCheckpointReward(checkpointReward)
+        await this.stakeManager.updateCheckpointReward(checkpointReward.toString())
         await this.stakeManager.updateDynastyValue(8)
         await this.stakeManager.updateCheckPointBlockInterval(1)
 

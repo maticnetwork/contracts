@@ -190,33 +190,6 @@ contract('StakeManager', async function(accounts) {
     })
   })
 
-  describe('drain', function() {
-    describe('when not drained by governance', function() {
-      before('Fresh deploy', freshDeploy)
-
-      it('reverts ', async function() {
-        const balance = await this.stakeToken.balanceOf(this.stakeManager.address)
-        await expectRevert(this.stakeManager.drain(owner, balance), 'Only governance contract is authorized')
-      })
-    })
-
-    describe('when drained by governance', function() {
-      before('Fresh deploy', freshDeploy)
-
-      it('must drain all funds ', async function() {
-        const balance = await this.stakeToken.balanceOf(this.stakeManager.address)
-        await this.governance.update(
-          this.stakeManager.address,
-          this.stakeManager.contract.methods.drain(owner, balance.toString()).encodeABI()
-        )
-      })
-
-      it('stake manager must have no funds', async function() {
-        (await this.stakeToken.balanceOf(this.stakeManager.address)).toString().should.be.equal('0')
-      })
-    })
-  })
-
   function testConfirmAuctionBidForOldValidator() {
     it('must confirm auction', async function() {
       this.receipt = await this.stakeManager.confirmAuctionBid(
@@ -743,7 +716,7 @@ contract('StakeManager', async function(accounts) {
     })
 
     function testUpdate(threshold) {
-      it(`'must set validator threshold to ${threshold}'`, async function() {
+      it(`must set validator threshold to ${threshold}`, async function() {
         this.receipt = await this.stakeManager.updateValidatorThreshold(threshold, {
           from: owner
         })
@@ -919,7 +892,7 @@ contract('StakeManager', async function(accounts) {
           before(function() {
             this.user = Alice.getAddressString()
           })
-  
+
           testWithRewards()
         })
 
@@ -927,7 +900,7 @@ contract('StakeManager', async function(accounts) {
           before(function() {
             this.user = Bob.getAddressString()
           })
-  
+
           testWithRewards()
         })
       })
@@ -1837,7 +1810,7 @@ contract('StakeManager', async function(accounts) {
     })
 
     it('must increase replacement cooldown', async function() {
-      await this.stakeManager.stopAuctions(this.newReplacementCoolDownPeriod)
+      await this.stakeManager.stopAuctions(this.newReplacementCoolDownPeriod.toString())
       const currentReplacementCooldown = await this.stakeManager.replacementCoolDown()
       assertBigNumberEquality(currentReplacementCooldown, this.newReplacementCoolDownPeriod.add(await this.stakeManager.epoch()))
     })

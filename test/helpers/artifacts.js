@@ -46,6 +46,10 @@ export const RootERC721 = artifacts.require('RootERC721')
 export const ERC721PlasmaMintable = artifacts.require('ERC721PlasmaMintable')
 export const ExitNFT = artifacts.require('ExitNFT')
 
+// Misc
+export const GnosisSafeProxy = artifacts.require('GnosisSafeProxy')
+export const GnosisSafe = artifacts.require('GnosisSafe')
+
 // child chain
 export const childContracts = {
   Marketplace: artifacts.require('Marketplace'),

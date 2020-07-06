@@ -40,8 +40,9 @@ class Deployer {
     ).encodeABI())
 
     this.stakeManager = await contracts.StakeManager.at(proxy.address)
-    await this.stakeManager.updateCheckPointBlockInterval(1)
-    
+    this.buildStakeManagerObject(this.stakeManager, this.governance)
+    this.stakeManager.updateCheckPointBlockInterval(1)
+
     await this.stakingNFT.transferOwnership(this.stakeManager.address)
     this.exitNFT = await contracts.ExitNFT.new(this.registry.address)
 
@@ -72,6 +73,77 @@ class Deployer {
     return _contracts
   }
 
+  buildStakeManagerObject(stakeManager, governance) {
+    stakeManager.updateDynastyValue = (val) => {
+      return governance.update(
+        stakeManager.address,
+        stakeManager.contract.methods.updateDynastyValue(val).encodeABI()
+      )
+    }
+
+    stakeManager.updateCheckPointBlockInterval = (val) => {
+      return governance.update(
+        stakeManager.address,
+        stakeManager.contract.methods.updateCheckPointBlockInterval(val).encodeABI()
+      )
+    }
+
+    stakeManager.setToken = (val) => {
+      return governance.update(
+        stakeManager.address,
+        stakeManager.contract.methods.setToken(val).encodeABI()
+      )
+    }
+
+    stakeManager.updateValidatorThreshold = (val, options) => {
+      const params = [stakeManager.address, stakeManager.contract.methods.updateValidatorThreshold(val).encodeABI()]
+      if (options) params.push(options)
+      return governance.update(...params)
+    }
+
+    stakeManager.updateCheckpointReward = (val) => {
+      return governance.update(
+        stakeManager.address,
+        stakeManager.contract.methods.updateCheckpointReward(val).encodeABI()
+      )
+    }
+
+    stakeManager.stopAuctions = (val) => {
+      return governance.update(
+        stakeManager.address,
+        stakeManager.contract.methods.stopAuctions(val).encodeABI()
+      )
+    }
+
+    stakeManager.updateProposerBonus = (val) => {
+      return governance.update(
+        stakeManager.address,
+        stakeManager.contract.methods.updateProposerBonus(val).encodeABI()
+      )
+    }
+
+    stakeManager.updateSignerUpdateLimit = (val) => {
+      return governance.update(
+        stakeManager.address,
+        stakeManager.contract.methods.updateSignerUpdateLimit(val).encodeABI()
+      )
+    }
+
+    stakeManager.updateSignerUpdateLimit = (val) => {
+      return governance.update(
+        stakeManager.address,
+        stakeManager.contract.methods.updateSignerUpdateLimit(val).encodeABI()
+      )
+    }
+
+    stakeManager.updateSignerUpdateLimit = (val) => {
+      return governance.update(
+        stakeManager.address,
+        stakeManager.contract.methods.updateSignerUpdateLimit(val).encodeABI()
+      )
+    }
+  }
+
   async deployStakeManager(wallets) {
     this.governance = await this.deployGovernance()
     this.registry = await contracts.Registry.new(this.governance.address)
@@ -99,6 +171,7 @@ class Deployer {
     ).encodeABI())
 
     this.stakeManager = await contracts.StakeManagerTestable.at(proxy.address)
+    this.buildStakeManagerObject(this.stakeManager, this.governance)
     this.slashingManager = await contracts.SlashingManager.new(this.registry.address, this.stakingInfo.address, 'heimdall-P5rXwg')
 
     await this.stakingNFT.transferOwnership(this.stakeManager.address)
@@ -486,6 +559,16 @@ class Deployer {
 
   async deployMarketplace(owner) {
     return contracts.Marketplace.new()
+  }
+
+  async deployGnosisMultisig(signers) {
+    let gnosisSafe = await contracts.GnosisSafe.new()
+    let proxy = await contracts.GnosisSafeProxy.new(gnosisSafe.address)
+    gnosisSafe = await contracts.GnosisSafe.at(proxy.address)
+    await gnosisSafe.setup(
+      [...signers], 2, utils.ZeroAddress, "0x", utils.ZeroAddress, utils.ZeroAddress, 0, utils.ZeroAddress
+    )
+  return gnosisSafe
   }
 }
 
