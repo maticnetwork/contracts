@@ -21,4 +21,6 @@ $BOR --datadir $DIR/data \
   --unlock '0x96C42C56fdb78294F96B0cFa33c92bed7D75F96a,0x9fb29aac15b9a4b7f17c3385939b007540f4d791' \
   --password $DIR/password.txt \
   --allow-insecure-unlock \
+  --miner.gastarget '20000000' \
+  --miner.gaslimit '20000000' \
   --mine

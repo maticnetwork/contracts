@@ -1,25 +1,27 @@
 pragma solidity ^0.5.2;
 
 import {Initializable} from "../../common/mixin/Initializable.sol";
-import "../ChildERC20.sol";
+import "../ChildERC721.sol";
 
-contract ChildERC20Proxified is ChildERC20, Initializable {
-    constructor() public ChildERC20(address(0x0), address(0x0), "", "", 18) {}
+contract ChildERC20Proxified is ChildERC721, Initializable {
+    string public name;
+    string public symbol;
+
+    constructor() public ChildERC721(address(0x0), address(0x0), "", "") {}
 
     function initialize(
         address _owner,
         address _token,
-        string calldata name,
-        string calldata symbol,
-        uint8 decimals,
-        address childChain
+        string calldata _name,
+        string calldata _symbol,
+        address _childChain
     ) external initializer {
+        require(_token != address(0x0) && _owner != address(0x0));
         parentOwner = _owner;
         token = _token;
-        _name = name;
-        _symbol = symbol;
-        _decimals = decimals;
-        transferOwnership(childChain);
+        name = _name;
+        symbol = _symbol;
+        transferOwnership(_childChain);
     }
 
     // Overriding isOwner from Ownable.sol because owner() and transferOwnership() have been overridden by UpgradableProxy

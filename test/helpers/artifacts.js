@@ -54,8 +54,11 @@ export const GnosisSafe = artifacts.require('GnosisSafe')
 export const childContracts = {
   Marketplace: artifacts.require('Marketplace'),
   ChildChain: artifacts.require('ChildChain'),
+  ChildTokenProxy: artifacts.require('ChildTokenProxy'),
   ChildERC20: artifacts.require('ChildERC20'),
+  ChildERC20Proxified: artifacts.require('ChildERC20Proxified'),
   ChildERC721: artifacts.require('ChildERC721'),
+  ChildERC721Proxified: artifacts.require('ChildERC721Proxified'),
   ChildERC721Mintable: artifacts.require('ChildERC721Mintable'),
   MRC20: artifacts.require('MRC20'),
   TestMRC20: artifacts.require('TestMRC20')

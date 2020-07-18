@@ -18,7 +18,7 @@ const wallets = generateFirstWallets(mnemonics, 1)
 const alicePrivateKey = wallets[0].getPrivateKeyString()
 const alice = toChecksumAddress(wallets[0].getAddressString())
 
-contract('ChildErc20', async function(accounts) {
+contract.only('ChildErc20', async function(accounts) {
   async function freshDeploy() {
     this.childContracts = await deployer.initializeChildChain(accounts[0], { updateRegistry: false })
     this.erc20 = await deployer.deployChildErc20(accounts[0], { mapToken: false })
