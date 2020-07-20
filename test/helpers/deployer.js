@@ -407,17 +407,17 @@ class Deployer {
     if (!this.childERC20Proxified) {
       this.childERC20Proxified = await contracts.ChildERC20Proxified.new({ gas: 20000000 })
     }
-    const childTokenProxy = await contracts.ChildTokenProxy.new(this.childERC20Proxified.address)
-    await childTokenProxy.initialize(
+    const childTokenProxy = await contracts.ChildTokenProxy.new(this.childERC20Proxified.address, this.childChain.address)
+    const childToken = await contracts.ChildERC20Proxified.at(childTokenProxy.address)
+    await childToken.initialize(
       owner,
       rootERC20.address,
       'ChildToken',
       'CTOK',
-      18,
-      false, /* isERC721 */
-      this.childChain.address
+      18
+      // this.childChain.address
     )
-    const childToken = await contracts.ChildERC20Proxified.at(childTokenProxy.address)
+    await this.childChain.mapToken(rootERC20.address, childToken.address, false)
     if (options.mapToken) {
       await this.mapToken(
         rootERC20.address,
@@ -448,17 +448,15 @@ class Deployer {
     if (!this.childERC721Proxified) {
       this.childERC721Proxified = await contracts.ChildERC721Proxified.new({ gas: 20000000 })
     }
-    const childTokenProxy = await contracts.ChildTokenProxy.new(this.childERC721Proxified.address)
-    await childTokenProxy.initialize(
+    const childTokenProxy = await contracts.ChildTokenProxy.new(this.childERC721Proxified.address, this.childChain.address)
+    const childErc721 = await contracts.childERC721Proxified.at(childTokenProxy.address)
+    await childErc721.initialize(
       owner,
       rootERC721.address,
       'ChildERC721',
-      'C721',
-      18,
-      true, /* isERC721 */
-      this.childChain.address
+      'C721'
     )
-    const childErc721 = await contracts.ChildERC721.at(childTokenProxy.address)
+    await this.childChain.mapToken(rootERC721.address, childErc721.address, true)
     if (options.mapToken) {
       await this.mapToken(
         rootERC721.address,
