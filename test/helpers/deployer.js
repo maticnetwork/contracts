@@ -449,7 +449,7 @@ class Deployer {
       this.childERC721Proxified = await contracts.ChildERC721Proxified.new({ gas: 20000000 })
     }
     const childTokenProxy = await contracts.ChildTokenProxy.new(this.childERC721Proxified.address, this.childChain.address)
-    const childErc721 = await contracts.childERC721Proxified.at(childTokenProxy.address)
+    const childErc721 = await contracts.ChildERC721Proxified.at(childTokenProxy.address)
     await childErc721.initialize(
       owner,
       rootERC721.address,

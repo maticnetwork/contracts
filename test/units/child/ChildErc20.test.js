@@ -91,7 +91,7 @@ contract('ChildErc20', async function(accounts) {
     }, alice)
   })
 
-  describe.only('transferWithSig', async function() {
+  describe('transferWithSig', async function() {
     const spender = accounts[1]
     const data = '0x' + crypto.randomBytes(32).toString('hex')
 

@@ -49,11 +49,9 @@ contract ChildERC721 is ChildToken, ERC721Full, StateSyncerVerifier, StateReceiv
             "Signature is expired"
         );
 
-        bytes32 dataHash = getTokenTransferOrderHash(
-            msg.sender,
-            tokenId,
-            data,
-            expiration
+        bytes32 dataHash = hashEIP712MessageWithAddress(
+            hashTokenTransferOrder(msg.sender, tokenId, data, expiration),
+            address(this)
         );
         require(disabledHashes[dataHash] == false, "Sig deactivated");
         disabledHashes[dataHash] = true;
