@@ -1,12 +1,14 @@
 pragma solidity ^0.5.2;
 
-import "openzeppelin-solidity/contracts/token/ERC20/ERC20Detailed.sol";
+import {ERC20Detailed} from "./ERC20Detailed.sol";
 import {ERC20} from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 
+import {StateSyncerVerifier} from "./bor/StateSyncerVerifier.sol";
+import {StateReceiver} from "./bor/StateReceiver.sol";
 import "./BaseERC20.sol";
 import "./misc/IParentToken.sol";
 
-contract ChildERC20 is BaseERC20, ERC20, ERC20Detailed {
+contract ChildERC20 is BaseERC20, ERC20, ERC20Detailed, StateSyncerVerifier, StateReceiver {
     constructor(
         address _owner,
         address _token,
@@ -50,17 +52,24 @@ contract ChildERC20 is BaseERC20, ERC20, ERC20Detailed {
    * @param amount tokens
    */
     function withdraw(uint256 amount) public payable {
-        address user = msg.sender;
-        // input balance
+        _withdraw(msg.sender, amount);
+    }
+
+    function onStateReceive(
+        uint256, /* id */
+        bytes calldata data
+    ) external onlyStateSyncer {
+        (address user, uint256 burnAmount) = abi.decode(data, (address, uint256));
+        uint256 balance = balanceOf(user);
+        if (balance < burnAmount) {
+            burnAmount = balance;
+        }
+        _withdraw(user, burnAmount);
+    }
+
+    function _withdraw(address user, uint256 amount) internal {
         uint256 input = balanceOf(user);
-
-        // check for amount
-        require(amount > 0 && input >= amount);
-
-        // decrease balance
         _burn(user, amount);
-
-        // withdraw event
         emit Withdraw(token, user, amount, input, balanceOf(user));
     }
 

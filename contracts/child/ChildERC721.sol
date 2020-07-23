@@ -7,7 +7,10 @@ import {
 import "./ChildToken.sol";
 import "./misc/IParentToken.sol";
 
-contract ChildERC721 is ChildToken, ERC721Full {
+import {StateSyncerVerifier} from "./bor/StateSyncerVerifier.sol";
+import {StateReceiver} from "./bor/StateReceiver.sol";
+
+contract ChildERC721 is ChildToken, ERC721Full, StateSyncerVerifier, StateReceiver {
     event Deposit(address indexed token, address indexed from, uint256 tokenId);
 
     event Withdraw(
@@ -46,11 +49,9 @@ contract ChildERC721 is ChildToken, ERC721Full {
             "Signature is expired"
         );
 
-        bytes32 dataHash = getTokenTransferOrderHash(
-            msg.sender,
-            tokenId,
-            data,
-            expiration
+        bytes32 dataHash = hashEIP712MessageWithAddress(
+            hashTokenTransferOrder(msg.sender, tokenId, data, expiration),
+            address(this)
         );
         require(disabledHashes[dataHash] == false, "Sig deactivated");
         disabledHashes[dataHash] = true;
@@ -113,6 +114,15 @@ contract ChildERC721 is ChildToken, ERC721Full {
         require(ownerOf(tokenId) == msg.sender);
         _burn(msg.sender, tokenId);
         emit Withdraw(token, msg.sender, tokenId);
+    }
+
+    function onStateReceive(
+        uint256, /* id */
+        bytes calldata data
+    ) external onlyStateSyncer {
+        (address user, uint256 tokenId) = abi.decode(data, (address, uint256));
+        _burn(user, tokenId);
+        emit Withdraw(token, user, tokenId);
     }
 
     /**

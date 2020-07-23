@@ -404,16 +404,20 @@ class Deployer {
 
   async deployChildErc20(owner, options = { mapToken: true }) {
     const rootERC20 = await this.deployTestErc20({ mapToken: false })
-    const tx = await this.childChain.addToken(
+    if (!this.childERC20Proxified) {
+      this.childERC20Proxified = await contracts.ChildERC20Proxified.new({ gas: 20000000 })
+    }
+    const childTokenProxy = await contracts.ChildTokenProxy.new(this.childERC20Proxified.address, this.childChain.address)
+    const childToken = await contracts.ChildERC20Proxified.at(childTokenProxy.address)
+    await childToken.initialize(
       owner,
       rootERC20.address,
       'ChildToken',
       'CTOK',
-      18,
-      false /* isERC721 */
+      18
+      // this.childChain.address
     )
-    const NewTokenEvent = tx.logs.find(log => log.event === 'NewToken')
-    const childToken = await contracts.ChildERC20.at(NewTokenEvent.args.token)
+    await this.childChain.mapToken(rootERC20.address, childToken.address, false)
     if (options.mapToken) {
       await this.mapToken(
         rootERC20.address,
@@ -441,16 +445,18 @@ class Deployer {
 
   async deployChildErc721(owner, options = { mapToken: true }) {
     const rootERC721 = await this.deployTestErc721({ mapToken: false })
-    const tx = await this.childChain.addToken(
+    if (!this.childERC721Proxified) {
+      this.childERC721Proxified = await contracts.ChildERC721Proxified.new({ gas: 20000000 })
+    }
+    const childTokenProxy = await contracts.ChildTokenProxy.new(this.childERC721Proxified.address, this.childChain.address)
+    const childErc721 = await contracts.ChildERC721Proxified.at(childTokenProxy.address)
+    await childErc721.initialize(
       owner,
       rootERC721.address,
       'ChildERC721',
-      'C721',
-      18,
-      true /* isERC721 */
+      'C721'
     )
-    const NewTokenEvent = tx.logs.find(log => log.event === 'NewToken')
-    const childErc721 = await contracts.ChildERC721.at(NewTokenEvent.args.token)
+    await this.childChain.mapToken(rootERC721.address, childErc721.address, true)
     if (options.mapToken) {
       await this.mapToken(
         rootERC721.address,
