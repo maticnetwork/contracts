@@ -477,7 +477,7 @@ class Deployer {
       'ERC721Mintable',
       'M721'
     )
-    await childErc721.transferOwnership(this.childChain.address) // required to process deposits via childChain
+    await childErc721.changeChildChain(this.childChain.address) // required to process deposits via childChain
     await this.childChain.mapToken(
       rootERC721.address,
       childErc721.address,
@@ -498,7 +498,7 @@ class Deployer {
     const childErc721 = await contracts.ChildERC721Mintable.new(
       rootERC721.address
     )
-    await childErc721.transferOwnership(this.childChain.address) // required to process deposits via childChain
+    await childErc721.changeChildChain(this.childChain.address) // required to process deposits via childChain
     await this.childChain.mapToken(
       rootERC721.address,
       childErc721.address,

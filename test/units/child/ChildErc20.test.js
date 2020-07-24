@@ -158,42 +158,51 @@ contract('ChildErc20', async function(accounts) {
       })
 
       it('fail: set owner', async function() {
-        await expectRevert(this.erc20.childToken.transferOwnership(accounts[1], {
-          from: accounts[2]
-        }), 'unknown account')
+        await expectRevert.unspecified(this.erc20.childToken.transferOwnership(accounts[1], {
+          from: accounts[1]
+        }))
         assert.strictEqual(await this.erc20.childToken.owner(), accounts[0])
       })
 
       it('success: set owner', async function() {
-        const receipt = await this.erc20.childToken.transferOwnership(accounts[1], {
+        const receipt = await this.erc20.childTokenProxy.transferOwnership(accounts[1], {
           from: accounts[0]
         })
 
-        assert.strictEqual(receipt.logs.length, 2)
         assert.strictEqual(receipt.logs[0].event, 'OwnerUpdate')
-        assert.strictEqual(receipt.logs[0].args._new, accounts[0])
-        assert.strictEqual(receipt.logs[0].args._old, accounts[1])
+        assert.strictEqual(receipt.logs[0].args._new, accounts[1])
+        assert.strictEqual(receipt.logs[0].args._old, accounts[0])
         assert.strictEqual(await this.erc20.childToken.owner(), accounts[1])
       })
 
       it('fail: proxy implementation', async function() {
         const newERC20 = await ChildContracts.ChildERC20Proxified.new({ gas: 20000000 })
-        await expectRevert(this.erc20.childTokenProxy.updateImplementation(newERC20.address, {
+        await expectRevert.unspecified(this.erc20.childTokenProxy.updateImplementation(newERC20.address, {
           from: accounts[0]
-        }), 'unknown account')
+        }))
       })
 
       it('success: proxy implementation', async function() {
-        const newERC20 = await ChildContracts.ChildERC20Proxified.new({ gas: 20000000 })
+        let newERC20 = await ChildContracts.ChildERC20Proxified.new({ gas: 20000000 })
         const _old = await this.erc20.childTokenProxy.implementation()
         const receipt = await this.erc20.childTokenProxy.updateImplementation(newERC20.address, {
-          from: accounts[9]
+          from: accounts[1]
         })
 
-        assert.strictEqual(receipt.logs.length, 2)
         assert.strictEqual(receipt.logs[0].event, 'ProxyUpdated')
         assert.strictEqual(receipt.logs[0].args._new, newERC20.address)
         assert.strictEqual(receipt.logs[0].args._old, _old)
+        assert.strictEqual(await this.erc20.childTokenProxy.implementation(), newERC20.address)
+
+        // can not initialize again
+        await expectRevert.unspecified(this.erc20.childToken.initialize(
+          this.erc20.rootERC20.address,
+          'NewChildToken',
+          'NCTOK',
+          18
+        ))
+
+        assert.strictEqual(await this.erc20.childToken.name(), "ChildToken")
       })
     })
   })

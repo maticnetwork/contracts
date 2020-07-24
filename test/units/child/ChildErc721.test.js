@@ -87,22 +87,21 @@ contract('ChildErc721', async function(accounts) {
       })
 
       it('fail: set owner', async function() {
-        await expectRevert(this.erc721.childErc721.transferOwnership(accounts[9], {
-          from: accounts[2]
-        }), 'unknown account')
+        await expectRevert.unspecified(this.erc721.childTokenProxy.transferOwnership(accounts[1], {
+          from: accounts[1]
+        }))
         assert.strictEqual(await this.erc721.childErc721.owner(), accounts[0])
       })
 
       it('success: set Owner', async function() {
-        const receipt = await this.erc721.childErc721.transferOwnership(accounts[9], {
+        const receipt = await this.erc721.childTokenProxy.transferOwnership(accounts[1], {
           from: accounts[0]
         })
 
-        assert.strictEqual(receipt.logs.length, 2)
         assert.strictEqual(receipt.logs[0].event, 'OwnerUpdate')
-        assert.strictEqual(receipt.logs[0].args._new, accounts[0])
-        assert.strictEqual(receipt.logs[0].args._old, accounts[9])
-        assert.strictEqual(await this.erc721.childErc721.owner(), accounts[9])
+        assert.strictEqual(receipt.logs[0].args._new, accounts[1])
+        assert.strictEqual(receipt.logs[0].args._old, accounts[0])
+        assert.strictEqual(await this.erc721.childErc721.owner(), accounts[1])
       })
     })
   })
