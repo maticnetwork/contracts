@@ -10,20 +10,14 @@ import "./misc/IParentToken.sol";
 
 contract ChildERC20 is BaseERC20, ERC20, ERC20Detailed, StateSyncerVerifier, StateReceiver {
     constructor(
-        address _owner,
+        address /* ignoring parent owner, use contract owner instead */,
         address _token,
         string memory _name,
         string memory _symbol,
         uint8 _decimals
     ) public ERC20Detailed(_name, _symbol, _decimals) {
-        require(_token != address(0x0) && _owner != address(0x0));
-        parentOwner = _owner;
+        require(_token != address(0x0));
         token = _token;
-    }
-
-    function setParent(address _parent) public isParentOwner {
-        require(_parent != address(0x0));
-        parent = _parent;
     }
 
     /**
@@ -32,7 +26,7 @@ contract ChildERC20 is BaseERC20, ERC20, ERC20Detailed, StateSyncerVerifier, Sta
    * @param user address for address
    * @param amount token balance
    */
-    function deposit(address user, uint256 amount) public onlyOwner {
+    function deposit(address user, uint256 amount) public onlyChildChain {
         // check for amount and user
         require(amount > 0 && user != address(0x0));
 

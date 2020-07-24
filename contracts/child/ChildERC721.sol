@@ -27,13 +27,12 @@ contract ChildERC721 is ChildToken, ERC721Full, StateSyncerVerifier, StateReceiv
     );
 
     constructor(
-        address _owner,
+        address /* ignoring parent owner, use contract owner instead */,
         address _token,
         string memory name,
         string memory symbol
     ) public ERC721Full(name, symbol) {
-        require(_token != address(0x0) && _owner != address(0x0));
-        parentOwner = _owner;
+        require(_token != address(0x0));
         token = _token;
     }
 
@@ -66,11 +65,6 @@ contract ChildERC721 is ChildToken, ERC721Full, StateSyncerVerifier, StateReceiv
         return from;
     }
 
-    function setParent(address _parent) public isParentOwner {
-        require(_parent != address(0x0));
-        parent = _parent;
-    }
-
     function approve(address to, uint256 tokenId) public {
         revert("Disabled feature");
     }
@@ -100,7 +94,7 @@ contract ChildERC721 is ChildToken, ERC721Full, StateSyncerVerifier, StateReceiv
    * @param user address for deposit
    * @param tokenId tokenId to mint to user's account
    */
-    function deposit(address user, uint256 tokenId) public onlyOwner {
+    function deposit(address user, uint256 tokenId) public onlyChildChain {
         require(user != address(0x0));
         _mint(user, tokenId);
         emit Deposit(token, user, tokenId);
