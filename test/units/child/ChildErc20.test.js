@@ -1,13 +1,14 @@
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
-import { expectRevert } from '@openzeppelin/test-helpers'
+import { expectRevert, expectEvent } from '@openzeppelin/test-helpers'
 
 import deployer from '../../helpers/deployer.js'
 import { getTransferSig } from '../../helpers/marketplaceUtils'
 import { generateFirstWallets, mnemonics } from '../../helpers/wallets.js'
 import { toChecksumAddress } from '../../helpers/utils.js'
-import { expectEvent } from '@openzeppelin/test-helpers'
+import * as contracts from '../../helpers/artifacts'
 
+const ChildContracts = contracts.childContracts
 const utils = require('../../helpers/utils')
 const crypto = require('crypto')
 
@@ -117,10 +118,6 @@ contract('ChildErc20', async function(accounts) {
         assert.strictEqual(await this.erc20.childToken.childChain(), accounts[9])
       })
 
-      it('owner', async function() {
-        assert.strictEqual(await this.erc20.childToken.owner(), accounts[0])
-      })
-
       it('name', async function() {
         assert.strictEqual(await this.erc20.childToken.name(), "ChildToken")
       })
@@ -155,7 +152,50 @@ contract('ChildErc20', async function(accounts) {
         assert.strictEqual(receipt.logs[0].args.newAddress, accounts[9])
         assert.strictEqual(await this.erc20.childToken.parent(), accounts[9])
       })
-    })  
+
+      it('owner', async function() {
+        assert.strictEqual(await this.erc20.childToken.owner(), accounts[0])
+      })
+
+      it('fail: set owner', async function() {
+        await expectRevert(this.erc20.childToken.transferOwnership(accounts[1], {
+          from: accounts[2]
+        }), 'unknown account')
+        assert.strictEqual(await this.erc20.childToken.owner(), accounts[0])
+      })
+
+      it('success: set owner', async function() {
+        const receipt = await this.erc20.childToken.transferOwnership(accounts[1], {
+          from: accounts[0]
+        })
+
+        assert.strictEqual(receipt.logs.length, 2)
+        assert.strictEqual(receipt.logs[0].event, 'OwnerUpdate')
+        assert.strictEqual(receipt.logs[0].args._new, accounts[0])
+        assert.strictEqual(receipt.logs[0].args._old, accounts[1])
+        assert.strictEqual(await this.erc20.childToken.owner(), accounts[1])
+      })
+
+      it('fail: proxy implementation', async function() {
+        const newERC20 = await ChildContracts.ChildERC20Proxified.new({ gas: 20000000 })
+        await expectRevert(this.erc20.childTokenProxy.updateImplementation(newERC20.address, {
+          from: accounts[0]
+        }), 'unknown account')
+      })
+
+      it('success: proxy implementation', async function() {
+        const newERC20 = await ChildContracts.ChildERC20Proxified.new({ gas: 20000000 })
+        const _old = await this.erc20.childTokenProxy.implementation()
+        const receipt = await this.erc20.childTokenProxy.updateImplementation(newERC20.address, {
+          from: accounts[9]
+        })
+
+        assert.strictEqual(receipt.logs.length, 2)
+        assert.strictEqual(receipt.logs[0].event, 'ProxyUpdated')
+        assert.strictEqual(receipt.logs[0].args._new, newERC20.address)
+        assert.strictEqual(receipt.logs[0].args._old, _old)
+      })
+    })
   })
 
   describe('transfer', async function() {

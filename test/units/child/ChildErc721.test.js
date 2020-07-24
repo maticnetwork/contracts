@@ -51,10 +51,6 @@ contract('ChildErc721', async function(accounts) {
         assert.strictEqual(await this.erc721.childErc721.childChain(), accounts[9])
       })
 
-      it('owner', async function() {
-        assert.strictEqual(await this.erc721.childErc721.owner(), accounts[0])
-      })
-
       it('name', async function() {
         assert.strictEqual(await this.erc721.childErc721.name(), "ChildERC721")
       })
@@ -84,6 +80,29 @@ contract('ChildErc721', async function(accounts) {
         assert.strictEqual(receipt.logs[0].args.previousAddress, '0x0000000000000000000000000000000000000000')
         assert.strictEqual(receipt.logs[0].args.newAddress, accounts[9])
         assert.strictEqual(await this.erc721.childErc721.parent(), accounts[9])
+      })
+
+      it('owner', async function() {
+        assert.strictEqual(await this.erc721.childErc721.owner(), accounts[0])
+      })
+
+      it('fail: set owner', async function() {
+        await expectRevert(this.erc721.childErc721.transferOwnership(accounts[9], {
+          from: accounts[2]
+        }), 'unknown account')
+        assert.strictEqual(await this.erc721.childErc721.owner(), accounts[0])
+      })
+
+      it('success: set Owner', async function() {
+        const receipt = await this.erc721.childErc721.transferOwnership(accounts[9], {
+          from: accounts[0]
+        })
+
+        assert.strictEqual(receipt.logs.length, 2)
+        assert.strictEqual(receipt.logs[0].event, 'OwnerUpdate')
+        assert.strictEqual(receipt.logs[0].args._new, accounts[0])
+        assert.strictEqual(receipt.logs[0].args._old, accounts[9])
+        assert.strictEqual(await this.erc721.childErc721.owner(), accounts[9])
       })
     })
   })

@@ -427,7 +427,7 @@ class Deployer {
         false /* isERC721 */
       )
     }
-    return { rootERC20, childToken }
+    return { rootERC20, childToken, childTokenProxy  }
   }
 
   async deployMaticToken() {
@@ -467,7 +467,7 @@ class Deployer {
         true /* isERC721 */
       )
     }
-    return { rootERC721, childErc721 }
+    return { rootERC721, childErc721, childTokenProxy }
   }
 
   async deployChildErc721Mintable(options = { mapToken: true }) {
