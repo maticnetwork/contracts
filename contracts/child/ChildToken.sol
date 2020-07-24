@@ -80,7 +80,7 @@ contract ChildToken is Ownable, LibTokenTransferOrder {
     function changeChildChain(address newAddress) public onlyOwner {
         require(
             newAddress != address(0),
-            "Child chainable: new child address is the zero address"
+            "Child token: new child address is the zero address"
         );
         emit ChildChainChanged(childChain, newAddress);
         childChain = newAddress;
@@ -90,7 +90,7 @@ contract ChildToken is Ownable, LibTokenTransferOrder {
     function setParent(address newAddress) public onlyOwner {
         require(
             newAddress != address(0),
-            "Child chainable: new parent address is the zero address"
+            "Child token: new parent address is the zero address"
         );
         emit ParentChanged(parent, newAddress);
         parent = newAddress;

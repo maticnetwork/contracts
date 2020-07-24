@@ -1,5 +1,6 @@
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
+import { expectRevert } from '@openzeppelin/test-helpers'
 
 import deployer from '../../helpers/deployer.js'
 import { getTransferSig } from '../../helpers/marketplaceUtils'
@@ -84,6 +85,78 @@ contract('ChildErc20', async function(accounts) {
       })
     }
   }
+
+  describe('erc20 check params', async function() {
+    before(freshDeploy)
+
+    describe('properties', function() {
+      it('token', async function() {
+        assert.strictEqual(await this.erc20.childToken.token(), this.erc20.rootERC20.address)
+      })
+
+      it('child chain', async function() {
+        assert.strictEqual(await this.erc20.childToken.childChain(), this.childContracts.childChain.address)
+      })
+
+      it('fail: child chain', async function() {
+        await expectRevert(this.erc20.childToken.changeChildChain(accounts[9], {
+          from: accounts[2]
+        }), 'unknown account')
+        assert.strictEqual(await this.erc20.childToken.childChain(), this.childContracts.childChain.address)
+      })
+
+      it('success: child chain', async function() {
+        const receipt = await this.erc20.childToken.changeChildChain(accounts[9], {
+          from: accounts[0]
+        })
+
+        assert.strictEqual(receipt.logs.length, 2)
+        assert.strictEqual(receipt.logs[0].event, 'ChildChainChanged')
+        assert.strictEqual(receipt.logs[0].args.previousAddress, this.childContracts.childChain.address)
+        assert.strictEqual(receipt.logs[0].args.newAddress, accounts[9])
+        assert.strictEqual(await this.erc20.childToken.childChain(), accounts[9])
+      })
+
+      it('owner', async function() {
+        assert.strictEqual(await this.erc20.childToken.owner(), accounts[0])
+      })
+
+      it('name', async function() {
+        assert.strictEqual(await this.erc20.childToken.name(), "ChildToken")
+      })
+
+      it('symbol', async function() {
+        assert.strictEqual(await this.erc20.childToken.symbol(), "CTOK")
+      })
+
+      it('decimals', async function() {
+        utils.assertBigNumberEquality(await this.erc20.childToken.decimals(), 18)
+      })
+
+      it('parent', async function() {
+        assert.strictEqual(await this.erc20.childToken.parent(), "0x0000000000000000000000000000000000000000")
+      })
+
+      it('fail: set parent', async function() {
+        await expectRevert(this.erc20.childToken.setParent(accounts[9], {
+          from: accounts[2]
+        }), 'unknown account')
+        assert.strictEqual(await this.erc20.childToken.parent(), "0x0000000000000000000000000000000000000000")
+      })
+
+      it('success: set parent', async function() {
+        const receipt = await this.erc20.childToken.setParent(accounts[9], {
+          from: accounts[0]
+        })
+
+        assert.strictEqual(receipt.logs.length, 2)
+        assert.strictEqual(receipt.logs[0].event, 'ParentChanged')
+        assert.strictEqual(receipt.logs[0].args.previousAddress, '0x0000000000000000000000000000000000000000')
+        assert.strictEqual(receipt.logs[0].args.newAddress, accounts[9])
+        assert.strictEqual(await this.erc20.childToken.parent(), accounts[9])
+      })
+    })  
+  })
 
   describe('transfer', async function() {
     transferTest(async function(to, tokenIdOrAmount) {
