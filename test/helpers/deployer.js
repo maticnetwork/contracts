@@ -407,16 +407,20 @@ class Deployer {
     if (!this.childERC20Proxified) {
       this.childERC20Proxified = await contracts.ChildERC20Proxified.new({ gas: 20000000 })
     }
-    const childTokenProxy = await contracts.ChildTokenProxy.new(this.childERC20Proxified.address, this.childChain.address)
+    const childTokenProxy = await contracts.ChildTokenProxy.new(this.childERC20Proxified.address)
     const childToken = await contracts.ChildERC20Proxified.at(childTokenProxy.address)
-    await childToken.initialize(
-      owner,
-      rootERC20.address,
-      'ChildToken',
-      'CTOK',
-      18
-      // this.childChain.address
+    await childTokenProxy.updateAndCall(
+      this.childERC20Proxified.address,
+      childToken.contract.methods.initialize(
+        owner,
+        rootERC20.address,
+        'ChildToken',
+        'CTOK',
+        18,
+        this.childChain.address
+      ).encodeABI()
     )
+
     await this.childChain.mapToken(rootERC20.address, childToken.address, false)
     if (options.mapToken) {
       await this.mapToken(
@@ -448,13 +452,17 @@ class Deployer {
     if (!this.childERC721Proxified) {
       this.childERC721Proxified = await contracts.ChildERC721Proxified.new({ gas: 20000000 })
     }
-    const childTokenProxy = await contracts.ChildTokenProxy.new(this.childERC721Proxified.address, this.childChain.address)
+    const childTokenProxy = await contracts.ChildTokenProxy.new(this.childERC721Proxified.address)
     const childErc721 = await contracts.ChildERC721Proxified.at(childTokenProxy.address)
-    await childErc721.initialize(
-      owner,
-      rootERC721.address,
-      'ChildERC721',
-      'C721'
+    await childTokenProxy.updateAndCall(
+      this.childERC20Proxified.address,
+      childErc721.contract.methods.initialize(
+        owner,
+        rootERC721.address,
+        'ChildERC721',
+        'C721',
+        this.childChain.address
+      ).encodeABI()
     )
     await this.childChain.mapToken(rootERC721.address, childErc721.address, true)
     if (options.mapToken) {

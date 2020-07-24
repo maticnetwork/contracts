@@ -13,22 +13,14 @@ contract ChildERC721Proxified is ChildERC721, Initializable {
         address _owner,
         address _token,
         string calldata _name,
-        string calldata _symbol
+        string calldata _symbol,
+        address _childChain
     ) external initializer {
         require(_token != address(0x0) && _owner != address(0x0));
         parentOwner = _owner;
         token = _token;
         name = _name;
         symbol = _symbol;
-    }
-
-    // Overriding isOwner from Ownable.sol because owner() and transferOwnership() have been overridden by UpgradableProxy
-    function isOwner() public view returns (bool) {
-        address _owner;
-        bytes32 position = keccak256("matic.network.proxy.owner");
-        assembly {
-            _owner := sload(position)
-        }
-        return msg.sender == _owner;
+        _transferOwnership(_childChain);
     }
 }

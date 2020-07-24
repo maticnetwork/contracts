@@ -11,22 +11,14 @@ contract ChildERC20Proxified is ChildERC20, Initializable {
         address _token,
         string calldata name,
         string calldata symbol,
-        uint8 decimals
+        uint8 decimals,
+        address _childChain
     ) external initializer {
         parentOwner = _owner;
         token = _token;
         _name = name;
         _symbol = symbol;
         _decimals = decimals;
-    }
-
-    // Overriding isOwner from Ownable.sol because owner() and transferOwnership() have been overridden by UpgradableProxy
-    function isOwner() public view returns (bool) {
-        address _owner;
-        bytes32 position = keccak256("matic.network.proxy.owner");
-        assembly {
-            _owner := sload(position)
-        }
-        return msg.sender == _owner;
+        _transferOwnership(_childChain);
     }
 }
