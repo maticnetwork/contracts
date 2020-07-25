@@ -3,6 +3,7 @@ const contractAddresses = require('../contractAddresses.json')
 const Registry = artifacts.require('Registry')
 const Governance = artifacts.require('Governance')
 const ChildERC20Proxified = artifacts.require('ChildERC20Proxified')
+const ChildERC721Proxified = artifacts.require('ChildERC721Proxified')
 const ChildTokenProxy = artifacts.require('ChildTokenProxy')
 const ChildChain = artifacts.require('ChildChain')
 
@@ -26,7 +27,7 @@ function getChildChain() {
 }
 
 async function deployChildERC20AndMap({token, name, symbol, decimals, doMapping}) {
-  console.log("New child token with root token:", token)
+  console.log("New child erc20 token with root token:", token)
   console.log("    name:       ", name)
   console.log("    symbol:     ", symbol)
   console.log("    decimals:   ", decimals)
@@ -75,6 +76,52 @@ async function deployChildERC20AndMap({token, name, symbol, decimals, doMapping}
   console.log("====")
 }
 
+async function deployChildERC721AndMap({token, name, symbol, doMapping}) {
+  console.log("New child erc721 token with root token:", token)
+  console.log("    name:       ", name)
+  console.log("    symbol:     ", symbol)
+  console.log("    doMapping:  ", doMapping)
+
+  const childChain = await getChildChain()
+  console.log("Currently mapped token for root token:", await childChain.tokens(token))
+
+  const childERC721Proxified = await ChildERC721Proxified.new()
+  console.log("Child ERC721 implementation address:", childERC721Proxified.address)
+  const childTokenProxy = await ChildTokenProxy.new(childERC721Proxified.address)
+  console.log("Child ERC721 proxy address:", childTokenProxy.address)
+
+  const childToken = await ChildERC721Proxified.at(childTokenProxy.address)
+  console.log("Initializing child token with properties")
+  await childToken.initialize(
+    token,
+    name,
+    symbol
+  )
+
+  console.log("Token child address:", childToken.address)
+  console.log("Token child implmentation address (should not be used):", await childTokenProxy.implementation())
+  console.log("Token root address:", await childToken.token())
+  console.log("Token name:", await childToken.name())
+  console.log("Token symbol:", await childToken.symbol())
+
+  // set child chain address
+  console.log("Setting child chain")
+  await childToken.changeChildChain(contractAddresses.child.ChildChain)
+  console.log("Token child chain address:", await childToken.childChain())
+  console.log("Token parent address:", await childToken.parent())
+  console.log("Token owner address:", await childToken.owner())
+
+  // mapping token on child
+  if (doMapping) {
+    await childChain.mapToken(token, childToken.address, true)
+    console.log("Updated mapped token for root token (should be child token):", await childChain.tokens(token))
+  }
+
+  console.log("====")
+  console.log("Child ERC721 token address:", childToken.address)
+  console.log("====")
+}
+
 async function mapTokenOnMainchain(root, child, isErc721) {
   console.log("Mapping:")
   console.log("    root:    ", root)
@@ -102,6 +149,15 @@ module.exports = async function (callback) {
   try {
     // -- network <child network> <token> <name> <symbol> <decimals> <true/false for mapping>
     // await deployChildERC20AndMap({
+    //   token: process.argv[6],
+    //   name: process.argv[7],
+    //   symbol: process.argv[8],
+    //   decimals: parseInt(process.argv[9], 10),
+    //   doMapping: process.argv[10] === 'true'
+    // })
+
+    // -- network <child network> <token> <name> <symbol> <decimals> <true/false for mapping>
+    // await deployChildERC721AndMap({
     //   token: process.argv[6],
     //   name: process.argv[7],
     //   symbol: process.argv[8],
