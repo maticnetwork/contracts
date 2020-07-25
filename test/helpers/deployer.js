@@ -407,16 +407,18 @@ class Deployer {
     if (!this.childERC20Proxified) {
       this.childERC20Proxified = await contracts.ChildERC20Proxified.new({ gas: 20000000 })
     }
-    const childTokenProxy = await contracts.ChildTokenProxy.new(this.childERC20Proxified.address, this.childChain.address)
+    const childTokenProxy = await contracts.ChildTokenProxy.new(this.childERC20Proxified.address)
     const childToken = await contracts.ChildERC20Proxified.at(childTokenProxy.address)
     await childToken.initialize(
-      owner,
       rootERC20.address,
       'ChildToken',
       'CTOK',
       18
       // this.childChain.address
     )
+    // set child chain address
+    await childToken.changeChildChain(this.childChain.address)
+
     await this.childChain.mapToken(rootERC20.address, childToken.address, false)
     if (options.mapToken) {
       await this.mapToken(
@@ -425,7 +427,7 @@ class Deployer {
         false /* isERC721 */
       )
     }
-    return { rootERC20, childToken }
+    return { rootERC20, childToken, childTokenProxy  }
   }
 
   async deployMaticToken() {
@@ -448,14 +450,15 @@ class Deployer {
     if (!this.childERC721Proxified) {
       this.childERC721Proxified = await contracts.ChildERC721Proxified.new({ gas: 20000000 })
     }
-    const childTokenProxy = await contracts.ChildTokenProxy.new(this.childERC721Proxified.address, this.childChain.address)
+    const childTokenProxy = await contracts.ChildTokenProxy.new(this.childERC721Proxified.address)
     const childErc721 = await contracts.ChildERC721Proxified.at(childTokenProxy.address)
     await childErc721.initialize(
-      owner,
       rootERC721.address,
       'ChildERC721',
       'C721'
     )
+    // set child chain address
+    await childErc721.changeChildChain(this.childChain.address)
     await this.childChain.mapToken(rootERC721.address, childErc721.address, true)
     if (options.mapToken) {
       await this.mapToken(
@@ -464,7 +467,7 @@ class Deployer {
         true /* isERC721 */
       )
     }
-    return { rootERC721, childErc721 }
+    return { rootERC721, childErc721, childTokenProxy }
   }
 
   async deployChildErc721Mintable(options = { mapToken: true }) {
@@ -474,7 +477,7 @@ class Deployer {
       'ERC721Mintable',
       'M721'
     )
-    await childErc721.transferOwnership(this.childChain.address) // required to process deposits via childChain
+    await childErc721.changeChildChain(this.childChain.address) // required to process deposits via childChain
     await this.childChain.mapToken(
       rootERC721.address,
       childErc721.address,
@@ -495,7 +498,7 @@ class Deployer {
     const childErc721 = await contracts.ChildERC721Mintable.new(
       rootERC721.address
     )
-    await childErc721.transferOwnership(this.childChain.address) // required to process deposits via childChain
+    await childErc721.changeChildChain(this.childChain.address) // required to process deposits via childChain
     await this.childChain.mapToken(
       rootERC721.address,
       childErc721.address,
