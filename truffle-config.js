@@ -32,6 +32,15 @@ module.exports = {
       network_id: '*', // match any network
       gasPrice: '0'
     },
+    matic: {
+      provider: () =>
+        new HDWalletProvider(
+          MNEMONIC,
+          `https://rpc-mainnet.matic.network`
+        ),
+      network_id: '137',
+      gasPrice: '90000000000'
+    },
     mumbai: {
       provider: () =>
         new HDWalletProvider(
