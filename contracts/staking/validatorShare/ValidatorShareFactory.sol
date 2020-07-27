@@ -10,7 +10,7 @@ contract ValidatorShareFactory {
     function create(uint256 validatorId, address loggerAddress, address registry) public returns (address) {
         ValidatorShareProxy proxy = new ValidatorShareProxy(registry);
 
-        proxy.transferOwnership(msg.sender);
+        proxy.transferProxyOwnership(msg.sender);
 
         address proxyAddr = address(proxy);
         (bool success, bytes memory data) = proxyAddr.call.gas(gasleft())(
