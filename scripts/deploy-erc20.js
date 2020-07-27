@@ -6,6 +6,8 @@ const ChildERC20Proxified = artifacts.require('ChildERC20Proxified')
 const ChildERC721Proxified = artifacts.require('ChildERC721Proxified')
 const ChildTokenProxy = artifacts.require('ChildTokenProxy')
 const ChildChain = artifacts.require('ChildChain')
+const TestToken = artifacts.require('TestToken')
+const RootERC721 = artifacts.require('RootERC721')
 
 const toBN = web3.utils.toBN
 console.log(contractAddresses)
@@ -24,6 +26,24 @@ function getGovernance() {
 
 function getChildChain() {
   return ChildChain.at(contractAddresses.child.ChildChain)
+}
+
+async function deployTestERC20OnMainchain(addr) {
+  const testToken = await TestToken.new('TestToken', 'TST')
+  // const testToken = await TestToken.at('<test token address if already deployed>')
+  console.log("Root test token address:", testToken.address)
+  const b = await testToken.balanceOf(addr)
+  console.log("Balance for current address:", b.toString())
+}
+
+async function deployTestERC721OnMainchain(addr) {
+  const testToken = await RootERC721.new('RootERC721', 'T721')
+  // const testToken = await RootERC721.at('<test token address if already deployed>')
+  console.log("Root test token address:", testToken.address)
+  const receipt = await testToken.mint(1)
+  console.log("Mint token 1 for tx hash:", receipt.tx)
+  const owner = await testToken.ownerOf(1)
+  console.log("Owner of token 1:", owner)
 }
 
 async function deployChildERC20AndMap({token, name, symbol, decimals, doMapping}) {
@@ -147,6 +167,13 @@ module.exports = async function (callback) {
   // args starts with index 6, example: first arg == process.args[6]
   console.log(process.argv)
   try {
+    const accounts = await web3.eth.getAccounts()
+    console.log("Current configured address to make transactions:", accounts[0])
+
+    // -- network <main network>
+    // await deployTestERC20OnMainchain(accounts[0])
+    // await deployTestERC721OnMainchain(accounts[0])
+
     // -- network <child network> <token> <name> <symbol> <decimals> <true/false for mapping>
     // await deployChildERC20AndMap({
     //   token: process.argv[6],
@@ -156,13 +183,12 @@ module.exports = async function (callback) {
     //   doMapping: process.argv[10] === 'true'
     // })
 
-    // -- network <child network> <token> <name> <symbol> <decimals> <true/false for mapping>
+    // -- network <child network> <token> <name> <symbol> <true/false for mapping>
     // await deployChildERC721AndMap({
     //   token: process.argv[6],
     //   name: process.argv[7],
     //   symbol: process.argv[8],
-    //   decimals: parseInt(process.argv[9], 10),
-    //   doMapping: process.argv[10] === 'true'
+    //   doMapping: process.argv[9] === 'true'
     // })
 
     // -- network <mainchain network> <root> <child> <true/false for erc721>
