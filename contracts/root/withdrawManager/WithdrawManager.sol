@@ -237,6 +237,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
             exitNft.burn(exitId);
 
             address exitor = exitNft.ownerOf(exitId);
+            exits[exitId].owner = exitor;
 
             // If finalizing a particular exit is reverting, it will block any following exits from being processed.
             // Hence, call predicate.onFinalizeExit in a revertless manner.

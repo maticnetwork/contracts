@@ -15,7 +15,7 @@ const web3Child = utils.web3Child
 chai.use(chaiAsPromised).should()
 let contracts, childContracts, rootERC20, childErc20, statefulUtils
 
-contract('Misc Predicates tests @skip-on-coverage', async function(accounts) {
+contract.only('Misc Predicates tests @skip-on-coverage', async function(accounts) {
   before(async function() {
     contracts = await deployer.freshDeploy(accounts[0])
     childContracts = await deployer.initializeChildChain(accounts[0])
