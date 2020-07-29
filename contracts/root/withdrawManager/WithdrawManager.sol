@@ -233,12 +233,9 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
             exitQueue.delMin();
             // If the exitNft was deleted as a result of a challenge, skip processing this exit
             if (!exitNft.exists(exitId)) continue;
-
-            exitNft.burn(exitId);
-
             address exitor = exitNft.ownerOf(exitId);
             exits[exitId].owner = exitor;
-
+            exitNft.burn(exitId);
             // If finalizing a particular exit is reverting, it will block any following exits from being processed.
             // Hence, call predicate.onFinalizeExit in a revertless manner.
             // (bool success, bytes memory result) =
