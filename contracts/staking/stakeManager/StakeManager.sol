@@ -307,7 +307,6 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable {
         uint256 amount,
         address delegator
     ) external returns (bool) {
-        require(delegationEnabled, "Delegation is disabled");
         require(validators[validatorId].contractAddress == msg.sender, "Invalid contract address");
         return token.transferFrom(delegator, address(this), amount);
     }
@@ -431,6 +430,11 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable {
     }
 
     function updateValidatorState(uint256 validatorId, int256 amount) public {
+        if (amount > 0) {
+            // deposit during shares purchase
+            require(delegationEnabled, "Delegation is disabled");
+        }
+
         require(validators[validatorId].contractAddress == msg.sender, "Invalid contract address");
         updateTimeline(amount, 0, 0);
     }

@@ -1,7 +1,7 @@
 {
   "config": {
     "chainId": {{ borChainId }},
-    "homesteadBlock": 1,
+    "homesteadBlock": 0,
     "eip150Block": 0,
     "eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
     "eip155Block": 0,
@@ -14,6 +14,7 @@
     "eip2200Transition": 0,
     "byzantiumBlock": 0,
     "constantinopleBlock": 0,
+    "petersburgBlock": 0,
     "istanbulBlock": 0,
     "bor": {
       "period": 1,
