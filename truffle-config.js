@@ -32,17 +32,22 @@ module.exports = {
       network_id: '*', // match any network
       gasPrice: '0'
     },
-    ropsten: {
+    matic: {
       provider: () =>
         new HDWalletProvider(
           MNEMONIC,
-          `https://ropsten.infura.io/v3/${API_KEY}`
+          `https://rpc-mainnet.matic.network`
         ),
-      network_id: 3,
-      gas: 7000000,
-      gasPrice: 10000000000, // 10 gwei
-      skipDryRun: true
-      // confirmations: 5
+      network_id: '137',
+      gasPrice: '90000000000'
+    },
+    mumbai: {
+      provider: () =>
+        new HDWalletProvider(
+          MNEMONIC,
+          `https://rpc-mumbai.matic.today`
+        ),
+      network_id: '80001',
     },
     goerli: {
       provider: function() {
@@ -52,17 +57,9 @@ module.exports = {
         )
       },
       network_id: 5,
-      gas: 8000000
-    },
-    kovan: {
-      provider: function() {
-        return new HDWalletProvider(
-          MNEMONIC,
-          `https://kovan.infura.io/v3/${API_KEY}`
-        )
-      },
-      network_id: 42,
-      gas: 8000000
+      gas: 8000000,
+      gasPrice: 10000000000, // 10 gwei
+      skipDryRun: true
     },
     mainnet: {
       provider: function() {
@@ -72,7 +69,8 @@ module.exports = {
         )
       },
       network_id: 1,
-      gas: 4000000
+      gas: 3000000,
+      gasPrice: '45000000000'
     }
   },
   compilers: {

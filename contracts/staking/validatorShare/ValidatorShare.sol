@@ -164,7 +164,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         require(delegators[msg.sender].shares == 0, "Ongoing exit");
 
         _mint(msg.sender, shares);
-        
+
         _amount = _amount.sub(_amount % rate.mul(shares).div(EXCHANGE_RATE_PRECISION));
 
         totalStake = totalStake.add(_amount);
