@@ -28,6 +28,38 @@ function getChildChain() {
   return ChildChain.at(contractAddresses.child.ChildChain)
 }
 
+async function checkChildERC20(addr) {
+  const childToken = await ChildERC20Proxified.at(addr)
+  console.log("Token child address:", childToken.address)
+  console.log("Token root address:", await childToken.token())
+  console.log("Token name:", await childToken.name())
+  console.log("Token symbol:", await childToken.symbol())
+  const d = await childToken.decimals()
+  console.log("Token decimals:", d.toString())
+
+  const c = await childToken.CHAINID()
+  console.log("Token chainID:", c.toString())
+
+  console.log("Token child chain address:", await childToken.childChain())
+  console.log("Token parent address:", await childToken.parent())
+  console.log("Token owner address:", await childToken.owner())
+}
+
+async function checkChildERC721(addr) {
+  const childToken = await ChildERC721Proxified.at(addr)
+  console.log("Token child address:", childToken.address)
+  console.log("Token root address:", await childToken.token())
+  console.log("Token name:", await childToken.name())
+  console.log("Token symbol:", await childToken.symbol())
+
+  const c = await childToken.CHAINID()
+  console.log("Token chainID:", c.toString())
+
+  console.log("Token child chain address:", await childToken.childChain())
+  console.log("Token parent address:", await childToken.parent())
+  console.log("Token owner address:", await childToken.owner())
+}
+
 async function deployTestERC20OnMainchain(addr) {
   const testToken = await TestToken.new('TestToken', 'TST')
   // const testToken = await TestToken.at('<test token address if already deployed>')
@@ -75,8 +107,12 @@ async function deployChildERC20AndMap({token, name, symbol, decimals, doMapping}
   console.log("Token root address:", await childToken.token())
   console.log("Token name:", await childToken.name())
   console.log("Token symbol:", await childToken.symbol())
+
   const d = await childToken.decimals()
   console.log("Token decimals:", d.toString())
+
+  const c = await childToken.CHAINID()
+  console.log("Token chainID:", c.toString())
 
   // set child chain address
   console.log("Setting child chain")
@@ -124,6 +160,9 @@ async function deployChildERC721AndMap({token, name, symbol, doMapping}) {
   console.log("Token name:", await childToken.name())
   console.log("Token symbol:", await childToken.symbol())
 
+  const c = await childToken.CHAINID()
+  console.log("Token chainID:", c.toString())
+
   // set child chain address
   console.log("Setting child chain")
   await childToken.changeChildChain(contractAddresses.child.ChildChain)
@@ -152,6 +191,7 @@ async function mapTokenOnMainchain(root, child, isErc721) {
   const governance = await getGovernance()
 
   console.log("Root to child token on registry before update:", await registry.rootToChildToken(root))
+  console.log("Encoded ABI for governance:", registry.contract.methods.mapToken(root, child, isErc721).encodeABI())
 
   // update registry using governance for token mapping
   const receipt = await governance.update(
@@ -169,6 +209,10 @@ module.exports = async function (callback) {
   try {
     const accounts = await web3.eth.getAccounts()
     console.log("Current configured address to make transactions:", accounts[0])
+
+    // -- network <child network> <child token>
+    // await checkChildERC20(process.argv[6])
+    // await checkChildERC721(process.argv[6])
 
     // -- network <main network>
     // await deployTestERC20OnMainchain(accounts[0])
