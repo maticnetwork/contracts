@@ -12,7 +12,7 @@ export const DrainStakeManager = artifacts.require('DrainStakeManager')
 export const StakingInfo = artifacts.require('StakingInfo')
 export const StakingNFT = artifacts.require('StakingNFT')
 export const ValidatorShareProxy = artifacts.require('ValidatorShareProxy')
-export const ValidatorShare = artifacts.require('ValidatorShare')
+export const ValidatorShare = artifacts.require('ValidatorShareTest')
 export const IValidatorShare = artifacts.require('IValidatorShare')
 
 export const StakeManagerTestable = artifacts.require('StakeManagerTestable')
