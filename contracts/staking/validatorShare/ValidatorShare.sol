@@ -9,7 +9,7 @@ import {IValidatorShare} from "./IValidatorShare.sol";
 import {Initializable} from "../../common/mixin/Initializable.sol";
 
 contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockable, Initializable {
-    struct Delegator {
+    struct DelegatorUnbond {
         uint256 shares;
         uint256 withdrawEpoch;
     }
@@ -27,7 +27,8 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
     uint256 public lastCommissionUpdate;
     uint256 public minAmount = 10**18;
 
-    uint256 public totalStake;
+    // deprecated
+    uint256 public __totalStake;
     uint256 public rewardPerShare;
     uint256 public activeAmount;
     bool public delegation = true;
@@ -35,8 +36,9 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
     uint256 public withdrawPool;
     uint256 public withdrawShares;
 
-    mapping(address => uint256) public amountStaked;
-    mapping(address => Delegator) public delegators;
+    // deprecated
+    mapping(address => uint256) __amountStaked;
+    mapping(address => DelegatorUnbond) public unbonds;
     mapping(address => uint256) public initalRewardPerShare;
 
     modifier onlyValidator() {
@@ -141,18 +143,45 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
     }
 
     function buyVoucher(uint256 _amount, uint256 _minSharesToMint) public {
+        _buyVoucher(_amount, _minSharesToMint);
+    }
+
+    function _buyVoucher(uint256 _amount, uint256 _minSharesToMint) internal returns(uint256) {
         _withdrawAndTransferReward();
         uint256 amountToDeposit = _buyShares(_amount, _minSharesToMint);
         require(stakeManager.delegationDeposit(validatorId, amountToDeposit, msg.sender), "deposit failed");
+        return amountToDeposit;
+    }
+
+    function _getTotalStake(address user) internal view returns(uint256, uint256) {
+        uint256 shares = balanceOf(user);
+        uint256 rate = exchangeRate();
+        if (shares == 0) {
+            return (0, rate);
+        }
+
+        return (rate.mul(shares).div(EXCHANGE_RATE_PRECISION), rate);
     }
 
     function restake() public {
+        _restake();
+    }
+
+    function _restake() internal returns(uint256) {
         uint256 liquidReward = _withdrawReward(msg.sender);
         require(liquidReward >= minAmount, "Too small rewards to restake");
 
-        _buyShares(liquidReward, 0);
+        uint256 amountRestaked = _buyShares(liquidReward, 0);
+        if (liquidReward > amountRestaked) {
+            // return change to the user
+            require(stakeManager.transferFunds(validatorId, liquidReward - amountRestaked, msg.sender), "Insufficent rewards");
+            stakingLogger.logDelegatorClaimRewards(validatorId, msg.sender, liquidReward - amountRestaked);
+        }
 
-        stakingLogger.logDelegatorRestaked(validatorId, msg.sender, amountStaked[msg.sender]);
+        (uint256 totalStaked, ) = _getTotalStake(msg.sender);
+        stakingLogger.logDelegatorRestaked(validatorId, msg.sender, totalStaked);
+
+        return amountRestaked;
     }
 
     function _buyShares(uint256 _amount, uint256 _minSharesToMint) private onlyWhenUnlocked returns(uint256) {
@@ -161,14 +190,12 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         uint256 rate = exchangeRate();
         uint256 shares = _amount.mul(EXCHANGE_RATE_PRECISION).div(rate);
         require(shares >= _minSharesToMint, "Too much slippage");
-        require(delegators[msg.sender].shares == 0, "Ongoing exit");
+        require(unbonds[msg.sender].shares == 0, "Ongoing exit");
 
         _mint(msg.sender, shares);
 
+        // clamp amount of tokens in case resulted shares requires less tokens than anticipated
         _amount = _amount.sub(_amount % rate.mul(shares).div(EXCHANGE_RATE_PRECISION));
-
-        totalStake = totalStake.add(_amount);
-        amountStaked[msg.sender] = amountStaked[msg.sender].add(_amount);
 
         activeAmount = activeAmount.add(_amount);
         stakeManager.updateValidatorState(validatorId, int256(_amount));
@@ -180,29 +207,34 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         return _amount;
     }
 
-    function sellVoucher(uint256 _minClaimAmount) public {
-        uint256 shares = balanceOf(msg.sender);
-        require(shares > 0, "Zero balance");
+    function sellVoucher(uint256 claimAmount, uint256 maximumSharesToBurn) public {
+        // first get how much staked in total and compare to target unstake amount
+        (uint256 totalStaked, uint256 rate) = _getTotalStake(msg.sender);
+        require(totalStaked > 0 && totalStaked >= claimAmount, "Too much requested");
 
-        uint256 rate = exchangeRate();
-        uint256 _amount = rate.mul(shares).div(EXCHANGE_RATE_PRECISION);
-        require(_amount >= _minClaimAmount, "Too much slippage");
+        // convert requested amount back to shares
+        uint256 shares = claimAmount.mul(EXCHANGE_RATE_PRECISION).div(rate);
+        require(shares <= maximumSharesToBurn, "too much slippage");
 
         _withdrawAndTransferReward();
         
         _burn(msg.sender, shares);
-        stakeManager.updateValidatorState(validatorId, -int256(_amount));
+        stakeManager.updateValidatorState(validatorId, -int256(claimAmount));
 
-        activeAmount = activeAmount.sub(_amount);
-        uint256 _withdrawPoolShare = _amount.mul(EXCHANGE_RATE_PRECISION).div(withdrawExchangeRate());
+        activeAmount = activeAmount.sub(claimAmount);
+        withdrawPool = withdrawPool.add(claimAmount);
 
-        withdrawPool = withdrawPool.add(_amount);
+        uint256 _withdrawPoolShare = claimAmount.mul(EXCHANGE_RATE_PRECISION).div(withdrawExchangeRate());
         withdrawShares = withdrawShares.add(_withdrawPoolShare);
-        delegators[msg.sender] = Delegator({shares: _withdrawPoolShare, withdrawEpoch: stakeManager.epoch()});
-        amountStaked[msg.sender] = 0;
+        
+        DelegatorUnbond memory unbond = unbonds[msg.sender];
+        unbond.shares = unbond.shares.add(_withdrawPoolShare);
+        // refresh undond period
+        unbond.withdrawEpoch = stakeManager.epoch();
+        unbonds[msg.sender] = unbond;
 
         StakingInfo logger = stakingLogger;
-        logger.logShareBurned(validatorId, msg.sender, _amount, shares);
+        logger.logShareBurned(validatorId, msg.sender, claimAmount, shares);
         logger.logStakeUpdate(validatorId);
     }
 
@@ -214,7 +246,6 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
 
     function _withdrawAndTransferReward() private returns(uint256) {
         uint256 liquidRewards = _withdrawReward(msg.sender);
-        
         if (liquidRewards > 0) {
             require(stakeManager.transferFunds(validatorId, liquidRewards, msg.sender), "Insufficent rewards");
             stakingLogger.logDelegatorClaimRewards(validatorId, msg.sender, liquidRewards);
@@ -238,11 +269,15 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
     }
 
     function unstakeClaimTokens() public {
-        Delegator storage delegator = delegators[msg.sender];
+        _claimUnstakedTokens();
+    }
 
-        uint256 shares = delegator.shares;
+    function _claimUnstakedTokens() internal returns(uint256) {
+        DelegatorUnbond memory unbond = unbonds[msg.sender];
+
+        uint256 shares = unbond.shares;
         require(
-            delegator.withdrawEpoch.add(stakeManager.withdrawalDelay()) <= stakeManager.epoch() && shares > 0,
+            unbond.withdrawEpoch.add(stakeManager.withdrawalDelay()) <= stakeManager.epoch() && shares > 0,
             "Incomplete withdrawal period"
         );
 
@@ -250,11 +285,11 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         withdrawShares = withdrawShares.sub(shares);
         withdrawPool = withdrawPool.sub(_amount);
 
-        totalStake = totalStake.sub(_amount);
-
         require(stakeManager.transferFunds(validatorId, _amount, msg.sender), "Insufficent rewards");
         stakingLogger.logDelegatorUnstaked(validatorId, msg.sender, _amount);
-        delete delegators[msg.sender];
+        delete unbonds[msg.sender];
+
+        return _amount;
     }
 
     function slash(uint256 valPow, uint256 totalAmountToSlash) external onlyOwner returns (uint256) {
