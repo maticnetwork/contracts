@@ -194,6 +194,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
 
         _mint(msg.sender, shares);
 
+        // clamp amount of tokens in case resulted shares requires less tokens than anticipated
         _amount = _amount.sub(_amount % rate.mul(shares).div(EXCHANGE_RATE_PRECISION));
 
         // totalStake = totalStake.add(_amount);
@@ -208,13 +209,17 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         return _amount;
     }
 
-    function sellVoucher(uint256 claimAmount) public {
+    function sellVoucher(uint256 claimAmount, uint256 maximumSharesToBurn) public {
         // first get how much staked in total and compare to target unstake amount
         (uint256 totalStaked, uint256 rate) = _getTotalStake(msg.sender);
         require(totalStaked > 0 && totalStaked >= claimAmount, "Too much requested");
 
         // convert requested amount back to shares
         uint256 shares = claimAmount.mul(EXCHANGE_RATE_PRECISION).div(rate);
+        require(shares <= maximumSharesToBurn, "too much slippage");
+
+        // clamp amount of tokens in case resulted shares requires less tokens than anticipated
+        claimAmount = claimAmount.sub(claimAmount % rate.mul(shares).div(EXCHANGE_RATE_PRECISION));
 
         _withdrawAndTransferReward();
         
