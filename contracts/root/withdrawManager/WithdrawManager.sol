@@ -207,7 +207,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
             "Challenge failed"
         );
         // In the call to burn(exitId), there is an implicit check that prevents challenging the same exit twice
-        ExitNFT(exitNft).burn(exitId);
+        exitNft.burn(exitId);
 
         // Send bond amount to challenger
         msg.sender.send(BOND_AMOUNT);
@@ -219,31 +219,41 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     function processExits(address _token) public {
         uint256 exitableAt;
         uint256 exitId;
+        bool success;
 
         PriorityQueue exitQueue = PriorityQueue(exitsQueues[_token]);
 
-        while (exitQueue.currentSize() > 0 && gasleft() > ON_FINALIZE_GAS_LIMIT) {
-            (exitableAt, exitId) = exitQueue.getMin();
+        uint256 queueSize = exitQueue.getSize();
+
+        while (queueSize > 0 && gasleft() > ON_FINALIZE_GAS_LIMIT) {
+            (exitableAt, exitId, success) = exitQueue.tryPop(block.timestamp);
+
+            // Stop processing exits if the exit that is next in queue is still in its challenge period
+            if (!success) {
+                return;
+            }
+            
+            queueSize--;
             exitId = (exitableAt << 128) | exitId;
-            PlasmaExit memory currentExit = exits[exitId];
+            PlasmaExit storage currentExit = exits[exitId];
+            uint256 receiptAmountOrNFTId = currentExit.receiptAmountOrNFTId;
 
-            // Stop processing exits if the exit that is next is queue is still in its challenge period
-            if (exitableAt > block.timestamp) return;
-
-            exitQueue.delMin();
             // If the exitNft was deleted as a result of a challenge, skip processing this exit
-            if (!exitNft.exists(exitId)) continue;
-            address exitor = exitNft.ownerOf(exitId);
+            address exitor = exitNft.tryBurn(exitId);
+            if (exitor == address(0x0)) {
+                continue;
+            }
+            // override owner in case NFT was transferred
             exits[exitId].owner = exitor;
-            exitNft.burn(exitId);
+
             // If finalizing a particular exit is reverting, it will block any following exits from being processed.
             // Hence, call predicate.onFinalizeExit in a revertless manner.
             // (bool success, bytes memory result) =
             currentExit.predicate.call(
-                abi.encodeWithSignature("onFinalizeExit(bytes)", encodeExitForProcessExit(exitId))
+                abi.encodeWithSignature("onFinalizeExit(bytes)", abi.encode(exitId, _token, exitor, receiptAmountOrNFTId))
             );
 
-            emit Withdraw(exitId, exitor, _token, currentExit.receiptAmountOrNFTId);
+            emit Withdraw(exitId, exitor, _token, receiptAmountOrNFTId);
 
             if (!currentExit.isRegularExit) {
                 // return the bond amount if this was a MoreVp style exit
@@ -325,7 +335,8 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
         address predicate
     ) internal {
         require(exits[exitId].token == address(0x0), "EXIT_ALREADY_EXISTS");
-        exits[exitId] = PlasmaExit(
+        
+        PlasmaExit memory _exitObject = PlasmaExit(
             exitAmountOrTokenId,
             txHash,
             exitor,
@@ -333,7 +344,8 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
             isRegularExit,
             predicate
         );
-        PlasmaExit storage _exitObject = exits[exitId];
+
+        exits[exitId] = _exitObject;
 
         bytes32 key = getKey(_exitObject.token, _exitObject.owner, _exitObject.receiptAmountOrNFTId);
 

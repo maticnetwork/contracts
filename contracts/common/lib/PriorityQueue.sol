@@ -11,10 +11,17 @@ contract PriorityQueue is Ownable {
     using SafeMath for uint256;
 
     uint256[] heapList;
-    uint256 public currentSize;
 
     constructor() public {
         heapList = [0];
+    }
+
+    function getSize() public view returns(uint256) {
+        return currentSize();
+    }
+
+    function currentSize() private view returns(uint256) {
+        return heapList.length - 1;
     }
 
     /**
@@ -25,8 +32,7 @@ contract PriorityQueue is Ownable {
     function insert(uint256 _priority, uint256 _value) public onlyOwner {
         uint256 element = (_priority << 128) | _value;
         heapList.push(element);
-        currentSize = currentSize.add(1);
-        _percUp(currentSize);
+        _percUp(currentSize());
     }
 
     /**
@@ -37,15 +43,31 @@ contract PriorityQueue is Ownable {
         return _splitElement(heapList[1]);
     }
 
+    function tryPop(uint256 maximumPriority) public onlyOwner returns(uint256, uint256, bool) {
+        uint256 retVal = heapList[1];
+        
+        (uint256 priority, uint256 value) = _splitElement(retVal);
+        if (priority > maximumPriority) {
+            return (0, 0, false);
+        }
+
+        uint256 _currentSize = currentSize();
+        heapList[1] = heapList[_currentSize];
+        _percDown(1);
+        // current size is heap length - 1, removing last element is just assigning current logical size to heap
+        heapList.length = _currentSize;
+
+        return (priority, value, true);
+    }
+
     /**
   * @dev Deletes the top element of the heap and shifts everything up.
   * @return The smallest element in the priorty queue.
   */
     function delMin() public onlyOwner returns (uint256, uint256) {
         uint256 retVal = heapList[1];
-        heapList[1] = heapList[currentSize];
-        delete heapList[currentSize];
-        currentSize = currentSize.sub(1);
+        heapList[1] = heapList[currentSize()];
+        delete heapList[currentSize()];
         _percDown(1);
         heapList.length = heapList.length.sub(1);
         return _splitElement(retVal);
@@ -57,13 +79,14 @@ contract PriorityQueue is Ownable {
   * @return The smallest child node.
   */
     function _minChild(uint256 _index) private view returns (uint256) {
-        if (_index.mul(2).add(1) > currentSize) {
-            return _index.mul(2);
+        uint256 _index = _index.mul(2);
+        if (_index.add(1) > currentSize()) {
+            return _index;
         } else {
-            if (heapList[_index.mul(2)] < heapList[_index.mul(2).add(1)]) {
-                return _index.mul(2);
+            if (heapList[_index] < heapList[_index.add(1)]) {
+                return _index;
             } else {
-                return _index.mul(2).add(1);
+                return _index.add(1);
             }
         }
     }
@@ -73,15 +96,16 @@ contract PriorityQueue is Ownable {
    */
     function _percUp(uint256 _index) private {
         uint256 index = _index;
-        uint256 j = index;
         uint256 newVal = heapList[index];
-
-        while (newVal < heapList[index.div(2)]) {
-            heapList[index] = heapList[index.div(2)];
+        uint256 valueBuffer = heapList[index.div(2)];
+        
+        while (newVal < valueBuffer) {
+            heapList[index] = valueBuffer;
             index = index.div(2);
+            valueBuffer = heapList[index.div(2)];
         }
 
-        if (index != j) {
+        if (index != _index) {
             heapList[index] = newVal;
         }
     }
@@ -91,16 +115,22 @@ contract PriorityQueue is Ownable {
    */
     function _percDown(uint256 _index) private {
         uint256 index = _index;
-        uint256 j = index;
         uint256 newVal = heapList[index];
         uint256 mc = _minChild(index);
-        while (mc <= currentSize && newVal > heapList[mc]) {
-            heapList[index] = heapList[mc];
+        uint256 _currentSize = currentSize();
+
+        while (mc <= _currentSize) {
+            uint256 valueBuffer = heapList[mc];
+            if (newVal <= valueBuffer) {
+                break;
+            }
+
+            heapList[index] = valueBuffer;
             index = mc;
             mc = _minChild(index);
         }
 
-        if (index != j) {
+        if (index != _index) {
             heapList[index] = newVal;
         }
     }

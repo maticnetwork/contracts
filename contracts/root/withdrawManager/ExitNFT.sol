@@ -25,6 +25,18 @@ contract ExitNFT is ERC721 {
         _mint(_owner, _tokenId);
     }
 
+    /**
+     * @dev if NFT exits - burn and return owner of the burnt NFT, otherwise return 0x0 address
+     */
+    function tryBurn(uint256 _tokenId) external onlyWithdrawManager returns(address) {
+        if (!_exists(_tokenId)) {
+            return address(0x0);
+        }
+        address owner = ownerOf(_tokenId);
+        _burn(_tokenId);
+        return owner;
+    }
+
     function burn(uint256 _tokenId) external onlyWithdrawManager {
         _burn(_tokenId);
     }
