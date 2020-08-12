@@ -662,21 +662,6 @@ contract('ValidatorShare', async function() {
       })
     })
 
-    describe('when Alice sells voucher with minClaimAmount', function() {
-      before(doDeployAndBuyVoucherForAlice)
-
-      testSellVoucher({
-        returnedStake: aliceStake,
-        reward: new BN(toWei('18000')),
-        initialBalance: new BN(0),
-        validatorId: '1',
-        user: Alice,
-        minClaimAmount: aliceStake,
-        userTotalStaked: toWei('0'),
-        totalStaked: toWei('100')
-      })
-    })
-
     describe('when delegation is disabled after voucher was purchased by Alice', function() {
       before(doDeployAndBuyVoucherForAlice)
       before('disable delegation', async function() {
@@ -697,11 +682,12 @@ contract('ValidatorShare', async function() {
       })
     })
 
-    describe('when Alice sells with minClaimAmount greater than expected', function() {
+    describe('when Alice sells with claimAmount greater than expected', function() {
       before(doDeployAndBuyVoucherForAlice)
 
       it('reverts', async function() {
-        await expectRevert(this.validatorContract.sellVoucher(toWei('100.00001'), { from: this.user }), 'Too much slippage')
+        const maxShares = await this.validatorContract.balanceOf(this.user)
+        await expectRevert(this.validatorContract.sellVoucher(toWei('100.00001'), maxShares, { from: this.user }), 'Too much requested')
       })
     })
 
