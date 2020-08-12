@@ -197,8 +197,6 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         // clamp amount of tokens in case resulted shares requires less tokens than anticipated
         _amount = _amount.sub(_amount % rate.mul(shares).div(EXCHANGE_RATE_PRECISION));
 
-        // totalStake = totalStake.add(_amount);
-
         activeAmount = activeAmount.add(_amount);
         stakeManager.updateValidatorState(validatorId, int256(_amount));
 
@@ -217,9 +215,6 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         // convert requested amount back to shares
         uint256 shares = claimAmount.mul(EXCHANGE_RATE_PRECISION).div(rate);
         require(shares <= maximumSharesToBurn, "too much slippage");
-
-        // clamp amount of tokens in case resulted shares requires less tokens than anticipated
-        claimAmount = claimAmount.sub(claimAmount % rate.mul(shares).div(EXCHANGE_RATE_PRECISION));
 
         _withdrawAndTransferReward();
         
@@ -289,8 +284,6 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         uint256 _amount = withdrawExchangeRate().mul(shares).div(EXCHANGE_RATE_PRECISION);
         withdrawShares = withdrawShares.sub(shares);
         withdrawPool = withdrawPool.sub(_amount);
-
-        // totalStake = totalStake.sub(_amount);
 
         require(stakeManager.transferFunds(validatorId, _amount, msg.sender), "Insufficent rewards");
         stakingLogger.logDelegatorUnstaked(validatorId, msg.sender, _amount);
