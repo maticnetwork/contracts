@@ -174,8 +174,8 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         uint256 amountRestaked = _buyShares(liquidReward, 0);
         if (liquidReward > amountRestaked) {
             // return change to the user
-            require(stakeManager.transferFunds(validatorId, liquidRewards - amountRestaked, msg.sender), "Insufficent rewards");
-            stakingLogger.logDelegatorClaimRewards(validatorId, msg.sender, liquidRewards - amountRestaked);
+            require(stakeManager.transferFunds(validatorId, liquidReward - amountRestaked, msg.sender), "Insufficent rewards");
+            stakingLogger.logDelegatorClaimRewards(validatorId, msg.sender, liquidReward - amountRestaked);
         }
 
         (uint256 totalStaked, ) = _getTotalStake(msg.sender);
