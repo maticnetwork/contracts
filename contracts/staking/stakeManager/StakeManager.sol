@@ -714,7 +714,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable {
         _liquidateRewards(validatorId, validator, rewards);
 
         //  update future
-        updateTimeline(-(int256(amount) + delegationAmount), -1, exitEpoch);
+        uint256 targetEpoch = exitEpoch <= currentEpoch ? 0 : exitEpoch;
+        updateTimeline(-(int256(amount) + delegationAmount), -1, targetEpoch);
 
         logger.logUnstakeInit(validator, validatorId, exitEpoch, amount);
     }
