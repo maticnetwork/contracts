@@ -221,6 +221,29 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         return _amount;
     }
 
+    function _reduceActiveStake(uint256 activeStakeReduce) private {
+        uint256 _activeAmount = activeAmount.sub(activeStakeReduce);
+        
+        if (_activeAmount == 0) {
+            // do not allow activeAmount drop to 0, due to inability to recover from such state.
+            // users will still able to get at least 1 matic token back, but it is considered to be near 0 amount
+            _activeAmount = 1;
+        }
+
+        activeAmount = _activeAmount;
+    }
+
+    function _reduceWithdrawPool(uint256 withdrawPoolReduce) private {
+        uint256 _withdrawPool = withdrawPool.sub(withdrawPoolReduce);
+        if (_withdrawPool == 0) {
+            // do not allow withdrawPool drop to 0, due to inability to recover from such state.
+            // users will still able to get at least 1 matic token back, but it is considered to be near 0 amount
+            _withdrawPool = 1;
+        }
+
+        withdrawPool = _withdrawPool;
+    }
+
     function sellVoucher(uint256 claimAmount, uint256 maximumSharesToBurn) public {
         // first get how much staked in total and compare to target unstake amount
         (uint256 totalStaked, uint256 rate) = _getTotalStake(msg.sender);
@@ -236,7 +259,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         _burn(msg.sender, shares);
         stakeManager.updateValidatorState(validatorId, -int256(claimAmount));
 
-        activeAmount = activeAmount.sub(claimAmount);
+        _reduceActiveStake(claimAmount);
         withdrawPool = withdrawPool.add(claimAmount);
 
         uint256 _withdrawPoolShare = claimAmount.mul(precision).div(withdrawExchangeRate());
@@ -318,8 +341,8 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         uint256 _amountToSlashWithdrawalPool = _withdrawPool.mul(_amountToSlash).div(delegationAmount);
 
         // slash inactive pool
-        withdrawPool = _withdrawPool.sub(_amountToSlashWithdrawalPool);
-        activeAmount = activeAmount.sub(_amountToSlash.sub(_amountToSlashWithdrawalPool));
+        _reduceActiveStake(_amountToSlash.sub(_amountToSlashWithdrawalPool));
+        _reduceWithdrawPool(_amountToSlashWithdrawalPool);
         return _amountToSlash;
     }
 
