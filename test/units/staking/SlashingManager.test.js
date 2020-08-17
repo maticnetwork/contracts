@@ -156,13 +156,11 @@ contract('Slashing:validator', async function(accounts) {
 
       it('slashed validator must be able to claim his stake', async function() {
         await stakeManager.advanceEpoch(DYNASTY)
-
         const result = await stakeManager.unstakeClaim(slashedValidatorId, { from: validatorAddr })
         await expectEvent.inTransaction(result.tx, StakingInfo, 'Unstaked', {
           user: validatorAddr,
           validatorId: new BN(slashedValidatorId),
-          amount: '0',
-          total: '0'
+          amount: '0'
         })
       })
     })
