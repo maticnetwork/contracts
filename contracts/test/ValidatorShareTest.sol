@@ -3,7 +3,7 @@ import {ValidatorShare} from "../staking/validatorShare/ValidatorShare.sol";
 
 contract ValidatorShareTest is ValidatorShare {
     uint256 public totalStake;
-
+    
     function amountStaked(address user) public view returns(uint256) {
         (uint256 totalStaked, ) = _getTotalStake(user);
         return totalStaked;

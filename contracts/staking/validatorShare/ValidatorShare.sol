@@ -222,26 +222,11 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
     }
 
     function _reduceActiveStake(uint256 activeStakeReduce) private {
-        uint256 _activeAmount = activeAmount.sub(activeStakeReduce);
-        
-        if (_activeAmount == 0) {
-            // do not allow activeAmount drop to 0, due to inability to recover from such state.
-            // users will still able to get at least 1 matic token back, but it is considered to be near 0 amount
-            _activeAmount = 1;
-        }
-
-        activeAmount = _activeAmount;
+        activeAmount = activeAmount.sub(activeStakeReduce);
     }
 
     function _reduceWithdrawPool(uint256 withdrawPoolReduce) private {
-        uint256 _withdrawPool = withdrawPool.sub(withdrawPoolReduce);
-        if (_withdrawPool == 0) {
-            // do not allow withdrawPool drop to 0, due to inability to recover from such state.
-            // users will still able to get at least 1 matic token back, but it is considered to be near 0 amount
-            _withdrawPool = 1;
-        }
-
-        withdrawPool = _withdrawPool;
+        withdrawPool = withdrawPool.sub(withdrawPoolReduce);
     }
 
     function sellVoucher(uint256 claimAmount, uint256 maximumSharesToBurn) public {
