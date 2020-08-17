@@ -295,8 +295,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable {
         address delegator
     ) external returns (bool) {
         require(
-            Registry(registry).getSlashingManagerAddress() == msg.sender ||
-                validators[validatorId].contractAddress == msg.sender,
+            validators[validatorId].contractAddress == msg.sender ||
+            Registry(registry).getSlashingManagerAddress() == msg.sender,
             "Invalid contract address"
         );
         return token.transfer(delegator, amount);
