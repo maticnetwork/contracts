@@ -15,6 +15,8 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
     }
 
     uint256 constant EXCHANGE_RATE_PRECISION = 100;
+    // maximum matic possible, even if rate will be 1 and all matic will be staken in one go, it will result in 10 ^ 58 shares
+    uint256 constant EXCHANGE_RATE_HIGH_PRECISION = 10 ** 29; 
     uint256 constant MAX_COMMISION_RATE = 100;
     uint256 constant REWARD_PRECISION = 10**25;
 
@@ -126,20 +128,31 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         return _validatorRewards;
     }
 
+    function _getRatePrecision() private view returns(uint256) {
+        // if foundation validator, use old precision
+        if (validatorId < 8) {
+            return EXCHANGE_RATE_PRECISION;
+        } 
+
+        return EXCHANGE_RATE_HIGH_PRECISION;
+    }
+
     function exchangeRate() public view returns (uint256) {
         uint256 totalShares = totalSupply();
+        uint256 precision = _getRatePrecision();
         return
             totalShares == 0
-                ? EXCHANGE_RATE_PRECISION
-                : activeAmount.mul(EXCHANGE_RATE_PRECISION).div(totalShares);
+                ? precision
+                : activeAmount.mul(precision).div(totalShares);
     }
 
     function withdrawExchangeRate() public view returns (uint256) {
         uint256 _withdrawShares = withdrawShares;
+        uint256 precision = _getRatePrecision();
         return
             _withdrawShares == 0
-                ? EXCHANGE_RATE_PRECISION
-                : withdrawPool.mul(EXCHANGE_RATE_PRECISION).div(_withdrawShares);
+                ? precision
+                : withdrawPool.mul(precision).div(_withdrawShares);
     }
 
     function buyVoucher(uint256 _amount, uint256 _minSharesToMint) public {
@@ -160,7 +173,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
             return (0, rate);
         }
 
-        return (rate.mul(shares).div(EXCHANGE_RATE_PRECISION), rate);
+        return (rate.mul(shares).div(_getRatePrecision()), rate);
     }
 
     function restake() public {
@@ -188,14 +201,15 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         require(delegation, "Delegation is disabled");
 
         uint256 rate = exchangeRate();
-        uint256 shares = _amount.mul(EXCHANGE_RATE_PRECISION).div(rate);
+        uint256 precision = _getRatePrecision();
+        uint256 shares = _amount.mul(precision).div(rate);
         require(shares >= _minSharesToMint, "Too much slippage");
         require(unbonds[msg.sender].shares == 0, "Ongoing exit");
 
         _mint(msg.sender, shares);
 
         // clamp amount of tokens in case resulted shares requires less tokens than anticipated
-        _amount = _amount.sub(_amount % rate.mul(shares).div(EXCHANGE_RATE_PRECISION));
+        _amount = _amount.sub(_amount % rate.mul(shares).div(precision));
 
         activeAmount = activeAmount.add(_amount);
         stakeManager.updateValidatorState(validatorId, int256(_amount));
@@ -207,13 +221,22 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         return _amount;
     }
 
+    function _reduceActiveStake(uint256 activeStakeReduce) private {
+        activeAmount = activeAmount.sub(activeStakeReduce);
+    }
+
+    function _reduceWithdrawPool(uint256 withdrawPoolReduce) private {
+        withdrawPool = withdrawPool.sub(withdrawPoolReduce);
+    }
+
     function sellVoucher(uint256 claimAmount, uint256 maximumSharesToBurn) public {
         // first get how much staked in total and compare to target unstake amount
         (uint256 totalStaked, uint256 rate) = _getTotalStake(msg.sender);
         require(totalStaked > 0 && totalStaked >= claimAmount, "Too much requested");
 
         // convert requested amount back to shares
-        uint256 shares = claimAmount.mul(EXCHANGE_RATE_PRECISION).div(rate);
+        uint256 precision = _getRatePrecision();
+        uint256 shares = claimAmount.mul(precision).div(rate);
         require(shares <= maximumSharesToBurn, "too much slippage");
 
         _withdrawAndTransferReward();
@@ -221,10 +244,10 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         _burn(msg.sender, shares);
         stakeManager.updateValidatorState(validatorId, -int256(claimAmount));
 
-        activeAmount = activeAmount.sub(claimAmount);
+        _reduceActiveStake(claimAmount);
         withdrawPool = withdrawPool.add(claimAmount);
 
-        uint256 _withdrawPoolShare = claimAmount.mul(EXCHANGE_RATE_PRECISION).div(withdrawExchangeRate());
+        uint256 _withdrawPoolShare = claimAmount.mul(precision).div(withdrawExchangeRate());
         withdrawShares = withdrawShares.add(_withdrawPoolShare);
         
         DelegatorUnbond memory unbond = unbonds[msg.sender];
@@ -281,7 +304,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
             "Incomplete withdrawal period"
         );
 
-        uint256 _amount = withdrawExchangeRate().mul(shares).div(EXCHANGE_RATE_PRECISION);
+        uint256 _amount = withdrawExchangeRate().mul(shares).div(_getRatePrecision());
         withdrawShares = withdrawShares.sub(shares);
         withdrawPool = withdrawPool.sub(_amount);
 
@@ -303,8 +326,8 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         uint256 _amountToSlashWithdrawalPool = _withdrawPool.mul(_amountToSlash).div(delegationAmount);
 
         // slash inactive pool
-        withdrawPool = _withdrawPool.sub(_amountToSlashWithdrawalPool);
-        activeAmount = activeAmount.sub(_amountToSlash.sub(_amountToSlashWithdrawalPool));
+        _reduceActiveStake(_amountToSlash.sub(_amountToSlashWithdrawalPool));
+        _reduceWithdrawPool(_amountToSlashWithdrawalPool);
         return _amountToSlash;
     }
 

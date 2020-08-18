@@ -17,7 +17,6 @@ import {IValidatorShare} from "../validatorShare/IValidatorShare.sol";
 import {StakingInfo} from "../StakingInfo.sol";
 import {StakingNFT} from "./StakingNFT.sol";
 import {ValidatorShareFactory} from "../validatorShare/ValidatorShareFactory.sol";
-import {ISlashingManager} from "../slashing/ISlashingManager.sol";
 import {StakeManagerStorage} from "./StakeManagerStorage.sol";
 import {Governable} from "../../common/governance/Governable.sol";
 import {IGovernance} from "../../common/governance/IGovernance.sol";
@@ -295,8 +294,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable {
         address delegator
     ) external returns (bool) {
         require(
-            Registry(registry).getSlashingManagerAddress() == msg.sender ||
-                validators[validatorId].contractAddress == msg.sender,
+            validators[validatorId].contractAddress == msg.sender ||
+            Registry(registry).getSlashingManagerAddress() == msg.sender,
             "Invalid contract address"
         );
         return token.transfer(delegator, amount);
@@ -608,8 +607,12 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable {
                 _amount = _amount.sub(delSlashedAmount);
             }
 
-            validators[validatorId].amount = validators[validatorId].amount.sub(_amount);
-            if (slashData[2].toBoolean()) {
+            uint256 validatorStakeSlashed = validators[validatorId].amount.sub(_amount);
+            validators[validatorId].amount = validatorStakeSlashed;
+
+            if (validatorStakeSlashed == 0) {
+                _unstake(validatorId, currentEpoch);    
+            } else if (slashData[2].toBoolean()) {
                 jailedAmount = jailedAmount.add(_jail(validatorId, 1));
                 valJailed++;
             }
@@ -714,7 +717,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable {
         _liquidateRewards(validatorId, validator, rewards);
 
         //  update future
-        updateTimeline(-(int256(amount) + delegationAmount), -1, exitEpoch);
+        uint256 targetEpoch = exitEpoch <= currentEpoch ? 0 : exitEpoch;
+        updateTimeline(-(int256(amount) + delegationAmount), -1, targetEpoch);
 
         logger.logUnstakeInit(validator, validatorId, exitEpoch, amount);
     }
