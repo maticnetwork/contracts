@@ -846,7 +846,7 @@ contract('ValidatorShare', async function() {
         user: Alice,
         userTotalStaked: toWei('0'),
         totalStaked: ValidatorDefaultStake.div(new BN(2)),
-        shares: halfStake
+        shares: aliceStake
       })
     })
 
@@ -857,7 +857,7 @@ contract('ValidatorShare', async function() {
       })
 
       it('reverts', async function() {
-        await expectRevert(sellVoucher(this.validatorContract, this.user, '0'), 'Too much requested')
+        await expectRevert(sellVoucher(this.validatorContract, Alice, '0'), 'Too much requested')
       })
     })
 
@@ -887,7 +887,7 @@ contract('ValidatorShare', async function() {
 
       it('reverts', async function() {
         const maxShares = await this.validatorContract.balanceOf(this.user)
-        await expectRevert(this.validatorContract.sellVoucher(toWei('100.00001'), maxShares, { from: this.user }), 'Too much requested')
+        await expectRevert(this.validatorContract.sellVoucher(toWei('100.00001'), maxShares, { from: Alice }), 'Too much requested')
       })
     })
 
@@ -905,7 +905,8 @@ contract('ValidatorShare', async function() {
         validatorId: '8',
         user: Alice,
         userTotalStaked: toWei('0'),
-        totalStaked: ValidatorDefaultStake
+        totalStaked: ValidatorDefaultStake,
+        shares: aliceStake
       })
     })
 
@@ -923,7 +924,8 @@ contract('ValidatorShare', async function() {
         validatorId: '8',
         user: Alice,
         userTotalStaked: toWei('0'),
-        totalStaked: ValidatorDefaultStake
+        totalStaked: ValidatorDefaultStake,
+        shares: aliceStake
       })
     })
 
