@@ -79,16 +79,6 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         onlyOwner
         returns (uint256)
     {
-        /**
-        restaking is simply buying more shares of pool
-        but those needs to be nonswapable/transferrable(to prevent https://en.wikipedia.org/wiki/Tragedy_of_the_commons)
-
-        - calculate rewards for validator stake + delgation
-        - keep the validator rewards aside
-        - take the commission out
-        - add rewards to pool rewards
-        - returns total active stake for validator
-        */
         uint256 combinedStakePower = validatorStake.add(activeAmount); // validator + delegation stake power
         uint256 rewards = combinedStakePower.mul(reward).div(checkpointStakePower);
 
