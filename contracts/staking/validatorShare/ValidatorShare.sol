@@ -245,7 +245,6 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         stakeManager.updateValidatorState(validatorId, -int256(claimAmount));
 
         _reduceActiveStake(claimAmount);
-        withdrawPool = withdrawPool.add(claimAmount);
 
         uint256 _withdrawPoolShare = claimAmount.mul(precision).div(withdrawExchangeRate());
         withdrawPool = withdrawPool.add(claimAmount);
