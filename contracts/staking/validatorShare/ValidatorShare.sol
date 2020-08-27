@@ -79,16 +79,6 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         onlyOwner
         returns (uint256)
     {
-        /**
-        restaking is simply buying more shares of pool
-        but those needs to be nonswapable/transferrable(to prevent https://en.wikipedia.org/wiki/Tragedy_of_the_commons)
-
-        - calculate rewards for validator stake + delgation
-        - keep the validator rewards aside
-        - take the commission out
-        - add rewards to pool rewards
-        - returns total active stake for validator
-        */
         uint256 combinedStakePower = validatorStake.add(activeAmount); // validator + delegation stake power
         uint256 rewards = combinedStakePower.mul(reward).div(checkpointStakePower);
 
@@ -147,8 +137,15 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
     }
 
     function withdrawExchangeRate() public view returns (uint256) {
-        uint256 _withdrawShares = withdrawShares;
         uint256 precision = _getRatePrecision();
+        if (validatorId < 8) {
+            // fix of potentially broken withdrawals for future unbonding
+            // foundation validators have no slashing enabled and thus we can return default exchange rate
+            // because without slashing rate will stay constant
+            return precision;
+        }
+
+        uint256 _withdrawShares = withdrawShares;
         return
             _withdrawShares == 0
                 ? precision
@@ -245,9 +242,9 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         stakeManager.updateValidatorState(validatorId, -int256(claimAmount));
 
         _reduceActiveStake(claimAmount);
-        withdrawPool = withdrawPool.add(claimAmount);
 
         uint256 _withdrawPoolShare = claimAmount.mul(precision).div(withdrawExchangeRate());
+        withdrawPool = withdrawPool.add(claimAmount);
         withdrawShares = withdrawShares.add(_withdrawPoolShare);
         
         DelegatorUnbond memory unbond = unbonds[msg.sender];
