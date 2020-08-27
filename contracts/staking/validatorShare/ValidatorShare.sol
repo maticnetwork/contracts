@@ -147,8 +147,15 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
     }
 
     function withdrawExchangeRate() public view returns (uint256) {
-        uint256 _withdrawShares = withdrawShares;
         uint256 precision = _getRatePrecision();
+        if (validatorId < 8) {
+            // fix of potentially broken withdrawals for future unbonding
+            // foundation validators have no slashing enabled and thus we can return default exchange rate
+            // because without slashing rate will stay constant
+            return precision;
+        }
+
+        uint256 _withdrawShares = withdrawShares;
         return
             _withdrawShares == 0
                 ? precision
