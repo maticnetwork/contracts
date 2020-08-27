@@ -886,7 +886,7 @@ contract('ValidatorShare', async function() {
       before(doDeployAndBuyVoucherForAliceAndBob)
 
       it('reverts', async function() {
-        const maxShares = await this.validatorContract.balanceOf(this.user)
+        const maxShares = await this.validatorContract.balanceOf(Alice)
         await expectRevert(this.validatorContract.sellVoucher(toWei('100.00001'), maxShares, { from: Alice }), 'Too much requested')
       })
     })
