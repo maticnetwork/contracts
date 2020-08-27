@@ -248,6 +248,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         withdrawPool = withdrawPool.add(claimAmount);
 
         uint256 _withdrawPoolShare = claimAmount.mul(precision).div(withdrawExchangeRate());
+        withdrawPool = withdrawPool.add(claimAmount);
         withdrawShares = withdrawShares.add(_withdrawPoolShare);
         
         DelegatorUnbond memory unbond = unbonds[msg.sender];
