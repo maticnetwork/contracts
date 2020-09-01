@@ -190,8 +190,8 @@ export function getReceiptBytes(receipt) {
     utils.toBuffer(
       receipt.status !== undefined && receipt.status != null
         ? receipt.status
-          ? 1
-          : 0
+          ? '0x1'
+          : '0x'
         : receipt.root
     ),
     utils.toBuffer(receipt.cumulativeGasUsed),
