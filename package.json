@@ -14,6 +14,8 @@
     "truffle:coverage": "truffle run coverage",
     "truffle:compile": "truffle compile",
     "truffle:migrate": "truffle migrate --network development",
+    "truffle:migrate:augur": "truffle migrate --network augur-dev",
+    "truffle:migrate:augur:bor": "truffle migrate --network augur-bor",
     "truffle:verify": "truffle run verify $npm_package_verify_contracts --network ropsten",
     "test": "truffle test",
     "coverage": "scripts/run-coverage.sh",

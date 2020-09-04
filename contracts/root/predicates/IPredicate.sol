@@ -46,6 +46,7 @@ interface IPredicate {
 }
 
 contract PredicateUtils is ExitsDataStructure, ChainIdMixin {
+    using RLPReader for bytes;
     using RLPReader for RLPReader.RLPItem;
 
     // Bonded exits collaterized at 0.1 ETH
@@ -76,6 +77,10 @@ contract PredicateUtils is ExitsDataStructure, ChainIdMixin {
 
     function sendBond() internal {
         address(uint160(address(withdrawManager))).transfer(BOND_AMOUNT);
+    }
+
+    function getAddressFromTx(bytes memory txData) public pure returns (address, bytes32) {
+        return getAddressFromTx(txData.toRlpItem().toList());
     }
 
     function getAddressFromTx(RLPReader.RLPItem[] memory txList)

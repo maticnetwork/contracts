@@ -12,10 +12,33 @@ const MNEMONIC =
   'clock radar mass judge dismiss just intact mind resemble fringe diary casino'
 const API_KEY = process.env.API_KEY
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY
+const AUGUR_ACCOUNTS = [
+  '0xfae42052f82bed612a724fec3632f325f377120592c75bb78adfcceae6470c5a',
+  '0x48c5da6dff330a9829d843ea90c2629e8134635a294c7e62ad4466eb2ae03712'
+]
+
 module.exports = {
   // See <http://truffleframework.com/docs/advanced/configuration>
   // to customize your Truffle configuration!
   networks: {
+    'augur-dev': {
+      provider: () =>
+        new HDWalletProvider(
+          AUGUR_ACCOUNTS,
+          `http://localhost:9545`
+        ),
+      network_id: '*', // match any network
+      gasPrice: '0'
+    },
+    'augur-bor': {
+      provider: () =>
+        new HDWalletProvider(
+          AUGUR_ACCOUNTS,
+          `http://localhost:8545`
+        ),
+      network_id: '*', // match any network
+      gasPrice: '0'
+    },
     development: {
       host: 'localhost',
       port: 9545,
@@ -47,7 +70,7 @@ module.exports = {
           MNEMONIC,
           `https://rpc-mumbai.matic.today`
         ),
-      network_id: '80001',
+      network_id: '80001'
     },
     goerli: {
       provider: function() {

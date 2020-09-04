@@ -4,12 +4,6 @@ import { getBlockHeader } from './blocks'
 import MerkleTree from './merkle-tree'
 
 import { build } from '../mockResponses/utils'
-import {
-  getTxProof,
-  verifyTxProof,
-  getReceiptProof,
-  verifyReceiptProof
-} from './proofs'
 
 const utils = require('./utils')
 const web3Child = utils.web3Child
@@ -37,10 +31,12 @@ export default class StatefulUtils {
     if (this.offset == null) {
       this.offset = event.block.number
     }
+
     event.block.number -= this.offset // rootChain will thank you for this
     const start = this.lastEndBlock + 1
     const end = event.block.number
     this.lastEndBlock = end
+
     if (start > end) {
       throw new Error(`Invalid end block number for checkpoint`, { start, end });
     }
@@ -51,6 +47,7 @@ export default class StatefulUtils {
       block.number = i
       headers.push(getBlockHeader(block))
     }
+
     const blockHeader = getBlockHeader(event.block)
     const tree = new MerkleTree(headers)
     const root = ethUtils.bufferToHex(tree.getRoot())
@@ -66,8 +63,7 @@ export default class StatefulUtils {
       proposer,
       { rewardsRootHash: ethUtils.keccak256('RandomState') }
     )
-    const submitHeaderBlock = await rootChain.submitHeaderBlock(
-      data, sigs)
+    const submitHeaderBlock = await rootChain.submitHeaderBlock(data, sigs)
 
     // const txProof = await getTxProof(event.tx, event.block)
     // assert.isTrue(verifyTxProof(txProof), 'Tx proof must be valid (failed in js)')

@@ -18,7 +18,7 @@ $BOR --datadir $DIR/data \
   --syncmode 'full' \
   --networkid '{{ borChainId }}' \
   --gasprice '0' \
-  --unlock '0x96C42C56fdb78294F96B0cFa33c92bed7D75F96a,0x9fb29aac15b9a4b7f17c3385939b007540f4d791' \
+  --unlock '0x96C42C56fdb78294F96B0cFa33c92bed7D75F96a,0x9fb29aac15b9a4b7f17c3385939b007540f4d791,0x913dA4198E6bE1D5f5E4a40D0667f70C0B5430Eb,0xbd355A7e5a7ADb23b51F54027E624BfE0e238DF6' \
   --password $DIR/password.txt \
   --allow-insecure-unlock \
   --miner.gastarget '20000000' \

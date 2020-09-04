@@ -10,10 +10,9 @@ export async function getHeaders(start, end, web3) {
   }
 
   let current = start
-  let p = []
   let result = []
   while (current <= end) {
-    p = []
+    let p = []
 
     for (let i = 0; i < 10 && current <= end; i++) {
       p.push(web3.eth.getBlock(current))
