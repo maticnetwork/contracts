@@ -10,7 +10,7 @@ import "./misc/IParentToken.sol";
 
 contract ChildERC20 is BaseERC20, ERC20, ERC20Detailed, StateSyncerVerifier, StateReceiver {
     constructor(
-        address /* ignoring parent owner, use contract owner instead */,
+        address _owner/* ignoring parent owner, use contract owner instead */,
         address _token,
         string memory _name,
         string memory _symbol,

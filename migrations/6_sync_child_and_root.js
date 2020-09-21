@@ -8,33 +8,36 @@ const DepositManager = artifacts.require('DepositManager')
 
 module.exports = async function(deployer) {
   deployer.then(async() => {
-    const contractAddresses = utils.getContractAddresses()
-    const governance = await Governance.at(contractAddresses.root.Governance)
-    const registry = await Registry.at(contractAddresses.root.Registry)
+    const rootAddresses = utils.getContractAddresses('root')
+    const childAddresses = utils.getContractAddresses('child')
+    
+    const governance = await Governance.at(rootAddresses.Governance)
+    const registry = await Registry.at(rootAddresses.Registry)
     await governance.update(
       registry.address,
       registry.contract.methods.mapToken(
-        contractAddresses.root.tokens.MaticWeth,
-        contractAddresses.child.tokens.MaticWeth,
+        rootAddresses.MaticWeth,
+        childAddresses.MaticWeth,
         false
       ).encodeABI()
     )
     await governance.update(
       registry.address,
       registry.contract.methods.mapToken(
-        contractAddresses.root.tokens.TestToken,
-        contractAddresses.child.tokens.TestToken,
+        rootAddresses.TestToken,
+        childAddresses.TestToken,
         false
       ).encodeABI()
     )
     await governance.update(
       registry.address,
-      registry.contract.methods.updateContractMap(ethUtils.keccak256('childChain'), contractAddresses.child.ChildChain).encodeABI()
+      registry.contract.methods.updateContractMap(ethUtils.keccak256('childChain'), childAddresses.ChildChain).encodeABI()
     )
 
-    const stateSenderContract = await StateSender.at(contractAddresses.root.StateSender)
-    await stateSenderContract.register(contractAddresses.root.DepositManagerProxy, contractAddresses.child.ChildChain)
-    let depositManager = await DepositManager.at(contractAddresses.root.DepositManagerProxy)
+    const stateSenderContract = await StateSender.at(rootAddresses.StateSender)
+    await stateSenderContract.register(rootAddresses.DepositManager, childAddresses.ChildChain)
+
+    let depositManager = await DepositManager.at(rootAddresses.DepositManager)
     await depositManager.updateChildChainAndStateSender()
   })
 }

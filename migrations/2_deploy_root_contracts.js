@@ -249,32 +249,22 @@ module.exports = async function(deployer, network, accounts) {
     ])
 
     const contractAddresses = {
-      root: {
-        Governance: Governance.address,
-        Registry: Registry.address,
-        RootChain: RootChain.address,
-        RootChainProxy: RootChainProxy.address,
-        DepositManager: DepositManager.address,
-        DepositManagerProxy: DepositManagerProxy.address,
-        WithdrawManager: WithdrawManager.address,
-        WithdrawManagerProxy: WithdrawManagerProxy.address,
-        StakeManager: StakeManager.address,
-        StakeManagerProxy: StakeManagerProxy.address,
-        SlashingManager: SlashingManager.address,
-        ExitNFT: ExitNFT.address,
-        StateSender: StateSender.address,
-        predicates: {
-          ERC20Predicate: ERC20Predicate.address,
-          ERC721Predicate: ERC721Predicate.address,
-          MarketplacePredicate: MarketplacePredicate.address,
-          TransferWithSigPredicate: TransferWithSigPredicate.address
-        },
-        tokens: {
-          MaticWeth: MaticWeth.address,
-          TestToken: TestToken.address
-        }
-      }
+      Governance: Governance.address,
+      Registry: Registry.address,
+      RootChain: RootChainProxy.address,
+      DepositManager: DepositManagerProxy.address,
+      WithdrawManager: WithdrawManagerProxy.address,
+      StakeManager: StakeManagerProxy.address,
+      SlashingManager: SlashingManager.address,
+      ExitNFT: ExitNFT.address,
+      StateSender: StateSender.address,
+      ERC20Predicate: ERC20Predicate.address,
+      ERC721Predicate: ERC721Predicate.address,
+      MarketplacePredicate: MarketplacePredicate.address,
+      TransferWithSigPredicate: TransferWithSigPredicate.address,
+      MaticWeth: MaticWeth.address,
+      TestToken: TestToken.address
     }
-    utils.writeContractAddresses(contractAddresses)
+    utils.writeContractAddresses(contractAddresses, 'root')
   })
 }

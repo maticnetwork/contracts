@@ -12,11 +12,11 @@ module.exports = async function(deployer, network, accounts) {
     await deployer.deploy(ChildChain)
 
     const childChain = await ChildChain.deployed()
-    const contractAddresses = utils.getContractAddresses()
+    const rootAddresses = utils.getContractAddresses('root')
 
     let MaticWeth = await childChain.addToken(
       accounts[0],
-      contractAddresses.root.tokens.MaticWeth,
+      rootAddresses.MaticWeth,
       'Matic WETH',
       'MTX',
       18,
@@ -25,20 +25,18 @@ module.exports = async function(deployer, network, accounts) {
 
     let TestToken = await childChain.addToken(
       accounts[0],
-      contractAddresses.root.tokens.TestToken,
+      rootAddresses.TestToken,
       'Test Token',
       'TST',
       18,
       false // _isERC721
     )
 
-    contractAddresses.child = {
+    const childAddresses = {
       ChildChain: ChildChain.address,
-      tokens: {
-        MaticWeth: MaticWeth.logs.find(log => log.event === 'NewToken').args.token,
-        TestToken: TestToken.logs.find(log => log.event === 'NewToken').args.token
-      }
+      MaticWeth: MaticWeth.logs.find(log => log.event === 'NewToken').args.token,
+      TestToken: TestToken.logs.find(log => log.event === 'NewToken').args.token
     }
-    utils.writeContractAddresses(contractAddresses)
+    utils.writeContractAddresses(childAddresses, 'child')
   })
 }

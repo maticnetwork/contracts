@@ -8,62 +8,63 @@ const DepositManager = artifacts.require('DepositManager')
 
 module.exports = async function(deployer, network, accounts) {
   deployer.then(async() => {
-    const contractAddresses = utils.getContractAddresses()
-    const registry = await Registry.at(contractAddresses.root.Registry)
-    const governance = await Governance.at(contractAddresses.root.GovernanceProxy)
+    const rootAddreses = utils.getContractAddresses('root')
+    const childAddreses = utils.getContractAddresses('child')
+    const registry = await Registry.at(rootAddreses.Registry)
+    const governance = await Governance.at(rootAddreses.GovernanceProxy)
     const tasks = []
 
     tasks.push(governance.update(
-      contractAddresses.root.Registry,
+      rootAddreses.Registry,
       registry.contract.methods.mapToken(
-        contractAddresses.root.tokens.MaticWeth,
-        contractAddresses.child.tokens.MaticWeth,
+        rootAddreses.MaticWeth,
+        childAddreses.MaticWeth,
         false /* isERC721 */
       ).encodeABI()
     ))
     await delay(5)
 
     tasks.push(governance.update(
-      contractAddresses.root.Registry,
+      rootAddreses.Registry,
       registry.contract.methods.mapToken(
-        contractAddresses.root.tokens.MaticToken,
-        contractAddresses.child.tokens.MaticToken,
+        rootAddreses.MaticToken,
+        childAddreses.MaticToken,
         false /* isERC721 */
       ).encodeABI()
     ))
     await delay(5)
 
     tasks.push(governance.update(
-      contractAddresses.root.Registry,
+      rootAddreses.Registry,
       registry.contract.methods.mapToken(
-        contractAddresses.root.tokens.TestToken,
-        contractAddresses.child.tokens.TestToken,
+        rootAddreses.TestToken,
+        childAddreses.TestToken,
         false /* isERC721 */
       ).encodeABI()
     ))
     await delay(5)
 
     tasks.push(governance.update(
-      contractAddresses.root.Registry,
+      rootAddreses.Registry,
       registry.contract.methods.mapToken(
-        contractAddresses.root.tokens.RootERC721,
-        contractAddresses.child.tokens.RootERC721,
+        rootAddreses.RootERC721,
+        childAddreses.RootERC721,
         true /* isERC721 */
       ).encodeABI()
     ))
     await delay(5)
 
     tasks.push(governance.update(
-      contractAddresses.root.Registry,
+      rootAddreses.Registry,
       registry.contract.methods.updateContractMap(
         ethUtils.keccak256('childChain'),
-        contractAddresses.child.ChildChain
+        childAddreses.ChildChain
       ).encodeABI()
     ))
     await Promise.all(tasks)
 
-    await (await StateSender.at(contractAddresses.root.StateSender)).register(contractAddresses.root.DepositManagerProxy, contractAddresses.child.ChildChain)
-    let depositManager = await DepositManager.at(contractAddresses.root.DepositManagerProxy)
+    await (await StateSender.at(rootAddreses.StateSender)).register(rootAddreses.DepositManagerProxy, childAddreses.ChildChain)
+    let depositManager = await DepositManager.at(rootAddreses.DepositManagerProxy)
     await depositManager.updateChildChainAndStateSender()
   })
 }

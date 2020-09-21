@@ -209,7 +209,6 @@ module.exports = async function(deployer) {
 
     console.log('writing contract addresses to file...')
     const contractAddresses = {
-      root: {
         Registry: Registry.address,
         RootChain: RootChain.address,
         Governance: Governance.address,
@@ -226,20 +225,15 @@ module.exports = async function(deployer) {
         StakingInfo: StakingInfo.address,
         ExitNFT: ExitNFT.address,
         StateSender: StateSender.address,
-        predicates: {
-          ERC20Predicate: ERC20Predicate.address,
-          ERC721Predicate: ERC721Predicate.address,
-          MarketplacePredicate: MarketplacePredicate.address,
-          TransferWithSigPredicate: TransferWithSigPredicate.address
-        },
-        tokens: {
-          MaticWeth: MaticWeth.address,
-          MaticToken: TestToken.address,
-          TestToken: testToken.address,
-          RootERC721: RootERC721.address
-        }
-      }
+        ERC20Predicate: ERC20Predicate.address,
+        ERC721Predicate: ERC721Predicate.address,
+        MarketplacePredicate: MarketplacePredicate.address,
+        TransferWithSigPredicate: TransferWithSigPredicate.address,
+        MaticWeth: MaticWeth.address,
+        MaticToken: TestToken.address,
+        TestToken: testToken.address,
+        RootERC721: RootERC721.address
     }
-    utils.writeContractAddresses(contractAddresses)
+    utils.writeContractAddresses(contractAddresses, 'root')
   })
 }

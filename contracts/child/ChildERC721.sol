@@ -27,7 +27,7 @@ contract ChildERC721 is ChildToken, ERC721Full, StateSyncerVerifier, StateReceiv
     );
 
     constructor(
-        address /* ignoring parent owner, use contract owner instead */,
+        address _owner /* ignoring parent owner, use contract owner instead */,
         address _token,
         string memory name,
         string memory symbol

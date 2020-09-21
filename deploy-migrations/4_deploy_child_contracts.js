@@ -13,11 +13,11 @@ module.exports = async function(deployer, network, accounts) {
     await deployer.deploy(ChildChain)
 
     const childChain = await ChildChain.deployed()
-    const contractAddresses = utils.getContractAddresses()
+    const rootAddresses = utils.getContractAddresses('root')
 
     let MaticWeth = await childChain.addToken(
       accounts[0],
-      contractAddresses.root.tokens.MaticWeth,
+      rootAddresses.MaticWeth,
       'ETH on Matic',
       'ETH',
       18,
@@ -26,7 +26,7 @@ module.exports = async function(deployer, network, accounts) {
 
     let TestToken = await childChain.addToken(
       accounts[0],
-      contractAddresses.root.tokens.TestToken,
+      rootAddresses.TestToken,
       'Test Token',
       'TST',
       18,
@@ -35,7 +35,7 @@ module.exports = async function(deployer, network, accounts) {
 
     let RootERC721 = await childChain.addToken(
       accounts[0],
-      contractAddresses.root.tokens.RootERC721,
+      rootAddresses.RootERC721,
       'Test ERC721',
       'TST721',
       0,
@@ -46,19 +46,17 @@ module.exports = async function(deployer, network, accounts) {
     const maticOwner = await maticToken.owner()
     if (maticOwner === '0x0000000000000000000000000000000000000000') {
       // matic contract at 0x1010 can only be initialized once, after the bor image starts to run
-      await maticToken.initialize(ChildChain.address, contractAddresses.root.tokens.MaticToken)
+      await maticToken.initialize(ChildChain.address, rootAddresses.MaticToken)
     }
-    await childChain.mapToken(contractAddresses.root.tokens.MaticToken, '0x0000000000000000000000000000000000001010', false)
+    await childChain.mapToken(rootAddresses.MaticToken, '0x0000000000000000000000000000000000001010', false)
 
-    contractAddresses.child = {
+    const childContractAddresses = {
       ChildChain: ChildChain.address,
-      tokens: {
-        MaticWeth: MaticWeth.logs.find(log => log.event === 'NewToken').args.token,
-        MaticToken: '0x0000000000000000000000000000000000001010',
-        TestToken: TestToken.logs.find(log => log.event === 'NewToken').args.token,
-        RootERC721: RootERC721.logs.find(log => log.event === 'NewToken').args.token
-      }
+      MaticWeth: MaticWeth.logs.find(log => log.event === 'NewToken').args.token,
+      MaticToken: '0x0000000000000000000000000000000000001010',
+      TestToken: TestToken.logs.find(log => log.event === 'NewToken').args.token,
+      RootERC721: RootERC721.logs.find(log => log.event === 'NewToken').args.token
     }
-    utils.writeContractAddresses(contractAddresses)
+    utils.writeContractAddresses(childContractAddresses, 'child')
   })
 }
