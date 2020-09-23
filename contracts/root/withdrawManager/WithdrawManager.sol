@@ -308,7 +308,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
 
     function encodeExitForProcessExit(uint256 exitId) internal view returns (bytes memory) {
         PlasmaExit storage exit = exits[exitId];
-        return abi.encode(exitId, exit.token, exit.owner, exit.receiptAmountOrNFTId);
+        return abi.encode(exitId, exit.token, exit.owner, exit.receiptAmountOrNFTId, exit.isRegularExit);
     }
 
     function encodeInputUtxo(uint256 age, Input storage input) internal view returns (bytes memory) {
