@@ -279,6 +279,27 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         require(rewards >= minAmount, "Too small rewards amount");
     }
 
+    function migrateOut(address user, uint256 amount) external onlyOwner {
+        _withdrawAndTransferReward(user);
+        (uint256 totalStaked, uint256 rate) = _getTotalStake(user);
+        require(totalStaked >= amount, "Migrating too much");
+
+        uint256 precision = _getRatePrecision();
+        uint256 shares = amount.mul(precision).div(rate);
+        _burn(user, shares);
+
+        stakeManager.updateValidatorState(validatorId, -int256(amount));
+        _reduceActiveStake(amount);
+
+        stakingLogger.logShareBurned(validatorId, user, amount, shares);
+        stakingLogger.logStakeUpdate(validatorId);
+        stakingLogger.logDelegatorUnstaked(validatorId, user, amount);
+    }
+
+    function migrateIn(address user, uint256 amount) external onlyOwner {
+        _buyShares(amount, 0, user);
+    }
+
     function getLiquidRewards(address user) public view returns (uint256) {
         uint256 shares = balanceOf(user);
         if (shares == 0) {
