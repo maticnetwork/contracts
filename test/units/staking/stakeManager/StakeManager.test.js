@@ -19,6 +19,8 @@ import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
 import { wallets, freshDeploy, approveAndStake } from '../deployment'
 import { buyVoucher } from '../ValidatorShareHelper.js'
 
+const ZeroAddr = '0x0000000000000000000000000000000000000000'
+
 contract('StakeManager', async function(accounts) {
   let owner = accounts[0]
 
@@ -1833,6 +1835,251 @@ contract('StakeManager', async function(accounts) {
       await this.stakeManager.startAuction(this.validatorId, bidAmount, false, bidderPubKey, {
         from: bidder
       })
+    })
+  })
+
+  describe('Chad delegates to Alice then migrates partialy to Bob', async function() {
+    const aliceId = '2' // Matic
+    const bobId = '8' // Non-matic
+    const alice = wallets[2]
+    const bob = wallets[8]
+    const initialStakers = [wallets[1], alice, wallets[3], wallets[4], wallets[5], wallets[6], wallets[7], bob]
+    const stakeAmount = web3.utils.toWei('1250')
+    const stakeAmountBN = new BN(stakeAmount)
+    const delegationAmount = web3.utils.toWei('150')
+    const delegationAmountBN = new BN(delegationAmount)
+    const migrationAmount = web3.utils.toWei('100')
+    const migrationAmountBN = new BN(migrationAmount)
+    const delegator = wallets[9].getChecksumAddressString()
+    let aliceContract
+    let bobContract
+
+    before('fresh deploy', async function() {
+      await freshDeploy.call(this)
+      await this.stakeManager.updateValidatorThreshold(10, {
+        from: owner
+      })
+      for (const wallet of initialStakers) {
+        await approveAndStake.call(this, { wallet, stakeAmount, acceptDelegation: true })
+      }
+      const aliceValidator = await this.stakeManager.validators(aliceId)
+      aliceContract = await ValidatorShare.at(aliceValidator.contractAddress)
+      const bobValidator = await this.stakeManager.validators(bobId)
+      bobContract = await ValidatorShare.at(bobValidator.contractAddress)
+    })
+
+    describe('Chad delegates to Alice', async function() {
+      before(async function() {
+        await this.stakeToken.mint(delegator, delegationAmount)
+        await this.stakeToken.approve(this.stakeManager.address, delegationAmount, {
+          from: delegator
+        })
+      })
+
+      it('Should delegate', async function() {
+        this.receipt = await buyVoucher(aliceContract, delegationAmount, delegator)
+      })
+
+      it('ValidatorShare must mint correct amount of shares', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, ValidatorShare, 'Transfer', {
+          from: ZeroAddr,
+          to: delegator,
+          value: delegationAmount
+        })
+      })
+
+      it('must emit ShareMinted', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ShareMinted', {
+          validatorId: aliceId,
+          user: delegator,
+          amount: delegationAmount,
+          tokens: delegationAmount
+        })
+      })
+
+      it('must emit StakeUpdate', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'StakeUpdate', {
+          validatorId: aliceId,
+          newAmount: stakeAmountBN.add(delegationAmountBN).toString(10)
+        })
+      })
+
+      it('Active amount must be updated', async function() {
+        const delegatedAliceAmount = await aliceContract.getActiveAmount()
+        assertBigNumberEquality(delegatedAliceAmount, delegationAmountBN)
+      })
+    })
+
+    describe('Chad migrates delegation to Bob', async function() {
+      it('Should migrate', async function() {
+        this.receipt = await this.stakeManager.migrateDelegation(aliceId, bobId, migrationAmount, { from: delegator })
+      })
+
+      it('Alice\'s contract must burn correct amount of shares', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, ValidatorShare, 'Transfer', {
+          from: delegator,
+          to: ZeroAddr,
+          value: migrationAmount
+        })
+      })
+
+      it('Alice\'s contract must emit ShareBurned', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ShareBurned', {
+          validatorId: aliceId,
+          user: delegator,
+          amount: migrationAmount,
+          tokens: migrationAmount
+        })
+      })
+
+      it('must emit StakeUpdate for Alice', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'StakeUpdate', {
+          validatorId: aliceId,
+          newAmount: stakeAmountBN.add(delegationAmountBN).sub(migrationAmountBN).toString(10)
+        })
+      })
+
+      it('Bob\'s contract must mint correct amount of shares', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, ValidatorShare, 'Transfer', {
+          from: ZeroAddr,
+          to: delegator,
+          value: migrationAmount
+        })
+      })
+
+      it('Bob\'s contract must emit ShareMinted', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ShareMinted', {
+          validatorId: bobId,
+          user: delegator,
+          amount: migrationAmount,
+          tokens: migrationAmount
+        })
+      })
+
+      it('must emit StakeUpdate for Bob', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'StakeUpdate', {
+          validatorId: bobId,
+          newAmount: stakeAmountBN.add(migrationAmountBN).toString(10)
+        })
+      })
+
+      it('Alice active amount must be updated', async function() {
+        const migratedAliceAmount = await aliceContract.getActiveAmount()
+        assertBigNumberEquality(migratedAliceAmount, delegationAmountBN.sub(migrationAmountBN))
+      })
+
+      it('Bob active amount must be updated', async function() {
+        const migratedBobAmount = await bobContract.getActiveAmount()
+        assertBigNumberEquality(migratedBobAmount, migrationAmount)
+      })
+    })
+  })
+
+  describe('Chad tries to migrate from non matic validator', function() {
+    const aliceId = '9' // Non-matic
+    const bobId = '8' // Non-matic
+    const alice = wallets[9]
+    const bob = wallets[8]
+    const initialStakers = [wallets[1], wallets[2], wallets[3], wallets[4], wallets[5], wallets[6], wallets[7], bob, alice]
+    const stakeAmount = web3.utils.toWei('1250')
+    const delegationAmount = web3.utils.toWei('150')
+    const migrationAmount = web3.utils.toWei('100')
+    const delegator = wallets[9].getChecksumAddressString()
+
+    before('fresh deploy and delegate to Alice', async function() {
+      await freshDeploy.call(this)
+      await this.stakeManager.updateValidatorThreshold(10, {
+        from: owner
+      })
+      for (const wallet of initialStakers) {
+        await approveAndStake.call(this, { wallet, stakeAmount, acceptDelegation: true })
+      }
+
+      await this.stakeToken.mint(delegator, delegationAmount)
+      await this.stakeToken.approve(this.stakeManager.address, delegationAmount, {
+        from: delegator
+      })
+      const aliceValidator = await this.stakeManager.validators(aliceId)
+      const aliceContract = await ValidatorShare.at(aliceValidator.contractAddress)
+      await buyVoucher(aliceContract, delegationAmount, delegator)
+    })
+
+    it('Migration should fail', async function() {
+      await expectRevert(
+        this.stakeManager.migrateDelegation(aliceId, bobId, migrationAmount, { from: delegator }),
+        'Invalid migration')
+    })
+  })
+
+  describe('Chad tries to migrate to matic validator', function() {
+    const aliceId = '8' // Non-matic
+    const bobId = '2' // Matic
+    const alice = wallets[8]
+    const bob = wallets[2]
+    const initialStakers = [wallets[1], bob, wallets[3], wallets[4], wallets[5], wallets[6], wallets[7], alice]
+    const stakeAmount = web3.utils.toWei('1250')
+    const delegationAmount = web3.utils.toWei('150')
+    const migrationAmount = web3.utils.toWei('100')
+    const delegator = wallets[9].getChecksumAddressString()
+
+    before('fresh deploy and delegate to Alice', async function() {
+      await freshDeploy.call(this)
+      await this.stakeManager.updateValidatorThreshold(10, {
+        from: owner
+      })
+      for (const wallet of initialStakers) {
+        await approveAndStake.call(this, { wallet, stakeAmount, acceptDelegation: true })
+      }
+
+      await this.stakeToken.mint(delegator, delegationAmount)
+      await this.stakeToken.approve(this.stakeManager.address, delegationAmount, {
+        from: delegator
+      })
+      const aliceValidator = await this.stakeManager.validators(aliceId)
+      const aliceContract = await ValidatorShare.at(aliceValidator.contractAddress)
+      await buyVoucher(aliceContract, delegationAmount, delegator)
+    })
+
+    it('Migration should fail', async function() {
+      await expectRevert(
+        this.stakeManager.migrateDelegation(aliceId, bobId, migrationAmount, { from: delegator }),
+        'Invalid migration')
+    })
+  })
+
+  describe('Chad tries to migrate more than his delegation amount', async function() {
+    const aliceId = '2'
+    const bobId = '8'
+    const alice = wallets[2]
+    const bob = wallets[8]
+    const initialStakers = [wallets[1], alice, wallets[3], wallets[4], wallets[5], wallets[6], wallets[7], bob]
+    const stakeAmount = web3.utils.toWei('1250')
+    const delegationAmount = web3.utils.toWei('150')
+    const migrationAmount = web3.utils.toWei('200') // more than delegation amount
+    const delegator = wallets[9].getChecksumAddressString()
+
+    before('fresh deploy and delegate to Alice', async function() {
+      await freshDeploy.call(this)
+      await this.stakeManager.updateValidatorThreshold(10, {
+        from: owner
+      })
+      for (const wallet of initialStakers) {
+        await approveAndStake.call(this, { wallet, stakeAmount, acceptDelegation: true })
+      }
+
+      await this.stakeToken.mint(delegator, delegationAmount)
+      await this.stakeToken.approve(this.stakeManager.address, delegationAmount, {
+        from: delegator
+      })
+      const aliceValidator = await this.stakeManager.validators(aliceId)
+      const aliceContract = await ValidatorShare.at(aliceValidator.contractAddress)
+      await buyVoucher(aliceContract, delegationAmount, delegator)
+    })
+
+    it('Migration should fail', async function() {
+      await expectRevert(
+        this.stakeManager.migrateDelegation(aliceId, bobId, migrationAmount, { from: delegator }),
+        'Migrating too much')
     })
   })
 })
