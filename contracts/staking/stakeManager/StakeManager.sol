@@ -392,6 +392,12 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable {
         _liquidateRewards(validatorId, msg.sender, reward);
     }
 
+    function migrateDelegation(uint256 fromValidatorId, uint256 toValidatorId, uint256 amount) public {
+        require(fromValidatorId < 8 && toValidatorId > 7, "Invalid migration");
+        IValidatorShare(validators[fromValidatorId].contractAddress).migrateOut(msg.sender, amount);
+        IValidatorShare(validators[toValidatorId].contractAddress).migrateIn(msg.sender, amount);
+    }
+
     function getValidatorId(address user) public view returns (uint256) {
         return NFTContract.tokenOfOwnerByIndex(user, 0);
     }

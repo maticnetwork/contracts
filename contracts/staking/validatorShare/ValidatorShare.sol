@@ -157,8 +157,8 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
     }
 
     function _buyVoucher(uint256 _amount, uint256 _minSharesToMint) internal returns(uint256) {
-        _withdrawAndTransferReward();
-        uint256 amountToDeposit = _buyShares(_amount, _minSharesToMint);
+        _withdrawAndTransferReward(msg.sender);
+        uint256 amountToDeposit = _buyShares(_amount, _minSharesToMint, msg.sender);
         require(stakeManager.delegationDeposit(validatorId, amountToDeposit, msg.sender), "deposit failed");
         return amountToDeposit;
     }
@@ -181,7 +181,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         uint256 liquidReward = _withdrawReward(msg.sender);
         require(liquidReward >= minAmount, "Too small rewards to restake");
 
-        uint256 amountRestaked = _buyShares(liquidReward, 0);
+        uint256 amountRestaked = _buyShares(liquidReward, 0, msg.sender);
         if (liquidReward > amountRestaked) {
             // return change to the user
             require(stakeManager.transferFunds(validatorId, liquidReward - amountRestaked, msg.sender), "Insufficent rewards");
@@ -194,16 +194,16 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         return amountRestaked;
     }
 
-    function _buyShares(uint256 _amount, uint256 _minSharesToMint) private onlyWhenUnlocked returns(uint256) {
+    function _buyShares(uint256 _amount, uint256 _minSharesToMint, address user) private onlyWhenUnlocked returns(uint256) {
         require(delegation, "Delegation is disabled");
 
         uint256 rate = exchangeRate();
         uint256 precision = _getRatePrecision();
         uint256 shares = _amount.mul(precision).div(rate);
         require(shares >= _minSharesToMint, "Too much slippage");
-        require(unbonds[msg.sender].shares == 0, "Ongoing exit");
+        require(unbonds[user].shares == 0, "Ongoing exit");
 
-        _mint(msg.sender, shares);
+        _mint(user, shares);
 
         // clamp amount of tokens in case resulted shares requires less tokens than anticipated
         _amount = _amount.sub(_amount % rate.mul(shares).div(precision));
@@ -212,7 +212,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         stakeManager.updateValidatorState(validatorId, int256(_amount));
 
         StakingInfo logger = stakingLogger;
-        logger.logShareMinted(validatorId, msg.sender, _amount, shares);
+        logger.logShareMinted(validatorId, user, _amount, shares);
         logger.logStakeUpdate(validatorId);
 
         return _amount;
@@ -236,7 +236,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         uint256 shares = claimAmount.mul(precision).div(rate);
         require(shares <= maximumSharesToBurn, "too much slippage");
 
-        _withdrawAndTransferReward();
+        _withdrawAndTransferReward(msg.sender);
         
         _burn(msg.sender, shares);
         stakeManager.updateValidatorState(validatorId, -int256(claimAmount));
@@ -264,19 +264,40 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         return liquidRewards;
     }
 
-    function _withdrawAndTransferReward() private returns(uint256) {
-        uint256 liquidRewards = _withdrawReward(msg.sender);
+    function _withdrawAndTransferReward(address user) private returns(uint256) {
+        uint256 liquidRewards = _withdrawReward(user);
         if (liquidRewards > 0) {
-            require(stakeManager.transferFunds(validatorId, liquidRewards, msg.sender), "Insufficent rewards");
-            stakingLogger.logDelegatorClaimRewards(validatorId, msg.sender, liquidRewards);
+            require(stakeManager.transferFunds(validatorId, liquidRewards, user), "Insufficent rewards");
+            stakingLogger.logDelegatorClaimRewards(validatorId, user, liquidRewards);
         }
         
         return liquidRewards;
     }
 
     function withdrawRewards() public {
-        uint256 rewards = _withdrawAndTransferReward();
+        uint256 rewards = _withdrawAndTransferReward(msg.sender);
         require(rewards >= minAmount, "Too small rewards amount");
+    }
+
+    function migrateOut(address user, uint256 amount) external onlyOwner {
+        _withdrawAndTransferReward(user);
+        (uint256 totalStaked, uint256 rate) = _getTotalStake(user);
+        require(totalStaked >= amount, "Migrating too much");
+
+        uint256 precision = _getRatePrecision();
+        uint256 shares = amount.mul(precision).div(rate);
+        _burn(user, shares);
+
+        stakeManager.updateValidatorState(validatorId, -int256(amount));
+        _reduceActiveStake(amount);
+
+        stakingLogger.logShareBurned(validatorId, user, amount, shares);
+        stakingLogger.logStakeUpdate(validatorId);
+        stakingLogger.logDelegatorUnstaked(validatorId, user, amount);
+    }
+
+    function migrateIn(address user, uint256 amount) external onlyOwner {
+        _buyShares(amount, 0, user);
     }
 
     function getLiquidRewards(address user) public view returns (uint256) {
