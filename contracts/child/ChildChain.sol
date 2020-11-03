@@ -52,36 +52,6 @@ contract ChildChain is Ownable, StateSyncerVerifier, StateReceiver {
         depositTokens(rootToken, user, amountOrTokenId, depositId);
     }
 
-    function addToken(
-        address _owner,
-        address _rootToken,
-        string memory _name,
-        string memory _symbol,
-        uint8 _decimals,
-        bool _isERC721
-    ) public onlyOwner returns (address token) {
-        // check if root token already exists
-        require(tokens[_rootToken] == address(0x0), "Token already mapped");
-
-        // create new token contract
-        if (_isERC721) {
-            token = address(
-                new ChildERC721(_owner, _rootToken, _name, _symbol)
-            );
-            isERC721[_rootToken] = true;
-        } else {
-            token = address(
-                new ChildERC20(_owner, _rootToken, _name, _symbol, _decimals)
-            );
-        }
-
-        // add mapping with root token
-        tokens[_rootToken] = token;
-
-        // broadcast new token's event
-        emit NewToken(_rootToken, token, _decimals);
-    }
-
     // for testnet updates remove for mainnet
     function mapToken(address rootToken, address token, bool isErc721)
         public
