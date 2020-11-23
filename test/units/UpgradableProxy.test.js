@@ -64,7 +64,7 @@ contract('UpgradableProxy', function() {
     })
   })
 
-  describe('transferOwnership', function() {
+  describe('transferProxyOwnership', function() {
     before(doDeploy)
     before(async function() {
       this.newOwner = wallets[1].getChecksumAddressString()
@@ -72,17 +72,17 @@ contract('UpgradableProxy', function() {
 
     describe('when from is not owner', function() {
       it('reverts', async function() {
-        await expectRevert(this.proxy.transferOwnership(this.newOwner, { from: this.newOwner }), 'NOT_OWNER')
+        await expectRevert(this.proxy.transferProxyOwnership(this.newOwner, { from: this.newOwner }), 'NOT_OWNER')
       })
     })
 
     describe('when from is owner', function() {
       it('must update owner', async function() {
-        await this.proxy.transferOwnership(this.newOwner)
+        await this.proxy.transferProxyOwnership(this.newOwner)
       })
 
       it('must have correct owner', async function() {
-        const owner = await this.proxy.owner()
+        const owner = await this.proxy.proxyOwner()
         owner.should.be.equal(this.newOwner)
       })
     })
