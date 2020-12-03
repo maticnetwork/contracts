@@ -176,8 +176,8 @@ contract('RootChain', async function(accounts) {
     describe.skip('with hardcoded params', async function() {
       before(freshDeploy)
 
-      before(function() {
-        this.reward = '10000000000000000000000'
+      before(async function() {
+        this.reward = await stakeManager.CHECKPOINT_REWARD()
         this.start = 0
         this.end = 255
         this.headerBlockId = '10000'

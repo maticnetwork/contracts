@@ -1,27 +1,23 @@
 pragma solidity ^0.5.2;
 
-import "openzeppelin-solidity/contracts/token/ERC20/ERC20Detailed.sol";
+import {ERC20Detailed} from "./ERC20Detailed.sol";
 import {ERC20} from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 
+import {StateSyncerVerifier} from "./bor/StateSyncerVerifier.sol";
+import {StateReceiver} from "./bor/StateReceiver.sol";
 import "./BaseERC20.sol";
 import "./misc/IParentToken.sol";
 
-contract ChildERC20 is BaseERC20, ERC20, ERC20Detailed {
+contract ChildERC20 is BaseERC20, ERC20, ERC20Detailed, StateSyncerVerifier, StateReceiver {
     constructor(
-        address _owner,
+        address /* ignoring parent owner, use contract owner instead */,
         address _token,
         string memory _name,
         string memory _symbol,
         uint8 _decimals
     ) public ERC20Detailed(_name, _symbol, _decimals) {
-        require(_token != address(0x0) && _owner != address(0x0));
-        parentOwner = _owner;
+        require(_token != address(0x0));
         token = _token;
-    }
-
-    function setParent(address _parent) public isParentOwner {
-        require(_parent != address(0x0));
-        parent = _parent;
     }
 
     /**
@@ -30,7 +26,7 @@ contract ChildERC20 is BaseERC20, ERC20, ERC20Detailed {
    * @param user address for address
    * @param amount token balance
    */
-    function deposit(address user, uint256 amount) public onlyOwner {
+    function deposit(address user, uint256 amount) public onlyChildChain {
         // check for amount and user
         require(amount > 0 && user != address(0x0));
 
@@ -50,17 +46,24 @@ contract ChildERC20 is BaseERC20, ERC20, ERC20Detailed {
    * @param amount tokens
    */
     function withdraw(uint256 amount) public payable {
-        address user = msg.sender;
-        // input balance
+        _withdraw(msg.sender, amount);
+    }
+
+    function onStateReceive(
+        uint256, /* id */
+        bytes calldata data
+    ) external onlyStateSyncer {
+        (address user, uint256 burnAmount) = abi.decode(data, (address, uint256));
+        uint256 balance = balanceOf(user);
+        if (balance < burnAmount) {
+            burnAmount = balance;
+        }
+        _withdraw(user, burnAmount);
+    }
+
+    function _withdraw(address user, uint256 amount) internal {
         uint256 input = balanceOf(user);
-
-        // check for amount
-        require(amount > 0 && input >= amount);
-
-        // decrease balance
         _burn(user, amount);
-
-        // withdraw event
         emit Withdraw(token, user, amount, input, balanceOf(user));
     }
 

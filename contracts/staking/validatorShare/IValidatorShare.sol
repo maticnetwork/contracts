@@ -25,4 +25,8 @@ contract IValidatorShare {
     function slash(uint256 valPow, uint256 delegatedAmount, uint256 totalAmountToSlash) external returns (uint256);
 
     function updateDelegation(bool delegation) external;
+
+    function migrateOut(address user, uint256 amount) external;
+
+    function migrateIn(address user, uint256 amount) external;
 }

@@ -16,7 +16,6 @@ import {IValidatorShare} from "../validatorShare/IValidatorShare.sol";
 import {StakingInfo} from "../StakingInfo.sol";
 import {StakingNFT} from "./StakingNFT.sol";
 import {ValidatorShareFactory} from "../validatorShare/ValidatorShareFactory.sol";
-import {ISlashingManager} from "../slashing/ISlashingManager.sol";
 import {StakeManagerStorage} from "./StakeManagerStorage.sol";
 import {SignerList} from "./SignerList.sol";
 import {IGovernance} from "../../common/governance/IGovernance.sol";
@@ -73,14 +72,14 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
 
         WITHDRAWAL_DELAY = (2**13); // unit: epoch
         currentEpoch = 1;
-        dynasty = 2**13; // unit: epoch 50 days
-        CHECKPOINT_REWARD = 10000 * (10**18); // update via governance
+        dynasty = 886; // unit: epoch 50 days
+        CHECKPOINT_REWARD = 20188 * (10**18); // update via governance
         minDeposit = (10**18); // in ERC20 token
         minHeimdallFee = (10**18); // in ERC20 token
-        checkPointBlockInterval = 255;
+        checkPointBlockInterval = 1024;
         signerUpdateLimit = 100;
 
-        validatorThreshold = 10; //128
+        validatorThreshold = 7; //128
         NFTCounter = 1;
         auctionPeriod = (2**13) / 4; // 1 week in epochs
         proposerBonus = 10; // 10 % of total rewards
@@ -222,8 +221,12 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
     }
 
     // Housekeeping function. @todo remove later
-    function forceUnstake(uint256 validatorId) external onlyOwner {
+    function forceUnstake(uint256 validatorId) external onlyGovernance {
         _unstake(validatorId, currentEpoch);
+    }
+
+    function setCurrentEpoch(uint256 _currentEpoch) external onlyGovernance {
+        currentEpoch = _currentEpoch;
     }
 
     function transferFunds(
@@ -330,30 +333,36 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
         _liquidateRewards(validatorId, msg.sender);
     }
 
+    function migrateDelegation(uint256 fromValidatorId, uint256 toValidatorId, uint256 amount) public {
+        require(fromValidatorId < 8 && toValidatorId > 7, "Invalid migration");
+        IValidatorShare(validators[fromValidatorId].contractAddress).migrateOut(msg.sender, amount);
+        IValidatorShare(validators[toValidatorId].contractAddress).migrateIn(msg.sender, amount);
+    }
+
     function getValidatorId(address user) public view returns (uint256) {
         return NFTContract.tokenOfOwnerByIndex(user, 0);
     }
 
     // set staking Token
-    function setToken(address _token) public onlyOwner {
+    function setToken(address _token) public onlyGovernance {
         require(_token != address(0x0));
         token = IERC20(_token);
     }
 
     // Change the number of validators required to allow a passed header root
-    function updateValidatorThreshold(uint256 newThreshold) public onlyOwner {
+    function updateValidatorThreshold(uint256 newThreshold) public onlyGovernance {
         require(newThreshold > 0);
         logger.logThresholdChange(newThreshold, validatorThreshold);
         validatorThreshold = newThreshold;
     }
 
-    function updateCheckPointBlockInterval(uint256 _blocks) public onlyOwner {
+    function updateCheckPointBlockInterval(uint256 _blocks) public onlyGovernance {
         require(_blocks > 0, "incorrect value");
         checkPointBlockInterval = _blocks;
     }
 
     // Change reward for each checkpoint
-    function updateCheckpointReward(uint256 newReward) public onlyOwner {
+    function updateCheckpointReward(uint256 newReward) public onlyGovernance {
         require(newReward > 0);
         logger.logRewardUpdate(newReward, CHECKPOINT_REWARD);
         CHECKPOINT_REWARD = newReward;
@@ -361,7 +370,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
 
     // Change delegation contract for a validator
     // @note: Users must exit before this update or all funds may get lost
-    function updateContractAddress(uint256 validatorId, address newContractAddress) public onlyOwner {
+    function updateContractAddress(uint256 validatorId, address newContractAddress) public onlyGovernance {
         require(IValidatorShare(newContractAddress).owner() == address(this), "Not stakeManager");
         validators[validatorId].contractAddress = newContractAddress;
     }
@@ -383,14 +392,14 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
     }
 
     function increaseValidatorDelegatedAmount(uint256 validatorId, uint256 amount) public onlyDelegation(validatorId) {
-        validators[validatorId].delegatedAmount = validators[validatorId].delegatedAmount.add(uint256(amount));
+        validators[validatorId].delegatedAmount = validators[validatorId].delegatedAmount.add(amount);
     }
 
     function decreaseValidatorDelegatedAmount(uint256 validatorId, uint256 amount) public onlyDelegation(validatorId) {
-        validators[validatorId].delegatedAmount = validators[validatorId].delegatedAmount.sub(uint256(amount));
+        validators[validatorId].delegatedAmount = validators[validatorId].delegatedAmount.sub(amount);
     }
 
-    function updateDynastyValue(uint256 newDynasty) public onlyOwner {
+    function updateDynastyValue(uint256 newDynasty) public onlyGovernance {
         require(newDynasty > 0);
         logger.logDynastyValueChange(newDynasty, dynasty);
         dynasty = newDynasty;
@@ -401,21 +410,21 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
     }
 
     // Housekeeping function. @todo remove later
-    function stopAuctions(uint256 forNCheckpoints) public onlyOwner {
+    function stopAuctions(uint256 forNCheckpoints) public onlyGovernance {
         replacementCoolDown = currentEpoch.add(forNCheckpoints);
     }
 
-    function updateProposerBonus(uint256 newProposerBonus) public onlyOwner {
+    function updateProposerBonus(uint256 newProposerBonus) public onlyGovernance {
         logger.logProposerBonusChange(newProposerBonus, proposerBonus);
         require(newProposerBonus <= 100, "too big");
         proposerBonus = newProposerBonus;
     }
 
-    function updateSignerUpdateLimit(uint256 _limit) public onlyOwner {
+    function updateSignerUpdateLimit(uint256 _limit) public onlyGovernance {
         signerUpdateLimit = _limit;
     }
 
-    function updateMinAmounts(uint256 _minDeposit, uint256 _minHeimdallFee) public onlyOwner {
+    function updateMinAmounts(uint256 _minDeposit, uint256 _minHeimdallFee) public onlyGovernance {
         minDeposit = _minDeposit;
         minHeimdallFee = _minHeimdallFee;
     }
@@ -751,6 +760,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
         );
     }
 
+    // todo, rename to delegatorsReward
     function accumulatedReward(uint256 validatorId) public view returns(uint256) {
         (, uint256 delegatorsReward) = _evaluateValidatorAndDelegationReward(validatorId);
         return validators[validatorId].accumulatedReward.add(delegatorsReward).sub(INITIALIZED_AMOUNT);
@@ -767,9 +777,9 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
     function withdrawAccumulatedReward(uint256 validatorId) public onlyDelegation(validatorId) returns(uint256) {
         _updateRewards(validatorId);
 
-        uint256 accumulatedReward = validators[validatorId].accumulatedReward.sub(INITIALIZED_AMOUNT);
+        uint256 totalReward = validators[validatorId].accumulatedReward.sub(INITIALIZED_AMOUNT);
         validators[validatorId].accumulatedReward = INITIALIZED_AMOUNT;
-        return accumulatedReward;
+        return totalReward;
     }
 
     function slash(bytes calldata _slashingInfoList) external returns (uint256) {
@@ -799,8 +809,12 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
                 _amount = _amount.sub(delSlashedAmount);
             }
 
-            validators[validatorId].amount = validators[validatorId].amount.sub(_amount);
-            if (slashData[2].toBoolean()) {
+            uint256 validatorStakeSlashed = validators[validatorId].amount.sub(_amount);
+            validators[validatorId].amount = validatorStakeSlashed;
+
+            if (validatorStakeSlashed == 0) {
+                _unstake(validatorId, currentEpoch);    
+            } else if (slashData[2].toBoolean()) {
                 jailedAmount = jailedAmount.add(_jail(validatorId, 1));
                 valJailed++;
             }
@@ -902,8 +916,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
 
         // unbond all delegators in future
         int256 delegationAmount = int256(validators[validatorId].delegatedAmount);
-        if (delegationAmount != 0) {
-            IValidatorShare(validators[validatorId].contractAddress).lock();
+
+        address delegationContract = validators[validatorId].contractAddress;
+        if (delegationContract != address(0)) {
+            IValidatorShare(delegationContract).lock();
         }
 
         _liquidateRewards(validatorId, validator);
@@ -913,7 +929,9 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
         removeSigner(validators[validatorId].signer);
 
         //  update future
-        updateTimeline(-(int256(amount) + delegationAmount), -1, exitEpoch);
+        uint256 targetEpoch = exitEpoch <= currentEpoch ? 0 : exitEpoch;
+        updateTimeline(-(int256(amount) + delegationAmount), -1, targetEpoch);
+
         logger.logUnstakeInit(validator, validatorId, exitEpoch, amount);
     }
 

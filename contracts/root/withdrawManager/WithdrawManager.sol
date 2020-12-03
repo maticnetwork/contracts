@@ -152,27 +152,27 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
         address token,
         uint256 amountOrToken
     ) external payable isBondProvided {
-        (bytes32 depositHash, uint256 createdAt) = getDepositManager().deposits(depositId);
-        require(keccak256(abi.encodePacked(msg.sender, token, amountOrToken)) == depositHash, "UNAUTHORIZED_EXIT");
-        uint256 ageOfInput = getExitableAt(createdAt) << 127;
-        uint256 exitId = ageOfInput << 1;
-        address predicate = registry.isTokenMappedAndGetPredicate(token);
-        _addExitToQueue(
-            msg.sender,
-            token,
-            amountOrToken,
-            bytes32(0), /* txHash */
-            false, /* isRegularExit */
-            exitId
-        );
-        _addInput(
-            exitId,
-            ageOfInput,
-            msg.sender,
-            /* utxoOwner */
-            predicate,
-            token
-        );
+        // (bytes32 depositHash, uint256 createdAt) = getDepositManager().deposits(depositId);
+        // require(keccak256(abi.encodePacked(msg.sender, token, amountOrToken)) == depositHash, "UNAUTHORIZED_EXIT");
+        // uint256 ageOfInput = getExitableAt(createdAt) << 127 | (depositId % 10000 /* MAX_DEPOSITS */);
+        // uint256 exitId = ageOfInput << 1;
+        // address predicate = registry.isTokenMappedAndGetPredicate(token);
+        // _addExitToQueue(
+        //     msg.sender,
+        //     token,
+        //     amountOrToken,
+        //     bytes32(0), /* txHash */
+        //     false, /* isRegularExit */
+        //     exitId,
+        //     predicate
+        // );
+        // _addInput(
+        //     exitId,
+        //     ageOfInput,
+        //     msg.sender, /* utxoOwner */
+        //     predicate,
+        //     token
+        // );
     }
 
     function addExitToQueue(
@@ -185,7 +185,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
         uint256 priority
     ) external checkPredicateAndTokenMapping(rootToken) {
         require(registry.rootToChildToken(rootToken) == childToken, "INVALID_ROOT_TO_CHILD_TOKEN_MAPPING");
-        _addExitToQueue(exitor, rootToken, exitAmountOrTokenId, txHash, isRegularExit, priority);
+        _addExitToQueue(exitor, rootToken, exitAmountOrTokenId, txHash, isRegularExit, priority, msg.sender);
     }
 
     function challengeExit(
@@ -210,13 +210,13 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
         ExitNFT(exitNft).burn(exitId);
 
         // Send bond amount to challenger
-        msg.sender.transfer(BOND_AMOUNT);
+        msg.sender.send(BOND_AMOUNT);
 
         // delete exits[exitId];
         emit ExitCancelled(exitId);
     }
 
-    function processExits(address _token) external {
+    function processExits(address _token) public {
         uint256 exitableAt;
         uint256 exitId;
 
@@ -233,13 +233,9 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
             exitQueue.delMin();
             // If the exitNft was deleted as a result of a challenge, skip processing this exit
             if (!exitNft.exists(exitId)) continue;
-
+            address exitor = exitNft.ownerOf(exitId);
+            exits[exitId].owner = exitor;
             exitNft.burn(exitId);
-
-            address exitor = currentExit.owner;
-
-            // limit the gas amount that predicate.onFinalizeExit() can use, to be able to make gas estimations for bulk process exits
-
             // If finalizing a particular exit is reverting, it will block any following exits from being processed.
             // Hence, call predicate.onFinalizeExit in a revertless manner.
             // (bool success, bytes memory result) =
@@ -251,8 +247,14 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
 
             if (!currentExit.isRegularExit) {
                 // return the bond amount if this was a MoreVp style exit
-                address(uint160(exitor)).transfer(BOND_AMOUNT);
+                address(uint160(exitor)).send(BOND_AMOUNT);
             }
+        }
+    }
+
+    function processExitsBatch(address[] calldata _tokens) external {
+        for (uint256 i = 0; i < _tokens.length; i++) {
+            processExits(_tokens[i]);
         }
     }
 
@@ -319,7 +321,8 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
         uint256 exitAmountOrTokenId,
         bytes32 txHash,
         bool isRegularExit,
-        uint256 exitId
+        uint256 exitId,
+        address predicate
     ) internal {
         require(exits[exitId].token == address(0x0), "EXIT_ALREADY_EXISTS");
         exits[exitId] = PlasmaExit(
@@ -328,8 +331,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
             exitor,
             rootToken,
             isRegularExit,
-            /* predicate */
-            msg.sender
+            predicate
         );
         PlasmaExit storage _exitObject = exits[exitId];
 

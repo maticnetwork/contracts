@@ -15,4 +15,12 @@ contract StakeManagerTestable is StakeManager {
             IValidatorShare(validators[validatorId].contractAddress).unlock();
         }
     }
+
+    function forceFinalizeCommit() public {
+        _finalizeCommit();
+    }
+
+    function resetSignerUsed(address signer) public {
+        signerToValidator[signer] = 0;
+    }
 }

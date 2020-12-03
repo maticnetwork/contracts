@@ -1,50 +1,24 @@
 const fs = require('fs')
 
 const Registry = artifacts.require('Registry')
+const StakeManager = artifacts.require('StakeManager')
 
 const ethUtils = require('ethereumjs-util')
 const EthDeployer = require('moonwalker').default
 
-let id = 33 // THIS SHOULD BE NUMBER OF JOBS PROCESSED IN THE PREVIOUS SCRIPT
+let id = 22 // THIS SHOULD BE NUMBER OF JOBS PROCESSED IN THE PREVIOUS SCRIPT
 
 async function deploy() {
+  if (!process.env.FROM) {
+    throw new Error('Please export FROM env variable - which is the owner of stakeManager')
+  }
+
   const qClient = await EthDeployer.getQueue()
   const deployer = new EthDeployer.Sender(qClient)
 
   // just need this for encodeABI()
   const registry = await Registry.new('0x0000000000000000000000000000000000000000')
-
-  await deployer.deploy(
-    tx('Governance', 'update',
-      [
-        'Registry',
-        {
-          value:
-            registry.contract.methods.updateContractMap(
-              ethUtils.bufferToHex(ethUtils.keccak256('depositManager')),
-              getAddressForContract('DepositManagerProxy')
-            ).encodeABI()
-        }
-      ],
-      'GovernanceProxy'
-    )
-  )
-
-  await deployer.deploy(
-    tx('Governance', 'update',
-      [
-        'Registry',
-        {
-          value:
-            registry.contract.methods.updateContractMap(
-              ethUtils.bufferToHex(ethUtils.keccak256('withdrawManager')),
-              getAddressForContract('WithdrawManagerProxy')
-            ).encodeABI()
-        }
-      ],
-      'GovernanceProxy'
-    )
-  )
+  const stakeManager = await StakeManager.deployed() //new('0x0000000000000000000000000000000000000000')
 
   await deployer.deploy(
     tx('Governance', 'update',
@@ -77,6 +51,7 @@ async function deploy() {
       'GovernanceProxy'
     )
   )
+
   await deployer.deploy(
     tx('Governance', 'update',
       [
@@ -93,82 +68,36 @@ async function deploy() {
     )
   )
 
-
-  await deployer.deploy(
-    tx('Governance', 'update',
-      [
-        'Registry',
-        {
-          value:
-            registry.contract.methods.updateContractMap(
-              ethUtils.bufferToHex(ethUtils.keccak256('stateSender')),
-              getAddressForContract('StateSender')
-            ).encodeABI()
-        },
-      ],
-      'GovernanceProxy'
-    )
-  )
-
-  await deployer.deploy(
-    tx('Governance', 'update',
-      [
-        'Registry',
-        {
-          value:
-            registry.contract.methods.updateContractMap(
-              ethUtils.bufferToHex(ethUtils.keccak256('wethToken')),
-              getAddressForContract('MaticWETH')
-            ).encodeABI()
-        },
-      ],
-      'GovernanceProxy'
-    )
-  )
-
-  await deployer.deploy(
-    tx('Governance', 'update',
-      [
-        'Registry',
-        {
-          value:
-            registry.contract.methods.addErc20Predicate(
-              getAddressForContract('ERC20Predicate')
-            ).encodeABI()
-        },
-      ],
-      'GovernanceProxy'
-    )
-  )
-
-  await deployer.deploy(
-    tx('Governance', 'update',
-      [
-        'Registry',
-        {
-          value:
-            registry.contract.methods.addErc721Predicate(
-              getAddressForContract('ERC721Predicate')
-            ).encodeABI()
-        },
-      ],
-      'GovernanceProxy'
-    )
-  )
-
   await deployer.deploy(tx('StakingNFT', 'transferOwnership', ['StakeManagerProxy']))
   await deployer.deploy(tx('StakeManager', 'initialize', [
-    'Registry',
-    'RootChainProxy',
-    'TestToken',
-    'StakingNFT',
-    'StakingInfo',
-    'ValidatorShareFactory',
-    'GovernanceProxy',
-    { value: process.env.FROM } // owner
-  ],
-  'StakeManagerProxy'
-))
+      'Registry',
+      'RootChainProxy',
+      'TestToken',
+      'StakingNFT',
+      'StakingInfo',
+      'ValidatorShareFactory',
+      'GovernanceProxy',
+      { value: process.env.FROM } // owner
+    ],
+    'StakeManagerProxy'
+  ))
+  
+  // await deployer.deploy(
+  //   tx('Governance', 'update',
+  //     [
+  //       'StakeManagerProxy',
+  //       {
+  //         value:
+  //           stakeManager.contract.methods.reinitialize(
+  //             getAddressForContract('StakingNFT'),
+  //             getAddressForContract('StakingInfo'),
+  //             getAddressForContract('ValidatorShareFactory')
+  //           ).encodeABI()
+  //       }
+  //     ],
+  //     'GovernanceProxy'
+  //   )
+  // )
 }
 
 function tx(contract, method, args, addressArtifact) {
