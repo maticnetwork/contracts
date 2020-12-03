@@ -43,7 +43,7 @@ function testCheckpointing(stakers, signers, blockInterval, checkpointsPassed, e
 
 const ZeroAddr = '0x0000000000000000000000000000000000000000'
 
-contract.only('StakeManager', async function(accounts) {
+contract('StakeManager', async function(accounts) {
   let owner = accounts[0]
 
   async function calculateExpectedCheckpointReward(blockInterval, amount, totalAmount, checkpointsPassed) {
