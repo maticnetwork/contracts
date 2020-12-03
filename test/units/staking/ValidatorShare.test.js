@@ -1118,7 +1118,7 @@ contract('ValidatorShare', async function() {
 
     function testAllRewardsReceived({ validatorReward, totalExpectedRewards }) {
       async function getValidatorReward() {
-        return this.stakeManager.reward(this.validatorId)
+        return this.stakeManager.validatorReward(this.validatorId)
       }
 
       describe('total rewards', function() {

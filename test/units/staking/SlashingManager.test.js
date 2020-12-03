@@ -82,7 +82,7 @@ contract('Slashing:validator', async function(accounts) {
         assertBigNumberEquality(logs[1].args.amount, web3.utils.toWei('100'))
 
         const validator1 = await stakeManager.validators(1)
-        const val1RewardBefore = await stakeManager.reward(1)
+        const val1RewardBefore = await stakeManager.validatorReward(1)
         const validator2 = await stakeManager.validators(2)
 
         assertBigNumberEquality(validator2.amount, web3.utils.toWei('900'))
@@ -93,7 +93,7 @@ contract('Slashing:validator', async function(accounts) {
 
         await checkPoint([validator1Wallet], validator1Wallet, stakeManager)
 
-        const val1RewardAfter = await stakeManager.reward(1)
+        const val1RewardAfter = await stakeManager.validatorReward(1)
         assertBigNumbergt(val1RewardAfter, val1RewardBefore)
         assertBigNumberEquality(val1RewardAfter, await stakeManager.CHECKPOINT_REWARD()) // reward starts from 1, not 0
       })
@@ -110,7 +110,7 @@ contract('Slashing:validator', async function(accounts) {
         await stakeManager.unjail(2, { from: validator2Wallet.getAddressString() })
         assert.equal(await stakeManager.isValidator(2), true)
         await checkPoint([validator1Wallet, validator2Wallet], validator1Wallet, stakeManager)
-        const validator2Reward = await stakeManager.reward(2)
+        const validator2Reward = await stakeManager.validatorReward(2)
         let expectedRewards = await stakeManager.CHECKPOINT_REWARD()
         expectedRewards = expectedRewards.mul(web3.utils.toBN(web3.utils.toWei('900').toString())).div(web3.utils.toBN(web3.utils.toWei('1900').toString()))
         expectedRewards = expectedRewards.mul(web3.utils.toBN('90')).div(web3.utils.toBN('100')) // reduce 10% commission

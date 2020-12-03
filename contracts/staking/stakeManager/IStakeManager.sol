@@ -1,4 +1,4 @@
-pragma solidity ^0.5.2;
+pragma solidity 0.5.17;
 
 contract IStakeManager {
     // validator replacement
@@ -61,5 +61,5 @@ contract IStakeManager {
 
     function withdrawAccumulatedReward(uint256 validatorId) public returns(uint256);
 
-    function accumulatedReward(uint256 validatorId) public view returns(uint256);
+    function delegatorsReward(uint256 validatorId) public view returns(uint256);
 }

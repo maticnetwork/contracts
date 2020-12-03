@@ -35,7 +35,7 @@ function testCheckpointing(stakers, signers, blockInterval, checkpointsPassed, e
     index++
     it(`staker #${stakerIndex} must have ${expectedRewards[staker.wallet.getAddressString()]} reward`, async function() {
       const validatorId = await this.stakeManager.getValidatorId(staker.wallet.getAddressString())
-      const reward = await this.stakeManager.reward(validatorId)
+      const reward = await this.stakeManager.validatorReward(validatorId)
       assertBigNumberEquality(reward, expectedRewards[staker.wallet.getAddressString()])
     })
   }
@@ -43,7 +43,7 @@ function testCheckpointing(stakers, signers, blockInterval, checkpointsPassed, e
 
 const ZeroAddr = '0x0000000000000000000000000000000000000000'
 
-contract('StakeManager', async function(accounts) {
+contract.only('StakeManager', async function(accounts) {
   let owner = accounts[0]
 
   async function calculateExpectedCheckpointReward(blockInterval, amount, totalAmount, checkpointsPassed) {
@@ -1855,7 +1855,7 @@ contract('StakeManager', async function(accounts) {
           this.prevValidatorOldBalance = await this.stakeToken.balanceOf(this.prevValidatorAddr)
 
           this.validator = await this.stakeManager.validators(this.validatorId)
-          this.reward = await this.stakeManager.reward(this.validatorId)
+          this.reward = await this.stakeManager.validatorReward(this.validatorId)
         })
       }
 
@@ -2039,7 +2039,7 @@ contract('StakeManager', async function(accounts) {
         this.prevValidatorAddr = validatorUserAddr
         this.prevValidatorOldBalance = await this.stakeToken.balanceOf(validatorUserAddr)
         this.validator = await this.stakeManager.validators(delegatedValidatorId)
-        this.reward = await this.stakeManager.reward(delegatedValidatorId)
+        this.reward = await this.stakeManager.validatorReward(delegatedValidatorId)
       })
 
       testConfirmAuctionBidForNewValidator()

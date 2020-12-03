@@ -1,4 +1,4 @@
-pragma solidity ^0.5.2;
+pragma solidity 0.5.17;
 
 import {IERC20} from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import {Math} from "openzeppelin-solidity/contracts/math/Math.sol";
@@ -760,18 +760,17 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
         );
     }
 
-    // todo, rename to delegatorsReward
-    function accumulatedReward(uint256 validatorId) public view returns(uint256) {
-        (, uint256 delegatorsReward) = _evaluateValidatorAndDelegationReward(validatorId);
-        return validators[validatorId].accumulatedReward.add(delegatorsReward).sub(INITIALIZED_AMOUNT);
+    function delegatorsReward(uint256 validatorId) public view returns(uint256) {
+        (, uint256 _delegatorsReward) = _evaluateValidatorAndDelegationReward(validatorId);
+        return validators[validatorId].accumulatedReward.add(_delegatorsReward).sub(INITIALIZED_AMOUNT);
     }
 
-    function reward(uint256 validatorId) public view returns(uint256) {
-        uint256 validatorReward;
+    function validatorReward(uint256 validatorId) public view returns(uint256) {
+        uint256 _validatorReward;
         if (validators[validatorId].deactivationEpoch == 0) {
-            (validatorReward,) = _evaluateValidatorAndDelegationReward(validatorId);
+            (_validatorReward,) = _evaluateValidatorAndDelegationReward(validatorId);
         }
-        return validators[validatorId].reward.add(validatorReward).sub(INITIALIZED_AMOUNT);
+        return validators[validatorId].reward.add(_validatorReward).sub(INITIALIZED_AMOUNT);
     }
 
     function withdrawAccumulatedReward(uint256 validatorId) public onlyDelegation(validatorId) returns(uint256) {

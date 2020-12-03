@@ -329,7 +329,7 @@ module.exports = function(accounts) {
       before(async function() {
         this.validatorId = await this.stakeManager.getValidatorId(user)
 
-        const reward = await this.stakeManager.reward(this.validatorId)
+        const reward = await this.stakeManager.validatorReward(this.validatorId)
         this.reward = reward
         this.afterStakeBalance = await this.stakeToken.balanceOf(user)
       })
@@ -395,7 +395,7 @@ module.exports = function(accounts) {
         await checkPoint(w, this.rootChainOwner, this.stakeManager)
         await checkPoint(w, this.rootChainOwner, this.stakeManager)
 
-        this.reward = await this.stakeManager.reward(this.validatorId)
+        this.reward = await this.stakeManager.validatorReward(this.validatorId)
       })
 
       it('must unstake', async function() {
@@ -636,7 +636,7 @@ module.exports = function(accounts) {
 
         it('must claim', async function() {
           this.validatorId = await this.stakeManager.getValidatorId(user)
-          this.reward = await this.stakeManager.reward(this.validatorId)
+          this.reward = await this.stakeManager.validatorReward(this.validatorId)
           this.receipt = await this.stakeManager.unstakeClaim(this.validatorId, {
             from: user
           })
@@ -665,7 +665,7 @@ module.exports = function(accounts) {
 
         it('must claim', async function() {
           this.validatorId = await this.stakeManager.getValidatorId(user)
-          this.reward = await this.stakeManager.reward(this.validatorId)
+          this.reward = await this.stakeManager.validatorReward(this.validatorId)
           this.receipt = await this.stakeManager.unstakeClaim(this.validatorId, {
             from: user
           })
@@ -702,7 +702,7 @@ module.exports = function(accounts) {
 
         it('Eve must have correct rewards', async function() {
           const validatorId = await this.stakeManager.getValidatorId(Eve.getAddressString())
-          this.reward = await this.stakeManager.reward(validatorId)
+          this.reward = await this.stakeManager.validatorReward(validatorId)
           assertBigNumberEquality(this.reward, web3.utils.toWei('12000'))
         })
       })
@@ -759,7 +759,7 @@ module.exports = function(accounts) {
 
         if (!withRewards) {
           this.validatorReward = new BN(0)
-          this.oldReward = await this.stakeManager.reward(this.validatorId)
+          this.oldReward = await this.stakeManager.validatorReward(this.validatorId)
         }
       })
 
@@ -786,13 +786,13 @@ module.exports = function(accounts) {
 
       if (withRewards) {
         it('validator rewards must be 0', async function() {
-          const reward = await this.stakeManager.reward(this.validatorId)
+          const reward = await this.stakeManager.validatorReward(this.validatorId)
 
           assertBigNumberEquality(reward, 0)
         })
       } else {
         it('validator rewards must be untouched', async function() {
-          const reward = await this.stakeManager.reward(this.validatorId)
+          const reward = await this.stakeManager.validatorReward(this.validatorId)
 
           assertBigNumberEquality(reward, this.oldReward)
         })

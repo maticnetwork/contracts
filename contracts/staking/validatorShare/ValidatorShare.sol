@@ -1,4 +1,4 @@
-pragma solidity ^0.5.2;
+pragma solidity 0.5.17;
 
 import {ERC20NonTransferable} from "../../common/tokens/ERC20NonTransferable.sol";
 import {ERC20} from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
@@ -228,7 +228,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
     }
 
     function getRewardPerShare() public view returns(uint256) {
-        return _calculateRewardPerShareWithRewards(stakeManager.accumulatedReward(validatorId));
+        return _calculateRewardPerShareWithRewards(stakeManager.delegatorsReward(validatorId));
     }
 
     function _calculateRewardPerShareWithRewards(uint256 accumulatedReward) private view returns(uint256) {

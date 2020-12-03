@@ -1,4 +1,4 @@
-pragma solidity ^0.5.2;
+pragma solidity 0.5.17;
 
 // note this contract interface is only for stakeManager use
 contract IValidatorShare {
