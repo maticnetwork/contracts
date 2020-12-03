@@ -636,12 +636,13 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
         uint256 totalUnsignedValidators,
         uint256 newRewardPerStake
     ) private {
+        uint256 currentRewardPerStake = rewardPerStake;
         for (uint i = 0; i < totalUnsignedValidators; ++i) {
-            _updateRewardsAndCommit(unsignedValidators[i], newRewardPerStake);
+            _updateRewardsAndCommit(unsignedValidators[i], currentRewardPerStake, newRewardPerStake);
         }
     }
 
-    function _updateRewardsAndCommit(uint256 validatorId, uint256 newRewardPerStake) private {
+    function _updateRewardsAndCommit(uint256 validatorId, uint256 currentRewardPerStake, uint256 newRewardPerStake) private {
         uint256 validatorsStake = validators[validatorId].amount;
         uint256 delegatedAmount = validators[validatorId].delegatedAmount;
         if (delegatedAmount > 0) {
@@ -650,12 +651,12 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
                 validatorId,
                 validatorsStake,
                 delegatedAmount,
-                _getEligibleValidatorReward(validatorId, combinedStakePower)
+                _getEligibleValidatorReward(validatorId, combinedStakePower, currentRewardPerStake)
             );
         } else {
             _increaseValidatorReward(
                 validatorId, 
-                _getEligibleValidatorReward(validatorId, validatorsStake)
+                _getEligibleValidatorReward(validatorId, validatorsStake, currentRewardPerStake)
             );
         }
 
@@ -663,12 +664,11 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
     }
 
     function _updateRewards(uint256 validatorId) private {
-        _updateRewardsAndCommit(validatorId, rewardPerStake);
+        _updateRewardsAndCommit(validatorId, rewardPerStake, rewardPerStake);
     }
 
-    // TODO (denis): it is possible to pass rewardPerStake from outside in update loops to save gas, 800 gas per loop
-    function _getEligibleValidatorReward(uint256 validatorId, uint256 validatorStakePower) private returns(uint256) {
-        uint256 eligibleReward = rewardPerStake - validators[validatorId].initialRewardPerStake;
+    function _getEligibleValidatorReward(uint256 validatorId, uint256 validatorStakePower, uint256 currentRewardPerStake) private returns(uint256) {
+        uint256 eligibleReward = currentRewardPerStake - validators[validatorId].initialRewardPerStake;
         return eligibleReward.mul(validatorStakePower).div(REWARD_PRECISION);
     }
 
