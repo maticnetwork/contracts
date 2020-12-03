@@ -93,7 +93,7 @@ class Deployer {
     stakeManager.setToken = (val) => {
       return governance.update(
         stakeManager.address,
-        stakeManager.contract.methods.setToken(val).encodeABI()
+        stakeManager.contract.methods.setStakingToken(val).encodeABI()
       )
     }
 

@@ -43,7 +43,7 @@ contract('RootChain', async function(accounts) {
     rootChain = contracts.rootChain
     stakeManager = contracts.stakeManager
     stakeToken = await TestToken.new('Stake Token', 'STAKE')
-    await stakeManager.setToken(stakeToken.address)
+    await stakeManager.setStakingToken(stakeToken.address)
     await stakeManager.changeRootChain(rootChain.address)
     await stakeManager.updateCheckPointBlockInterval(1)
 

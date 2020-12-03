@@ -166,7 +166,7 @@ contract('StakeManager', async function(accounts) {
       await freshDeploy.call(this)
 
       this.stakeToken = await TestToken.new('MATIC', 'MATIC')
-      await this.stakeManager.setToken(this.stakeToken.address)
+      await this.stakeManager.setStakingToken(this.stakeToken.address)
       await this.stakeToken.mint(this.stakeManager.address, web3.utils.toWei('10000000'))
 
       this.validatorId = '1'
