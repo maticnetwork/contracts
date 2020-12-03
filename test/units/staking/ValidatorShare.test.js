@@ -102,15 +102,27 @@ contract('ValidatorShare', async function() {
     await freshDeploy.call(this)
 
     this.stakeToken = await TestToken.new('MATIC', 'MATIC')
-    await this.stakeManager.setStakingToken(this.stakeToken.address)
+
+    await this.governance.update(
+      this.stakeManager.address,
+      this.stakeManager.contract.methods.setStakingToken(this.stakeToken.address).encodeABI()
+    )
+
     await this.stakeToken.mint(this.stakeManager.address, toWei('10000000'))
 
     this.validatorId = '8'
     this.validatorUser = wallets[0]
     this.stakeAmount = ValidatorDefaultStake
 
-    await this.stakeManager.updateDynastyValue(Dynasty)
-    await this.stakeManager.updateValidatorThreshold(8)
+    await this.governance.update(
+      this.stakeManager.address,
+      this.stakeManager.contract.methods.updateDynastyValue(Dynasty).encodeABI()
+    )
+
+    await this.governance.update(
+      this.stakeManager.address,
+      this.stakeManager.contract.methods.updateValidatorThreshold(8).encodeABI()
+    )
 
     // we need to increase validator id beyond foundation id, repeat 7 times
     for (let i = 0; i < 7; ++i) {
@@ -732,7 +744,7 @@ contract('ValidatorShare', async function() {
       if (includeBob) {
         await stake({ user: Bob, stake: bobStake })
       }
-      
+
       for (let i = 0; i < 4; i++) {
         await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
       }
@@ -1030,6 +1042,8 @@ contract('ValidatorShare', async function() {
 
     let totalDelegatorRewardsReceived
     let totalSlashed
+    let totalStaked
+    let totalInitialBalance
     let delegators = []
 
     function testWithdraw({ label, user, expectedReward, initialBalance }) {
@@ -1066,9 +1080,12 @@ contract('ValidatorShare', async function() {
       })
     }
 
-    function testStake({ user, amount, label }) {
+    function testStake({ user, amount, label, initialBalance = new BN(0) }) {
       describe(`${label} buyVoucher for ${amount.toString()} wei`, function() {
         it(`must purchase voucher`, async function() {
+          totalInitialBalance = totalInitialBalance.add(initialBalance)
+          totalStaked = totalStaked.add(new BN(amount))
+
           await this.stakeToken.mint(
             user,
             amount
@@ -1132,14 +1149,21 @@ contract('ValidatorShare', async function() {
         })
 
         it(`total received rewards must be correct`, async function() {
-          const totalStake = await this.validatorContract.totalStake()
           const validatorRewards = await getValidatorReward.call(this)
           const totalReceived = validatorRewards.add(totalDelegatorRewardsReceived)
 
           await this.stakeManager.withdrawRewards(this.validatorId, { from: this.validatorUser.getChecksumAddressString() })
 
           const tokensLeft = await this.stakeToken.balanceOf(this.stakeManager.address)
-          assertBigNumberEquality(this.initialStakeTokenBalance.sub(totalReceived).add(totalStake).sub(totalSlashed), tokensLeft)
+
+          assertBigNumberEquality(
+            this.initialStakeTokenBalance
+              .add(totalStaked)
+              .sub(totalReceived)
+              .sub(totalInitialBalance)
+              .sub(totalSlashed),
+            tokensLeft
+          )
         })
       })
     }
@@ -1148,6 +1172,8 @@ contract('ValidatorShare', async function() {
       before(doDeploy)
       before(async function() {
         delegators = {}
+        totalInitialBalance = new BN(0)
+        totalStaked = new BN(0)
         totalSlashed = new BN(0)
         totalDelegatorRewardsReceived = new BN(0)
         this.initialStakeTokenBalance = await this.stakeToken.balanceOf(this.stakeManager.address)
@@ -1183,7 +1209,7 @@ contract('ValidatorShare', async function() {
       runWithdrawRewardsTest([
         { stake: { user: Alice, label: 'Alice', amount: new BN(wei100) } },
         { checkpoints: 1 },
-        { withdraw: { user: Alice, label: 'Alice', expectedReward: toWei('4500'), initialBalance: new BN(0) } },
+        { withdraw: { user: Alice, label: 'Alice', expectedReward: toWei('4500') } },
         { allRewards: { validatorReward: toWei('4500'), totalExpectedRewards: toWei('9000') } }
       ])
     })
@@ -1196,8 +1222,8 @@ contract('ValidatorShare', async function() {
             { slash: { amount: new BN(toWei('100')) } },
             { stake: { user: Bob, label: 'Bob', amount: new BN(wei100) } },
             { checkpoints: 1 },
-            { withdraw: { label: 'Alice', user: Alice, expectedReward: toWei('2250'), initialBalance: new BN(0) } },
-            { withdraw: { label: 'Bob', user: Bob, expectedReward: toWei('4500'), initialBalance: new BN(0) } },
+            { withdraw: { label: 'Alice', user: Alice, expectedReward: toWei('2250') } },
+            { withdraw: { label: 'Bob', user: Bob, expectedReward: toWei('4500') } },
             { allRewards: { validatorReward: toWei('2250'), totalExpectedRewards: toWei('9000') } }
           ])
         })
@@ -1212,8 +1238,8 @@ contract('ValidatorShare', async function() {
             { checkpoints: 2 },
             { liquidRewards: { user: Alice, label: 'Alice', expectedReward: toWei('4500') } },
             { liquidRewards: { user: Bob, label: 'Bob', expectedReward: toWei('9000') } },
-            { withdraw: { label: 'Alice', user: Alice, expectedReward: toWei('4500'), initialBalance: new BN(0) } },
-            { withdraw: { label: 'Bob', user: Bob, expectedReward: toWei('9000'), initialBalance: new BN(0) } },
+            { withdraw: { label: 'Alice', user: Alice, expectedReward: toWei('4500') } },
+            { withdraw: { label: 'Bob', user: Bob, expectedReward: toWei('9000') } },
             { allRewards: { validatorReward: toWei('4500'), totalExpectedRewards: toWei('18000') } }
           ])
         })
@@ -1226,7 +1252,7 @@ contract('ValidatorShare', async function() {
         { checkpoints: 1 },
         { slash: { amount: new BN(toWei('100')) } },
         { liquidRewards: { user: Alice, label: 'Alice', expectedReward: toWei('4500') } },
-        { withdraw: { label: 'Alice', user: Alice, expectedReward: toWei('4500'), initialBalance: new BN(0) } },
+        { withdraw: { label: 'Alice', user: Alice, expectedReward: toWei('4500') } },
         { allRewards: { validatorReward: toWei('4500'), totalExpectedRewards: toWei('9000') } }
       ])
     })
@@ -1247,11 +1273,11 @@ contract('ValidatorShare', async function() {
         { liquidRewards: { user: Bob, label: 'Bob', expectedReward: '9075630252100840336133' } },
         { liquidRewards: { user: Carol, label: 'Carol', expectedReward: '5294117647058823529411' } },
         { slash: { amount: new BN(toWei('167')), nonce: 2 } },
-        { stake: { user: Eve, label: 'Eve', amount: new BN(toWei('500')) } },
+        { stake: { user: Eve, label: 'Eve', amount: new BN(toWei('500')), initialBalance: new BN(1) } },
         { checkpoints: 1 },
-        { withdraw: { user: Alice, label: 'Alice', expectedReward: '6620779672815871910894', initialBalance: new BN(0) } },
-        { withdraw: { user: Bob, label: 'Bob', expectedReward: '10603898364079359554473', initialBalance: new BN(0) } },
-        { withdraw: { user: Carol, label: 'Carol', expectedReward: '8350653871015861966090', initialBalance: new BN(0) } },
+        { withdraw: { user: Alice, label: 'Alice', expectedReward: '6620779672815871910894' } },
+        { withdraw: { user: Bob, label: 'Bob', expectedReward: '10603898364079359554473' } },
+        { withdraw: { user: Carol, label: 'Carol', expectedReward: '8350653871015861966090' } },
         { withdraw: { user: Eve, label: 'Eve', expectedReward: '3803888419273034657649', initialBalance: new BN(1) } },
         { allRewards: { validatorReward: '6620779672815871910888', totalExpectedRewards: '35999999999999999999994' } }
       ])
@@ -1274,11 +1300,11 @@ contract('ValidatorShare', async function() {
         { liquidRewards: { user: Bob, label: 'Bob', expectedReward: '9075630252100840336133' } },
         { liquidRewards: { user: Carol, label: 'Carol', expectedReward: '5294117647058823529411' } },
         { slash: { amount: new BN(toWei('215')), nonce: 3 } },
-        { stake: { user: Eve, label: 'Eve', amount: new BN(toWei('500')) } },
+        { stake: { user: Eve, label: 'Eve', amount: new BN(toWei('500')), initialBalance: new BN(1) } },
         { checkpoints: 1 },
-        { withdraw: { user: Alice, label: 'Alice', expectedReward: '6471712628713457213871', initialBalance: new BN(0) } },
-        { withdraw: { user: Bob, label: 'Bob', expectedReward: '9858563143567286069357', initialBalance: new BN(0) } },
-        { withdraw: { user: Carol, label: 'Carol', expectedReward: '6859983429991714995859', initialBalance: new BN(0) } },
+        { withdraw: { user: Alice, label: 'Alice', expectedReward: '6471712628713457213871' } },
+        { withdraw: { user: Bob, label: 'Bob', expectedReward: '9858563143567286069357' } },
+        { withdraw: { user: Carol, label: 'Carol', expectedReward: '6859983429991714995859' } },
         { withdraw: { user: Eve, label: 'Eve', expectedReward: '6338028169014084507041', initialBalance: new BN(1) } },
         { allRewards: { validatorReward: '6471712628713457213867', totalExpectedRewards: '35999999999999999999995' } }
       ])
@@ -1296,7 +1322,7 @@ contract('ValidatorShare', async function() {
       runWithdrawRewardsTest([
         { stake: { user: Alice, label: 'Alice', amount: new BN(toWei('100')) } },
         { checkpoints: 1 },
-        { withdraw: { user: Alice, label: 'Alice', expectedReward: toWei('4500'), initialBalance: new BN(0) } },
+        { withdraw: { user: Alice, label: 'Alice', expectedReward: toWei('4500') } },
         { withdraw: { user: Alice, label: 'Alice', expectedReward: '0' } }
       ])
     })
