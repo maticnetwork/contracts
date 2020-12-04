@@ -30,11 +30,11 @@ function prepareForTest(dynastyValue, validatorThreshold) {
   }
 }
 
-function testCheckpointing(stakers, signers, blockInterval, checkpointsPassed, expectedRewards) {
+function testCheckpointing(stakers, signers, blockInterval, checkpointsPassed, expectedRewards, order = true) {
   it('must checkpoint', async function() {
     let _count = checkpointsPassed
     while (_count-- > 0) {
-      await checkPoint(signers, this.rootChainOwner, this.stakeManager, { blockInterval })
+      await checkPoint(signers, this.rootChainOwner, this.stakeManager, { blockInterval, order })
     }
   })
 
@@ -443,6 +443,30 @@ contract('StakeManager', async function(accounts) {
         }
       })
     }
+
+    describe('when validator signs twice and sends his 2nd signature out of order', function() {
+      let stakers = [
+        { wallet: wallets[2], stake: new BN(web3.utils.toWei('100')) },
+        { wallet: wallets[4], stake: new BN(web3.utils.toWei('100')) },
+        { wallet: wallets[3], stake: new BN(web3.utils.toWei('1000')) }
+      ]
+
+      const signers = stakers.map(x => x.wallet)
+      signers.splice(0, 0, stakers[2].wallet)
+
+      prepareToTest(stakers, 1)
+
+      before(async function() {
+        console.log('before')
+        await this.stakeManager.updateProposerBonus(0)
+      })
+
+      testCheckpointing(stakers, signers, 1, 1, {
+        [stakers[0].wallet.getAddressString()]: '0',
+        [stakers[1].wallet.getAddressString()]: '0',
+        [stakers[2].wallet.getAddressString()]: '8333333333333333333333' // because not everyone signed, 1000 out of 1200 staked tokens
+      }, false)
+    })
 
     describe('when validators sign several times', function() {
       const stakers = [

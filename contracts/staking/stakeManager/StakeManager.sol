@@ -233,7 +233,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
 
     function updateProposerBonus(uint256 newProposerBonus) public onlyGovernance {
         logger.logProposerBonusChange(newProposerBonus, proposerBonus);
-        require(newProposerBonus <= 100, "too big");
+        require(newProposerBonus <= MAX_PROPOSER_BONUS, "too big");
         proposerBonus = newProposerBonus;
     }
 
@@ -536,7 +536,13 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
             address signer = ECVerify.ecrecovery(voteHash, sigs[i]);
 
             if (signer == lastAdd) {
+                // if signer signs twice, just skip this signature
                 continue;
+            }
+
+            if (signer < lastAdd) {
+                // if signatures are out of order - break out, it is not possible to keep track of unsigned validators
+                break;
             } 
 
             unsignedCtx = _fillUnsignedValidators(unsignedCtx, signer);
@@ -546,7 +552,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
             unstakeCtx.deactivationEpoch = validators[validatorId].deactivationEpoch;
 
             if (
-                _isValidator(validatorId, amount, unstakeCtx.deactivationEpoch, _currentEpoch) && signer > lastAdd
+                _isValidator(validatorId, amount, unstakeCtx.deactivationEpoch, _currentEpoch)
             ) {
                 lastAdd = signer;
 
@@ -782,7 +788,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
         reward = reward.mul(signedStakePower).div(currentTotalStake);
         reward = Math.min(CHECKPOINT_REWARD, reward);
 
-        uint256 _proposerBonus = reward.mul(proposerBonus).div(100);
+        uint256 _proposerBonus = reward.mul(proposerBonus).div(MAX_PROPOSER_BONUS);
         uint256 proposerId = signerToValidator[proposer];
 
         Validator storage _proposer = validators[proposerId];
