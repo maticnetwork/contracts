@@ -14,7 +14,10 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Setup Node.js environment
-      uses: actions/setup-node@v1.4.2
+      uses: actions/setup-node@v2-beta
+      with:
+        node-version: '10.x'
+        registry-url: 'https://registry.npmjs.org'
     - name: Cache npm dependencies
       uses: actions/cache@v1
       with:
