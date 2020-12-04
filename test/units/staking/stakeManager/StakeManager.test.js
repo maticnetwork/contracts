@@ -444,6 +444,30 @@ contract('StakeManager', async function(accounts) {
       })
     }
 
+    describe('when validators sign several times', function() {
+      const stakers = [
+        { wallet: wallets[2], stake: new BN(web3.utils.toWei('100')) },
+        { wallet: wallets[3], stake: new BN(web3.utils.toWei('200')) }
+      ]
+
+      const signers = stakers.map(x => x.wallet)
+      signers.push(stakers[0].wallet)
+      signers.push(stakers[0].wallet)
+      signers.push(stakers[1].wallet)
+      signers.push(stakers[1].wallet)
+
+      prepareToTest(stakers)
+
+      before(async function() {
+        await this.stakeManager.updateProposerBonus(10)
+      })
+
+      testCheckpointing(stakers, signers, 1, 1, {
+        [stakers[0].wallet.getAddressString()]: '3000000000000000000000',
+        [stakers[1].wallet.getAddressString()]: '6000000000000000000000'
+      })
+    })
+
     describe('when 2 validators stakes, block interval 1, 1 epoch', function() {
       const stakers = [
         { wallet: wallets[2], stake: new BN(web3.utils.toWei('100')) },
