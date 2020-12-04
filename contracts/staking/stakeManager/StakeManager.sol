@@ -534,15 +534,18 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
 
         for (uint256 i = 0; i < sigs.length; ++i) {
             address signer = ECVerify.ecrecovery(voteHash, sigs[i]);
+
+            if (signer == lastAdd) {
+                continue;
+            } 
+
             unsignedCtx = _fillUnsignedValidators(unsignedCtx, signer);
 
             uint256 validatorId = signerToValidator[signer];
             uint256 amount = validators[validatorId].amount;
             unstakeCtx.deactivationEpoch = validators[validatorId].deactivationEpoch;
 
-            if (signer == lastAdd) {
-                break;
-            } else if (
+            if (
                 _isValidator(validatorId, amount, unstakeCtx.deactivationEpoch, _currentEpoch) && signer > lastAdd
             ) {
                 lastAdd = signer;
