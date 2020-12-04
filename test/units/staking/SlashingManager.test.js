@@ -13,7 +13,7 @@ import { buyVoucher } from './ValidatorShareHelper.js'
 import { expectEvent, expectRevert } from '@openzeppelin/test-helpers'
 import { BN } from 'ethereumjs-util'
 
-contract('Slashing:validator', async function(accounts) {
+contract.only('Slashing:validator', async function(accounts) {
   let stakeToken
   let stakeManager
   let slashingManager
@@ -188,15 +188,8 @@ contract('Slashing:delegation', async function(accounts) {
       stakeManager = contracts.stakeManager
       slashingManager = contracts.slashingManager
 
-      await this.governance.update(
-        this.stakeManager.address,
-        this.stakeManager.contract.methods.updateDynastyValue(8).encodeABI()
-      )
-
-      await this.governance.update(
-        this.stakeManager.address,
-        this.stakeManager.contract.methods.updateCheckPointBlockInterval(1).encodeABI()
-      )
+      stakeManager.updateDynastyValue(8)
+      stakeManager.updateCheckPointBlockInterval(1)
 
       await stakeManager.changeRootChain(wallets[0].getAddressString())
       const amount = web3.utils.toWei('1002')
