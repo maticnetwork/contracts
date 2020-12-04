@@ -31,6 +31,7 @@ contract('Slashing:validator', async function(accounts) {
 
       await stakeManager.updateDynastyValue(DYNASTY)
       await stakeManager.updateCheckPointBlockInterval(1)
+
       await stakeManager.changeRootChain(wallets[0].getAddressString())
 
       const amount = web3.utils.toWei('1002')
@@ -187,8 +188,16 @@ contract('Slashing:delegation', async function(accounts) {
       stakeManager = contracts.stakeManager
       slashingManager = contracts.slashingManager
 
-      await stakeManager.updateDynastyValue(8)
-      await stakeManager.updateCheckPointBlockInterval(1)
+      await this.governance.update(
+        this.stakeManager.address,
+        this.stakeManager.contract.methods.updateDynastyValue(8).encodeABI()
+      )
+
+      await this.governance.update(
+        this.stakeManager.address,
+        this.stakeManager.contract.methods.updateCheckPointBlockInterval(1).encodeABI()
+      )
+
       await stakeManager.changeRootChain(wallets[0].getAddressString())
       const amount = web3.utils.toWei('1002')
       const stakeAmount = web3.utils.toWei('1000')

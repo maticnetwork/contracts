@@ -21,6 +21,15 @@ import { wallets, freshDeploy, approveAndStake, walletAmounts } from '../deploym
 import { buyVoucher } from '../ValidatorShareHelper.js'
 import { web3 } from '@openzeppelin/test-helpers/src/setup'
 
+function prepareForTest(dynastyValue, validatorThreshold) {
+  return async function() {
+    await freshDeploy.call(this)
+
+    await this.stakeManager.updateValidatorThreshold(validatorThreshold)
+    await this.stakeManager.updateDynastyValue(dynastyValue)
+  }
+}
+
 function testCheckpointing(stakers, signers, blockInterval, checkpointsPassed, expectedRewards) {
   it('must checkpoint', async function() {
     let _count = checkpointsPassed
@@ -163,18 +172,20 @@ contract('StakeManager', async function(accounts) {
 
   describe('updateCommissionRate', function() {
     async function batchDeploy() {
-      await freshDeploy.call(this)
+      await prepareForTest(4, 2).call(this)
 
       this.stakeToken = await TestToken.new('MATIC', 'MATIC')
-      await this.stakeManager.setStakingToken(this.stakeToken.address)
+
+      await this.governance.update(
+        this.stakeManager.address,
+        this.stakeManager.contract.methods.setStakingToken(this.stakeToken.address).encodeABI()
+      )
+
       await this.stakeToken.mint(this.stakeManager.address, web3.utils.toWei('10000000'))
 
       this.validatorId = '1'
       this.validatorUser = wallets[0]
       this.stakeAmount = new BN(web3.utils.toWei('100'))
-
-      await this.stakeManager.updateDynastyValue(8)
-      await this.stakeManager.updateValidatorThreshold(2)
 
       await approveAndStake.call(this, { wallet: this.validatorUser, stakeAmount: this.stakeAmount, acceptDelegation: true })
 
@@ -184,7 +195,6 @@ contract('StakeManager', async function(accounts) {
       this.user = wallets[2].getChecksumAddressString()
 
       const approveAmount = web3.utils.toWei('20000')
-      this.stakeManager.updateDynastyValue(4)
       await this.stakeToken.mint(
         this.user,
         approveAmount
@@ -563,7 +573,7 @@ contract('StakeManager', async function(accounts) {
       ]
 
       prepareToTest(stakers, 1)
-      testCheckpointing(stakers, stakers.slice(0, 1).map(x => x.wallet), 1, 1, {
+      testCheckpointing(stakers, [stakers[0].wallet], 1, 1, {
         [stakers[0].wallet.getAddressString()]: '8490566037735849056604',
         [stakers[1].wallet.getAddressString()]: '0',
         [stakers[2].wallet.getAddressString()]: '0',
@@ -608,14 +618,6 @@ contract('StakeManager', async function(accounts) {
       describe('when sigs is empty', function() {
         beforeEach(function() {
           this.sigs = []
-        })
-
-        testRevert()
-      })
-
-      describe.skip('when proposer is not validator', function() {
-        beforeEach(function() {
-          this.proposer = wallets[1].getAddressString()
         })
 
         testRevert()
@@ -968,18 +970,14 @@ contract('StakeManager', async function(accounts) {
   })
 
   describe('updateValidatorThreshold', function() {
-    before(freshDeploy)
-    before(async function() {
-      await this.stakeManager.updateDynastyValue(2, {
-        from: owner
-      })
-    })
-
+    before(prepareForTest(2, 10))
+    
     function testUpdate(threshold) {
       it(`must set validator threshold to ${threshold}`, async function() {
-        this.receipt = await this.stakeManager.updateValidatorThreshold(threshold, {
-          from: owner
-        })
+        this.receipt = await this.governance.update(
+          this.stakeManager.address,
+          this.stakeManager.contract.methods.updateValidatorThreshold(threshold).encodeABI()
+        )
       })
 
       it(`validatorThreshold == ${threshold}`, async function() {
@@ -1001,16 +999,14 @@ contract('StakeManager', async function(accounts) {
     })
 
     describe('reverts', function() {
-      it('when from is not owner', async function() {
-        await expectRevert.unspecified(this.stakeManager.updateValidatorThreshold(7, {
-          from: accounts[1]
-        }))
+      it('when from is not governance', async function() {
+        await expectRevert(this.stakeManager.contract.methods.updateCheckPointBlockInterval(7).send({
+          from: owner
+        }), 'Only governance contract is authorized')
       })
 
       it('when threshold == 0', async function() {
-        await expectRevert.unspecified(this.stakeManager.updateValidatorThreshold(0, {
-          from: owner
-        }))
+        await expectRevert.unspecified(this.stakeManager.updateValidatorThreshold(0))
       })
     })
   })
@@ -1020,9 +1016,7 @@ contract('StakeManager', async function(accounts) {
       before(freshDeploy)
 
       it('must update dynasty', async function() {
-        this.receipt = await this.stakeManager.updateDynastyValue('10', {
-          from: owner
-        })
+        this.receipt = await this.stakeManager.updateDynastyValue('10')
       })
 
       it('must emit DynastyValueChange', async function() {
@@ -1052,9 +1046,17 @@ contract('StakeManager', async function(accounts) {
       before(freshDeploy)
 
       it('must revert', async function() {
-        await expectRevert.unspecified(this.stakeManager.updateDynastyValue(0, {
+        await expectRevert.unspecified(this.stakeManager.updateDynastyValue('0'))
+      })
+    })
+
+    describe('when from is not governance', function() {
+      before(freshDeploy)
+
+      it('reverts', async function() {
+        await expectRevert(this.stakeManager.contract.methods.updateDynastyValue('10').send({
           from: owner
-        }))
+        }), 'Only governance contract is authorized')
       })
     })
   })
@@ -1065,9 +1067,7 @@ contract('StakeManager', async function(accounts) {
 
       it('must update', async function() {
         this.oldReward = await this.stakeManager.CHECKPOINT_REWARD()
-        this.receipt = await this.stakeManager.updateCheckpointReward(20, {
-          from: owner
-        })
+        this.receipt = await this.stakeManager.updateCheckpointReward(20)
       })
 
       it('must emit RewardUpdate', async function() {
@@ -1082,9 +1082,17 @@ contract('StakeManager', async function(accounts) {
       before(freshDeploy)
 
       it('must revert', async function() {
-        await expectRevert.unspecified(this.stakeManager.updateCheckpointReward(0, {
+        await expectRevert.unspecified(this.stakeManager.updateCheckpointReward(0))
+      })
+    })
+
+    describe('when from is not governance', function() {
+      before(freshDeploy)
+
+      it('reverts', async function() {
+        await expectRevert(this.stakeManager.contract.methods.updateCheckpointReward(20).send({
           from: owner
-        }))
+        }), 'Only governance contract is authorized')
       })
     })
   })
@@ -1641,9 +1649,8 @@ contract('StakeManager', async function(accounts) {
     const initialStakeAmount = web3.utils.toWei('200')
 
     async function doDeploy() {
-      await freshDeploy.call(this)
+      await prepareForTest(8, 10).call(this)
 
-      await this.stakeManager.updateDynastyValue(8)
       for (const wallet of _initialStakers) {
         await approveAndStake.call(this, { wallet, stakeAmount: initialStakeAmount })
       }
@@ -1739,7 +1746,11 @@ contract('StakeManager', async function(accounts) {
       })
 
       it('when bid during replacement cooldown', async function() {
-        await this.stakeManager.updateDynastyValue(7)
+        await this.governance.update(
+          this.stakeManager.address,
+          this.stakeManager.contract.methods.updateDynastyValue('7').encodeABI()
+        )
+
         await expectRevert(this.stakeManager.startAuction(1, this.amount, false, wallets[3].getPrivateKeyString(), {
           from: wallets[3].getAddressString()
         }), 'Cooldown period')
@@ -1791,9 +1802,7 @@ contract('StakeManager', async function(accounts) {
 
     function doDeploy(skipAuctionPeriod = true) {
       return async function() {
-        await freshDeploy.call(this)
-
-        await this.stakeManager.updateDynastyValue(8)
+        await prepareForTest(8, 10).call(this)
 
         // cooldown period
         const replacementCooldown = await this.stakeManager.replacementCoolDown()
@@ -1966,9 +1975,7 @@ contract('StakeManager', async function(accounts) {
 
     function doDeploy() {
       return async function() {
-        await freshDeploy.call(this)
-
-        await this.stakeManager.updateDynastyValue(8)
+        await prepareForTest(8, 10).call(this)
 
         for (const wallet of initialStakers) {
           await approveAndStake.call(this, { wallet, stakeAmount })
@@ -2054,9 +2061,7 @@ contract('StakeManager', async function(accounts) {
     const bidderPubKey = wallets[3].getPublicKeyString()
 
     async function doDeploy() {
-      await freshDeploy.call(this)
-
-      await this.stakeManager.updateDynastyValue(8)
+      await prepareForTest(8, 10).call(this)
 
       for (const wallet of initialStakers) {
         await approveAndStake.call(this, { wallet, stakeAmount, approveAmount: web3.utils.toWei('12500') })

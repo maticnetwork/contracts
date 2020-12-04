@@ -32,6 +32,22 @@ module.exports = function(accounts) {
     }
   }
 
+  function prepareForTest(dynastyValue, validatorThreshold) {
+    return async function() {
+      await freshDeploy.call(this)
+
+      await this.governance.update(
+        this.stakeManager.address,
+        this.stakeManager.contract.methods.updateValidatorThreshold(validatorThreshold).encodeABI()
+      )
+
+      await this.governance.update(
+        this.stakeManager.address,
+        this.stakeManager.contract.methods.updateDynastyValue(dynastyValue).encodeABI()
+      )
+    }
+  }
+
   describe('stake', function() {
     function testStakeRevert(user, userPubkey, amount, stakeAmount, unspecified = false) {
       before('Approve', async function() {
@@ -225,16 +241,7 @@ module.exports = function(accounts) {
     })
 
     describe('stake beyond validator threshold', async function() {
-      before(freshDeploy)
-      before('Validator threshold and dynasty', async function() {
-        await this.stakeManager.updateValidatorThreshold(1, {
-          from: owner
-        })
-
-        await this.stakeManager.updateDynastyValue(2, {
-          from: owner
-        })
-      })
+      before(prepareForTest(2, 1))
 
       describe('when user stakes', function() {
         const amounts = walletAmounts[wallets[3].getAddressString()]
@@ -314,17 +321,7 @@ module.exports = function(accounts) {
       const user = wallets[2].getChecksumAddressString()
       const amounts = walletAmounts[wallets[2].getAddressString()]
 
-      before('Fresh deploy', freshDeploy)
-      before('Validator threshold and dynasty', async function() {
-        await this.stakeManager.updateValidatorThreshold(3, {
-          from: owner
-        })
-
-        await this.stakeManager.updateDynastyValue(2, {
-          from: owner
-        })
-      })
-
+      before('Fresh deploy', prepareForTest(2, 3))
       before(doStake(wallets[2]))
       before(async function() {
         this.validatorId = await this.stakeManager.getValidatorId(user)
@@ -370,16 +367,7 @@ module.exports = function(accounts) {
     })
 
     describe('when user unstakes after 2 epochs', async function() {
-      before('Fresh deploy', freshDeploy)
-      before('Validator threshold and dynasty', async function() {
-        await this.stakeManager.updateValidatorThreshold(3, {
-          from: owner
-        })
-
-        await this.stakeManager.updateDynastyValue(2, {
-          from: owner
-        })
-      })
+      before('Fresh deploy', prepareForTest(2, 3))
 
       const user = wallets[3].getChecksumAddressString()
       const amounts = walletAmounts[wallets[3].getAddressString()]
@@ -486,12 +474,7 @@ module.exports = function(accounts) {
 
   describe('unstakeClaim', function() {
     describe('when user claims right after stake', function() {
-      before('Fresh Deploy', freshDeploy)
-      before('Validator dynasty', async function() {
-        await this.stakeManager.updateDynastyValue(1, {
-          from: owner
-        })
-      })
+      before('Fresh Deploy', prepareForTest(1, 10))
       before('Stake', doStake(wallets[2]))
       before('Unstake', doUnstake(wallets[2]))
 
@@ -506,17 +489,10 @@ module.exports = function(accounts) {
     })
 
     describe('when user claims after 1 epoch and 1 dynasty passed', function() {
-      before('Fresh Deploy', freshDeploy)
-
       let dynasties = 1
       const Alice = wallets[2].getChecksumAddressString()
 
-      before('Validator dynasty', async function() {
-        await this.stakeManager.updateDynastyValue(dynasties, {
-          from: owner
-        })
-      })
-
+      before('Fresh Deploy', prepareForTest(dynasties, 10))
       before('Alice Stake', doStake(wallets[2]))
       before('Bob Stake', doStake(wallets[3]))
       before('Alice Unstake', doUnstake(wallets[2]))
@@ -553,12 +529,7 @@ module.exports = function(accounts) {
     })
 
     describe('when user claims next epoch', function() {
-      before('Fresh Deploy', freshDeploy)
-      before('Validator dynasty', async function() {
-        await this.stakeManager.updateDynastyValue(1, {
-          from: owner
-        })
-      })
+      before('Fresh Deploy', prepareForTest(1, 10))
 
       before('Alice Stake', doStake(wallets[2]))
       before('Bob Stake', doStake(wallets[3]))
@@ -580,12 +551,7 @@ module.exports = function(accounts) {
     })
 
     describe('when user claims before 1 dynasty passed', function() {
-      before('Fresh Deploy', freshDeploy)
-      before('Validator dynasty', async function() {
-        await this.stakeManager.updateDynastyValue(2, {
-          from: owner
-        })
-      })
+      before('Fresh Deploy', prepareForTest(2, 10))
 
       before('Alice Stake', doStake(wallets[2]))
       before('Bob Stake', doStake(wallets[3]))
@@ -607,12 +573,7 @@ module.exports = function(accounts) {
     })
 
     describe('when Alice, Bob and Eve stake, but Alice and Bob claim after 1 epoch and 1 dynasty passed', function() {
-      before(freshDeploy)
-      before('Validator dynasty', async function() {
-        await this.stakeManager.updateDynastyValue(1, {
-          from: owner
-        })
-      })
+      before(prepareForTest(1, 10))
 
       const Alice = wallets[2]
       const Bob = wallets[3]
@@ -715,13 +676,19 @@ module.exports = function(accounts) {
 
     function doDeploy(acceptDelegation) {
       return async function() {
-        await freshDeploy.call(this)
+        await prepareForTest(8, 8).call(this)
 
         const checkpointReward = new BN(web3.utils.toWei('10000'))
 
-        await this.stakeManager.updateCheckpointReward(checkpointReward.toString())
-        await this.stakeManager.updateDynastyValue(8)
-        await this.stakeManager.updateCheckPointBlockInterval(1)
+        await this.governance.update(
+          this.stakeManager.address,
+          this.stakeManager.contract.methods.updateCheckpointReward(checkpointReward.toString()).encodeABI()
+        )
+
+        await this.governance.update(
+          this.stakeManager.address,
+          this.stakeManager.contract.methods.updateCheckPointBlockInterval(1).encodeABI()
+        )
 
         const proposerBonus = 10
         await this.stakeManager.updateProposerBonus(proposerBonus)

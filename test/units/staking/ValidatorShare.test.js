@@ -103,10 +103,7 @@ contract('ValidatorShare', async function() {
 
     this.stakeToken = await TestToken.new('MATIC', 'MATIC')
 
-    await this.governance.update(
-      this.stakeManager.address,
-      this.stakeManager.contract.methods.setStakingToken(this.stakeToken.address).encodeABI()
-    )
+    await this.stakeManager.setStakingToken(this.stakeToken.address)
 
     await this.stakeToken.mint(this.stakeManager.address, toWei('10000000'))
 
@@ -114,15 +111,8 @@ contract('ValidatorShare', async function() {
     this.validatorUser = wallets[0]
     this.stakeAmount = ValidatorDefaultStake
 
-    await this.governance.update(
-      this.stakeManager.address,
-      this.stakeManager.contract.methods.updateDynastyValue(Dynasty).encodeABI()
-    )
-
-    await this.governance.update(
-      this.stakeManager.address,
-      this.stakeManager.contract.methods.updateValidatorThreshold(8).encodeABI()
-    )
+    await this.stakeManager.updateDynastyValue(Dynasty)
+    await this.stakeManager.updateValidatorThreshold(8)
 
     // we need to increase validator id beyond foundation id, repeat 7 times
     for (let i = 0; i < 7; ++i) {
