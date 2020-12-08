@@ -500,7 +500,9 @@ module.exports = function(accounts) {
       before('Checkpoint', async function() {
         this.validatorId = await this.stakeManager.getValidatorId(Alice)
         this.aliceStakeAmount = await this.stakeManager.validatorStake(this.validatorId)
+
         await checkPoint([wallets[3], wallets[2]], this.rootChainOwner, this.stakeManager)
+
         while (dynasties-- > 0) {
           await checkPoint([wallets[3]], this.rootChainOwner, this.stakeManager)
         }

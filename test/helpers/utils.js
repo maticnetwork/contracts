@@ -32,12 +32,16 @@ export const ZeroAddress = '0x0000000000000000000000000000000000000000'
 export let ChildMaticTokenAddress = '0x0000000000000000000000000000000000001010'
 export const scalingFactor = web3.utils.toBN(10).pow(web3.utils.toBN(18))
 
-export function getSigs(wallets, votedata) {
+export function getSigs(wallets, votedata, order = true) {
   // avoid any potential side effects
   const copyWallets = [...wallets]
-  copyWallets.sort((w1, w2) => {
-    return w1.getAddressString().localeCompare(w2.getAddressString())
-  })
+
+  if (order) {
+    copyWallets.sort((w1, w2) => {
+      return w1.getAddressString().localeCompare(w2.getAddressString())
+    })
+  }
+
   const h = ethUtils.toBuffer(votedata)
 
   return copyWallets
@@ -45,7 +49,6 @@ export function getSigs(wallets, votedata) {
       const vrs = ethUtils.ecsign(h, w.getPrivateKey())
       return ethUtils.toRpcSig(vrs.v, vrs.r, vrs.s)
     })
-    .filter(d => d)
 }
 
 export function getSigsWithVotes(_wallets, data, sigPrefix, maxYesVotes) {
@@ -69,7 +72,6 @@ export function getSigsWithVotes(_wallets, data, sigPrefix, maxYesVotes) {
       const vrs = ethUtils.ecsign(voteData, w.getPrivateKey())
       return ethUtils.toRpcSig(vrs.v, vrs.r, vrs.s)
     })
-    .filter(d => d)
 }
 
 export function encodeSigs(sigs = []) {
@@ -87,9 +89,9 @@ export function encodeSigsForCheckpoint(sigs = []) {
   })
 }
 
-export async function checkPoint(wallets, proposer, stakeManager, { blockInterval = 1, rootchainOwner } = {}) {
+export async function checkPoint(wallets, proposer, stakeManager, { blockInterval = 1, rootchainOwner, order = true } = {}) {
   const voteData = 'dummyData'
-  const sigs = encodeSigsForCheckpoint(getSigs(wallets, ethUtils.keccak256(voteData)))
+  const sigs = encodeSigsForCheckpoint(getSigs(wallets, ethUtils.keccak256(voteData), order))
 
   const stateRoot = ethUtils.bufferToHex(ethUtils.keccak256('stateRoot'))
   // 2/3 majority vote

@@ -17,6 +17,7 @@ import {
   getSigs
 } from '../../../helpers/utils.js'
 import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
+import { generateFirstWallets, mnemonics } from '../../../helpers/wallets'
 import { wallets, freshDeploy, approveAndStake, walletAmounts } from '../deployment'
 import { buyVoucher } from '../ValidatorShareHelper.js'
 import { web3 } from '@openzeppelin/test-helpers/src/setup'
@@ -38,15 +39,17 @@ function testCheckpointing(stakers, signers, blockInterval, checkpointsPassed, e
     }
   })
 
-  let index = 0
-  for (const staker of stakers) {
-    let stakerIndex = index + 1
-    index++
-    it(`staker #${stakerIndex} must have ${expectedRewards[staker.wallet.getAddressString()]} reward`, async function() {
-      const validatorId = await this.stakeManager.getValidatorId(staker.wallet.getAddressString())
-      const reward = await this.stakeManager.validatorReward(validatorId)
-      assertBigNumberEquality(reward, expectedRewards[staker.wallet.getAddressString()])
-    })
+  if (expectedRewards) {
+    let index = 0
+    for (const staker of stakers) {
+      let stakerIndex = index + 1
+      index++
+      it(`staker #${stakerIndex} must have ${expectedRewards[staker.wallet.getAddressString()]} reward`, async function() {
+        const validatorId = await this.stakeManager.getValidatorId(staker.wallet.getAddressString())
+        const reward = await this.stakeManager.validatorReward(validatorId)
+        assertBigNumberEquality(reward, expectedRewards[staker.wallet.getAddressString()])
+      })
+    }
   }
 }
 
@@ -431,6 +434,7 @@ contract('StakeManager', async function(accounts) {
     function prepareToTest(stakers, checkpointBlockInterval = 1) {
       before('Fresh deploy', freshDeploy)
       before('updateCheckPointBlockInterval', async function() {
+        await this.stakeManager.updateValidatorThreshold(200)
         await this.stakeManager.updateCheckPointBlockInterval(checkpointBlockInterval)
       })
       before('Approve and stake', async function() {
@@ -457,7 +461,6 @@ contract('StakeManager', async function(accounts) {
       prepareToTest(stakers, 1)
 
       before(async function() {
-        console.log('before')
         await this.stakeManager.updateProposerBonus(0)
       })
 
@@ -490,6 +493,23 @@ contract('StakeManager', async function(accounts) {
         [stakers[0].wallet.getAddressString()]: '3000000000000000000000',
         [stakers[1].wallet.getAddressString()]: '6000000000000000000000'
       })
+    })
+
+    describe('when 200 validators stake, block interval 1, 2 epochs', function() {
+      const stakers = []
+
+      const w = generateFirstWallets(mnemonics, 200)
+      for (let i = 0; i < 200; ++i) {
+        stakers.push({
+          wallet: w[i],
+          stake: new BN(web3.utils.toWei('1'))
+        })
+      }
+
+      prepareToTest(stakers)
+
+      testCheckpointing(stakers, stakers.map(x => x.wallet), 1, 1)
+      testCheckpointing(stakers, stakers.map(x => x.wallet), 1, 1)
     })
 
     describe('when 2 validators stakes, block interval 1, 1 epoch', function() {
@@ -1019,7 +1039,7 @@ contract('StakeManager', async function(accounts) {
 
   describe('updateValidatorThreshold', function() {
     before(prepareForTest(2, 10))
-    
+
     function testUpdate(threshold) {
       it(`must set validator threshold to ${threshold}`, async function() {
         this.receipt = await this.governance.update(
