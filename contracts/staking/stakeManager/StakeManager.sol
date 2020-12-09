@@ -18,12 +18,12 @@ import {StakingInfo} from "../StakingInfo.sol";
 import {StakingNFT} from "./StakingNFT.sol";
 import {ValidatorShareFactory} from "../validatorShare/ValidatorShareFactory.sol";
 import {StakeManagerStorage} from "./StakeManagerStorage.sol";
-import {SignerList} from "./SignerList.sol";
+import {StakeManagerStorageExtension} from "./StakeManagerStorageExtension.sol";
 import {IGovernance} from "../../common/governance/IGovernance.sol";
 import {Initializable} from "../../common/mixin/Initializable.sol";
 import {ValidatorAuction} from "./ValidatorAuction.sol";
 
-contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, SignerList, DelegateProxyForwarder {
+contract StakeManager is StakeManagerStorage, Initializable, StakeManagerStorageExtension, DelegateProxyForwarder, IStakeManager {
     using SafeMath for uint256;
     using Merkle for bytes32;
     using RLPReader for bytes;
@@ -218,9 +218,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
         for (uint256 i = validatorIdFrom; i < validatorIdTo; ++i) {
             ValidatorShare contractAddress = ValidatorShare(validators[i].contractAddress);
             if (contractAddress != ValidatorShare(0)) {
-                validators[i].delegatorsReward = contractAddress.validatorRewards_deprecated();
+                validators[i].delegatorsReward = contractAddress.validatorRewards_deprecated().add(INITIALIZED_AMOUNT);
                 validators[i].delegatedAmount = contractAddress.activeAmount_deprecated();
                 validators[i].commissionRate = contractAddress.commissionRate_deprecated();
+                validators[i].reward = validators[i].reward.add(INITIALIZED_AMOUNT);
             }
         }
     }
@@ -229,6 +230,10 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
         address[] memory _signers
     ) public onlyOwner {
         signers = _signers;
+    }
+
+    function fixStorage() public onlyOwner {
+
     }
 
     /**
@@ -532,7 +537,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
         signerToValidator[currentSigner] = INCORRECT_VALIDATOR_ID;
         signerToValidator[signer] = validatorId;
         validators[validatorId].signer = signer;
-        updateSigner(currentSigner, signer);
+        _updateSigner(currentSigner, signer);
 
         // reset update time to current time
         latestSignerUpdateEpoch[validatorId] = _currentEpoch;
@@ -573,12 +578,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
             }
 
             uint256 validatorId = signerToValidator[signer];
-
-            unsignedCtx = _fillUnsignedValidators(unsignedCtx, signer, unsignedCtx.totalValidators);
-
             uint256 amount = validators[validatorId].amount;
             Status status = validators[validatorId].status;
-            
             unstakeCtx.deactivationEpoch = validators[validatorId].deactivationEpoch;
 
             if (_isValidator(status, amount, unstakeCtx.deactivationEpoch, _currentEpoch)) {
@@ -589,6 +590,8 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
                 if (unstakeCtx.deactivationEpoch != 0) {
                     unstakeCtx.deactivatedValidators[unstakeCtx.validatorIndex] = validatorId;
                     unstakeCtx.validatorIndex++;
+                } else {
+                    unsignedCtx = _fillUnsignedValidators(unsignedCtx, signer, unsignedCtx.totalValidators);
                 }
             } else if (status == Status.Locked) {
                 // make sure that jailed validator doesn't get his rewards too
@@ -1010,7 +1013,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
         _logger.logStaked(signer, signerPubkey, validatorId, _currentEpoch, amount, newTotalStaked);
         NFTCounter = validatorId.add(1);
 
-        insertSigner(signer);
+        _insertSigner(signer);
 
         return validatorId;
     }
@@ -1033,7 +1036,7 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
             IValidatorShare(delegationContract).lock();
         }
 
-        removeSigner(validators[validatorId].signer);
+        _removeSigner(validators[validatorId].signer);
 
         _liquidateRewards(validatorId, validator);
 
@@ -1092,5 +1095,42 @@ contract StakeManager is IStakeManager, StakeManagerStorage, Initializable, Sign
     function _claimFee(address user, uint256 amount) private {
         totalHeimdallFee = totalHeimdallFee.sub(amount);
         logger.logClaimFee(user, amount);
+    }
+
+    function _insertSigner(address newSigner) internal {
+        signers.push(newSigner);
+
+        uint i = signers.length - 1;
+        for (; i > 0; --i) {
+            address signer = signers[i - 1];
+            if (signer < newSigner) {
+                break;
+            }
+            signers[i] = signer;
+        }
+
+        signers[i] = newSigner;
+    }
+
+    function _updateSigner(address prevSigner, address signerToDelete) internal {
+        _removeSigner(prevSigner);
+        _insertSigner(signerToDelete);
+    }
+
+    function _removeSigner(address signerToDelete) internal {
+        uint256 totalSigners = signers.length;
+        address swapSigner = signers[totalSigners - 1];
+        delete signers[totalSigners - 1];
+
+        // bubble last element to the beginning until target signer is met
+        for (uint i = totalSigners - 1; i > 0; --i) {
+            if (swapSigner == signerToDelete) {
+                break;
+            }
+
+            (swapSigner, signers[i - 1]) = (signers[i - 1], swapSigner);
+        }
+
+        signers.length = totalSigners - 1;
     }
 }

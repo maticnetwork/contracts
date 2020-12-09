@@ -9,9 +9,11 @@ import {StakingInfo} from "../StakingInfo.sol";
 import {StakingNFT} from "./StakingNFT.sol";
 import {StakeManager} from "./StakeManager.sol";
 import {StakeManagerStorage} from "./StakeManagerStorage.sol";
+import {StakeManagerStorageExtension} from "./StakeManagerStorageExtension.sol";
 import {Math} from "openzeppelin-solidity/contracts/math/Math.sol";
+import {Initializable} from "../../common/mixin/Initializable.sol";
 
-contract ValidatorAuction is StakeManagerStorage {
+contract ValidatorAuction is StakeManagerStorage, Initializable, StakeManagerStorageExtension {
     using SafeMath for uint256;
 
     constructor() public GovernanceLockable(address(0x0)) {}

@@ -100,10 +100,13 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         Public Methods
      */
 
-    function buyVoucher(uint256 _amount, uint256 _minSharesToMint) public {
+    function buyVoucher(uint256 _amount, uint256 _minSharesToMint) public returns(uint256 amountToDeposit) {
         _withdrawAndTransferReward(msg.sender);
-        uint256 amountToDeposit = _buyShares(_amount, _minSharesToMint, msg.sender);
+        
+        amountToDeposit = _buyShares(_amount, _minSharesToMint, msg.sender);
         require(stakeManager.delegationDeposit(validatorId, amountToDeposit, msg.sender), "deposit failed");
+        
+        return amountToDeposit;
     }
 
     function restake() public {

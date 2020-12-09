@@ -20,15 +20,13 @@ contract IStakeManagerLocal {
         Status status;
         uint256 commissionRate;
         uint256 lastCommissionUpdate;
-        uint256 accumulatedReward;
+        uint256 delegatorsReward;
         uint256 delegatedAmount;
         uint256 initialRewardPerStake;
     }
 
     mapping(uint256 => Validator) public validators;
     bytes32 public accountStateRoot;
-    uint256 public activeAmount; // delegation amount from validator contract
-    uint256 public validatorRewards;
 
     function currentValidatorSetTotalStake() public view returns (uint256);
 
@@ -406,7 +404,7 @@ contract StakingInfo is Ownable {
         IStakeManagerLocal stakeManager = IStakeManagerLocal(
             registry.getStakeManagerAddress()
         );
-        uint256 delegatedAmount;
+        uint256 delegatorsReward;
         (
             amount,
             reward,
@@ -415,9 +413,9 @@ contract StakingInfo is Ownable {
             ,
             signer,
             ,
-            status, , , ,delegatedAmount,
+            status, , , delegatorsReward,,
         ) = stakeManager.validators(validatorId);
-        reward = reward.add(delegatedAmount);
+        reward = reward.add(delegatorsReward);
     }
 
     function totalValidatorStake(uint256 validatorId)
