@@ -30,7 +30,7 @@ contract SignerList {
     function removeSigner(address signerToDelete) internal {
         uint256 totalSigners = signers.length;
         address swapSigner = signers[totalSigners - 1];
-        signers[totalSigners - 1] = address(0);
+        delete signers[totalSigners - 1];
 
         // bubble last element to the beginning until target signer is met
         for (uint i = totalSigners - 1; i > 0; --i) {

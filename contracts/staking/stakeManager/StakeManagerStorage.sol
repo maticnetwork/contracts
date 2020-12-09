@@ -41,7 +41,7 @@ contract StakeManagerStorage is GovernanceLockable, RootChainable {
         Status status;
         uint256 commissionRate;
         uint256 lastCommissionUpdate;
-        uint256 accumulatedReward;
+        uint256 delegatorsReward;
         uint256 delegatedAmount;
         uint256 initialRewardPerStake;
     }

@@ -59,7 +59,7 @@ contract IStakeManager {
 
     function decreaseValidatorDelegatedAmount(uint256 validatorId, uint256 amount) public;
 
-    function withdrawAccumulatedReward(uint256 validatorId) public returns(uint256);
+    function withdrawDelegatorsReward(uint256 validatorId) public returns(uint256);
 
     function delegatorsReward(uint256 validatorId) public view returns(uint256);
 }

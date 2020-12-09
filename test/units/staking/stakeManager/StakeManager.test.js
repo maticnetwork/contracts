@@ -448,6 +448,33 @@ contract('StakeManager', async function(accounts) {
       })
     }
 
+    describe('when validator unstakes but do not sign last checkpoint', function() {
+      const validatorWallet = wallets[2]
+      const validatorId = '1'
+      const stakers = [
+        { wallet: wallets[2], stake: new BN(web3.utils.toWei('100')) },
+        { wallet: wallets[4], stake: new BN(web3.utils.toWei('200')) },
+        { wallet: wallets[3], stake: new BN(web3.utils.toWei('200')) }
+      ]
+
+      const signers = stakers.map(x => x.wallet)
+      signers.splice(0, 1)
+
+      prepareToTest(stakers, 1)
+
+      before('must unstake', async function() {
+        await this.stakeManager.unstake(validatorId, {
+          from: validatorWallet.getChecksumAddressString()
+        })
+      })
+
+      testCheckpointing(stakers, signers, 1, 1, {
+        [stakers[0].wallet.getAddressString()]: '0',
+        [stakers[1].wallet.getAddressString()]: '3600000000000000000000',
+        [stakers[2].wallet.getAddressString()]: '3600000000000000000000'
+      })
+    })
+
     describe('when validator signs twice and sends his 2nd signature out of order', function() {
       let stakers = [
         { wallet: wallets[2], stake: new BN(web3.utils.toWei('100')) },

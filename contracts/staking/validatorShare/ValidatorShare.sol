@@ -27,7 +27,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
     uint256 public lastCommissionUpdate_deprecated;
     uint256 public minAmount;
 
-    uint256 public totalStake_deprecated;
+    uint256 public totalStake_deprecated; 
     uint256 public activeAmount_deprecated;
 
     uint256 public rewardPerShare;
@@ -36,7 +36,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
     uint256 public withdrawPool;
     uint256 public withdrawShares;
 
-    mapping(address => uint256) amountStaked_deprecated;
+    mapping(address => uint256) amountStaked_deprecated; // deprecated, keep for foundation delegators
     mapping(address => DelegatorUnbond) public unbonds;
     mapping(address => uint256) public initalRewardPerShare;
 
@@ -267,7 +267,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
     function _withdrawReward(address user) private returns (uint256) {
         uint256 liquidRewards = getLiquidRewards(user);
         uint256 _rewardPerShare = _calculateRewardPerShareWithRewards(
-            stakeManager.withdrawAccumulatedReward(validatorId)
+            stakeManager.withdrawDelegatorsReward(validatorId)
         );
         rewardPerShare = _rewardPerShare;
         initalRewardPerShare[user] = _rewardPerShare;
