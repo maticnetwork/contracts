@@ -213,8 +213,7 @@ contract StakeManager is StakeManagerStorage, Initializable, StakeManagerStorage
 
     function migrateValidatorsData(
         uint256 validatorIdFrom,
-        uint256 validatorIdTo-++
-
+        uint256 validatorIdTo
     ) public onlyOwner {
         for (uint256 i = validatorIdFrom; i < validatorIdTo; ++i) {
             ValidatorShare contractAddress = ValidatorShare(validators[i].contractAddress);
