@@ -232,10 +232,6 @@ contract StakeManager is StakeManagerStorage, Initializable, StakeManagerStorage
         signers = _signers;
     }
 
-    function fixStorage() public onlyOwner {
-
-    }
-
     /**
         @dev Users must exit before this update or all funds may get lost
      */
