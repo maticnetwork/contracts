@@ -213,7 +213,8 @@ contract StakeManager is StakeManagerStorage, Initializable, StakeManagerStorage
 
     function migrateValidatorsData(
         uint256 validatorIdFrom,
-        uint256 validatorIdTo
+        uint256 validatorIdTo-++
+
     ) public onlyOwner {
         for (uint256 i = validatorIdFrom; i < validatorIdTo; ++i) {
             ValidatorShare contractAddress = ValidatorShare(validators[i].contractAddress);
@@ -851,21 +852,26 @@ contract StakeManager is StakeManagerStorage, Initializable, StakeManagerStorage
         uint256 currentRewardPerStake,
         uint256 newRewardPerStake
     ) private {
-        uint256 validatorsStake = validators[validatorId].amount;
-        uint256 delegatedAmount = validators[validatorId].delegatedAmount;
-        if (delegatedAmount > 0) {
-            uint256 combinedStakePower = validatorsStake.add(delegatedAmount);
-            _increaseValidatorRewardWithDelegation(
-                validatorId,
-                validatorsStake,
-                delegatedAmount,
-                _getEligibleValidatorReward(validatorId, combinedStakePower, currentRewardPerStake)
-            );
-        } else {
-            _increaseValidatorReward(
-                validatorId,
-                _getEligibleValidatorReward(validatorId, validatorsStake, currentRewardPerStake)
-            );
+        uint256 initialRewardPerStake = validators[validatorId].initialRewardPerStake;
+
+        // attempt to save gas in case if rewards were updated previosuly 
+        if (initialRewardPerStake < currentRewardPerStake) {
+            uint256 validatorsStake = validators[validatorId].amount;
+            uint256 delegatedAmount = validators[validatorId].delegatedAmount;
+            if (delegatedAmount > 0) {
+                uint256 combinedStakePower = validatorsStake.add(delegatedAmount);
+                _increaseValidatorRewardWithDelegation(
+                    validatorId,
+                    validatorsStake,
+                    delegatedAmount,
+                    _getEligibleValidatorReward(validatorId, combinedStakePower, currentRewardPerStake, initialRewardPerStake)
+                );
+            } else {
+                _increaseValidatorReward(
+                    validatorId,
+                    _getEligibleValidatorReward(validatorId, validatorsStake, currentRewardPerStake, initialRewardPerStake)
+                );
+            }
         }
 
         validators[validatorId].initialRewardPerStake = newRewardPerStake;
@@ -878,9 +884,10 @@ contract StakeManager is StakeManagerStorage, Initializable, StakeManagerStorage
     function _getEligibleValidatorReward(
         uint256 validatorId,
         uint256 validatorStakePower,
-        uint256 currentRewardPerStake
+        uint256 currentRewardPerStake,
+        uint256 initialRewardPerStake
     ) private returns (uint256) {
-        uint256 eligibleReward = currentRewardPerStake - validators[validatorId].initialRewardPerStake;
+        uint256 eligibleReward = currentRewardPerStake - initialRewardPerStake;
         return eligibleReward.mul(validatorStakePower).div(REWARD_PRECISION);
     }
 
