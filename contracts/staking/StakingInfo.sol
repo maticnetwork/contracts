@@ -3,8 +3,6 @@ pragma solidity ^0.5.2;
 import {Registry} from "../common/Registry.sol";
 import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import {Ownable} from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import {BytesLib} from "../common/lib/BytesLib.sol";
-import {ECVerify} from "../common/lib/ECVerify.sol";
 
 
 // dummy interface to avoid cyclic dependency
@@ -20,12 +18,15 @@ contract IStakeManagerLocal {
         address signer;
         address contractAddress;
         Status status;
+        uint256 commissionRate;
+        uint256 lastCommissionUpdate;
+        uint256 delegatorsReward;
+        uint256 delegatedAmount;
+        uint256 initialRewardPerStake;
     }
 
     mapping(uint256 => Validator) public validators;
     bytes32 public accountStateRoot;
-    uint256 public activeAmount; // delegation amount from validator contract
-    uint256 public validatorRewards;
 
     function currentValidatorSetTotalStake() public view returns (uint256);
 
@@ -181,7 +182,7 @@ contract StakingInfo is Ownable {
 
     modifier onlyValidatorContract(uint256 validatorId) {
         address _contract;
-        (, , , , , , _contract, ) = IStakeManagerLocal(
+        (, , , , , , _contract, , , , ,,) = IStakeManagerLocal(
             registry.getStakeManagerAddress()
         )
             .validators(validatorId);
@@ -193,7 +194,7 @@ contract StakingInfo is Ownable {
     modifier StakeManagerOrValidatorContract(uint256 validatorId) {
         address _contract;
         address _stakeManager = registry.getStakeManagerAddress();
-        (, , , , , , _contract, ) = IStakeManagerLocal(_stakeManager).validators(
+        (, , , , , , _contract, , , , ,,) = IStakeManagerLocal(_stakeManager).validators(
             validatorId
         );
         require(_contract == msg.sender || _stakeManager == msg.sender,
@@ -397,14 +398,13 @@ contract StakingInfo is Ownable {
             uint256 activationEpoch,
             uint256 deactivationEpoch,
             address signer,
-            uint256 _status
+            IStakeManagerLocal.Status status
         )
     {
         IStakeManagerLocal stakeManager = IStakeManagerLocal(
             registry.getStakeManagerAddress()
         );
-        address _contract;
-        IStakeManagerLocal.Status status;
+        uint256 delegatorsReward;
         (
             amount,
             reward,
@@ -412,13 +412,10 @@ contract StakingInfo is Ownable {
             deactivationEpoch,
             ,
             signer,
-            _contract,
-            status
+            ,
+            status, , , delegatorsReward,,
         ) = stakeManager.validators(validatorId);
-        _status = uint256(status);
-        if (_contract != address(0x0)) {
-            reward += IStakeManagerLocal(_contract).validatorRewards();
-        }
+        reward = reward.add(delegatorsReward);
     }
 
     function totalValidatorStake(uint256 validatorId)
@@ -427,13 +424,12 @@ contract StakingInfo is Ownable {
         returns (uint256 validatorStake)
     {
         address contractAddress;
-        (validatorStake, , , , , , contractAddress, ) = IStakeManagerLocal(
+        uint256 delegatedAmount;
+        (validatorStake, , , , , ,contractAddress, , , , ,delegatedAmount,) = IStakeManagerLocal(
             registry.getStakeManagerAddress()
         )
             .validators(validatorId);
-        if (contractAddress != address(0x0)) {
-            validatorStake += IStakeManagerLocal(contractAddress).activeAmount();
-        }
+        validatorStake = validatorStake.add(delegatedAmount);
     }
 
     function getAccountStateRoot()
@@ -450,7 +446,7 @@ contract StakingInfo is Ownable {
         view
         returns (address ValidatorContract)
     {
-        (, , , , , , ValidatorContract, ) = IStakeManagerLocal(
+        (, , , , , , ValidatorContract, , , , ,,) = IStakeManagerLocal(
             registry.getStakeManagerAddress()
         )
             .validators(validatorId);
@@ -502,7 +498,7 @@ contract StakingInfo is Ownable {
         uint256 validatorId,
         uint256 newCommissionRate,
         uint256 oldCommissionRate
-    ) public onlyValidatorContract(validatorId) {
+    ) public onlyStakeManager {
         emit UpdateCommissionRate(
             validatorId,
             newCommissionRate,

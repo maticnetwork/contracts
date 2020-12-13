@@ -1,5 +1,4 @@
-pragma solidity ^0.5.2;
-
+pragma solidity 0.5.17;
 
 contract IStakeManager {
     // validator replacement
@@ -24,13 +23,6 @@ contract IStakeManager {
         address delegator
     ) external returns (bool);
 
-    function stake(
-        uint256 amount,
-        uint256 heimdallFee,
-        bool acceptDelegation,
-        bytes calldata signerPubkey
-    ) external;
-
     function unstake(uint256 validatorId) external;
 
     function totalStakedFor(address addr) external view returns (uint256);
@@ -48,18 +40,26 @@ contract IStakeManager {
         bytes32 voteHash,
         bytes32 stateRoot,
         address proposer,
-        bytes memory sigs
-    ) public returns (uint256);
+        uint[3][] calldata sigs
+    ) external returns (uint256);
 
     function updateValidatorState(uint256 validatorId, int256 amount) public;
 
     function ownerOf(uint256 tokenId) public view returns (address);
 
-    function slash(bytes memory slashingInfoList) public returns (uint256);
+    function slash(bytes calldata slashingInfoList) external returns (uint256);
 
     function validatorStake(uint256 validatorId) public view returns (uint256);
 
     function epoch() public view returns (uint256);
 
     function withdrawalDelay() public view returns (uint256);
+
+    function delegatedAmount(uint256 validatorId) public view returns(uint256);
+
+    function decreaseValidatorDelegatedAmount(uint256 validatorId, uint256 amount) public;
+
+    function withdrawDelegatorsReward(uint256 validatorId) public returns(uint256);
+
+    function delegatorsReward(uint256 validatorId) public view returns(uint256);
 }

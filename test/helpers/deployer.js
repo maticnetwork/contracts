@@ -28,6 +28,7 @@ class Deployer {
       utils.ZeroAddress
     )
     let stakeManager = await contracts.StakeManagerTest.new()
+    const auctionImpl = await contracts.ValidatorAuction.new()
     await proxy.updateAndCall(stakeManager.address, stakeManager.contract.methods.initialize(
       this.registry.address,
       this.rootChain.address,
@@ -36,7 +37,8 @@ class Deployer {
       this.stakingInfo.address,
       this.validatorShareFactory.address,
       this.governance.address,
-      owner
+      owner,
+      auctionImpl.address
     ).encodeABI())
 
     this.stakeManager = await contracts.StakeManager.at(proxy.address)
@@ -88,10 +90,10 @@ class Deployer {
       )
     }
 
-    stakeManager.setToken = (val) => {
+    stakeManager.setStakingToken = (val) => {
       return governance.update(
         stakeManager.address,
-        stakeManager.contract.methods.setToken(val).encodeABI()
+        stakeManager.contract.methods.setStakingToken(val).encodeABI()
       )
     }
 
@@ -159,6 +161,7 @@ class Deployer {
     let proxy = await contracts.StakeManagerProxy.new(
       utils.ZeroAddress
     )
+    const auctionImpl = await contracts.ValidatorAuction.new()
     await proxy.updateAndCall(stakeManager.address, stakeManager.contract.methods.initialize(
       this.registry.address,
       rootChainOwner.getAddressString(),
@@ -167,7 +170,8 @@ class Deployer {
       this.stakingInfo.address,
       this.validatorShareFactory.address,
       this.governance.address,
-      wallets[0].getAddressString()
+      wallets[0].getAddressString(),
+      auctionImpl.address
     ).encodeABI())
 
     this.stakeManager = await contracts.StakeManagerTestable.at(proxy.address)

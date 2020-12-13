@@ -7,7 +7,7 @@
     "contracts": "RootChain StakeManager"
   },
   "scripts": {
-    "testrpc": "ganache-cli --hardfork istanbul --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' -p 9545 --gasLimit 8000000 --gasPrice 0",
+    "testrpc": "ganache-cli --hardfork istanbul --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' -p 9545 --gasLimit 10000000 --gasPrice 0 --allowUnlimitedContractSize --accounts 200",
     "template:process": "node scripts/process-templates.js",
     "truffle": "truffle",
     "truffle:test": "truffle test",

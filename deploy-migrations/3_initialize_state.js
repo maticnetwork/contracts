@@ -110,7 +110,7 @@ module.exports = async function(deployer, network) {
         )
 
         await stakingNFT.transferOwnership(StakeManagerProxy.address)
-        await (await StakeManager.at(stakeManagerProxy.address)).setToken(testToken.address)
+        await (await StakeManager.at(stakeManagerProxy.address)).setStakingToken(testToken.address)
 
         // whitelist predicates
         await governance.update(

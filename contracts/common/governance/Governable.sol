@@ -10,10 +10,14 @@ contract Governable {
     }
 
     modifier onlyGovernance() {
+        _assertGovernance();
+        _;
+    }
+
+    function _assertGovernance() private view {
         require(
             msg.sender == address(governance),
             "Only governance contract is authorized"
         );
-        _;
     }
 }
