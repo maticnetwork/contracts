@@ -24,7 +24,7 @@ const mallory = wallets[1].getAddressString()
 
 contract('TransferWithSigPredicate @skip-on-coverage', async function(accounts) {
   before(async function() {
-    contracts = await deployer.freshDeploy()
+    contracts = await deployer.freshDeploy(accounts[0])
     childContracts = await deployer.initializeChildChain(accounts[0])
     await deployer.deployErc20Predicate()
     transferWithSigPredicate = await deployer.deployTransferWithSigPredicate()

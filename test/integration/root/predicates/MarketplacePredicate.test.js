@@ -42,7 +42,7 @@ contract('MarketplacePredicate @skip-on-coverage', async function(accounts) {
   })
 
   beforeEach(async function() {
-    contracts = await deployer.freshDeploy()
+    contracts = await deployer.freshDeploy(accounts[0])
     contracts.withdrawManager = await deployer.deployWithdrawManager()
     erc20Predicate = await deployer.deployErc20Predicate()
     erc721Predicate = await deployer.deployErc721Predicate()

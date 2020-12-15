@@ -45,12 +45,11 @@ contract BaseERC20 is ChildToken {
             "Signature is expired"
         );
 
-        bytes32 dataHash = getTokenTransferOrderHash(
-            msg.sender,
-            amount,
-            data,
-            expiration
+        bytes32 dataHash = hashEIP712MessageWithAddress(
+            hashTokenTransferOrder(msg.sender, amount, data, expiration),
+            address(this)
         );
+
         require(disabledHashes[dataHash] == false, "Sig deactivated");
         disabledHashes[dataHash] = true;
 

@@ -22,7 +22,7 @@ export function getAge(utxo) {
   // Todo: address the now + 1 Week thing in priority
   // Math.max(createdAt + 2 Week, now + 1 Week);
   return utxo.checkpoint.createdAt
-    .add(web3.utils.toBN(14 * 86400)) // createdAt + 2 Weeks
+    .add(web3.utils.toBN(7 * 86400)) // createdAt + 1 Weeks
     .shln(127)
     .or(web3.utils.toBN(utxo.checkpoint.block.number).shln(32))
     .or(web3.utils.toBN(parseInt(utxo.checkpoint.reference.path.toString('hex'), 16)))

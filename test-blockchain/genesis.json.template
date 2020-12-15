@@ -1,7 +1,7 @@
 {
   "config": {
     "chainId": {{ borChainId }},
-    "homesteadBlock": 1,
+    "homesteadBlock": 0,
     "eip150Block": 0,
     "eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
     "eip155Block": 0,
@@ -14,6 +14,7 @@
     "eip2200Transition": 0,
     "byzantiumBlock": 0,
     "constantinopleBlock": 0,
+    "petersburgBlock": 0,
     "istanbulBlock": 0,
     "bor": {
       "period": 1,
@@ -27,7 +28,7 @@
   "nonce": "0x0",
   "timestamp": "0x5ce28211",
   "extraData": "",
-  "gasLimit": "0x989680",
+  "gasLimit": "0x1312D00",
   "difficulty": "0x1",
   "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
   "coinbase": "0x0000000000000000000000000000000000000000",

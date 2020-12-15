@@ -7,7 +7,10 @@ import {
 import "./ChildToken.sol";
 import "./misc/IParentToken.sol";
 
-contract ChildERC721 is ChildToken, ERC721Full {
+import {StateSyncerVerifier} from "./bor/StateSyncerVerifier.sol";
+import {StateReceiver} from "./bor/StateReceiver.sol";
+
+contract ChildERC721 is ChildToken, ERC721Full, StateSyncerVerifier, StateReceiver {
     event Deposit(address indexed token, address indexed from, uint256 tokenId);
 
     event Withdraw(
@@ -24,13 +27,12 @@ contract ChildERC721 is ChildToken, ERC721Full {
     );
 
     constructor(
-        address _owner,
+        address /* ignoring parent owner, use contract owner instead */,
         address _token,
         string memory name,
         string memory symbol
     ) public ERC721Full(name, symbol) {
-        require(_token != address(0x0) && _owner != address(0x0));
-        parentOwner = _owner;
+        require(_token != address(0x0));
         token = _token;
     }
 
@@ -46,11 +48,9 @@ contract ChildERC721 is ChildToken, ERC721Full {
             "Signature is expired"
         );
 
-        bytes32 dataHash = getTokenTransferOrderHash(
-            msg.sender,
-            tokenId,
-            data,
-            expiration
+        bytes32 dataHash = hashEIP712MessageWithAddress(
+            hashTokenTransferOrder(msg.sender, tokenId, data, expiration),
+            address(this)
         );
         require(disabledHashes[dataHash] == false, "Sig deactivated");
         disabledHashes[dataHash] = true;
@@ -63,11 +63,6 @@ contract ChildERC721 is ChildToken, ERC721Full {
             "_checkOnERC721Received failed"
         );
         return from;
-    }
-
-    function setParent(address _parent) public isParentOwner {
-        require(_parent != address(0x0));
-        parent = _parent;
     }
 
     function approve(address to, uint256 tokenId) public {
@@ -99,7 +94,7 @@ contract ChildERC721 is ChildToken, ERC721Full {
    * @param user address for deposit
    * @param tokenId tokenId to mint to user's account
    */
-    function deposit(address user, uint256 tokenId) public onlyOwner {
+    function deposit(address user, uint256 tokenId) public onlyChildChain {
         require(user != address(0x0));
         _mint(user, tokenId);
         emit Deposit(token, user, tokenId);
@@ -113,6 +108,15 @@ contract ChildERC721 is ChildToken, ERC721Full {
         require(ownerOf(tokenId) == msg.sender);
         _burn(msg.sender, tokenId);
         emit Withdraw(token, msg.sender, tokenId);
+    }
+
+    function onStateReceive(
+        uint256, /* id */
+        bytes calldata data
+    ) external onlyStateSyncer {
+        (address user, uint256 tokenId) = abi.decode(data, (address, uint256));
+        _burn(user, tokenId);
+        emit Withdraw(token, user, tokenId);
     }
 
     /**

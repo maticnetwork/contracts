@@ -157,7 +157,18 @@ async function deploy() {
   )
 
   await deployer.deploy(tx('StakingNFT', 'transferOwnership', ['StakeManagerProxy']))
-  await deployer.deploy(tx('StakeManager', 'setToken', ['TestToken'], 'StakeManagerProxy'))
+  await deployer.deploy(tx('StakeManager', 'initialize', [
+    'Registry',
+    'RootChainProxy',
+    'TestToken',
+    'StakingNFT',
+    'StakingInfo',
+    'ValidatorShareFactory',
+    'GovernanceProxy',
+    { value: process.env.FROM } // owner
+  ],
+  'StakeManagerProxy'
+))
 }
 
 function tx(contract, method, args, addressArtifact) {

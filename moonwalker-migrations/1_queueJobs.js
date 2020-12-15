@@ -45,19 +45,19 @@ async function deploy() {
   await deployer.deploy(transformArtifact('MaticWETH'))
 
   await deployer.deploy(transformArtifact('StakeManager'))
-  await deployer.deploy(transformArtifact('StakeManagerProxy', ['StakeManager', 'Registry', 'RootChainProxy', 'TestToken', 'StakingNFT', 'StakingInfo', 'ValidatorShareFactory', 'GovernanceProxy']))
+  await deployer.deploy(transformArtifact('StakeManagerProxy', ['StakeManager']))
   await deployer.deploy(transformArtifact('SlashingManager', ['Registry', 'StakingInfo', { value: process.env.HEIMDALL_ID }]))
   await deployer.deploy(transformArtifact('ValidatorShare', ['Registry', { value: '0' }, 'StakingNFT', 'StakeManagerProxy']))
-  await deployer.deploy(transformArtifact('StateSender'))
 
+  await deployer.deploy(transformArtifact('StateSender'))
   await deployer.deploy(transformArtifact('DepositManager'))
   await deployer.deploy(transformArtifact('DepositManagerProxy', ['DepositManager', 'Registry', 'RootChainProxy', 'GovernanceProxy']))
 
   await deployer.deploy(transformArtifact('WithdrawManager'))
   await deployer.deploy(transformArtifact('ExitNFT', ['Registry']))
   await deployer.deploy(transformArtifact('WithdrawManagerProxy', ['WithdrawManager', 'Registry', 'RootChainProxy', 'ExitNFT']))
-  await deployer.deploy(transformArtifact('ERC20Predicate', ['WithdrawManagerProxy', 'DepositManagerProxy', 'Registry']))
-  await deployer.deploy(transformArtifact('ERC721Predicate', ['WithdrawManagerProxy', 'DepositManagerProxy']))
+  await deployer.deploy(transformArtifact('ERC20PredicateBurnOnly', ['WithdrawManagerProxy', 'DepositManagerProxy', 'Registry']))
+  await deployer.deploy(transformArtifact('ERC721PredicateBurnOnly', ['WithdrawManagerProxy', 'DepositManagerProxy']))
 }
 
 function transformArtifact(contract, args = []) {

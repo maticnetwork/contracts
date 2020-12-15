@@ -4,7 +4,7 @@ import {Registry} from "../../common/Registry.sol";
 import {RootChain} from "../RootChain.sol";
 import {ProxyStorage} from "../../common/misc/ProxyStorage.sol";
 import {StateSender} from "../stateSyncer/StateSender.sol";
-import {Lockable} from "../../common/mixin/Lockable.sol";
+import {GovernanceLockable} from "../../common/mixin/GovernanceLockable.sol";
 
 
 contract DepositManagerHeader {
@@ -18,7 +18,7 @@ contract DepositManagerHeader {
 }
 
 
-contract DepositManagerStorage is ProxyStorage, Lockable, DepositManagerHeader {
+contract DepositManagerStorage is ProxyStorage, GovernanceLockable, DepositManagerHeader {
     Registry public registry;
     RootChain public rootChain;
     StateSender public stateSender;

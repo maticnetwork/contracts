@@ -1,22 +1,22 @@
 pragma solidity ^0.5.2;
 
-import {Governable} from "../governance/Governable.sol";
-
-contract Lockable is Governable {
+contract Lockable {
     bool public locked;
 
     modifier onlyWhenUnlocked() {
-        require(!locked, "Is Locked");
+        _assertUnlocked();
         _;
     }
 
-    constructor(address _governance) public Governable(_governance) {}
+    function _assertUnlocked() private view {
+        require(!locked, "locked");
+    }
 
-    function lock() external onlyGovernance {
+    function lock() public {
         locked = true;
     }
 
-    function unlock() external onlyGovernance {
+    function unlock() public {
         locked = false;
     }
 }
