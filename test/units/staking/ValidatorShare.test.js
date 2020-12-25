@@ -1802,17 +1802,4 @@ contract('ValidatorShare', async function() {
       })
     })
   })
-
-  describe('Shares transfer', function() {
-    deployAliceAndBob()
-    before(async function() {
-      await buyVoucher(this.validatorContract, toWei('100'), this.alice)
-    })
-
-    it('Transfer of shares must revert', async function() {
-      await this.validatorContract.Transfer(this.bob)
-      const balance = await this.validatorContract.balanceOf(this.bob)
-      await expectRevert(this.validatorContract.transfer(this.alice, balance), 'Disabled')
-    })
-  })
 })

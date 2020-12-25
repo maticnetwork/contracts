@@ -1,6 +1,5 @@
 pragma solidity ^0.5.2;
 
-import {ERC20NonTransferable} from "../../common/tokens/ERC20NonTransferable.sol";
 import {ERC20} from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import {StakingInfo} from "./../StakingInfo.sol";
 import {OwnableLockable} from "../../common/mixin/OwnableLockable.sol";
@@ -8,7 +7,7 @@ import {IStakeManager} from "../stakeManager/IStakeManager.sol";
 import {IValidatorShare} from "./IValidatorShare.sol";
 import {Initializable} from "../../common/mixin/Initializable.sol";
 
-contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockable, Initializable {
+contract ValidatorShare is IValidatorShare, ERC20, OwnableLockable, Initializable {
     struct DelegatorUnbond {
         uint256 shares;
         uint256 withdrawEpoch;
