@@ -7,13 +7,9 @@ import {OwnableLockable} from "../../common/mixin/OwnableLockable.sol";
 import {IStakeManager} from "../stakeManager/IStakeManager.sol";
 import {IValidatorShare} from "./IValidatorShare.sol";
 import {Initializable} from "../../common/mixin/Initializable.sol";
+import {ValidatorShareStorageExtension} from "./ValidatorShareStorageExtension.sol";
 
-contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockable, Initializable {
-    struct DelegatorUnbond {
-        uint256 shares;
-        uint256 withdrawEpoch;
-    }
-
+contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockable, Initializable, ValidatorShareStorageExtension {
     uint256 constant EXCHANGE_RATE_PRECISION = 100;
     // maximum matic possible, even if rate will be 1 and all matic will be staken in one go, it will result in 10 ^ 58 shares
     uint256 constant EXCHANGE_RATE_HIGH_PRECISION = 10**29;
@@ -153,7 +149,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         unbonds[msg.sender] = unbond;
 
         StakingInfo logger = stakingLogger;
-        logger.logShareBurned(validatorId, msg.sender, claimAmount, shares);
+        logger.logShareBurned(validatorId, msg.sender, claimAmount, shares, 0);
         logger.logStakeUpdate(validatorId);
     }
 
@@ -173,7 +169,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
 
         stakeManager.updateValidatorState(validatorId, -int256(amount));
 
-        stakingLogger.logShareBurned(validatorId, user, amount, shares);
+        stakingLogger.logShareBurned(validatorId, user, amount, shares, 0);
         stakingLogger.logStakeUpdate(validatorId);
         stakingLogger.logDelegatorUnstaked(validatorId, user, amount);
     }
@@ -234,6 +230,60 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         } else {
             require(ERC20(token).transfer(destination, amount), "Drain failed");
         }
+    }
+
+    /**
+        New shares exit API
+     */
+
+    function sellVoucher_new(uint256 claimAmount, uint256 maximumSharesToBurn) public {
+        // first get how much staked in total and compare to target unstake amount
+        (uint256 totalStaked, uint256 rate) = getTotalStake(msg.sender);
+        require(totalStaked > 0 && totalStaked >= claimAmount, "Too much requested");
+
+        // convert requested amount back to shares
+        uint256 precision = _getRatePrecision();
+        uint256 shares = claimAmount.mul(precision).div(rate);
+        require(shares <= maximumSharesToBurn, "too much slippage");
+
+        _withdrawAndTransferReward(msg.sender);
+
+        _burn(msg.sender, shares);
+        stakeManager.updateValidatorState(validatorId, -int256(claimAmount));
+
+        uint256 _withdrawPoolShare = claimAmount.mul(precision).div(withdrawExchangeRate());
+        withdrawPool = withdrawPool.add(claimAmount);
+        withdrawShares = withdrawShares.add(_withdrawPoolShare);
+
+        uint256 unbondNonce = unbondNonces[msg.sender].add(1);
+
+        DelegatorUnbond memory unbond = DelegatorUnbond({
+            shares: _withdrawPoolShare,
+            withdrawEpoch: stakeManager.epoch()
+        });
+        unbonds_new[msg.sender][unbondNonce] = unbond;
+        unbondNonces[msg.sender] = unbondNonce;
+
+        StakingInfo logger = stakingLogger;
+        logger.logShareBurned(validatorId, msg.sender, claimAmount, shares, unbondNonce);
+        logger.logStakeUpdate(validatorId);
+    }
+
+    function unstakeClaimTokens_new(uint256 unbondNonce) public {
+        DelegatorUnbond memory unbond = unbonds_new[msg.sender][unbondNonce];
+        uint256 shares = unbond.shares;
+        require(
+            unbond.withdrawEpoch.add(stakeManager.withdrawalDelay()) <= stakeManager.epoch() && shares > 0,
+            "Incomplete withdrawal period"
+        );
+
+        uint256 _amount = withdrawExchangeRate().mul(shares).div(_getRatePrecision());
+        withdrawShares = withdrawShares.sub(shares);
+        withdrawPool = withdrawPool.sub(_amount);
+
+        require(stakeManager.transferFunds(validatorId, _amount, msg.sender), "Insufficent rewards");
+        stakingLogger.logDelegatorUnstaked(validatorId, msg.sender, _amount);
+        delete unbonds_new[msg.sender][unbondNonce];
     }
 
     /**
