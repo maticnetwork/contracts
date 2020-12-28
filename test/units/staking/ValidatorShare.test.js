@@ -1629,15 +1629,65 @@ contract('ValidatorShare', async function() {
     })
   })
 
-  describe('Shares transfer', function() {
-    deployAliceAndBob()
-    before(async function() {
-      await buyVoucher(this.validatorContract, toWei('100'), this.alice)
+  describe('transfer', function() {
+    describe('when Alice has no rewards', function() {
+      deployAliceAndBob()
+
+      let initialSharesBalance
+
+      before('Alice purchases voucher', async function() {
+        await buyVoucher(this.validatorContract, toWei('100'), this.alice)
+        initialSharesBalance = await this.validatorContract.balanceOf(this.alice)
+      })
+
+      it('must Transfer shares', async function() {
+        await this.validatorContract.transfer(this.bob, initialSharesBalance, { from: this.alice })
+      })
+
+      it('Alice must have 0 shares', async function() {
+        assertBigNumberEquality(await this.validatorContract.balanceOf(this.alice), '0')
+      })
+
+      it('Bob must have Alice\'s shares', async function() {
+        assertBigNumberEquality(await this.validatorContract.balanceOf(this.bob), initialSharesBalance)
+      })
     })
 
-    it('Transfer of shares must revert', async function() {
-      const balance = await this.validatorContract.balanceOf(this.alice)
-      await expectRevert(this.validatorContract.transfer(this.bob, balance, { from: this.alice }), 'Disabled')
+    describe('when Alice and Bob has unclaimed rewards', function() {
+      deployAliceAndBob()
+
+      let initialAliceSharesBalance
+      let initialBobSharesBalance
+
+      before('Alice purchases voucher, checkpoint is commited', async function() {
+        await buyVoucher(this.validatorContract, ValidatorDefaultStake, this.alice) 
+        await buyVoucher(this.validatorContract, ValidatorDefaultStake, this.bob) 
+
+        initialAliceSharesBalance = await this.validatorContract.balanceOf(this.alice)
+        initialBobSharesBalance = await this.validatorContract.balanceOf(this.bob)
+
+        await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
+      })
+
+      it('must Transfer shares', async function() {
+        await this.validatorContract.transfer(this.bob, initialAliceSharesBalance, { from: this.alice })
+      })
+
+      it('Alice must have 0 shares', async function() {
+        assertBigNumberEquality(await this.validatorContract.balanceOf(this.alice), '0')
+      })
+
+      it('Bob must have Alice\'s shares', async function() {
+        assertBigNumberEquality(await this.validatorContract.balanceOf(this.bob), initialBobSharesBalance.add(initialAliceSharesBalance.add(new BN(toWei('3000')))))
+      })
+
+      it('Alice must have 0 liquid rewards', async function() {
+        assertBigNumberEquality(await this.validatorContract.getLiquidRewards(this.alice), '0')
+      })
+
+      it('Bob must have 0 liquid rewards', async function() {
+        assertBigNumberEquality(await this.validatorContract.getLiquidRewards(this.bob), '0')
+      })
     })
   })
 })

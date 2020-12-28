@@ -1,6 +1,6 @@
 pragma solidity 0.5.17;
 
-import {ERC20NonTransferable} from "../../common/tokens/ERC20NonTransferable.sol";
+import {ERC20NonTradable} from "../../common/tokens/ERC20NonTradable.sol";
 import {ERC20} from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import {StakingInfo} from "./../StakingInfo.sol";
 import {OwnableLockable} from "../../common/mixin/OwnableLockable.sol";
@@ -8,7 +8,7 @@ import {IStakeManager} from "../stakeManager/IStakeManager.sol";
 import {IValidatorShare} from "./IValidatorShare.sol";
 import {Initializable} from "../../common/mixin/Initializable.sol";
 
-contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockable, Initializable {
+contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, Initializable {
     struct DelegatorUnbond {
         uint256 shares;
         uint256 withdrawEpoch;
@@ -27,7 +27,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
     uint256 public lastCommissionUpdate_deprecated;
     uint256 public minAmount;
 
-    uint256 public totalStake_deprecated; 
+    uint256 public totalStake_deprecated;
     uint256 public activeAmount_deprecated;
 
     uint256 public rewardPerShare;
@@ -109,22 +109,10 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         return amountToDeposit;
     }
 
-    function restake() public {
-        uint256 liquidReward = _withdrawReward(msg.sender);
+    function restake() public returns(uint256, uint256) {
+        (uint256 amountRestaked, uint256 liquidReward) = _restake(msg.sender);
         require(liquidReward >= minAmount, "Too small rewards to restake");
-
-        uint256 amountRestaked = _buyShares(liquidReward, 0, msg.sender);
-        if (liquidReward > amountRestaked) {
-            // return change to the user
-            require(
-                stakeManager.transferFunds(validatorId, liquidReward - amountRestaked, msg.sender),
-                "Insufficent rewards"
-            );
-            stakingLogger.logDelegatorClaimRewards(validatorId, msg.sender, liquidReward - amountRestaked);
-        }
-
-        (uint256 totalStaked, ) = getTotalStake(msg.sender);
-        stakingLogger.logDelegatorRestaked(validatorId, msg.sender, totalStaked);
+        return (amountRestaked, liquidReward);
     }
 
     function sellVoucher(uint256 claimAmount, uint256 maximumSharesToBurn) public {
@@ -240,6 +228,29 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         Private Methods
      */
 
+    function _restake(address user) private returns (uint256, uint256) {
+        uint256 liquidReward = _withdrawReward(user);
+        uint256 amountRestaked;
+
+        if (liquidReward > 0) {
+            amountRestaked = _buyShares(liquidReward, 0, user);
+
+            if (liquidReward > amountRestaked) {
+                // return change to the user
+                require(
+                    stakeManager.transferFunds(validatorId, liquidReward - amountRestaked, user),
+                    "Insufficent rewards"
+                );
+                stakingLogger.logDelegatorClaimRewards(validatorId, user, liquidReward - amountRestaked);
+            }
+
+            (uint256 totalStaked, ) = getTotalStake(user);
+            stakingLogger.logDelegatorRestaked(validatorId, user, totalStaked);
+        }
+        
+        return (amountRestaked, liquidReward);
+    }
+
     function _getRatePrecision() private view returns (uint256) {
         // if foundation validator, use old precision
         if (validatorId < 8) {
@@ -264,14 +275,21 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
             return 0;
         }
 
-        return _rewardPerShare.sub(initalRewardPerShare[user]).mul(shares).div(_getRatePrecision());
+        uint256 _initialRewardPerShare = initalRewardPerShare[user];
+
+        if (_initialRewardPerShare == _rewardPerShare) {
+            return 0;
+        }
+
+        return _rewardPerShare.sub(_initialRewardPerShare).mul(shares).div(_getRatePrecision());
     }
 
     function _withdrawReward(address user) private returns (uint256) {
-        uint256 liquidRewards = getLiquidRewards(user);
         uint256 _rewardPerShare = _calculateRewardPerShareWithRewards(
             stakeManager.withdrawDelegatorsReward(validatorId)
         );
+        uint256 liquidRewards = _calculateReward(user, _rewardPerShare);
+        
         rewardPerShare = _rewardPerShare;
         initalRewardPerShare[user] = _rewardPerShare;
         return liquidRewards;
@@ -311,5 +329,18 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         logger.logStakeUpdate(validatorId);
 
         return _amount;
+    }
+
+    function _transfer(
+        address from,
+        address to,
+        uint256 value
+    ) internal {
+        // get rewards for recipient 
+        _withdrawAndTransferReward(to);
+        // convert rewards to shares
+        (uint256 restakedShares, ) = _restake(from);
+        // move shares to recipient
+        super._transfer(from, to, value.add(restakedShares));
     }
 }
