@@ -2,7 +2,7 @@ import { TestToken, ValidatorShare, StakingInfo } from '../../helpers/artifacts'
 import { BN, expectEvent, expectRevert } from '@openzeppelin/test-helpers'
 import { checkPoint, assertBigNumberEquality, updateSlashedAmounts } from '../../helpers/utils.js'
 import { wallets, freshDeploy, approveAndStake } from './deployment'
-import { buyVoucher, sellVoucher } from './ValidatorShareHelper.js'
+import { buyVoucher, sellVoucher, sellVoucherNew } from './ValidatorShareHelper.js'
 import { web3 } from '@openzeppelin/test-helpers/src/setup'
 
 const toWei = web3.utils.toWei
@@ -740,6 +740,53 @@ contract('ValidatorShare', async function() {
       }
     }
 
+    function testSellVoucherNew({
+      returnedStake,
+      reward,
+      initialBalance,
+      validatorId,
+      user,
+      minClaimAmount,
+      userTotalStaked,
+      totalStaked,
+      shares,
+      burnId,
+      withdrawalExchangeRate = ExchangeRatePrecision
+    }) {
+      if (minClaimAmount) {
+        it('must sell voucher with slippage', async function() {
+          this.receipt = await sellVoucherNew(this.validatorContract, user, minClaimAmount)
+        })
+      } else {
+        it('must sell voucher', async function() {
+          this.receipt = await sellVoucherNew(this.validatorContract, user)
+        })
+      }
+
+      it('must emit ShareBurned', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ShareBurned', {
+          validatorId: validatorId,
+          tokens: shares,
+          amount: returnedStake,
+          user: user,
+          burnId
+        })
+      })
+
+      shouldWithdrawReward({ initialBalance, validatorId, user, reward })
+
+      shouldHaveCorrectStakes({
+        userTotalStaked,
+        totalStaked,
+        user
+      })
+
+      it('must have correct withdrawal exchange rate', async function() {
+        const rate = await this.validatorContract.withdrawExchangeRate()
+        assertBigNumberEquality(rate, withdrawalExchangeRate)
+      })
+    }
+
     function testSellVoucher({
       returnedStake,
       reward,
@@ -932,92 +979,180 @@ contract('ValidatorShare', async function() {
     })
 
     describe('partial sell', function() {
-      describe('when Alice is not slashed', function() {
-        before(doDeployAndBuyVoucherForAliceAndBob)
+      describe('new API', function() {
+        describe('when Alice is not slashed', function() {
+          before(doDeployAndBuyVoucherForAliceAndBob)
 
-        const halfStake = aliceStake.div(new BN('2'))
+          const halfStake = aliceStake.div(new BN('2'))
 
-        describe('when Alice sells 50%', function() {
-          testSellVoucher({
-            shares: new BN(toWei('50')),
-            minClaimAmount: halfStake,
-            returnedStake: halfStake,
-            reward: toWei('18000'),
-            initialBalance: new BN(0),
-            validatorId: '8',
-            user: Alice,
-            userTotalStaked: halfStake,
-            totalStaked: halfStake.add(ValidatorDefaultStake)
+          describe('when Alice sells 50%', function() {
+            testSellVoucherNew({
+              shares: new BN(toWei('50')),
+              minClaimAmount: halfStake,
+              returnedStake: halfStake,
+              reward: toWei('18000'),
+              initialBalance: new BN(0),
+              validatorId: '8',
+              user: Alice,
+              userTotalStaked: halfStake,
+              burnId: '1',
+              totalStaked: halfStake.add(ValidatorDefaultStake)
+            })
+          })
+
+          describe('when Alice sells 50%, after 1 epoch, within withdrawal delay', function() {
+            before(async function() {
+              await this.stakeManager.advanceEpoch(1)
+            })
+
+            testSellVoucherNew({
+              shares: new BN(toWei('50')),
+              minClaimAmount: halfStake,
+              returnedStake: halfStake,
+              reward: '0',
+              initialBalance: new BN(toWei('18000')),
+              validatorId: '8',
+              user: Alice,
+              userTotalStaked: '0',
+              burnId: '2',
+              totalStaked: ValidatorDefaultStake
+            })
           })
         })
 
-        describe('when Alice sells 50%, after 1 epoch, within withdrawal delay', function() {
+        describe('when Alice is slashed by 50%', function() {
+          before(doDeployAndBuyVoucherForAliceAndBob)
           before(async function() {
-            await this.stakeManager.advanceEpoch(1)
+            await slash.call(this, [{ validator: this.validatorId, amount: toWei('100') }], [this.validatorUser], this.validatorUser, 1)
           })
 
-          testSellVoucher({
-            shares: new BN(toWei('50')),
-            minClaimAmount: halfStake,
-            returnedStake: halfStake,
-            reward: '0',
-            initialBalance: new BN(toWei('18000')),
-            validatorId: '8',
-            user: Alice,
-            userTotalStaked: '0',
-            totalStaked: ValidatorDefaultStake
+          const halfStake = aliceStake.div(new BN('4')) // slash by 50% occured
+          const validatorHalfStake = ValidatorDefaultStake.div(new BN(2))
+
+          describe('when Alice sells 50%', function() {
+            testSellVoucherNew({
+              shares: new BN(toWei('50')),
+              minClaimAmount: halfStake,
+              returnedStake: halfStake,
+              reward: toWei('18000'),
+              initialBalance: new BN(0),
+              validatorId: '8',
+              user: Alice,
+              burnId: '1',
+              userTotalStaked: halfStake,
+              totalStaked: halfStake.add(validatorHalfStake)
+            })
           })
 
-          it('unbond epoch must be set to current epoch', async function() {
-            const unbond = await this.validatorContract.unbonds(Alice)
-            assertBigNumberEquality(unbond.withdrawEpoch, await this.stakeManager.currentEpoch())
+          describe('when Alice sells 50%, after 1 epoch, within withdrawal delay', function() {
+            before(async function() {
+              await this.stakeManager.advanceEpoch(1)
+            })
+
+            testSellVoucherNew({
+              shares: new BN(toWei('50')),
+              minClaimAmount: halfStake,
+              returnedStake: halfStake,
+              reward: '0',
+              initialBalance: new BN(toWei('18000')),
+              validatorId: '8',
+              user: Alice,
+              userTotalStaked: '0',
+              burnId: '2',
+              totalStaked: validatorHalfStake
+            })
           })
         })
       })
 
-      describe('when Alice is slashed by 50%', function() {
-        before(doDeployAndBuyVoucherForAliceAndBob)
-        before(async function() {
-          await slash.call(this, [{ validator: this.validatorId, amount: toWei('100') }], [this.validatorUser], this.validatorUser, 1)
-        })
+      describe('old API', function() {
+        describe('when Alice is not slashed', function() {
+          before(doDeployAndBuyVoucherForAliceAndBob)
 
-        const halfStake = aliceStake.div(new BN('4')) // slash by 50% occured
-        const validatorHalfStake = ValidatorDefaultStake.div(new BN(2))
+          const halfStake = aliceStake.div(new BN('2'))
 
-        describe('when Alice sells 50%', function() {
-          testSellVoucher({
-            shares: new BN(toWei('50')),
-            minClaimAmount: halfStake,
-            returnedStake: halfStake,
-            reward: toWei('18000'),
-            initialBalance: new BN(0),
-            validatorId: '8',
-            user: Alice,
-            userTotalStaked: halfStake,
-            totalStaked: halfStake.add(validatorHalfStake)
+          describe('when Alice sells 50%', function() {
+            testSellVoucher({
+              shares: new BN(toWei('50')),
+              minClaimAmount: halfStake,
+              returnedStake: halfStake,
+              reward: toWei('18000'),
+              initialBalance: new BN(0),
+              validatorId: '8',
+              user: Alice,
+              userTotalStaked: halfStake,
+              totalStaked: halfStake.add(ValidatorDefaultStake)
+            })
+          })
+
+          describe('when Alice sells 50%, after 1 epoch, within withdrawal delay', function() {
+            before(async function() {
+              await this.stakeManager.advanceEpoch(1)
+            })
+
+            testSellVoucher({
+              shares: new BN(toWei('50')),
+              minClaimAmount: halfStake,
+              returnedStake: halfStake,
+              reward: '0',
+              initialBalance: new BN(toWei('18000')),
+              validatorId: '8',
+              user: Alice,
+              userTotalStaked: '0',
+              totalStaked: ValidatorDefaultStake
+            })
+
+            it('unbond epoch must be set to current epoch', async function() {
+              const unbond = await this.validatorContract.unbonds(Alice)
+              assertBigNumberEquality(unbond.withdrawEpoch, await this.stakeManager.currentEpoch())
+            })
           })
         })
 
-        describe('when Alice sells 50%, after 1 epoch, within withdrawal delay', function() {
+        describe('when Alice is slashed by 50%', function() {
+          before(doDeployAndBuyVoucherForAliceAndBob)
           before(async function() {
-            await this.stakeManager.advanceEpoch(1)
+            await slash.call(this, [{ validator: this.validatorId, amount: toWei('100') }], [this.validatorUser], this.validatorUser, 1)
           })
 
-          testSellVoucher({
-            shares: new BN(toWei('50')),
-            minClaimAmount: halfStake,
-            returnedStake: halfStake,
-            reward: '0',
-            initialBalance: new BN(toWei('18000')),
-            validatorId: '8',
-            user: Alice,
-            userTotalStaked: '0',
-            totalStaked: validatorHalfStake
+          const halfStake = aliceStake.div(new BN('4')) // slash by 50% occured
+          const validatorHalfStake = ValidatorDefaultStake.div(new BN(2))
+
+          describe('when Alice sells 50%', function() {
+            testSellVoucher({
+              shares: new BN(toWei('50')),
+              minClaimAmount: halfStake,
+              returnedStake: halfStake,
+              reward: toWei('18000'),
+              initialBalance: new BN(0),
+              validatorId: '8',
+              user: Alice,
+              userTotalStaked: halfStake,
+              totalStaked: halfStake.add(validatorHalfStake)
+            })
           })
 
-          it('unbond epoch must be set to current epoch', async function() {
-            const unbond = await this.validatorContract.unbonds(Alice)
-            assertBigNumberEquality(unbond.withdrawEpoch, await this.stakeManager.currentEpoch())
+          describe('when Alice sells 50%, after 1 epoch, within withdrawal delay', function() {
+            before(async function() {
+              await this.stakeManager.advanceEpoch(1)
+            })
+
+            testSellVoucher({
+              shares: new BN(toWei('50')),
+              minClaimAmount: halfStake,
+              returnedStake: halfStake,
+              reward: '0',
+              initialBalance: new BN(toWei('18000')),
+              validatorId: '8',
+              user: Alice,
+              userTotalStaked: '0',
+              totalStaked: validatorHalfStake
+            })
+
+            it('unbond epoch must be set to current epoch', async function() {
+              const unbond = await this.validatorContract.unbonds(Alice)
+              assertBigNumberEquality(unbond.withdrawEpoch, await this.stakeManager.currentEpoch())
+            })
           })
         })
       })
@@ -1609,6 +1744,61 @@ contract('ValidatorShare', async function() {
         await expectRevert(this.validatorContract.unstakeClaimTokens({
           from: this.user
         }), 'Incomplete withdrawal period')
+      })
+    })
+
+    describe('new API', function() {
+      describe('when Alice claims 2 seperate unstakes (1 epoch between unstakes)', function() {
+        prepareForTest({ skipSell: true })
+
+        before('sell shares twice', async function() {
+          this.claimAmount = this.stakeAmount.div(new BN('2'))
+
+          await sellVoucherNew(this.validatorContract, this.user, this.claimAmount)
+          await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
+          await sellVoucherNew(this.validatorContract, this.user, this.claimAmount)
+        })
+
+        before('checkpoint', async function() {
+          let currentEpoch = await this.stakeManager.currentEpoch()
+          let exitEpoch = currentEpoch.add(await this.stakeManager.WITHDRAWAL_DELAY())
+
+          for (let i = currentEpoch; i <= exitEpoch; i++) {
+            await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
+          }
+        })
+
+        it('must claim 1st unstake', async function() {
+          this.receipt = await this.validatorContract.unstakeClaimTokens_new('1', {
+            from: this.user
+          })
+        })
+
+        it('must emit DelegatorUnstaked', async function() {
+          await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'DelegatorUnstaked', {
+            validatorId: this.validatorId,
+            user: this.user,
+            amount: this.claimAmount
+          })
+        })
+
+        it('must claim 2nd unstake', async function() {
+          this.receipt = await this.validatorContract.unstakeClaimTokens_new('2', {
+            from: this.user
+          })
+        })
+
+        it('must emit DelegatorUnstaked', async function() {
+          await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'DelegatorUnstaked', {
+            validatorId: this.validatorId,
+            user: this.user,
+            amount: this.claimAmount
+          })
+        })
+
+        it('must have 0 shares', async function() {
+          assertBigNumberEquality(await this.validatorContract.balanceOf(this.user), '0')
+        })
       })
     })
   })

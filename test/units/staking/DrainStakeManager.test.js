@@ -106,12 +106,12 @@ contract('DrainStakeManager', async function(accounts) {
 async function execSafe(gSafe, address, data, confirmingAccounts) {
   const params = safeParams(address, data, await gSafe.nonce())
   const txHash = await gSafe.getTransactionHash(...params)
-  let signatureBytes = "0x"
+  let signatureBytes = '0x'
   confirmingAccounts.sort()
-  for (var i=0; i<confirmingAccounts.length; i++) {
-      // Adjust v (it is + 27 => EIP-155 and + 4 to differentiate them from typed data signatures in the Safe)
-      let signature = (await ethSign(confirmingAccounts[i], txHash)).replace('0x', '').replace(/00$/,"1f").replace(/01$/,"20")
-      signatureBytes += (signature)
+  for (var i = 0; i < confirmingAccounts.length; i++) {
+    // Adjust v (it is + 27 => EIP-155 and + 4 to differentiate them from typed data signatures in the Safe)
+    let signature = (await ethSign(confirmingAccounts[i], txHash)).replace('0x', '').replace(/00$/, '1f').replace(/01$/, '20')
+    signatureBytes += (signature)
   }
   params[9] = signatureBytes
   return gSafe.execTransaction(...params, { gas: 4000000 })
@@ -133,17 +133,17 @@ function safeParams(address, data, nonce) {
 }
 
 function ethSign(account, hash) {
-  return new Promise(function (resolve, reject) {
+  return new Promise(function(resolve, reject) {
     web3.currentProvider.send({
-      jsonrpc: "2.0",
-      method: "eth_sign",
+      jsonrpc: '2.0',
+      method: 'eth_sign',
       params: [account, hash],
       id: new Date().getTime()
     }, function(err, response) {
       if (err) {
-        return reject(err);
+        return reject(err)
       }
-      resolve(response.result);
-    });
-  });
+      resolve(response.result)
+    })
+  })
 }

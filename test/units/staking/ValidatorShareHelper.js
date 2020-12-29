@@ -18,3 +18,18 @@ export async function sellVoucher(validatorContract, delegator, minClaimAmount, 
     from: delegator
   })
 }
+
+
+export async function sellVoucherNew(validatorContract, delegator, minClaimAmount, maxShares) {
+  if (maxShares === undefined) {
+    maxShares = await validatorContract.balanceOf(delegator)
+  }
+
+  if (minClaimAmount === undefined) {
+    minClaimAmount = await validatorContract.amountStaked(delegator)
+  }
+
+  return validatorContract.sellVoucher_new(minClaimAmount, maxShares, {
+    from: delegator
+  })
+}

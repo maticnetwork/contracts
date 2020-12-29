@@ -448,7 +448,7 @@ contract('StakeManager', async function(accounts) {
       })
     }
 
-    describe.only('when validator unstakes but do not sign last checkpoint', function() {
+    describe('when validator unstakes but do not sign last checkpoint', function() {
       const validatorWallet = wallets[2]
       const validatorId = '1'
       const stakers = [
