@@ -1698,7 +1698,7 @@ contract('ValidatorShare', async function() {
       it('Alice must have 0 shares', async function() {
         assertBigNumberEquality(await this.validatorContract.balanceOf(this.alice), '0')
       })
-      
+
       it('Bob must have Alice\'s shares', async function() {
         assertBigNumberEquality(await this.validatorContract.balanceOf(this.bob), initialBobSharesBalance.add(initialAliceSharesBalance))
       })
@@ -1710,7 +1710,7 @@ contract('ValidatorShare', async function() {
           rewards: toWei('3000')
         })
       })
-      
+
       it('Bob must claim 3000 matic', async function() {
         assertBigNumberEquality(await this.stakeToken.balanceOf(this.bob), new BN(initialBobMaticBalance).add(new BN(toWei('3000'))))
       })
