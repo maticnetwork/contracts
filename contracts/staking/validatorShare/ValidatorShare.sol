@@ -1,8 +1,10 @@
 pragma solidity 0.5.17;
 
+import {Registry} from "../../common/Registry.sol";
 import {ERC20NonTransferable} from "../../common/tokens/ERC20NonTransferable.sol";
 import {ERC20} from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import {StakingInfo} from "./../StakingInfo.sol";
+import {EventsHub} from "./../EventsHub.sol";
 import {OwnableLockable} from "../../common/mixin/OwnableLockable.sol";
 import {IStakeManager} from "../stakeManager/IStakeManager.sol";
 import {IValidatorShare} from "./IValidatorShare.sol";
@@ -46,6 +48,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         stakingLogger = StakingInfo(_stakingLogger);
         stakeManager = IStakeManager(_stakeManager);
         _transferOwnership(_stakeManager);
+        _getOrCacheEventsHub();
 
         minAmount = 10**18;
         delegation = true;
@@ -53,7 +56,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
 
     /**
         Public View Methods
-     */
+    */
 
     function exchangeRate() public view returns (uint256) {
         uint256 totalShares = totalSupply();
@@ -220,9 +223,8 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         unbonds_new[msg.sender][unbondNonce] = unbond;
         unbondNonces[msg.sender] = unbondNonce;
 
-        StakingInfo logger = stakingLogger;
-        logger.logShareBurnedWithId(validatorId, msg.sender, claimAmount, shares, unbondNonce);
-        logger.logStakeUpdate(validatorId);
+        _getOrCacheEventsHub().logShareBurnedWithId(validatorId, msg.sender, claimAmount, shares, unbondNonce);
+        stakingLogger.logStakeUpdate(validatorId);
     }
 
     function unstakeClaimTokens_new(uint256 unbondNonce) public {
@@ -234,6 +236,15 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
     /**
         Private Methods
      */
+
+    function _getOrCacheEventsHub() private returns(EventsHub) {
+        EventsHub _eventsHub = eventsHub;
+        if (_eventsHub == EventsHub(0x0)) {
+            _eventsHub = EventsHub(Registry(stakeManager.getRegistry()).contractMap(keccak256("eventsHub")));
+            eventsHub = _eventsHub;
+        }
+        return _eventsHub;
+    }
 
     function _sellVoucher(uint256 claimAmount, uint256 maximumSharesToBurn) private returns(uint256, uint256) {
         // first get how much staked in total and compare to target unstake amount

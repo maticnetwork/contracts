@@ -1,4 +1,4 @@
-import { TestToken, ValidatorShare, StakingInfo } from '../../helpers/artifacts'
+import { TestToken, ValidatorShare, StakingInfo, EventsHub } from '../../helpers/artifacts'
 import { BN, expectEvent, expectRevert } from '@openzeppelin/test-helpers'
 import { checkPoint, assertBigNumberEquality, updateSlashedAmounts } from '../../helpers/utils.js'
 import { wallets, freshDeploy, approveAndStake } from './deployment'
@@ -763,15 +763,26 @@ contract('ValidatorShare', async function() {
         })
       }
 
-      it('must emit ShareBurned', async function() {
-        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ShareBurned', {
-          validatorId: validatorId,
-          tokens: shares,
-          amount: returnedStake,
-          user: user,
-          burnId
+      if (burnId) {
+        it('must emit ShareBurnedWithId', async function() {
+          await expectEvent.inTransaction(this.receipt.tx, EventsHub, 'ShareBurnedWithId', {
+            validatorId: validatorId,
+            tokens: shares,
+            amount: returnedStake,
+            user: user,
+            burnId
+          })
         })
-      })
+      } else {
+        it('must emit ShareBurned', async function() {
+          await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ShareBurned', {
+            validatorId: validatorId,
+            tokens: shares,
+            amount: returnedStake,
+            user: user
+          })
+        })
+      }
 
       shouldWithdrawReward({ initialBalance, validatorId, user, reward })
 
@@ -979,7 +990,7 @@ contract('ValidatorShare', async function() {
     })
 
     describe('partial sell', function() {
-      describe('new API', function() {
+      describe.only('new API', function() {
         describe('when Alice is not slashed', function() {
           before(doDeployAndBuyVoucherForAliceAndBob)
 
