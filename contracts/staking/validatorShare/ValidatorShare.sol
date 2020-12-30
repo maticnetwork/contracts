@@ -124,23 +124,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
     }
 
     function sellVoucher(uint256 claimAmount, uint256 maximumSharesToBurn) public {
-        // first get how much staked in total and compare to target unstake amount
-        (uint256 totalStaked, uint256 rate) = getTotalStake(msg.sender);
-        require(totalStaked > 0 && totalStaked >= claimAmount, "Too much requested");
-
-        // convert requested amount back to shares
-        uint256 precision = _getRatePrecision();
-        uint256 shares = claimAmount.mul(precision).div(rate);
-        require(shares <= maximumSharesToBurn, "too much slippage");
-
-        _withdrawAndTransferReward(msg.sender);
-
-        _burn(msg.sender, shares);
-        stakeManager.updateValidatorState(validatorId, -int256(claimAmount));
-
-        uint256 _withdrawPoolShare = claimAmount.mul(precision).div(withdrawExchangeRate());
-        withdrawPool = withdrawPool.add(claimAmount);
-        withdrawShares = withdrawShares.add(_withdrawPoolShare);
+        (uint256 shares, uint256 _withdrawPoolShare) = _sellVoucher(claimAmount, maximumSharesToBurn);
 
         DelegatorUnbond memory unbond = unbonds[msg.sender];
         unbond.shares = unbond.shares.add(_withdrawPoolShare);
@@ -149,7 +133,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         unbonds[msg.sender] = unbond;
 
         StakingInfo logger = stakingLogger;
-        logger.logShareBurned(validatorId, msg.sender, claimAmount, shares, 0);
+        logger.logShareBurned(validatorId, msg.sender, claimAmount, shares);
         logger.logStakeUpdate(validatorId);
     }
 
@@ -169,7 +153,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
 
         stakeManager.updateValidatorState(validatorId, -int256(amount));
 
-        stakingLogger.logShareBurned(validatorId, user, amount, shares, 0);
+        stakingLogger.logShareBurned(validatorId, user, amount, shares);
         stakingLogger.logStakeUpdate(validatorId);
         stakingLogger.logDelegatorUnstaked(validatorId, user, amount);
     }
@@ -180,19 +164,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
 
     function unstakeClaimTokens() public {
         DelegatorUnbond memory unbond = unbonds[msg.sender];
-
-        uint256 shares = unbond.shares;
-        require(
-            unbond.withdrawEpoch.add(stakeManager.withdrawalDelay()) <= stakeManager.epoch() && shares > 0,
-            "Incomplete withdrawal period"
-        );
-
-        uint256 _amount = withdrawExchangeRate().mul(shares).div(_getRatePrecision());
-        withdrawShares = withdrawShares.sub(shares);
-        withdrawPool = withdrawPool.sub(_amount);
-
-        require(stakeManager.transferFunds(validatorId, _amount, msg.sender), "Insufficent rewards");
-        stakingLogger.logDelegatorUnstaked(validatorId, msg.sender, _amount);
+        _unstakeClaimTokens(unbond);
         delete unbonds[msg.sender];
     }
 
@@ -237,6 +209,33 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
      */
 
     function sellVoucher_new(uint256 claimAmount, uint256 maximumSharesToBurn) public {
+        (uint256 shares, uint256 _withdrawPoolShare) = _sellVoucher(claimAmount, maximumSharesToBurn);
+
+        uint256 unbondNonce = unbondNonces[msg.sender].add(1);
+
+        DelegatorUnbond memory unbond = DelegatorUnbond({
+            shares: _withdrawPoolShare,
+            withdrawEpoch: stakeManager.epoch()
+        });
+        unbonds_new[msg.sender][unbondNonce] = unbond;
+        unbondNonces[msg.sender] = unbondNonce;
+
+        StakingInfo logger = stakingLogger;
+        logger.logShareBurnedWithId(validatorId, msg.sender, claimAmount, shares, unbondNonce);
+        logger.logStakeUpdate(validatorId);
+    }
+
+    function unstakeClaimTokens_new(uint256 unbondNonce) public {
+        DelegatorUnbond memory unbond = unbonds_new[msg.sender][unbondNonce];
+        _unstakeClaimTokens(unbond);
+        delete unbonds_new[msg.sender][unbondNonce];
+    }
+
+    /**
+        Private Methods
+     */
+
+    function _sellVoucher(uint256 claimAmount, uint256 maximumSharesToBurn) private returns(uint256, uint256) {
         // first get how much staked in total and compare to target unstake amount
         (uint256 totalStaked, uint256 rate) = getTotalStake(msg.sender);
         require(totalStaked > 0 && totalStaked >= claimAmount, "Too much requested");
@@ -255,22 +254,10 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         withdrawPool = withdrawPool.add(claimAmount);
         withdrawShares = withdrawShares.add(_withdrawPoolShare);
 
-        uint256 unbondNonce = unbondNonces[msg.sender].add(1);
-
-        DelegatorUnbond memory unbond = DelegatorUnbond({
-            shares: _withdrawPoolShare,
-            withdrawEpoch: stakeManager.epoch()
-        });
-        unbonds_new[msg.sender][unbondNonce] = unbond;
-        unbondNonces[msg.sender] = unbondNonce;
-
-        StakingInfo logger = stakingLogger;
-        logger.logShareBurned(validatorId, msg.sender, claimAmount, shares, unbondNonce);
-        logger.logStakeUpdate(validatorId);
+        return (shares, _withdrawPoolShare);
     }
 
-    function unstakeClaimTokens_new(uint256 unbondNonce) public {
-        DelegatorUnbond memory unbond = unbonds_new[msg.sender][unbondNonce];
+    function _unstakeClaimTokens(DelegatorUnbond memory unbond) private {
         uint256 shares = unbond.shares;
         require(
             unbond.withdrawEpoch.add(stakeManager.withdrawalDelay()) <= stakeManager.epoch() && shares > 0,
@@ -283,12 +270,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
 
         require(stakeManager.transferFunds(validatorId, _amount, msg.sender), "Insufficent rewards");
         stakingLogger.logDelegatorUnstaked(validatorId, msg.sender, _amount);
-        delete unbonds_new[msg.sender][unbondNonce];
     }
-
-    /**
-        Private Methods
-     */
 
     function _getRatePrecision() private view returns (uint256) {
         // if foundation validator, use old precision

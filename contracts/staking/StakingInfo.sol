@@ -151,12 +151,18 @@ contract StakingInfo is Ownable {
         uint256 indexed amount,
         uint256 tokens
     );
-    event ShareBurned(
+    event ShareBurnedWithId(
         uint256 indexed validatorId,
         address indexed user,
         uint256 indexed amount,
         uint256 tokens,
         uint256 burnId
+    );
+    event ShareBurned(
+        uint256 indexed validatorId,
+        address indexed user,
+        uint256 indexed amount,
+        uint256 tokens
     );
     event DelegatorClaimedRewards(
         uint256 indexed validatorId,
@@ -463,14 +469,23 @@ contract StakingInfo is Ownable {
         emit ShareMinted(validatorId, user, amount, tokens);
     }
 
-    function logShareBurned(
+    function logShareBurnedWithId(
         uint256 validatorId,
         address user,
         uint256 amount,
         uint256 tokens,
         uint256 burnId
     ) public onlyValidatorContract(validatorId) {
-        emit ShareBurned(validatorId, user, amount, tokens, burnId);
+        emit ShareBurnedWithId(validatorId, user, amount, tokens, burnId);
+    }
+
+    function logShareBurned(
+        uint256 validatorId,
+        address user,
+        uint256 amount,
+        uint256 tokens
+    ) public onlyValidatorContract(validatorId) {
+        emit ShareBurned(validatorId, user, amount, tokens);
     }
 
     function logDelegatorClaimRewards(
