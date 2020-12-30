@@ -10,7 +10,7 @@ contract IValidatorShare {
     
     function owner() public view returns (address);
 
-    function restake() public;
+    function restake() public returns(uint256, uint256);
 
     function unlock() external;
 
