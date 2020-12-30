@@ -990,7 +990,7 @@ contract('ValidatorShare', async function() {
     })
 
     describe('partial sell', function() {
-      describe.only('new API', function() {
+      describe('new API', function() {
         describe('when Alice is not slashed', function() {
           before(doDeployAndBuyVoucherForAliceAndBob)
 
