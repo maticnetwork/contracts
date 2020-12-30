@@ -1659,34 +1659,80 @@ contract('ValidatorShare', async function() {
       let initialAliceSharesBalance
       let initialBobSharesBalance
 
-      before('Alice purchases voucher, checkpoint is commited', async function() {
-        await buyVoucher(this.validatorContract, ValidatorDefaultStake, this.alice) 
-        await buyVoucher(this.validatorContract, ValidatorDefaultStake, this.bob) 
+      let initialAliceMaticBalance
+      let initialBobMaticBalance
+
+      before('Alice and Bob purchases voucher, checkpoint is commited', async function() {
+        await buyVoucher(this.validatorContract, ValidatorDefaultStake, this.alice)
+        await buyVoucher(this.validatorContract, ValidatorDefaultStake, this.bob)
 
         initialAliceSharesBalance = await this.validatorContract.balanceOf(this.alice)
         initialBobSharesBalance = await this.validatorContract.balanceOf(this.bob)
+
+        initialAliceMaticBalance = await this.stakeToken.balanceOf(this.alice)
+        initialBobMaticBalance = await this.stakeToken.balanceOf(this.bob)
 
         await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
       })
 
       it('must Transfer shares', async function() {
-        await this.validatorContract.transfer(this.bob, initialAliceSharesBalance, { from: this.alice })
+        this.receipt = await this.validatorContract.transfer(this.bob, initialAliceSharesBalance, { from: this.alice })
       })
 
-      it('Alice must have 0 shares', async function() {
-        assertBigNumberEquality(await this.validatorContract.balanceOf(this.alice), '0')
+      it('must emit DelegatorClaimedRewards for Alice', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'DelegatorClaimedRewards', {
+          validatorId: this.validatorId,
+          user: this.alice,
+          rewards: toWei('3000')
+        })
       })
 
-      it('Bob must have Alice\'s shares', async function() {
-        assertBigNumberEquality(await this.validatorContract.balanceOf(this.bob), initialBobSharesBalance.add(initialAliceSharesBalance.add(new BN(toWei('3000')))))
+      it('Alice must claim 3000 matic', async function() {
+        assertBigNumberEquality(await this.stakeToken.balanceOf(this.alice), new BN(initialAliceMaticBalance).add(new BN(toWei('3000'))))
       })
 
       it('Alice must have 0 liquid rewards', async function() {
         assertBigNumberEquality(await this.validatorContract.getLiquidRewards(this.alice), '0')
       })
 
+      it('Alice must have 0 shares', async function() {
+        assertBigNumberEquality(await this.validatorContract.balanceOf(this.alice), '0')
+      })
+      
+      it('Bob must have Alice\'s shares', async function() {
+        assertBigNumberEquality(await this.validatorContract.balanceOf(this.bob), initialBobSharesBalance.add(initialAliceSharesBalance))
+      })
+
+      it('must emit DelegatorClaimedRewards for Bob', async function() {
+        await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'DelegatorClaimedRewards', {
+          validatorId: this.validatorId,
+          user: this.bob,
+          rewards: toWei('3000')
+        })
+      })
+      
+      it('Bob must claim 3000 matic', async function() {
+        assertBigNumberEquality(await this.stakeToken.balanceOf(this.bob), new BN(initialBobMaticBalance).add(new BN(toWei('3000'))))
+      })
+
       it('Bob must have 0 liquid rewards', async function() {
         assertBigNumberEquality(await this.validatorContract.getLiquidRewards(this.bob), '0')
+      })
+    })
+
+    describe('when transfer to 0x0 address', function() {
+      deployAliceAndBob()
+
+      let initialAliceSharesBalance
+
+      before('Alice purchases voucher', async function() {
+        initialAliceSharesBalance = await this.validatorContract.balanceOf(this.alice)
+
+        await buyVoucher(this.validatorContract, ValidatorDefaultStake, this.alice)
+      })
+
+      it('reverts', async function() {
+        await expectRevert.unspecified(this.validatorContract.transfer(ZeroAddr, initialAliceSharesBalance, { from: this.alice }))
       })
     })
   })
