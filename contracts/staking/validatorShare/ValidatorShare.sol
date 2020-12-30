@@ -11,7 +11,7 @@ import {IValidatorShare} from "./IValidatorShare.sol";
 import {Initializable} from "../../common/mixin/Initializable.sol";
 import {ValidatorShareStorageExtension} from "./ValidatorShareStorageExtension.sol";
 
-contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockable, Initializable, ValidatorShareStorageExtension {
+contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, Initializable, ValidatorShareStorageExtension {
     uint256 constant EXCHANGE_RATE_PRECISION = 100;
     // maximum matic possible, even if rate will be 1 and all matic will be staken in one go, it will result in 10 ^ 58 shares
     uint256 constant EXCHANGE_RATE_HIGH_PRECISION = 10**29;
