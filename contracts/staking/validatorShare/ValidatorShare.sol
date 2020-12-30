@@ -1,7 +1,7 @@
 pragma solidity 0.5.17;
 
 import {Registry} from "../../common/Registry.sol";
-import {ERC20NonTransferable} from "../../common/tokens/ERC20NonTransferable.sol";
+import {ERC20NonTradable} from "../../common/tokens/ERC20NonTradable.sol";
 import {ERC20} from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import {StakingInfo} from "./../StakingInfo.sol";
 import {EventsHub} from "./../EventsHub.sol";
@@ -25,7 +25,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
     uint256 public lastCommissionUpdate_deprecated;
     uint256 public minAmount;
 
-    uint256 public totalStake_deprecated; 
+    uint256 public totalStake_deprecated;
     uint256 public activeAmount_deprecated;
 
     uint256 public rewardPerShare;
@@ -108,22 +108,30 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         return amountToDeposit;
     }
 
-    function restake() public {
-        uint256 liquidReward = _withdrawReward(msg.sender);
+    function restake() public returns(uint256, uint256) {
+        address user = msg.sender;
+        uint256 liquidReward = _withdrawReward(user);
+        uint256 amountRestaked;
+
         require(liquidReward >= minAmount, "Too small rewards to restake");
 
-        uint256 amountRestaked = _buyShares(liquidReward, 0, msg.sender);
-        if (liquidReward > amountRestaked) {
-            // return change to the user
-            require(
-                stakeManager.transferFunds(validatorId, liquidReward - amountRestaked, msg.sender),
-                "Insufficent rewards"
-            );
-            stakingLogger.logDelegatorClaimRewards(validatorId, msg.sender, liquidReward - amountRestaked);
-        }
+        if (liquidReward > 0) {
+            amountRestaked = _buyShares(liquidReward, 0, user);
 
-        (uint256 totalStaked, ) = getTotalStake(msg.sender);
-        stakingLogger.logDelegatorRestaked(validatorId, msg.sender, totalStaked);
+            if (liquidReward > amountRestaked) {
+                // return change to the user
+                require(
+                    stakeManager.transferFunds(validatorId, liquidReward - amountRestaked, user),
+                    "Insufficent rewards"
+                );
+                stakingLogger.logDelegatorClaimRewards(validatorId, user, liquidReward - amountRestaked);
+            }
+
+            (uint256 totalStaked, ) = getTotalStake(user);
+            stakingLogger.logDelegatorRestaked(validatorId, user, totalStaked);
+        }
+        
+        return (amountRestaked, liquidReward);
     }
 
     function sellVoucher(uint256 claimAmount, uint256 maximumSharesToBurn) public {
@@ -307,14 +315,21 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
             return 0;
         }
 
-        return _rewardPerShare.sub(initalRewardPerShare[user]).mul(shares).div(_getRatePrecision());
+        uint256 _initialRewardPerShare = initalRewardPerShare[user];
+
+        if (_initialRewardPerShare == _rewardPerShare) {
+            return 0;
+        }
+
+        return _rewardPerShare.sub(_initialRewardPerShare).mul(shares).div(_getRatePrecision());
     }
 
     function _withdrawReward(address user) private returns (uint256) {
-        uint256 liquidRewards = getLiquidRewards(user);
         uint256 _rewardPerShare = _calculateRewardPerShareWithRewards(
             stakeManager.withdrawDelegatorsReward(validatorId)
         );
+        uint256 liquidRewards = _calculateReward(user, _rewardPerShare);
+        
         rewardPerShare = _rewardPerShare;
         initalRewardPerShare[user] = _rewardPerShare;
         return liquidRewards;
@@ -354,5 +369,18 @@ contract ValidatorShare is IValidatorShare, ERC20NonTransferable, OwnableLockabl
         logger.logStakeUpdate(validatorId);
 
         return _amount;
+    }
+
+    function _transfer(
+        address from,
+        address to,
+        uint256 value
+    ) internal {
+        // get rewards for recipient 
+        _withdrawAndTransferReward(to);
+        // convert rewards to shares
+        _withdrawAndTransferReward(from);
+        // move shares to recipient
+        super._transfer(from, to, value);
     }
 }
