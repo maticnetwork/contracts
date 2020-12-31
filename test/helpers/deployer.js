@@ -14,9 +14,29 @@ class Deployer {
     })
   }
 
+  async deployEventsHub(registryAddr) {
+    let eventsHubImpl = await contracts.EventsHub.new()
+    let proxy = await contracts.EventsHubProxy.new(
+      utils.ZeroAddress
+    )
+
+    await proxy.updateAndCall(eventsHubImpl.address, eventsHubImpl.contract.methods.initialize(
+      registryAddr
+    ).encodeABI())
+
+    await this.updateContractMap(
+      ethUtils.keccak256('eventsHub'),
+      proxy.address
+    )
+
+    return contracts.EventsHub.at(proxy.address)
+  }
+
   async freshDeploy(owner) {
     this.governance = await this.deployGovernance()
     this.registry = await contracts.Registry.new(this.governance.address)
+
+    this.eventsHub = await this.deployEventsHub(this.registry.address)
     this.validatorShareFactory = await contracts.ValidatorShareFactory.new()
     this.stakeToken = await contracts.TestToken.new('Stake Token', 'ST')
     this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
@@ -149,6 +169,8 @@ class Deployer {
   async deployStakeManager(wallets) {
     this.governance = await this.deployGovernance()
     this.registry = await contracts.Registry.new(this.governance.address)
+
+    this.eventsHub = await this.deployEventsHub(this.registry.address)
     this.validatorShareFactory = await contracts.ValidatorShareFactory.new()
     this.validatorShare = await contracts.ValidatorShare.new()
     this.rootChain = await this.deployRootChain()

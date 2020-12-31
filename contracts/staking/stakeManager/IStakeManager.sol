@@ -53,6 +53,8 @@ contract IStakeManager {
 
     function epoch() public view returns (uint256);
 
+    function getRegistry() public view returns (address);
+
     function withdrawalDelay() public view returns (uint256);
 
     function delegatedAmount(uint256 validatorId) public view returns(uint256);

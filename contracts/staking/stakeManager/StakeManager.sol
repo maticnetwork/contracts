@@ -23,7 +23,7 @@ import {IGovernance} from "../../common/governance/IGovernance.sol";
 import {Initializable} from "../../common/mixin/Initializable.sol";
 import {ValidatorAuction} from "./ValidatorAuction.sol";
 
-contract StakeManager is StakeManagerStorage, Initializable, StakeManagerStorageExtension, DelegateProxyForwarder, IStakeManager {
+contract StakeManager is StakeManagerStorage, Initializable, IStakeManager, DelegateProxyForwarder, StakeManagerStorageExtension {
     using SafeMath for uint256;
     using Merkle for bytes32;
     using RLPReader for bytes;
@@ -104,6 +104,10 @@ contract StakeManager is StakeManagerStorage, Initializable, StakeManagerStorage
     /**
         Public View Methods
      */
+
+    function getRegistry() public view returns(address) {
+        return registry;
+    }
 
     /**
         @dev Owner of validator slot NFT
