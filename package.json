@@ -26,7 +26,6 @@
     "lint:sol": "solium -d contracts/"
   },
   "pre-commit": [
-    "lint:sol"
   ],
   "repository": {
     "type": "git",
