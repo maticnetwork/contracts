@@ -64,8 +64,6 @@ contract('RootChain', async function(accounts) {
       accountState[i + 1] = 0
       validators.push(i + 1)
     }
-
-    this.reward = await stakeManager.CHECKPOINT_REWARD()
   }
 
   function buildRoot(that) {
@@ -100,7 +98,6 @@ contract('RootChain', async function(accounts) {
       await expectEvent(this.result, 'NewHeaderBlock', {
         proposer: this.proposer,
         root: this.root,
-        reward: this.reward,
         headerBlockId: this.headerBlockId,
         start: this.start.toString(),
         end: this.end.toString()
