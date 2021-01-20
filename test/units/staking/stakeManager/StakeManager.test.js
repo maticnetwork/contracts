@@ -34,7 +34,7 @@ function prepareForTest(dynastyValue, validatorThreshold) {
 }
 
 function testCheckpointing(stakers, signers, blockInterval, checkpointsPassed, expectedRewards, order = true) {
-  it('must checkpoint', async function() {
+  it(`must checkpoint ${checkpointsPassed} time(s) with block interval ${blockInterval}`, async function() {
     let _count = checkpointsPassed
     while (_count-- > 0) {
       await checkPoint(signers, this.rootChainOwner, this.stakeManager, { blockInterval, order })
@@ -601,6 +601,12 @@ contract('StakeManager', async function(accounts) {
           [stakers[1].wallet.getAddressString()]: toWei('7860'),
           [stakers[2].wallet.getAddressString()]: toWei('11790')
         })
+
+        testCheckpointing(stakers, stakers.map(x => x.wallet), 2, 1, {
+          [stakers[0].wallet.getAddressString()]: toWei('6630'),
+          [stakers[1].wallet.getAddressString()]: toWei('13260'),
+          [stakers[2].wallet.getAddressString()]: toWei('19890')
+        })
       })
 
       describe('when next checkpoint is faster than previous', function() {
@@ -616,6 +622,12 @@ contract('StakeManager', async function(accounts) {
           [stakers[0].wallet.getAddressString()]: toWei('4350'),
           [stakers[1].wallet.getAddressString()]: toWei('8700'),
           [stakers[2].wallet.getAddressString()]: toWei('13050')
+        })
+
+        testCheckpointing(stakers, stakers.map(x => x.wallet), 1, 1, {
+          [stakers[0].wallet.getAddressString()]: toWei('5850'),
+          [stakers[1].wallet.getAddressString()]: toWei('11700'),
+          [stakers[2].wallet.getAddressString()]: toWei('17550')
         })
       })
 
