@@ -198,7 +198,6 @@ contract('RootChain', async function(accounts) {
         this.headerBlockId = '10000'
         this.proposer = accounts[0]
         this.root = buildRoot(this)
-        this.reward = this.reward.div(new BN(2))
       })
 
       testCheckpoint()
