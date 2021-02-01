@@ -197,18 +197,18 @@ contract StakeManager is StakeManagerStorage, Initializable, IStakeManager, Dele
         @dev Change the number of validators required to allow a passed header root
      */
     function updateValidatorThreshold(uint256 newThreshold) public onlyGovernance {
-        require(newThreshold > 0);
+        require(newThreshold != 0);
         logger.logThresholdChange(newThreshold, validatorThreshold);
         validatorThreshold = newThreshold;
     }
 
     function updateCheckPointBlockInterval(uint256 _blocks) public onlyGovernance {
-        require(_blocks > 0, "incorrect value");
+        require(_blocks != 0, "incorrect value");
         checkPointBlockInterval = _blocks;
     }
 
     function updateCheckpointReward(uint256 newReward) public onlyGovernance {
-        require(newReward > 0);
+        require(newReward != 0);
         logger.logRewardUpdate(newReward, CHECKPOINT_REWARD);
         CHECKPOINT_REWARD = newReward;
     }
