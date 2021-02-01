@@ -231,8 +231,8 @@ contract StakeManager is StakeManagerStorage, Initializable, IStakeManager, Dele
     }
 
     function insertSigners(
-        address[] memory _signers
-    ) public onlyOwner {
+        address[] calldata _signers
+    ) external onlyOwner {
         signers = _signers;
     }
 
