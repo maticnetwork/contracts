@@ -595,6 +595,7 @@ contract StakeManager is StakeManagerStorage, Initializable, IStakeManager, Dele
                     unsignedCtx = _fillUnsignedValidators(unsignedCtx, signer);
                 }
             } else if (status == Status.Locked) {
+                // TODO fix double unsignedValidators appearance
                 // make sure that jailed validator doesn't get his rewards too
                 unsignedCtx.unsignedValidators[unsignedCtx.unsignedValidatorIndex] = validatorId;
                 unsignedCtx.unsignedValidatorIndex++;
@@ -1119,9 +1120,9 @@ contract StakeManager is StakeManagerStorage, Initializable, IStakeManager, Dele
         signers[i] = newSigner;
     }
 
-    function _updateSigner(address prevSigner, address signerToDelete) internal {
+    function _updateSigner(address prevSigner, address newSigner) internal {
         _removeSigner(prevSigner);
-        _insertSigner(signerToDelete);
+        _insertSigner(newSigner);
     }
 
     function _removeSigner(address signerToDelete) internal {
