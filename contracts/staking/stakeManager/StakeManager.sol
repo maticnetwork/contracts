@@ -1108,7 +1108,8 @@ contract StakeManager is StakeManagerStorage, Initializable, IStakeManager, Dele
     function _insertSigner(address newSigner) internal {
         signers.push(newSigner);
 
-        uint i = signers.length - 1;
+        uint lastIndex = signers.length - 1;
+        uint i = lastIndex;
         for (; i > 0; --i) {
             address signer = signers[i - 1];
             if (signer < newSigner) {
@@ -1117,7 +1118,9 @@ contract StakeManager is StakeManagerStorage, Initializable, IStakeManager, Dele
             signers[i] = signer;
         }
 
-        signers[i] = newSigner;
+        if (i != lastIndex) {
+            signers[i] = newSigner;
+        }
     }
 
     function _updateSigner(address prevSigner, address newSigner) internal {
