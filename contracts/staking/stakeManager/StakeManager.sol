@@ -517,7 +517,7 @@ contract StakeManager is StakeManagerStorage, Initializable, IStakeManager, Dele
         }
     }
 
-    function increaseValidatorDelegatedAmount(uint256 validatorId, uint256 amount) public onlyDelegation(validatorId) {
+    function increaseValidatorDelegatedAmount(uint256 validatorId, uint256 amount) private {
         validators[validatorId].delegatedAmount = validators[validatorId].delegatedAmount.add(amount);
     }
 
