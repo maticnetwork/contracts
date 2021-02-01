@@ -360,7 +360,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
         _mint(user, shares);
 
         // clamp amount of tokens in case resulted shares requires less tokens than anticipated
-        _amount = _amount.sub(_amount % rate.mul(shares).div(precision));
+        _amount = rate.mul(shares).div(precision);
 
         stakeManager.updateValidatorState(validatorId, int256(_amount));
 
