@@ -448,12 +448,39 @@ contract('StakeManager', async function(accounts) {
       })
     }
 
-    describe('when validator unstakes but do not sign last checkpoint', function() {
+    describe('when 1st validator unstakes but 2nd do not sign a checkpoint', function() {
       const validatorWallet = wallets[2]
       const validatorId = '1'
       const stakers = [
-        { wallet: wallets[2], stake: new BN(web3.utils.toWei('200')) },
+        { wallet: validatorWallet, stake: new BN(web3.utils.toWei('200')) },
         { wallet: wallets[4], stake: new BN(web3.utils.toWei('100')) },
+        { wallet: wallets[3], stake: new BN(web3.utils.toWei('200')) }
+      ]
+
+      const signers = stakers.map(x => x.wallet)
+      signers.splice(1, 1)
+
+      prepareToTest(stakers, 1)
+
+      before('must unstake', async function() {
+        await this.stakeManager.unstake(validatorId, {
+          from: validatorWallet.getChecksumAddressString()
+        })
+      })
+
+      testCheckpointing(stakers, signers, 1, 1, {
+        [stakers[0].wallet.getAddressString()]: '3600000000000000000000',
+        [stakers[1].wallet.getAddressString()]: '0000000000000000000000',
+        [stakers[2].wallet.getAddressString()]: '3600000000000000000000'
+      })
+    })
+
+    describe('when validator unstakes and do not sign last checkpoint', function() {
+      const validatorWallet = wallets[4]
+      const validatorId = '2'
+      const stakers = [
+        { wallet: wallets[2], stake: new BN(web3.utils.toWei('200')) },
+        { wallet: validatorWallet, stake: new BN(web3.utils.toWei('100')) },
         { wallet: wallets[3], stake: new BN(web3.utils.toWei('200')) }
       ]
 
@@ -522,11 +549,11 @@ contract('StakeManager', async function(accounts) {
       })
     })
 
-    describe('when 200 validators stake, block interval 1, 2 epochs', function() {
+    describe('when 100 validators stake, block interval 1, 2 epochs', function() {
       const stakers = []
 
-      const w = generateFirstWallets(mnemonics, 200)
-      for (let i = 0; i < 200; ++i) {
+      const w = generateFirstWallets(mnemonics, 100)
+      for (let i = 0; i < 100; ++i) {
         stakers.push({
           wallet: w[i],
           stake: new BN(web3.utils.toWei('1'))
