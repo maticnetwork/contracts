@@ -224,7 +224,7 @@ contract StakeManager is
         uint256 _maxSkippedCheckpoints,
         uint256 _checkpointRewardDelta
     ) public onlyGovernance {
-        require(_maxSkippedCheckpoints * _rewardDecreasePerCheckpoint <= CHK_REWARD_PRECISION);
+        require(_maxSkippedCheckpoints.mul(_rewardDecreasePerCheckpoint) <= CHK_REWARD_PRECISION);
         require(_checkpointRewardDelta <= CHK_REWARD_PRECISION);
 
         rewardDecreasePerCheckpoint = _rewardDecreasePerCheckpoint;
@@ -844,11 +844,11 @@ contract StakeManager is
             uint256 _rewardDecreasePerCheckpoint = rewardDecreasePerCheckpoint;
 
             // calculate reward for full intervals
-            reward = ckpReward * fullIntervals - ckpReward * ((fullIntervals - 1) * fullIntervals / 2 * _rewardDecreasePerCheckpoint) / CHK_REWARD_PRECISION;
+            reward = ckpReward.mul(fullIntervals).sub(ckpReward.mul(((fullIntervals - 1) * fullIntervals / 2).mul(_rewardDecreasePerCheckpoint)).div(CHK_REWARD_PRECISION));
             // adjust block interval, in case last interval is not full
-            blockInterval -= fullIntervals * targetBlockInterval;
+            blockInterval = blockInterval.sub(fullIntervals.mul(targetBlockInterval));
             // adjust checkpoint reward by the amount it suppose to decrease
-            ckpReward -= ckpReward * fullIntervals * _rewardDecreasePerCheckpoint / CHK_REWARD_PRECISION;
+            ckpReward = ckpReward.sub(ckpReward.mul(fullIntervals).mul(_rewardDecreasePerCheckpoint).div(CHK_REWARD_PRECISION));
         }
 
         // give proportionally less for the rest
