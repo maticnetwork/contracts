@@ -164,6 +164,13 @@ class Deployer {
         stakeManager.contract.methods.updateSignerUpdateLimit(val).encodeABI()
       )
     }
+
+    stakeManager.updateCheckpointRewardParams = (val1, val2, val3) => {
+      return governance.update(
+        stakeManager.address,
+        stakeManager.contract.methods.updateCheckpointRewardParams(val1, val2, val3).encodeABI()
+      )
+    }
   }
 
   async deployStakeManager(wallets) {

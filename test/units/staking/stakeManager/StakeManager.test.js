@@ -22,6 +22,8 @@ import { wallets, freshDeploy, approveAndStake, walletAmounts } from '../deploym
 import { buyVoucher } from '../ValidatorShareHelper.js'
 import { web3 } from '@openzeppelin/test-helpers/src/setup'
 
+const { toWei } = web3.utils
+
 function prepareForTest(dynastyValue, validatorThreshold) {
   return async function() {
     await freshDeploy.call(this)
@@ -32,7 +34,7 @@ function prepareForTest(dynastyValue, validatorThreshold) {
 }
 
 function testCheckpointing(stakers, signers, blockInterval, checkpointsPassed, expectedRewards, order = true) {
-  it('must checkpoint', async function() {
+  it(`must checkpoint ${checkpointsPassed} time(s) with block interval ${blockInterval}`, async function() {
     let _count = checkpointsPassed
     while (_count-- > 0) {
       await checkPoint(signers, this.rootChainOwner, this.stakeManager, { blockInterval, order })
@@ -436,6 +438,7 @@ contract('StakeManager', async function(accounts) {
       before('updateCheckPointBlockInterval', async function() {
         await this.stakeManager.updateValidatorThreshold(200)
         await this.stakeManager.updateCheckPointBlockInterval(checkpointBlockInterval)
+        await this.stakeManager.updateCheckpointRewardParams(20, 5, 10)
       })
       before('Approve and stake', async function() {
         this.totalAmount = new BN(0)
@@ -611,6 +614,50 @@ contract('StakeManager', async function(accounts) {
         })
       }
 
+      describe('when next checkpoint is slower than previous', function() {
+        prepareToTest(stakers, 1)
+
+        testCheckpointing(stakers, stakers.map(x => x.wallet), 1, 1, {
+          [stakers[0].wallet.getAddressString()]: toWei('1500'),
+          [stakers[1].wallet.getAddressString()]: toWei('3000'),
+          [stakers[2].wallet.getAddressString()]: toWei('4500')
+        })
+
+        testCheckpointing(stakers, stakers.map(x => x.wallet), 2, 1, {
+          [stakers[0].wallet.getAddressString()]: toWei('3930'),
+          [stakers[1].wallet.getAddressString()]: toWei('7860'),
+          [stakers[2].wallet.getAddressString()]: toWei('11790')
+        })
+
+        testCheckpointing(stakers, stakers.map(x => x.wallet), 2, 1, {
+          [stakers[0].wallet.getAddressString()]: toWei('6630'),
+          [stakers[1].wallet.getAddressString()]: toWei('13260'),
+          [stakers[2].wallet.getAddressString()]: toWei('19890')
+        })
+      })
+
+      describe('when next checkpoint is faster than previous', function() {
+        prepareToTest(stakers, 1)
+
+        testCheckpointing(stakers, stakers.map(x => x.wallet), 2, 1, {
+          [stakers[0].wallet.getAddressString()]: toWei('2700'),
+          [stakers[1].wallet.getAddressString()]: toWei('5400'),
+          [stakers[2].wallet.getAddressString()]: toWei('8100')
+        })
+
+        testCheckpointing(stakers, stakers.map(x => x.wallet), 1, 1, {
+          [stakers[0].wallet.getAddressString()]: toWei('4350'),
+          [stakers[1].wallet.getAddressString()]: toWei('8700'),
+          [stakers[2].wallet.getAddressString()]: toWei('13050')
+        })
+
+        testCheckpointing(stakers, stakers.map(x => x.wallet), 1, 1, {
+          [stakers[0].wallet.getAddressString()]: toWei('5850'),
+          [stakers[1].wallet.getAddressString()]: toWei('11700'),
+          [stakers[2].wallet.getAddressString()]: toWei('17550')
+        })
+      })
+
       describe('when checkpoint block interval is 1', function() {
         describe('when block interval is 1', function() {
           runTests(1, 1, 1, {
@@ -626,15 +673,42 @@ contract('StakeManager', async function(accounts) {
         })
 
         describe('when block interval is 10', function() {
+          prepareToTest(stakers, 1)
+
           runTests(1, 10, 1, {
-            [stakers[0].wallet.getAddressString()]: '1500000000000000000000',
-            [stakers[1].wallet.getAddressString()]: '3000000000000000000000',
-            [stakers[2].wallet.getAddressString()]: '4500000000000000000000'
+            [stakers[0].wallet.getAddressString()]: toWei('4500'),
+            [stakers[1].wallet.getAddressString()]: toWei('9000'),
+            [stakers[2].wallet.getAddressString()]: toWei('13500')
           })
-          runTests(1, 10, 5, {
-            [stakers[0].wallet.getAddressString()]: '7500000000000000000000',
-            [stakers[1].wallet.getAddressString()]: '15000000000000000000000',
-            [stakers[2].wallet.getAddressString()]: '22500000000000000000000'
+        })
+
+        describe('when block interval is 3', function() {
+          prepareToTest(stakers, 1)
+
+          runTests(1, 3, 1, {
+            [stakers[0].wallet.getAddressString()]: toWei('3600'),
+            [stakers[1].wallet.getAddressString()]: toWei('7200'),
+            [stakers[2].wallet.getAddressString()]: toWei('10800')
+          })
+        })
+      })
+
+      describe('when checkpoint block interval is 10', function() {
+        describe('when block interval is 5', function() {
+          runTests(10, 5, 1, {
+            [stakers[0].wallet.getAddressString()]: toWei('750'),
+            [stakers[1].wallet.getAddressString()]: toWei('1500'),
+            [stakers[2].wallet.getAddressString()]: toWei('2250')
+          })
+        })
+
+        describe('when block interval is 15', function() {
+          prepareToTest(stakers, 1)
+
+          runTests(10, 15, 1, {
+            [stakers[0].wallet.getAddressString()]: toWei('2100'),
+            [stakers[1].wallet.getAddressString()]: toWei('4200'),
+            [stakers[2].wallet.getAddressString()]: toWei('6300')
           })
         })
       })
