@@ -203,18 +203,18 @@ contract StakeManager is
         @dev Change the number of validators required to allow a passed header root
      */
     function updateValidatorThreshold(uint256 newThreshold) public onlyGovernance {
-        require(newThreshold > 0);
+        require(newThreshold != 0);
         logger.logThresholdChange(newThreshold, validatorThreshold);
         validatorThreshold = newThreshold;
     }
 
     function updateCheckPointBlockInterval(uint256 _blocks) public onlyGovernance {
-        require(_blocks > 0, "incorrect value");
+        require(_blocks != 0, "incorrect value");
         checkPointBlockInterval = _blocks;
     }
 
     function updateCheckpointReward(uint256 newReward) public onlyGovernance {
-        require(newReward > 0);
+        require(newReward != 0);
         logger.logRewardUpdate(newReward, CHECKPOINT_REWARD);
         CHECKPOINT_REWARD = newReward;
     }
@@ -531,7 +531,7 @@ contract StakeManager is
         }
     }
 
-    function increaseValidatorDelegatedAmount(uint256 validatorId, uint256 amount) public onlyDelegation(validatorId) {
+    function increaseValidatorDelegatedAmount(uint256 validatorId, uint256 amount) private {
         validators[validatorId].delegatedAmount = validators[validatorId].delegatedAmount.add(amount);
     }
 
@@ -540,7 +540,7 @@ contract StakeManager is
     }
 
     function updateSigner(uint256 validatorId, bytes memory signerPubkey) public onlyStaker(validatorId) {
-        address signer = _pubToAddress(signerPubkey);
+        address signer = _getAndAssertSigner(signerPubkey);
         uint256 _currentEpoch = currentEpoch;
         require(_currentEpoch >= latestSignerUpdateEpoch[validatorId].add(signerUpdateLimit), "Not allowed");
 
@@ -576,7 +576,7 @@ contract StakeManager is
         unsignedCtx.totalValidators = signers.length;
 
         UnstakedValidatorsContext memory unstakeCtx;
-        unstakeCtx.deactivatedValidators = new uint256[](totalStakers);
+        unstakeCtx.deactivatedValidators = new uint256[](signers.length + totalStakers);
 
         for (uint256 i = 0; i < sigs.length; ++i) {
             address signer = ECVerify.ecrecovery(voteHash, sigs[i]);
@@ -599,23 +599,26 @@ contract StakeManager is
             if (_isValidator(status, amount, unstakeCtx.deactivationEpoch, _currentEpoch)) {
                 lastAdd = signer;
 
-                signedStakePower = signedStakePower.add(validators[validatorId].delegatedAmount.add(amount));
+                signedStakePower = signedStakePower.add(validators[validatorId].delegatedAmount).add(amount);
 
                 if (unstakeCtx.deactivationEpoch != 0) {
+                    // this validator not a part of signers list anymore
                     unstakeCtx.deactivatedValidators[unstakeCtx.validatorIndex] = validatorId;
                     unstakeCtx.validatorIndex++;
                 } else {
-                    unsignedCtx = _fillUnsignedValidators(unsignedCtx, signer, unsignedCtx.totalValidators);
+                    unsignedCtx = _fillUnsignedValidators(unsignedCtx, signer);
                 }
             } else if (status == Status.Locked) {
+                // TODO fix double unsignedValidators appearance
                 // make sure that jailed validator doesn't get his rewards too
                 unsignedCtx.unsignedValidators[unsignedCtx.unsignedValidatorIndex] = validatorId;
                 unsignedCtx.unsignedValidatorIndex++;
+                unsignedCtx.validatorIndex++;
             }
         }
 
         // find the rest of validators without signature
-        unsignedCtx = _fillUnsignedValidators(unsignedCtx, address(0), unsignedCtx.totalValidators);
+        unsignedCtx = _fillUnsignedValidators(unsignedCtx, address(0));
 
         return
             _increaseRewardAndAssertConsensus(
@@ -771,7 +774,7 @@ contract StakeManager is
         Private Methods
      */
 
-    function _pubToAddress(bytes memory pub) private view returns (address) {
+    function _getAndAssertSigner(bytes memory pub) private view returns (address) {
         require(pub.length == 64, "not pub");
         address signer = address(uint160(uint256(keccak256(pub))));
         require(signer != address(0) && signerToValidator[signer] == 0, "Invalid signer");
@@ -787,15 +790,13 @@ contract StakeManager is
         return (amount > 0 && (deactivationEpoch == 0 || deactivationEpoch > _currentEpoch) && status == Status.Active);
     }
 
-    function _fillUnsignedValidators(
-        UnsignedValidatorsContext memory context,
-        address signer,
-        uint256 totalValidators
-    ) private view returns (UnsignedValidatorsContext memory) {
-        while (context.validatorIndex < totalValidators && context.validators[context.validatorIndex] != signer) {
-            context.unsignedValidators[context.unsignedValidatorIndex] = signerToValidator[
-                context.validators[context.validatorIndex]
-            ];
+    function _fillUnsignedValidators(UnsignedValidatorsContext memory context, address signer)
+        private
+        view
+        returns(UnsignedValidatorsContext memory)
+    {
+        while (context.validatorIndex < context.totalValidators && context.validators[context.validatorIndex] != signer) {
+            context.unsignedValidators[context.unsignedValidatorIndex] = signerToValidator[context.validators[context.validatorIndex]];
             context.unsignedValidatorIndex++;
             context.validatorIndex++;
         }
@@ -1052,7 +1053,7 @@ contract StakeManager is
         bool acceptDelegation,
         bytes memory signerPubkey
     ) internal returns (uint256) {
-        address signer = _pubToAddress(signerPubkey);
+        address signer = _getAndAssertSigner(signerPubkey);
         uint256 _currentEpoch = currentEpoch;
         uint256 validatorId = NFTCounter;
         StakingInfo _logger = logger;
@@ -1115,7 +1116,6 @@ contract StakeManager is
 
         _liquidateRewards(validatorId, validator);
 
-        //  update future
         uint256 targetEpoch = exitEpoch <= currentEpoch ? 0 : exitEpoch;
         updateTimeline(-(int256(amount) + delegationAmount), -1, targetEpoch);
 
@@ -1175,7 +1175,8 @@ contract StakeManager is
     function _insertSigner(address newSigner) internal {
         signers.push(newSigner);
 
-        uint256 i = signers.length - 1;
+        uint lastIndex = signers.length - 1;
+        uint i = lastIndex;
         for (; i > 0; --i) {
             address signer = signers[i - 1];
             if (signer < newSigner) {
@@ -1184,12 +1185,14 @@ contract StakeManager is
             signers[i] = signer;
         }
 
-        signers[i] = newSigner;
+        if (i != lastIndex) {
+            signers[i] = newSigner;
+        }
     }
 
-    function _updateSigner(address prevSigner, address signerToDelete) internal {
+    function _updateSigner(address prevSigner, address newSigner) internal {
         _removeSigner(prevSigner);
-        _insertSigner(signerToDelete);
+        _insertSigner(newSigner);
     }
 
     function _removeSigner(address signerToDelete) internal {

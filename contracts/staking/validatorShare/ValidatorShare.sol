@@ -115,7 +115,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
 
         require(liquidReward >= minAmount, "Too small rewards to restake");
 
-        if (liquidReward > 0) {
+        if (liquidReward != 0) {
             amountRestaked = _buyShares(liquidReward, 0, user);
 
             if (liquidReward > amountRestaked) {
@@ -257,7 +257,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
     function _sellVoucher(uint256 claimAmount, uint256 maximumSharesToBurn) private returns(uint256, uint256) {
         // first get how much staked in total and compare to target unstake amount
         (uint256 totalStaked, uint256 rate) = getTotalStake(msg.sender);
-        require(totalStaked > 0 && totalStaked >= claimAmount, "Too much requested");
+        require(totalStaked != 0 && totalStaked >= claimAmount, "Too much requested");
 
         // convert requested amount back to shares
         uint256 precision = _getRatePrecision();
@@ -302,7 +302,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
 
     function _calculateRewardPerShareWithRewards(uint256 accumulatedReward) private view returns (uint256) {
         uint256 _rewardPerShare = rewardPerShare;
-        if (accumulatedReward > 0) {
+        if (accumulatedReward != 0) {
             _rewardPerShare = _rewardPerShare.add(accumulatedReward.mul(_getRatePrecision()).div(totalSupply()));
         }
 
@@ -337,7 +337,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
 
     function _withdrawAndTransferReward(address user) private returns (uint256) {
         uint256 liquidRewards = _withdrawReward(user);
-        if (liquidRewards > 0) {
+        if (liquidRewards != 0) {
             require(stakeManager.transferFunds(validatorId, liquidRewards, user), "Insufficent rewards");
             stakingLogger.logDelegatorClaimRewards(validatorId, user, liquidRewards);
         }
@@ -360,7 +360,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
         _mint(user, shares);
 
         // clamp amount of tokens in case resulted shares requires less tokens than anticipated
-        _amount = _amount.sub(_amount % rate.mul(shares).div(precision));
+        _amount = rate.mul(shares).div(precision);
 
         stakeManager.updateValidatorState(validatorId, int256(_amount));
 
