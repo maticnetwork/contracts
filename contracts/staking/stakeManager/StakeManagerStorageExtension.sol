@@ -1,8 +1,7 @@
 pragma solidity 0.5.17;
-import { EventsHub } from "../EventsHub.sol";
 
 contract StakeManagerStorageExtension {
-    EventsHub public eventsHub;
+    address public eventsHub;
     uint256 public rewardPerStake;
     address public extensionCode;
     address[] public signers;

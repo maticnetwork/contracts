@@ -157,10 +157,10 @@ contract StakeManagerExtension is StakeManagerStorage, Initializable, StakeManag
     }
 
     function _getOrCacheEventsHub() private returns(EventsHub) {
-        EventsHub _eventsHub = eventsHub;
+        EventsHub _eventsHub = EventsHub(eventsHub);
         if (_eventsHub == EventsHub(0x0)) {
             _eventsHub = EventsHub(Registry(registry).contractMap(keccak256("eventsHub")));
-            eventsHub = _eventsHub;
+            eventsHub = address(_eventsHub);
         }
         return _eventsHub;
     }
