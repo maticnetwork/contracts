@@ -7,7 +7,7 @@ import {GovernanceLockable} from "../../common/mixin/GovernanceLockable.sol";
 import {RootChainable} from "../../common/mixin/RootChainable.sol";
 import {StakingInfo} from "../StakingInfo.sol";
 import {StakingNFT} from "./StakingNFT.sol";
-import {StakeManager} from "./StakeManager.sol";
+import {IStakeManager} from "./IStakeManager.sol";
 import {StakeManagerStorage} from "./StakeManagerStorage.sol";
 import {StakeManagerStorageExtension} from "./StakeManagerStorageExtension.sol";
 import {Math} from "openzeppelin-solidity/contracts/math/Math.sol";
@@ -84,7 +84,7 @@ contract StakeManagerExtension is StakeManagerStorage, Initializable, StakeManag
     function confirmAuctionBid(
         uint256 validatorId,
         uint256 heimdallFee, /** for new validator */
-        StakeManager stakeManager
+        IStakeManager stakeManager
     ) external {
         Auction storage auction = validatorAuction[validatorId];
         address auctionUser = auction.user;
