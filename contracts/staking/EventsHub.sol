@@ -27,6 +27,12 @@ contract EventsHub is Initializable {
         _;
     }
 
+    modifier onlyStakeManager() {
+        require(registry.getStakeManagerAddress() == msg.sender,
+        "Invalid sender, not stake manager");
+        _;
+    }
+
     function initialize(Registry _registry) external initializer {
         registry = _registry;
     }
@@ -47,5 +53,19 @@ contract EventsHub is Initializable {
         uint256 burnId
     ) public onlyValidatorContract(validatorId) {
         emit ShareBurnedWithId(validatorId, user, amount, tokens, burnId);
+    }
+
+    event RewardParams(
+        uint256 rewardDecreasePerCheckpoint,
+        uint256 maxRewardedCheckpoints,
+        uint256 checkpointRewardDelta
+    );
+
+    function logRewardParams(
+        uint256 rewardDecreasePerCheckpoint,
+        uint256 maxRewardedCheckpoints,
+        uint256 checkpointRewardDelta
+    ) public onlyStakeManager {
+        emit RewardParams(rewardDecreasePerCheckpoint, maxRewardedCheckpoints, checkpointRewardDelta);
     }
 }

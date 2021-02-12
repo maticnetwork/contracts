@@ -22,6 +22,7 @@ import {StakeManagerStorageExtension} from "./StakeManagerStorageExtension.sol";
 import {IGovernance} from "../../common/governance/IGovernance.sol";
 import {Initializable} from "../../common/mixin/Initializable.sol";
 import {ValidatorAuction} from "./ValidatorAuction.sol";
+import {EventsHub} from "../EventsHub.sol";
 
 contract StakeManager is
     StakeManagerStorage,
@@ -221,15 +222,17 @@ contract StakeManager is
 
     function updateCheckpointRewardParams(
         uint256 _rewardDecreasePerCheckpoint,
-        uint256 _maxSkippedCheckpoints,
+        uint256 _maxRewardedCheckpoints,
         uint256 _checkpointRewardDelta
     ) public onlyGovernance {
-        require(_maxSkippedCheckpoints.mul(_rewardDecreasePerCheckpoint) <= CHK_REWARD_PRECISION);
+        require(_maxRewardedCheckpoints.mul(_rewardDecreasePerCheckpoint) <= CHK_REWARD_PRECISION);
         require(_checkpointRewardDelta <= CHK_REWARD_PRECISION);
 
         rewardDecreasePerCheckpoint = _rewardDecreasePerCheckpoint;
-        maxSkippedCheckpoints = _maxSkippedCheckpoints;
+        maxRewardedCheckpoints = _maxRewardedCheckpoints;
         checkpointRewardDelta = _checkpointRewardDelta;
+
+        _getOrCacheEventsHub().logRewardParams(_rewardDecreasePerCheckpoint, _maxRewardedCheckpoints, _checkpointRewardDelta);
     }
 
     // New implementation upgrade
@@ -241,8 +244,9 @@ contract StakeManager is
                 validators[i].delegatorsReward = contractAddress.validatorRewards_deprecated().add(INITIALIZED_AMOUNT);
                 validators[i].delegatedAmount = contractAddress.activeAmount_deprecated();
                 validators[i].commissionRate = contractAddress.commissionRate_deprecated();
-                validators[i].reward = validators[i].reward.add(INITIALIZED_AMOUNT);
             }
+
+            validators[i].reward = validators[i].reward.add(INITIALIZED_AMOUNT);
         }
     }
 
@@ -819,7 +823,7 @@ contract StakeManager is
 
         uint256 targetBlockInterval = checkPointBlockInterval;
         uint256 ckpReward = CHECKPOINT_REWARD;
-        uint256 fullIntervals = Math.min(blockInterval / targetBlockInterval, maxSkippedCheckpoints);
+        uint256 fullIntervals = Math.min(blockInterval / targetBlockInterval, maxRewardedCheckpoints);
 
         // only apply to full checkpoints
         if (fullIntervals > 0 && fullIntervals != prevBlockInterval) {
@@ -956,6 +960,15 @@ contract StakeManager is
 
     function _updateRewards(uint256 validatorId) private {
         _updateRewardsAndCommit(validatorId, rewardPerStake, rewardPerStake);
+    }
+
+    function _getOrCacheEventsHub() private returns(EventsHub) {
+        EventsHub _eventsHub = eventsHub;
+        if (_eventsHub == EventsHub(0x0)) {
+            _eventsHub = EventsHub(Registry(getRegistry()).contractMap(keccak256("eventsHub")));
+            eventsHub = _eventsHub;
+        }
+        return _eventsHub;
     }
 
     function _getEligibleValidatorReward(
