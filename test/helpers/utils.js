@@ -149,7 +149,7 @@ export function assertBigNumbergt(num1, num2) {
 export const toChecksumAddress = address =>
   web3.utils.toChecksumAddress(address)
 
-export function buildSubmitHeaderBlockPaylod(
+export function buildsubmitCheckpointPaylod(
   proposer,
   start,
   end,
@@ -181,7 +181,7 @@ export function buildSubmitHeaderBlockPaylod(
   return { data, sigs }
 }
 
-export function buildSubmitHeaderBlockPaylodWithVotes(
+export function buildsubmitCheckpointPaylodWithVotes(
   proposer,
   start,
   end,
