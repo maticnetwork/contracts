@@ -12,8 +12,10 @@ import {StakeManagerStorage} from "./StakeManagerStorage.sol";
 import {StakeManagerStorageExtension} from "./StakeManagerStorageExtension.sol";
 import {Math} from "openzeppelin-solidity/contracts/math/Math.sol";
 import {Initializable} from "../../common/mixin/Initializable.sol";
+import {EventsHub} from "../EventsHub.sol";
+import {ValidatorShare} from "../validatorShare/ValidatorShare.sol";
 
-contract ValidatorAuction is StakeManagerStorage, Initializable, StakeManagerStorageExtension {
+contract StakeManagerExtension is StakeManagerStorage, Initializable, StakeManagerStorageExtension {
     using SafeMath for uint256;
 
     constructor() public GovernanceLockable(address(0x0)) {}
@@ -124,5 +126,42 @@ contract ValidatorAuction is StakeManagerStorage, Initializable, StakeManagerSto
         uint256 startEpoch = auction.startEpoch;
         delete validatorAuction[validatorId];
         validatorAuction[validatorId].startEpoch = startEpoch;
+    }
+
+    function migrateValidatorsData(uint256 validatorIdFrom, uint256 validatorIdTo) external {       
+        for (uint256 i = validatorIdFrom; i < validatorIdTo; ++i) {
+            ValidatorShare contractAddress = ValidatorShare(validators[i].contractAddress);
+            if (contractAddress != ValidatorShare(0)) {
+                validators[i].delegatorsReward = contractAddress.validatorRewards_deprecated().add(INITIALIZED_AMOUNT);
+                validators[i].delegatedAmount = contractAddress.activeAmount_deprecated();
+                validators[i].commissionRate = contractAddress.commissionRate_deprecated();
+            }
+
+            validators[i].reward = validators[i].reward.add(INITIALIZED_AMOUNT);
+        }
+    }
+
+    function updateCheckpointRewardParams(
+        uint256 _rewardDecreasePerCheckpoint,
+        uint256 _maxRewardedCheckpoints,
+        uint256 _checkpointRewardDelta
+    ) external {
+        require(_maxRewardedCheckpoints.mul(_rewardDecreasePerCheckpoint) <= CHK_REWARD_PRECISION);
+        require(_checkpointRewardDelta <= CHK_REWARD_PRECISION);
+
+        rewardDecreasePerCheckpoint = _rewardDecreasePerCheckpoint;
+        maxRewardedCheckpoints = _maxRewardedCheckpoints;
+        checkpointRewardDelta = _checkpointRewardDelta;
+
+        _getOrCacheEventsHub().logRewardParams(_rewardDecreasePerCheckpoint, _maxRewardedCheckpoints, _checkpointRewardDelta);
+    }
+
+    function _getOrCacheEventsHub() private returns(EventsHub) {
+        EventsHub _eventsHub = eventsHub;
+        if (_eventsHub == EventsHub(0x0)) {
+            _eventsHub = EventsHub(Registry(registry).contractMap(keccak256("eventsHub")));
+            eventsHub = _eventsHub;
+        }
+        return _eventsHub;
     }
 }

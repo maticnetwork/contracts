@@ -4,7 +4,7 @@ import { EventsHub } from "../EventsHub.sol";
 contract StakeManagerStorageExtension {
     EventsHub public eventsHub;
     uint256 public rewardPerStake;
-    address public auctionImplementation;
+    address public extensionCode;
     address[] public signers;
 
     uint256 constant CHK_REWARD_PRECISION = 100;
