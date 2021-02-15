@@ -788,7 +788,7 @@ contract StakeManager is
         uint256 amount,
         uint256 deactivationEpoch,
         uint256 _currentEpoch
-    ) private view returns (bool) {
+    ) private pure returns (bool) {
         return (amount > 0 && (deactivationEpoch == 0 || deactivationEpoch > _currentEpoch) && status == Status.Active);
     }
 
@@ -965,7 +965,7 @@ contract StakeManager is
         uint256 validatorStakePower,
         uint256 currentRewardPerStake,
         uint256 initialRewardPerStake
-    ) private returns (uint256) {
+    ) private pure returns (uint256) {
         uint256 eligibleReward = currentRewardPerStake - initialRewardPerStake;
         return eligibleReward.mul(validatorStakePower).div(REWARD_PRECISION);
     }

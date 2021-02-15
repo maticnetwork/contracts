@@ -93,12 +93,12 @@ contract('StakeManager', async function(accounts) {
     })
 
     it('validator auction must have correct balance equal to bid amount', async function() {
-      let auctionData = await this.stakeManager.StakeManagerExtension(this.validatorId)
+      let auctionData = await this.stakeManager.validatorAuction(this.validatorId)
       assertBigNumberEquality(auctionData.amount, bidAmount)
     })
 
     it('validator auction must have correct user', async function() {
-      let auctionData = await this.stakeManager.StakeManagerExtension(this.validatorId)
+      let auctionData = await this.stakeManager.validatorAuction(this.validatorId)
       assert(auctionData.user === user)
     })
 
@@ -2028,7 +2028,7 @@ contract('StakeManager', async function(accounts) {
         })
 
         if (skipAuctionPeriod) {
-          const auction = await this.stakeManager.StakeManagerExtension(this.validatorId)
+          const auction = await this.stakeManager.validatorAuction(this.validatorId)
           const currentEpoch = await this.stakeManager.currentEpoch()
           const dynasty = await this.stakeManager.dynasty()
 

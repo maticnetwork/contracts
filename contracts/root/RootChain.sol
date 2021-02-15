@@ -20,7 +20,9 @@ contract RootChain is RootChainStorage, IRootChain {
         _;
     }
 
-    function submitHeaderBlock(bytes calldata data, bytes calldata sigs) external {}
+    function submitHeaderBlock(bytes calldata data, bytes calldata sigs) external {
+        revert();
+    }
 
     function submitCheckpoint(bytes calldata data, uint[3][] calldata sigs) external {
         (address proposer, uint256 start, uint256 end, bytes32 rootHash, bytes32 accountHash, uint256 _borChainID) = abi
