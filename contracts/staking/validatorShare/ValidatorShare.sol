@@ -9,9 +9,13 @@ import {OwnableLockable} from "../../common/mixin/OwnableLockable.sol";
 import {IStakeManager} from "../stakeManager/IStakeManager.sol";
 import {IValidatorShare} from "./IValidatorShare.sol";
 import {Initializable} from "../../common/mixin/Initializable.sol";
-import {ValidatorShareStorageExtension} from "./ValidatorShareStorageExtension.sol";
 
-contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, Initializable, ValidatorShareStorageExtension {
+contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, Initializable {
+    struct DelegatorUnbond {
+        uint256 shares;
+        uint256 withdrawEpoch;
+    }
+
     uint256 constant EXCHANGE_RATE_PRECISION = 100;
     // maximum matic possible, even if rate will be 1 and all matic will be staken in one go, it will result in 10 ^ 58 shares
     uint256 constant EXCHANGE_RATE_HIGH_PRECISION = 10**29;
@@ -37,6 +41,11 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
     mapping(address => uint256) amountStaked_deprecated; // deprecated, keep for foundation delegators
     mapping(address => DelegatorUnbond) public unbonds;
     mapping(address => uint256) public initalRewardPerShare;
+
+    mapping(address => uint256) public unbondNonces;
+    mapping(address => mapping(uint256 => DelegatorUnbond)) public unbonds_new;
+
+    EventsHub public eventsHub;
 
     // onlyOwner will prevent this contract from initializing, since it's owner is going to be 0x0 address
     function initialize(
