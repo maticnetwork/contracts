@@ -28,7 +28,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
     uint256 public totalStake_deprecated;
     uint256 public rewardPerShare;
     uint256 public activeAmount_deprecated;
-    
+
     bool public delegation;
 
     uint256 public withdrawPool;
@@ -76,7 +76,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
 
     function withdrawExchangeRate() public view returns (uint256) {
         uint256 precision = _getRatePrecision();
-        if (validatorId < 9) {
+        if (validatorId < 8) {
             // fix of potentially broken withdrawals for future unbonding
             // foundation validators have no slashing enabled and thus we can return default exchange rate
             // because without slashing rate will stay constant
