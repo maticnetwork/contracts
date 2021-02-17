@@ -64,4 +64,13 @@ contract IStakeManager {
     function withdrawDelegatorsReward(uint256 validatorId) public returns(uint256);
 
     function delegatorsReward(uint256 validatorId) public view returns(uint256);
+
+    function dethroneAndStake(
+        address auctionUser,
+        uint256 heimdallFee,
+        uint256 validatorId,
+        uint256 auctionAmount,
+        bool acceptDelegation,
+        bytes calldata signerPubkey
+    ) external;
 }

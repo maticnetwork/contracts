@@ -48,7 +48,7 @@ class Deployer {
       utils.ZeroAddress
     )
     let stakeManager = await contracts.StakeManagerTest.new()
-    const auctionImpl = await contracts.ValidatorAuction.new()
+    const auctionImpl = await contracts.StakeManagerExtension.new()
     await proxy.updateAndCall(stakeManager.address, stakeManager.contract.methods.initialize(
       this.registry.address,
       this.rootChain.address,
@@ -190,7 +190,7 @@ class Deployer {
     let proxy = await contracts.StakeManagerProxy.new(
       utils.ZeroAddress
     )
-    const auctionImpl = await contracts.ValidatorAuction.new()
+    const auctionImpl = await contracts.StakeManagerExtension.new()
     await proxy.updateAndCall(stakeManager.address, stakeManager.contract.methods.initialize(
       this.registry.address,
       rootChainOwner.getAddressString(),

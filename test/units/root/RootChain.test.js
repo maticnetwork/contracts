@@ -9,7 +9,7 @@ import { TestToken, TransferWithSigPredicate } from '../../helpers/artifacts'
 import {
   assertBigNumberEquality,
   assertBigNumbergt,
-  buildSubmitHeaderBlockPaylod
+  buildsubmitCheckpointPaylod
 } from '../../helpers/utils.js'
 import { generateFirstWallets, mnemonics } from '../../helpers/wallets.js'
 import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
@@ -74,7 +74,7 @@ contract('RootChain', async function(accounts) {
     before(async function() {
       if (!dontBuildHeaderBlockPayload) {
         let tree = await rewradsTree(validators, accountState)
-        const { data, sigs } = buildSubmitHeaderBlockPaylod(
+        const { data, sigs } = buildsubmitCheckpointPaylod(
           this.proposer,
           this.start,
           this.end,
@@ -91,7 +91,7 @@ contract('RootChain', async function(accounts) {
     })
 
     it('must submit', async function() {
-      this.result = await rootChain.submitHeaderBlock(this.data, this.sigs)
+      this.result = await rootChain.submitCheckpoint(this.data, this.sigs)
     })
 
     it('must emit NewBlockHeader', async function() {
@@ -116,7 +116,7 @@ contract('RootChain', async function(accounts) {
     })
   }
 
-  describe('submitHeaderBlock', function() {
+  describe('submitCheckpoint', function() {
     describe('1 header block', function() {
       before(freshDeploy)
       before(function() {

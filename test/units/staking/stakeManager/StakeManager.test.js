@@ -11,8 +11,8 @@ import { buildTreeFee } from '../../../helpers/proofs.js'
 import {
   checkPoint,
   assertBigNumberEquality,
-  buildSubmitHeaderBlockPaylod,
-  buildSubmitHeaderBlockPaylodWithVotes,
+  buildsubmitCheckpointPaylod,
+  buildsubmitCheckpointPaylodWithVotes,
   encodeSigsForCheckpoint,
   getSigs
 } from '../../../helpers/utils.js'
@@ -847,7 +847,7 @@ contract('StakeManager', async function(accounts) {
         let tree = await buildTreeFee(this.validators, this.accumulatedFees, this.checkpointIndex)
         this.checkpointIndex++
 
-        const { data, sigs } = buildSubmitHeaderBlockPaylodWithVotes(
+        const { data, sigs } = buildsubmitCheckpointPaylodWithVotes(
           this.validatorsWallets[validatorId].getAddressString(),
           start,
           end,
@@ -1528,7 +1528,7 @@ contract('StakeManager', async function(accounts) {
       let tree = await buildTreeFee(this.validators, this.accumulatedFees, this.checkpointIndex)
       this.checkpointIndex++
 
-      const { data, sigs } = buildSubmitHeaderBlockPaylod(
+      const { data, sigs } = buildsubmitCheckpointPaylod(
         this.validatorsWallets[validatorId].getAddressString(),
         start,
         end,

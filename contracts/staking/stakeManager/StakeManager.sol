@@ -21,7 +21,7 @@ import {StakeManagerStorage} from "./StakeManagerStorage.sol";
 import {StakeManagerStorageExtension} from "./StakeManagerStorageExtension.sol";
 import {IGovernance} from "../../common/governance/IGovernance.sol";
 import {Initializable} from "../../common/mixin/Initializable.sol";
-import {ValidatorAuction} from "./ValidatorAuction.sol";
+import {StakeManagerExtension} from "./StakeManagerExtension.sol";
 
 contract StakeManager is
     StakeManagerStorage,
@@ -78,10 +78,10 @@ contract StakeManager is
         address _validatorShareFactory,
         address _governance,
         address _owner,
-        address _auctionImplementation
+        address _extensionCode
     ) external initializer {
-        require(isContract(_auctionImplementation), "auction impl incorrect");
-        auctionImplementation = _auctionImplementation;
+        require(isContract(_extensionCode), "auction impl incorrect");
+        extensionCode = _extensionCode;
         governance = IGovernance(_governance);
         registry = _registry;
         rootChain = _rootchain;
@@ -209,7 +209,7 @@ contract StakeManager is
     }
 
     function updateCheckPointBlockInterval(uint256 _blocks) public onlyGovernance {
-        require(_blocks != 0, "incorrect value");
+        require(_blocks != 0);
         checkPointBlockInterval = _blocks;
     }
 
@@ -221,29 +221,31 @@ contract StakeManager is
 
     function updateCheckpointRewardParams(
         uint256 _rewardDecreasePerCheckpoint,
-        uint256 _maxSkippedCheckpoints,
+        uint256 _maxRewardedCheckpoints,
         uint256 _checkpointRewardDelta
     ) public onlyGovernance {
-        require(_maxSkippedCheckpoints.mul(_rewardDecreasePerCheckpoint) <= CHK_REWARD_PRECISION);
-        require(_checkpointRewardDelta <= CHK_REWARD_PRECISION);
-
-        rewardDecreasePerCheckpoint = _rewardDecreasePerCheckpoint;
-        maxSkippedCheckpoints = _maxSkippedCheckpoints;
-        checkpointRewardDelta = _checkpointRewardDelta;
+        delegatedFwd(
+            extensionCode,
+            abi.encodeWithSelector(
+                StakeManagerExtension(extensionCode).updateCheckpointRewardParams.selector,
+                _rewardDecreasePerCheckpoint,
+                _maxRewardedCheckpoints,
+                _checkpointRewardDelta
+            )
+        );
     }
 
     // New implementation upgrade
 
     function migrateValidatorsData(uint256 validatorIdFrom, uint256 validatorIdTo) public onlyOwner {
-        for (uint256 i = validatorIdFrom; i < validatorIdTo; ++i) {
-            ValidatorShare contractAddress = ValidatorShare(validators[i].contractAddress);
-            if (contractAddress != ValidatorShare(0)) {
-                validators[i].delegatorsReward = contractAddress.validatorRewards_deprecated().add(INITIALIZED_AMOUNT);
-                validators[i].delegatedAmount = contractAddress.activeAmount_deprecated();
-                validators[i].commissionRate = contractAddress.commissionRate_deprecated();
-                validators[i].reward = validators[i].reward.add(INITIALIZED_AMOUNT);
-            }
-        }
+        delegatedFwd(
+            extensionCode,
+            abi.encodeWithSelector(
+                StakeManagerExtension(extensionCode).migrateValidatorsData.selector,
+                validatorIdFrom,
+                validatorIdTo
+            )
+        );
     }
 
     function insertSigners(address[] memory _signers) public onlyOwner {
@@ -254,7 +256,7 @@ contract StakeManager is
         @dev Users must exit before this update or all funds may get lost
      */
     function updateValidatorContractAddress(uint256 validatorId, address newContractAddress) public onlyGovernance {
-        require(IValidatorShare(newContractAddress).owner() == address(this), "Not stakeManager");
+        require(IValidatorShare(newContractAddress).owner() == address(this));
         validators[validatorId].contractAddress = newContractAddress;
     }
 
@@ -294,7 +296,7 @@ contract StakeManager is
         uint256 amount
     ) external onlyGovernance {
         address contractAddr = validators[validatorId].contractAddress;
-        require(contractAddr != address(0x0), "not validator");
+        require(contractAddr != address(0x0));
         IValidatorShare(contractAddr).drain(tokenAddr, destination, amount);
     }
 
@@ -306,10 +308,10 @@ contract StakeManager is
         address _NFTContract,
         address _stakingLogger,
         address _validatorShareFactory,
-        address _auctionImplementation
+        address _extensionCode
     ) external onlyGovernance {
-        require(isContract(_auctionImplementation), "auction impl incorrect");
-        auctionImplementation = _auctionImplementation;
+        require(isContract(_extensionCode));
+        extensionCode = _extensionCode;
         NFTContract = StakingNFT(_NFTContract);
         logger = StakingInfo(_stakingLogger);
         validatorShareFactory = ValidatorShareFactory(_validatorShareFactory);
@@ -353,9 +355,9 @@ contract StakeManager is
         bytes calldata _signerPubkey
     ) external onlyWhenUnlocked {
         delegatedFwd(
-            auctionImplementation,
+            extensionCode,
             abi.encodeWithSelector(
-                ValidatorAuction(auctionImplementation).startAuction.selector,
+                StakeManagerExtension(extensionCode).startAuction.selector,
                 validatorId,
                 amount,
                 _acceptDelegation,
@@ -369,9 +371,9 @@ contract StakeManager is
         uint256 heimdallFee /** for new validator */
     ) external onlyWhenUnlocked {
         delegatedFwd(
-            auctionImplementation,
+            extensionCode,
             abi.encodeWithSelector(
-                ValidatorAuction(auctionImplementation).confirmAuctionBid.selector,
+                StakeManagerExtension(extensionCode).confirmAuctionBid.selector,
                 validatorId,
                 heimdallFee,
                 address(this)
@@ -397,7 +399,7 @@ contract StakeManager is
     }
 
     function unstake(uint256 validatorId) external onlyStaker(validatorId) {
-        require(validatorAuction[validatorId].amount == 0, "Wait for auction completion");
+        require(validatorAuction[validatorId].amount == 0);
 
         Status status = validators[validatorId].status;
         require(
@@ -786,7 +788,7 @@ contract StakeManager is
         uint256 amount,
         uint256 deactivationEpoch,
         uint256 _currentEpoch
-    ) private view returns (bool) {
+    ) private pure returns (bool) {
         return (amount > 0 && (deactivationEpoch == 0 || deactivationEpoch > _currentEpoch) && status == Status.Active);
     }
 
@@ -819,7 +821,7 @@ contract StakeManager is
 
         uint256 targetBlockInterval = checkPointBlockInterval;
         uint256 ckpReward = CHECKPOINT_REWARD;
-        uint256 fullIntervals = Math.min(blockInterval / targetBlockInterval, maxSkippedCheckpoints);
+        uint256 fullIntervals = Math.min(blockInterval / targetBlockInterval, maxRewardedCheckpoints);
 
         // only apply to full checkpoints
         if (fullIntervals > 0 && fullIntervals != prevBlockInterval) {
@@ -963,7 +965,7 @@ contract StakeManager is
         uint256 validatorStakePower,
         uint256 currentRewardPerStake,
         uint256 initialRewardPerStake
-    ) private returns (uint256) {
+    ) private pure returns (uint256) {
         uint256 eligibleReward = currentRewardPerStake - initialRewardPerStake;
         return eligibleReward.mul(validatorStakePower).div(REWARD_PRECISION);
     }
