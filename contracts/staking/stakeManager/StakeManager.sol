@@ -311,6 +311,7 @@ contract StakeManager is
         address _extensionCode
     ) external onlyGovernance {
         require(isContract(_extensionCode));
+        eventsHub = address(0x0);
         extensionCode = _extensionCode;
         NFTContract = StakingNFT(_NFTContract);
         logger = StakingInfo(_stakingLogger);
