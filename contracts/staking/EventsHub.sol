@@ -68,4 +68,22 @@ contract EventsHub is Initializable {
     ) public onlyStakeManager {
         emit RewardParams(rewardDecreasePerCheckpoint, maxRewardedCheckpoints, checkpointRewardDelta);
     }
+
+    event UpdateCommissionRate(
+        uint256 indexed validatorId,
+        uint256 indexed newCommissionRate,
+        uint256 indexed oldCommissionRate
+    );
+
+    function logUpdateCommissionRate(
+        uint256 validatorId,
+        uint256 newCommissionRate,
+        uint256 oldCommissionRate
+    ) public onlyStakeManager {
+        emit UpdateCommissionRate(
+            validatorId,
+            newCommissionRate,
+            oldCommissionRate
+        );
+    }
 }
