@@ -31,7 +31,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
 
     uint256 public totalStake_deprecated;
     uint256 public rewardPerShare;
-    uint256 public activeAmount_deprecated;
+    uint256 public activeAmount;
 
     bool public delegation;
 
@@ -85,7 +85,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
 
     function withdrawExchangeRate() public view returns (uint256) {
         uint256 precision = _getRatePrecision();
-        if (validatorId < 8) {
+        if (validatorId < 9) {
             // fix of potentially broken withdrawals for future unbonding
             // foundation validators have no slashing enabled and thus we can return default exchange rate
             // because without slashing rate will stay constant
@@ -172,6 +172,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
         _burn(user, shares);
 
         stakeManager.updateValidatorState(validatorId, -int256(amount));
+        activeAmount = activeAmount.sub(amount);
 
         stakingLogger.logShareBurned(validatorId, user, amount, shares);
         stakingLogger.logStakeUpdate(validatorId);
@@ -203,7 +204,10 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
         uint256 _amountToSlashWithdrawalPool = _withdrawPool.mul(_amountToSlash).div(delegationAmount);
 
         // slash inactive pool
-        stakeManager.decreaseValidatorDelegatedAmount(validatorId, _amountToSlash.sub(_amountToSlashWithdrawalPool));
+        uint256 stakeSlashed = _amountToSlash.sub(_amountToSlashWithdrawalPool);
+        stakeManager.decreaseValidatorDelegatedAmount(validatorId, stakeSlashed);
+        activeAmount = activeAmount.sub(stakeSlashed);
+
         withdrawPool = withdrawPool.sub(_amountToSlashWithdrawalPool);
         return _amountToSlash;
     }
@@ -277,6 +281,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
 
         _burn(msg.sender, shares);
         stakeManager.updateValidatorState(validatorId, -int256(claimAmount));
+        activeAmount = activeAmount.sub(claimAmount);
 
         uint256 _withdrawPoolShare = claimAmount.mul(precision).div(withdrawExchangeRate());
         withdrawPool = withdrawPool.add(claimAmount);
@@ -372,6 +377,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
         _amount = rate.mul(shares).div(precision);
 
         stakeManager.updateValidatorState(validatorId, int256(_amount));
+        activeAmount = activeAmount.add(_amount);
 
         StakingInfo logger = stakingLogger;
         logger.logShareMinted(validatorId, user, _amount, shares);
