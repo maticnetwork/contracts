@@ -879,12 +879,7 @@ contract StakeManager is
         uint256 proposerId = signerToValidator[proposer];
 
         Validator storage _proposer = validators[proposerId];
-        uint256 delegatedAmount = _proposer.delegatedAmount;
-        if (delegatedAmount > 0) {
-            _increaseValidatorRewardWithDelegation(proposerId, _proposer.amount, delegatedAmount, _proposerBonus);
-        } else {
-            _proposer.reward = _proposer.reward.add(_proposerBonus);
-        }
+        _proposer.reward = _proposer.reward.add(_proposerBonus);
 
         // update stateMerkleTree root for accounts balance on heimdall chain
         accountStateRoot = stateRoot;
