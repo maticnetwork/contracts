@@ -33,11 +33,11 @@ function prepareForTest(dynastyValue, validatorThreshold) {
   }
 }
 
-function testCheckpointing(stakers, signers, blockInterval, checkpointsPassed, expectedRewards, order = true) {
+function testCheckpointing(stakers, signers, blockInterval, checkpointsPassed, expectedRewards, order = true, proposer = null) {
   it(`must checkpoint ${checkpointsPassed} time(s) with block interval ${blockInterval}`, async function() {
     let _count = checkpointsPassed
     while (_count-- > 0) {
-      await checkPoint(signers, this.rootChainOwner, this.stakeManager, { blockInterval, order })
+      await checkPoint(signers, proposer || this.rootChainOwner, this.stakeManager, { blockInterval, order, rootchainOwner: this.rootChainOwner })
     }
   })
 
@@ -450,6 +450,42 @@ contract('StakeManager', async function(accounts) {
         }
       })
     }
+
+    describe('proposer bonus must be rewarded to the proposer without distribution to the delegators', function() {
+      const delegator = wallets[1].getChecksumAddressString()
+      const stakers = [
+        { wallet: wallets[2], stake: new BN(web3.utils.toWei('100')) },
+        { wallet: wallets[4], stake: new BN(web3.utils.toWei('100')) },
+        { wallet: wallets[3], stake: new BN(web3.utils.toWei('100')) }
+      ]
+
+      const signers = stakers.map(x => x.wallet)
+
+      prepareToTest(stakers, 1)
+
+      before(async function() {
+        await this.stakeManager.updateProposerBonus(10)
+
+        await this.stakeToken.mint(
+          delegator,
+          toWei('1000')
+        )
+        await this.stakeToken.approve(this.stakeManager.address, toWei('1000'), {
+          from: delegator
+        })
+
+        const validator = await this.stakeManager.validators('1')
+        const validatorContract = await ValidatorShare.at(validator.contractAddress)
+
+        await buyVoucher(validatorContract, toWei('100'), delegator)
+      })
+
+      testCheckpointing(stakers, signers, 1, 1, {
+        [stakers[0].wallet.getAddressString()]: toWei('3250'), // proposer fixed bonus + 50% of reward
+        [stakers[1].wallet.getAddressString()]: toWei('2250'),
+        [stakers[2].wallet.getAddressString()]: toWei('2250')
+      }, true, stakers[0].wallet)
+    })
 
     describe('when 1st validator unstakes but 2nd do not sign a checkpoint', function() {
       const validatorWallet = wallets[2]
