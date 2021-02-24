@@ -311,6 +311,7 @@ contract StakeManager is
         address _extensionCode
     ) external onlyGovernance {
         require(isContract(_extensionCode));
+        eventsHub = address(0x0);
         extensionCode = _extensionCode;
         NFTContract = StakingNFT(_NFTContract);
         logger = StakingInfo(_stakingLogger);
@@ -638,18 +639,14 @@ contract StakeManager is
     function updateCommissionRate(uint256 validatorId, uint256 newCommissionRate) external onlyStaker(validatorId) {
         _updateRewards(validatorId);
 
-        uint256 _epoch = currentEpoch;
-        uint256 _lastCommissionUpdate = validators[validatorId].lastCommissionUpdate;
-
-        require( // withdrawalDelay == dynasty
-            (_lastCommissionUpdate.add(WITHDRAWAL_DELAY) <= _epoch) || _lastCommissionUpdate == 0, // For initial setting of commission rate
-            "Cooldown"
+        delegatedFwd(
+            extensionCode,
+            abi.encodeWithSelector(
+                StakeManagerExtension(extensionCode).updateCommissionRate.selector,
+                validatorId,
+                newCommissionRate
+            )
         );
-
-        require(newCommissionRate <= MAX_COMMISION_RATE, "Incorrect value");
-        logger.logUpdateCommissionRate(validatorId, newCommissionRate, validators[validatorId].commissionRate);
-        validators[validatorId].commissionRate = newCommissionRate;
-        validators[validatorId].lastCommissionUpdate = _epoch;
     }
 
     function withdrawDelegatorsReward(uint256 validatorId) public onlyDelegation(validatorId) returns (uint256) {

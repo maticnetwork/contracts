@@ -130,7 +130,7 @@ contract StakeManagerExtension is StakeManagerStorage, Initializable, StakeManag
             ValidatorShare contractAddress = ValidatorShare(validators[i].contractAddress);
             if (contractAddress != ValidatorShare(0)) {
                 validators[i].delegatorsReward = contractAddress.validatorRewards_deprecated().add(INITIALIZED_AMOUNT);
-                validators[i].delegatedAmount = contractAddress.activeAmount_deprecated();
+                validators[i].delegatedAmount = contractAddress.activeAmount();
                 validators[i].commissionRate = contractAddress.commissionRate_deprecated();
             }
 
@@ -151,6 +151,21 @@ contract StakeManagerExtension is StakeManagerStorage, Initializable, StakeManag
         checkpointRewardDelta = _checkpointRewardDelta;
 
         _getOrCacheEventsHub().logRewardParams(_rewardDecreasePerCheckpoint, _maxRewardedCheckpoints, _checkpointRewardDelta);
+    }
+
+    function updateCommissionRate(uint256 validatorId, uint256 newCommissionRate) external {
+        uint256 _epoch = currentEpoch;
+        uint256 _lastCommissionUpdate = validators[validatorId].lastCommissionUpdate;
+
+        require( // withdrawalDelay == dynasty
+            (_lastCommissionUpdate.add(WITHDRAWAL_DELAY) <= _epoch) || _lastCommissionUpdate == 0, // For initial setting of commission rate
+            "Cooldown"
+        );
+
+        require(newCommissionRate <= MAX_COMMISION_RATE, "Incorrect value");
+        _getOrCacheEventsHub().logUpdateCommissionRate(validatorId, newCommissionRate, validators[validatorId].commissionRate);
+        validators[validatorId].commissionRate = newCommissionRate;
+        validators[validatorId].lastCommissionUpdate = _epoch;
     }
 
     function _getOrCacheEventsHub() private returns(EventsHub) {
