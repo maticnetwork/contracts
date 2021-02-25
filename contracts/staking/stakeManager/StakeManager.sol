@@ -945,7 +945,9 @@ contract StakeManager is
             }
         }
 
-        validators[validatorId].initialRewardPerStake = newRewardPerStake;
+        if (newRewardPerStake > initialRewardPerStake) {
+            validators[validatorId].initialRewardPerStake = newRewardPerStake;
+        }
     }
 
     function _updateRewards(uint256 validatorId) private {
