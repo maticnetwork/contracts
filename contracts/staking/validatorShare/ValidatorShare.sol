@@ -317,7 +317,11 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
     function _calculateRewardPerShareWithRewards(uint256 accumulatedReward) private view returns (uint256) {
         uint256 _rewardPerShare = rewardPerShare;
         if (accumulatedReward != 0) {
-            _rewardPerShare = _rewardPerShare.add(accumulatedReward.mul(_getRatePrecision()).div(totalSupply()));
+            uint256 totalShares = totalSupply();
+            
+            if (totalShares != 0) {
+                _rewardPerShare = _rewardPerShare.add(accumulatedReward.mul(_getRatePrecision()).div(totalShares));
+            }
         }
 
         return _rewardPerShare;
