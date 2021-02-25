@@ -44,7 +44,6 @@ contract StakeManagerStorage is GovernanceLockable, RootChainable {
         uint256 delegatorsReward;
         uint256 delegatedAmount;
         uint256 initialRewardPerStake;
-        bool migrated;
     }
 
     uint256 constant MAX_COMMISION_RATE = 100;
