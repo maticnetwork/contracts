@@ -128,13 +128,14 @@ contract StakeManagerExtension is StakeManagerStorage, Initializable, StakeManag
     function migrateValidatorsData(uint256 validatorIdFrom, uint256 validatorIdTo) external {       
         for (uint256 i = validatorIdFrom; i < validatorIdTo; ++i) {
             ValidatorShare contractAddress = ValidatorShare(validators[i].contractAddress);
-            if (contractAddress != ValidatorShare(0)) {
-                validators[i].delegatorsReward = contractAddress.validatorRewards_deprecated().add(INITIALIZED_AMOUNT);
+            if (contractAddress != ValidatorShare(0) && !validators[i].migrated) {
+                validators[i].migrated = true;
+                // move validator rewards out from ValidatorShare contract
+                validators[i].rewards = contractAddress.validatorRewards_deprecated().add(INITIALIZED_AMOUNT);
                 validators[i].delegatedAmount = contractAddress.activeAmount();
                 validators[i].commissionRate = contractAddress.commissionRate_deprecated();
+                validators[i].delegatorsReward = INITIALIZED_AMOUNT;
             }
-
-            validators[i].reward = validators[i].reward.add(INITIALIZED_AMOUNT);
         }
     }
 
