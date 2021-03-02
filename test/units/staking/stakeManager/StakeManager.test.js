@@ -2362,6 +2362,7 @@ contract('StakeManager', async function(accounts) {
 
       before(prepareForTest)
       before(async function() {
+        await this.stakeManager.updateDynastyValue(1)
         await this.stakeToken.mint(delegator, delegationAmount)
         await this.stakeToken.approve(this.stakeManager.address, delegationAmount, {
           from: delegator
@@ -2374,6 +2375,7 @@ contract('StakeManager', async function(accounts) {
 
         await this.stakeManager.unstake(aliceId, { from: initialStakers[1].getChecksumAddressString() })
         await this.stakeManager.advanceEpoch(100)
+        await this.stakeManager.unstakeClaim(aliceId, { from: initialStakers[1].getChecksumAddressString() })
       })
 
       it('Should migrate', async function() {
