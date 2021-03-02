@@ -2354,6 +2354,33 @@ contract('StakeManager', async function(accounts) {
       }
     }
 
+    describe('when Chad moves stake from unstaked validator', function() {
+      const aliceId = '2'
+      const bobId = '8'
+      const delegator = wallets[9].getChecksumAddressString()
+      let aliceContract
+
+      before(prepareForTest)
+      before(async function() {
+        await this.stakeToken.mint(delegator, delegationAmount)
+        await this.stakeToken.approve(this.stakeManager.address, delegationAmount, {
+          from: delegator
+        })
+
+        const aliceValidator = await this.stakeManager.validators(aliceId)
+        aliceContract = await ValidatorShare.at(aliceValidator.contractAddress)
+
+        await buyVoucher(aliceContract, delegationAmount, delegator)
+
+        await this.stakeManager.unstake(aliceId, { from: initialStakers[1].getChecksumAddressString() })
+        await this.stakeManager.advanceEpoch(100)
+      })
+
+      it('Should migrate', async function() {
+        await this.stakeManager.migrateDelegation(aliceId, bobId, migrationAmount, { from: delegator })
+      })
+    })
+
     describe('when Chad delegates to Alice then migrates partialy to Bob', async function() {
       const aliceId = '2'
       const bobId = '8'
