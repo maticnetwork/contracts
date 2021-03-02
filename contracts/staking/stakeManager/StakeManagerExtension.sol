@@ -129,12 +129,15 @@ contract StakeManagerExtension is StakeManagerStorage, Initializable, StakeManag
         for (uint256 i = validatorIdFrom; i < validatorIdTo; ++i) {
             ValidatorShare contractAddress = ValidatorShare(validators[i].contractAddress);
             if (contractAddress != ValidatorShare(0)) {
-                validators[i].delegatorsReward = contractAddress.validatorRewards_deprecated().add(INITIALIZED_AMOUNT);
+                // move validator rewards out from ValidatorShare contract
+                validators[i].reward = contractAddress.validatorRewards_deprecated().add(INITIALIZED_AMOUNT);
                 validators[i].delegatedAmount = contractAddress.activeAmount();
                 validators[i].commissionRate = contractAddress.commissionRate_deprecated();
+            } else {
+                validators[i].reward = validators[i].reward.add(INITIALIZED_AMOUNT);
             }
 
-            validators[i].reward = validators[i].reward.add(INITIALIZED_AMOUNT);
+            validators[i].delegatorsReward = INITIALIZED_AMOUNT;
         }
     }
 
