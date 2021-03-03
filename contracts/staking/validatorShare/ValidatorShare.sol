@@ -180,6 +180,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
     }
 
     function migrateIn(address user, uint256 amount) external onlyOwner {
+        _withdrawAndTransferReward(user);
         _buyShares(amount, 0, user);
     }
 
