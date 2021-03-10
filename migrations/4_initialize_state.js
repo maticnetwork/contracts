@@ -1,6 +1,6 @@
 const ethUtils = require('ethereumjs-util')
 const bluebird = require('bluebird')
-
+const utils = require('./utils')
 const Registry = artifacts.require('Registry')
 const DepositManagerProxy = artifacts.require('DepositManagerProxy')
 const StateSender = artifacts.require('StateSender')
@@ -24,9 +24,11 @@ async function updateContractMap(governance, registry, nameHash, value) {
 
 module.exports = async function(deployer) {
   deployer.then(async() => {
+    const contractAddresses = utils.getContractAddresses()
+    const governance = await Governance.at(contractAddresses.root.GovernanceProxy)
+
     await bluebird
       .all([
-        Governance.deployed(),
         Registry.deployed(),
         DepositManagerProxy.deployed(),
         StateSender.deployed(),
@@ -40,7 +42,6 @@ module.exports = async function(deployer) {
         EventsHubProxy.deployed()
       ])
       .spread(async function(
-        governance,
         registry,
         depositManagerProxy,
         stateSender,
