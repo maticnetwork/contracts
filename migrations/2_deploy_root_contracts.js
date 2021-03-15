@@ -51,7 +51,7 @@ const MaticWeth = artifacts.require('MaticWETH')
 const TestToken = artifacts.require('TestToken')
 const RootERC721 = artifacts.require('RootERC721')
 
-const ValidatorAuction = artifacts.require('ValidatorAuction')
+const StakeManagerExtension = artifacts.require('StakeManagerExtension')
 const EventsHub = artifacts.require('EventsHub')
 const EventsHubProxy = artifacts.require('EventsHubProxy')
 
@@ -142,7 +142,7 @@ const libDeps = [
       SlashingManager,
       StakingInfo,
       StateSender,
-      ValidatorAuction
+      StakeManagerExtension
     ]
   },
   {
@@ -217,7 +217,7 @@ module.exports = async function(deployer, network, accounts) {
 
     const stakeManager = await deployer.deploy(StakeManager)
     const stakeMangerProxy = await deployer.deploy(StakeManagerProxy, ZeroAddress)
-    const auctionImpl = await deployer.deploy(ValidatorAuction)
+    const auctionImpl = await deployer.deploy(StakeManagerExtension)
     await stakeMangerProxy.updateAndCall(
       StakeManager.address,
       stakeManager.contract.methods.initialize(

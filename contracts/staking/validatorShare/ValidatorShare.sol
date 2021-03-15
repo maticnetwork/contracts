@@ -9,9 +9,13 @@ import {OwnableLockable} from "../../common/mixin/OwnableLockable.sol";
 import {IStakeManager} from "../stakeManager/IStakeManager.sol";
 import {IValidatorShare} from "./IValidatorShare.sol";
 import {Initializable} from "../../common/mixin/Initializable.sol";
-import {ValidatorShareStorageExtension} from "./ValidatorShareStorageExtension.sol";
 
-contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, Initializable, ValidatorShareStorageExtension {
+contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, Initializable {
+    struct DelegatorUnbond {
+        uint256 shares;
+        uint256 withdrawEpoch;
+    }
+
     uint256 constant EXCHANGE_RATE_PRECISION = 100;
     // maximum matic possible, even if rate will be 1 and all matic will be staken in one go, it will result in 10 ^ 58 shares
     uint256 constant EXCHANGE_RATE_HIGH_PRECISION = 10**29;
@@ -26,9 +30,9 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
     uint256 public minAmount;
 
     uint256 public totalStake_deprecated;
-    uint256 public activeAmount_deprecated;
-
     uint256 public rewardPerShare;
+    uint256 public activeAmount;
+
     bool public delegation;
 
     uint256 public withdrawPool;
@@ -37,6 +41,11 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
     mapping(address => uint256) amountStaked_deprecated; // deprecated, keep for foundation delegators
     mapping(address => DelegatorUnbond) public unbonds;
     mapping(address => uint256) public initalRewardPerShare;
+
+    mapping(address => uint256) public unbondNonces;
+    mapping(address => mapping(uint256 => DelegatorUnbond)) public unbonds_new;
+
+    EventsHub public eventsHub;
 
     // onlyOwner will prevent this contract from initializing, since it's owner is going to be 0x0 address
     function initialize(
@@ -163,6 +172,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
         _burn(user, shares);
 
         stakeManager.updateValidatorState(validatorId, -int256(amount));
+        activeAmount = activeAmount.sub(amount);
 
         stakingLogger.logShareBurned(validatorId, user, amount, shares);
         stakingLogger.logStakeUpdate(validatorId);
@@ -170,6 +180,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
     }
 
     function migrateIn(address user, uint256 amount) external onlyOwner {
+        _withdrawAndTransferReward(user);
         _buyShares(amount, 0, user);
     }
 
@@ -194,7 +205,10 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
         uint256 _amountToSlashWithdrawalPool = _withdrawPool.mul(_amountToSlash).div(delegationAmount);
 
         // slash inactive pool
-        stakeManager.decreaseValidatorDelegatedAmount(validatorId, _amountToSlash.sub(_amountToSlashWithdrawalPool));
+        uint256 stakeSlashed = _amountToSlash.sub(_amountToSlashWithdrawalPool);
+        stakeManager.decreaseValidatorDelegatedAmount(validatorId, stakeSlashed);
+        activeAmount = activeAmount.sub(stakeSlashed);
+
         withdrawPool = withdrawPool.sub(_amountToSlashWithdrawalPool);
         return _amountToSlash;
     }
@@ -268,6 +282,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
 
         _burn(msg.sender, shares);
         stakeManager.updateValidatorState(validatorId, -int256(claimAmount));
+        activeAmount = activeAmount.sub(claimAmount);
 
         uint256 _withdrawPoolShare = claimAmount.mul(precision).div(withdrawExchangeRate());
         withdrawPool = withdrawPool.add(claimAmount);
@@ -303,7 +318,11 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
     function _calculateRewardPerShareWithRewards(uint256 accumulatedReward) private view returns (uint256) {
         uint256 _rewardPerShare = rewardPerShare;
         if (accumulatedReward != 0) {
-            _rewardPerShare = _rewardPerShare.add(accumulatedReward.mul(_getRatePrecision()).div(totalSupply()));
+            uint256 totalShares = totalSupply();
+            
+            if (totalShares != 0) {
+                _rewardPerShare = _rewardPerShare.add(accumulatedReward.mul(_getRatePrecision()).div(totalShares));
+            }
         }
 
         return _rewardPerShare;
@@ -363,6 +382,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
         _amount = rate.mul(shares).div(precision);
 
         stakeManager.updateValidatorState(validatorId, int256(_amount));
+        activeAmount = activeAmount.add(_amount);
 
         StakingInfo logger = stakingLogger;
         logger.logShareMinted(validatorId, user, _amount, shares);

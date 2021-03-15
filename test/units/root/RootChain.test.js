@@ -9,7 +9,7 @@ import { TestToken, TransferWithSigPredicate } from '../../helpers/artifacts'
 import {
   assertBigNumberEquality,
   assertBigNumbergt,
-  buildSubmitHeaderBlockPaylod
+  buildsubmitCheckpointPaylod
 } from '../../helpers/utils.js'
 import { generateFirstWallets, mnemonics } from '../../helpers/wallets.js'
 import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
@@ -64,8 +64,6 @@ contract('RootChain', async function(accounts) {
       accountState[i + 1] = 0
       validators.push(i + 1)
     }
-
-    this.reward = await stakeManager.CHECKPOINT_REWARD()
   }
 
   function buildRoot(that) {
@@ -76,7 +74,7 @@ contract('RootChain', async function(accounts) {
     before(async function() {
       if (!dontBuildHeaderBlockPayload) {
         let tree = await rewradsTree(validators, accountState)
-        const { data, sigs } = buildSubmitHeaderBlockPaylod(
+        const { data, sigs } = buildsubmitCheckpointPaylod(
           this.proposer,
           this.start,
           this.end,
@@ -93,14 +91,13 @@ contract('RootChain', async function(accounts) {
     })
 
     it('must submit', async function() {
-      this.result = await rootChain.submitHeaderBlock(this.data, this.sigs)
+      this.result = await rootChain.submitCheckpoint(this.data, this.sigs)
     })
 
     it('must emit NewBlockHeader', async function() {
       await expectEvent(this.result, 'NewHeaderBlock', {
         proposer: this.proposer,
         root: this.root,
-        reward: this.reward,
         headerBlockId: this.headerBlockId,
         start: this.start.toString(),
         end: this.end.toString()
@@ -119,7 +116,7 @@ contract('RootChain', async function(accounts) {
     })
   }
 
-  describe('submitHeaderBlock', function() {
+  describe('submitCheckpoint', function() {
     describe('1 header block', function() {
       before(freshDeploy)
       before(function() {
@@ -201,7 +198,6 @@ contract('RootChain', async function(accounts) {
         this.headerBlockId = '10000'
         this.proposer = accounts[0]
         this.root = buildRoot(this)
-        this.reward = this.reward.div(new BN(2))
       })
 
       testCheckpoint()
