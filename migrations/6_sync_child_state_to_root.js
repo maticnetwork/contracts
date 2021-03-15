@@ -9,6 +9,11 @@ const DepositManager = artifacts.require('DepositManager')
 module.exports = async function(deployer, network, accounts) {
   deployer.then(async() => {
     const contractAddresses = utils.getContractAddresses()
+
+    if (!contractAddresses.child) {
+      return
+    }
+
     const registry = await Registry.at(contractAddresses.root.Registry)
     const governance = await Governance.at(contractAddresses.root.GovernanceProxy)
 
