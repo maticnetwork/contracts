@@ -223,7 +223,7 @@ module.exports = async function(deployer, network, accounts) {
       stakeManager.contract.methods.initialize(
         Registry.address,
         RootChainProxy.address,
-        TestToken.address,
+        maticToken.address,
         StakingNFT.address,
         StakingInfo.address,
         ValidatorShareFactory.address,
