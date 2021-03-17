@@ -62,7 +62,7 @@ contract EventsHub is Initializable {
         uint256 nonce
     );
 
-    function logDelegatorUnstakedWithIdId(
+    function logDelegatorUnstakedWithId(
         uint256 validatorId,
         address user,
         uint256 amount,

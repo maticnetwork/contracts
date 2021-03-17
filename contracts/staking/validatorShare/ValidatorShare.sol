@@ -255,7 +255,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
         DelegatorUnbond memory unbond = unbonds_new[msg.sender][unbondNonce];
         uint256 amount = _unstakeClaimTokens(unbond);
         delete unbonds_new[msg.sender][unbondNonce];
-        _getOrCacheEventsHub().logDelegatorUnstakedWithIdId(validatorId, msg.sender, amount, unbondNonce);
+        _getOrCacheEventsHub().logDelegatorUnstakedWithId(validatorId, msg.sender, amount, unbondNonce);
     }
 
     /**
