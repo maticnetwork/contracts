@@ -20,6 +20,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
     // maximum matic possible, even if rate will be 1 and all matic will be staken in one go, it will result in 10 ^ 58 shares
     uint256 constant EXCHANGE_RATE_HIGH_PRECISION = 10**29;
     uint256 constant MAX_COMMISION_RATE = 100;
+    uint256 constant REWARD_PRECISION = 10**25;
 
     StakingInfo public stakingLogger;
     IStakeManager public stakeManager;
@@ -321,7 +322,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
             uint256 totalShares = totalSupply();
             
             if (totalShares != 0) {
-                _rewardPerShare = _rewardPerShare.add(accumulatedReward.mul(_getRatePrecision()).div(totalShares));
+                _rewardPerShare = _rewardPerShare.add(accumulatedReward.mul(REWARD_PRECISION).div(totalShares));
             }
         }
 
@@ -340,7 +341,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
             return 0;
         }
 
-        return _rewardPerShare.sub(_initialRewardPerShare).mul(shares).div(_getRatePrecision());
+        return _rewardPerShare.sub(_initialRewardPerShare).mul(shares).div(REWARD_PRECISION);
     }
 
     function _withdrawReward(address user) private returns (uint256) {
