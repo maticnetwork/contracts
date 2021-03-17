@@ -1,4 +1,5 @@
 // Deploy minimal number of contracts to link the libraries with the contracts
+const utils = require('./utils')
 
 const bluebird = require('bluebird')
 
@@ -18,6 +19,7 @@ const RLPEncode = artifacts.require('RLPEncode')
 
 const Registry = artifacts.require('Registry')
 const Governance = artifacts.require('Governance')
+const GovernanceProxy = artifacts.require('GovernanceProxy')
 const RootChain = artifacts.require('RootChain')
 const RootChainProxy = artifacts.require('RootChainProxy')
 const DepositManager = artifacts.require('DepositManager')
@@ -31,6 +33,7 @@ const SlashingManager = artifacts.require('SlashingManager')
 const StakingInfo = artifacts.require('StakingInfo')
 const StakingNFT = artifacts.require('StakingNFT')
 const ValidatorShareFactory = artifacts.require('ValidatorShareFactory')
+const ValidatorShare = artifacts.require('ValidatorShare')
 const ERC20Predicate = artifacts.require('ERC20Predicate')
 const ERC721Predicate = artifacts.require('ERC721Predicate')
 const MintableERC721Predicate = artifacts.require('MintableERC721Predicate')
@@ -46,6 +49,7 @@ const StakeManagerTest = artifacts.require('StakeManagerTest')
 const ExitNFT = artifacts.require('ExitNFT')
 const MaticWeth = artifacts.require('MaticWETH')
 const TestToken = artifacts.require('TestToken')
+const RootERC721 = artifacts.require('RootERC721')
 
 const StakeManagerExtension = artifacts.require('StakeManagerExtension')
 const EventsHub = artifacts.require('EventsHub')
@@ -168,9 +172,13 @@ module.exports = async function(deployer, network, accounts) {
     })
 
     await deployer.deploy(Governance)
-    await deployer.deploy(Registry, Governance.address)
+    await deployer.deploy(GovernanceProxy, Governance.address)
+    await deployer.deploy(Registry, GovernanceProxy.address)
     await deployer.deploy(ValidatorShareFactory)
-    await deployer.deploy(TestToken, 'Matic Test', 'MATICTEST')
+    await deployer.deploy(ValidatorShare)
+    const maticToken = await deployer.deploy(TestToken, 'MATIC', 'MATIC')
+    await deployer.deploy(TestToken, 'Test ERC20', 'TEST20')
+    await deployer.deploy(RootERC721, 'Test ERC721', 'TST721')
     await deployer.deploy(StakingInfo, Registry.address)
     await deployer.deploy(StakingNFT, 'Matic Validator', 'MV')
 
@@ -186,7 +194,7 @@ module.exports = async function(deployer, network, accounts) {
       DepositManager.address,
       Registry.address,
       RootChainProxy.address,
-      Governance.address
+      GovernanceProxy.address
     )
 
     await deployer.deploy(ExitNFT, Registry.address)
@@ -214,12 +222,12 @@ module.exports = async function(deployer, network, accounts) {
       StakeManager.address,
       stakeManager.contract.methods.initialize(
         Registry.address,
-        RootChain.address,
-        TestToken.address,
+        RootChainProxy.address,
+        maticToken.address,
         StakingNFT.address,
         StakingInfo.address,
         ValidatorShareFactory.address,
-        Governance.address,
+        GovernanceProxy.address,
         accounts[0],
         auctionImpl.address
       ).encodeABI()
@@ -263,5 +271,38 @@ module.exports = async function(deployer, network, accounts) {
         Registry.address
       )
     ])
+
+    const contractAddresses = {
+      root: {
+        Registry: Registry.address,
+        RootChain: RootChain.address,
+        GovernanceProxy: GovernanceProxy.address,
+        RootChainProxy: RootChainProxy.address,
+        DepositManager: DepositManager.address,
+        DepositManagerProxy: DepositManagerProxy.address,
+        WithdrawManager: WithdrawManager.address,
+        WithdrawManagerProxy: WithdrawManagerProxy.address,
+        StakeManager: StakeManager.address,
+        StakeManagerProxy: StakeManagerProxy.address,
+        SlashingManager: SlashingManager.address,
+        StakingInfo: StakingInfo.address,
+        ExitNFT: ExitNFT.address,
+        StateSender: StateSender.address,
+        predicates: {
+          ERC20Predicate: ERC20Predicate.address,
+          ERC721Predicate: ERC721Predicate.address,
+          MarketplacePredicate: MarketplacePredicate.address,
+          TransferWithSigPredicate: TransferWithSigPredicate.address
+        },
+        tokens: {
+          MaticToken: maticToken.address,
+          MaticWeth: MaticWeth.address,
+          TestToken: TestToken.address,
+          RootERC721: RootERC721.address
+        }
+      }
+    }
+
+    utils.writeContractAddresses(contractAddresses)
   })
 }

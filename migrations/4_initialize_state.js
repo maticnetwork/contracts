@@ -1,7 +1,8 @@
 const ethUtils = require('ethereumjs-util')
 const bluebird = require('bluebird')
-
+const utils = require('./utils')
 const Registry = artifacts.require('Registry')
+const ValidatorShare = artifacts.require('ValidatorShare')
 const DepositManagerProxy = artifacts.require('DepositManagerProxy')
 const StateSender = artifacts.require('StateSender')
 const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
@@ -24,10 +25,13 @@ async function updateContractMap(governance, registry, nameHash, value) {
 
 module.exports = async function(deployer) {
   deployer.then(async() => {
+    const contractAddresses = utils.getContractAddresses()
+    const governance = await Governance.at(contractAddresses.root.GovernanceProxy)
+
     await bluebird
       .all([
-        Governance.deployed(),
         Registry.deployed(),
+        ValidatorShare.deployed(),
         DepositManagerProxy.deployed(),
         StateSender.deployed(),
         WithdrawManagerProxy.deployed(),
@@ -40,8 +44,8 @@ module.exports = async function(deployer) {
         EventsHubProxy.deployed()
       ])
       .spread(async function(
-        governance,
         registry,
+        validatorShare,
         depositManagerProxy,
         stateSender,
         withdrawManagerProxy,
@@ -53,6 +57,12 @@ module.exports = async function(deployer) {
         TransferWithSigPredicate,
         EventsHubProxy
       ) {
+        await updateContractMap(
+          governance,
+          registry,
+          ethUtils.keccak256('validatorShare'),
+          validatorShare.address
+        )
         await updateContractMap(
           governance,
           registry,
