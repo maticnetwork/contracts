@@ -36,8 +36,6 @@ start_testrpc
 echo "Starting our own geth instance"
 start_blockchain
 
-npm run truffle:migrate "$@"
-
 if [ "$SOLIDITY_COVERAGE" = true ]; then
   npm run truffle:coverage "$@"
 else
