@@ -5,6 +5,7 @@ contract IStakeManager {
     function startAuction(
         uint256 validatorId,
         uint256 amount,
+        uint256 commissionRate,
         bool acceptDelegation,
         bytes calldata signerPubkey
     ) external;
@@ -31,6 +32,7 @@ contract IStakeManager {
         address user,
         uint256 amount,
         uint256 heimdallFee,
+        uint256 commissionRate,
         bool acceptDelegation,
         bytes memory signerPubkey
     ) public;
@@ -70,6 +72,7 @@ contract IStakeManager {
         uint256 heimdallFee,
         uint256 validatorId,
         uint256 auctionAmount,
+        uint256 commissionRate,
         bool acceptDelegation,
         bytes calldata signerPubkey
     ) external;

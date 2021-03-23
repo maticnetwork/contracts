@@ -1,8 +1,9 @@
-import { StakingInfo, TestToken, ValidatorShare } from '../../../helpers/artifacts'
+import { StakingInfo, TestToken } from '../../../helpers/artifacts'
 
 import {
   checkPoint,
-  assertBigNumberEquality
+  assertBigNumberEquality,
+  assertBigNumbergt
 } from '../../../helpers/utils.js'
 import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
 import { wallets, walletAmounts, freshDeploy, approveAndStake } from '../deployment'
@@ -49,7 +50,7 @@ module.exports = function(accounts) {
   }
 
   describe('stake', function() {
-    function testStakeRevert(user, userPubkey, amount, stakeAmount, unspecified = false) {
+    function testStakeRevert(user, userPubkey, amount, stakeAmount, unspecified = false, commissionRate = 0) {
       before('Approve', async function() {
         this.initialBalance = await this.stakeManager.totalStakedFor(user)
 
@@ -60,11 +61,11 @@ module.exports = function(accounts) {
 
       it('must revert', async function() {
         if (unspecified) {
-          await expectRevert.unspecified(this.stakeManager.stakeFor(user, stakeAmount, this.defaultHeimdallFee, false, userPubkey, {
+          await expectRevert.unspecified(this.stakeManager.stakeFor(user, stakeAmount, this.defaultHeimdallFee, commissionRate, false, userPubkey, {
             from: user
           }))
         } else {
-          await expectRevert(this.stakeManager.stakeFor(user, stakeAmount, this.defaultHeimdallFee, false, userPubkey, {
+          await expectRevert(this.stakeManager.stakeFor(user, stakeAmount, this.defaultHeimdallFee, commissionRate, false, userPubkey, {
             from: user
           }), 'Invalid signer')
         }
@@ -87,7 +88,7 @@ module.exports = function(accounts) {
       })
 
       it('must stake', async function() {
-        this.receipt = await this.stakeManager.stakeFor(user, stakeAmount, this.fee, false, userPubkey, {
+        this.receipt = await this.stakeManager.stakeFor(user, stakeAmount, this.fee, 0, false, userPubkey, {
           from: user
         })
       })
@@ -112,6 +113,11 @@ module.exports = function(accounts) {
       it(`must have correct staked amount`, async function() {
         const stakedFor = await this.stakeManager.totalStakedFor(user)
         assertBigNumberEquality(stakedFor, stakeAmount)
+      })
+
+      it('must have lastCommissionUpdate set', async function() {
+        const data = await this.stakeManager.validators(validatorId)
+        assertBigNumbergt(data.lastCommissionUpdate, 0)
       })
 
       it('must have correct total staked balance', async function() {
@@ -226,7 +232,7 @@ module.exports = function(accounts) {
             from: auctionUser
           })
           const validatorId = await this.stakeManager.getValidatorId(wallets[2].getChecksumAddressString())
-          await this.stakeManager.startAuction(validatorId, auctionBid, false, wallets[4].getPublicKeyString(), {
+          await this.stakeManager.startAuction(validatorId, auctionBid, 0, false, wallets[4].getPublicKeyString(), {
             from: auctionUser
           })
           testRestake(
@@ -238,6 +244,21 @@ module.exports = function(accounts) {
           )
         })
       })
+    })
+
+    describe('when commission rate is greater than 100', function() {
+      before(prepareForTest(2, 1))
+
+      const amounts = walletAmounts[wallets[3].getAddressString()]
+
+      testStakeRevert(
+        wallets[3].getChecksumAddressString(),
+        wallets[3].getPublicKeyString(),
+        amounts.amount,
+        amounts.stakeAmount,
+        true,
+        101
+      )
     })
 
     describe('stake beyond validator threshold', async function() {

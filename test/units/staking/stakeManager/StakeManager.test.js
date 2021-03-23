@@ -11,6 +11,7 @@ import { buildTreeFee } from '../../../helpers/proofs.js'
 import {
   checkPoint,
   assertBigNumberEquality,
+  assertBigNumbergt,
   buildsubmitCheckpointPaylod,
   buildsubmitCheckpointPaylodWithVotes,
   encodeSigsForCheckpoint,
@@ -21,6 +22,7 @@ import { generateFirstWallets, mnemonics } from '../../../helpers/wallets'
 import { wallets, freshDeploy, approveAndStake, walletAmounts } from '../deployment'
 import { buyVoucher } from '../ValidatorShareHelper.js'
 import { web3 } from '@openzeppelin/test-helpers/src/setup'
+import { it } from 'ethers/wordlists'
 
 const { toWei } = web3.utils
 
@@ -77,9 +79,9 @@ contract('StakeManager', async function(accounts) {
     return expectedBalance.mul(new BN(checkpointsPassed))
   }
 
-  function testStartAuction(user, signerPubkey, bidAmount) {
+  function testStartAuction(user, signerPubkey, bidAmount, commissionRate = 0) {
     it('should bid', async function() {
-      this.receipt = await this.stakeManager.startAuction(this.validatorId, bidAmount, false, signerPubkey, {
+      this.receipt = await this.stakeManager.startAuction(this.validatorId, bidAmount, commissionRate, false, signerPubkey, {
         from: user
       })
     })
@@ -100,6 +102,11 @@ contract('StakeManager', async function(accounts) {
     it('validator auction must have correct user', async function() {
       let auctionData = await this.stakeManager.validatorAuction(this.validatorId)
       assert(auctionData.user === user)
+    })
+
+    it('validator auction must have correct commission rate', async function() {
+      let auctionData = await this.stakeManager.validatorAuction(this.validatorId)
+      assertBigNumberEquality(auctionData.commissionRate, commissionRate)
     })
 
     it('balance must decrease by bid amount', async function() {
@@ -172,6 +179,11 @@ contract('StakeManager', async function(accounts) {
     it('bidder balance must be correct', async function() {
       const currentBalance = await this.stakeToken.balanceOf(this.bidder)
       assertBigNumberEquality(this.bidderBalanceBeforeAuction.sub(new BN(this.bidAmount)).sub(new BN(this.heimdallFee)), currentBalance)
+    })
+
+    it('new validator must have lastCommissionUpdate set', async function() {
+      const data = await this.stakeManager.validators(this.newValidatorId)
+      assertBigNumbergt(data.lastCommissionUpdate, 0)
     })
   }
 
@@ -1926,11 +1938,11 @@ contract('StakeManager', async function(accounts) {
       })
 
       describe('when Alice bids', function() {
-        testStartAuction(Alice.getChecksumAddressString(), Alice.getPrivateKeyString(), aliceBidAmount)
+        testStartAuction(Alice.getChecksumAddressString(), Alice.getPrivateKeyString(), aliceBidAmount, 50)
       })
 
       describe('when Bob bids', function() {
-        testStartAuction(Bob.getChecksumAddressString(), Bob.getPublicKeyString(), bobBidAmount)
+        testStartAuction(Bob.getChecksumAddressString(), Bob.getPublicKeyString(), bobBidAmount, 22)
 
         it('Alice must get her bid back', async function() {
           const currentBalance = await this.stakeToken.balanceOf(Alice.getAddressString())
@@ -1942,10 +1954,16 @@ contract('StakeManager', async function(accounts) {
     describe('reverts', function() {
       beforeEach('deploy', doDeploy)
 
+      it('when commission rate is greater than 100', async function() {
+        await expectRevert(this.stakeManager.startAuction(1, this.amount, 101, false, wallets[3].getPrivateKeyString(), {
+          from: wallets[3].getAddressString()
+        }), 'Incorrect value')
+      })
+
       it('when bid during non-auction period', async function() {
         let auctionPeriod = await this.stakeManager.auctionPeriod()
         await this.stakeManager.advanceEpoch((auctionPeriod).toNumber())
-        await expectRevert(this.stakeManager.startAuction(1, this.amount, false, wallets[3].getPrivateKeyString(), {
+        await expectRevert(this.stakeManager.startAuction(1, this.amount, 0, false, wallets[3].getPrivateKeyString(), {
           from: wallets[3].getAddressString()
         }), 'Invalid auction period')
       })
@@ -1953,7 +1971,7 @@ contract('StakeManager', async function(accounts) {
       it('when trying to start and confirm in last epoch', async function() {
         this.validatorId = 1
         await this.stakeManager.advanceEpoch(1)
-        await this.stakeManager.startAuction(this.validatorId, this.amount, false, wallets[3].getPublicKeyString(), {
+        await this.stakeManager.startAuction(this.validatorId, this.amount, 0, false, wallets[3].getPublicKeyString(), {
           from: wallets[3].getAddressString()
         })
         await this.stakeToken.approve(this.stakeManager.address, web3.utils.toWei('1'), {
@@ -1983,14 +2001,14 @@ contract('StakeManager', async function(accounts) {
           this.stakeManager.contract.methods.updateDynastyValue('7').encodeABI()
         )
 
-        await expectRevert(this.stakeManager.startAuction(1, this.amount, false, wallets[3].getPrivateKeyString(), {
+        await expectRevert(this.stakeManager.startAuction(1, this.amount, 0, false, wallets[3].getPrivateKeyString(), {
           from: wallets[3].getAddressString()
         }), 'Cooldown period')
       })
 
       it('when bid on unstaking validator', async function() {
         await this.stakeManager.unstake(1, { from: _initialStakers[0].getAddressString() })
-        await expectRevert(this.stakeManager.startAuction(1, this.amount, false, wallets[3].getPrivateKeyString(), {
+        await expectRevert(this.stakeManager.startAuction(1, this.amount, 0, false, wallets[3].getPrivateKeyString(), {
           from: wallets[3].getAddressString()
         }), 'Invalid validator for an auction')
       })
@@ -2014,13 +2032,13 @@ contract('StakeManager', async function(accounts) {
       })
 
       it('when validatorId is invalid', async function() {
-        await expectRevert.unspecified(this.stakeManager.startAuction(0, this.amount, false, wallets[3].getPrivateKeyString(), {
+        await expectRevert.unspecified(this.stakeManager.startAuction(0, this.amount, 0, false, wallets[3].getPrivateKeyString(), {
           from: wallets[3].getAddressString()
         }))
       })
 
       it('when bid is too low', async function() {
-        await expectRevert(this.stakeManager.startAuction(1, web3.utils.toWei('100'), false, wallets[3].getPrivateKeyString(), {
+        await expectRevert(this.stakeManager.startAuction(1, web3.utils.toWei('100'), 0, false, wallets[3].getPrivateKeyString(), {
           from: wallets[3].getAddressString()
         }), 'Must bid higher')
       })
@@ -2059,7 +2077,7 @@ contract('StakeManager', async function(accounts) {
         this.bidderBalanceBeforeAuction = await this.stakeToken.balanceOf(this.bidder)
         this.totalStakedBeforeAuction = await this.stakeManager.totalStaked()
 
-        await this.stakeManager.startAuction(this.validatorId, bidAmount, false, this.bidderPubKey, {
+        await this.stakeManager.startAuction(this.validatorId, bidAmount, 0, false, this.bidderPubKey, {
           from: this.bidder
         })
 
@@ -2315,7 +2333,7 @@ contract('StakeManager', async function(accounts) {
     })
 
     it('bid must revert', async function() {
-      await expectRevert(this.stakeManager.startAuction(this.validatorId, bidAmount, false, bidderPubKey, {
+      await expectRevert(this.stakeManager.startAuction(this.validatorId, bidAmount, 0, false, bidderPubKey, {
         from: bidder
       }), 'Cooldown period')
     })
@@ -2329,7 +2347,7 @@ contract('StakeManager', async function(accounts) {
     it('must bid', async function() {
       await this.stakeToken.mint(bidder, bidAmount)
       await this.stakeToken.approve(this.stakeManager.address, bidAmount, { from: bidder })
-      await this.stakeManager.startAuction(this.validatorId, bidAmount, false, bidderPubKey, {
+      await this.stakeManager.startAuction(this.validatorId, bidAmount, 0, false, bidderPubKey, {
         from: bidder
       })
     })

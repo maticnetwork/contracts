@@ -352,8 +352,9 @@ contract StakeManager is
     function startAuction(
         uint256 validatorId,
         uint256 amount,
-        bool _acceptDelegation,
-        bytes calldata _signerPubkey
+        uint256 commissionRate,
+        bool acceptDelegation,
+        bytes calldata signerPubkey
     ) external onlyWhenUnlocked {
         delegatedFwd(
             extensionCode,
@@ -361,8 +362,9 @@ contract StakeManager is
                 StakeManagerExtension(extensionCode).startAuction.selector,
                 validatorId,
                 amount,
-                _acceptDelegation,
-                _signerPubkey
+                commissionRate,
+                acceptDelegation,
+                signerPubkey
             )
         );
     }
@@ -387,6 +389,7 @@ contract StakeManager is
         uint256 heimdallFee,
         uint256 validatorId,
         uint256 auctionAmount,
+        uint256 commissionRate,
         bool acceptDelegation,
         bytes calldata signerPubkey
     ) external {
@@ -395,7 +398,7 @@ contract StakeManager is
         _transferAndTopUp(auctionUser, auctionUser, heimdallFee, 0);
         _unstake(validatorId, currentEpoch);
 
-        uint256 newValidatorId = _stakeFor(auctionUser, auctionAmount, acceptDelegation, signerPubkey);
+        uint256 newValidatorId = _stakeFor(auctionUser, auctionAmount, commissionRate, acceptDelegation, signerPubkey);
         logger.logConfirmAuction(newValidatorId, validatorId, auctionAmount);
     }
 
@@ -438,13 +441,14 @@ contract StakeManager is
         address user,
         uint256 amount,
         uint256 heimdallFee,
+        uint256 commissionRate,
         bool acceptDelegation,
         bytes memory signerPubkey
     ) public onlyWhenUnlocked {
         require(currentValidatorSetSize() < validatorThreshold, "no more slots");
         require(amount >= minDeposit, "not enough deposit");
         _transferAndTopUp(user, msg.sender, heimdallFee, amount);
-        _stakeFor(user, amount, acceptDelegation, signerPubkey);
+        _stakeFor(user, amount, commissionRate, acceptDelegation, signerPubkey);
     }
 
     function unstakeClaim(uint256 validatorId) public onlyStaker(validatorId) {
@@ -1046,9 +1050,12 @@ contract StakeManager is
     function _stakeFor(
         address user,
         uint256 amount,
+        uint256 commissionRate,
         bool acceptDelegation,
         bytes memory signerPubkey
     ) internal returns (uint256) {
+        require(commissionRate <= MAX_COMMISION_RATE, "Incorrect value");
+        
         address signer = _getAndAssertSigner(signerPubkey);
         uint256 _currentEpoch = currentEpoch;
         uint256 validatorId = NFTCounter;
@@ -1068,8 +1075,8 @@ contract StakeManager is
                 ? validatorShareFactory.create(validatorId, address(_logger), registry)
                 : address(0x0),
             status: Status.Active,
-            commissionRate: 0,
-            lastCommissionUpdate: 0,
+            commissionRate: commissionRate,
+            lastCommissionUpdate: _currentEpoch, // commission rate was set explicitly 
             delegatorsReward: INITIALIZED_AMOUNT,
             delegatedAmount: 0,
             initialRewardPerStake: rewardPerStake

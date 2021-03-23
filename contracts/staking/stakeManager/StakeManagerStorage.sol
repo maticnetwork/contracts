@@ -15,6 +15,7 @@ contract StakeManagerStorage is GovernanceLockable, RootChainable {
     struct Auction {
         uint256 amount;
         uint256 startEpoch;
+        uint256 commissionRate;
         address user;
         bool acceptDelegation;
         bytes signerPubkey;
