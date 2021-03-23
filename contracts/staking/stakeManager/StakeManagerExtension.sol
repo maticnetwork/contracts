@@ -20,13 +20,10 @@ contract StakeManagerExtension is StakeManagerStorage, Initializable, StakeManag
     function startAuction(
         uint256 validatorId,
         uint256 amount,
-        uint256 commissionRate,
         bool _acceptDelegation,
         bytes calldata _signerPubkey
     ) external {
         uint256 currentValidatorAmount = validators[validatorId].amount;
-
-        require(commissionRate <= MAX_COMMISION_RATE, "Incorrect value");
 
         require(
             validators[validatorId].deactivationEpoch == 0 && currentValidatorAmount != 0,
@@ -75,7 +72,6 @@ contract StakeManagerExtension is StakeManagerStorage, Initializable, StakeManag
         // create new auction
         auction.amount = amount;
         auction.user = msg.sender;
-        auction.commissionRate = commissionRate;
         auction.acceptDelegation = _acceptDelegation;
         auction.signerPubkey = _signerPubkey;
 
@@ -120,7 +116,6 @@ contract StakeManagerExtension is StakeManagerStorage, Initializable, StakeManag
                 heimdallFee,
                 validatorId,
                 auctionAmount,
-                auction.commissionRate,
                 auction.acceptDelegation,
                 auction.signerPubkey
             );

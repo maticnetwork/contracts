@@ -60,7 +60,7 @@ export async function freshDeploy() {
   this.defaultHeimdallFee = new BN(web3.utils.toWei('1'))
 }
 
-export async function approveAndStake({ wallet, stakeAmount, approveAmount, acceptDelegation = false, heimdallFee, noMinting = false, signer, commissionRate = 0 }) {
+export async function approveAndStake({ wallet, stakeAmount, approveAmount, acceptDelegation = false, heimdallFee, noMinting = false, signer }) {
   const fee = heimdallFee || this.defaultHeimdallFee
 
   const mintAmount = new BN(approveAmount || stakeAmount).add(new BN(fee))
@@ -80,7 +80,7 @@ export async function approveAndStake({ wallet, stakeAmount, approveAmount, acce
     from: wallet.getAddressString()
   })
 
-  await this.stakeManager.stakeFor(wallet.getAddressString(), stakeAmount, fee, commissionRate, acceptDelegation, signer || wallet.getPublicKeyString(), {
+  await this.stakeManager.stakeFor(wallet.getAddressString(), stakeAmount, fee, acceptDelegation, signer || wallet.getPublicKeyString(), {
     from: wallet.getAddressString()
   })
 }
