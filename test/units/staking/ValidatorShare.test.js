@@ -1786,7 +1786,7 @@ contract('ValidatorShare', async function() {
         })
 
         it('must emit DelegatorUnstakeWithId', async function() {
-          await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'DelegatorUnstakeWithId', {
+          await expectEvent.inTransaction(this.receipt.tx, EventsHub, 'DelegatorUnstakeWithId', {
             validatorId: this.validatorId,
             user: this.user,
             amount: this.claimAmount,
@@ -1801,7 +1801,7 @@ contract('ValidatorShare', async function() {
         })
 
         it('must emit DelegatorUnstakeWithId', async function() {
-          await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'DelegatorUnstakeWithId', {
+          await expectEvent.inTransaction(this.receipt.tx, EventsHub, 'DelegatorUnstakeWithId', {
             validatorId: this.validatorId,
             user: this.user,
             amount: this.claimAmount,
