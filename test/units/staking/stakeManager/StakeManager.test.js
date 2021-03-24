@@ -22,7 +22,6 @@ import { generateFirstWallets, mnemonics } from '../../../helpers/wallets'
 import { wallets, freshDeploy, approveAndStake, walletAmounts } from '../deployment'
 import { buyVoucher } from '../ValidatorShareHelper.js'
 import { web3 } from '@openzeppelin/test-helpers/src/setup'
-import { it } from 'ethers/wordlists'
 
 const { toWei } = web3.utils
 
