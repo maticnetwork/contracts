@@ -107,6 +107,15 @@ contract StakeManager is
         delegationEnabled = true;
     }
 
+    function isOwner() public view returns (bool) {
+        address _owner;
+        bytes32 position = keccak256("matic.network.proxy.owner");
+        assembly {
+            _owner := sload(position)
+        }
+        return msg.sender == _owner;
+    }
+
     /**
         Public View Methods
      */
