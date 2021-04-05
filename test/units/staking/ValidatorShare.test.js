@@ -750,7 +750,7 @@ contract('ValidatorShare', async function() {
       userTotalStaked,
       totalStaked,
       shares,
-      burnId,
+      nonce,
       withdrawalExchangeRate = ExchangeRatePrecision
     }) {
       if (minClaimAmount) {
@@ -763,14 +763,14 @@ contract('ValidatorShare', async function() {
         })
       }
 
-      if (burnId) {
+      if (nonce) {
         it('must emit ShareBurnedWithId', async function() {
           await expectEvent.inTransaction(this.receipt.tx, EventsHub, 'ShareBurnedWithId', {
             validatorId: validatorId,
             tokens: shares,
             amount: returnedStake,
             user: user,
-            burnId
+            nonce
           })
         })
       } else {
@@ -1006,7 +1006,7 @@ contract('ValidatorShare', async function() {
               validatorId: '8',
               user: Alice,
               userTotalStaked: halfStake,
-              burnId: '1',
+              nonce: '1',
               totalStaked: halfStake.add(ValidatorDefaultStake)
             })
           })
@@ -1025,7 +1025,7 @@ contract('ValidatorShare', async function() {
               validatorId: '8',
               user: Alice,
               userTotalStaked: '0',
-              burnId: '2',
+              nonce: '2',
               totalStaked: ValidatorDefaultStake
             })
           })
@@ -1049,7 +1049,7 @@ contract('ValidatorShare', async function() {
               initialBalance: new BN(0),
               validatorId: '8',
               user: Alice,
-              burnId: '1',
+              nonce: '1',
               userTotalStaked: halfStake,
               totalStaked: halfStake.add(validatorHalfStake)
             })
@@ -1069,7 +1069,7 @@ contract('ValidatorShare', async function() {
               validatorId: '8',
               user: Alice,
               userTotalStaked: '0',
-              burnId: '2',
+              nonce: '2',
               totalStaked: validatorHalfStake
             })
           })
@@ -1785,11 +1785,12 @@ contract('ValidatorShare', async function() {
           })
         })
 
-        it('must emit DelegatorUnstaked', async function() {
-          await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'DelegatorUnstaked', {
+        it('must emit DelegatorUnstakeWithId', async function() {
+          await expectEvent.inTransaction(this.receipt.tx, EventsHub, 'DelegatorUnstakeWithId', {
             validatorId: this.validatorId,
             user: this.user,
-            amount: this.claimAmount
+            amount: this.claimAmount,
+            nonce: '1'
           })
         })
 
@@ -1799,11 +1800,12 @@ contract('ValidatorShare', async function() {
           })
         })
 
-        it('must emit DelegatorUnstaked', async function() {
-          await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'DelegatorUnstaked', {
+        it('must emit DelegatorUnstakeWithId', async function() {
+          await expectEvent.inTransaction(this.receipt.tx, EventsHub, 'DelegatorUnstakeWithId', {
             validatorId: this.validatorId,
             user: this.user,
-            amount: this.claimAmount
+            amount: this.claimAmount,
+            nonce: '2'
           })
         })
 

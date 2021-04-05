@@ -42,7 +42,7 @@ contract EventsHub is Initializable {
         address indexed user,
         uint256 indexed amount,
         uint256 tokens,
-        uint256 burnId
+        uint256 nonce
     );
 
     function logShareBurnedWithId(
@@ -50,9 +50,25 @@ contract EventsHub is Initializable {
         address user,
         uint256 amount,
         uint256 tokens,
-        uint256 burnId
+        uint256 nonce
     ) public onlyValidatorContract(validatorId) {
-        emit ShareBurnedWithId(validatorId, user, amount, tokens, burnId);
+        emit ShareBurnedWithId(validatorId, user, amount, tokens, nonce);
+    }
+
+    event DelegatorUnstakeWithId(
+        uint256 indexed validatorId,
+        address indexed user,
+        uint256 amount,
+        uint256 nonce
+    );
+
+    function logDelegatorUnstakedWithId(
+        uint256 validatorId,
+        address user,
+        uint256 amount,
+        uint256 nonce
+    ) public onlyValidatorContract(validatorId) {
+        emit DelegatorUnstakeWithId(validatorId, user, amount, nonce);
     }
 
     event RewardParams(
