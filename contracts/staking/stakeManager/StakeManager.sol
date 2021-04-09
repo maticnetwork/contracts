@@ -190,6 +190,10 @@ contract StakeManager is
         Governance Methods
      */
 
+    function setSharesK(uint256 k) external onlyGovernance {
+        sharesK = k;
+    }
+
     function setDelegationEnabled(bool enabled) public onlyGovernance {
         delegationEnabled = enabled;
     }
@@ -245,7 +249,6 @@ contract StakeManager is
     }
 
     // New implementation upgrade
-
     function migrateValidatorsData(uint256 validatorIdFrom, uint256 validatorIdTo) public onlyOwner {
         delegatedFwd(
             extensionCode,
@@ -507,7 +510,7 @@ contract StakeManager is
         totalStaked = newTotalStaked;
         validators[validatorId].amount = validators[validatorId].amount.add(amount);
 
-        updateTimeline(int256(amount), 0, 0);
+        updateTimeline(int256(amount), 0, increaseShares(validatorId, amount), 0);
 
         logger.logStakeUpdate(validatorId);
         logger.logRestaked(validatorId, validators[validatorId].amount, newTotalStaked);
@@ -534,13 +537,17 @@ contract StakeManager is
             require(delegationEnabled, "Delegation is disabled");
         }
 
-        updateTimeline(amount, 0, 0);
+        int256 shares;
 
         if (amount >= 0) {
             increaseValidatorDelegatedAmount(validatorId, uint256(amount));
+            shares = increaseShares(validatorId, uint256(amount));
         } else {
             decreaseValidatorDelegatedAmount(validatorId, uint256(amount * -1));
+            shares = decreaseShares(validatorId, uint256(amount * -1));
         }
+
+        updateTimeline(amount, 0, shares, 0);
     }
 
     function increaseValidatorDelegatedAmount(uint256 validatorId, uint256 amount) private {
@@ -683,6 +690,7 @@ contract StakeManager is
 
             uint256 _amount = slashData[1].toUint();
             totalAmount = totalAmount.add(_amount);
+            decreaseShares(validatorId, _amount);
 
             address delegationContract = validators[validatorId].contractAddress;
             if (delegationContract != address(0x0)) {
@@ -707,7 +715,7 @@ contract StakeManager is
         }
 
         //update timeline
-        updateTimeline(-int256(totalAmount.add(jailedAmount)), -valJailed, 0);
+        updateTimeline(-int256(totalAmount.add(jailedAmount)), -valJailed, 0, 0);
 
         return totalAmount;
     }
@@ -728,7 +736,7 @@ contract StakeManager is
         }
 
         // undo timeline so that validator is normal validator
-        updateTimeline(int256(amount.add(validators[validatorId].delegatedAmount)), 1, 0);
+        updateTimeline(int256(amount.add(validators[validatorId].delegatedAmount)), 1, 0, 0);
 
         validators[validatorId].status = Status.Active;
 
@@ -739,6 +747,7 @@ contract StakeManager is
     function updateTimeline(
         int256 amount,
         int256 stakerCount,
+        int256 shares,
         uint256 targetEpoch
     ) internal {
         if (targetEpoch == 0) {
@@ -754,10 +763,39 @@ contract StakeManager is
             } else if (stakerCount < 0) {
                 validatorState.stakerCount = validatorState.stakerCount.sub(uint256(stakerCount * -1));
             }
+
+            if (shares > 0) {
+                validatorState.shares = validatorState.shares.add(uint256(shares));
+            } else if (shares < 0) {
+                validatorState.shares = validatorState.shares.sub(uint256(shares * -1));
+            }
         } else {
             validatorStateChanges[targetEpoch].amount += amount;
             validatorStateChanges[targetEpoch].stakerCount += stakerCount;
+            validatorStateChanges[targetEpoch].shares += shares;
         }
+    }
+
+    function increaseShares(uint256 validatorId, uint256 amount) internal returns(int256) {
+        StakeSharesState storage state = sharesState[validatorId];
+        uint256 sharesPool = state.sharesPool;
+        uint256 stakePool = state.stakePool;
+
+        uint256 shares = amount * sharesPool * SHARES_PRECISION / (stakePool + amount);
+        state.sharesPool = sharesPool.sub(shares);
+        state.stakePool = stakePool.add(amount);
+        return int256(shares);
+    }
+
+    function decreaseShares(uint256 validatorId, uint256 amount) internal returns(int256) {
+        StakeSharesState storage state = sharesState[validatorId];
+        uint256 sharesPool = state.sharesPool;
+        uint256 stakePool = state.stakePool;
+
+        uint256 shares = amount * sharesPool * SHARES_PRECISION / (stakePool - amount);
+        state.sharesPool = sharesPool.add(shares);
+        state.stakePool = stakePool.sub(amount);
+        return int256(shares);
     }
 
     function updateValidatorDelegation(bool delegation) external {
@@ -1057,38 +1095,41 @@ contract StakeManager is
         uint256 amount,
         bool acceptDelegation,
         bytes memory signerPubkey
-    ) internal returns (uint256) {
+    ) internal returns (uint256 validatorId) {
         address signer = _getAndAssertSigner(signerPubkey);
         uint256 _currentEpoch = currentEpoch;
-        uint256 validatorId = NFTCounter;
         StakingInfo _logger = logger;
-
+        validatorId = NFTCounter;
         uint256 newTotalStaked = totalStaked.add(amount);
         totalStaked = newTotalStaked;
 
-        validators[validatorId] = Validator({
-            reward: INITIALIZED_AMOUNT,
-            amount: amount,
-            activationEpoch: _currentEpoch,
-            deactivationEpoch: 0,
-            jailTime: 0,
-            signer: signer,
-            contractAddress: acceptDelegation
+        Validator memory validator;
+
+        validator.reward = INITIALIZED_AMOUNT;
+        validator.amount = amount;
+        validator.activationEpoch = _currentEpoch;
+        validator.signer = signer;
+        validator.contractAddress = acceptDelegation
                 ? validatorShareFactory.create(validatorId, address(_logger), registry)
-                : address(0x0),
-            status: Status.Active,
-            commissionRate: 0,
-            lastCommissionUpdate: 0,
-            delegatorsReward: INITIALIZED_AMOUNT,
-            delegatedAmount: 0,
-            initialRewardPerStake: rewardPerStake
+                : address(0x0);
+        validator.status = Status.Active;
+        validator.delegatorsReward = INITIALIZED_AMOUNT;
+        validator.initialRewardPerStake = rewardPerStake;
+
+        validators[validatorId] = validator;
+
+        uint256 _sharesK = sharesK;
+        sharesState[validatorId] = StakeSharesState({
+            sharesPool: _sharesK,
+            stakePool: _sharesK,
+            shares: 0
         });
 
         latestSignerUpdateEpoch[validatorId] = _currentEpoch;
         NFTContract.mint(user, validatorId);
 
         signerToValidator[signer] = validatorId;
-        updateTimeline(int256(amount), 1, 0);
+        updateTimeline(int256(amount), 1, increaseShares(validatorId, amount), 0);
         // no Auctions for 1 dynasty
         validatorAuction[validatorId].startEpoch = _currentEpoch;
         _logger.logStaked(signer, signerPubkey, validatorId, _currentEpoch, amount, newTotalStaked);
@@ -1110,7 +1151,7 @@ contract StakeManager is
         validators[validatorId].deactivationEpoch = exitEpoch;
 
         // unbond all delegators in future
-        int256 delegationAmount = int256(validators[validatorId].delegatedAmount);
+        uint256 delegationAmount = validators[validatorId].delegatedAmount;
 
         address delegationContract = validators[validatorId].contractAddress;
         if (delegationContract != address(0)) {
@@ -1122,7 +1163,8 @@ contract StakeManager is
         _liquidateRewards(validatorId, validator);
 
         uint256 targetEpoch = exitEpoch <= currentEpoch ? 0 : exitEpoch;
-        updateTimeline(-(int256(amount) + delegationAmount), -1, targetEpoch);
+        uint256 deltaAmount = amount + delegationAmount;
+        updateTimeline(-int256(deltaAmount), -1, decreaseShares(validatorId, deltaAmount), targetEpoch);
 
         logger.logUnstakeInit(validator, validatorId, exitEpoch, amount);
     }
@@ -1132,7 +1174,7 @@ contract StakeManager is
         uint256 nextEpoch = _currentEpoch.add(1);
 
         StateChange memory changes = validatorStateChanges[nextEpoch];
-        updateTimeline(changes.amount, changes.stakerCount, 0);
+        updateTimeline(changes.amount, changes.stakerCount, changes.shares, 0);
 
         delete validatorStateChanges[_currentEpoch];
 
