@@ -618,7 +618,7 @@ contract StakeManager is
             if (_isValidator(status, amount, unstakeCtx.deactivationEpoch, _currentEpoch)) {
                 lastAdd = signer;
 
-                signedStakePower = signedStakePower.add(validators[validatorId].delegatedAmount).add(amount);
+                signedStakePower = signedStakePower.add(sharesState[validatorId].shares);
 
                 if (unstakeCtx.deactivationEpoch != 0) {
                     // this validator not a part of signers list anymore
@@ -914,10 +914,9 @@ contract StakeManager is
         uint256[] memory deactivatedValidators,
         uint256 totalDeactivatedValidators
     ) private returns (uint256) {
-        uint256 currentTotalStake = validatorState.amount;
-        require(signedStakePower >= currentTotalStake.mul(2).div(3).add(1), "2/3+1 non-majority!");
+        require(signedStakePower >= validatorState.shares.mul(2).div(3).add(1), "2/3+1 non-majority!");
 
-        uint256 reward = _calculateCheckpointReward(blockInterval, signedStakePower, currentTotalStake);
+        uint256 reward = _calculateCheckpointReward(blockInterval, signedStakePower, validatorState.amount);
 
         uint256 _proposerBonus = reward.mul(proposerBonus).div(MAX_PROPOSER_BONUS);
         uint256 proposerId = signerToValidator[proposer];
