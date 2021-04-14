@@ -472,6 +472,8 @@ contract StakeManager is
         // claim last checkpoint reward if it was signed by validator
         _liquidateRewards(validatorId, msg.sender);
 
+        decreaseShares(validatorId, amount);
+
         NFTContract.burn(validatorId);
 
         validators[validatorId].amount = 0;
@@ -783,27 +785,33 @@ contract StakeManager is
     }
 
     function increaseShares(uint256 validatorId, uint256 amount) internal returns(int256) {
-        StakeSharesState storage state = sharesState[validatorId];
-        uint256 sharesPool = state.sharesPool;
-        uint256 stakePool = state.stakePool;
+        (uint256 shares, uint256 sharesPool, uint256 stakePool) = stakeToShares(validatorId, amount, true);
 
-        uint256 adjustedAmount = amount.mul(SHARES_PRECISION);
-        uint256 shares = amount * sharesPool / (stakePool + adjustedAmount);
+        StakeSharesState storage state = sharesState[validatorId];
         state.sharesPool = sharesPool.sub(shares);
-        state.stakePool = stakePool.add(adjustedAmount);
+        state.stakePool = stakePool.add(amount);
         state.shares = state.shares.add(shares);
         return int256(shares);
     }
 
-    function decreaseShares(uint256 validatorId, uint256 amount) internal returns(int256) {
+    function stakeToShares(uint256 validatorId, uint256 amount, bool inc) internal view returns(uint256 shares, uint256 sharesPool, uint256 stakePool) {
         StakeSharesState storage state = sharesState[validatorId];
-        uint256 sharesPool = state.sharesPool;
-        uint256 stakePool = state.stakePool;
+        sharesPool = state.sharesPool;
+        stakePool = state.stakePool;
 
-        uint256 adjustedAmount = amount.mul(SHARES_PRECISION);
-        uint256 shares = amount * sharesPool / (stakePool - adjustedAmount);
+        if (inc) {
+            shares = amount.mul(sharesPool).div(stakePool.add(amount));
+        } else {
+            shares = amount.mul(sharesPool).div(stakePool.sub(amount));
+        }
+    }
+
+    function decreaseShares(uint256 validatorId, uint256 amount) internal returns(int256) {
+        (uint256 shares, uint256 sharesPool, uint256 stakePool) = stakeToShares(validatorId, amount, false);
+
+        StakeSharesState storage state = sharesState[validatorId];
         state.sharesPool = sharesPool.add(shares);
-        state.stakePool = stakePool.sub(adjustedAmount);
+        state.stakePool = stakePool.sub(amount);
         state.shares = state.shares.sub(shares);
         return int256(shares);
     }
@@ -1130,7 +1138,7 @@ contract StakeManager is
 
         uint256 _sharesK = sharesK;
         sharesState[validatorId] = StakeSharesState({
-            sharesPool: _sharesK,
+            sharesPool: _sharesK.mul(SHARES_PRECISION),
             stakePool: _sharesK,
             shares: 0
         });
@@ -1174,7 +1182,8 @@ contract StakeManager is
 
         uint256 targetEpoch = exitEpoch <= currentEpoch ? 0 : exitEpoch;
         uint256 deltaAmount = amount + delegationAmount;
-        updateTimeline(-int256(deltaAmount), -1, decreaseShares(validatorId, deltaAmount), targetEpoch);
+        (uint256 shares, ,) = stakeToShares(validatorId, deltaAmount, false);
+        updateTimeline(-int256(deltaAmount), -1, -int256(shares), targetEpoch);
 
         logger.logUnstakeInit(validator, validatorId, exitEpoch, amount);
     }

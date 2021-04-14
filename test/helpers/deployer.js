@@ -29,6 +29,8 @@ class Deployer {
       proxy.address
     )
 
+    contracts.EventsHub.address = proxy.address
+
     return contracts.EventsHub.at(proxy.address)
   }
 
@@ -95,7 +97,7 @@ class Deployer {
     return _contracts
   }
 
-  buildStakeManagerObject(stakeManager, governance) {
+  async buildStakeManagerObject(stakeManager, governance) {
     stakeManager.updateDynastyValue = (val) => {
       return governance.update(
         stakeManager.address,
@@ -171,6 +173,15 @@ class Deployer {
         stakeManager.contract.methods.updateCheckpointRewardParams(val1, val2, val3).encodeABI()
       )
     }
+
+    // built-in extensions code 
+    const extensions = await contracts.StakeManagerExtension.at(stakeManager.address)
+    stakeManager.setSharesK = (...args) => {
+      return governance.update(
+        stakeManager.address,
+        extensions.contract.methods.setSharesK(...args).encodeABI()
+      )
+    }
   }
 
   async deployStakeManager(wallets) {
@@ -182,6 +193,9 @@ class Deployer {
     this.validatorShare = await contracts.ValidatorShare.new()
     this.rootChain = await this.deployRootChain()
     this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
+    
+    contracts.StakingInfo.address = this.stakingInfo.address
+
     this.stakeToken = await contracts.TestToken.new('Stake Token', 'STAKE')
     this.stakingNFT = await contracts.StakingNFT.new('Matic Validator', 'MV')
 
@@ -204,7 +218,7 @@ class Deployer {
     ).encodeABI())
 
     this.stakeManager = await contracts.StakeManagerTestable.at(proxy.address)
-    this.buildStakeManagerObject(this.stakeManager, this.governance)
+    await this.buildStakeManagerObject(this.stakeManager, this.governance)
     this.slashingManager = await contracts.SlashingManager.new(this.registry.address, this.stakingInfo.address, 'heimdall-P5rXwg')
 
     await this.stakingNFT.transferOwnership(this.stakeManager.address)
