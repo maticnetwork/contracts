@@ -105,6 +105,7 @@ contract StakeManager is
         auctionPeriod = (2**13) / 4; // 1 week in epochs
         proposerBonus = 10; // 10 % of total rewards
         delegationEnabled = true;
+        sharesK = 175000000 * (10 ** 18) * SHARES_PRECISION;
     }
 
     function isOwner() public view returns (bool) {
@@ -189,10 +190,6 @@ contract StakeManager is
     /**
         Governance Methods
      */
-
-    function setSharesK(uint256 k) external onlyGovernance {
-        sharesK = k;
-    }
 
     function setDelegationEnabled(bool enabled) public onlyGovernance {
         delegationEnabled = enabled;
@@ -576,6 +573,14 @@ contract StakeManager is
         latestSignerUpdateEpoch[validatorId] = _currentEpoch;
     }
 
+    struct CheckSignaturesVars {
+        uint256 currentEpoch;
+        uint256 signedStakePower;
+        uint256 signedTotalAmount;
+        address lastAdd;
+        uint256 totalStakers;
+    }
+
     function checkSignatures(
         uint256 blockInterval,
         bytes32 voteHash,
@@ -583,29 +588,28 @@ contract StakeManager is
         address proposer,
         uint256[3][] calldata sigs
     ) external onlyRootChain returns (uint256) {
-        uint256 _currentEpoch = currentEpoch;
-        uint256 signedStakePower;
-        address lastAdd;
-        uint256 totalStakers = validatorState.stakerCount;
+        CheckSignaturesVars memory vars;
+        vars.currentEpoch = currentEpoch;
+        vars.totalStakers = validatorState.stakerCount;
 
         UnsignedValidatorsContext memory unsignedCtx;
-        unsignedCtx.unsignedValidators = new uint256[](signers.length + totalStakers);
+        unsignedCtx.unsignedValidators = new uint256[](signers.length + vars.totalStakers);
         unsignedCtx.validators = signers;
         unsignedCtx.validatorIndex = 0;
         unsignedCtx.totalValidators = signers.length;
 
         UnstakedValidatorsContext memory unstakeCtx;
-        unstakeCtx.deactivatedValidators = new uint256[](signers.length + totalStakers);
+        unstakeCtx.deactivatedValidators = new uint256[](signers.length + vars.totalStakers);
 
         for (uint256 i = 0; i < sigs.length; ++i) {
             address signer = ECVerify.ecrecovery(voteHash, sigs[i]);
 
-            if (signer == lastAdd) {
+            if (signer == vars.lastAdd) {
                 // if signer signs twice, just skip this signature
                 continue;
             }
 
-            if (signer < lastAdd) {
+            if (signer < vars.lastAdd) {
                 // if signatures are out of order - break out, it is not possible to keep track of unsigned validators
                 break;
             }
@@ -615,10 +619,11 @@ contract StakeManager is
             Status status = validators[validatorId].status;
             unstakeCtx.deactivationEpoch = validators[validatorId].deactivationEpoch;
 
-            if (_isValidator(status, amount, unstakeCtx.deactivationEpoch, _currentEpoch)) {
-                lastAdd = signer;
+            if (_isValidator(status, amount, unstakeCtx.deactivationEpoch, vars.currentEpoch)) {
+                vars.lastAdd = signer;
 
-                signedStakePower = signedStakePower.add(sharesState[validatorId].shares);
+                vars.signedStakePower = vars.signedStakePower.add(sharesState[validatorId].shares);
+                vars.signedTotalAmount = vars.signedTotalAmount.add(amount).add(validators[validatorId].delegatedAmount);
 
                 if (unstakeCtx.deactivationEpoch != 0) {
                     // this validator not a part of signers list anymore
@@ -643,7 +648,8 @@ contract StakeManager is
             _increaseRewardAndAssertConsensus(
                 blockInterval,
                 proposer,
-                signedStakePower,
+                vars.signedStakePower,
+                vars.signedTotalAmount,
                 stateRoot,
                 unsignedCtx.unsignedValidators,
                 unsignedCtx.unsignedValidatorIndex,
@@ -781,9 +787,11 @@ contract StakeManager is
         uint256 sharesPool = state.sharesPool;
         uint256 stakePool = state.stakePool;
 
-        uint256 shares = amount * sharesPool * SHARES_PRECISION / (stakePool + amount);
+        uint256 adjustedAmount = amount.mul(SHARES_PRECISION);
+        uint256 shares = amount * sharesPool / (stakePool + adjustedAmount);
         state.sharesPool = sharesPool.sub(shares);
-        state.stakePool = stakePool.add(amount);
+        state.stakePool = stakePool.add(adjustedAmount);
+        state.shares = state.shares.add(shares);
         return int256(shares);
     }
 
@@ -792,9 +800,11 @@ contract StakeManager is
         uint256 sharesPool = state.sharesPool;
         uint256 stakePool = state.stakePool;
 
-        uint256 shares = amount * sharesPool * SHARES_PRECISION / (stakePool - amount);
+        uint256 adjustedAmount = amount.mul(SHARES_PRECISION);
+        uint256 shares = amount * sharesPool / (stakePool - adjustedAmount);
         state.sharesPool = sharesPool.add(shares);
-        state.stakePool = stakePool.sub(amount);
+        state.stakePool = stakePool.sub(adjustedAmount);
+        state.shares = state.shares.sub(shares);
         return int256(shares);
     }
 
@@ -908,6 +918,7 @@ contract StakeManager is
         uint256 blockInterval,
         address proposer,
         uint256 signedStakePower,
+        uint256 signedTotalAmount,
         bytes32 stateRoot,
         uint256[] memory unsignedValidators,
         uint256 totalUnsignedValidators,
@@ -916,7 +927,7 @@ contract StakeManager is
     ) private returns (uint256) {
         require(signedStakePower >= validatorState.shares.mul(2).div(3).add(1), "2/3+1 non-majority!");
 
-        uint256 reward = _calculateCheckpointReward(blockInterval, signedStakePower, validatorState.amount);
+        uint256 reward = _calculateCheckpointReward(blockInterval, signedTotalAmount, validatorState.amount);
 
         uint256 _proposerBonus = reward.mul(proposerBonus).div(MAX_PROPOSER_BONUS);
         uint256 proposerId = signerToValidator[proposer];
@@ -928,7 +939,7 @@ contract StakeManager is
         accountStateRoot = stateRoot;
 
         uint256 newRewardPerStake =
-            rewardPerStake.add(reward.sub(_proposerBonus).mul(REWARD_PRECISION).div(signedStakePower));
+            rewardPerStake.add(reward.sub(_proposerBonus).mul(REWARD_PRECISION).div(signedTotalAmount));
 
         // evaluate rewards for validator who did't sign and set latest reward per stake to new value to avoid them from getting new rewards.
         _updateValidatorsRewards(unsignedValidators, totalUnsignedValidators, newRewardPerStake);

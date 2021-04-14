@@ -23,5 +23,5 @@ contract StakeManagerStorageExtension {
     // constant for stake shares curve
     uint256 public sharesK;
     // validator Id => state
-    mapping(uint256 => StakeSharesState) sharesState;
+    mapping(uint256 => StakeSharesState) public sharesState;
 }   

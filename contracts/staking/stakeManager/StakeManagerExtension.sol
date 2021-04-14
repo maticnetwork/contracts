@@ -179,4 +179,8 @@ contract StakeManagerExtension is StakeManagerStorage, Initializable, StakeManag
         }
         return _eventsHub;
     }
+
+    function setSharesK(uint256 k) external onlyGovernance {
+        sharesK = k.mul(SHARES_PRECISION);
+    }
 }
