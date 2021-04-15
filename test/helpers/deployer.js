@@ -41,6 +41,9 @@ class Deployer {
     this.eventsHub = await this.deployEventsHub(this.registry.address)
     this.validatorShareFactory = await contracts.ValidatorShareFactory.new()
     this.stakeToken = await contracts.TestToken.new('Stake Token', 'ST')
+
+    contracts.TestToken.address = this.stakeToken.address
+
     this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
     this.slashingManager = await contracts.SlashingManager.new(this.registry.address, this.stakingInfo.address, 'heimdall-P5rXwg')
     this.rootChain = await this.deployRootChain()
@@ -174,7 +177,7 @@ class Deployer {
       )
     }
 
-    // built-in extensions code 
+    // built-in extensions code
     const extensions = await contracts.StakeManagerExtension.at(stakeManager.address)
     stakeManager.setSharesK = (...args) => {
       return governance.update(
@@ -193,10 +196,12 @@ class Deployer {
     this.validatorShare = await contracts.ValidatorShare.new()
     this.rootChain = await this.deployRootChain()
     this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
-    
+
     contracts.StakingInfo.address = this.stakingInfo.address
 
     this.stakeToken = await contracts.TestToken.new('Stake Token', 'STAKE')
+    contracts.TestToken.address = this.stakeToken.address
+
     this.stakingNFT = await contracts.StakingNFT.new('Matic Validator', 'MV')
 
     let stakeManager = await contracts.StakeManagerTestable.new()
@@ -474,7 +479,7 @@ class Deployer {
         false /* isERC721 */
       )
     }
-    return { rootERC20, childToken, childTokenProxy  }
+    return { rootERC20, childToken, childTokenProxy }
   }
 
   async deployMaticToken() {
@@ -622,9 +627,9 @@ class Deployer {
     let proxy = await contracts.GnosisSafeProxy.new(gnosisSafe.address)
     gnosisSafe = await contracts.GnosisSafe.at(proxy.address)
     await gnosisSafe.setup(
-      [...signers], 2, utils.ZeroAddress, "0x", utils.ZeroAddress, utils.ZeroAddress, 0, utils.ZeroAddress
+      [...signers], 2, utils.ZeroAddress, '0x', utils.ZeroAddress, utils.ZeroAddress, 0, utils.ZeroAddress
     )
-  return gnosisSafe
+    return gnosisSafe
   }
 }
 

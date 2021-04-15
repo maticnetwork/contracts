@@ -6,7 +6,7 @@ import {
 } from '../../../helpers/utils.js'
 import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
 import { wallets, walletAmounts, freshDeploy, approveAndStake } from '../deployment'
-import { shouldHaveCorrectStake } from '../../behaviors/stakeShares.behavior'
+import { shouldHaveCorrectStakeShares, shouldHaveCorrectTotalStakeShares } from '../../behaviors/stakeShares.behavior'
 
 module.exports = function(accounts) {
   let owner = accounts[0]
@@ -115,7 +115,7 @@ module.exports = function(accounts) {
         assertBigNumberEquality(stakedFor, stakeAmount)
       })
 
-      shouldHaveCorrectStake({ shares, validatorId, user })
+      shouldHaveCorrectStakeShares({ shares, validatorId, user })
 
       it('must have correct total staked balance', async function() {
         const stake = await this.stakeManager.currentValidatorSetTotalStake()
@@ -171,7 +171,7 @@ module.exports = function(accounts) {
         assertBigNumberEquality(stakedFor, stakeAmount)
       })
 
-      shouldHaveCorrectStake({ shares, validatorId, user })
+      shouldHaveCorrectStakeShares({ shares, validatorId, user })
     }
 
     describe('double stake', async function() {
@@ -208,9 +208,9 @@ module.exports = function(accounts) {
       describe('when restakes', function() {
         testRestake({
           user: wallets[2].getChecksumAddressString(),
-          amount: amounts.restakeAmonut,
+          amount: amounts.restakeAmount,
           stakeAmount: amounts.amount,
-          restakeAmount: amounts.restakeAmonut,
+          restakeAmount: amounts.restakeAmount,
           totalStaked: amounts.amount,
           validatorId: '1',
           shares: '249999999999999999642857142857142'
@@ -248,9 +248,9 @@ module.exports = function(accounts) {
 
       testRestake({
         user: wallets[2].getChecksumAddressString(),
-        amount: amounts.restakeAmonut,
+        amount: amounts.restakeAmount,
         stakeAmount: amounts.amount,
-        restakeAmount: amounts.restakeAmonut,
+        restakeAmount: amounts.restakeAmount,
         totalStaked: amounts.amount,
         validatorId: '1',
         shares: '249999999999999999642857142857142'
@@ -383,6 +383,9 @@ module.exports = function(accounts) {
         const balance = await this.stakeToken.balanceOf(user)
         assertBigNumberEquality(balance, this.afterStakeBalance.add(this.reward))
       })
+
+      shouldHaveCorrectStakeShares({ shares: '149999999999999999871428571428571', user })
+      shouldHaveCorrectTotalStakeShares({ totalShares: '149999999999999999871428571428571' })
     })
 
     describe('when user unstakes after 2 epochs', async function() {
@@ -406,8 +409,7 @@ module.exports = function(accounts) {
       })
 
       it('must unstake', async function() {
-        const validatorId = await this.stakeManager.getValidatorId(user)
-        this.receipt = await this.stakeManager.unstake(validatorId, {
+        this.receipt = await this.stakeManager.unstake(this.validatorId, {
           from: user
         })
       })
@@ -440,6 +442,9 @@ module.exports = function(accounts) {
         const balance = await this.stakeToken.balanceOf(user)
         assertBigNumberEquality(balance, this.afterStakeBalance.add(this.reward))
       })
+
+      shouldHaveCorrectStakeShares({ shares: '299999999999999999485714285714285', user })
+      shouldHaveCorrectTotalStakeShares({ totalShares: '299999999999999999485714285714285' })
     })
 
     describe('reverts', function() {
@@ -507,7 +512,7 @@ module.exports = function(accounts) {
       })
     })
 
-    describe('when user claims after 1 epoch and 1 dynasty passed', function() {
+    describe('when Alice claims after 1 epoch and 1 dynasty passed', function() {
       let dynasties = 1
       const Alice = wallets[2].getChecksumAddressString()
 
@@ -547,6 +552,9 @@ module.exports = function(accounts) {
         const stake = await this.stakeManager.currentValidatorSetTotalStake()
         assertBigNumberEquality(stake, walletAmounts[wallets[3].getAddressString()].stakeAmount)
       })
+
+      shouldHaveCorrectStakeShares({ shares: '0', user: Alice })
+      shouldHaveCorrectTotalStakeShares({ totalShares: '299999999999999999485714285714285' })
     })
 
     describe('when user claims next epoch', function() {
@@ -640,6 +648,8 @@ module.exports = function(accounts) {
           let balance = await this.stakeToken.balanceOf(user)
           assertBigNumberEquality(balance, new BN(walletAmounts[user].initialBalance).add(this.reward).sub(this.defaultHeimdallFee))
         })
+
+        shouldHaveCorrectStakeShares({ shares: '0', user: Alice.getAddressString(), validatorId: '1' })
       })
 
       describe('when Bob claims', function() {
@@ -669,6 +679,8 @@ module.exports = function(accounts) {
           let balance = await this.stakeToken.balanceOf(user)
           assertBigNumberEquality(balance, new BN(walletAmounts[user].initialBalance).add(this.reward).sub(this.defaultHeimdallFee))
         })
+
+        shouldHaveCorrectStakeShares({ shares: '0', user: Bob.getAddressString(), validatorId: '2' })
       })
 
       describe('afterwards verification', function() {
@@ -687,6 +699,9 @@ module.exports = function(accounts) {
           this.reward = await this.stakeManager.validatorReward(validatorId)
           assertBigNumberEquality(this.reward, web3.utils.toWei('12000'))
         })
+
+        shouldHaveCorrectStakeShares({ shares: '99999999999999999942857142857142', user: Eve.getAddressString(), validatorId: '3' })
+        shouldHaveCorrectTotalStakeShares({ totalShares: '99999999999999999942857142857142' })
       })
     })
   })
@@ -727,6 +742,7 @@ module.exports = function(accounts) {
         }
         // without 10% proposer bonus
         this.validatorReward = checkpointReward.mul(new BN(100 - proposerBonus)).div(new BN(100)).mul(new BN(auctionPeriod - currentEpoch))
+        console.log('validatorReward', this.validatorReward.toString())
         this.validatorId = '1'
         this.user = initialStakers[0].getAddressString()
         this.amount = web3.utils.toWei('100')
@@ -785,24 +801,46 @@ module.exports = function(accounts) {
           assertBigNumberEquality(reward, this.oldReward)
         })
       }
+
+      shouldHaveCorrectStakeShares()
+      shouldHaveCorrectTotalStakeShares()
     }
 
     describe('with delegation', function() {
       describe('with rewards', function() {
+        before(function() {
+          this.shares = '10099999999999999417085714285714318'
+          this.totalShares = '11099999999999999411371428571428603'
+        })
+
         testRestake(true, true)
       })
 
       describe('without rewards', function() {
+        before(function() {
+          this.shares = '1099999999999999993085714285714285'
+          this.totalShares = '2099999999999999987371428571428570'
+        })
+
         testRestake(true, false)
       })
     })
 
     describe('without delegation', function() {
       describe('with rewards', function() {
+        before(function() {
+          this.shares = '10099999999999999417085714285714318'
+          this.totalShares = '11099999999999999411371428571428603'
+        })
+
         testRestake(false, true)
       })
 
       describe('without rewards', function() {
+        before(function() {
+          this.shares = '1099999999999999993085714285714285'
+          this.totalShares = '2099999999999999987371428571428570'
+        })
         testRestake(false, false)
       })
     })
