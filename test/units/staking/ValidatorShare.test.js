@@ -86,7 +86,7 @@ function shouldWithdrawReward({ initialBalance, validatorId, user, reward, check
   })
 }
 
-contract('ValidatorShare', async function() {
+contract.only('ValidatorShare', async function() {
   const wei100 = toWei('100')
 
   async function slash(slashes = [], validators = [], proposer = wallets[1], nonce = 1) {
@@ -102,7 +102,7 @@ contract('ValidatorShare', async function() {
     await freshDeploy.call(this)
 
     this.stakeToken = await TestToken.new('MATIC', 'MATIC')
-
+    TestToken.address = this.stakeToken.address
     await this.stakeManager.setStakingToken(this.stakeToken.address)
 
     await this.stakeToken.mint(this.stakeManager.address, toWei('10000000'))

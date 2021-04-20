@@ -687,8 +687,9 @@ contract StakeManager is
         RLPReader.RLPItem[] memory slashingInfoList = _slashingInfoList.toRlpItem().toList();
         int256 valJailed;
         uint256 jailedAmount;
-        uint256 totalAmount;
+        uint256 slashedAmount;
         uint256 i;
+        int256 totalShares;
 
         for (; i < slashingInfoList.length; i++) {
             RLPReader.RLPItem[] memory slashData = slashingInfoList[i].toList();
@@ -697,8 +698,10 @@ contract StakeManager is
             _updateRewards(validatorId);
 
             uint256 _amount = slashData[1].toUint();
-            totalAmount = totalAmount.add(_amount);
-            decreaseShares(validatorId, _amount);
+            slashedAmount = slashedAmount.add(_amount);
+
+            // TODO must decrease shares based on whole amount instead, rather than only jailed amount
+            totalShares += decreaseShares(validatorId, _amount);
 
             address delegationContract = validators[validatorId].contractAddress;
             if (delegationContract != address(0x0)) {
@@ -723,9 +726,9 @@ contract StakeManager is
         }
 
         //update timeline
-        updateTimeline(-int256(totalAmount.add(jailedAmount)), -valJailed, 0, 0);
+        updateTimeline(-int256(slashedAmount.add(jailedAmount)), -valJailed, totalShares, 0);
 
-        return totalAmount;
+        return slashedAmount;
     }
 
     function unjail(uint256 validatorId) public onlyStaker(validatorId) {
@@ -744,7 +747,8 @@ contract StakeManager is
         }
 
         // undo timeline so that validator is normal validator
-        updateTimeline(int256(amount.add(validators[validatorId].delegatedAmount)), 1, 0, 0);
+        uint256 amountToUnlock = amount.add(validators[validatorId].delegatedAmount);
+        updateTimeline(int256(amountToUnlock), 1, increaseShares(validatorId, amountToUnlock), 0);
 
         validators[validatorId].status = Status.Active;
 
@@ -812,8 +816,17 @@ contract StakeManager is
         StakeSharesState storage state = sharesState[validatorId];
         state.sharesPool = sharesPool.add(shares);
         state.stakePool = stakePool.sub(amount);
-        state.shares = state.shares.sub(shares);
-        return int256(shares);
+
+        uint256 currentShares = state.shares;
+        if (currentShares < shares) {
+            // due to tiny rounding errors, shares might not converge entirely
+            // handle this edge case
+            shares = currentShares;
+            state.shares = 0;
+        } else {
+            state.shares = state.shares.sub(shares);
+        }
+        return -int256(shares);
     }
 
     function updateValidatorDelegation(bool delegation) external {
@@ -907,7 +920,6 @@ contract StakeManager is
         if (blockInterval > targetBlockInterval) {
             // count how many full intervals
             uint256 _rewardDecreasePerCheckpoint = rewardDecreasePerCheckpoint;
-
             // calculate reward for full intervals
             reward = ckpReward.mul(fullIntervals).sub(ckpReward.mul(((fullIntervals - 1) * fullIntervals / 2).mul(_rewardDecreasePerCheckpoint)).div(CHK_REWARD_PRECISION));
             // adjust block interval, in case last interval is not full

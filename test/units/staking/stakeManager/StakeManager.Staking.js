@@ -742,7 +742,6 @@ module.exports = function(accounts) {
         }
         // without 10% proposer bonus
         this.validatorReward = checkpointReward.mul(new BN(100 - proposerBonus)).div(new BN(100)).mul(new BN(auctionPeriod - currentEpoch))
-        console.log('validatorReward', this.validatorReward.toString())
         this.validatorId = '1'
         this.user = initialStakers[0].getAddressString()
         this.amount = web3.utils.toWei('100')
