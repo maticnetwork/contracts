@@ -86,7 +86,7 @@ function shouldWithdrawReward({ initialBalance, validatorId, user, reward, check
   })
 }
 
-contract.only('ValidatorShare', async function() {
+contract('ValidatorShare', async function() {
   const wei100 = toWei('100')
 
   async function slash(slashes = [], validators = [], proposer = wallets[1], nonce = 1) {
