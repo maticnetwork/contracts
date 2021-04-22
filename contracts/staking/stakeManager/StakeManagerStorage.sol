@@ -34,16 +34,17 @@ contract StakeManagerStorage is GovernanceLockable, RootChainable {
         uint256 amount;
         uint256 reward;
         uint256 activationEpoch;
-        uint256 deactivationEpoch;
+        uint256 deactivationEpoch_deprecated;
         uint256 jailTime;
         address signer;
         address contractAddress;
-        Status status;
+        Status status_deprecated;
         uint256 commissionRate;
         uint256 lastCommissionUpdate;
         uint256 delegatorsReward;
         uint256 delegatedAmount;
         uint256 initialRewardPerStake;
+        uint256 status;
     }
 
     uint256 constant MAX_COMMISION_RATE = 100;
@@ -93,4 +94,13 @@ contract StakeManagerStorage is GovernanceLockable, RootChainable {
     mapping(uint256 => uint256) public latestSignerUpdateEpoch;
 
     uint256 public totalHeimdallFee;
+
+    function _readStatus(uint256 validatorId) internal view returns(Status status, uint256 deactivationEpoch) {
+        uint256 combinedStatus = validators[validatorId].status;
+        return (Status(combinedStatus >> 240), uint256(uint240(combinedStatus)));
+    }
+
+    function _writeStatus(uint256 validatorId, Status status, uint256 deactivationEpoch) internal {
+        validators[validatorId].status = (uint256(status) << 240) | deactivationEpoch;
+    }
 }

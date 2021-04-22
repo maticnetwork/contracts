@@ -25,8 +25,9 @@ contract StakeManagerExtension is StakeManagerStorage, Initializable, StakeManag
     ) external {
         uint256 currentValidatorAmount = validators[validatorId].amount;
 
+        (, uint256 deactivationEpoch) = _readStatus(validatorId);
         require(
-            validators[validatorId].deactivationEpoch == 0 && currentValidatorAmount != 0,
+            deactivationEpoch == 0 && currentValidatorAmount != 0,
             "Invalid validator for an auction"
         );
         uint256 senderValidatorId = signerToValidator[msg.sender];
@@ -104,8 +105,9 @@ contract StakeManagerExtension is StakeManagerStorage, Initializable, StakeManag
 
         perceivedStake = perceivedStake.add(validators[validatorId].delegatedAmount);
 
+        (, uint256 deactivationEpoch) = _readStatus(validatorId);
         // validator is last auctioner
-        if (perceivedStake >= auctionAmount && validators[validatorId].deactivationEpoch == 0) {
+        if (perceivedStake >= auctionAmount && deactivationEpoch == 0) {
             require(token.transfer(auctionUser, auctionAmount), "Bid return failed");
             //cleanup auction data
             auction.startEpoch = _currentEpoch;

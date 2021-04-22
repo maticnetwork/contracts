@@ -9,9 +9,7 @@ import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import {IErcPredicate} from "./IPredicate.sol";
 import {Registry} from "../../common/Registry.sol";
-import {
-    WithdrawManagerHeader
-} from "../withdrawManager/WithdrawManagerStorage.sol";
+import {WithdrawManagerHeader} from "../withdrawManager/WithdrawManagerStorage.sol";
 
 contract ERC20Predicate is IErcPredicate {
     using RLPReader for bytes;
