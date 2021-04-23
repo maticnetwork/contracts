@@ -24,13 +24,16 @@ contract StakeManagerExtension is StakeManagerStorage, Initializable, StakeManag
         bytes calldata _signerPubkey
     ) external {
         uint256 currentValidatorAmount = validators[validatorId].amount;
+        address signer = validators[validatorId].signer;
 
-        (, uint256 deactivationEpoch) = _readStatus(validatorId);
+        // re-use variable, dirty. It's deactivationEpoch
+        (, uint256 senderValidatorId) = _readStatus(signer);
         require(
-            deactivationEpoch == 0 && currentValidatorAmount != 0,
+            senderValidatorId == 0 && currentValidatorAmount != 0,
             "Invalid validator for an auction"
         );
-        uint256 senderValidatorId = signerToValidator[msg.sender];
+        
+        senderValidatorId = signerToValidator[msg.sender];
         // make sure that signer wasn't used already
         require(
             NFTContract.balanceOf(msg.sender) == 0 && // existing validators can't bid
@@ -54,8 +57,7 @@ contract StakeManagerExtension is StakeManagerStorage, Initializable, StakeManag
             "Invalid auction period"
         );
 
-        uint256 perceivedStake = currentValidatorAmount;
-        perceivedStake = perceivedStake.add(validators[validatorId].delegatedAmount);
+        uint256 perceivedStake = signerState[signer].totalAmount;
 
         Auction storage auction = validatorAuction[validatorId];
         uint256 currentAuctionAmount = auction.amount;
@@ -99,13 +101,12 @@ contract StakeManagerExtension is StakeManagerStorage, Initializable, StakeManag
         );
         require(auction.user != address(0x0), "Invalid auction");
 
+        address signer = validators[validatorId].signer;
         uint256 validatorAmount = validators[validatorId].amount;
-        uint256 perceivedStake = validatorAmount;
+        uint256 perceivedStake = signerState[signer].totalAmount;
         uint256 auctionAmount = auction.amount;
 
-        perceivedStake = perceivedStake.add(validators[validatorId].delegatedAmount);
-
-        (, uint256 deactivationEpoch) = _readStatus(validatorId);
+        (, uint256 deactivationEpoch) = _readStatus(signer);
         // validator is last auctioner
         if (perceivedStake >= auctionAmount && deactivationEpoch == 0) {
             require(token.transfer(auctionUser, auctionAmount), "Bid return failed");
@@ -128,19 +129,19 @@ contract StakeManagerExtension is StakeManagerStorage, Initializable, StakeManag
     }
 
     function migrateValidatorsData(uint256 validatorIdFrom, uint256 validatorIdTo) external {       
-        for (uint256 i = validatorIdFrom; i < validatorIdTo; ++i) {
-            ValidatorShare contractAddress = ValidatorShare(validators[i].contractAddress);
-            if (contractAddress != ValidatorShare(0)) {
-                // move validator rewards out from ValidatorShare contract
-                validators[i].reward = contractAddress.validatorRewards_deprecated().add(INITIALIZED_AMOUNT);
-                validators[i].delegatedAmount = contractAddress.activeAmount();
-                validators[i].commissionRate = contractAddress.commissionRate_deprecated();
-            } else {
-                validators[i].reward = validators[i].reward.add(INITIALIZED_AMOUNT);
-            }
+        // for (uint256 i = validatorIdFrom; i < validatorIdTo; ++i) {
+        //     ValidatorShare contractAddress = ValidatorShare(validators[i].contractAddress);
+        //     if (contractAddress != ValidatorShare(0)) {
+        //         // move validator rewards out from ValidatorShare contract
+        //         validators[i].reward = contractAddress.validatorRewards_deprecated().add(INITIALIZED_AMOUNT);
+        //         validators[i].delegatedAmount = contractAddress.activeAmount();
+        //         validators[i].commissionRate = contractAddress.commissionRate_deprecated();
+        //     } else {
+        //         validators[i].reward = validators[i].reward.add(INITIALIZED_AMOUNT);
+        //     }
 
-            validators[i].delegatorsReward = INITIALIZED_AMOUNT;
-        }
+        //     validators[i].delegatorsReward = INITIALIZED_AMOUNT;
+        // }
     }
 
     function updateCheckpointRewardParams(

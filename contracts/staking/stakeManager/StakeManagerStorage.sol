@@ -10,7 +10,7 @@ import {StakingNFT} from "./StakingNFT.sol";
 import {ValidatorShareFactory} from "../validatorShare/ValidatorShareFactory.sol";
 
 contract StakeManagerStorage is GovernanceLockable, RootChainable {
-    enum Status {Inactive, Active, Locked, Unstaked}
+    enum Status_deprecated {Inactive, Active, Locked, Unstaked}
 
     struct Auction {
         uint256 amount;
@@ -38,13 +38,12 @@ contract StakeManagerStorage is GovernanceLockable, RootChainable {
         uint256 jailTime;
         address signer;
         address contractAddress;
-        Status status_deprecated;
+        Status_deprecated status_deprecated;
         uint256 commissionRate;
         uint256 lastCommissionUpdate;
         uint256 delegatorsReward;
-        uint256 delegatedAmount;
+        uint256 delegatedAmount_deprecated;
         uint256 initialRewardPerStake;
-        uint256 status;
     }
 
     uint256 constant MAX_COMMISION_RATE = 100;
@@ -94,13 +93,4 @@ contract StakeManagerStorage is GovernanceLockable, RootChainable {
     mapping(uint256 => uint256) public latestSignerUpdateEpoch;
 
     uint256 public totalHeimdallFee;
-
-    function _readStatus(uint256 validatorId) internal view returns(Status status, uint256 deactivationEpoch) {
-        uint256 combinedStatus = validators[validatorId].status;
-        return (Status(combinedStatus >> 240), uint256(uint240(combinedStatus)));
-    }
-
-    function _writeStatus(uint256 validatorId, Status status, uint256 deactivationEpoch) internal {
-        validators[validatorId].status = (uint256(status) << 240) | deactivationEpoch;
-    }
 }
