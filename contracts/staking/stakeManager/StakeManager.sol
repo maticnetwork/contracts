@@ -478,7 +478,6 @@ contract StakeManager is
 
         validators[validatorId].amount = 0;
         validators[validatorId].jailTime = 0;
-        validators[validatorId].signer = address(0);
 
         signerToValidator[signer] = INCORRECT_VALIDATOR_ID;
         _writeStatus(signer, Status.Unstaked, deactivationEpoch);
