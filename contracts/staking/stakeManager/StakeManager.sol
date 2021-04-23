@@ -681,8 +681,11 @@ contract StakeManager is
         uint256 jailedAmount;
         uint256 totalAmount;
         uint256 i;
+        uint256 delSlashedAmount;
 
         for (; i < slashingInfoList.length; i++) {
+            uint256 delSlashedAmount = 0;
+
             RLPReader.RLPItem[] memory slashData = slashingInfoList[i].toList();
 
             uint256 validatorId = slashData[0].toUint();
@@ -692,18 +695,20 @@ contract StakeManager is
             totalAmount = totalAmount.add(_amount);
 
             address signer = validators[validatorId].signer;
-            signerState[signer].totalAmount = signerState[signer].totalAmount.sub(_amount);
+            uint256 totalAmount = signerState[signer].totalAmount;
 
             address delegationContract = validators[validatorId].contractAddress;
             if (delegationContract != address(0x0)) {
-                uint256 delSlashedAmount =
+                delSlashedAmount =
                     IValidatorShare(delegationContract).slash(
                         validators[validatorId].amount,
-                        signerState[validators[validatorId].signer].totalAmount,
+                        totalAmount,
                         _amount
                     );
                 _amount = _amount.sub(delSlashedAmount);
             }
+
+            signerState[signer].totalAmount = totalAmount.sub(_amount.add(delSlashedAmount));
 
             uint256 validatorStakeSlashed = validators[validatorId].amount.sub(_amount);
             validators[validatorId].amount = validatorStakeSlashed;

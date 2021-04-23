@@ -103,13 +103,10 @@ contract SlashingManager is ISlashingManager, Ownable {
                 break;
             } else if (stakeManager.isValidator(validatorId) && signer > lastAdd) {
                 lastAdd = signer;
-                uint256 amount;
-                uint256 delegatedAmount;
-                (amount,,,,,,,,,,,delegatedAmount,) = stakeManager.validators(validatorId);
+                (, uint256 totalAmount) = stakeManager.signerState(signer);
 
                 // add delegation power
-                amount = amount.add(delegatedAmount);
-                _stakePower = _stakePower.add(amount);
+                _stakePower = _stakePower.add(totalAmount);
             }
         }
         return (_stakePower >= stakeManager.currentValidatorSetTotalStake().mul(2).div(3).add(1));
