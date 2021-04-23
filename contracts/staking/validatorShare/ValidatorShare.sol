@@ -197,24 +197,23 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
         uint256 totalAmount,
         uint256 totalAmountToSlash
     ) external onlyOwner returns (uint256) {
-        // uint256 _withdrawPool = withdrawPool;
-        // uint256 delegationAmount = totalAmount.sub(validatorStake).add(_withdrawPool);
-        // if (delegationAmount == 0) {
-        //     return 0;
-        // }
+        uint256 _withdrawPool = withdrawPool;
+        uint256 delegationAmount = totalAmount.sub(validatorStake).add(_withdrawPool);
+        if (delegationAmount == 0) {
+            return 0;
+        }
 
-        // // total amount to be slashed from delegation pool (active + inactive)
-        // uint256 _amountToSlash = delegationAmount.mul(totalAmountToSlash).div(totalAmount);
-        // uint256 _amountToSlashWithdrawalPool = _withdrawPool.mul(_amountToSlash).div(delegationAmount);
+        // total amount to be slashed from delegation pool (active + inactive)
+        uint256 _amountToSlash = delegationAmount.mul(totalAmountToSlash).div(totalAmount);
+        uint256 _amountToSlashWithdrawalPool = _withdrawPool.mul(_amountToSlash).div(delegationAmount);
 
-        // // slash inactive pool
-        // uint256 stakeSlashed = _amountToSlash.sub(_amountToSlashWithdrawalPool);
-        // stakeManager.decreaseValidatorDelegatedAmount(validatorId, stakeSlashed);
-        // activeAmount = activeAmount.sub(stakeSlashed);
+        // slash inactive pool
+        uint256 stakeSlashed = _amountToSlash.sub(_amountToSlashWithdrawalPool);
+        stakeManager.decreaseValidatorDelegatedAmount(validatorId, stakeSlashed);
+        activeAmount = activeAmount.sub(stakeSlashed);
 
-        // withdrawPool = withdrawPool.sub(_amountToSlashWithdrawalPool);
-        // return _amountToSlash;
-        return 0;
+        withdrawPool = withdrawPool.sub(_amountToSlashWithdrawalPool);
+        return _amountToSlash;
     }
 
     function updateDelegation(bool _delegation) external onlyOwner {
