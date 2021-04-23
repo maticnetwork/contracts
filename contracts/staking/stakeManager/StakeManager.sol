@@ -492,7 +492,8 @@ contract StakeManager is
         uint256 amount,
         bool stakeRewards
     ) public onlyWhenUnlocked onlyStaker(validatorId) {
-        (, uint256 deactivationEpoch) = _readStatus(validators[validatorId].signer);
+        address signer = validators[validatorId].signer;
+        (, uint256 deactivationEpoch) = _readStatus(signer);
         require(deactivationEpoch == 0, "No restaking");
 
         if (amount > 0) {
@@ -509,6 +510,7 @@ contract StakeManager is
         uint256 newTotalStaked = totalStaked.add(amount);
         totalStaked = newTotalStaked;
         validators[validatorId].amount = validators[validatorId].amount.add(amount);
+        signerState[signer].totalAmount = signerState[signer].totalAmount.add(amount);
 
         updateTimeline(int256(amount), 0, 0);
 
