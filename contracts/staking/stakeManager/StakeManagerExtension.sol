@@ -129,19 +129,12 @@ contract StakeManagerExtension is StakeManagerStorage, Initializable, StakeManag
     }
 
     function migrateValidatorsData(uint256 validatorIdFrom, uint256 validatorIdTo) external {       
-        // for (uint256 i = validatorIdFrom; i < validatorIdTo; ++i) {
-        //     ValidatorShare contractAddress = ValidatorShare(validators[i].contractAddress);
-        //     if (contractAddress != ValidatorShare(0)) {
-        //         // move validator rewards out from ValidatorShare contract
-        //         validators[i].reward = contractAddress.validatorRewards_deprecated().add(INITIALIZED_AMOUNT);
-        //         validators[i].delegatedAmount = contractAddress.activeAmount();
-        //         validators[i].commissionRate = contractAddress.commissionRate_deprecated();
-        //     } else {
-        //         validators[i].reward = validators[i].reward.add(INITIALIZED_AMOUNT);
-        //     }
+        for (uint256 i = validatorIdFrom; i < validatorIdTo; ++i) {
+            address signer = validators[i].signer;
 
-        //     validators[i].delegatorsReward = INITIALIZED_AMOUNT;
-        // }
+            signerState[signer].totalAmount = validators[i].amount.add(validators[i].delegatedAmount_deprecated).sub(INITIALIZED_AMOUNT);
+            _writeStatus(signer, Status(uint256(validators[i].status_deprecated)), validators[i].deactivationEpoch_deprecated);
+        }
     }
 
     function updateCheckpointRewardParams(
