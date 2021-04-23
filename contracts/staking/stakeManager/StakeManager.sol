@@ -691,6 +691,9 @@ contract StakeManager is
             uint256 _amount = slashData[1].toUint();
             totalAmount = totalAmount.add(_amount);
 
+            address signer = validators[validatorId].signer;
+            signerState[signer].totalAmount = signerState[signer].totalAmount.sub(_amount);
+
             address delegationContract = validators[validatorId].contractAddress;
             if (delegationContract != address(0x0)) {
                 uint256 delSlashedAmount =
