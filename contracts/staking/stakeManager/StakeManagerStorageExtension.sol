@@ -22,7 +22,7 @@ contract StakeManagerStorageExtension {
     // increase / decrease value for faster or slower checkpoints, 0 - 100%
     uint256 public checkpointRewardDelta;
 
-    mapping(address => Signer) signerState; // TODO change to signer => Signer mapping
+    mapping(address => Signer) public signerState;
 
     function _readStatus(address signer) internal view returns(Status status, uint256 deactivationEpoch) {
         uint256 combinedStatus = signerState[signer].status;
