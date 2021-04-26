@@ -149,8 +149,10 @@ contract('Slashing:validator', async function(accounts) {
       })
 
       it('validator must be unstaked within current epoch', async function() {
-        const validatorData = await stakeManager.validators(slashedValidatorId)
-        assertBigNumberEquality(validatorData.deactivationEpoch, await stakeManager.currentEpoch())
+        const state = await stakeManager.signerState(validatorAddr)
+        // mask out deactivation epoch
+        const deactivationEpoch = state.status.and(web3.utils.toBN('1766847064778384329583297500742918515827483896875618958121606201292619775'))
+        assertBigNumberEquality(deactivationEpoch, await stakeManager.currentEpoch())
       })
 
       it('validator must not be jailed', async function() {
@@ -174,6 +176,7 @@ contract('Slashing:validator', async function(accounts) {
     })
   })
 })
+
 contract('Slashing:delegation', async function(accounts) {
   let stakeToken
   let stakeManager
@@ -229,10 +232,12 @@ contract('Slashing:delegation', async function(accounts) {
       logs[0].event.should.equal('Slashed')
       assertBigNumberEquality(logs[0].args.amount, web3.utils.toWei('200'))
       const validator1 = await stakeManager.validators(1)
+
       validator = await stakeManager.validators(2)
+      const state = await stakeManager.signerState(wallets[1].getAddressString())
 
       assertBigNumberEquality(validator1.amount, web3.utils.toWei('900'))
-      assertBigNumberEquality(validator.delegatedAmount, web3.utils.toWei('230'))
+      assertBigNumberEquality(state.totalAmount.sub(validator.amount), web3.utils.toWei('230'))
     })
   })
 })
