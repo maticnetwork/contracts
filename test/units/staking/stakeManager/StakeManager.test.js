@@ -2426,7 +2426,8 @@ contract('StakeManager', async function(accounts) {
 
         it('Active amount must be updated', async function() {
           const validator = await this.stakeManager.validators(aliceId)
-          assertBigNumberEquality(validator.delegatedAmount, delegationAmountBN)
+          const state = await this.stakeManager.signerState(initialStakers[1].getChecksumAddressString())
+          assertBigNumberEquality(state.totalAmount.sub(validator.amount), delegationAmountBN)
         })
       })
 
