@@ -686,7 +686,7 @@ contract StakeManager is
 
         RLPReader.RLPItem[] memory slashingInfoList = _slashingInfoList.toRlpItem().toList();
         int256 valJailed;
-        uint256 jailedAmount;
+        uint256 totalJailedAmount;
         uint256 slashedAmount;
         uint256 i;
         int256 totalShares;
@@ -698,10 +698,8 @@ contract StakeManager is
             _updateRewards(validatorId);
 
             uint256 _amount = slashData[1].toUint();
+            uint256 amountToShares = _amount;
             slashedAmount = slashedAmount.add(_amount);
-
-            // TODO must decrease shares based on whole amount instead, rather than only jailed amount
-            totalShares += decreaseShares(validatorId, _amount);
 
             address delegationContract = validators[validatorId].contractAddress;
             if (delegationContract != address(0x0)) {
@@ -720,13 +718,18 @@ contract StakeManager is
             if (validatorStakeSlashed == 0) {
                 _unstake(validatorId, currentEpoch);
             } else if (slashData[2].toBoolean()) {
-                jailedAmount = jailedAmount.add(_jail(validatorId, 1));
+                uint256 jailedAmount = _jail(validatorId, 1);
+                amountToShares += jailedAmount;
+
+                totalJailedAmount = totalJailedAmount.add(jailedAmount);
                 valJailed++;
             }
+
+            totalShares += decreaseShares(validatorId, amountToShares);
         }
 
         //update timeline
-        updateTimeline(-int256(slashedAmount.add(jailedAmount)), -valJailed, totalShares, 0);
+        updateTimeline(-int256(slashedAmount.add(totalJailedAmount)), -valJailed, totalShares, 0);
 
         return slashedAmount;
     }
