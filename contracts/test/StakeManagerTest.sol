@@ -9,8 +9,8 @@ contract StakeManagerTest is StakeManager {
         bytes32 voteHash,
         bytes32 stateRoot,
         address proposer,
-        bytes memory sigs
-    ) public onlyRootChain returns (uint256) {
+        uint[3][] calldata sigs
+    ) external onlyRootChain returns (uint256) {
         return CHECKPOINT_REWARD; // for dummy tests return full reward
     }
 }

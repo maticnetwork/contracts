@@ -14,9 +14,29 @@ class Deployer {
     })
   }
 
+  async deployEventsHub(registryAddr) {
+    let eventsHubImpl = await contracts.EventsHub.new()
+    let proxy = await contracts.EventsHubProxy.new(
+      utils.ZeroAddress
+    )
+
+    await proxy.updateAndCall(eventsHubImpl.address, eventsHubImpl.contract.methods.initialize(
+      registryAddr
+    ).encodeABI())
+
+    await this.updateContractMap(
+      ethUtils.keccak256('eventsHub'),
+      proxy.address
+    )
+
+    return contracts.EventsHub.at(proxy.address)
+  }
+
   async freshDeploy(owner) {
     this.governance = await this.deployGovernance()
     this.registry = await contracts.Registry.new(this.governance.address)
+
+    this.eventsHub = await this.deployEventsHub(this.registry.address)
     this.validatorShareFactory = await contracts.ValidatorShareFactory.new()
     this.stakeToken = await contracts.TestToken.new('Stake Token', 'ST')
     this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
@@ -28,6 +48,7 @@ class Deployer {
       utils.ZeroAddress
     )
     let stakeManager = await contracts.StakeManagerTest.new()
+    const auctionImpl = await contracts.StakeManagerExtension.new()
     await proxy.updateAndCall(stakeManager.address, stakeManager.contract.methods.initialize(
       this.registry.address,
       this.rootChain.address,
@@ -36,7 +57,8 @@ class Deployer {
       this.stakingInfo.address,
       this.validatorShareFactory.address,
       this.governance.address,
-      owner
+      owner,
+      auctionImpl.address
     ).encodeABI())
 
     this.stakeManager = await contracts.StakeManager.at(proxy.address)
@@ -88,10 +110,10 @@ class Deployer {
       )
     }
 
-    stakeManager.setToken = (val) => {
+    stakeManager.setStakingToken = (val) => {
       return governance.update(
         stakeManager.address,
-        stakeManager.contract.methods.setToken(val).encodeABI()
+        stakeManager.contract.methods.setStakingToken(val).encodeABI()
       )
     }
 
@@ -142,11 +164,20 @@ class Deployer {
         stakeManager.contract.methods.updateSignerUpdateLimit(val).encodeABI()
       )
     }
+
+    stakeManager.updateCheckpointRewardParams = (val1, val2, val3) => {
+      return governance.update(
+        stakeManager.address,
+        stakeManager.contract.methods.updateCheckpointRewardParams(val1, val2, val3).encodeABI()
+      )
+    }
   }
 
   async deployStakeManager(wallets) {
     this.governance = await this.deployGovernance()
     this.registry = await contracts.Registry.new(this.governance.address)
+
+    this.eventsHub = await this.deployEventsHub(this.registry.address)
     this.validatorShareFactory = await contracts.ValidatorShareFactory.new()
     this.validatorShare = await contracts.ValidatorShare.new()
     this.rootChain = await this.deployRootChain()
@@ -159,6 +190,7 @@ class Deployer {
     let proxy = await contracts.StakeManagerProxy.new(
       utils.ZeroAddress
     )
+    const auctionImpl = await contracts.StakeManagerExtension.new()
     await proxy.updateAndCall(stakeManager.address, stakeManager.contract.methods.initialize(
       this.registry.address,
       rootChainOwner.getAddressString(),
@@ -167,7 +199,8 @@ class Deployer {
       this.stakingInfo.address,
       this.validatorShareFactory.address,
       this.governance.address,
-      wallets[0].getAddressString()
+      wallets[0].getAddressString(),
+      auctionImpl.address
     ).encodeABI())
 
     this.stakeManager = await contracts.StakeManagerTestable.at(proxy.address)

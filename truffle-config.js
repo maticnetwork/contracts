@@ -88,6 +88,7 @@ module.exports = {
     }
   },
   mocha: {
+    bail: false,
     reporter: 'eth-gas-reporter',
     reporterOptions: {
       currency: 'USD',

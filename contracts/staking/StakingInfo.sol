@@ -3,8 +3,6 @@ pragma solidity ^0.5.2;
 import {Registry} from "../common/Registry.sol";
 import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import {Ownable} from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import {BytesLib} from "../common/lib/BytesLib.sol";
-import {ECVerify} from "../common/lib/ECVerify.sol";
 
 
 // dummy interface to avoid cyclic dependency
@@ -37,7 +35,6 @@ contract IStakeManagerLocal {
 
     function isValidator(uint256 validatorId) public view returns (bool);
 }
-
 
 contract StakingInfo is Ownable {
     using SafeMath for uint256;
@@ -498,6 +495,7 @@ contract StakingInfo is Ownable {
         emit DelegatorUnstaked(validatorId, user, amount);
     }
 
+    // deprecated
     function logUpdateCommissionRate(
         uint256 validatorId,
         uint256 newCommissionRate,

@@ -10,9 +10,9 @@ contract StakeManagerTestable is StakeManager {
 
     function testLockShareContract(uint256 validatorId, bool lock) public {
         if (lock) {
-            IValidatorShare(validators[validatorId].contractAddress).lockContract();
+            IValidatorShare(validators[validatorId].contractAddress).lock();
         } else {
-            IValidatorShare(validators[validatorId].contractAddress).unlockContract();
+            IValidatorShare(validators[validatorId].contractAddress).unlock();
         }
     }
 

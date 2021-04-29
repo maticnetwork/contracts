@@ -58,7 +58,7 @@ export default class StatefulUtils {
     // tree
     //   .verify(blockHeader, end - start, tree.getRoot(), blockProof)
     //   .should.equal(true)
-    const { data, sigs } = utils.buildSubmitHeaderBlockPaylod(
+    const { data, sigs } = utils.buildsubmitCheckpointPaylod(
       proposer[0],
       start,
       end,
@@ -66,7 +66,7 @@ export default class StatefulUtils {
       proposer,
       { rewardsRootHash: ethUtils.keccak256('RandomState') }
     )
-    const submitHeaderBlock = await rootChain.submitHeaderBlock(
+    const submitCheckpoint = await rootChain.submitCheckpoint(
       data, sigs)
 
     // const txProof = await getTxProof(event.tx, event.block)
@@ -74,7 +74,7 @@ export default class StatefulUtils {
     // const receiptProof = await getReceiptProof(event.receipt, event.block, web3Child)
     // assert.isTrue(verifyReceiptProof(receiptProof), 'Receipt proof must be valid (failed in js)')
 
-    const NewHeaderBlockEvent = submitHeaderBlock.logs.find(
+    const NewHeaderBlockEvent = submitCheckpoint.logs.find(
       log => log.event === 'NewHeaderBlock'
     )
     return {

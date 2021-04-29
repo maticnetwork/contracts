@@ -7,13 +7,15 @@
     "contracts": "RootChain StakeManager"
   },
   "scripts": {
-    "testrpc": "ganache-cli --hardfork istanbul --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' -p 9545 --gasLimit 8000000 --gasPrice 0",
+    "testrpc": "ganache-cli --hardfork istanbul --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' -p 9545 --gasLimit 10000000 --gasPrice 0 --allowUnlimitedContractSize --accounts 200",
     "template:process": "node scripts/process-templates.js",
     "truffle": "truffle",
     "truffle:test": "truffle test",
     "truffle:coverage": "truffle run coverage",
     "truffle:compile": "truffle compile",
-    "truffle:migrate": "truffle migrate --network development",
+    "truffle:migrate": "scripts/run-migration.sh",
+    "truffle:migrate:dev": "truffle migrate --network development",
+    "truffle:migrate:dev:bor": "truffle migrate --network bor",
     "truffle:verify": "truffle run verify $npm_package_verify_contracts --network ropsten",
     "test": "truffle test",
     "coverage": "scripts/run-coverage.sh",
@@ -26,7 +28,6 @@
     "lint:sol": "solium -d contracts/"
   },
   "pre-commit": [
-    "lint:sol"
   ],
   "repository": {
     "type": "git",

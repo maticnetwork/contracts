@@ -80,7 +80,7 @@ export async function approveAndStake({ wallet, stakeAmount, approveAmount, acce
     from: wallet.getAddressString()
   })
 
-  await this.stakeManager.stake(stakeAmount, fee, acceptDelegation, signer || wallet.getPublicKeyString(), {
+  await this.stakeManager.stakeFor(wallet.getAddressString(), stakeAmount, fee, acceptDelegation, signer || wallet.getPublicKeyString(), {
     from: wallet.getAddressString()
   })
 }
