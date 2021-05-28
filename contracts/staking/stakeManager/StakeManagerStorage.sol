@@ -10,7 +10,7 @@ import {StakingNFT} from "./StakingNFT.sol";
 import {ValidatorShareFactory} from "../validatorShare/ValidatorShareFactory.sol";
 
 contract StakeManagerStorage is GovernanceLockable, RootChainable {
-    enum Status {Inactive, Active, Locked, Unstaked}
+    enum Status_deprecated {Inactive, Active, Locked, Unstaked}
 
     struct Auction {
         uint256 amount;
@@ -34,15 +34,15 @@ contract StakeManagerStorage is GovernanceLockable, RootChainable {
         uint256 amount;
         uint256 reward;
         uint256 activationEpoch;
-        uint256 deactivationEpoch;
+        uint256 deactivationEpoch_deprecated;
         uint256 jailTime;
         address signer;
         address contractAddress;
-        Status status;
+        Status_deprecated status_deprecated;
         uint256 commissionRate;
         uint256 lastCommissionUpdate;
         uint256 delegatorsReward;
-        uint256 delegatedAmount;
+        uint256 delegatedAmount_deprecated;
         uint256 initialRewardPerStake;
     }
 

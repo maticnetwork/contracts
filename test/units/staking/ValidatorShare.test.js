@@ -104,7 +104,6 @@ contract('ValidatorShare', async function() {
     this.stakeToken = await TestToken.new('MATIC', 'MATIC')
 
     await this.stakeManager.setStakingToken(this.stakeToken.address)
-
     await this.stakeToken.mint(this.stakeManager.address, toWei('10000000'))
 
     this.validatorId = '8'
@@ -647,6 +646,7 @@ contract('ValidatorShare', async function() {
 
           await buyVoucher(this.validatorContract, this.stakeAmount, this.user)
         })
+
         before('slash', async function() {
           await slash.call(this, [{ validator: this.validatorId, amount: this.stakeAmount }], [this.validatorUser], this.validatorUser)
         })

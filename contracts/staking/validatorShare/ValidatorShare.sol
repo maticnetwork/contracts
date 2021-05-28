@@ -110,7 +110,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
      */
 
     function buyVoucher(uint256 _amount, uint256 _minSharesToMint) public returns(uint256 amountToDeposit) {
-        _withdrawAndTransferReward(msg.sender);
+        _withdrawAndTransferReward(msg.sender, msg.sender);
         
         amountToDeposit = _buyShares(_amount, _minSharesToMint, msg.sender);
         require(stakeManager.delegationDeposit(validatorId, amountToDeposit, msg.sender), "deposit failed");
@@ -159,12 +159,17 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
     }
 
     function withdrawRewards() public {
-        uint256 rewards = _withdrawAndTransferReward(msg.sender);
+        uint256 rewards = _withdrawAndTransferReward(msg.sender, msg.sender);
+        require(rewards >= minAmount, "Too small rewards amount");
+    }
+
+    function withdrawRewardsTo(address to) public {
+        uint256 rewards = _withdrawAndTransferReward(msg.sender, to);
         require(rewards >= minAmount, "Too small rewards amount");
     }
 
     function migrateOut(address user, uint256 amount) external onlyOwner {
-        _withdrawAndTransferReward(user);
+        _withdrawAndTransferReward(user, user);
         (uint256 totalStaked, uint256 rate) = getTotalStake(user);
         require(totalStaked >= amount, "Migrating too much");
 
@@ -181,7 +186,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
     }
 
     function migrateIn(address user, uint256 amount) external onlyOwner {
-        _withdrawAndTransferReward(user);
+        _withdrawAndTransferReward(user, user);
         _buyShares(amount, 0, user);
     }
 
@@ -194,16 +199,17 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
 
     function slash(
         uint256 validatorStake,
-        uint256 delegatedAmount,
+        uint256 totalAmount,
         uint256 totalAmountToSlash
     ) external onlyOwner returns (uint256) {
         uint256 _withdrawPool = withdrawPool;
-        uint256 delegationAmount = delegatedAmount.add(_withdrawPool);
+        uint256 delegationAmount = totalAmount.sub(validatorStake).add(_withdrawPool);
         if (delegationAmount == 0) {
             return 0;
         }
+
         // total amount to be slashed from delegation pool (active + inactive)
-        uint256 _amountToSlash = delegationAmount.mul(totalAmountToSlash).div(validatorStake.add(delegationAmount));
+        uint256 _amountToSlash = delegationAmount.mul(totalAmountToSlash).div(totalAmount);
         uint256 _amountToSlashWithdrawalPool = _withdrawPool.mul(_amountToSlash).div(delegationAmount);
 
         // slash inactive pool
@@ -281,7 +287,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
         uint256 shares = claimAmount.mul(precision).div(rate);
         require(shares <= maximumSharesToBurn, "too much slippage");
 
-        _withdrawAndTransferReward(msg.sender);
+        _withdrawAndTransferReward(msg.sender, msg.sender);
 
         _burn(msg.sender, shares);
         stakeManager.updateValidatorState(validatorId, -int256(claimAmount));
@@ -358,11 +364,11 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
         return liquidRewards;
     }
 
-    function _withdrawAndTransferReward(address user) private returns (uint256) {
-        uint256 liquidRewards = _withdrawReward(user);
+    function _withdrawAndTransferReward(address from, address to) private returns (uint256) {
+        uint256 liquidRewards = _withdrawReward(from);
         if (liquidRewards != 0) {
-            require(stakeManager.transferFunds(validatorId, liquidRewards, user), "Insufficent rewards");
-            stakingLogger.logDelegatorClaimRewards(validatorId, user, liquidRewards);
+            require(stakeManager.transferFunds(validatorId, liquidRewards, to), "Insufficent rewards");
+            stakingLogger.logDelegatorClaimRewards(validatorId, from, liquidRewards);
         }
         return liquidRewards;
     }
@@ -401,9 +407,9 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
         uint256 value
     ) internal {
         // get rewards for recipient 
-        _withdrawAndTransferReward(to);
+        _withdrawAndTransferReward(to, to);
         // convert rewards to shares
-        _withdrawAndTransferReward(from);
+        _withdrawAndTransferReward(from, from);
         // move shares to recipient
         super._transfer(from, to, value);
     }

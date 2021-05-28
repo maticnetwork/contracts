@@ -1547,13 +1547,6 @@ contract('StakeManager', async function(accounts) {
           from: validatorUser
         }), 'fee too small')
       })
-
-      it('when fee overflows', async function() {
-        const overflowFee = new BN(2).pow(new BN(256))
-        await expectRevert.unspecified(this.stakeManager.topUpForFee(validatorUser, overflowFee, {
-          from: validatorUser
-        }))
-      })
     })
   })
 
@@ -2104,6 +2097,7 @@ contract('StakeManager', async function(accounts) {
         prepareToTest()
         testConfirmAuctionBidForNewValidator()
       })
+
       describe('when 1000 dynasties has passed', function() {
         prepareToTest()
         before(async function() {
@@ -2113,6 +2107,7 @@ contract('StakeManager', async function(accounts) {
 
         testConfirmAuctionBidForNewValidator()
       })
+
       describe('when validator has more stake then last bid', function() {
         prepareToTest()
         before(async function() {
@@ -2378,7 +2373,7 @@ contract('StakeManager', async function(accounts) {
         await this.stakeManager.unstakeClaim(aliceId, { from: initialStakers[1].getChecksumAddressString() })
       })
 
-      it('Should migrate', async function() {
+      it('should migrate', async function() {
         await this.stakeManager.migrateDelegation(aliceId, bobId, migrationAmount, { from: delegator })
       })
     })
@@ -2401,7 +2396,7 @@ contract('StakeManager', async function(accounts) {
       })
 
       describe('Chad delegates to Alice', async function() {
-        it('Should delegate', async function() {
+        it('should delegate', async function() {
           this.receipt = await buyVoucher(aliceContract, delegationAmount, delegator)
         })
 
@@ -2431,7 +2426,8 @@ contract('StakeManager', async function(accounts) {
 
         it('Active amount must be updated', async function() {
           const validator = await this.stakeManager.validators(aliceId)
-          assertBigNumberEquality(validator.delegatedAmount, delegationAmountBN)
+          const state = await this.stakeManager.signerState(initialStakers[1].getChecksumAddressString())
+          assertBigNumberEquality(state.totalAmount.sub(validator.amount), delegationAmountBN)
         })
       })
 
@@ -2489,13 +2485,13 @@ contract('StakeManager', async function(accounts) {
         })
 
         it('Alice active amount must be updated', async function() {
-          const validator = await this.stakeManager.validators(aliceId)
-          assertBigNumberEquality(validator.delegatedAmount, delegationAmountBN.sub(migrationAmountBN))
+          const delegatedAmount = await this.stakeManager.delegatedAmount(aliceId)
+          assertBigNumberEquality(delegatedAmount, delegationAmountBN.sub(migrationAmountBN))
         })
 
         it('Bob active amount must be updated', async function() {
-          const validator = await this.stakeManager.validators(bobId)
-          assertBigNumberEquality(validator.delegatedAmount, migrationAmount)
+          const delegatedAmount = await this.stakeManager.delegatedAmount(bobId)
+          assertBigNumberEquality(delegatedAmount, migrationAmount)
         })
       })
     })
