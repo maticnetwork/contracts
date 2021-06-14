@@ -2500,8 +2500,8 @@ contract('StakeManager', async function(accounts) {
       })
     })
 
-    describe('when Chad migrates from non-matic validator', function() {
-      const aliceId = '9'
+    describe('when Chad migrates to foundation validator', function() {
+      const foundationNodeId = '2'
       const bobId = '8'
       const delegator = wallets[1].getChecksumAddressString()
 
@@ -2511,14 +2511,14 @@ contract('StakeManager', async function(accounts) {
         await this.stakeToken.approve(this.stakeManager.address, delegationAmount, {
           from: delegator
         })
-        const aliceValidator = await this.stakeManager.validators(aliceId)
-        const aliceContract = await ValidatorShare.at(aliceValidator.contractAddress)
-        await buyVoucher(aliceContract, delegationAmount, delegator)
+        const nonFoundationValidator = await this.stakeManager.validators(bobId)
+        const nonFoundationContract = await ValidatorShare.at(nonFoundationValidator.contractAddress)
+        await buyVoucher(nonFoundationContract, delegationAmount, delegator)
       })
 
       it('Migration should fail', async function() {
         await expectRevert(
-          this.stakeManager.migrateDelegation(aliceId, bobId, migrationAmount, { from: delegator }),
+          this.stakeManager.migrateDelegation(bobId, foundationNodeId, migrationAmount, { from: delegator }),
           'Invalid migration')
       })
     })
