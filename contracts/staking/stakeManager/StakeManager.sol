@@ -523,7 +523,8 @@ contract StakeManager is
         uint256 toValidatorId,
         uint256 amount
     ) public {
-        require(fromValidatorId < 8 && toValidatorId > 7, "Invalid migration");
+        // allow to move to any non-foundation node
+        require(toValidatorId > 7, "Invalid migration");
         IValidatorShare(validators[fromValidatorId].contractAddress).migrateOut(msg.sender, amount);
         IValidatorShare(validators[toValidatorId].contractAddress).migrateIn(msg.sender, amount);
     }
@@ -1118,7 +1119,6 @@ contract StakeManager is
         }
 
         _removeSigner(validators[validatorId].signer);
-
         _liquidateRewards(validatorId, validator);
 
         uint256 targetEpoch = exitEpoch <= currentEpoch ? 0 : exitEpoch;
