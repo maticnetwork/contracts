@@ -3,7 +3,8 @@ import utils from 'ethereumjs-util'
 import {
   ValidatorShare,
   StakingInfo,
-  TestToken
+  TestToken,
+  EventsHub
 } from '../../../helpers/artifacts'
 
 import { buildTreeFee } from '../../../helpers/proofs.js'
@@ -172,263 +173,6 @@ contract('StakeManager', async function(accounts) {
     it('bidder balance must be correct', async function() {
       const currentBalance = await this.stakeToken.balanceOf(this.bidder)
       assertBigNumberEquality(this.bidderBalanceBeforeAuction.sub(new BN(this.bidAmount)).sub(new BN(this.heimdallFee)), currentBalance)
-    })
-  }
-
-  describe('updateCommissionRate', function() {
-    async function batchDeploy() {
-      await prepareForTest(4, 2).call(this)
-
-      this.stakeToken = await TestToken.new('MATIC', 'MATIC')
-
-      await this.governance.update(
-        this.stakeManager.address,
-        this.stakeManager.contract.methods.setStakingToken(this.stakeToken.address).encodeABI()
-      )
-
-      await this.stakeToken.mint(this.stakeManager.address, web3.utils.toWei('10000000'))
-
-      this.validatorId = '1'
-      this.validatorUser = wallets[0]
-      this.stakeAmount = new BN(web3.utils.toWei('100'))
-
-      await approveAndStake.call(this, { wallet: this.validatorUser, stakeAmount: this.stakeAmount, acceptDelegation: true })
-
-      let validator = await this.stakeManager.validators(this.validatorId)
-      this.validatorContract = await ValidatorShare.at(validator.contractAddress)
-
-      this.user = wallets[2].getChecksumAddressString()
-
-      const approveAmount = web3.utils.toWei('20000')
-      await this.stakeToken.mint(
-        this.user,
-        approveAmount
-      )
-      await this.stakeToken.approve(this.stakeManager.address, approveAmount, {
-        from: this.user
-      })
-    }
-
-    function testCommisionRate(previousRate, newRate) {
-      describe(`when validator sets commision rate to ${newRate}%`, function() {
-        it(`validator must set ${newRate}% commision rate`, async function() {
-          // simulate cool down period
-          const validator = await this.stakeManager.validators(this.validatorId)
-          let lastCommissionUpdate = validator.lastCommissionUpdate
-          if (+lastCommissionUpdate !== 0) {
-            let n = lastCommissionUpdate.add(await this.stakeManager.WITHDRAWAL_DELAY())
-            const start = await this.stakeManager.epoch()
-            for (let i = start; i < n; i++) {
-              await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
-            }
-          }
-          this.receipt = await this.stakeManager.updateCommissionRate(this.validatorId, newRate, { from: this.validatorUser.getAddressString() })
-        })
-
-        it('must emit UpdateCommissionRate', async function() {
-          await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'UpdateCommissionRate', {
-            validatorId: this.validatorId,
-            oldCommissionRate: previousRate,
-            newCommissionRate: newRate
-          })
-        })
-
-        it('commissionRate must be correct', async function() {
-          const validator = await this.stakeManager.validators(this.validatorId)
-          assertBigNumberEquality(validator.commissionRate, newRate)
-        })
-
-        it('lastCommissionUpdate must be equal to current epoch', async function() {
-          const validator = await this.stakeManager.validators(this.validatorId)
-          assertBigNumberEquality(validator.lastCommissionUpdate, await this.stakeManager.epoch())
-        })
-      })
-    }
-
-    describe('when Alice buy voucher and validator sets 50% commision rate, 1 checkpoint commited', function() {
-      before(batchDeploy)
-
-      testCommisionRate('0', '50')
-
-      describe('after commision rate changed', function() {
-        it('Alice must purchase voucher', async function() {
-          await buyVoucher(this.validatorContract, web3.utils.toWei('100'), this.user)
-        })
-
-        it('1 checkpoint must be commited', async function() {
-          await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
-        })
-
-        it('liquid rewards must be correct', async function() {
-          assertBigNumberEquality(await this.validatorContract.getLiquidRewards(this.user), web3.utils.toWei('2250'))
-        })
-      })
-    })
-
-    describe('when Alice stake same as validator, and validator sets 50%, 100%, 0% commision rates, 1 checkpoint between rate\'s change', function() {
-      let oldRewards, oldExchangeRate
-
-      function testAfterComissionChange(liquidRewards, exchangeRate) {
-        it('1 checkpoint must be commited', async function() {
-          await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
-
-          oldRewards = await this.validatorContract.getRewardPerShare()
-          oldExchangeRate = await this.validatorContract.exchangeRate()
-        })
-
-        it('liquid rewards must be correct', async function() {
-          assertBigNumberEquality(await this.validatorContract.getLiquidRewards(this.user), liquidRewards)
-        })
-
-        it('exchange rate must be correct', async function() {
-          assertBigNumberEquality(await this.validatorContract.exchangeRate(), exchangeRate)
-        })
-
-        it('ValidatorShare getRewardPerShare must be unchanged', async function() {
-          assertBigNumberEquality(oldRewards, await this.validatorContract.getRewardPerShare())
-        })
-
-        it('ValidatorShare exchangeRate must be unchanged', async function() {
-          assertBigNumberEquality(oldExchangeRate, await this.validatorContract.exchangeRate())
-        })
-      }
-
-      before(batchDeploy)
-      before(function() {
-        this.oldRewards = new BN('0')
-        this.oldExchangeRate = new BN('0')
-      })
-
-      testCommisionRate('0', '50')
-
-      describe('after commision rate changed', function() {
-        it('Alice must purchase voucher', async function() {
-          await buyVoucher(this.validatorContract, this.stakeAmount, this.user)
-        })
-        // get 25% of checkpoint rewards
-        testAfterComissionChange(web3.utils.toWei('2250'), '100')
-      })
-
-      testCommisionRate('50', '100')
-
-      describe('after commision rate changed', function() {
-        // get 0% of checkpoint rewards
-        testAfterComissionChange(web3.utils.toWei('9000'), '100')
-      })
-
-      testCommisionRate('100', '0')
-
-      describe('after commision rate changed', function() {
-        // get only 50% of checkpoint rewards
-        testAfterComissionChange(web3.utils.toWei('13500'), '100')
-      })
-    })
-
-    describe('when new commision rate is greater than 100', function() {
-      before(batchDeploy)
-
-      it('reverts', async function() {
-        await expectRevert(
-          this.stakeManager.updateCommissionRate(this.validatorId, 101, { from: this.validatorUser.getAddressString() }),
-          'Incorrect value'
-        )
-      })
-    })
-
-    describe('when trying to set commision again within commissionCooldown period', function() {
-      before(batchDeploy)
-      before(async function() {
-        this.stakeManager.updateCommissionRate(this.validatorId, 10, { from: this.validatorUser.getAddressString() })
-      })
-
-      it('reverts', async function() {
-        await expectRevert(
-          this.stakeManager.updateCommissionRate(this.validatorId, 15, { from: this.validatorUser.getAddressString() }),
-          'Cooldown'
-        )
-      })
-    })
-  })
-
-  describe('updateValidatorDelegation', function() {
-    let staker = wallets[1]
-    let stakeAmount = web3.utils.toWei('100')
-
-    function doDeploy(acceptDelegation) {
-      before('Fresh deploy', freshDeploy)
-      before('Approve and stake', async function() {
-        await approveAndStake.call(this, { wallet: staker, stakeAmount: stakeAmount, acceptDelegation })
-
-        if (acceptDelegation) {
-          const validator = await this.stakeManager.validators('1')
-          this.validatorShares = await ValidatorShare.at(validator.contractAddress)
-        }
-      })
-    }
-
-    describe('when from is not validator', function() {
-      doDeploy(true)
-
-      it('reverts ', async function() {
-        await expectRevert(this.stakeManager.updateValidatorDelegation(false, { from: wallets[2].getAddressString() }), 'not validator')
-      })
-    })
-
-    describe('when validator has Delegation is disabled', function() {
-      doDeploy(false)
-
-      it('reverts ', async function() {
-        await expectRevert(this.stakeManager.updateValidatorDelegation(false, { from: staker.getAddressString() }), 'Delegation is disabled')
-      })
-    })
-
-    describe('when validator is valid', function() {
-      doDeploy(true)
-
-      it('disables delegation ', async function() {
-        await this.stakeManager.updateValidatorDelegation(false, { from: staker.getAddressString() })
-      })
-
-      it('validatorShares delegation == false', async function() {
-        assert.isFalse(await this.validatorShares.delegation())
-      })
-
-      it('enables delegation ', async function() {
-        await this.stakeManager.updateValidatorDelegation(true, { from: staker.getAddressString() })
-      })
-
-      it('validatorShares delegation == true', async function() {
-        assert.isTrue(await this.validatorShares.delegation())
-      })
-    })
-  })
-
-  function testConfirmAuctionBidForOldValidator() {
-    it('must confirm auction', async function() {
-      this.receipt = await this.stakeManager.confirmAuctionBid(
-        this.validatorId,
-        0,
-        {
-          from: this.prevValidatorAddr
-        }
-      )
-    })
-
-    it('must emit ConfirmAuction', async function() {
-      await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ConfirmAuction', {
-        newValidatorId: this.validatorId,
-        oldValidatorId: this.validatorId,
-        amount: this.validator.amount
-      })
-    })
-
-    it('validator is still a validator', async function() {
-      assert.ok(await this.stakeManager.isValidator(this.validatorId))
-    })
-
-    it('bidder balance must be correct', async function() {
-      const currentBalance = await this.stakeToken.balanceOf(this.bidder)
-      assertBigNumberEquality(this.bidderBalanceBeforeAuction, currentBalance)
     })
   }
 
@@ -939,7 +683,7 @@ contract('StakeManager', async function(accounts) {
         })
         beforeEach('fresh deploy', doDeploy)
 
-        describe('Alice proposes with more than 2/3+1 votes votes', function() {
+        describe('Alice proposes with more than 2/3+1 votes', function() {
           it('should pass the check', async function() {
             this.accumulatedFees[wallets[0].getAddressString()] = [[firstFeeToClaim]]
             this.tree = await feeCheckpointWithVotes.call(this, AliceValidatorId, 0, 22, 3, '') //  3 yes votes
@@ -980,6 +724,255 @@ contract('StakeManager', async function(accounts) {
       })
     })
   })
+
+  describe('updateCommissionRate', function() {
+    async function batchDeploy() {
+      await prepareForTest(4, 2).call(this)
+      this.stakeToken = await TestToken.new('MATIC', 'MATIC')
+      await this.stakeManager.setStakingToken(this.stakeToken.address)
+      await this.stakeToken.mint(this.stakeManager.address, web3.utils.toWei('10000000'))
+
+      this.validatorId = '1'
+      this.validatorUser = wallets[0]
+      this.stakeAmount = new BN(web3.utils.toWei('100'))
+      await approveAndStake.call(this, { wallet: this.validatorUser, stakeAmount: this.stakeAmount, acceptDelegation: true })
+      let validator = await this.stakeManager.validators(this.validatorId)
+      this.validatorContract = await ValidatorShare.at(validator.contractAddress)
+
+      this.user = wallets[2].getChecksumAddressString()
+
+      const approveAmount = web3.utils.toWei('20000')
+      await this.stakeToken.mint(
+        this.user,
+        approveAmount
+      )
+      await this.stakeToken.approve(this.stakeManager.address, approveAmount, {
+        from: this.user
+      })
+    }
+
+    function testCommisionRate(previousRate, newRate) {
+      describe(`when validator sets commision rate to ${newRate}%`, function() {
+        it(`validator must set ${newRate}% commision rate`, async function() {
+          // simulate cool down period
+          const validator = await this.stakeManager.validators(this.validatorId)
+          let lastCommissionUpdate = validator.lastCommissionUpdate
+          if (+lastCommissionUpdate !== 0) {
+            let n = lastCommissionUpdate.add(await this.stakeManager.WITHDRAWAL_DELAY())
+            const start = await this.stakeManager.epoch()
+            for (let i = start; i < n; i++) {
+              await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
+            }
+          }
+          this.receipt = await this.stakeManager.updateCommissionRate(this.validatorId, newRate, { from: this.validatorUser.getAddressString() })
+        })
+
+        it('must emit UpdateCommissionRate', async function() {
+          await expectEvent.inTransaction(this.receipt.tx, EventsHub, 'UpdateCommissionRate', {
+            validatorId: this.validatorId,
+            oldCommissionRate: previousRate,
+            newCommissionRate: newRate
+          })
+        })
+
+        it('commissionRate must be correct', async function() {
+          const validator = await this.stakeManager.validators(this.validatorId)
+          assertBigNumberEquality(validator.commissionRate, newRate)
+        })
+
+        it('lastCommissionUpdate must be equal to current epoch', async function() {
+          const validator = await this.stakeManager.validators(this.validatorId)
+          assertBigNumberEquality(validator.lastCommissionUpdate, await this.stakeManager.epoch())
+        })
+      })
+    }
+
+    describe('when Alice buy voucher and validator sets 50% commision rate, 1 checkpoint commited', function() {
+      before(batchDeploy)
+
+      testCommisionRate('0', '50')
+
+      describe('after commision rate changed', function() {
+        it('Alice must purchase voucher', async function() {
+          await buyVoucher(this.validatorContract, web3.utils.toWei('100'), this.user)
+        })
+
+        it('1 checkpoint must be commited', async function() {
+          await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
+        })
+
+        it('liquid rewards must be correct', async function() {
+          assertBigNumberEquality(await this.validatorContract.getLiquidRewards(this.user), web3.utils.toWei('2250'))
+        })
+      })
+    })
+
+    describe('when Alice stake same as validator, and validator sets 50%, 100%, 0% commision rates, 1 checkpoint between rate\'s change', function() {
+      let oldRewards, oldExchangeRate
+
+      function testAfterComissionChange(liquidRewards, exchangeRate) {
+        it('1 checkpoint must be commited', async function() {
+          await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
+
+          oldRewards = await this.validatorContract.getRewardPerShare()
+          oldExchangeRate = await this.validatorContract.exchangeRate()
+        })
+
+        it('liquid rewards must be correct', async function() {
+          assertBigNumberEquality(await this.validatorContract.getLiquidRewards(this.user), liquidRewards)
+        })
+
+        it('exchange rate must be correct', async function() {
+          assertBigNumberEquality(await this.validatorContract.exchangeRate(), exchangeRate)
+        })
+
+        it('ValidatorShare getRewardPerShare must be unchanged', async function() {
+          assertBigNumberEquality(oldRewards, await this.validatorContract.getRewardPerShare())
+        })
+
+        it('ValidatorShare exchangeRate must be unchanged', async function() {
+          assertBigNumberEquality(oldExchangeRate, await this.validatorContract.exchangeRate())
+        })
+      }
+
+      before(batchDeploy)
+      before(function() {
+        this.oldRewards = new BN('0')
+        this.oldExchangeRate = new BN('0')
+      })
+
+      testCommisionRate('0', '50')
+
+      describe('after commision rate changed', function() {
+        it('Alice must purchase voucher', async function() {
+          await buyVoucher(this.validatorContract, this.stakeAmount, this.user)
+        })
+        // get 25% of checkpoint rewards
+        testAfterComissionChange(web3.utils.toWei('2250'), '100')
+      })
+
+      testCommisionRate('50', '100')
+
+      describe('after commision rate changed', function() {
+        // get 0% of checkpoint rewards
+        testAfterComissionChange(web3.utils.toWei('9000'), '100')
+      })
+
+      testCommisionRate('100', '0')
+
+      describe('after commision rate changed', function() {
+        // get only 50% of checkpoint rewards
+        testAfterComissionChange(web3.utils.toWei('13500'), '100')
+      })
+    })
+
+    describe('when new commision rate is greater than 100', function() {
+      before(batchDeploy)
+
+      it('reverts', async function() {
+        await expectRevert(
+          this.stakeManager.updateCommissionRate(this.validatorId, 101, { from: this.validatorUser.getAddressString() }),
+          'Incorrect value'
+        )
+      })
+    })
+
+    describe('when trying to set commision again within commissionCooldown period', function() {
+      before(batchDeploy)
+      before(async function() {
+        this.stakeManager.updateCommissionRate(this.validatorId, 10, { from: this.validatorUser.getAddressString() })
+      })
+
+      it('reverts', async function() {
+        await expectRevert(
+          this.stakeManager.updateCommissionRate(this.validatorId, 15, { from: this.validatorUser.getAddressString() }),
+          'Cooldown'
+        )
+      })
+    })
+  })
+
+  describe('updateValidatorDelegation', function() {
+    let staker = wallets[1]
+    let stakeAmount = web3.utils.toWei('100')
+
+    function doDeploy(acceptDelegation) {
+      before('Fresh deploy', freshDeploy)
+      before('Approve and stake', async function() {
+        await approveAndStake.call(this, { wallet: staker, stakeAmount: stakeAmount, acceptDelegation })
+
+        if (acceptDelegation) {
+          const validator = await this.stakeManager.validators('1')
+          this.validatorShares = await ValidatorShare.at(validator.contractAddress)
+        }
+      })
+    }
+
+    describe('when from is not validator', function() {
+      doDeploy(true)
+
+      it('reverts ', async function() {
+        await expectRevert(this.stakeManager.updateValidatorDelegation(false, { from: wallets[2].getAddressString() }), 'not validator')
+      })
+    })
+
+    describe('when validator has Delegation is disabled', function() {
+      doDeploy(false)
+
+      it('reverts ', async function() {
+        await expectRevert(this.stakeManager.updateValidatorDelegation(false, { from: staker.getAddressString() }), 'Delegation is disabled')
+      })
+    })
+
+    describe('when validator is valid', function() {
+      doDeploy(true)
+
+      it('disables delegation ', async function() {
+        await this.stakeManager.updateValidatorDelegation(false, { from: staker.getAddressString() })
+      })
+
+      it('validatorShares delegation == false', async function() {
+        assert.isFalse(await this.validatorShares.delegation())
+      })
+
+      it('enables delegation ', async function() {
+        await this.stakeManager.updateValidatorDelegation(true, { from: staker.getAddressString() })
+      })
+
+      it('validatorShares delegation == true', async function() {
+        assert.isTrue(await this.validatorShares.delegation())
+      })
+    })
+  })
+
+  function testConfirmAuctionBidForOldValidator() {
+    it('must confirm auction', async function() {
+      this.receipt = await this.stakeManager.confirmAuctionBid(
+        this.validatorId,
+        0,
+        {
+          from: this.prevValidatorAddr
+        }
+      )
+    })
+
+    it('must emit ConfirmAuction', async function() {
+      await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ConfirmAuction', {
+        newValidatorId: this.validatorId,
+        oldValidatorId: this.validatorId,
+        amount: this.validator.amount
+      })
+    })
+
+    it('validator is still a validator', async function() {
+      assert.ok(await this.stakeManager.isValidator(this.validatorId))
+    })
+
+    it('bidder balance must be correct', async function() {
+      const currentBalance = await this.stakeToken.balanceOf(this.bidder)
+      assertBigNumberEquality(this.bidderBalanceBeforeAuction, currentBalance)
+    })
+  }
 
   describe('dethroneAndStake', function() {
     describe('when from is not stake manager', function() {
@@ -1546,13 +1539,6 @@ contract('StakeManager', async function(accounts) {
         await expectRevert(this.stakeManager.topUpForFee(validatorUser, minHeimdallFee.sub(new BN(1)), {
           from: validatorUser
         }), 'fee too small')
-      })
-
-      it('when fee overflows', async function() {
-        const overflowFee = new BN(2).pow(new BN(256))
-        await expectRevert.unspecified(this.stakeManager.topUpForFee(validatorUser, overflowFee, {
-          from: validatorUser
-        }))
       })
     })
   })

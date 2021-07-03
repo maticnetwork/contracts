@@ -21,7 +21,7 @@ export const walletAmounts = {
   [wallets[2].getAddressString()]: {
     amount: web3.utils.toWei('250'),
     stakeAmount: web3.utils.toWei('150'),
-    restakeAmonut: web3.utils.toWei('100'),
+    restakeAmount: web3.utils.toWei('100'),
     initialBalance: web3.utils.toWei('805')
   },
   [wallets[3].getAddressString()]: {

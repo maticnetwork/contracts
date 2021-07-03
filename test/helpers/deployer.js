@@ -29,6 +29,8 @@ class Deployer {
       proxy.address
     )
 
+    contracts.EventsHub.address = proxy.address
+
     return contracts.EventsHub.at(proxy.address)
   }
 
@@ -39,6 +41,9 @@ class Deployer {
     this.eventsHub = await this.deployEventsHub(this.registry.address)
     this.validatorShareFactory = await contracts.ValidatorShareFactory.new()
     this.stakeToken = await contracts.TestToken.new('Stake Token', 'ST')
+
+    contracts.TestToken.address = this.stakeToken.address
+
     this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
     this.slashingManager = await contracts.SlashingManager.new(this.registry.address, this.stakingInfo.address, 'heimdall-P5rXwg')
     this.rootChain = await this.deployRootChain()
@@ -95,7 +100,7 @@ class Deployer {
     return _contracts
   }
 
-  buildStakeManagerObject(stakeManager, governance) {
+  async buildStakeManagerObject(stakeManager, governance) {
     stakeManager.updateDynastyValue = (val) => {
       return governance.update(
         stakeManager.address,
@@ -171,6 +176,15 @@ class Deployer {
         stakeManager.contract.methods.updateCheckpointRewardParams(val1, val2, val3).encodeABI()
       )
     }
+
+    // built-in extensions code
+    const extensions = await contracts.StakeManagerExtension.at(stakeManager.address)
+    stakeManager.setSharesK = (...args) => {
+      return governance.update(
+        stakeManager.address,
+        extensions.contract.methods.setSharesK(...args).encodeABI()
+      )
+    }
   }
 
   async deployStakeManager(wallets) {
@@ -182,7 +196,12 @@ class Deployer {
     this.validatorShare = await contracts.ValidatorShare.new()
     this.rootChain = await this.deployRootChain()
     this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
+
+    contracts.StakingInfo.address = this.stakingInfo.address
+
     this.stakeToken = await contracts.TestToken.new('Stake Token', 'STAKE')
+    contracts.TestToken.address = this.stakeToken.address
+
     this.stakingNFT = await contracts.StakingNFT.new('Matic Validator', 'MV')
 
     let stakeManager = await contracts.StakeManagerTestable.new()
@@ -204,7 +223,7 @@ class Deployer {
     ).encodeABI())
 
     this.stakeManager = await contracts.StakeManagerTestable.at(proxy.address)
-    this.buildStakeManagerObject(this.stakeManager, this.governance)
+    await this.buildStakeManagerObject(this.stakeManager, this.governance)
     this.slashingManager = await contracts.SlashingManager.new(this.registry.address, this.stakingInfo.address, 'heimdall-P5rXwg')
 
     await this.stakingNFT.transferOwnership(this.stakeManager.address)
@@ -460,7 +479,7 @@ class Deployer {
         false /* isERC721 */
       )
     }
-    return { rootERC20, childToken, childTokenProxy  }
+    return { rootERC20, childToken, childTokenProxy }
   }
 
   async deployMaticToken() {
@@ -608,9 +627,9 @@ class Deployer {
     let proxy = await contracts.GnosisSafeProxy.new(gnosisSafe.address)
     gnosisSafe = await contracts.GnosisSafe.at(proxy.address)
     await gnosisSafe.setup(
-      [...signers], 2, utils.ZeroAddress, "0x", utils.ZeroAddress, utils.ZeroAddress, 0, utils.ZeroAddress
+      [...signers], 2, utils.ZeroAddress, '0x', utils.ZeroAddress, utils.ZeroAddress, 0, utils.ZeroAddress
     )
-  return gnosisSafe
+    return gnosisSafe
   }
 }
 
