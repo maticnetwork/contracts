@@ -127,6 +127,14 @@ library ExitPayloadReader {
     function getReceiptLogIndex(ExitPayload memory payload) internal pure returns(uint256) {
       return payload.data[9].toUint();
     }
+
+    function getTx(ExitPayload memory payload) internal pure returns(bytes memory) {
+      return payload.data[10].toBytes();
+    }
+
+    function getTxProof(ExitPayload memory payload) internal pure returns(bytes memory) {
+      return payload.data[11].toBytes();
+    }
     
     // Receipt methods
     function toBytes(Receipt memory receipt) internal pure returns(bytes memory) {
