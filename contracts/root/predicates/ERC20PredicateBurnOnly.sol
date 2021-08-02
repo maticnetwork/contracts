@@ -27,14 +27,10 @@ contract ERC20PredicateBurnOnly is IErcPredicate {
     // keccak256('Withdraw(address,address,uint256,uint256,uint256)')
     bytes32 constant WITHDRAW_EVENT_SIG = 0xebff2602b3f468259e1e99f613fed6691f3a6526effe6ef3e768ba7ae7a36c4f;
 
-    Registry registry;
-
     constructor(
         address _withdrawManager,
-        address _depositManager,
-        address _registry
+        address _depositManager
     ) public IErcPredicate(_withdrawManager, _depositManager) {
-        registry = Registry(_registry);
     }
 
     function startExitWithBurntTokens(bytes calldata data) external {
