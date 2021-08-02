@@ -327,8 +327,7 @@ class Deployer {
     if (burnOnly) predicate = contracts.ERC20PredicateBurnOnly
     const ERC20Predicate = await predicate.new(
       this.withdrawManagerProxy.address,
-      this.depositManagerProxy.address,
-      this.registry.address
+      this.depositManagerProxy.address
     )
     await this.governance.update(
       this.registry.address,
