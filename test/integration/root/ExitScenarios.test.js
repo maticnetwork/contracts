@@ -69,7 +69,7 @@ contract('Misc Predicates tests @skip-on-coverage', async function(accounts) {
     assert.strictEqual((await rootERC20.balanceOf(bob)).toString(), aliceInitial.sub(aliceToBobtransferAmount).toString())
   })
 
-  it('Alice & Bob are honest and cooperating', async function() {
+  it.skip('Alice & Bob are honest and cooperating', async function() {
     const alice = accounts[1]
     const bob = accounts[2]
     const aliceInitial = web3.utils.toBN('13')
