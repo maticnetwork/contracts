@@ -102,7 +102,7 @@ contract('ValidatorShare', async function() {
     await freshDeploy.call(this)
 
     this.stakeToken = await TestToken.new('MATIC', 'MATIC')
-
+    TestToken.address = this.stakeToken.address
     await this.stakeManager.setStakingToken(this.stakeToken.address)
 
     await this.stakeToken.mint(this.stakeManager.address, toWei('10000000'))
