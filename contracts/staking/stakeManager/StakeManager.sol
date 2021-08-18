@@ -77,11 +77,8 @@ contract StakeManager is
         address _stakingLogger,
         address _validatorShareFactory,
         address _governance,
-        address _owner,
-        address _extensionCode
+        address _owner
     ) external initializer {
-        require(isContract(_extensionCode), "auction impl incorrect");
-        extensionCode = _extensionCode;
         governance = IGovernance(_governance);
         registry = _registry;
         rootChain = _rootchain;
