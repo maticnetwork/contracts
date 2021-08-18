@@ -69,12 +69,12 @@ library MerklePatriciaProof {
                 );
                 pathPtr += 1;
             } else if (currentNodeList.length == 2) {
-                pathPtr += _nibblesToTraverse(
+                uint256 traversed = _nibblesToTraverse(
                     RLPReader.toBytes(currentNodeList[0]),
                     path,
                     pathPtr
                 );
-                if (pathPtr == path.length) {
+                if (pathPtr + traversed == path.length) {
                     //leaf node
                     if (
                         keccak256(RLPReader.toBytes(currentNodeList[1])) ==
@@ -87,17 +87,11 @@ library MerklePatriciaProof {
                 }
 
                 //extension node
-                if (
-                    _nibblesToTraverse(
-                        RLPReader.toBytes(currentNodeList[0]),
-                        path,
-                        pathPtr
-                    ) ==
-                    0
-                ) {
+                if (traversed == 0) {
                     return false;
                 }
 
+                pathPtr += traversed;
                 nodeKey = bytes32(RLPReader.toUintStrict(currentNodeList[1]));
             } else {
                 return false;

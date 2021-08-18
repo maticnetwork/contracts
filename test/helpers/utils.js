@@ -326,7 +326,12 @@ export function startExit(
         ethUtils.bufferToHex(reference.receiptsRoot),
         ethUtils.bufferToHex(reference.receipt),
         ethUtils.bufferToHex(rlp.encode(reference.receiptParentNodes)),
-        ethUtils.bufferToHex(rlp.encode(reference.path)), // branch mask,
+        ethUtils.bufferToHex(
+          Buffer.concat([
+            Buffer.from('00', 'hex'),
+            reference.path
+          ])
+        ), // branch mask,
         logIndex
       ])
     ),
@@ -399,7 +404,12 @@ export function startExitForErc20PredicateLegacy(
         ethUtils.bufferToHex(reference.receiptsRoot),
         ethUtils.bufferToHex(reference.receipt),
         ethUtils.bufferToHex(rlp.encode(reference.receiptParentNodes)),
-        ethUtils.bufferToHex(rlp.encode(reference.path)), // branch mask,
+        ethUtils.bufferToHex(
+          Buffer.concat([
+            Buffer.from('00', 'hex'),
+            reference.path
+          ])
+        ), // branch mask,
         logIndex
       ])
     ),
@@ -490,7 +500,12 @@ export function buildReferenceTxPayload(input) {
     ethUtils.bufferToHex(reference.receiptsRoot),
     ethUtils.bufferToHex(reference.receipt),
     ethUtils.bufferToHex(rlp.encode(reference.receiptParentNodes)),
-    ethUtils.bufferToHex(rlp.encode(reference.path)), // branch mask,
+    ethUtils.bufferToHex(
+      Buffer.concat([
+        Buffer.from('00', 'hex'),
+        reference.path
+      ])
+    ), // branch mask,
     logIndex
   ]
 }
