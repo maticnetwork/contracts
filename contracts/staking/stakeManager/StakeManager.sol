@@ -67,7 +67,7 @@ contract StakeManager is
         require(validators[validatorId].contractAddress == msg.sender, "Invalid contract address");
     }
 
-    constructor() public GovernanceLockable(address(0x0)) {}
+    constructor() public GovernanceLockable(address(0x0)) initializer {}
 
     function initialize(
         address _registry,
