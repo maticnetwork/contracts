@@ -7,9 +7,11 @@ const ChildChain = artifacts.require('ChildChain')
 const MRC20 = artifacts.require('MRC20')
 
 module.exports = async function(deployer, network, accounts) {
-  if (deployer.network !== 'bor') {
-    return
-  }
+  // if (deployer.network !== 'bor') {
+  //   return
+  // }
+
+  console.log(deployer.network);
 
   deployer.then(async() => {
     await deployer.deploy(SafeMath)
