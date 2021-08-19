@@ -3,9 +3,9 @@ import { assertBigNumberEquality } from '../../helpers/utils'
 export function shouldHaveCorrectStakeShares({ shares, validatorId, user } = {}) {
   it(`should have correct validator shares`, async function() {
     const sharesState = await this.stakeManager.sharesState(validatorId || this.validatorId)
-    console.log('sharesState.shares', sharesState.shares.toString())
-    console.log('sharesState.sharesPool', sharesState.sharesPool.toString())
-    console.log('sharesState.stakePool', sharesState.stakePool.toString())
+    // console.log('sharesState.shares', sharesState.shares.toString())
+    // console.log('sharesState.sharesPool', sharesState.sharesPool.toString())
+    // console.log('sharesState.stakePool', sharesState.stakePool.toString())
 
     assertBigNumberEquality(shares || this.shares, sharesState.shares)
   })

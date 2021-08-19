@@ -71,7 +71,7 @@ contract StakeManagerStorage is GovernanceLockable, RootChainable {
     uint256 public checkPointBlockInterval;
     uint256 public signerUpdateLimit;
 
-    uint256 public validatorThreshold; //128
+    uint256 public validatorThreshold; // 128
     uint256 public totalStaked;
     uint256 public NFTCounter;
     uint256 public totalRewards;

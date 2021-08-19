@@ -15,7 +15,8 @@ import {
   buildsubmitCheckpointPaylod,
   buildsubmitCheckpointPaylodWithVotes,
   encodeSigsForCheckpoint,
-  getSigs
+  getSigs,
+  assertBigNumbergt
 } from '../../../helpers/utils.js'
 import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
 import { generateFirstWallets, mnemonics } from '../../../helpers/wallets'
@@ -23,7 +24,7 @@ import { wallets, freshDeploy, approveAndStake, walletAmounts } from '../deploym
 import { buyVoucher } from '../ValidatorShareHelper.js'
 import { web3 } from '@openzeppelin/test-helpers/src/setup'
 
-const { toWei } = web3.utils
+const { toWei, toBN } = web3.utils
 
 function prepareForTest(dynastyValue, validatorThreshold) {
   return async function() {
@@ -58,7 +59,7 @@ function testCheckpointing(stakers, signers, blockInterval, checkpointsPassed, e
 
 const ZeroAddr = '0x0000000000000000000000000000000000000000'
 
-contract('StakeManager', async function(accounts) {
+contract.only('StakeManager', async function(accounts) {
   let owner = accounts[0]
 
   async function calculateExpectedCheckpointReward(blockInterval, amount, totalAmount, checkpointsPassed) {
@@ -225,9 +226,9 @@ contract('StakeManager', async function(accounts) {
       })
 
       testCheckpointing(stakers, signers, 1, 1, {
-        [stakers[0].wallet.getAddressString()]: toWei('3250'), // proposer fixed bonus + 50% of reward
-        [stakers[1].wallet.getAddressString()]: toWei('2250'),
-        [stakers[2].wallet.getAddressString()]: toWei('2250')
+        [stakers[0].wallet.getAddressString()]: '3249999999999999997428', // proposer fixed bonus + 50% of reward
+        [stakers[1].wallet.getAddressString()]: '2249999999999999998714',
+        [stakers[2].wallet.getAddressString()]: '2249999999999999998714'
       }, true, stakers[0].wallet)
     })
 
@@ -252,9 +253,9 @@ contract('StakeManager', async function(accounts) {
       })
 
       testCheckpointing(stakers, signers, 1, 1, {
-        [stakers[0].wallet.getAddressString()]: '3600000000000000000000',
+        [stakers[0].wallet.getAddressString()]: '3599999999999999995885',
         [stakers[1].wallet.getAddressString()]: '0000000000000000000000',
-        [stakers[2].wallet.getAddressString()]: '3600000000000000000000'
+        [stakers[2].wallet.getAddressString()]: '3599999999999999995885'
       })
     })
 
@@ -279,9 +280,9 @@ contract('StakeManager', async function(accounts) {
       })
 
       testCheckpointing(stakers, signers, 1, 1, {
-        [stakers[0].wallet.getAddressString()]: '3600000000000000000000',
+        [stakers[0].wallet.getAddressString()]: '3599999999999999995885',
         [stakers[1].wallet.getAddressString()]: '0000000000000000000000',
-        [stakers[2].wallet.getAddressString()]: '3600000000000000000000'
+        [stakers[2].wallet.getAddressString()]: '3599999999999999995885'
       })
     })
 
@@ -304,7 +305,7 @@ contract('StakeManager', async function(accounts) {
       testCheckpointing(stakers, signers, 1, 1, {
         [stakers[0].wallet.getAddressString()]: '0',
         [stakers[1].wallet.getAddressString()]: '0',
-        [stakers[2].wallet.getAddressString()]: '8333333333333333333333' // because not everyone signed, 1000 out of 1200 staked tokens
+        [stakers[2].wallet.getAddressString()]: '8333333333333299952380' // because not everyone signed, 1000 out of 1200 staked tokens
       }, false)
     })
 
@@ -327,8 +328,8 @@ contract('StakeManager', async function(accounts) {
       })
 
       testCheckpointing(stakers, signers, 1, 1, {
-        [stakers[0].wallet.getAddressString()]: '3000000000000000000000',
-        [stakers[1].wallet.getAddressString()]: '6000000000000000000000'
+        [stakers[0].wallet.getAddressString()]: '2999999999999999998285',
+        [stakers[1].wallet.getAddressString()]: '5999999999999999993142'
       })
     })
 
@@ -363,8 +364,8 @@ contract('StakeManager', async function(accounts) {
         })
 
         testCheckpointing(stakers, stakers.map(x => x.wallet), 1, 1, {
-          [stakers[0].wallet.getAddressString()]: '3000000000000000000000',
-          [stakers[1].wallet.getAddressString()]: '6000000000000000000000'
+          [stakers[0].wallet.getAddressString()]: '2999999999999999998285',
+          [stakers[1].wallet.getAddressString()]: '5999999999999999993142'
         })
       })
 
@@ -374,8 +375,8 @@ contract('StakeManager', async function(accounts) {
         })
 
         testCheckpointing(stakers, stakers.map(x => x.wallet), 1, 1, {
-          [stakers[0].wallet.getAddressString()]: '6166666666666666666666',
-          [stakers[1].wallet.getAddressString()]: '12333333333333333333333'
+          [stakers[0].wallet.getAddressString()]: '6166666666666659996476',
+          [stakers[1].wallet.getAddressString()]: '12333333333333319985904'
         })
       })
     })
@@ -398,21 +399,21 @@ contract('StakeManager', async function(accounts) {
         prepareToTest(stakers, 1)
 
         testCheckpointing(stakers, stakers.map(x => x.wallet), 1, 1, {
-          [stakers[0].wallet.getAddressString()]: toWei('1500'),
-          [stakers[1].wallet.getAddressString()]: toWei('3000'),
-          [stakers[2].wallet.getAddressString()]: toWei('4500')
+          [stakers[0].wallet.getAddressString()]: '1499999999999999999142',
+          [stakers[1].wallet.getAddressString()]: '2999999999999999996571',
+          [stakers[2].wallet.getAddressString()]: '4499999999999999992285'
         })
 
         testCheckpointing(stakers, stakers.map(x => x.wallet), 2, 1, {
-          [stakers[0].wallet.getAddressString()]: toWei('3930'),
-          [stakers[1].wallet.getAddressString()]: toWei('7860'),
-          [stakers[2].wallet.getAddressString()]: toWei('11790')
+          [stakers[0].wallet.getAddressString()]: '3929999999999999997754',
+          [stakers[1].wallet.getAddressString()]: '7859999999999999991017',
+          [stakers[2].wallet.getAddressString()]: '11789999999999999979788'
         })
 
         testCheckpointing(stakers, stakers.map(x => x.wallet), 2, 1, {
-          [stakers[0].wallet.getAddressString()]: toWei('6630'),
-          [stakers[1].wallet.getAddressString()]: toWei('13260'),
-          [stakers[2].wallet.getAddressString()]: toWei('19890')
+          [stakers[0].wallet.getAddressString()]: '6629999999999999996211',
+          [stakers[1].wallet.getAddressString()]: '13259999999999999984845',
+          [stakers[2].wallet.getAddressString()]: '19889999999999999965902'
         })
       })
 
@@ -420,35 +421,35 @@ contract('StakeManager', async function(accounts) {
         prepareToTest(stakers, 1)
 
         testCheckpointing(stakers, stakers.map(x => x.wallet), 2, 1, {
-          [stakers[0].wallet.getAddressString()]: toWei('2700'),
-          [stakers[1].wallet.getAddressString()]: toWei('5400'),
-          [stakers[2].wallet.getAddressString()]: toWei('8100')
+          [stakers[0].wallet.getAddressString()]: '2699999999999999998457',
+          [stakers[1].wallet.getAddressString()]: '5399999999999999993828',
+          [stakers[2].wallet.getAddressString()]: '8099999999999999986114'
         })
 
         testCheckpointing(stakers, stakers.map(x => x.wallet), 1, 1, {
-          [stakers[0].wallet.getAddressString()]: toWei('4350'),
-          [stakers[1].wallet.getAddressString()]: toWei('8700'),
-          [stakers[2].wallet.getAddressString()]: toWei('13050')
+          [stakers[0].wallet.getAddressString()]: '4349999999999999997514',
+          [stakers[1].wallet.getAddressString()]: '8699999999999999990057',
+          [stakers[2].wallet.getAddressString()]: '13049999999999999977628'
         })
 
         testCheckpointing(stakers, stakers.map(x => x.wallet), 1, 1, {
-          [stakers[0].wallet.getAddressString()]: toWei('5850'),
-          [stakers[1].wallet.getAddressString()]: toWei('11700'),
-          [stakers[2].wallet.getAddressString()]: toWei('17550')
+          [stakers[0].wallet.getAddressString()]: '5849999999999999996657',
+          [stakers[1].wallet.getAddressString()]: '11699999999999999986628',
+          [stakers[2].wallet.getAddressString()]: '17549999999999999969914'
         })
       })
 
       describe('when checkpoint block interval is 1', function() {
         describe('when block interval is 1', function() {
           runTests(1, 1, 1, {
-            [stakers[0].wallet.getAddressString()]: '1500000000000000000000',
-            [stakers[1].wallet.getAddressString()]: '3000000000000000000000',
-            [stakers[2].wallet.getAddressString()]: '4500000000000000000000'
+            [stakers[0].wallet.getAddressString()]: '1499999999999999999142',
+            [stakers[1].wallet.getAddressString()]: '2999999999999999996571',
+            [stakers[2].wallet.getAddressString()]: '4499999999999999992285'
           })
           runTests(1, 1, 5, {
-            [stakers[0].wallet.getAddressString()]: '7500000000000000000000',
-            [stakers[1].wallet.getAddressString()]: '15000000000000000000000',
-            [stakers[2].wallet.getAddressString()]: '22500000000000000000000'
+            [stakers[0].wallet.getAddressString()]: '7499999999999999995714',
+            [stakers[1].wallet.getAddressString()]: '14999999999999999982857',
+            [stakers[2].wallet.getAddressString()]: '22499999999999999961428'
           })
         })
 
@@ -456,9 +457,9 @@ contract('StakeManager', async function(accounts) {
           prepareToTest(stakers, 1)
 
           runTests(1, 10, 1, {
-            [stakers[0].wallet.getAddressString()]: toWei('4500'),
-            [stakers[1].wallet.getAddressString()]: toWei('9000'),
-            [stakers[2].wallet.getAddressString()]: toWei('13500')
+            [stakers[0].wallet.getAddressString()]: '4499999999999999997428',
+            [stakers[1].wallet.getAddressString()]: '8999999999999999989714',
+            [stakers[2].wallet.getAddressString()]: '13499999999999999976857'
           })
         })
 
@@ -466,9 +467,9 @@ contract('StakeManager', async function(accounts) {
           prepareToTest(stakers, 1)
 
           runTests(1, 3, 1, {
-            [stakers[0].wallet.getAddressString()]: toWei('3600'),
-            [stakers[1].wallet.getAddressString()]: toWei('7200'),
-            [stakers[2].wallet.getAddressString()]: toWei('10800')
+            [stakers[0].wallet.getAddressString()]: '3599999999999999997942',
+            [stakers[1].wallet.getAddressString()]: '7199999999999999991771',
+            [stakers[2].wallet.getAddressString()]: '10799999999999999981485'
           })
         })
       })
@@ -476,9 +477,9 @@ contract('StakeManager', async function(accounts) {
       describe('when checkpoint block interval is 10', function() {
         describe('when block interval is 5', function() {
           runTests(10, 5, 1, {
-            [stakers[0].wallet.getAddressString()]: toWei('750'),
-            [stakers[1].wallet.getAddressString()]: toWei('1500'),
-            [stakers[2].wallet.getAddressString()]: toWei('2250')
+            [stakers[0].wallet.getAddressString()]: '749999999999999999571',
+            [stakers[1].wallet.getAddressString()]: '1499999999999999998285',
+            [stakers[2].wallet.getAddressString()]: '2249999999999999996142'
           })
         })
 
@@ -486,9 +487,9 @@ contract('StakeManager', async function(accounts) {
           prepareToTest(stakers, 1)
 
           runTests(10, 15, 1, {
-            [stakers[0].wallet.getAddressString()]: toWei('2100'),
-            [stakers[1].wallet.getAddressString()]: toWei('4200'),
-            [stakers[2].wallet.getAddressString()]: toWei('6300')
+            [stakers[0].wallet.getAddressString()]: '2099999999999999998799',
+            [stakers[1].wallet.getAddressString()]: '4199999999999999995199',
+            [stakers[2].wallet.getAddressString()]: '6299999999999999989199'
           })
         })
       })
@@ -496,27 +497,27 @@ contract('StakeManager', async function(accounts) {
       describe('when checkpoint block interval is 10', function() {
         describe('when block interval is 1', function() {
           runTests(10, 1, 1, {
-            [stakers[0].wallet.getAddressString()]: '150000000000000000000',
-            [stakers[1].wallet.getAddressString()]: '300000000000000000000',
-            [stakers[2].wallet.getAddressString()]: '450000000000000000000'
+            [stakers[0].wallet.getAddressString()]: '149999999999999999914',
+            [stakers[1].wallet.getAddressString()]: '299999999999999999657',
+            [stakers[2].wallet.getAddressString()]: '449999999999999999228'
           })
           runTests(10, 1, 5, {
-            [stakers[0].wallet.getAddressString()]: '750000000000000000000',
-            [stakers[1].wallet.getAddressString()]: '1500000000000000000000',
-            [stakers[2].wallet.getAddressString()]: '2250000000000000000000'
+            [stakers[0].wallet.getAddressString()]: '749999999999999999571',
+            [stakers[1].wallet.getAddressString()]: '1499999999999999998285',
+            [stakers[2].wallet.getAddressString()]: '2249999999999999996142'
           })
         })
 
         describe('when block interval is 5', function() {
           runTests(10, 5, 1, {
-            [stakers[0].wallet.getAddressString()]: '750000000000000000000',
-            [stakers[1].wallet.getAddressString()]: '1500000000000000000000',
-            [stakers[2].wallet.getAddressString()]: '2250000000000000000000'
+            [stakers[0].wallet.getAddressString()]: '749999999999999999571',
+            [stakers[1].wallet.getAddressString()]: '1499999999999999998285',
+            [stakers[2].wallet.getAddressString()]: '2249999999999999996142'
           })
           runTests(10, 5, 5, {
-            [stakers[0].wallet.getAddressString()]: '3750000000000000000000',
-            [stakers[1].wallet.getAddressString()]: '7500000000000000000000',
-            [stakers[2].wallet.getAddressString()]: '11250000000000000000000'
+            [stakers[0].wallet.getAddressString()]: '3749999999999999997857',
+            [stakers[1].wallet.getAddressString()]: '7499999999999999991428',
+            [stakers[2].wallet.getAddressString()]: '11249999999999999980714'
           })
         })
       })
@@ -531,7 +532,7 @@ contract('StakeManager', async function(accounts) {
 
       prepareToTest(stakers, 1)
       testCheckpointing(stakers, [stakers[0].wallet], 1, 1, {
-        [stakers[0].wallet.getAddressString()]: web3.utils.toWei('7500'),
+        [stakers[0].wallet.getAddressString()]: '7499999999999999957142',
         [stakers[1].wallet.getAddressString()]: '0',
         [stakers[2].wallet.getAddressString()]: '0'
       })
@@ -550,7 +551,7 @@ contract('StakeManager', async function(accounts) {
 
       prepareToTest(stakers, 1)
       testCheckpointing(stakers, [stakers[0].wallet], 1, 1, {
-        [stakers[0].wallet.getAddressString()]: '8490566037735849056604',
+        [stakers[0].wallet.getAddressString()]: '8490566037734999514824',
         [stakers[1].wallet.getAddressString()]: '0',
         [stakers[2].wallet.getAddressString()]: '0',
         [stakers[3].wallet.getAddressString()]: '0',
@@ -802,7 +803,7 @@ contract('StakeManager', async function(accounts) {
         })
 
         it('liquid rewards must be correct', async function() {
-          assertBigNumberEquality(await this.validatorContract.getLiquidRewards(this.user), web3.utils.toWei('2250'))
+          assertBigNumberEquality(await this.validatorContract.getLiquidRewards(this.user), '2249999999999999997429')
         })
       })
     })
@@ -848,21 +849,21 @@ contract('StakeManager', async function(accounts) {
           await buyVoucher(this.validatorContract, this.stakeAmount, this.user)
         })
         // get 25% of checkpoint rewards
-        testAfterComissionChange(web3.utils.toWei('2250'), '100')
+        testAfterComissionChange('2249999999999999997429', '100')
       })
 
       testCommisionRate('50', '100')
 
       describe('after commision rate changed', function() {
         // get 0% of checkpoint rewards
-        testAfterComissionChange(web3.utils.toWei('9000'), '100')
+        testAfterComissionChange('8999999999999999989715', '100')
       })
 
       testCommisionRate('100', '0')
 
       describe('after commision rate changed', function() {
         // get only 50% of checkpoint rewards
-        testAfterComissionChange(web3.utils.toWei('13500'), '100')
+        testAfterComissionChange('13499999999999999984572', '100')
       })
     })
 
@@ -1079,8 +1080,8 @@ contract('StakeManager', async function(accounts) {
         { wallet: wallets[5] },
         { wallet: wallets[3] }
       ], [wallets[5], wallets[0]], 1, 1, {
-        [wallets[5].getAddressString()]: web3.utils.toWei('4500'),
-        [wallets[3].getAddressString()]: web3.utils.toWei('4500')
+        [wallets[5].getAddressString()]: '4499999999999999994857',
+        [wallets[3].getAddressString()]: '4499999999999999994857'
       })
     })
 
@@ -1346,8 +1347,6 @@ contract('StakeManager', async function(accounts) {
       while (_epochs-- > 0) {
         await checkPoint(_wallets, this.rootChainOwner, this.stakeManager, { blockInterval })
       }
-
-      this.expectedReward = await calculateExpectedCheckpointReward.call(this, blockInterval, this.amount, this.totalStaked, this.epochs)
     }
 
     function testWithRewards() {
@@ -1373,10 +1372,11 @@ contract('StakeManager', async function(accounts) {
       })
     }
 
-    function runTests(epochs) {
+    function runTests(epochs, expectedReward) {
       describe(`when Alice and Bob stakes for ${epochs} epochs`, function() {
         before(function() {
           this.epochs = epochs
+          this.expectedReward = expectedReward
         })
 
         before(doDeploy)
@@ -1399,8 +1399,8 @@ contract('StakeManager', async function(accounts) {
       })
     }
 
-    runTests(1)
-    runTests(10)
+    runTests(1, toBN('4499999999999999994857'))
+    runTests(10, toBN('44999999999999999948571'))
 
     describe('reverts', function() {
       beforeEach(doDeploy)
@@ -2552,6 +2552,63 @@ contract('StakeManager', async function(accounts) {
         await expectRevert(
           this.stakeManager.migrateDelegation(aliceId, bobId, migrationAmountBN.add(delegationAmountBN), { from: delegator }),
           'Migrating too much')
+      })
+    })
+  })
+
+  describe.only('setSharesCurvature', function() {
+    describe('when 100 validators stake, new curvature is higher', function() {
+      const newCurvature = toWei('275000000000000000000') // 12 decimals
+      const stakers = []
+
+      const w = generateFirstWallets(mnemonics, 100)
+      for (let i = 0; i < 100; ++i) {
+        stakers.push({
+          wallet: w[i],
+          stake: new BN(web3.utils.toWei('1'))
+        })
+      }
+
+      before('Fresh deploy', freshDeploy)
+      before('updateCheckPointBlockInterval', async function() {
+        await this.stakeManager.updateValidatorThreshold(200)
+        await this.stakeManager.updateCheckPointBlockInterval(1)
+        await this.stakeManager.updateCheckpointRewardParams(20, 5, 10)
+      })
+      before('Approve and stake', async function() {
+        this.shares = {}
+
+        let validatorId = 0
+        for (const staker of stakers) {
+          await approveAndStake.call(this, { wallet: staker.wallet, stakeAmount: staker.stake, acceptDelegation: true })
+          validatorId++
+
+          const state = await this.stakeManager.sharesState(validatorId)
+          this.shares[validatorId] = state
+        }
+
+        await checkPoint(stakers.map(x => x.wallet), this.rootChainOwner, this.stakeManager, { blockInterval: 1, rootchainOwner: this.rootChainOwner })
+      })
+
+      it('should set curvature', async function() {
+        await this.governance.update(
+          this.stakeManager.address,
+          this.stakeManager.contract.methods.setSharesCurvature(newCurvature).encodeABI()
+        )
+      })
+
+      it('should have correct curvature', async function() {
+        assertBigNumberEquality(
+          await this.stakeManager.sharesK(),
+          newCurvature
+        )
+      })
+
+      it('validators must have less shares', async function() {
+        for (let validatorId = 1; validatorId <= stakers.length; ++validatorId) {
+          const state = await this.stakeManager.sharesState(validatorId)
+          assertBigNumbergt(state.shares, this.shares[validatorId].shares)
+        }
       })
     })
   })
