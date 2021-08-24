@@ -179,8 +179,4 @@ contract StakeManagerExtension is StakeManagerStorage, Initializable, StakeManag
         }
         return _eventsHub;
     }
-
-    function setSharesCurvature(uint256 curvature) external onlyGovernance {
-        
-    }
 }

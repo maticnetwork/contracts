@@ -105,7 +105,7 @@ contract StakeManager is
         auctionPeriod = (2**13) / 4; // 1 week in epochs
         proposerBonus = 10; // 10 % of total rewards
         delegationEnabled = true;
-        sharesK = 175000000 * (10 ** 18) * SHARES_PRECISION;
+        sharesCurvature = 175000000 * (10**18) * SHARES_PRECISION;
     }
 
     function isOwner() public view returns (bool) {
@@ -245,30 +245,46 @@ contract StakeManager is
         );
     }
 
+    function updateRewardsUsingStake() public onlyGovernance {
+        uint256 _rewardPerShare = rewardPerShare;
+        uint256 totalValidators = NFTContract.totalSupply();
+        for (uint256 i = 0; i < totalValidators; ++i) {
+            uint256 validatorId = NFTContract.tokenByIndex(i);
+
+            uint256 validatorsStake = validators[validatorId].amount;
+            uint256 delegatedAmount = validators[validatorId].delegatedAmount;
+
+            _updateRewardsAndCommitWithShares(
+                validatorId,
+                _rewardPerShare,
+                _rewardPerShare,
+                validatorsStake.add(delegatedAmount)
+            );
+        }
+    }
+
     function setSharesCurvature(uint256 curvature) public onlyGovernance {
-        uint256 _sharesK = curvature;
-        sharesK = _sharesK;
+        uint256 _sharesCurvature = curvature;
+        sharesCurvature = _sharesCurvature;
+
+        uint256 _rewardPerShare = rewardPerShare;
 
         // must re-calculate shares for each validator
         uint256 totalValidators = NFTContract.totalSupply();
         for (uint256 i = 0; i < totalValidators; ++i) {
             uint256 validatorId = NFTContract.tokenByIndex(i);
             // rewards are based on shares
-            _updateRewards(validatorId);
+            _updateRewardsAndCommit(validatorId, _rewardPerShare, _rewardPerShare);
             // reset shares
             sharesState[validatorId] = StakeSharesState({
-                sharesPool: _sharesK.mul(SHARES_PRECISION),
-                stakePool: _sharesK,
+                sharesPool: _sharesCurvature.mul(SHARES_PRECISION),
+                stakePool: _sharesCurvature,
                 shares: 0
             });
             increaseShares(validatorId, validators[validatorId].amount);
         }
     }
-
-    function insertSigners(address[] memory _signers) public onlyOwner {
-        signers = _signers;
-    }
-
+    
     /**
         @dev Users must exit before this update or all funds may get lost
      */
@@ -417,6 +433,7 @@ contract StakeManager is
     }
 
     function unstake(uint256 validatorId) external onlyStaker(validatorId) {
+        // disallow unstake when there is a running auction
         require(validatorAuction[validatorId].amount == 0);
 
         Status status = validators[validatorId].status;
@@ -632,7 +649,7 @@ contract StakeManager is
 
             if (_isValidator(status, amount, unstakeCtx.deactivationEpoch, vars.currentEpoch)) {
                 vars.lastAdd = signer;
-                
+
                 vars.signedShares = vars.signedShares.add(sharesState[validatorId].shares);
                 vars.signedStakePower = vars.signedStakePower.add(amount).add(validators[validatorId].delegatedAmount);
 
@@ -712,12 +729,11 @@ contract StakeManager is
 
             address delegationContract = validators[validatorId].contractAddress;
             if (delegationContract != address(0x0)) {
-                uint256 delSlashedAmount =
-                    IValidatorShare(delegationContract).slash(
-                        validators[validatorId].amount,
-                        validators[validatorId].delegatedAmount,
-                        _amount
-                    );
+                uint256 delSlashedAmount = IValidatorShare(delegationContract).slash(
+                    validators[validatorId].amount,
+                    validators[validatorId].delegatedAmount,
+                    _amount
+                );
                 _amount = _amount.sub(delSlashedAmount);
             }
 
@@ -800,7 +816,7 @@ contract StakeManager is
         }
     }
 
-    function increaseShares(uint256 validatorId, uint256 amount) internal returns(int256) {
+    function increaseShares(uint256 validatorId, uint256 amount) internal returns (int256) {
         (uint256 shares, uint256 sharesPool, uint256 stakePool) = stakeToShares(validatorId, amount, true);
 
         StakeSharesState storage state = sharesState[validatorId];
@@ -810,7 +826,19 @@ contract StakeManager is
         return int256(shares);
     }
 
-    function stakeToShares(uint256 validatorId, uint256 amount, bool inc) internal view returns(uint256 shares, uint256 sharesPool, uint256 stakePool) {
+    function stakeToShares(
+        uint256 validatorId,
+        uint256 amount,
+        bool inc
+    )
+        internal
+        view
+        returns (
+            uint256 shares,
+            uint256 sharesPool,
+            uint256 stakePool
+        )
+    {
         StakeSharesState storage state = sharesState[validatorId];
         sharesPool = state.sharesPool;
         stakePool = state.stakePool;
@@ -822,7 +850,7 @@ contract StakeManager is
         }
     }
 
-    function decreaseShares(uint256 validatorId, uint256 amount) internal returns(int256) {
+    function decreaseShares(uint256 validatorId, uint256 amount) internal returns (int256) {
         (uint256 shares, uint256 sharesPool, uint256 stakePool) = stakeToShares(validatorId, amount, false);
 
         StakeSharesState storage state = sharesState[validatorId];
@@ -883,10 +911,14 @@ contract StakeManager is
     function _fillUnsignedValidators(UnsignedValidatorsContext memory context, address signer)
         private
         view
-        returns(UnsignedValidatorsContext memory)
+        returns (UnsignedValidatorsContext memory)
     {
-        while (context.validatorIndex < context.totalValidators && context.validators[context.validatorIndex] != signer) {
-            context.unsignedValidators[context.unsignedValidatorIndex] = signerToValidator[context.validators[context.validatorIndex]];
+        while (
+            context.validatorIndex < context.totalValidators && context.validators[context.validatorIndex] != signer
+        ) {
+            context.unsignedValidators[context.unsignedValidatorIndex] = signerToValidator[
+                context.validators[context.validatorIndex]
+            ];
             context.unsignedValidatorIndex++;
             context.validatorIndex++;
         }
@@ -915,8 +947,8 @@ contract StakeManager is
         if (fullIntervals > 0 && fullIntervals != prevBlockInterval) {
             if (prevBlockInterval != 0) {
                 // give more reward for faster and less for slower checkpoint
-                uint256 delta = (ckpReward * checkpointRewardDelta / CHK_REWARD_PRECISION);
-                
+                uint256 delta = ((ckpReward * checkpointRewardDelta) / CHK_REWARD_PRECISION);
+
                 if (prevBlockInterval > fullIntervals) {
                     // checkpoint is faster
                     ckpReward += delta;
@@ -924,7 +956,7 @@ contract StakeManager is
                     ckpReward -= delta;
                 }
             }
-            
+
             prevBlockInterval = fullIntervals;
         }
 
@@ -934,11 +966,17 @@ contract StakeManager is
             // count how many full intervals
             uint256 _rewardDecreasePerCheckpoint = rewardDecreasePerCheckpoint;
             // calculate reward for full intervals
-            reward = ckpReward.mul(fullIntervals).sub(ckpReward.mul(((fullIntervals - 1) * fullIntervals / 2).mul(_rewardDecreasePerCheckpoint)).div(CHK_REWARD_PRECISION));
+            reward = ckpReward.mul(fullIntervals).sub(
+                ckpReward.mul((((fullIntervals - 1) * fullIntervals) / 2).mul(_rewardDecreasePerCheckpoint)).div(
+                    CHK_REWARD_PRECISION
+                )
+            );
             // adjust block interval, in case last interval is not full
             blockInterval = blockInterval.sub(fullIntervals.mul(targetBlockInterval));
             // adjust checkpoint reward by the amount it suppose to decrease
-            ckpReward = ckpReward.sub(ckpReward.mul(fullIntervals).mul(_rewardDecreasePerCheckpoint).div(CHK_REWARD_PRECISION));
+            ckpReward = ckpReward.sub(
+                ckpReward.mul(fullIntervals).mul(_rewardDecreasePerCheckpoint).div(CHK_REWARD_PRECISION)
+            );
         }
 
         // give proportionally less for the rest
@@ -971,17 +1009,18 @@ contract StakeManager is
         // update stateMerkleTree root for accounts balance on heimdall chain
         accountStateRoot = stateRoot;
 
-        uint256 newRewardPerStake =
-            rewardPerStake.add(reward.sub(_proposerBonus).mul(REWARD_PRECISION).div(signedShares));
+        uint256 newRewardPerShare = rewardPerShare.add(
+            reward.sub(_proposerBonus).mul(REWARD_PRECISION).div(signedShares)
+        );
 
-        // evaluate rewards for validator who did't sign and set latest reward per stake to new value to avoid them from getting new rewards.
-        _updateValidatorsRewards(unsignedValidators, totalUnsignedValidators, newRewardPerStake);
+        // evaluate rewards for validator who did't sign and set latest reward per share to new value to avoid them from getting new rewards.
+        _updateValidatorsRewards(unsignedValidators, totalUnsignedValidators, newRewardPerShare);
 
         // distribute rewards between signed validators
-        rewardPerStake = newRewardPerStake;
+        rewardPerShare = newRewardPerShare;
 
-        // evaluate rewards for unstaked validators to avoid getting new rewards until they claim their stake
-        _updateValidatorsRewards(deactivatedValidators, totalDeactivatedValidators, newRewardPerStake);
+        // evaluate rewards for unstaked validators to avoid getting new rewards until they claim their share
+        _updateValidatorsRewards(deactivatedValidators, totalDeactivatedValidators, newRewardPerShare);
 
         _finalizeCommit();
         return reward;
@@ -990,67 +1029,67 @@ contract StakeManager is
     function _updateValidatorsRewards(
         uint256[] memory unsignedValidators,
         uint256 totalUnsignedValidators,
-        uint256 newRewardPerStake
+        uint256 newRewardPerShare
     ) private {
-        uint256 currentRewardPerStake = rewardPerStake;
+        uint256 currentRewardPerShare = rewardPerShare;
         for (uint256 i = 0; i < totalUnsignedValidators; ++i) {
-            _updateRewardsAndCommit(unsignedValidators[i], currentRewardPerStake, newRewardPerStake);
+            _updateRewardsAndCommit(unsignedValidators[i], currentRewardPerShare, newRewardPerShare);
         }
     }
 
     function _updateRewardsAndCommit(
         uint256 validatorId,
-        uint256 currentRewardPerStake,
-        uint256 newRewardPerStake
+        uint256 currentRewardPerShare,
+        uint256 newRewardPerShare
     ) private {
-        uint256 initialRewardPerStake = validators[validatorId].initialRewardPerStake;
+        uint256 shares = sharesState[validatorId].shares;
+        _updateRewardsAndCommitWithShares(validatorId, currentRewardPerShare, newRewardPerShare, shares);
+    }
+
+    function _updateRewardsAndCommitWithShares(
+        uint256 validatorId,
+        uint256 currentRewardPerShare,
+        uint256 newRewardPerShare,
+        uint256 shares
+    ) private {
+        uint256 initialRewardPerShare = validators[validatorId].initialRewardPerShare;
 
         // attempt to save gas in case if rewards were updated previosuly
-        if (initialRewardPerStake < currentRewardPerStake) {
+        if (initialRewardPerShare < currentRewardPerShare) {
             uint256 validatorsStake = validators[validatorId].amount;
             uint256 delegatedAmount = validators[validatorId].delegatedAmount;
-            uint256 shares = sharesState[validatorId].shares;
             if (delegatedAmount > 0) {
                 _increaseValidatorRewardWithDelegation(
                     validatorId,
                     validatorsStake,
                     delegatedAmount,
-                    _getEligibleValidatorReward(
-                        validatorId,
-                        shares,
-                        currentRewardPerStake,
-                        initialRewardPerStake
-                    )
+                    _getEligibleValidatorReward(validatorId, shares, currentRewardPerShare, initialRewardPerShare)
                 );
             } else {
                 _increaseValidatorReward(
                     validatorId,
-                    _getEligibleValidatorReward(
-                        validatorId,
-                        shares,
-                        currentRewardPerStake,
-                        initialRewardPerStake
-                    )
+                    _getEligibleValidatorReward(validatorId, shares, currentRewardPerShare, initialRewardPerShare)
                 );
             }
         }
 
-        if (newRewardPerStake > initialRewardPerStake) {
-            validators[validatorId].initialRewardPerStake = newRewardPerStake;
+        if (newRewardPerShare > initialRewardPerShare) {
+            validators[validatorId].initialRewardPerShare = newRewardPerShare;
         }
     }
 
     function _updateRewards(uint256 validatorId) private {
-        _updateRewardsAndCommit(validatorId, rewardPerStake, rewardPerStake);
+        uint256 _rewardPerShare = rewardPerShare;
+        _updateRewardsAndCommit(validatorId, _rewardPerShare, _rewardPerShare);
     }
 
     function _getEligibleValidatorReward(
         uint256 validatorId,
         uint256 validatorStakePower,
-        uint256 currentRewardPerStake,
-        uint256 initialRewardPerStake
+        uint256 currentRewardPerShare,
+        uint256 initialRewardPerShare
     ) private pure returns (uint256) {
-        uint256 eligibleReward = currentRewardPerStake - initialRewardPerStake;
+        uint256 eligibleReward = currentRewardPerShare - initialRewardPerShare;
         return eligibleReward.mul(validatorStakePower).div(REWARD_PRECISION);
     }
 
@@ -1067,8 +1106,12 @@ contract StakeManager is
         uint256 reward
     ) private {
         uint256 combinedStakePower = delegatedAmount.add(validatorsStake);
-        (uint256 validatorReward, uint256 delegatorsReward) =
-            _getValidatorAndDelegationReward(validatorId, validatorsStake, reward, combinedStakePower);
+        (uint256 validatorReward, uint256 delegatorsReward) = _getValidatorAndDelegationReward(
+            validatorId,
+            validatorsStake,
+            reward,
+            combinedStakePower
+        );
 
         if (delegatorsReward > 0) {
             validators[validatorId].delegatorsReward = validators[validatorId].delegatorsReward.add(delegatorsReward);
@@ -1111,7 +1154,7 @@ contract StakeManager is
         uint256 validatorsStake = validators[validatorId].amount;
         uint256 combinedStakePower = validatorsStake.add(validators[validatorId].delegatedAmount);
         uint256 shares = sharesState[validatorId].shares;
-        uint256 eligibleReward = rewardPerStake - validators[validatorId].initialRewardPerStake;
+        uint256 eligibleReward = rewardPerShare - validators[validatorId].initialRewardPerShare;
         return
             _getValidatorAndDelegationReward(
                 validatorId,
@@ -1154,18 +1197,18 @@ contract StakeManager is
         validator.activationEpoch = _currentEpoch;
         validator.signer = signer;
         validator.contractAddress = acceptDelegation
-                ? validatorShareFactory.create(validatorId, address(_logger), registry)
-                : address(0x0);
+            ? validatorShareFactory.create(validatorId, address(_logger), registry)
+            : address(0x0);
         validator.status = Status.Active;
         validator.delegatorsReward = INITIALIZED_AMOUNT;
-        validator.initialRewardPerStake = rewardPerStake;
+        validator.initialRewardPerShare = rewardPerShare;
 
         validators[validatorId] = validator;
 
-        uint256 _sharesK = sharesK;
+        uint256 _sharesCurvature = sharesCurvature;
         sharesState[validatorId] = StakeSharesState({
-            sharesPool: _sharesK.mul(SHARES_PRECISION),
-            stakePool: _sharesK,
+            sharesPool: _sharesCurvature.mul(SHARES_PRECISION),
+            stakePool: _sharesCurvature,
             shares: 0
         });
 
@@ -1207,7 +1250,7 @@ contract StakeManager is
 
         uint256 targetEpoch = exitEpoch <= currentEpoch ? 0 : exitEpoch;
         uint256 deltaAmount = amount + delegationAmount;
-        (uint256 shares, ,) = stakeToShares(validatorId, deltaAmount, false);
+        (uint256 shares, , ) = stakeToShares(validatorId, deltaAmount, false);
         updateTimeline(-int256(deltaAmount), -1, -int256(shares), targetEpoch);
 
         logger.logUnstakeInit(validator, validatorId, exitEpoch, amount);
@@ -1229,7 +1272,7 @@ contract StakeManager is
         uint256 reward = validators[validatorId].reward.sub(INITIALIZED_AMOUNT);
         totalRewardsLiquidated = totalRewardsLiquidated.add(reward);
         validators[validatorId].reward = INITIALIZED_AMOUNT;
-        validators[validatorId].initialRewardPerStake = rewardPerStake;
+        validators[validatorId].initialRewardPerShare = rewardPerShare;
         _transferToken(validatorUser, reward);
         logger.logClaimRewards(validatorId, reward, totalRewardsLiquidated);
     }
@@ -1266,8 +1309,8 @@ contract StakeManager is
     function _insertSigner(address newSigner) internal {
         signers.push(newSigner);
 
-        uint lastIndex = signers.length - 1;
-        uint i = lastIndex;
+        uint256 lastIndex = signers.length - 1;
+        uint256 i = lastIndex;
         for (; i > 0; --i) {
             address signer = signers[i - 1];
             if (signer < newSigner) {
