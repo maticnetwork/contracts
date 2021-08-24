@@ -59,7 +59,7 @@ function testCheckpointing(stakers, signers, blockInterval, checkpointsPassed, e
 
 const ZeroAddr = '0x0000000000000000000000000000000000000000'
 
-contract.only('StakeManager', async function(accounts) {
+contract('StakeManager', async function(accounts) {
   let owner = accounts[0]
 
   async function calculateExpectedCheckpointReward(blockInterval, amount, totalAmount, checkpointsPassed) {
@@ -2556,8 +2556,63 @@ contract.only('StakeManager', async function(accounts) {
     })
   })
 
-  describe.only('setSharesCurvature', function() {
-    describe('when 100 validators stake, new curvature is higher', function() {
+  describe('setSharesCurvature', function() {
+    describe('when 1 validator stakes, new curvature is flatter', function() {
+      const newCurvature = toWei('75000000000000000000') // 12 decimals
+
+      const validatorWallet = generateFirstWallets(mnemonics, 1)[0]
+
+      before('Fresh deploy', freshDeploy)
+      before('updateCheckPointBlockInterval', async function() {
+        await this.stakeManager.updateValidatorThreshold(200)
+        await this.stakeManager.updateCheckPointBlockInterval(1)
+        await this.stakeManager.updateCheckpointRewardParams(20, 5, 10)
+      })
+      before('Approve and stake', async function() {
+        this.validatorId = '1'
+        await approveAndStake.call(this, { wallet: validatorWallet, stakeAmount: new BN(web3.utils.toWei('1')), acceptDelegation: true })
+      })
+
+      it('should checkpoint with default curvature', async function() {
+        await checkPoint([validatorWallet], this.rootChainOwner, this.stakeManager, { blockInterval: 1, rootchainOwner: this.rootChainOwner })
+      })
+
+      it('should have some rewards', async function() {
+        const reward = await this.stakeManager.validatorReward(this.validatorId)
+        assertBigNumberEquality(reward, '8999999999999999999948')
+        this.rewardBeforeCurvatureChange = reward
+      })
+
+      it('should set curvature', async function() {
+        await this.governance.update(
+          this.stakeManager.address,
+          this.stakeManager.contract.methods.setSharesCurvature(newCurvature).encodeABI()
+        )
+      })
+
+      it('should have correct curvature', async function() {
+        assertBigNumberEquality(
+          await this.stakeManager.sharesCurvature(),
+          newCurvature
+        )
+      })
+
+      it('should have unchanged rewards', async function() {
+        const reward = await this.stakeManager.validatorReward(this.validatorId)
+        assertBigNumberEquality(reward, this.rewardBeforeCurvatureChange)
+      })
+
+      it('should checkpoint with new curvature', async function() {
+        await checkPoint([validatorWallet], this.rootChainOwner, this.stakeManager, { blockInterval: 1, rootchainOwner: this.rootChainOwner })
+      })
+
+      it('should have correct rewards', async function() {
+        const reward = await this.stakeManager.validatorReward(this.validatorId)
+        assertBigNumberEquality(reward, '17999999999999999999827')
+      })
+    })
+
+    describe('when 100 validators stake, new curvature is steeper', function() {
       const newCurvature = toWei('275000000000000000000') // 12 decimals
       const stakers = []
 
@@ -2586,7 +2641,9 @@ contract.only('StakeManager', async function(accounts) {
           const state = await this.stakeManager.sharesState(validatorId)
           this.shares[validatorId] = state
         }
+      })
 
+      it('should checkpoint with default curvature', async function() {
         await checkPoint(stakers.map(x => x.wallet), this.rootChainOwner, this.stakeManager, { blockInterval: 1, rootchainOwner: this.rootChainOwner })
       })
 
@@ -2599,7 +2656,7 @@ contract.only('StakeManager', async function(accounts) {
 
       it('should have correct curvature', async function() {
         assertBigNumberEquality(
-          await this.stakeManager.sharesK(),
+          await this.stakeManager.sharesCurvature(),
           newCurvature
         )
       })
