@@ -11,19 +11,19 @@ export function shouldHaveCorrectStakeShares({ shares, validatorId, user } = {})
   })
 
   it(`should have correct shares pool`, async function() {
-    const sharesK = await this.stakeManager.sharesK()
+    const sharesCurvature = await this.stakeManager.sharesCurvature()
     const sharesPrecision = await this.stakeManager.SHARES_PRECISION()
     const sharesState = await this.stakeManager.sharesState(validatorId || this.validatorId)
 
-    assertBigNumberEquality(sharesState.shares.add(sharesState.sharesPool), sharesK.mul(sharesPrecision))
+    assertBigNumberEquality(sharesState.shares.add(sharesState.sharesPool), sharesCurvature.mul(sharesPrecision))
   })
 
   it(`should have correct stake pool`, async function() {
-    const sharesK = await this.stakeManager.sharesK()
+    const sharesCurvature = await this.stakeManager.sharesCurvature()
     const sharesState = await this.stakeManager.sharesState(validatorId || this.validatorId)
     const stakedFor = await this.stakeManager.totalStakedFor(user || this.user)
 
-    assertBigNumberEquality(sharesState.stakePool.sub(stakedFor), sharesK)
+    assertBigNumberEquality(sharesState.stakePool.sub(stakedFor), sharesCurvature)
   })
 }
 
