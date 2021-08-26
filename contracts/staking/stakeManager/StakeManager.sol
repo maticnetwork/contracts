@@ -190,6 +190,10 @@ contract StakeManager is
         Governance Methods
      */
 
+    function setMinBidStakeFraction(uint256 fraction) public onlyGovernance {
+        minBidStakeFraction = fraction;
+    }
+
     function setBidCooldown(uint256 cooldown) public onlyGovernance {
         bidCooldown = cooldown;
     }

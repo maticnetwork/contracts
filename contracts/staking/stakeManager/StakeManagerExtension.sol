@@ -59,11 +59,14 @@ contract StakeManagerExtension is StakeManagerStorage, Initializable, StakeManag
         Auction storage auction = validatorAuction[validatorId];
 
         // do not allow bidding too often
-        require(auction.lastBidTimestamp == 0 || auction.lastBidTimestamp < block.timestamp + bidCooldown, "bid too often");
+        require(lastBidTimestamp[msg.sender] == 0 || lastBidTimestamp[msg.sender] < block.timestamp, "bid too often");
 
         uint256 currentAuctionAmount = auction.amount;
 
-        perceivedStake = Math.max(perceivedStake, currentAuctionAmount);
+        perceivedStake = Math.max(
+            validatorState.amount.mul(minBidStakeFraction).div(MIN_BID_PRECISION), 
+            Math.max(perceivedStake, currentAuctionAmount)
+        );
 
         require(perceivedStake < amount, "Must bid higher");
         require(token.transferFrom(msg.sender, address(this), amount), "Transfer failed");
@@ -78,7 +81,7 @@ contract StakeManagerExtension is StakeManagerStorage, Initializable, StakeManag
         auction.user = msg.sender;
         auction.acceptDelegation = _acceptDelegation;
         auction.signerPubkey = _signerPubkey;
-        auction.lastBidTimestamp = block.timestamp;
+        lastBidTimestamp[msg.sender] = block.timestamp + bidCooldown;
 
         logger.logStartAuction(validatorId, currentValidatorAmount, amount);
     }

@@ -18,7 +18,6 @@ contract StakeManagerStorage is GovernanceLockable, RootChainable {
         address user;
         bool acceptDelegation;
         bytes signerPubkey;
-        uint256 lastBidTimestamp;
     }
 
     struct State {
@@ -52,6 +51,7 @@ contract StakeManagerStorage is GovernanceLockable, RootChainable {
     uint256 constant REWARD_PRECISION = 10**25;
     uint256 internal constant INCORRECT_VALIDATOR_ID = 2**256 - 1;
     uint256 internal constant INITIALIZED_AMOUNT = 1;
+    uint256 constant CHK_REWARD_PRECISION = 100;
 
     IERC20 public token;
     address public registry;
