@@ -2558,7 +2558,7 @@ contract('StakeManager', async function(accounts) {
 
   describe('setSharesCurvature', function() {
     describe('when 1 validator stakes, new curvature is flatter', function() {
-      const newCurvature = toWei('75000000000000000000') // 12 decimals
+      const newCurvature = toWei('75000000')
 
       const validatorWallet = generateFirstWallets(mnemonics, 1)[0]
 

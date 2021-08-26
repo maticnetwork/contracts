@@ -264,7 +264,7 @@ contract StakeManager is
     }
 
     function setSharesCurvature(uint256 curvature) public onlyGovernance {
-        uint256 _sharesCurvature = curvature;
+        uint256 _sharesCurvature = curvature.mul(SHARES_PRECISION);
         sharesCurvature = _sharesCurvature;
 
         uint256 _rewardPerShare = rewardPerShare;
