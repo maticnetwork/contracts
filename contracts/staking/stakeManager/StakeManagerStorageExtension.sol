@@ -14,4 +14,6 @@ contract StakeManagerStorageExtension {
     uint256 public maxRewardedCheckpoints;
     // increase / decrease value for faster or slower checkpoints, 0 - 100%
     uint256 public checkpointRewardDelta;
+    // do not prevent bidding for some time to incentivize early bidding
+    uint256 public bidCooldown;
 }   

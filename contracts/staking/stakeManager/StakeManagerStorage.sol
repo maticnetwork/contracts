@@ -18,6 +18,7 @@ contract StakeManagerStorage is GovernanceLockable, RootChainable {
         address user;
         bool acceptDelegation;
         bytes signerPubkey;
+        uint256 lastBidTimestamp;
     }
 
     struct State {

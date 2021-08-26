@@ -57,6 +57,10 @@ contract StakeManagerExtension is StakeManagerStorage, Initializable, StakeManag
         perceivedStake = perceivedStake.add(validators[validatorId].delegatedAmount);
 
         Auction storage auction = validatorAuction[validatorId];
+
+        // do not allow bidding too often
+        require(auction.lastBidTimestamp == 0 || auction.lastBidTimestamp < block.timestamp + bidCooldown, "bid too often");
+
         uint256 currentAuctionAmount = auction.amount;
 
         perceivedStake = Math.max(perceivedStake, currentAuctionAmount);
@@ -74,6 +78,7 @@ contract StakeManagerExtension is StakeManagerStorage, Initializable, StakeManag
         auction.user = msg.sender;
         auction.acceptDelegation = _acceptDelegation;
         auction.signerPubkey = _signerPubkey;
+        auction.lastBidTimestamp = block.timestamp;
 
         logger.logStartAuction(validatorId, currentValidatorAmount, amount);
     }

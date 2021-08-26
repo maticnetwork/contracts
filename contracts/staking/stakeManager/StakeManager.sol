@@ -190,6 +190,10 @@ contract StakeManager is
         Governance Methods
      */
 
+    function setBidCooldown(uint256 cooldown) public onlyGovernance {
+        bidCooldown = cooldown;
+    }
+
     function setDelegationEnabled(bool enabled) public onlyGovernance {
         delegationEnabled = enabled;
     }
