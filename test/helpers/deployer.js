@@ -171,6 +171,20 @@ class Deployer {
         stakeManager.contract.methods.updateCheckpointRewardParams(val1, val2, val3).encodeABI()
       )
     }
+
+    stakeManager.setBidCooldown = (cooldown) => {
+      return governance.update(
+        stakeManager.address,
+        stakeManager.contract.methods.setBidCooldown(cooldown).encodeABI()
+      )
+    }
+
+    stakeManager.setMinBidStakeFraction = (fraction) => {
+      return governance.update(
+        stakeManager.address,
+        stakeManager.contract.methods.setMinBidStakeFraction(fraction).encodeABI()
+      )
+    }
   }
 
   async deployStakeManager(wallets) {
