@@ -38,9 +38,9 @@ contract StakeManagerExtension is StakeManagerStorage, Initializable, StakeManag
         );
 
         uint256 _currentEpoch = currentEpoch;
-        uint256 _replacementCoolDown = replacementCoolDown;
+        uint256 cooldown = replacementCoolDown;
         // when dynasty period is updated validators are in cooldown period
-        require(_replacementCoolDown == 0 || _replacementCoolDown <= _currentEpoch, "Cooldown period");
+        require(cooldown == 0 || cooldown <= _currentEpoch, "Cooldown period");
         // (auctionPeriod--dynasty)--(auctionPeriod--dynasty)--(auctionPeriod--dynasty)
         // if it's auctionPeriod then will get residue smaller then auctionPeriod
         // from (CurrentPeriod of validator )%(auctionPeriod--dynasty)
@@ -59,7 +59,8 @@ contract StakeManagerExtension is StakeManagerStorage, Initializable, StakeManag
         Auction storage auction = validatorAuction[validatorId];
 
         // do not allow bidding too often
-        require(lastBidTimestamp[msg.sender] == 0 || lastBidTimestamp[msg.sender] < block.timestamp, "bid too often");
+        cooldown = lastBidTimestamp[msg.sender];
+        require(cooldown == 0 || cooldown < block.timestamp, "bid too often");
 
         uint256 currentAuctionAmount = auction.amount;
 
