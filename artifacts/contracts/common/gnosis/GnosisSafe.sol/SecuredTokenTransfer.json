@@ -1,0 +1,10 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "SecuredTokenTransfer",
+  "sourceName": "contracts/common/gnosis/GnosisSafe.sol",
+  "abi": [],
+  "bytecode": "0x6080604052348015600f57600080fd5b50603e80601d6000396000f3fe6080604052600080fdfea265627a7a72315820fcff2c361240fd7952c2ee9d900ff0e31e1138fbbf8d251a68937662ca48928464736f6c63430005110032",
+  "deployedBytecode": "0x6080604052600080fdfea265627a7a72315820fcff2c361240fd7952c2ee9d900ff0e31e1138fbbf8d251a68937662ca48928464736f6c63430005110032",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

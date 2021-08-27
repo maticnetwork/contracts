@@ -7,7 +7,7 @@
     "contracts": "RootChain StakeManager"
   },
   "scripts": {
-    "testrpc": "ganache-cli --hardfork istanbul --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' -p 9545 --gasLimit 10000000 --gasPrice 0 --allowUnlimitedContractSize --accounts 200",
+    "testrpc": "hardhat node --port 9545",
     "template:process": "node scripts/process-templates.js",
     "truffle": "truffle",
     "truffle:test": "truffle test",
@@ -42,6 +42,9 @@
     "mnemonics": "clock radar mass judge dismiss just intact mind resemble fringe diary casino"
   },
   "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.2",
+    "@nomiclabs/hardhat-truffle5": "^2.0.0",
+    "@nomiclabs/hardhat-web3": "^2.0.0",
     "@openzeppelin/test-helpers": "^0.5.5",
     "babel-cli": "^6.26.0",
     "babel-eslint": "10.0.1",
@@ -62,17 +65,18 @@
     "eslint-plugin-standard": "4.0.0",
     "eth-gas-reporter": "0.1.12",
     "eth-sig-util": "^2.1.1",
-    "ethereumjs-wallet": "0.6.2",
+    "ethereumjs-wallet": "^1.0.1",
     "ethers": "4.0.13",
+    "hardhat": "^2.6.1",
     "moonwalker": "github:atvanguard/moonwalker#4c4592e2d6c1744fbcd9452cf0f00e9beb236b21",
     "pre-commit": "^1.2.2",
     "safe-buffer": "5.1.2",
     "solidity-coverage": "^0.7.4",
     "solium": "^1.1.8",
     "truffle": "5.0.34",
-    "web3": "^1.0.0-beta.33",
-    "web3-eth-abi": "^1.0.0-beta.51",
-    "truffle-contract-size": "^1.0.1"
+    "truffle-contract-size": "^1.0.1",
+    "web3": "^1.5.2",
+    "web3-eth-abi": "^1.0.0-beta.51"
   },
   "dependencies": {
     "@truffle/hdwallet-provider": "^1.4.0",

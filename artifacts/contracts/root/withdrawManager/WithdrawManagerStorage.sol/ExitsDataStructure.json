@@ -1,0 +1,10 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "ExitsDataStructure",
+  "sourceName": "contracts/root/withdrawManager/WithdrawManagerStorage.sol",
+  "abi": [],
+  "bytecode": "0x6080604052348015600f57600080fd5b50603e80601d6000396000f3fe6080604052600080fdfea265627a7a7231582024f7f42ef2b45ba1f5b81599c640028e7878f3a5f8d9accd4acea733e67f082364736f6c63430005110032",
+  "deployedBytecode": "0x6080604052600080fdfea265627a7a7231582024f7f42ef2b45ba1f5b81599c640028e7878f3a5f8d9accd4acea733e67f082364736f6c63430005110032",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

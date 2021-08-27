@@ -1,0 +1,131 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "ISlashingManager",
+  "sourceName": "contracts/staking/slashing/ISlashingManager.sol",
+  "abi": [
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "VOTE_TYPE",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "heimdallId",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "jailCheckpoints",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "logger",
+      "outputs": [
+        {
+          "internalType": "contract StakingInfo",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "proposerRate",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "registry",
+      "outputs": [
+        {
+          "internalType": "contract Registry",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "reportRate",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "slashingNonce",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x608060405260056001556032600255600560035534801561001f57600080fd5b5061027f8061002f6000396000f3fe608060405234801561001057600080fd5b50600436106100885760003560e01c8063c25593be1161005b578063c25593be14610131578063d5b844eb1461014f578063f24ccbfe14610173578063fbc3dd36146101bd57610088565b80633199e3051461008d578063556b2ce9146100ab5780637b103999146100c9578063a2d3217614610113575b600080fd5b6100956101db565b6040518082815260200191505060405180910390f35b6100b36101e1565b6040518082815260200191505060405180910390f35b6100d16101e7565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b61011b61020d565b6040518082815260200191505060405180910390f35b610139610213565b6040518082815260200191505060405180910390f35b610157610219565b604051808260ff1660ff16815260200191505060405180910390f35b61017b61021e565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b6101c5610244565b6040518082815260200191505060405180910390f35b60025481565b60035481565b600560009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b60045481565b60015481565b600281565b600660009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b6000548156fea265627a7a72315820bc800a3396fd13b428a12679f0a1a322ca67fe939487fabfcb050c2c1aa60af364736f6c63430005110032",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106100885760003560e01c8063c25593be1161005b578063c25593be14610131578063d5b844eb1461014f578063f24ccbfe14610173578063fbc3dd36146101bd57610088565b80633199e3051461008d578063556b2ce9146100ab5780637b103999146100c9578063a2d3217614610113575b600080fd5b6100956101db565b6040518082815260200191505060405180910390f35b6100b36101e1565b6040518082815260200191505060405180910390f35b6100d16101e7565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b61011b61020d565b6040518082815260200191505060405180910390f35b610139610213565b6040518082815260200191505060405180910390f35b610157610219565b604051808260ff1660ff16815260200191505060405180910390f35b61017b61021e565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b6101c5610244565b6040518082815260200191505060405180910390f35b60025481565b60035481565b600560009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b60045481565b60015481565b600281565b600660009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b6000548156fea265627a7a72315820bc800a3396fd13b428a12679f0a1a322ca67fe939487fabfcb050c2c1aa60af364736f6c63430005110032",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}
