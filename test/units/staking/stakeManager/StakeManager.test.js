@@ -1876,30 +1876,30 @@ contract('StakeManager', async function(accounts) {
     })
   })
 
-  describe.only('startAuction', function() {
-    const _initialStakers = [wallets[1], wallets[2]]
-    const initialStakeAmount = toWei('200')
+  describe('startAuction', function() {
+    const InitialStakers = [wallets[1], wallets[2]]
+    const InitialStakeAmount = toWei('200')
     const AliceAndBobBalance = toWei('100000')
 
     const Alice = wallets[3]
     const Bob = wallets[4]
 
-    let aliceBidAmount = toWei('1200')
-    let bobBidAmount = toWei('1250')
+    const AliceBidAmount = toWei('1200')
+    const BobBidAmount = toWei('1250')
     const BidCooldown = 600 // 10 minutes
 
     async function doDeploy() {
       await prepareForTest(8, 10).call(this)
 
-      for (const wallet of _initialStakers) {
-        await approveAndStake.call(this, { wallet, stakeAmount: initialStakeAmount })
+      for (const wallet of InitialStakers) {
+        await approveAndStake.call(this, { wallet, stakeAmount: InitialStakeAmount })
       }
 
       // cooldown period
       let auctionPeriod = (await this.stakeManager.auctionPeriod()).toNumber()
       let currentEpoch = (await this.stakeManager.currentEpoch()).toNumber()
       for (let i = currentEpoch; i <= auctionPeriod + (await this.stakeManager.dynasty()).toNumber(); i++) {
-        await checkPoint(_initialStakers, this.rootChainOwner, this.stakeManager)
+        await checkPoint(InitialStakers, this.rootChainOwner, this.stakeManager)
       }
       // prepare Alice nad Bob to bidding
       await this.stakeToken.mint(Alice.getAddressString(), AliceAndBobBalance)
@@ -1916,7 +1916,7 @@ contract('StakeManager', async function(accounts) {
       this.bobOldBalance = await this.stakeToken.balanceOf(Bob.getAddressString())
 
       this.validatorId = '1'
-      this.initialStakeAmount = initialStakeAmount
+      this.initialStakeAmount = InitialStakeAmount
 
       await this.stakeManager.setBidCooldown(BidCooldown)
     }
@@ -1928,7 +1928,7 @@ contract('StakeManager', async function(accounts) {
         before(function() {
           this.userOldBalance = this.aliceOldBalance
         })
-        testStartAuction(Alice.getChecksumAddressString(), Alice.getPrivateKeyString(), aliceBidAmount)
+        testStartAuction(Alice.getChecksumAddressString(), Alice.getPrivateKeyString(), AliceBidAmount)
       })
 
       describe('when Bob bids', function() {
@@ -1936,7 +1936,7 @@ contract('StakeManager', async function(accounts) {
           this.userOldBalance = this.bobOldBalance
         })
 
-        testStartAuction(Bob.getChecksumAddressString(), Bob.getPublicKeyString(), bobBidAmount)
+        testStartAuction(Bob.getChecksumAddressString(), Bob.getPublicKeyString(), BobBidAmount)
 
         it('Alice must get her bid back', async function() {
           const currentBalance = await this.stakeToken.balanceOf(Alice.getAddressString())
@@ -1949,19 +1949,18 @@ contract('StakeManager', async function(accounts) {
       describe('when Alice start the auction', function() {
         before('deploy', doDeploy)
         before('initial bids', async function() {
-          await this.stakeManager.startAuction(this.validatorId, aliceBidAmount, false, Alice.getPrivateKeyString(), {
+          await this.stakeManager.startAuction(this.validatorId, AliceBidAmount, false, Alice.getPrivateKeyString(), {
             from: Alice.getChecksumAddressString()
           })
-          await this.stakeManager.startAuction(this.validatorId, bobBidAmount, false, Bob.getPrivateKeyString(), {
+          await this.stakeManager.startAuction(this.validatorId, BobBidAmount, false, Bob.getPrivateKeyString(), {
             from: Bob.getChecksumAddressString()
           })
-          await this.stakeManager.setMinBidStakeFraction('1000') // 10% of total stake
         })
 
         describe('when Alice outbids Bob immediately', function() {
           it('reverts', async function() {
             await expectRevert(
-              this.stakeManager.startAuction(this.validatorId, new BN(bobBidAmount).add(new BN('1')), false, Alice.getPrivateKeyString(), {
+              this.stakeManager.startAuction(this.validatorId, new BN(BobBidAmount).add(new BN('1')), false, Alice.getPrivateKeyString(), {
                 from: Alice.getChecksumAddressString()
               }),
               'bid too often'
@@ -2012,9 +2011,48 @@ contract('StakeManager', async function(accounts) {
             }
           )
         })
-  
+
         it('should become validator', async function() {
           assert.ok(!(await this.stakeManager.isValidator(this.validatorId)))
+        })
+      })
+    })
+
+    describe('Bob uses a minimum bid', function() {
+      const TargetValidatorId = '3'
+      const MinBidFraction = '1000' // 10%
+
+      before('deploy', doDeploy)
+      before(async function() {
+        // add 1 small validator
+        await approveAndStake.call(this, { wallet: wallets[3], stakeAmount: toWei('1') })
+
+        let auctionPeriod = (await this.stakeManager.auctionPeriod()).toNumber()
+        let currentEpoch = (await this.stakeManager.currentEpoch()).toNumber()
+        for (let i = currentEpoch; i <= auctionPeriod + (await this.stakeManager.dynasty()).toNumber(); i++) {
+          await checkPoint(InitialStakers, this.rootChainOwner, this.stakeManager)
+        }
+
+        await this.stakeManager.setMinBidStakeFraction(MinBidFraction) 
+      })
+
+      describe('when bid hasn\'t reached a minimum total stake fraction', function() {
+        it('revert', async function() {
+          await expectRevert(this.stakeManager.startAuction(TargetValidatorId, toWei('2'), false, wallets[4].getPrivateKeyString(), {
+            from: wallets[4].getAddressString()
+          }), 'Must bid higher')
+        })
+      })
+
+      describe('when bid is a minimum fraction of total stake', function() {
+        it('should bid', async function() {
+          const { amount: totalStake } = await this.stakeManager.validatorState()
+          const minBidFractionPrecision = await this.stakeManager.MIN_BID_PRECISION()
+          const bid = new BN(totalStake).mul(new BN(MinBidFraction)).div(new BN(minBidFractionPrecision))
+
+          await this.stakeManager.startAuction(TargetValidatorId, bid.add(new BN('1')), false, wallets[4].getPrivateKeyString(), {
+            from: wallets[4].getAddressString()
+          })
         })
       })
     })
@@ -2044,23 +2082,23 @@ contract('StakeManager', async function(accounts) {
       })
 
       it('when bid on unstaking validator', async function() {
-        await this.stakeManager.unstake(1, { from: _initialStakers[0].getAddressString() })
+        await this.stakeManager.unstake(1, { from: InitialStakers[0].getAddressString() })
         await expectRevert(this.stakeManager.startAuction(1, amount, false, wallets[3].getPrivateKeyString(), {
           from: wallets[3].getAddressString()
         }), 'Invalid validator for an auction')
       })
 
       it('when restake on unstaking validator', async function() {
-        await this.stakeManager.unstake(1, { from: _initialStakers[0].getAddressString() })
+        await this.stakeManager.unstake(1, { from: InitialStakers[0].getAddressString() })
         await expectRevert(this.stakeManager.restake(1, amount, false, {
-          from: _initialStakers[0].getAddressString()
+          from: InitialStakers[0].getAddressString()
         }), 'No restaking')
       })
 
       // since all the rewards are given in unstake already
       it('Must not transfer any rewards after unstaking', async function() {
-        await this.stakeManager.unstake(1, { from: _initialStakers[0].getAddressString() })
-        const receipt = await this.stakeManager.withdrawRewards(1, { from: _initialStakers[0].getAddressString() })
+        await this.stakeManager.unstake(1, { from: InitialStakers[0].getAddressString() })
+        const receipt = await this.stakeManager.withdrawRewards(1, { from: InitialStakers[0].getAddressString() })
         await expectEvent.inTransaction(receipt.tx, StakingInfo, 'ClaimRewards', {
           validatorId: '1',
           amount: '0',
