@@ -2033,7 +2033,7 @@ contract('StakeManager', async function(accounts) {
           await checkPoint(InitialStakers, this.rootChainOwner, this.stakeManager)
         }
 
-        await this.stakeManager.setMinBidStakeFraction(MinBidFraction) 
+        await this.stakeManager.setMinBidStakeFraction(MinBidFraction)
       })
 
       describe('when bid hasn\'t reached a minimum total stake fraction', function() {
