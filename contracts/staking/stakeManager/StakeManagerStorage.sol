@@ -23,11 +23,13 @@ contract StakeManagerStorage is GovernanceLockable, RootChainable {
     struct State {
         uint256 amount;
         uint256 stakerCount;
+        uint256 shares;
     }
 
     struct StateChange {
         int256 amount;
         int256 stakerCount;
+        int256 shares;
     }
 
     struct Validator {
@@ -43,12 +45,14 @@ contract StakeManagerStorage is GovernanceLockable, RootChainable {
         uint256 lastCommissionUpdate;
         uint256 delegatorsReward;
         uint256 delegatedAmount;
-        uint256 initialRewardPerStake;
+        uint256 initialRewardPerShare;
     }
 
     uint256 constant MAX_COMMISION_RATE = 100;
     uint256 constant MAX_PROPOSER_BONUS = 100;
+    uint256 constant CHK_REWARD_PRECISION = 100;
     uint256 constant REWARD_PRECISION = 10**25;
+    
     uint256 internal constant INCORRECT_VALIDATOR_ID = 2**256 - 1;
     uint256 internal constant INITIALIZED_AMOUNT = 1;
 
@@ -68,7 +72,7 @@ contract StakeManagerStorage is GovernanceLockable, RootChainable {
     uint256 public checkPointBlockInterval;
     uint256 public signerUpdateLimit;
 
-    uint256 public validatorThreshold; //128
+    uint256 public validatorThreshold; // 128
     uint256 public totalStaked;
     uint256 public NFTCounter;
     uint256 public totalRewards;

@@ -27,8 +27,7 @@
     "lint:sol:fix": "solium -d contracts/ --fix",
     "lint:sol": "solium -d contracts/"
   },
-  "pre-commit": [
-  ],
+  "pre-commit": [],
   "repository": {
     "type": "git",
     "url": "https://github.com/maticnetwork/contracts.git"
@@ -43,7 +42,7 @@
     "mnemonics": "clock radar mass judge dismiss just intact mind resemble fringe diary casino"
   },
   "devDependencies": {
-    "@openzeppelin/test-helpers": "^0.5.5",
+    "@openzeppelin/test-helpers": "^0.5.10",
     "babel-cli": "^6.26.0",
     "babel-eslint": "10.0.1",
     "babel-polyfill": "^6.26.0",
@@ -62,18 +61,18 @@
     "eslint-plugin-promise": "4.0.1",
     "eslint-plugin-standard": "4.0.0",
     "eth-gas-reporter": "0.1.12",
-    "eth-sig-util": "^2.1.1",
+    "eth-sig-util": "^2.5.4",
     "ethereumjs-wallet": "0.6.2",
     "ethers": "4.0.13",
     "moonwalker": "github:atvanguard/moonwalker#4c4592e2d6c1744fbcd9452cf0f00e9beb236b21",
     "pre-commit": "^1.2.2",
     "safe-buffer": "5.1.2",
-    "solidity-coverage": "^0.7.4",
+    "solidity-coverage": "^0.7.16",
     "solium": "^1.1.8",
     "truffle": "5.0.34",
-    "web3": "^1.0.0-beta.33",
-    "web3-eth-abi": "^1.0.0-beta.51",
-    "truffle-contract-size": "^1.0.1"
+    "truffle-contract-size": "^1.0.1",
+    "web3": "^1.3.5",
+    "web3-eth-abi": "^1.3.5"
   },
   "dependencies": {
     "commander": "^4.0.1",
@@ -81,12 +80,12 @@
     "ethereumjs-block": "2.1.0",
     "ethereumjs-tx": "1.3.7",
     "ethereumjs-util": "6.0.0",
-    "ganache-cli": "^6.8.0-istanbul.0",
+    "ganache-cli": "^6.12.2",
     "glob": "^7.1.6",
     "merkle-patricia-tree": "2.3.2",
-    "nunjucks": "^3.2.0",
+    "nunjucks": "^3.2.3",
     "openzeppelin-solidity": "2.2.0",
-    "solidity-rlp": "^2.0.0",
+    "solidity-rlp": "^2.0.4",
     "truffle-hdwallet-provider": "^1.0.17",
     "truffle-plugin-verify": "^0.3.8"
   }

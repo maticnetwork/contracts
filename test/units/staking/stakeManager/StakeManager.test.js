@@ -3,7 +3,8 @@ import utils from 'ethereumjs-util'
 import {
   ValidatorShare,
   StakingInfo,
-  TestToken
+  TestToken,
+  EventsHub
 } from '../../../helpers/artifacts'
 
 import { buildTreeFee } from '../../../helpers/proofs.js'
@@ -14,7 +15,8 @@ import {
   buildsubmitCheckpointPaylod,
   buildsubmitCheckpointPaylodWithVotes,
   encodeSigsForCheckpoint,
-  getSigs
+  getSigs,
+  assertBigNumbergt
 } from '../../../helpers/utils.js'
 import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
 import { generateFirstWallets, mnemonics } from '../../../helpers/wallets'
@@ -22,7 +24,7 @@ import { wallets, freshDeploy, approveAndStake, walletAmounts } from '../deploym
 import { buyVoucher } from '../ValidatorShareHelper.js'
 import { web3 } from '@openzeppelin/test-helpers/src/setup'
 
-const { toWei } = web3.utils
+const { toWei, toBN } = web3.utils
 
 function prepareForTest(dynastyValue, validatorThreshold) {
   return async function() {
@@ -175,263 +177,6 @@ contract('StakeManager', async function(accounts) {
     })
   }
 
-  describe('updateCommissionRate', function() {
-    async function batchDeploy() {
-      await prepareForTest(4, 2).call(this)
-
-      this.stakeToken = await TestToken.new('MATIC', 'MATIC')
-
-      await this.governance.update(
-        this.stakeManager.address,
-        this.stakeManager.contract.methods.setStakingToken(this.stakeToken.address).encodeABI()
-      )
-
-      await this.stakeToken.mint(this.stakeManager.address, web3.utils.toWei('10000000'))
-
-      this.validatorId = '1'
-      this.validatorUser = wallets[0]
-      this.stakeAmount = new BN(web3.utils.toWei('100'))
-
-      await approveAndStake.call(this, { wallet: this.validatorUser, stakeAmount: this.stakeAmount, acceptDelegation: true })
-
-      let validator = await this.stakeManager.validators(this.validatorId)
-      this.validatorContract = await ValidatorShare.at(validator.contractAddress)
-
-      this.user = wallets[2].getChecksumAddressString()
-
-      const approveAmount = web3.utils.toWei('20000')
-      await this.stakeToken.mint(
-        this.user,
-        approveAmount
-      )
-      await this.stakeToken.approve(this.stakeManager.address, approveAmount, {
-        from: this.user
-      })
-    }
-
-    function testCommisionRate(previousRate, newRate) {
-      describe(`when validator sets commision rate to ${newRate}%`, function() {
-        it(`validator must set ${newRate}% commision rate`, async function() {
-          // simulate cool down period
-          const validator = await this.stakeManager.validators(this.validatorId)
-          let lastCommissionUpdate = validator.lastCommissionUpdate
-          if (+lastCommissionUpdate !== 0) {
-            let n = lastCommissionUpdate.add(await this.stakeManager.WITHDRAWAL_DELAY())
-            const start = await this.stakeManager.epoch()
-            for (let i = start; i < n; i++) {
-              await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
-            }
-          }
-          this.receipt = await this.stakeManager.updateCommissionRate(this.validatorId, newRate, { from: this.validatorUser.getAddressString() })
-        })
-
-        it('must emit UpdateCommissionRate', async function() {
-          await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'UpdateCommissionRate', {
-            validatorId: this.validatorId,
-            oldCommissionRate: previousRate,
-            newCommissionRate: newRate
-          })
-        })
-
-        it('commissionRate must be correct', async function() {
-          const validator = await this.stakeManager.validators(this.validatorId)
-          assertBigNumberEquality(validator.commissionRate, newRate)
-        })
-
-        it('lastCommissionUpdate must be equal to current epoch', async function() {
-          const validator = await this.stakeManager.validators(this.validatorId)
-          assertBigNumberEquality(validator.lastCommissionUpdate, await this.stakeManager.epoch())
-        })
-      })
-    }
-
-    describe('when Alice buy voucher and validator sets 50% commision rate, 1 checkpoint commited', function() {
-      before(batchDeploy)
-
-      testCommisionRate('0', '50')
-
-      describe('after commision rate changed', function() {
-        it('Alice must purchase voucher', async function() {
-          await buyVoucher(this.validatorContract, web3.utils.toWei('100'), this.user)
-        })
-
-        it('1 checkpoint must be commited', async function() {
-          await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
-        })
-
-        it('liquid rewards must be correct', async function() {
-          assertBigNumberEquality(await this.validatorContract.getLiquidRewards(this.user), web3.utils.toWei('2250'))
-        })
-      })
-    })
-
-    describe('when Alice stake same as validator, and validator sets 50%, 100%, 0% commision rates, 1 checkpoint between rate\'s change', function() {
-      let oldRewards, oldExchangeRate
-
-      function testAfterComissionChange(liquidRewards, exchangeRate) {
-        it('1 checkpoint must be commited', async function() {
-          await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
-
-          oldRewards = await this.validatorContract.getRewardPerShare()
-          oldExchangeRate = await this.validatorContract.exchangeRate()
-        })
-
-        it('liquid rewards must be correct', async function() {
-          assertBigNumberEquality(await this.validatorContract.getLiquidRewards(this.user), liquidRewards)
-        })
-
-        it('exchange rate must be correct', async function() {
-          assertBigNumberEquality(await this.validatorContract.exchangeRate(), exchangeRate)
-        })
-
-        it('ValidatorShare getRewardPerShare must be unchanged', async function() {
-          assertBigNumberEquality(oldRewards, await this.validatorContract.getRewardPerShare())
-        })
-
-        it('ValidatorShare exchangeRate must be unchanged', async function() {
-          assertBigNumberEquality(oldExchangeRate, await this.validatorContract.exchangeRate())
-        })
-      }
-
-      before(batchDeploy)
-      before(function() {
-        this.oldRewards = new BN('0')
-        this.oldExchangeRate = new BN('0')
-      })
-
-      testCommisionRate('0', '50')
-
-      describe('after commision rate changed', function() {
-        it('Alice must purchase voucher', async function() {
-          await buyVoucher(this.validatorContract, this.stakeAmount, this.user)
-        })
-        // get 25% of checkpoint rewards
-        testAfterComissionChange(web3.utils.toWei('2250'), '100')
-      })
-
-      testCommisionRate('50', '100')
-
-      describe('after commision rate changed', function() {
-        // get 0% of checkpoint rewards
-        testAfterComissionChange(web3.utils.toWei('9000'), '100')
-      })
-
-      testCommisionRate('100', '0')
-
-      describe('after commision rate changed', function() {
-        // get only 50% of checkpoint rewards
-        testAfterComissionChange(web3.utils.toWei('13500'), '100')
-      })
-    })
-
-    describe('when new commision rate is greater than 100', function() {
-      before(batchDeploy)
-
-      it('reverts', async function() {
-        await expectRevert(
-          this.stakeManager.updateCommissionRate(this.validatorId, 101, { from: this.validatorUser.getAddressString() }),
-          'Incorrect value'
-        )
-      })
-    })
-
-    describe('when trying to set commision again within commissionCooldown period', function() {
-      before(batchDeploy)
-      before(async function() {
-        this.stakeManager.updateCommissionRate(this.validatorId, 10, { from: this.validatorUser.getAddressString() })
-      })
-
-      it('reverts', async function() {
-        await expectRevert(
-          this.stakeManager.updateCommissionRate(this.validatorId, 15, { from: this.validatorUser.getAddressString() }),
-          'Cooldown'
-        )
-      })
-    })
-  })
-
-  describe('updateValidatorDelegation', function() {
-    let staker = wallets[1]
-    let stakeAmount = web3.utils.toWei('100')
-
-    function doDeploy(acceptDelegation) {
-      before('Fresh deploy', freshDeploy)
-      before('Approve and stake', async function() {
-        await approveAndStake.call(this, { wallet: staker, stakeAmount: stakeAmount, acceptDelegation })
-
-        if (acceptDelegation) {
-          const validator = await this.stakeManager.validators('1')
-          this.validatorShares = await ValidatorShare.at(validator.contractAddress)
-        }
-      })
-    }
-
-    describe('when from is not validator', function() {
-      doDeploy(true)
-
-      it('reverts ', async function() {
-        await expectRevert(this.stakeManager.updateValidatorDelegation(false, { from: wallets[2].getAddressString() }), 'not validator')
-      })
-    })
-
-    describe('when validator has Delegation is disabled', function() {
-      doDeploy(false)
-
-      it('reverts ', async function() {
-        await expectRevert(this.stakeManager.updateValidatorDelegation(false, { from: staker.getAddressString() }), 'Delegation is disabled')
-      })
-    })
-
-    describe('when validator is valid', function() {
-      doDeploy(true)
-
-      it('disables delegation ', async function() {
-        await this.stakeManager.updateValidatorDelegation(false, { from: staker.getAddressString() })
-      })
-
-      it('validatorShares delegation == false', async function() {
-        assert.isFalse(await this.validatorShares.delegation())
-      })
-
-      it('enables delegation ', async function() {
-        await this.stakeManager.updateValidatorDelegation(true, { from: staker.getAddressString() })
-      })
-
-      it('validatorShares delegation == true', async function() {
-        assert.isTrue(await this.validatorShares.delegation())
-      })
-    })
-  })
-
-  function testConfirmAuctionBidForOldValidator() {
-    it('must confirm auction', async function() {
-      this.receipt = await this.stakeManager.confirmAuctionBid(
-        this.validatorId,
-        0,
-        {
-          from: this.prevValidatorAddr
-        }
-      )
-    })
-
-    it('must emit ConfirmAuction', async function() {
-      await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ConfirmAuction', {
-        newValidatorId: this.validatorId,
-        oldValidatorId: this.validatorId,
-        amount: this.validator.amount
-      })
-    })
-
-    it('validator is still a validator', async function() {
-      assert.ok(await this.stakeManager.isValidator(this.validatorId))
-    })
-
-    it('bidder balance must be correct', async function() {
-      const currentBalance = await this.stakeToken.balanceOf(this.bidder)
-      assertBigNumberEquality(this.bidderBalanceBeforeAuction, currentBalance)
-    })
-  }
-
   describe('checkSignatures', function() {
     function prepareToTest(stakers, checkpointBlockInterval = 1) {
       before('Fresh deploy', freshDeploy)
@@ -481,9 +226,9 @@ contract('StakeManager', async function(accounts) {
       })
 
       testCheckpointing(stakers, signers, 1, 1, {
-        [stakers[0].wallet.getAddressString()]: toWei('3250'), // proposer fixed bonus + 50% of reward
-        [stakers[1].wallet.getAddressString()]: toWei('2250'),
-        [stakers[2].wallet.getAddressString()]: toWei('2250')
+        [stakers[0].wallet.getAddressString()]: '3249999999999999997428', // proposer fixed bonus + 50% of reward
+        [stakers[1].wallet.getAddressString()]: '2249999999999999998714',
+        [stakers[2].wallet.getAddressString()]: '2249999999999999998714'
       }, true, stakers[0].wallet)
     })
 
@@ -508,9 +253,9 @@ contract('StakeManager', async function(accounts) {
       })
 
       testCheckpointing(stakers, signers, 1, 1, {
-        [stakers[0].wallet.getAddressString()]: '3600000000000000000000',
+        [stakers[0].wallet.getAddressString()]: '3599999999999999995885',
         [stakers[1].wallet.getAddressString()]: '0000000000000000000000',
-        [stakers[2].wallet.getAddressString()]: '3600000000000000000000'
+        [stakers[2].wallet.getAddressString()]: '3599999999999999995885'
       })
     })
 
@@ -535,9 +280,9 @@ contract('StakeManager', async function(accounts) {
       })
 
       testCheckpointing(stakers, signers, 1, 1, {
-        [stakers[0].wallet.getAddressString()]: '3600000000000000000000',
+        [stakers[0].wallet.getAddressString()]: '3599999999999999995885',
         [stakers[1].wallet.getAddressString()]: '0000000000000000000000',
-        [stakers[2].wallet.getAddressString()]: '3600000000000000000000'
+        [stakers[2].wallet.getAddressString()]: '3599999999999999995885'
       })
     })
 
@@ -560,7 +305,7 @@ contract('StakeManager', async function(accounts) {
       testCheckpointing(stakers, signers, 1, 1, {
         [stakers[0].wallet.getAddressString()]: '0',
         [stakers[1].wallet.getAddressString()]: '0',
-        [stakers[2].wallet.getAddressString()]: '8333333333333333333333' // because not everyone signed, 1000 out of 1200 staked tokens
+        [stakers[2].wallet.getAddressString()]: '8333333333333299952380' // because not everyone signed, 1000 out of 1200 staked tokens
       }, false)
     })
 
@@ -583,8 +328,8 @@ contract('StakeManager', async function(accounts) {
       })
 
       testCheckpointing(stakers, signers, 1, 1, {
-        [stakers[0].wallet.getAddressString()]: '3000000000000000000000',
-        [stakers[1].wallet.getAddressString()]: '6000000000000000000000'
+        [stakers[0].wallet.getAddressString()]: '2999999999999999998285',
+        [stakers[1].wallet.getAddressString()]: '5999999999999999993142'
       })
     })
 
@@ -619,8 +364,8 @@ contract('StakeManager', async function(accounts) {
         })
 
         testCheckpointing(stakers, stakers.map(x => x.wallet), 1, 1, {
-          [stakers[0].wallet.getAddressString()]: '3000000000000000000000',
-          [stakers[1].wallet.getAddressString()]: '6000000000000000000000'
+          [stakers[0].wallet.getAddressString()]: '2999999999999999998285',
+          [stakers[1].wallet.getAddressString()]: '5999999999999999993142'
         })
       })
 
@@ -630,8 +375,8 @@ contract('StakeManager', async function(accounts) {
         })
 
         testCheckpointing(stakers, stakers.map(x => x.wallet), 1, 1, {
-          [stakers[0].wallet.getAddressString()]: '6166666666666666666666',
-          [stakers[1].wallet.getAddressString()]: '12333333333333333333333'
+          [stakers[0].wallet.getAddressString()]: '6166666666666659996476',
+          [stakers[1].wallet.getAddressString()]: '12333333333333319985904'
         })
       })
     })
@@ -654,21 +399,21 @@ contract('StakeManager', async function(accounts) {
         prepareToTest(stakers, 1)
 
         testCheckpointing(stakers, stakers.map(x => x.wallet), 1, 1, {
-          [stakers[0].wallet.getAddressString()]: toWei('1500'),
-          [stakers[1].wallet.getAddressString()]: toWei('3000'),
-          [stakers[2].wallet.getAddressString()]: toWei('4500')
+          [stakers[0].wallet.getAddressString()]: '1499999999999999999142',
+          [stakers[1].wallet.getAddressString()]: '2999999999999999996571',
+          [stakers[2].wallet.getAddressString()]: '4499999999999999992285'
         })
 
         testCheckpointing(stakers, stakers.map(x => x.wallet), 2, 1, {
-          [stakers[0].wallet.getAddressString()]: toWei('3930'),
-          [stakers[1].wallet.getAddressString()]: toWei('7860'),
-          [stakers[2].wallet.getAddressString()]: toWei('11790')
+          [stakers[0].wallet.getAddressString()]: '3929999999999999997754',
+          [stakers[1].wallet.getAddressString()]: '7859999999999999991017',
+          [stakers[2].wallet.getAddressString()]: '11789999999999999979788'
         })
 
         testCheckpointing(stakers, stakers.map(x => x.wallet), 2, 1, {
-          [stakers[0].wallet.getAddressString()]: toWei('6630'),
-          [stakers[1].wallet.getAddressString()]: toWei('13260'),
-          [stakers[2].wallet.getAddressString()]: toWei('19890')
+          [stakers[0].wallet.getAddressString()]: '6629999999999999996211',
+          [stakers[1].wallet.getAddressString()]: '13259999999999999984845',
+          [stakers[2].wallet.getAddressString()]: '19889999999999999965902'
         })
       })
 
@@ -676,35 +421,35 @@ contract('StakeManager', async function(accounts) {
         prepareToTest(stakers, 1)
 
         testCheckpointing(stakers, stakers.map(x => x.wallet), 2, 1, {
-          [stakers[0].wallet.getAddressString()]: toWei('2700'),
-          [stakers[1].wallet.getAddressString()]: toWei('5400'),
-          [stakers[2].wallet.getAddressString()]: toWei('8100')
+          [stakers[0].wallet.getAddressString()]: '2699999999999999998457',
+          [stakers[1].wallet.getAddressString()]: '5399999999999999993828',
+          [stakers[2].wallet.getAddressString()]: '8099999999999999986114'
         })
 
         testCheckpointing(stakers, stakers.map(x => x.wallet), 1, 1, {
-          [stakers[0].wallet.getAddressString()]: toWei('4350'),
-          [stakers[1].wallet.getAddressString()]: toWei('8700'),
-          [stakers[2].wallet.getAddressString()]: toWei('13050')
+          [stakers[0].wallet.getAddressString()]: '4349999999999999997514',
+          [stakers[1].wallet.getAddressString()]: '8699999999999999990057',
+          [stakers[2].wallet.getAddressString()]: '13049999999999999977628'
         })
 
         testCheckpointing(stakers, stakers.map(x => x.wallet), 1, 1, {
-          [stakers[0].wallet.getAddressString()]: toWei('5850'),
-          [stakers[1].wallet.getAddressString()]: toWei('11700'),
-          [stakers[2].wallet.getAddressString()]: toWei('17550')
+          [stakers[0].wallet.getAddressString()]: '5849999999999999996657',
+          [stakers[1].wallet.getAddressString()]: '11699999999999999986628',
+          [stakers[2].wallet.getAddressString()]: '17549999999999999969914'
         })
       })
 
       describe('when checkpoint block interval is 1', function() {
         describe('when block interval is 1', function() {
           runTests(1, 1, 1, {
-            [stakers[0].wallet.getAddressString()]: '1500000000000000000000',
-            [stakers[1].wallet.getAddressString()]: '3000000000000000000000',
-            [stakers[2].wallet.getAddressString()]: '4500000000000000000000'
+            [stakers[0].wallet.getAddressString()]: '1499999999999999999142',
+            [stakers[1].wallet.getAddressString()]: '2999999999999999996571',
+            [stakers[2].wallet.getAddressString()]: '4499999999999999992285'
           })
           runTests(1, 1, 5, {
-            [stakers[0].wallet.getAddressString()]: '7500000000000000000000',
-            [stakers[1].wallet.getAddressString()]: '15000000000000000000000',
-            [stakers[2].wallet.getAddressString()]: '22500000000000000000000'
+            [stakers[0].wallet.getAddressString()]: '7499999999999999995714',
+            [stakers[1].wallet.getAddressString()]: '14999999999999999982857',
+            [stakers[2].wallet.getAddressString()]: '22499999999999999961428'
           })
         })
 
@@ -712,9 +457,9 @@ contract('StakeManager', async function(accounts) {
           prepareToTest(stakers, 1)
 
           runTests(1, 10, 1, {
-            [stakers[0].wallet.getAddressString()]: toWei('4500'),
-            [stakers[1].wallet.getAddressString()]: toWei('9000'),
-            [stakers[2].wallet.getAddressString()]: toWei('13500')
+            [stakers[0].wallet.getAddressString()]: '4499999999999999997428',
+            [stakers[1].wallet.getAddressString()]: '8999999999999999989714',
+            [stakers[2].wallet.getAddressString()]: '13499999999999999976857'
           })
         })
 
@@ -722,9 +467,9 @@ contract('StakeManager', async function(accounts) {
           prepareToTest(stakers, 1)
 
           runTests(1, 3, 1, {
-            [stakers[0].wallet.getAddressString()]: toWei('3600'),
-            [stakers[1].wallet.getAddressString()]: toWei('7200'),
-            [stakers[2].wallet.getAddressString()]: toWei('10800')
+            [stakers[0].wallet.getAddressString()]: '3599999999999999997942',
+            [stakers[1].wallet.getAddressString()]: '7199999999999999991771',
+            [stakers[2].wallet.getAddressString()]: '10799999999999999981485'
           })
         })
       })
@@ -732,9 +477,9 @@ contract('StakeManager', async function(accounts) {
       describe('when checkpoint block interval is 10', function() {
         describe('when block interval is 5', function() {
           runTests(10, 5, 1, {
-            [stakers[0].wallet.getAddressString()]: toWei('750'),
-            [stakers[1].wallet.getAddressString()]: toWei('1500'),
-            [stakers[2].wallet.getAddressString()]: toWei('2250')
+            [stakers[0].wallet.getAddressString()]: '749999999999999999571',
+            [stakers[1].wallet.getAddressString()]: '1499999999999999998285',
+            [stakers[2].wallet.getAddressString()]: '2249999999999999996142'
           })
         })
 
@@ -742,9 +487,9 @@ contract('StakeManager', async function(accounts) {
           prepareToTest(stakers, 1)
 
           runTests(10, 15, 1, {
-            [stakers[0].wallet.getAddressString()]: toWei('2100'),
-            [stakers[1].wallet.getAddressString()]: toWei('4200'),
-            [stakers[2].wallet.getAddressString()]: toWei('6300')
+            [stakers[0].wallet.getAddressString()]: '2099999999999999998799',
+            [stakers[1].wallet.getAddressString()]: '4199999999999999995199',
+            [stakers[2].wallet.getAddressString()]: '6299999999999999989199'
           })
         })
       })
@@ -752,27 +497,27 @@ contract('StakeManager', async function(accounts) {
       describe('when checkpoint block interval is 10', function() {
         describe('when block interval is 1', function() {
           runTests(10, 1, 1, {
-            [stakers[0].wallet.getAddressString()]: '150000000000000000000',
-            [stakers[1].wallet.getAddressString()]: '300000000000000000000',
-            [stakers[2].wallet.getAddressString()]: '450000000000000000000'
+            [stakers[0].wallet.getAddressString()]: '149999999999999999914',
+            [stakers[1].wallet.getAddressString()]: '299999999999999999657',
+            [stakers[2].wallet.getAddressString()]: '449999999999999999228'
           })
           runTests(10, 1, 5, {
-            [stakers[0].wallet.getAddressString()]: '750000000000000000000',
-            [stakers[1].wallet.getAddressString()]: '1500000000000000000000',
-            [stakers[2].wallet.getAddressString()]: '2250000000000000000000'
+            [stakers[0].wallet.getAddressString()]: '749999999999999999571',
+            [stakers[1].wallet.getAddressString()]: '1499999999999999998285',
+            [stakers[2].wallet.getAddressString()]: '2249999999999999996142'
           })
         })
 
         describe('when block interval is 5', function() {
           runTests(10, 5, 1, {
-            [stakers[0].wallet.getAddressString()]: '750000000000000000000',
-            [stakers[1].wallet.getAddressString()]: '1500000000000000000000',
-            [stakers[2].wallet.getAddressString()]: '2250000000000000000000'
+            [stakers[0].wallet.getAddressString()]: '749999999999999999571',
+            [stakers[1].wallet.getAddressString()]: '1499999999999999998285',
+            [stakers[2].wallet.getAddressString()]: '2249999999999999996142'
           })
           runTests(10, 5, 5, {
-            [stakers[0].wallet.getAddressString()]: '3750000000000000000000',
-            [stakers[1].wallet.getAddressString()]: '7500000000000000000000',
-            [stakers[2].wallet.getAddressString()]: '11250000000000000000000'
+            [stakers[0].wallet.getAddressString()]: '3749999999999999997857',
+            [stakers[1].wallet.getAddressString()]: '7499999999999999991428',
+            [stakers[2].wallet.getAddressString()]: '11249999999999999980714'
           })
         })
       })
@@ -787,7 +532,7 @@ contract('StakeManager', async function(accounts) {
 
       prepareToTest(stakers, 1)
       testCheckpointing(stakers, [stakers[0].wallet], 1, 1, {
-        [stakers[0].wallet.getAddressString()]: web3.utils.toWei('7500'),
+        [stakers[0].wallet.getAddressString()]: '7499999999999999957142',
         [stakers[1].wallet.getAddressString()]: '0',
         [stakers[2].wallet.getAddressString()]: '0'
       })
@@ -806,7 +551,7 @@ contract('StakeManager', async function(accounts) {
 
       prepareToTest(stakers, 1)
       testCheckpointing(stakers, [stakers[0].wallet], 1, 1, {
-        [stakers[0].wallet.getAddressString()]: '8490566037735849056604',
+        [stakers[0].wallet.getAddressString()]: '8490566037734999514824',
         [stakers[1].wallet.getAddressString()]: '0',
         [stakers[2].wallet.getAddressString()]: '0',
         [stakers[3].wallet.getAddressString()]: '0',
@@ -939,7 +684,7 @@ contract('StakeManager', async function(accounts) {
         })
         beforeEach('fresh deploy', doDeploy)
 
-        describe('Alice proposes with more than 2/3+1 votes votes', function() {
+        describe('Alice proposes with more than 2/3+1 votes', function() {
           it('should pass the check', async function() {
             this.accumulatedFees[wallets[0].getAddressString()] = [[firstFeeToClaim]]
             this.tree = await feeCheckpointWithVotes.call(this, AliceValidatorId, 0, 22, 3, '') //  3 yes votes
@@ -980,6 +725,255 @@ contract('StakeManager', async function(accounts) {
       })
     })
   })
+
+  describe('updateCommissionRate', function() {
+    async function batchDeploy() {
+      await prepareForTest(4, 2).call(this)
+      this.stakeToken = await TestToken.new('MATIC', 'MATIC')
+      await this.stakeManager.setStakingToken(this.stakeToken.address)
+      await this.stakeToken.mint(this.stakeManager.address, web3.utils.toWei('10000000'))
+
+      this.validatorId = '1'
+      this.validatorUser = wallets[0]
+      this.stakeAmount = new BN(web3.utils.toWei('100'))
+      await approveAndStake.call(this, { wallet: this.validatorUser, stakeAmount: this.stakeAmount, acceptDelegation: true })
+      let validator = await this.stakeManager.validators(this.validatorId)
+      this.validatorContract = await ValidatorShare.at(validator.contractAddress)
+
+      this.user = wallets[2].getChecksumAddressString()
+
+      const approveAmount = web3.utils.toWei('20000')
+      await this.stakeToken.mint(
+        this.user,
+        approveAmount
+      )
+      await this.stakeToken.approve(this.stakeManager.address, approveAmount, {
+        from: this.user
+      })
+    }
+
+    function testCommisionRate(previousRate, newRate) {
+      describe(`when validator sets commision rate to ${newRate}%`, function() {
+        it(`validator must set ${newRate}% commision rate`, async function() {
+          // simulate cool down period
+          const validator = await this.stakeManager.validators(this.validatorId)
+          let lastCommissionUpdate = validator.lastCommissionUpdate
+          if (+lastCommissionUpdate !== 0) {
+            let n = lastCommissionUpdate.add(await this.stakeManager.WITHDRAWAL_DELAY())
+            const start = await this.stakeManager.epoch()
+            for (let i = start; i < n; i++) {
+              await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
+            }
+          }
+          this.receipt = await this.stakeManager.updateCommissionRate(this.validatorId, newRate, { from: this.validatorUser.getAddressString() })
+        })
+
+        it('must emit UpdateCommissionRate', async function() {
+          await expectEvent.inTransaction(this.receipt.tx, EventsHub, 'UpdateCommissionRate', {
+            validatorId: this.validatorId,
+            oldCommissionRate: previousRate,
+            newCommissionRate: newRate
+          })
+        })
+
+        it('commissionRate must be correct', async function() {
+          const validator = await this.stakeManager.validators(this.validatorId)
+          assertBigNumberEquality(validator.commissionRate, newRate)
+        })
+
+        it('lastCommissionUpdate must be equal to current epoch', async function() {
+          const validator = await this.stakeManager.validators(this.validatorId)
+          assertBigNumberEquality(validator.lastCommissionUpdate, await this.stakeManager.epoch())
+        })
+      })
+    }
+
+    describe('when Alice buy voucher and validator sets 50% commision rate, 1 checkpoint commited', function() {
+      before(batchDeploy)
+
+      testCommisionRate('0', '50')
+
+      describe('after commision rate changed', function() {
+        it('Alice must purchase voucher', async function() {
+          await buyVoucher(this.validatorContract, web3.utils.toWei('100'), this.user)
+        })
+
+        it('1 checkpoint must be commited', async function() {
+          await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
+        })
+
+        it('liquid rewards must be correct', async function() {
+          assertBigNumberEquality(await this.validatorContract.getLiquidRewards(this.user), '2249999999999999997429')
+        })
+      })
+    })
+
+    describe('when Alice stake same as validator, and validator sets 50%, 100%, 0% commision rates, 1 checkpoint between rate\'s change', function() {
+      let oldRewards, oldExchangeRate
+
+      function testAfterComissionChange(liquidRewards, exchangeRate) {
+        it('1 checkpoint must be commited', async function() {
+          await checkPoint([this.validatorUser], this.rootChainOwner, this.stakeManager)
+
+          oldRewards = await this.validatorContract.getRewardPerShare()
+          oldExchangeRate = await this.validatorContract.exchangeRate()
+        })
+
+        it('liquid rewards must be correct', async function() {
+          assertBigNumberEquality(await this.validatorContract.getLiquidRewards(this.user), liquidRewards)
+        })
+
+        it('exchange rate must be correct', async function() {
+          assertBigNumberEquality(await this.validatorContract.exchangeRate(), exchangeRate)
+        })
+
+        it('ValidatorShare getRewardPerShare must be unchanged', async function() {
+          assertBigNumberEquality(oldRewards, await this.validatorContract.getRewardPerShare())
+        })
+
+        it('ValidatorShare exchangeRate must be unchanged', async function() {
+          assertBigNumberEquality(oldExchangeRate, await this.validatorContract.exchangeRate())
+        })
+      }
+
+      before(batchDeploy)
+      before(function() {
+        this.oldRewards = new BN('0')
+        this.oldExchangeRate = new BN('0')
+      })
+
+      testCommisionRate('0', '50')
+
+      describe('after commision rate changed', function() {
+        it('Alice must purchase voucher', async function() {
+          await buyVoucher(this.validatorContract, this.stakeAmount, this.user)
+        })
+        // get 25% of checkpoint rewards
+        testAfterComissionChange('2249999999999999997429', '100')
+      })
+
+      testCommisionRate('50', '100')
+
+      describe('after commision rate changed', function() {
+        // get 0% of checkpoint rewards
+        testAfterComissionChange('8999999999999999989715', '100')
+      })
+
+      testCommisionRate('100', '0')
+
+      describe('after commision rate changed', function() {
+        // get only 50% of checkpoint rewards
+        testAfterComissionChange('13499999999999999984572', '100')
+      })
+    })
+
+    describe('when new commision rate is greater than 100', function() {
+      before(batchDeploy)
+
+      it('reverts', async function() {
+        await expectRevert(
+          this.stakeManager.updateCommissionRate(this.validatorId, 101, { from: this.validatorUser.getAddressString() }),
+          'Incorrect value'
+        )
+      })
+    })
+
+    describe('when trying to set commision again within commissionCooldown period', function() {
+      before(batchDeploy)
+      before(async function() {
+        this.stakeManager.updateCommissionRate(this.validatorId, 10, { from: this.validatorUser.getAddressString() })
+      })
+
+      it('reverts', async function() {
+        await expectRevert(
+          this.stakeManager.updateCommissionRate(this.validatorId, 15, { from: this.validatorUser.getAddressString() }),
+          'Cooldown'
+        )
+      })
+    })
+  })
+
+  describe('updateValidatorDelegation', function() {
+    let staker = wallets[1]
+    let stakeAmount = web3.utils.toWei('100')
+
+    function doDeploy(acceptDelegation) {
+      before('Fresh deploy', freshDeploy)
+      before('Approve and stake', async function() {
+        await approveAndStake.call(this, { wallet: staker, stakeAmount: stakeAmount, acceptDelegation })
+
+        if (acceptDelegation) {
+          const validator = await this.stakeManager.validators('1')
+          this.validatorShares = await ValidatorShare.at(validator.contractAddress)
+        }
+      })
+    }
+
+    describe('when from is not validator', function() {
+      doDeploy(true)
+
+      it('reverts ', async function() {
+        await expectRevert(this.stakeManager.updateValidatorDelegation(false, { from: wallets[2].getAddressString() }), 'not validator')
+      })
+    })
+
+    describe('when validator has Delegation is disabled', function() {
+      doDeploy(false)
+
+      it('reverts ', async function() {
+        await expectRevert(this.stakeManager.updateValidatorDelegation(false, { from: staker.getAddressString() }), 'Delegation is disabled')
+      })
+    })
+
+    describe('when validator is valid', function() {
+      doDeploy(true)
+
+      it('disables delegation ', async function() {
+        await this.stakeManager.updateValidatorDelegation(false, { from: staker.getAddressString() })
+      })
+
+      it('validatorShares delegation == false', async function() {
+        assert.isFalse(await this.validatorShares.delegation())
+      })
+
+      it('enables delegation ', async function() {
+        await this.stakeManager.updateValidatorDelegation(true, { from: staker.getAddressString() })
+      })
+
+      it('validatorShares delegation == true', async function() {
+        assert.isTrue(await this.validatorShares.delegation())
+      })
+    })
+  })
+
+  function testConfirmAuctionBidForOldValidator() {
+    it('must confirm auction', async function() {
+      this.receipt = await this.stakeManager.confirmAuctionBid(
+        this.validatorId,
+        0,
+        {
+          from: this.prevValidatorAddr
+        }
+      )
+    })
+
+    it('must emit ConfirmAuction', async function() {
+      await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ConfirmAuction', {
+        newValidatorId: this.validatorId,
+        oldValidatorId: this.validatorId,
+        amount: this.validator.amount
+      })
+    })
+
+    it('validator is still a validator', async function() {
+      assert.ok(await this.stakeManager.isValidator(this.validatorId))
+    })
+
+    it('bidder balance must be correct', async function() {
+      const currentBalance = await this.stakeToken.balanceOf(this.bidder)
+      assertBigNumberEquality(this.bidderBalanceBeforeAuction, currentBalance)
+    })
+  }
 
   describe('dethroneAndStake', function() {
     describe('when from is not stake manager', function() {
@@ -1086,8 +1080,8 @@ contract('StakeManager', async function(accounts) {
         { wallet: wallets[5] },
         { wallet: wallets[3] }
       ], [wallets[5], wallets[0]], 1, 1, {
-        [wallets[5].getAddressString()]: web3.utils.toWei('4500'),
-        [wallets[3].getAddressString()]: web3.utils.toWei('4500')
+        [wallets[5].getAddressString()]: '4499999999999999994857',
+        [wallets[3].getAddressString()]: '4499999999999999994857'
       })
     })
 
@@ -1353,8 +1347,6 @@ contract('StakeManager', async function(accounts) {
       while (_epochs-- > 0) {
         await checkPoint(_wallets, this.rootChainOwner, this.stakeManager, { blockInterval })
       }
-
-      this.expectedReward = await calculateExpectedCheckpointReward.call(this, blockInterval, this.amount, this.totalStaked, this.epochs)
     }
 
     function testWithRewards() {
@@ -1380,10 +1372,11 @@ contract('StakeManager', async function(accounts) {
       })
     }
 
-    function runTests(epochs) {
+    function runTests(epochs, expectedReward) {
       describe(`when Alice and Bob stakes for ${epochs} epochs`, function() {
         before(function() {
           this.epochs = epochs
+          this.expectedReward = expectedReward
         })
 
         before(doDeploy)
@@ -1406,8 +1399,8 @@ contract('StakeManager', async function(accounts) {
       })
     }
 
-    runTests(1)
-    runTests(10)
+    runTests(1, toBN('4499999999999999994857'))
+    runTests(10, toBN('44999999999999999948571'))
 
     describe('reverts', function() {
       beforeEach(doDeploy)
@@ -1546,13 +1539,6 @@ contract('StakeManager', async function(accounts) {
         await expectRevert(this.stakeManager.topUpForFee(validatorUser, minHeimdallFee.sub(new BN(1)), {
           from: validatorUser
         }), 'fee too small')
-      })
-
-      it('when fee overflows', async function() {
-        const overflowFee = new BN(2).pow(new BN(256))
-        await expectRevert.unspecified(this.stakeManager.topUpForFee(validatorUser, overflowFee, {
-          from: validatorUser
-        }))
       })
     })
   })
@@ -2566,6 +2552,120 @@ contract('StakeManager', async function(accounts) {
         await expectRevert(
           this.stakeManager.migrateDelegation(aliceId, bobId, migrationAmountBN.add(delegationAmountBN), { from: delegator }),
           'Migrating too much')
+      })
+    })
+  })
+
+  describe('setSharesCurvature', function() {
+    describe('when 1 validator stakes, new curvature is flatter', function() {
+      const newCurvature = toWei('75000000')
+
+      const validatorWallet = generateFirstWallets(mnemonics, 1)[0]
+
+      before('Fresh deploy', freshDeploy)
+      before('updateCheckPointBlockInterval', async function() {
+        await this.stakeManager.updateValidatorThreshold(200)
+        await this.stakeManager.updateCheckPointBlockInterval(1)
+        await this.stakeManager.updateCheckpointRewardParams(20, 5, 10)
+      })
+      before('Approve and stake', async function() {
+        this.validatorId = '1'
+        await approveAndStake.call(this, { wallet: validatorWallet, stakeAmount: new BN(web3.utils.toWei('1')), acceptDelegation: true })
+      })
+
+      it('should checkpoint with default curvature', async function() {
+        await checkPoint([validatorWallet], this.rootChainOwner, this.stakeManager, { blockInterval: 1, rootchainOwner: this.rootChainOwner })
+      })
+
+      it('should have some rewards', async function() {
+        const reward = await this.stakeManager.validatorReward(this.validatorId)
+        assertBigNumberEquality(reward, '8999999999999999999948')
+        this.rewardBeforeCurvatureChange = reward
+      })
+
+      it('should set curvature', async function() {
+        await this.governance.update(
+          this.stakeManager.address,
+          this.stakeManager.contract.methods.setSharesCurvature(newCurvature).encodeABI()
+        )
+      })
+
+      it('should have correct curvature', async function() {
+        assertBigNumberEquality(
+          await this.stakeManager.sharesCurvature(),
+          new BN(newCurvature).mul(await this.stakeManager.SHARES_PRECISION())
+        )
+      })
+
+      it('should have unchanged rewards', async function() {
+        const reward = await this.stakeManager.validatorReward(this.validatorId)
+        assertBigNumberEquality(reward, this.rewardBeforeCurvatureChange)
+      })
+
+      it('should checkpoint with new curvature', async function() {
+        await checkPoint([validatorWallet], this.rootChainOwner, this.stakeManager, { blockInterval: 1, rootchainOwner: this.rootChainOwner })
+      })
+
+      it('should have correct rewards', async function() {
+        const reward = await this.stakeManager.validatorReward(this.validatorId)
+        assertBigNumberEquality(reward, '17999999999999999999827')
+      })
+    })
+
+    describe('when 100 validators stake, new curvature is steeper', function() {
+      const newCurvature = toWei('275000000')
+      const stakers = []
+
+      const w = generateFirstWallets(mnemonics, 100)
+      for (let i = 0; i < 100; ++i) {
+        stakers.push({
+          wallet: w[i],
+          stake: new BN(web3.utils.toWei('1'))
+        })
+      }
+
+      before('Fresh deploy', freshDeploy)
+      before('updateCheckPointBlockInterval', async function() {
+        await this.stakeManager.updateValidatorThreshold(200)
+        await this.stakeManager.updateCheckPointBlockInterval(1)
+        await this.stakeManager.updateCheckpointRewardParams(20, 5, 10)
+      })
+      before('Approve and stake', async function() {
+        this.shares = {}
+
+        let validatorId = 0
+        for (const staker of stakers) {
+          await approveAndStake.call(this, { wallet: staker.wallet, stakeAmount: staker.stake, acceptDelegation: true })
+          validatorId++
+
+          const state = await this.stakeManager.sharesState(validatorId)
+          this.shares[validatorId] = state
+        }
+      })
+
+      it('should checkpoint with default curvature', async function() {
+        await checkPoint(stakers.map(x => x.wallet), this.rootChainOwner, this.stakeManager, { blockInterval: 1, rootchainOwner: this.rootChainOwner })
+      })
+
+      it('should set curvature', async function() {
+        await this.governance.update(
+          this.stakeManager.address,
+          this.stakeManager.contract.methods.setSharesCurvature(newCurvature).encodeABI()
+        )
+      })
+
+      it('should have correct curvature', async function() {
+        assertBigNumberEquality(
+          await this.stakeManager.sharesCurvature(),
+          new BN(newCurvature).mul(await this.stakeManager.SHARES_PRECISION())
+        )
+      })
+
+      it('validators must have less shares', async function() {
+        for (let validatorId = 1; validatorId <= stakers.length; ++validatorId) {
+          const state = await this.stakeManager.sharesState(validatorId)
+          assertBigNumbergt(state.shares, this.shares[validatorId].shares)
+        }
       })
     })
   })

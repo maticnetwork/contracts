@@ -6,6 +6,9 @@ import {
 } from '../../../helpers/utils.js'
 import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
 import { wallets, walletAmounts, freshDeploy, approveAndStake } from '../deployment'
+import { shouldHaveCorrectStakeShares, shouldHaveCorrectTotalStakeShares } from '../../behaviors/stakeShares.behavior'
+
+const { toWei, toBN } = web3.utils
 
 module.exports = function(accounts) {
   let owner = accounts[0]
@@ -76,7 +79,7 @@ module.exports = function(accounts) {
       })
     }
 
-    function testStake(user, userPubkey, amount, stakeAmount, validatorId, fee) {
+    function testStake({ user, userPubkey, amount, stakeAmount, validatorId, fee, shares }) {
       before('Approve', async function() {
         this.user = user
         this.fee = new BN(fee || this.defaultHeimdallFee)
@@ -114,6 +117,8 @@ module.exports = function(accounts) {
         assertBigNumberEquality(stakedFor, stakeAmount)
       })
 
+      shouldHaveCorrectStakeShares({ shares, validatorId, user })
+
       it('must have correct total staked balance', async function() {
         const stake = await this.stakeManager.currentValidatorSetTotalStake()
         assertBigNumberEquality(stake, stakeAmount)
@@ -131,7 +136,7 @@ module.exports = function(accounts) {
       })
     }
 
-    function testRestake(user, amount, stakeAmount, restakeAmount, totalStaked) {
+    function testRestake({ user, amount, stakeAmount, restakeAmount, totalStaked, shares, validatorId }) {
       before('Approve', async function() {
         this.user = user
 
@@ -167,6 +172,8 @@ module.exports = function(accounts) {
         const stakedFor = await this.stakeManager.totalStakedFor(user)
         assertBigNumberEquality(stakedFor, stakeAmount)
       })
+
+      shouldHaveCorrectStakeShares({ shares, validatorId, user })
     }
 
     describe('double stake', async function() {
@@ -174,13 +181,14 @@ module.exports = function(accounts) {
 
       describe('when stakes first time', function() {
         const amounts = walletAmounts[wallets[1].getAddressString()]
-        testStake(
-          wallets[1].getChecksumAddressString(),
-          wallets[1].getPublicKeyString(),
-          amounts.amount,
-          amounts.stakeAmount,
-          1
-        )
+        testStake({
+          user: wallets[1].getChecksumAddressString(),
+          userPubkey: wallets[1].getPublicKeyString(),
+          amount: amounts.amount,
+          stakeAmount: amounts.stakeAmount,
+          validatorId: 1,
+          shares: '199999999999999999771428571428571'
+        })
       })
 
       describe('when stakes again', function() {
@@ -200,13 +208,15 @@ module.exports = function(accounts) {
       before('Stake', doStake(wallets[2]))
 
       describe('when restakes', function() {
-        testRestake(
-          wallets[2].getChecksumAddressString(),
-          amounts.restakeAmonut,
-          amounts.amount,
-          amounts.restakeAmonut,
-          amounts.amount
-        )
+        testRestake({
+          user: wallets[2].getChecksumAddressString(),
+          amount: amounts.restakeAmount,
+          stakeAmount: amounts.amount,
+          restakeAmount: amounts.restakeAmount,
+          totalStaked: amounts.amount,
+          validatorId: '1',
+          shares: '249999999999999999642857142857142'
+        })
       })
 
       describe('when stakes again', function() {
@@ -217,26 +227,35 @@ module.exports = function(accounts) {
           web3.utils.toWei('150')
         )
       })
-      describe('when reStakes while on going auction', function() {
-        it('when auction is active', async function() {
-          let auctionBid = web3.utils.toWei('10000')
-          const auctionUser = wallets[4].getAddressString()
-          await this.stakeToken.mint(auctionUser, auctionBid)
-          await this.stakeToken.approve(this.stakeManager.address, auctionBid, {
-            from: auctionUser
-          })
-          const validatorId = await this.stakeManager.getValidatorId(wallets[2].getChecksumAddressString())
-          await this.stakeManager.startAuction(validatorId, auctionBid, false, wallets[4].getPublicKeyString(), {
-            from: auctionUser
-          })
-          testRestake(
-            wallets[2].getChecksumAddressString(),
-            amounts.restakeAmonut,
-            amounts.amount,
-            amounts.restakeAmonut,
-            amounts.amount
-          )
+    })
+
+    describe('when restakes while on going auction', function() {
+      before(freshDeploy)
+
+      const amounts = walletAmounts[wallets[2].getAddressString()]
+      before('Stake', doStake(wallets[2]))
+
+      before(async function() {
+        let auctionBid = web3.utils.toWei('10000')
+        const auctionUser = wallets[4].getAddressString()
+        await this.stakeToken.mint(auctionUser, auctionBid)
+        await this.stakeToken.approve(this.stakeManager.address, auctionBid, {
+          from: auctionUser
         })
+        const validatorId = await this.stakeManager.getValidatorId(wallets[2].getChecksumAddressString())
+        await this.stakeManager.startAuction(validatorId, auctionBid, false, wallets[4].getPublicKeyString(), {
+          from: auctionUser
+        })
+      })
+
+      testRestake({
+        user: wallets[2].getChecksumAddressString(),
+        amount: amounts.restakeAmount,
+        stakeAmount: amounts.amount,
+        restakeAmount: amounts.restakeAmount,
+        totalStaked: amounts.amount,
+        validatorId: '1',
+        shares: '249999999999999999642857142857142'
       })
     })
 
@@ -245,13 +264,14 @@ module.exports = function(accounts) {
 
       describe('when user stakes', function() {
         const amounts = walletAmounts[wallets[3].getAddressString()]
-        testStake(
-          wallets[3].getChecksumAddressString(),
-          wallets[3].getPublicKeyString(),
-          amounts.amount,
-          amounts.stakeAmount,
-          1
-        )
+        testStake({
+          user: wallets[3].getChecksumAddressString(),
+          userPubkey: wallets[3].getPublicKeyString(),
+          amount: amounts.amount,
+          stakeAmount: amounts.stakeAmount,
+          validatorId: 1,
+          shares: '299999999999999999485714285714285'
+        })
       })
 
       describe('when other user stakes beyond validator threshold', function() {
@@ -284,14 +304,15 @@ module.exports = function(accounts) {
     describe('stake with heimdall fee', function() {
       before(freshDeploy)
 
-      testStake(
-        wallets[0].getChecksumAddressString(),
-        wallets[0].getPublicKeyString(),
-        web3.utils.toWei('200'),
-        web3.utils.toWei('150'),
-        1,
-        web3.utils.toWei('50')
-      )
+      testStake({
+        user: wallets[0].getChecksumAddressString(),
+        userPubkey: wallets[0].getPublicKeyString(),
+        amount: web3.utils.toWei('200'),
+        stakeAmount: web3.utils.toWei('150'),
+        validatorId: 1,
+        shares: '149999999999999999871428571428571',
+        fee: web3.utils.toWei('50')
+      })
     })
 
     describe('when Alice stakes, change signer and stakes with old signer', function() {
@@ -364,6 +385,9 @@ module.exports = function(accounts) {
         const balance = await this.stakeToken.balanceOf(user)
         assertBigNumberEquality(balance, this.afterStakeBalance.add(this.reward))
       })
+
+      shouldHaveCorrectStakeShares({ shares: '149999999999999999871428571428571', user })
+      shouldHaveCorrectTotalStakeShares({ totalShares: '149999999999999999871428571428571' })
     })
 
     describe('when user unstakes after 2 epochs', async function() {
@@ -387,8 +411,7 @@ module.exports = function(accounts) {
       })
 
       it('must unstake', async function() {
-        const validatorId = await this.stakeManager.getValidatorId(user)
-        this.receipt = await this.stakeManager.unstake(validatorId, {
+        this.receipt = await this.stakeManager.unstake(this.validatorId, {
           from: user
         })
       })
@@ -421,6 +444,9 @@ module.exports = function(accounts) {
         const balance = await this.stakeToken.balanceOf(user)
         assertBigNumberEquality(balance, this.afterStakeBalance.add(this.reward))
       })
+
+      shouldHaveCorrectStakeShares({ shares: '299999999999999999485714285714285', user })
+      shouldHaveCorrectTotalStakeShares({ totalShares: '299999999999999999485714285714285' })
     })
 
     describe('reverts', function() {
@@ -488,7 +514,7 @@ module.exports = function(accounts) {
       })
     })
 
-    describe('when user claims after 1 epoch and 1 dynasty passed', function() {
+    describe('when Alice claims after 1 epoch and 1 dynasty passed', function() {
       let dynasties = 1
       const Alice = wallets[2].getChecksumAddressString()
 
@@ -528,6 +554,9 @@ module.exports = function(accounts) {
         const stake = await this.stakeManager.currentValidatorSetTotalStake()
         assertBigNumberEquality(stake, walletAmounts[wallets[3].getAddressString()].stakeAmount)
       })
+
+      shouldHaveCorrectStakeShares({ shares: '0', user: Alice })
+      shouldHaveCorrectTotalStakeShares({ totalShares: '299999999999999999485714285714285' })
     })
 
     describe('when user claims next epoch', function() {
@@ -596,6 +625,7 @@ module.exports = function(accounts) {
 
       describe('when Alice claims', function() {
         const user = Alice.getAddressString()
+        const reward = '2999999999999999998285'
 
         it('must claim', async function() {
           this.validatorId = await this.stakeManager.getValidatorId(user)
@@ -606,13 +636,13 @@ module.exports = function(accounts) {
         })
 
         it('must have correct reward', async function() {
-          assertBigNumberEquality(this.reward, web3.utils.toWei('3000'))
+          assertBigNumberEquality(this.reward, reward)
         })
 
         it('must emit ClaimRewards', async function() {
           await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ClaimRewards', {
             validatorId: this.validatorId,
-            amount: web3.utils.toWei('3000'),
+            amount: reward,
             totalAmount: await this.stakeManager.totalRewardsLiquidated()
           })
         })
@@ -621,10 +651,13 @@ module.exports = function(accounts) {
           let balance = await this.stakeToken.balanceOf(user)
           assertBigNumberEquality(balance, new BN(walletAmounts[user].initialBalance).add(this.reward).sub(this.defaultHeimdallFee))
         })
+
+        shouldHaveCorrectStakeShares({ shares: '0', user: Alice.getAddressString(), validatorId: '1' })
       })
 
       describe('when Bob claims', function() {
         const user = Bob.getAddressString()
+        const reward = '2999999999999999998285'
 
         it('must claim', async function() {
           this.validatorId = await this.stakeManager.getValidatorId(user)
@@ -635,13 +668,13 @@ module.exports = function(accounts) {
         })
 
         it('must have correct reward', async function() {
-          assertBigNumberEquality(this.reward, web3.utils.toWei('3000'))
+          assertBigNumberEquality(this.reward, reward)
         })
 
         it('must emit ClaimRewards', async function() {
           await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ClaimRewards', {
             validatorId: this.validatorId,
-            amount: web3.utils.toWei('3000'),
+            amount: reward,
             totalAmount: await this.stakeManager.totalRewardsLiquidated()
           })
         })
@@ -650,6 +683,8 @@ module.exports = function(accounts) {
           let balance = await this.stakeToken.balanceOf(user)
           assertBigNumberEquality(balance, new BN(walletAmounts[user].initialBalance).add(this.reward).sub(this.defaultHeimdallFee))
         })
+
+        shouldHaveCorrectStakeShares({ shares: '0', user: Bob.getAddressString(), validatorId: '2' })
       })
 
       describe('afterwards verification', function() {
@@ -666,8 +701,11 @@ module.exports = function(accounts) {
         it('Eve must have correct rewards', async function() {
           const validatorId = await this.stakeManager.getValidatorId(Eve.getAddressString())
           this.reward = await this.stakeManager.validatorReward(validatorId)
-          assertBigNumberEquality(this.reward, web3.utils.toWei('12000'))
+          assertBigNumberEquality(this.reward, '11999999999999999993142')
         })
+
+        shouldHaveCorrectStakeShares({ shares: '99999999999999999942857142857142', user: Eve.getAddressString(), validatorId: '3' })
+        shouldHaveCorrectTotalStakeShares({ totalShares: '99999999999999999942857142857142' })
       })
     })
   })
@@ -705,12 +743,12 @@ module.exports = function(accounts) {
 
         for (let i = currentEpoch; i <= auctionPeriod; i++) {
           await checkPoint(initialStakers, this.rootChainOwner, this.stakeManager)
+          console.log('checkpoint')
         }
         // without 10% proposer bonus
-        this.validatorReward = checkpointReward.mul(new BN(100 - proposerBonus)).div(new BN(100)).mul(new BN(auctionPeriod - currentEpoch))
+        this.validatorReward = this.validatorReward || new BN(0)
         this.validatorId = '1'
         this.user = initialStakers[0].getAddressString()
-        this.amount = web3.utils.toWei('100')
 
         await this.stakeToken.mint(this.user, this.amount)
         await this.stakeToken.approve(this.stakeManager.address, this.amount, {
@@ -766,29 +804,61 @@ module.exports = function(accounts) {
           assertBigNumberEquality(reward, this.oldReward)
         })
       }
+
+      shouldHaveCorrectStakeShares()
+      shouldHaveCorrectTotalStakeShares()
     }
 
     describe('with delegation', function() {
       describe('with rewards', function() {
+        before(function() {
+          this.shares = '10099999999999999365656714285714324'
+          this.totalShares = '11099999999999999359942428571428609'
+          this.amount = toWei('100')
+          this.validatorReward = new BN('8999999999999999948571')
+        })
+
         testRestake(true, true)
       })
 
       describe('without rewards', function() {
+        before(function() {
+          this.shares = '1099999999999999993085714285714285'
+          this.totalShares = '2099999999999999987371428571428570'
+          this.amount = toWei('100')
+        })
+
         testRestake(true, false)
       })
     })
 
     describe('without delegation', function() {
       describe('with rewards', function() {
+        before(function() {
+          this.shares = '10099999999999999365656714285714324'
+          this.totalShares = '11099999999999999359942428571428609'
+          this.amount = toWei('100')
+          this.validatorReward = new BN('8999999999999999948571')
+        })
+
         testRestake(false, true)
       })
 
       describe('without rewards', function() {
+        before(function() {
+          this.shares = '1099999999999999993085714285714285'
+          this.totalShares = '2099999999999999987371428571428570'
+          this.amount = toWei('100')
+        })
         testRestake(false, false)
       })
     })
 
     describe('reverts', function() {
+      before(function() {
+        this.amount = toWei('100')
+      })
+
       before(doDeploy(false))
 
       it('when validatorId is incorrect', async function() {

@@ -13,7 +13,7 @@ import { buyVoucher } from './ValidatorShareHelper.js'
 import { expectEvent, expectRevert } from '@openzeppelin/test-helpers'
 import { BN } from 'ethereumjs-util'
 
-contract('Slashing:validator', async function(accounts) {
+contract.skip('Slashing:validator', async function(accounts) {
   let stakeToken
   let stakeManager
   let slashingManager
