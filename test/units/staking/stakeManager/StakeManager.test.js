@@ -2593,7 +2593,7 @@ contract('StakeManager', async function(accounts) {
       it('should have correct curvature', async function() {
         assertBigNumberEquality(
           await this.stakeManager.sharesCurvature(),
-          newCurvature
+          new BN(newCurvature).mul(await this.stakeManager.SHARES_PRECISION())
         )
       })
 
@@ -2613,7 +2613,7 @@ contract('StakeManager', async function(accounts) {
     })
 
     describe('when 100 validators stake, new curvature is steeper', function() {
-      const newCurvature = toWei('275000000000000000000') // 12 decimals
+      const newCurvature = toWei('275000000')
       const stakers = []
 
       const w = generateFirstWallets(mnemonics, 100)
@@ -2657,7 +2657,7 @@ contract('StakeManager', async function(accounts) {
       it('should have correct curvature', async function() {
         assertBigNumberEquality(
           await this.stakeManager.sharesCurvature(),
-          newCurvature
+          new BN(newCurvature).mul(await this.stakeManager.SHARES_PRECISION())
         )
       })
 
