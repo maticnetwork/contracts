@@ -1,6 +1,8 @@
 pragma solidity 0.5.17;
 
 contract StakeManagerStorageExtension {
+    uint256 public constant SHARES_PRECISION = 10**12; // will cause and overflow if ALL tokens will be staked at once, which will won't matter at this point anyway
+    
     struct StakeSharesState {
         uint256 sharesPool;
         uint256 stakePool;
