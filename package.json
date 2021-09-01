@@ -70,9 +70,9 @@
     "solidity-coverage": "^0.7.4",
     "solium": "^1.1.8",
     "truffle": "5.0.34",
-    "truffle-contract-size": "^1.0.1",
-    "web3": "^1.5.2",
-    "web3-eth-abi": "^1.0.0-beta.51"
+    "web3": "^1.0.0-beta.33",
+    "web3-eth-abi": "^1.0.0-beta.51",
+    "truffle-contract-size": "^1.0.1"
   },
   "dependencies": {
     "@truffle/hdwallet-provider": "^1.4.0",
