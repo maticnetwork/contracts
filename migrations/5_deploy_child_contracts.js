@@ -7,7 +7,7 @@ const ChildChain = artifacts.require('ChildChain')
 const MRC20 = artifacts.require('MRC20')
 
 module.exports = async function(deployer, network, accounts) {
-  if ((deployer.network !== 'bor') && (deployer.network !== 'bordevnet')) {
+  if (deployer.network !== 'bor') {
     return
   }
 
