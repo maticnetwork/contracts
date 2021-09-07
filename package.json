@@ -27,8 +27,7 @@
     "lint:sol:fix": "solium -d contracts/ --fix",
     "lint:sol": "solium -d contracts/"
   },
-  "pre-commit": [
-  ],
+  "pre-commit": [],
   "repository": {
     "type": "git",
     "url": "https://github.com/maticnetwork/contracts.git"
@@ -76,6 +75,7 @@
     "truffle-contract-size": "^1.0.1"
   },
   "dependencies": {
+    "@truffle/hdwallet-provider": "^1.4.0",
     "commander": "^4.0.1",
     "ethereumjs-abi": "^0.6.5",
     "ethereumjs-block": "2.1.0",
@@ -87,7 +87,6 @@
     "nunjucks": "^3.2.0",
     "openzeppelin-solidity": "2.2.0",
     "solidity-rlp": "^2.0.0",
-    "truffle-hdwallet-provider": "^1.0.17",
     "truffle-plugin-verify": "^0.3.8"
   }
 }
