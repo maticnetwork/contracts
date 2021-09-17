@@ -13,7 +13,7 @@ chai
   .use(chaiAsPromised)
   .should()
 
-contract.only('DepositManager', async function(accounts) {
+contract('DepositManager', async function(accounts) {
   const amount = web3.utils.toBN('10').pow(web3.utils.toBN('18'))
 
   async function freshDeploy() {
