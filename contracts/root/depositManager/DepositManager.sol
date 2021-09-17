@@ -150,16 +150,6 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
         uint256 _tokenId,
         bytes memory /* _data */
     ) public returns (bytes4) {
-        if (!isDepositForUser) {
-            // the ERC721 contract address is the message sender
-            _safeCreateDepositBlock(
-                _user,
-                msg.sender,
-                /* token */
-                _tokenId
-            );
-        }
-        
         return 0x150b7a02;
     }
 
@@ -207,8 +197,6 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
     }
 
     function _safeTransferERC721(address _user, address _token, uint256 _tokenId) private {
-        isDepositForUser = true;
         IERC721(_token).safeTransferFrom(_user, address(this), _tokenId);
-        isDepositForUser = false;
     }
 }

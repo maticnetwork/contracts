@@ -27,5 +27,4 @@ contract DepositManagerStorage is ProxyStorage, GovernanceLockable, DepositManag
 
     address public childChain;
     uint256 public maxErc20Deposit = 100 * (10**18);
-    bool internal isDepositForUser;
 }
