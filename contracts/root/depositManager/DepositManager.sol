@@ -6,7 +6,6 @@ import {IERC721} from "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol"
 import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import {SafeERC20} from "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
 
-import {ContractReceiver} from "../../common/misc/ContractReceiver.sol";
 import {Registry} from "../../common/Registry.sol";
 import {WETH} from "../../common/tokens/WETH.sol";
 import {IDepositManager} from "./IDepositManager.sol";
@@ -16,7 +15,7 @@ import {GovernanceLockable} from "../../common/mixin/GovernanceLockable.sol";
 import {RootChain} from "../RootChain.sol";
 
 
-contract DepositManager is DepositManagerStorage, IDepositManager, ERC721Holder, ContractReceiver {
+contract DepositManager is DepositManagerStorage, IDepositManager, ERC721Holder {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -132,20 +131,6 @@ contract DepositManager is DepositManagerStorage, IDepositManager, ERC721Holder,
         WETH t = WETH(wethToken);
         t.deposit.value(msg.value)();
         _safeCreateDepositBlock(msg.sender, wethToken, msg.value);
-    }
-
-    // See https://github.com/ethereum/EIPs/issues/223
-    function tokenFallback(
-        address _user,
-        uint256 _amount,
-        bytes memory /* _data */
-    ) public {
-        _safeCreateDepositBlock(
-            _user,
-            msg.sender,
-            /* token */
-            _amount
-        );
     }
 
     function _safeCreateDepositBlock(
