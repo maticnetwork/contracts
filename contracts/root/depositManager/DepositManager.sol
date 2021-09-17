@@ -1,6 +1,6 @@
 pragma solidity ^0.5.2;
 
-import {IERC721Receiver} from "openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol";
+import {ERC721Holder} from "openzeppelin-solidity/contracts/token/ERC721/ERC721Holder.sol";
 import {IERC20} from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
 import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
@@ -16,7 +16,7 @@ import {GovernanceLockable} from "../../common/mixin/GovernanceLockable.sol";
 import {RootChain} from "../RootChain.sol";
 
 
-contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiver, ContractReceiver {
+contract DepositManager is DepositManagerStorage, IDepositManager, ERC721Holder, ContractReceiver {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -132,25 +132,6 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
         WETH t = WETH(wethToken);
         t.deposit.value(msg.value)();
         _safeCreateDepositBlock(msg.sender, wethToken, msg.value);
-    }
-
-    /**
-   * @notice This will be invoked when safeTransferFrom is called on the token contract to deposit tokens to this contract
-     without directly interacting with it
-   * @dev msg.sender is the token contract
-   * _operator The address which called `safeTransferFrom` function on the token contract
-   * @param _user The address which previously owned the token
-   * @param _tokenId The NFT identifier which is being transferred
-   * _data Additional data with no specified format
-   * @return `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
-   */
-    function onERC721Received(
-        address, /* _operator */
-        address _user,
-        uint256 _tokenId,
-        bytes memory /* _data */
-    ) public returns (bytes4) {
-        return 0x150b7a02;
     }
 
     // See https://github.com/ethereum/EIPs/issues/223
