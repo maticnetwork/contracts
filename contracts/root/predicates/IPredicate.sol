@@ -7,9 +7,7 @@ import {RLPEncode} from "../../common/lib/RLPEncode.sol";
 
 import {IWithdrawManager} from "../withdrawManager/IWithdrawManager.sol";
 import {IDepositManager} from "../depositManager/IDepositManager.sol";
-import {
-    ExitsDataStructure
-} from "../withdrawManager/WithdrawManagerStorage.sol";
+import {ExitsDataStructure} from "../withdrawManager/WithdrawManagerStorage.sol";
 import {ChainIdMixin} from "../../common/mixin/ChainIdMixin.sol";
 
 interface IPredicate {
