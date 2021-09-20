@@ -3,10 +3,7 @@ name: CI
 on:
   push:
     branches: 
-      - develop
-      - master
-      - release-0.3-3
-      - v0.3.0-backport
+      - main
   pull_request:
 
 jobs:
