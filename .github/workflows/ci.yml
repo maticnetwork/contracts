@@ -6,6 +6,7 @@ on:
       - develop
       - master
       - release-0.3-3
+      - v0.3.0-backport
   pull_request:
 
 jobs:
