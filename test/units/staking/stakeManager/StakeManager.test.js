@@ -3,7 +3,8 @@ import utils from 'ethereumjs-util'
 import {
   ValidatorShare,
   StakingInfo,
-  TestToken
+  TestToken,
+  StakeManager
 } from '../../../helpers/artifacts'
 
 import { buildTreeFee } from '../../../helpers/proofs.js'
@@ -174,6 +175,29 @@ contract('StakeManager', async function(accounts) {
       assertBigNumberEquality(this.bidderBalanceBeforeAuction.sub(new BN(this.bidAmount)).sub(new BN(this.heimdallFee)), currentBalance)
     })
   }
+
+  describe('initialize', function() {
+    describe('when called directly on implementation', function() {
+      before(freshDeploy)
+      before(async function() {
+        this.stakeManagerImpl = await StakeManager.at(this.stakeManager.address)
+      })
+
+      it('reverts', async function() {
+        await expectRevert(this.stakeManagerImpl.initialize(
+          ZeroAddr,
+          ZeroAddr,
+          ZeroAddr,
+          ZeroAddr,
+          ZeroAddr,
+          ZeroAddr,
+          ZeroAddr,
+          ZeroAddr,
+          ZeroAddr
+        ), 'already inited')
+      })
+    })
+  })
 
   describe('updateCommissionRate', function() {
     async function batchDeploy() {
