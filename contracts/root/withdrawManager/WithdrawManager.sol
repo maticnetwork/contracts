@@ -8,6 +8,7 @@ import {RLPReader} from "solidity-rlp/contracts/RLPReader.sol";
 import {Merkle} from "../../common/lib/Merkle.sol";
 import {MerklePatriciaProof} from "../../common/lib/MerklePatriciaProof.sol";
 import {PriorityQueue} from "../../common/lib/PriorityQueue.sol";
+import {ExitPayloadReader} from "../../common/lib/ExitPayloadReader.sol";
 
 import {ExitNFT} from "./ExitNFT.sol";
 import {DepositManager} from "../depositManager/DepositManager.sol";
@@ -22,6 +23,12 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
     using RLPReader for bytes;
     using RLPReader for RLPReader.RLPItem;
     using Merkle for bytes32;
+
+    using ExitPayloadReader for bytes;
+    using ExitPayloadReader for ExitPayloadReader.ExitPayload;
+    using ExitPayloadReader for ExitPayloadReader.Receipt;
+    using ExitPayloadReader for ExitPayloadReader.Log;
+    using ExitPayloadReader for ExitPayloadReader.LogTopics;
 
     modifier isBondProvided() {
         require(msg.value == BOND_AMOUNT, "Invalid Bond amount");
@@ -61,10 +68,12 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
      */
     struct VerifyInclusionVars {
         uint256 headerNumber;
-        bytes branchMaskBytes;
         uint256 blockNumber;
         uint256 createdAt;
         uint256 branchMask;
+        bytes32 txRoot;
+        bytes32 receiptRoot;
+        bytes branchMaskBytes;
     }
 
     /**
@@ -95,17 +104,19 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
             uint256 /* ageOfInput */
         )
     {
-        RLPReader.RLPItem[] memory referenceTxData = data.toRlpItem().toList();
+        ExitPayloadReader.ExitPayload memory payload = data.toExitPayload();
         VerifyInclusionVars memory vars;
 
-        vars.headerNumber = referenceTxData[offset].toUint();
-        vars.branchMaskBytes = referenceTxData[offset + 8].toBytes();
+        vars.headerNumber = payload.getHeaderNumber();
+        vars.branchMaskBytes = payload.getBranchMaskAsBytes();
+        vars.txRoot = payload.getTxRoot();
+        vars.receiptRoot = payload.getReceiptRoot();
         require(
             MerklePatriciaProof.verify(
-                referenceTxData[offset + 6].toBytes(), // receipt
+                payload.getReceipt().toBytes(),
                 vars.branchMaskBytes,
-                referenceTxData[offset + 7].toBytes(), // receiptProof
-                bytes32(referenceTxData[offset + 5].toUint()) // receiptsRoot
+                payload.getReceiptProof(),
+                vars.receiptRoot
             ),
             "INVALID_RECEIPT_MERKLE_PROOF"
         );
@@ -113,26 +124,26 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
         if (verifyTxInclusion) {
             require(
                 MerklePatriciaProof.verify(
-                    referenceTxData[offset + 10].toBytes(), // tx
+                    payload.getTx(),
                     vars.branchMaskBytes,
-                    referenceTxData[offset + 11].toBytes(), // txProof
-                    bytes32(referenceTxData[offset + 4].toUint()) // txRoot
+                    payload.getTxProof(), 
+                    vars.txRoot
                 ),
                 "INVALID_TX_MERKLE_PROOF"
             );
         }
 
-        vars.blockNumber = referenceTxData[offset + 2].toUint();
+        vars.blockNumber = payload.getBlockNumber();
         vars.createdAt = checkBlockMembershipInCheckpoint(
             vars.blockNumber,
-            referenceTxData[offset + 3].toUint(), // blockTime
-            bytes32(referenceTxData[offset + 4].toUint()), // txRoot
-            bytes32(referenceTxData[offset + 5].toUint()), // receiptRoot
+            payload.getBlockTime(),
+            vars.txRoot,
+            vars.receiptRoot,
             vars.headerNumber,
-            referenceTxData[offset + 1].toBytes() // blockProof
+            payload.getBlockProof()
         );
 
-        vars.branchMask = vars.branchMaskBytes.toRlpItem().toUint();
+        vars.branchMask = payload.getBranchMaskAsUint();
         require(
             vars.branchMask & 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000 == 0,
             "Branch mask should be 32 bits"

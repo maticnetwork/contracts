@@ -32,15 +32,6 @@ module.exports = {
       network_id: '*', // match any network
       gasPrice: '0'
     },
-    bordevnet: {
-      provider: () =>
-        new HDWalletProvider(
-          MNEMONIC,
-          `http://3.94.19.25:9545`
-        ),
-      network_id: '80001', // match any network
-      gasPrice: '0'
-    },
     matic: {
       provider: () =>
         new HDWalletProvider(

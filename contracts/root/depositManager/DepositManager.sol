@@ -1,11 +1,11 @@
 pragma solidity ^0.5.2;
 
-import {IERC721Receiver} from "openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol";
+import {ERC721Holder} from "openzeppelin-solidity/contracts/token/ERC721/ERC721Holder.sol";
 import {IERC20} from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
 import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import {SafeERC20} from "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
 
-import {ContractReceiver} from "../../common/misc/ContractReceiver.sol";
 import {Registry} from "../../common/Registry.sol";
 import {WETH} from "../../common/tokens/WETH.sol";
 import {IDepositManager} from "./IDepositManager.sol";
@@ -15,8 +15,9 @@ import {GovernanceLockable} from "../../common/mixin/GovernanceLockable.sol";
 import {RootChain} from "../RootChain.sol";
 
 
-contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiver, ContractReceiver {
+contract DepositManager is DepositManagerStorage, IDepositManager, ERC721Holder {
     using SafeMath for uint256;
+    using SafeERC20 for IERC20;
 
     modifier isTokenMapped(address _token) {
         require(registry.isTokenMapped(_token), "TOKEN_NOT_SUPPORTED");
@@ -80,13 +81,11 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
         for (uint256 i = 0; i < _tokens.length; i++) {
             // will revert if token is not mapped
             if (_registry.isTokenMappedAndIsErc721(_tokens[i])) {
-                IERC721(_tokens[i]).transferFrom(msg.sender, address(this), _amountOrTokens[i]);
+                _safeTransferERC721(msg.sender, _tokens[i], _amountOrTokens[i]);
             } else {
-                require(
-                    IERC20(_tokens[i]).transferFrom(msg.sender, address(this), _amountOrTokens[i]),
-                    "TOKEN_TRANSFER_FAILED"
-                );
+                IERC20(_tokens[i]).safeTransferFrom(msg.sender, address(this), _amountOrTokens[i]);
             }
+
             _createDepositBlock(_user, _tokens[i], _amountOrTokens[i], depositId);
             depositId = depositId.add(1);
         }
@@ -111,7 +110,7 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
         uint256 _amount
     ) public {
         require(_amount <= maxErc20Deposit, "exceed maximum deposit amount");
-        require(IERC20(_token).transferFrom(msg.sender, address(this), _amount), "TOKEN_TRANSFER_FAILED");
+        IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
         _safeCreateDepositBlock(_user, _token, _amount);
     }
 
@@ -120,7 +119,9 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
         address _user,
         uint256 _tokenId
     ) public {
-        IERC721(_token).transferFrom(msg.sender, address(this), _tokenId);
+        require(registry.isTokenMappedAndIsErc721(_token), "not erc721");
+
+        _safeTransferERC721(msg.sender, _token, _tokenId);
         _safeCreateDepositBlock(_user, _token, _tokenId);
     }
 
@@ -130,46 +131,6 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
         WETH t = WETH(wethToken);
         t.deposit.value(msg.value)();
         _safeCreateDepositBlock(msg.sender, wethToken, msg.value);
-    }
-
-    /**
-   * @notice This will be invoked when safeTransferFrom is called on the token contract to deposit tokens to this contract
-     without directly interacting with it
-   * @dev msg.sender is the token contract
-   * _operator The address which called `safeTransferFrom` function on the token contract
-   * @param _user The address which previously owned the token
-   * @param _tokenId The NFT identifier which is being transferred
-   * _data Additional data with no specified format
-   * @return `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
-   */
-    function onERC721Received(
-        address, /* _operator */
-        address _user,
-        uint256 _tokenId,
-        bytes memory /* _data */
-    ) public returns (bytes4) {
-        // the ERC721 contract address is the message sender
-        _safeCreateDepositBlock(
-            _user,
-            msg.sender,
-            /* token */
-            _tokenId
-        );
-        return 0x150b7a02;
-    }
-
-    // See https://github.com/ethereum/EIPs/issues/223
-    function tokenFallback(
-        address _user,
-        uint256 _amount,
-        bytes memory /* _data */
-    ) public {
-        _safeCreateDepositBlock(
-            _user,
-            msg.sender,
-            /* token */
-            _amount
-        );
     }
 
     function _safeCreateDepositBlock(
@@ -199,5 +160,9 @@ contract DepositManager is DepositManagerStorage, IDepositManager, IERC721Receiv
     // Housekeeping function. @todo remove later
     function updateRootChain(address _rootChain) public onlyOwner {
         rootChain = RootChain(_rootChain);
+    }
+
+    function _safeTransferERC721(address _user, address _token, uint256 _tokenId) private {
+        IERC721(_token).safeTransferFrom(_user, address(this), _tokenId);
     }
 }
