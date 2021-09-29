@@ -1,6 +1,7 @@
 node_modules
 build
 contractAddresses.json
+artifacts
 
 # ignore generated files
 contracts/root/predicates/TransferWithSigUtils.sol
