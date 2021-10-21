@@ -1,5 +1,6 @@
 import '@nomiclabs/hardhat-truffle5'
 import 'hardhat-contract-sizer'
+import '@typechain/hardhat'
 
 const MNEMONIC = process.env.MNEMONIC || 'clock radar mass judge dismiss just intact mind resemble fringe diary casino'
 const API_KEY = process.env.API_KEY
@@ -44,5 +45,10 @@ export default {
     disambiguatePaths: false,
     runOnCompile: true,
     strict: true
+  },
+  typechain: {
+    outDir: 'typechain',
+    target: 'truffle-v5',
+    alwaysGenerateOverloads: false
   }
 }
