@@ -42,7 +42,7 @@ export default class StatefulUtils {
     const end = event.block.number
     this.lastEndBlock = end
     if (start > end) {
-      throw new Error(`Invalid end block number for checkpoint`, { start, end });
+      throw new Error(`Invalid end block number for checkpoint ${{ start, end }}`)
     }
 
     const headers = []

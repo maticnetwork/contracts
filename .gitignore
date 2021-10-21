@@ -29,3 +29,5 @@ coverage.json
 cache/
 
 debug.json
+
+typechain/

@@ -157,7 +157,7 @@ export function buildsubmitCheckpointPaylod(
   end,
   root,
   wallets,
-  options = { rewardsRootHash: '', allValidators: false, getSigs: false, totalStake: 1, sigPrefix: '' } // false vars are to show expected vars
+  options = { rewardsRootHash: '' } // false vars are to show expected vars
 ) {
   if (!root) root = ethUtils.keccak256(encode(start, end)) // dummy root
   if (!wallets) {

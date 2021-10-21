@@ -1,6 +1,6 @@
-import { increaseBlockTime, mineOneBlock } from '../../../helpers/chain'
 const Proofs = require('../../../helpers/proofs')
 const utils = require('../../../helpers/utils')
+const { time } = require('@openzeppelin/test-helpers')
 
 const MAX_LOGS = web3.utils.toBN(10)
 const BOND_AMOUNT = web3.utils.toBN(10).pow(web3.utils.toBN(17))
@@ -87,7 +87,7 @@ export async function assertChallengeBondReceived(challenge, originalBalance) {
 }
 
 export async function processExits(withdrawManager, token) {
-  await increaseBlockTime(14 * 86400)
-  await mineOneBlock()
+  await time.increase(14 * 86400)
+  await time.advanceBlock()
   return withdrawManager.processExits(token, { gas: 5000000 })
 }

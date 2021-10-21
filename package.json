@@ -9,12 +9,7 @@
   "scripts": {
     "testrpc:root": "hardhat node --port 9545",
     "template:process": "node scripts/process-templates.js",
-    "truffle:coverage": "truffle run coverage",
     "compile": "npx hardhat compile",
-    "truffle:migrate": "scripts/run-migration.sh",
-    "truffle:migrate:dev": "truffle migrate --network development",
-    "truffle:migrate:dev:bor": "truffle migrate --network bor",
-    "truffle:verify": "truffle run verify $npm_package_verify_contracts --network ropsten",
     "test": "npx hardhat test --network root",
     "coverage": "scripts/run-coverage.sh",
     "test:ci": "scripts/run-test.sh",
@@ -23,7 +18,8 @@
     "lint": "npm run lint:sol && npm run lint:js",
     "lint:js": "eslint test/**/*.js",
     "lint:sol:fix": "solium -d contracts/ --fix",
-    "lint:sol": "solium -d contracts/"
+    "lint:sol": "solium -d contracts/",
+    "typechain": "npx typechain --target=truffle-v5 --out-dir typechain './build/contracts/*.json'"
   },
   "pre-commit": [],
   "repository": {
@@ -78,6 +74,7 @@
   },
   "dependencies": {
     "@truffle/hdwallet-provider": "^1.4.0",
+    "@typechain/truffle-v5": "^5.1.0",
     "commander": "^4.0.1",
     "ethereumjs-abi": "^0.6.5",
     "ethereumjs-block": "2.1.0",
@@ -90,6 +87,11 @@
     "nunjucks": "^3.2.0",
     "openzeppelin-solidity": "2.2.0",
     "solidity-rlp": "^2.0.0",
-    "truffle-plugin-verify": "^0.3.8"
+    "truffle": "^5.4.14",
+    "truffle-plugin-verify": "^0.3.8",
+    "ts-node": "^10.2.1",
+    "tslint": "^6.1.3",
+    "typechain": "^5.1.2",
+    "typescript": "^4.4.3"
   }
 }
