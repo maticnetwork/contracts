@@ -21,7 +21,7 @@ chai
   .use(chaiAsPromised)
   .should()
 
-contract('MarketplacePredicate (from mocked responses) @skip-on-coverage', async function(accounts) {
+contract.skip('MarketplacePredicate (from mocked responses) @skip-on-coverage', async function(accounts) {
   let predicate, erc20Predicate, erc721Predicate
 
   before(async function() {

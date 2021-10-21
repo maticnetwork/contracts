@@ -36,12 +36,11 @@ describe.skip("WithdrawManager full", function() {
         const c1 = await ContractWithFallback.new()
         const c2 = await ContractWithoutFallback.new()
         const c3 = await ContractWitRevertingFallback.new()
-  
-        await Promise.all([
-          contracts.rootERC20.transfer(c1.address, amount),
-          contracts.rootERC20.transfer(c2.address, amount),
-          contracts.rootERC20.transfer(c3.address, amount)
-        ])
+        
+        await contracts.rootERC20.transfer(c1.address, amount)
+        await contracts.rootERC20.transfer(c2.address, amount)
+        await contracts.rootERC20.transfer(c3.address, amount)
+
         await c1.deposit(contracts.depositManager.address, contracts.rootERC20.address, amount)
         await c2.deposit(contracts.depositManager.address, contracts.rootERC20.address, amount)
         await c3.deposit(contracts.depositManager.address, contracts.rootERC20.address, amount)

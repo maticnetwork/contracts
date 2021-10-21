@@ -53,6 +53,9 @@ export const ExitNFT = artifacts.require('ExitNFT')
 export const GnosisSafeProxy = artifacts.require('GnosisSafeProxy')
 export const GnosisSafe = artifacts.require('GnosisSafe')
 
+// Libraries
+export const Common = artifacts.require('Common')
+
 // child chain
 export const childContracts = {
   Marketplace: artifacts.require('Marketplace'),

@@ -9,7 +9,7 @@ class Deployer {
       // hack for quick fix
       contracts[c] = contracts.childContracts[c]
       if (!process.env.SOLIDITY_COVERAGE) {
-        contracts[c].web3 = utils.web3Child
+        contracts[c].setProvider(utils.childProvider)
       }
     })
   }
@@ -63,7 +63,7 @@ class Deployer {
 
     this.stakeManager = await contracts.StakeManager.at(proxy.address)
     this.buildStakeManagerObject(this.stakeManager, this.governance)
-    this.stakeManager.updateCheckPointBlockInterval(1)
+    await this.stakeManager.updateCheckPointBlockInterval(1)
 
     await this.stakingNFT.transferOwnership(this.stakeManager.address)
     this.exitNFT = await contracts.ExitNFT.new(this.registry.address)
@@ -71,7 +71,6 @@ class Deployer {
     await this.deployStateSender()
     const depositManager = await this.deployDepositManager()
     const withdrawManager = await this.deployWithdrawManager()
-
     await this.updateContractMap(
       ethUtils.keccak256('stakeManager'),
       this.stakeManager.address
@@ -89,9 +88,7 @@ class Deployer {
       stakeManager: this.stakeManager,
       governance: this.governance
     }
-
     _contracts.testToken = await this.deployTestErc20()
-
     return _contracts
   }
 
@@ -249,13 +246,11 @@ class Deployer {
 
   async deployMaticWeth() {
     const maticWeth = await contracts.MaticWETH.new()
-    await Promise.all([
-      this.mapToken(maticWeth.address, maticWeth.address, false /* isERC721 */),
-      this.updateContractMap(
-        ethUtils.keccak256('wethToken'),
-        maticWeth.address
-      )
-    ])
+    await this.mapToken(maticWeth.address, maticWeth.address, false /* isERC721 */),
+    await this.updateContractMap(
+      ethUtils.keccak256('wethToken'),
+      maticWeth.address
+    )
     return maticWeth
   }
 
@@ -346,6 +341,7 @@ class Deployer {
   async deployErc721Predicate(burnOnly) {
     let predicate = contracts.ERC721Predicate
     if (burnOnly) predicate = contracts.ERC721PredicateBurnOnly
+
     const ERC721Predicate = await predicate.new(
       this.withdrawManagerProxy.address,
       this.depositManagerProxy.address
@@ -453,7 +449,6 @@ class Deployer {
       'ChildToken',
       'CTOK',
       18
-      // this.childChain.address
     )
     // set child chain address
     await childToken.changeChildChain(this.childChain.address)
@@ -466,7 +461,7 @@ class Deployer {
         false /* isERC721 */
       )
     }
-    return { rootERC20, childToken, childTokenProxy  }
+    return { rootERC20, childToken, childTokenProxy }
   }
 
   async deployMaticToken() {
@@ -614,9 +609,9 @@ class Deployer {
     let proxy = await contracts.GnosisSafeProxy.new(gnosisSafe.address)
     gnosisSafe = await contracts.GnosisSafe.at(proxy.address)
     await gnosisSafe.setup(
-      [...signers], 2, utils.ZeroAddress, "0x", utils.ZeroAddress, utils.ZeroAddress, 0, utils.ZeroAddress
+      signers, 2, utils.ZeroAddress, '0x', utils.ZeroAddress, utils.ZeroAddress, 0, utils.ZeroAddress
     )
-  return gnosisSafe
+    return gnosisSafe
   }
 }
 

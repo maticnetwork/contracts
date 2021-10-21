@@ -4,14 +4,14 @@
 set -o errexit
 
 # Executes cleanup function at script exit.
-trap cleanup EXIT
+trap cleanup EXIT SIGINT SIGTERM ERR EXIT
 
 # get current directory
 PWD=$(pwd)
 
 cleanup() {
   echo "Cleaning up"
-  pkill -f ganache-cli
+  pkill -f "hardhat node"
   cd $PWD/test-blockchain
   bash stop-docker.sh
   bash clean.sh
@@ -20,26 +20,26 @@ cleanup() {
 }
 
 start_testrpc() {
-  npm run testrpc > /dev/null &
+  npm run testrpc:root > /dev/null &
 }
 
 start_blockchain() {
-  cd $PWD/test-blockchain
-  bash run-docker.sh
-  cd ..
+  npm run bor:simulate
 }
 
 
 echo "Starting our own testrpc instance"
 start_testrpc
 
-echo "Starting our own geth instance"
+echo "Starting our own bor instance"
 start_blockchain
 
+sleep 2
+
 if [ "$SOLIDITY_COVERAGE" = true ]; then
-  npm run truffle:coverage "$@"
+  npm run coverage "$@"
 else
-  npm run truffle:test "$@"
+  npm run test "$@"
 fi
 
 

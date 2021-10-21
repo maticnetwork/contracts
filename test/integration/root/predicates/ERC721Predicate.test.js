@@ -16,7 +16,7 @@ chai.use(chaiAsPromised).should()
 let contracts, childContracts
 let statefulUtils
 
-contract('ERC721Predicate @skip-on-coverage', async function(accounts) {
+contract.skip('ERC721Predicate @skip-on-coverage', async function(accounts) {
   let tokenId
   const alice = accounts[0]
   const bob = accounts[1]

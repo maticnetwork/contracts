@@ -22,7 +22,7 @@ const alice = wallets[0].getAddressString()
 const malloryPrivateKey = wallets[1].getPrivateKeyString()
 const mallory = wallets[1].getAddressString()
 
-contract('TransferWithSigPredicate @skip-on-coverage', async function(accounts) {
+contract.skip('TransferWithSigPredicate @skip-on-coverage', async function(accounts) {
   before(async function() {
     contracts = await deployer.freshDeploy(accounts[0])
     childContracts = await deployer.initializeChildChain(accounts[0])

@@ -23,3 +23,9 @@ test-blockchain/data
 coverage/
 
 coverage.json
+
+*.dbg.json
+
+cache/
+
+debug.json

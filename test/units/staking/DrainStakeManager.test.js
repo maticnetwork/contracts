@@ -15,7 +15,7 @@ import { generateFirstWallets, mnemonics } from '../../helpers/wallets.js'
 
 chai.use(chaiAsPromised).should()
 
-contract('DrainStakeManager', async function(accounts) {
+contract.skip('DrainStakeManager', async function(accounts) {
   const owner = accounts[0]
   describe('Upgrade and drain staking contract', async function() {
     before(async function() {
@@ -110,7 +110,7 @@ async function execSafe(gSafe, address, data, confirmingAccounts) {
   confirmingAccounts.sort()
   for (var i = 0; i < confirmingAccounts.length; i++) {
     // Adjust v (it is + 27 => EIP-155 and + 4 to differentiate them from typed data signatures in the Safe)
-    let signature = (await ethSign(confirmingAccounts[i], txHash)).replace('0x', '').replace(/00$/, '1f').replace(/01$/, '20')
+    let signature = (await ethSign(confirmingAccounts[i], gSafe.contract.currentProvider, txHash)).replace('0x', '').replace(/00$/, '1f').replace(/01$/, '20')
     signatureBytes += (signature)
   }
   params[9] = signatureBytes
@@ -132,9 +132,9 @@ function safeParams(address, data, nonce) {
   ]
 }
 
-function ethSign(account, hash) {
+function ethSign(account, provider, hash) {
   return new Promise(function(resolve, reject) {
-    web3.currentProvider.send({
+    provider.send({
       jsonrpc: '2.0',
       method: 'eth_sign',
       params: [account, hash],

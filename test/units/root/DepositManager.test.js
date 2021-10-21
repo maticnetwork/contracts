@@ -18,8 +18,7 @@ contract('DepositManager', async function(accounts) {
 
   async function freshDeploy() {
     this.contracts = await deployer.freshDeploy(accounts[0])
-    await deployer.deployRootChain()
-    this.depositManager = await deployer.deployDepositManager()
+    this.depositManager = this.contracts.depositManager
   }
 
   function validateDepositBlock(depositBlock, owner, token, amountOrNFTId) {
@@ -73,7 +72,7 @@ contract('DepositManager', async function(accounts) {
 
       describe('when from is governance', function() {
         it('must update max deposit to 50 tokens', async function() {
-          this.contracts.governance.update(
+          await this.contracts.governance.update(
             this.depositManager.address,
             this.depositManager.contract.methods.updateMaxErc20Deposit(50).encodeABI()
           )

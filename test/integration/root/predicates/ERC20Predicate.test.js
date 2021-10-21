@@ -13,7 +13,7 @@ const web3Child = utils.web3Child
 chai.use(chaiAsPromised).should()
 let contracts, childContracts, statefulUtils
 
-contract('ERC20Predicate @skip-on-coverage', async function(accounts) {
+contract.skip('ERC20Predicate @skip-on-coverage', async function(accounts) {
   const amount = web3.utils.toBN('10').mul(utils.scalingFactor)
   const halfAmount = web3.utils.toBN('5').mul(utils.scalingFactor)
   const user = accounts[0]

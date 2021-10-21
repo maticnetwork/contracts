@@ -28,6 +28,8 @@ if (process.env.SOLIDITY_COVERAGE) {
   )
 }
 
+export const childProvider = new web3.providers.HttpProvider('http://localhost:8545')
+
 export const ZeroAddress = '0x0000000000000000000000000000000000000000'
 export let ChildMaticTokenAddress = '0x0000000000000000000000000000000000001010'
 export const scalingFactor = web3.utils.toBN(10).pow(web3.utils.toBN(18))
