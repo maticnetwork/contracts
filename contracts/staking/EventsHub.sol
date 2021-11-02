@@ -104,6 +104,7 @@ contract EventsHub is Initializable {
     }
 
     event SharesTransfer(
+        uint256 indexed validatorId,
         address indexed from,
         address indexed to,
         uint256 value
@@ -115,6 +116,6 @@ contract EventsHub is Initializable {
         address to,
         uint256 value
     ) public onlyValidatorContract(validatorId) {
-        emit SharesTransfer(from, to, value);
+        emit SharesTransfer(validatorId, from, to, value);
     }
 }
