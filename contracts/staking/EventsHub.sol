@@ -102,4 +102,20 @@ contract EventsHub is Initializable {
             oldCommissionRate
         );
     }
+
+    event SharesTransfer(
+        uint256 indexed validatorId,
+        address indexed from,
+        address indexed to,
+        uint256 value
+    );
+
+    function logSharesTransfer(
+        uint256 validatorId,
+        address from,
+        address to,
+        uint256 value
+    ) public onlyValidatorContract(validatorId) {
+        emit SharesTransfer(validatorId, from, to, value);
+    }
 }
