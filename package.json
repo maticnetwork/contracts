@@ -3,9 +3,7 @@
   "version": "0.3.2",
   "description": "",
   "main": "index.js",
-  "verify": {
-    "contracts": "RootChain StakeManager"
-  },
+  "flatten": "RootChain StakeManager Registry EventsHub StakingInfo WithdrawManager ExitNFT",
   "scripts": {
     "testrpc:root": "hardhat node --port 9545",
     "template:process": "node scripts/process-templates.js",
@@ -72,6 +70,7 @@
     "web3-eth-abi": "^1.0.0-beta.51"
   },
   "dependencies": {
+    "@nomiclabs/hardhat-etherscan": "^2.1.7",
     "@truffle/hdwallet-provider": "^1.4.0",
     "@typechain/hardhat": "^2.3.1",
     "@typechain/truffle-v5": "^5.1.0",
@@ -84,8 +83,10 @@
     "glob": "^7.1.6",
     "hardhat-contract-sizer": "^2.1.1",
     "merkle-patricia-tree": "2.3.2",
+    "minimist": "^1.2.5",
     "nunjucks": "^3.2.0",
     "openzeppelin-solidity": "2.2.0",
+    "solc": "^0.8.9",
     "solidity-rlp": "^2.0.0",
     "truffle": "^5.4.14",
     "truffle-plugin-verify": "^0.3.8",

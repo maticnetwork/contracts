@@ -1,0 +1,27 @@
+{
+  "extends": [
+    "tslint:recommended"
+  ],
+  "linterOptions": {
+    "exclude": [
+      "node_modules/**/*.ts"
+    ]
+  },
+  "rules": {
+    "no-console": false,
+    "no-relative-imports": false,
+    "max-classes-per-file": [
+      true,
+      10
+    ],
+    "no-global-arrow-functions": false,
+    "no-floating-promises": true,
+    "no-bitwise": false,
+    "space-before-function-paren": [true, "never"],
+    "only-arrow-functions": false,
+    "forin": false,
+    "semicolon": [true, "never"],
+    "quotemark": [true, "single"]
+  },
+  "jsEnable": true
+}

@@ -1,0 +1,97 @@
+{
+  "date": 0,
+  "libraries": {
+    "BytesLib": "0x1d21fACFC8CaD068eF0cbc87FdaCdFb20D7e2417",
+    "Common": "0x31851aAf1FA4cC6632f45570c2086aDcF8B7BD75",
+    "ECVerify": "0x71d91a8988D81617be53427126ee62471321b7DF",
+    "Merkle": "0x8b90C7633F1f751E19E76433990B1663c625B258",
+    "MerklePatriciaProof": "0x8E51a119E892D3fb324C0410F11f39F61dec9DC8",
+    "PriorityQueue": "0x61AdDcD534Bdc1721c91740Cf711dBEcE936053e",
+    "RLPEncode": "0x021c2Bf4d2941cE3D593e07317EC355937bae495",
+    "RLPReader": "0xD75f1d6A8A7Dc558A65c2f30eBF876DdbeE035a2",
+    "SafeMath": "0x96D358795782a73d90F2ed2d505aB235D197ca05"
+  },
+  "contracts": {
+    "Governance": {
+      "address": "0x98165b71cdDea047C0A49413350C40571195fd07"
+    },
+    "GovernanceProxy": {
+      "address": "0x6e7a5820baD6cebA8Ef5ea69c0C92EbbDAc9CE48"
+    },
+    "Registry": {
+      "address": "0x33a02E6cC863D393d6Bf231B697b82F6e499cA71"
+    },
+    "RootChain": {
+      "address": "0x536c55cFe4892E581806e10b38dFE8083551bd03"
+    },
+    "RootChainProxy": {
+      "address": "0x86E4Dc95c7FBdBf52e33D563BbDB00823894C287"
+    },
+    "ValidatorShareFactory": {
+      "address": "0xc4FA447A0e77Eff9717b09C057B40570813bb642"
+    },
+    "StakingInfo": {
+      "address": "0xa59C847Bd5aC0172Ff4FE912C5d29E5A71A7512B"
+    },
+    "StakingNFT": {
+      "address": "0x47Cbe25BbDB40a774cC37E1dA92d10C2C7Ec897F"
+    },
+    "StakeManager": {
+      "address": "0xd6f5c46d4e1a02f9d145cee41d2f8af30d8d2d76"
+    },
+    "StakeManagerExtension": {
+      "address": "0xef49ea6996073752b6840cda34773ffa78f78166"
+    },
+    "StakeManagerProxy": {
+      "address": "0x5e3Ef299fDDf15eAa0432E6e66473ace8c13D908"
+    },
+    "SlashingManager": {
+      "address": "0x01F645DcD6C796F6BC6C982159B32fAaaebdC96A"
+    },
+    "ValidatorShare": {
+      "address": "0x01d5dc56ad4206bb0c132d834644d57f51fed5ec"
+    },
+    "StateSender": {
+      "address": "0x28e4F3a7f651294B9564800b2D01f35189A5bFbE"
+    },
+    "DepositManager": {
+      "address": "0xd505C3822C787D51d5C2B1ae9aDB943B2304eB23"
+    },
+    "DepositManagerProxy": {
+      "address": "0x401F6c983eA34274ec46f84D70b31C151321188b"
+    },
+    "WithdrawManager": {
+      "address": "0x017C89Ca4Bda3D66cC65E3d20DD95432258201Ca"
+    },
+    "WithdrawManagerProxy": {
+      "address": "0x2A88696e0fFA76bAA1338F2C74497cC013495922"
+    },
+    "ExitNFT": {
+      "address": "0xDF74156420Bd57ab387B195ed81EcA36F9fABAca"
+    },
+    "ERC20PredicateBurnOnly": {
+      "address": "0x158d5fa3ef8e4dda8a5367decf76b94e7effce95"
+    },
+    "ERC721PredicateBurnOnly": {
+      "address": "0x54150f44c785d412ec262fe895cc3b689c72f49b"
+    },
+    "MaticToken": {
+      "address": "0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0"
+    },
+    "TestToken": {
+      "address": "0x3db715989dA05C1D17441683B5b41d4510512722"
+    },
+    "RootERC721": {
+      "address": "0x96CDDF45C0Cd9a59876A2a29029d7c54f6e54AD3"
+    },
+    "MaticWeth": {
+      "address": "0xa45b966996374E9e65ab991C6FE4Bfce3a56DDe8"
+    },
+    "EventsHubProxy": {
+      "address": "0x6dF5CB08d3f0193C768C8A01f42ac4424DC5086b"
+    },
+    "EventsHub": {
+      "address": "0x762540dB57aBdB6d32E5B5b8856986C0418A3b82"
+    }
+  }
+}
