@@ -29,8 +29,14 @@ const config: HardhatUserConfig = {
       allowUnlimitedContractSize: true
     },
     mainnet: {
+      accounts: { mnemonic: MNEMONIC },
       url: `https://mainnet.infura.io/v3/${API_KEY}`,
       chainId: 1
+    },
+    goerli: {
+      accounts: { mnemonic: MNEMONIC },
+      url: `https://goerli.infura.io/v3/${API_KEY}`,
+      chainId: 5
     }
   },
   mocha: {

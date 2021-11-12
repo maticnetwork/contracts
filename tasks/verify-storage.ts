@@ -1,9 +1,9 @@
-import { basename, join } from 'path'
 import { task } from 'hardhat/config'
 import { TASK_FLATTEN_GET_FLATTENED_SOURCE } from 'hardhat/builtin-tasks/task-names'
 import { verifyStorageLayout, ReleaseRegistry, loadSolcBinary, contractsPaths } from '../lib'
+import { TASKS } from './task-names'
 
-task('verify-storage', async function(_, { config, artifacts, run, network }) {
+task(TASKS.VERIFY_STORAGE, async function(_, { config, artifacts, run, network }) {
   const contractPaths = await contractsPaths(artifacts)
   const { contracts } = config.verify
 

@@ -1,16 +1,5 @@
 {
   "date": 0,
-  "libraries": {
-    "BytesLib": "0x1d21fACFC8CaD068eF0cbc87FdaCdFb20D7e2417",
-    "Common": "0x31851aAf1FA4cC6632f45570c2086aDcF8B7BD75",
-    "ECVerify": "0x71d91a8988D81617be53427126ee62471321b7DF",
-    "Merkle": "0x8b90C7633F1f751E19E76433990B1663c625B258",
-    "MerklePatriciaProof": "0x8E51a119E892D3fb324C0410F11f39F61dec9DC8",
-    "PriorityQueue": "0x61AdDcD534Bdc1721c91740Cf711dBEcE936053e",
-    "RLPEncode": "0x021c2Bf4d2941cE3D593e07317EC355937bae495",
-    "RLPReader": "0xD75f1d6A8A7Dc558A65c2f30eBF876DdbeE035a2",
-    "SafeMath": "0x96D358795782a73d90F2ed2d505aB235D197ca05"
-  },
   "contracts": {
     "Governance": {
       "address": "0x98165b71cdDea047C0A49413350C40571195fd07"

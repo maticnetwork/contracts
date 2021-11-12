@@ -116,8 +116,8 @@
     "./tasks/**/*",
     "./typechain",
     "./scripts",
-    "./lib"
-    
+    "./lib",
+    "./migrations"
   ],
   "files": [
     "hardhat.config.ts"

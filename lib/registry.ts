@@ -4,7 +4,7 @@ import { StorageSlot } from 'lib'
 import { join, basename } from 'path'
 import { getPkgJsonDir, hasValue } from './utils'
 
-const RELEASE_DATA_DIR = 'release-data'
+const RELEASE_DATA_DIR = 'release-data/versions'
 const RELEASE_BASENAME = 'release.'
 
 export class ReleaseRegistry {
@@ -30,9 +30,7 @@ export class ReleaseRegistry {
         let latestVersion = -1
         // get latest version
         for (const file of files) {
-          if (statSync(
-            join(folder, file)
-          ).isDirectory()) {
+          if (statSync(join(folder, file)).isDirectory()) {
             continue
           }
 
@@ -104,7 +102,7 @@ export async function contractsPaths(artifacts: Artifacts) {
   const contractIndex = {}
   for (const fullPath of paths) {
     // clean up absolute paths
-    // regex will not work if contract is from node_modules
+    // regex will not work if contract is from the node_modules
     contractIndex[basename(fullPath, '.json')] = fullPath.replace(/(.*artifacts\/)/, '').replace(/(\/\w+\.json$)/, '')
   }
 

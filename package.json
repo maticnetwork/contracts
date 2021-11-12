@@ -74,6 +74,7 @@
     "@truffle/hdwallet-provider": "^1.4.0",
     "@typechain/hardhat": "^2.3.1",
     "@typechain/truffle-v5": "^5.1.0",
+    "chalk": "^4.1.2",
     "commander": "^4.0.1",
     "ethereumjs-abi": "^0.6.5",
     "ethereumjs-block": "2.1.0",

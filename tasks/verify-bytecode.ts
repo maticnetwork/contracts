@@ -2,6 +2,7 @@ import { UpgradableProxyContract } from 'typechain'
 import { ReleaseRegistry, stripMetadata, LibraryPositions, LibraryAddresses, linkLibraries, VerificationFailed, ProxyImplementationHasChanged } from '../lib'
 import { task } from 'hardhat/config'
 import { Artifacts } from 'hardhat/types'
+import { TASKS } from './task-names'
 
 interface VerificationContext {
   registry: ReleaseRegistry
@@ -21,7 +22,7 @@ const getOnchainBytecode = async(web3: Web3, address: string) =>
 async function validateContractBytecode(contractName: string, queue: string[], visited: Set<string>, context: VerificationContext) {
   visited.add(contractName)
 
-  const isProxy = contractName.includes("Proxy")
+  const isProxy = contractName.includes('Proxy')
   if (isProxy) {
     // check if implementation has changed
     const contract = await context.proxy.at(context.registry.getAddress(contractName))
@@ -72,12 +73,12 @@ export const verifyBytecode = async(
       const contractName = queue.pop()!
       await validateContractBytecode(contractName!, queue, visited, context)
       results[contractName] = {
-        status: "verified"
+        status: 'verified'
       }
     } catch (e: any) {
       if (e instanceof VerificationFailed || e instanceof ProxyImplementationHasChanged) {
         results[e.contractName] = {
-          status: "failed",
+          status: 'failed',
           reason: e.message
         }
       } else {
@@ -90,7 +91,7 @@ export const verifyBytecode = async(
   console.table(results)
 }
 
-task("verify-bytecode", async function(_, { config, network, artifacts, web3 }) {
+task(TASKS.VERIFY_BYTECODE, async function(_, { config, network, artifacts, web3 }) {
   const { contracts } = config.verify
 
   await verifyBytecode(contracts, network.name, artifacts, web3)

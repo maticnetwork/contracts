@@ -32,3 +32,18 @@ export function loadSolcBinary(solidityVerstion: string) {
     })
   })
 }
+
+export const cc = {
+  async intendGroup(f: () => Promise<void>, ...labels: string[]) {
+    console.group(...labels)
+    try {
+      await f()
+    } finally {
+      console.groupEnd()
+    }
+  },
+  logLn(str: string = '') {
+    console.log(`${str}\n`)
+  },
+  log: console.log
+}

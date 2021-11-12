@@ -2,8 +2,9 @@
 import { task } from 'hardhat/config'
 import { TASK_FLATTEN_GET_FLATTENED_SOURCE } from 'hardhat/builtin-tasks/task-names'
 import { verifyStorageLayout, ReleaseRegistry, loadSolcBinary, getStorageLayout, contractsPaths } from '../lib'
+import { TASKS } from './task-names'
 
-task('release', async function(_, { config, artifacts, run, network }) {
+task(TASKS.RELEASE, async function(_, { config, artifacts, run, network }) {
   const contractPaths = await contractsPaths(artifacts)
   const { contracts } = config.verify
 
