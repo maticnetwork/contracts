@@ -85,13 +85,3 @@ const config: HardhatUserConfig = {
 }
 
 export default config
-
-// contracts: [
-//   'StakeManagerProxy',
-//   'RootChainProxy',
-//   'WithdrawManagerProxy',
-//   'EventsHubProxy',
-//   'ValidatorShareFactory',
-//   'ExitNFT',
-//   'DepositManagerProxy'
-// ]
