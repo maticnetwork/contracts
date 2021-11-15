@@ -2,11 +2,13 @@
   "name": "matic-protocol",
   "version": "0.3.2",
   "description": "",
-  "main": "index.js",
+  "main": "hardhat.config.ts",
   "flatten": "RootChain StakeManager Registry EventsHub StakingInfo WithdrawManager ExitNFT",
   "scripts": {
+    "postinstall": "yarn typechain",
     "testrpc:root": "hardhat node --port 9545",
     "template:process": "node scripts/process-templates.js",
+    "typechain": "npx hardhat typechain",
     "compile": "npx hardhat compile --network mainnet",
     "release": "npx hardhat release",
     "test": "npx hardhat test --network root",
@@ -31,7 +33,7 @@
   },
   "homepage": "https://github.com/maticnetwork/contracts",
   "config": {
-    "mnemonics": "clock radar mass judge dismiss just intact mind resemble fringe diary casino"
+    "mnemonic": "clock radar mass judge dismiss just intact mind resemble fringe diary casino"
   },
   "dependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.2",
