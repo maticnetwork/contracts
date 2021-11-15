@@ -47,3 +47,5 @@ export const cc = {
   },
   log: console.log
 }
+
+export const GovernanceRepositoryLink = 'Governance Repository (https://github.com/maticnetwork/governance)'

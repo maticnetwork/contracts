@@ -1,13 +1,13 @@
-import { UpgradableProxyContract } from 'typechain'
 import { ReleaseRegistry, stripMetadata, LibraryPositions, LibraryAddresses, linkLibraries, VerificationFailed, ProxyImplementationHasChanged } from '../lib'
 import { task } from 'hardhat/config'
 import { Artifacts } from 'hardhat/types'
 import { TASKS } from './task-names'
+import Web3 from 'web3'
 
 interface VerificationContext {
   registry: ReleaseRegistry
   network: string
-  proxy: UpgradableProxyContract
+  proxy: any
   libraryAddresses: LibraryAddresses
   artifacts: Artifacts
   web3: Web3

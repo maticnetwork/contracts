@@ -1,8 +1,9 @@
+import { HardhatUserConfig } from 'hardhat/types'
+
 import '@nomiclabs/hardhat-truffle5'
 import 'hardhat-contract-sizer'
 import '@typechain/hardhat'
 import '@nomiclabs/hardhat-etherscan'
-import { HardhatUserConfig } from 'hardhat/types'
 
 import './lib/type-extensions'
 import './tasks'
