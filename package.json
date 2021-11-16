@@ -77,7 +77,6 @@
     "hardhat-contract-sizer": "^2.1.1",
     "merkle-patricia-tree": "2.3.2",
     "minimist": "^1.2.5",
-    "moonwalker": "github:atvanguard/moonwalker#4c4592e2d6c1744fbcd9452cf0f00e9beb236b21",
     "nunjucks": "^3.2.0",
     "openzeppelin-solidity": "2.2.0",
     "pre-commit": "^1.2.2",
