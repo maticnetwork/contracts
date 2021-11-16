@@ -6,10 +6,9 @@ import '@nomiclabs/hardhat-truffle5'
 import { Artifacts } from 'hardhat/types'
 
 export async function deploy(artifacts: Artifacts, network: string, from: string) {
-  // const validatorShare = artifacts.require('ValidatorShare') as ValidatorShareContract
-  // const instance = await validatorShare.new({ from })
-  // const deployedAddress = instance.address
-  const deployedAddress = '0x33a02E6cC863D393d6Bf231B697b82F6e499cA71'
+  const validatorShare = artifacts.require('ValidatorShare') as ValidatorShareContract
+  const instance = await validatorShare.new({ from })
+  const deployedAddress = instance.address
 
   cc.logLn()
   await cc.intendGroup(async() => {
