@@ -20,11 +20,11 @@ cleanup() {
 }
 
 start_testrpc() {
-  npm run testrpc:root > /dev/null &
+  yarn testrpc:root > /dev/null &
 }
 
 start_blockchain() {
-  npm run bor:simulate
+  yarn bor:simulate
 }
 
 
@@ -37,9 +37,9 @@ start_blockchain
 sleep 2
 
 if [ "$SOLIDITY_COVERAGE" = true ]; then
-  npm run coverage "$@"
+  yarn coverage "$@"
 else
-  npm run test "$@"
+  yarn test "$@"
 fi
 
 
