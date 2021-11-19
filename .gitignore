@@ -31,3 +31,5 @@ cache/
 debug.json
 
 typechain/
+
+contracts-out/

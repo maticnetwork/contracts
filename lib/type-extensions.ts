@@ -18,6 +18,14 @@ declare module 'hardhat/types/config' {
       contracts: string[];
     }
   }
+
+  export interface ProjectPathsUserConfig {
+    sourceTemplates: string
+  }
+
+  export interface ProjectPathsConfig {
+    sourceTemplates: string
+  }
 }
 
 extendConfig(
@@ -35,5 +43,6 @@ extendConfig(
     }
 
     config.verify.contracts = contracts
+    config.paths.sourceTemplates = userConfig.paths?.sourceTemplates!
   }
 )

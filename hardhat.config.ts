@@ -82,6 +82,10 @@ const config: HardhatUserConfig = {
       'DepositManagerProxy',
       'DepositManager'
     ]
+  },
+  paths: {
+    sourceTemplates: 'contracts',
+    sources: 'contracts-out'
   }
 }
 
