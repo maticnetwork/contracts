@@ -21,7 +21,7 @@ task(TASK_COMPILE, async function(args, { config, network }, runSuper) {
   for await (const file of getFiles(config.paths.sourceTemplates)) {
     // pre-process simple #if .. #endif blocks of code
     let content = fs.readFileSync(file).toString()
-    const matches = content.matchAll(/(?:#if\s+(.+)\s*)([\w(<>){}\.\s;]+)(?:#endif)/igm)
+    const matches = content.matchAll(/(?:#if\s+(.+)\s*)([\w(<>){}\.\s;="]+)(?:#endif)/igm)
     const blocks = {}
     for (const m of matches) {
       const [ifblock, networkCondition, code] = m
@@ -51,6 +51,5 @@ task(TASK_COMPILE, async function(args, { config, network }, runSuper) {
     }
     fs.writeFileSync(outFile, content)
   }
-
   await runSuper(args)
 })
