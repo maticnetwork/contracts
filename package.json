@@ -18,8 +18,7 @@
     "lint": "yarn lint:sol && yarn lint:js",
     "lint:js": "eslint test/**/*.js",
     "lint:sol:fix": "solium -d contracts/ --fix",
-    "lint:sol": "solium -d contracts/"
-  },
+    "lint:sol": "solium -d contracts/"  },
   "pre-commit": [],
   "repository": {
     "type": "git",
@@ -32,7 +31,7 @@
   },
   "homepage": "https://github.com/maticnetwork/contracts",
   "config": {
-    "mnemonic": "clock radar mass judge dismiss just intact mind resemble fringe diary casino"
+    "mnemonics": "clock radar mass judge dismiss just intact mind resemble fringe diary casino"
   },
   "dependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.2",

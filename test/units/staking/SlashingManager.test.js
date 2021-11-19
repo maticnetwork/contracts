@@ -188,8 +188,8 @@ contract('Slashing:delegation', async function(accounts) {
       stakeManager = contracts.stakeManager
       slashingManager = contracts.slashingManager
 
-      stakeManager.updateDynastyValue(8)
-      stakeManager.updateCheckPointBlockInterval(1)
+      await stakeManager.updateDynastyValue(8)
+      await stakeManager.updateCheckPointBlockInterval(1)
 
       await stakeManager.changeRootChain(wallets[0].getAddressString())
       const amount = web3.utils.toWei('1002')
