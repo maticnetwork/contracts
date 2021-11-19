@@ -19,7 +19,7 @@ const getSourceBytecodeFromArtifacts = (artifacts: Artifacts, contract: string):
 const getOnchainBytecode = async(web3: Web3, address: string) =>
   stripMetadata(await web3.eth.getCode(address))
 
-async function validateContractBytecode(contractName: string, queue: string[], visited: Set<string>, context: VerificationContext) {
+async function validateContractBytecode(contractName: string, visited: Set<string>, context: VerificationContext) {
   visited.add(contractName)
 
   const isProxy = contractName.includes('Proxy')
@@ -45,12 +45,12 @@ async function validateContractBytecode(contractName: string, queue: string[], v
   }
 }
 
-export const verifyBytecode = async(
+async function verifyBytecode(
   contracts: string[],
   network: string,
   artifacts: Artifacts,
   web3: Web3
-) => {
+) {
   const queue = contracts.filter(c => artifacts.artifactExists(c))
   const registry = new ReleaseRegistry(network)
   await registry.load()
@@ -71,7 +71,7 @@ export const verifyBytecode = async(
   while (queue.length > 0) {
     try {
       const contractName = queue.pop()!
-      await validateContractBytecode(contractName!, queue, visited, context)
+      await validateContractBytecode(contractName!, visited, context)
       results[contractName] = {
         status: 'verified'
       }
