@@ -1,8 +1,20 @@
 # Matic contracts
 
 ![Build Status](https://github.com/maticnetwork/contracts/workflows/CI/badge.svg)
+![Forks](https://img.shields.io/github/forks/maticnetwork/contracts?style=social)
+![Stars](https://img.shields.io/github/stars/maticnetwork/contracts?style=social)
+![Languages](https://img.shields.io/github/languages/count/maticnetwork/contracts) 
+![Issues](https://img.shields.io/github/issues/maticnetwork/contracts) 
+![MIT License](https://img.shields.io/github/license/maticnetwork/contracts)
+![contributors](https://img.shields.io/github/contributors-anon/maticnetwork/contracts)
+![PRs](https://img.shields.io/github/issues-pr-raw/maticnetwork/contracts) 
+![size](https://img.shields.io/github/languages/code-size/maticnetwork/contracts) 
+![lines](https://img.shields.io/tokei/lines/github/maticnetwork/contracts)
+[![Discord](https://img.shields.io/discord/714888181740339261?color=1C1CE1&label=Polygon%20%7C%20Discord%20%F0%9F%91%8B%20&style=flat-square)](https://discord.gg/zdwkdvMNY2)
+[![Twitter Follow](https://img.shields.io/twitter/follow/0xPolygon.svg?style=social)](https://twitter.com/0xPolygon)
 
-Ethereum smart contracts that power the [Matic Network](https://matic.network).
+
+Ethereum smart contracts that power the [Polygon (Matic Network)](https://matic.network).
 
 ### Install dependencies with
 
