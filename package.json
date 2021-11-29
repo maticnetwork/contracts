@@ -26,8 +26,8 @@
     "type": "git",
     "url": "https://github.com/maticnetwork/contracts.git"
   },
-  "author": "Jaynti Kanani <jdkanani@gmail.com>",
-  "license": "MIT",
+  "author": "Polygon Network",
+  "license": "Check LICENSE file",
   "bugs": {
     "url": "https://github.com/maticnetwork/contracts/issues"
   },
