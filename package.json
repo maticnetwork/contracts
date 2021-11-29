@@ -4,7 +4,7 @@
   "description": "Set of Solidity smart contracts for running Staking and Plasma contracts for Polygon sidechain",
   "main": "hardhat.config.ts",
   "scripts": {
-    "postinstall": "yarn typechain",
+    "postinstall": "yarn typechain --network goerli",
     "testrpc:root": "hardhat node --port 9545",
     "template:process": "node scripts/process-templates.js",
     "typechain": "npx hardhat typechain",
@@ -15,11 +15,13 @@
     "test:ci": "scripts/run-test.sh",
     "bor:simulate": "cd test-blockchain && bash run-docker.sh",
     "bor:clean": "cd test-blockchain && bash stop-docker.sh",
+    "verify:storage": "yarn compile && npx hardhat verify-storage",
+    "verify:ci": "yarn compile && npx hardhat verify-ci --network mainnet",
     "lint": "yarn lint:sol && yarn lint:js",
     "lint:js": "eslint test/**/*.js",
     "lint:sol:fix": "solium -d contracts/ --fix",
-    "lint:sol": "solium -d contracts/"  },
-  "pre-commit": [],
+    "lint:sol": "solium -d contracts/"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/maticnetwork/contracts.git"
@@ -54,6 +56,7 @@
     "chai": "4.2.0",
     "chai-as-promised": "^7.1.1",
     "chalk": "^4.1.2",
+    "console-table-printer": "^2.10.0",
     "eslint": "5.9.0",
     "eslint-config-standard": "12.0.0",
     "eslint-plugin-import": "2.14.0",

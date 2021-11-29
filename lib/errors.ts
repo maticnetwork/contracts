@@ -1,13 +1,10 @@
-import { StorageSlot } from './types'
+export class StorageError {
+  public warning: boolean
+  public message: string
 
-export interface StorageCollision {
-  originalSlot: StorageSlot
-  newSlot: StorageSlot
-}
-
-export class StorageCollisionError extends Error {
-  constructor(contractName: string, collision: StorageCollision) {
-    super(`Storage has collision with currently deployed contract! \nContract name: ${contractName}\n Original slot: ${collision.originalSlot.label} - ${collision.originalSlot.type}\nNew slot: ${collision.newSlot.label} - ${collision.newSlot.type}`)
+  constructor(isWarning: boolean, messsage: string) {
+    this.warning = isWarning
+    this.message = messsage
   }
 }
 

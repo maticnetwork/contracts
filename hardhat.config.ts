@@ -57,7 +57,7 @@ const config: HardhatUserConfig = {
     alphaSort: true,
     disambiguatePaths: false,
     runOnCompile: true,
-    strict: true
+    strict: false
   },
   typechain: {
     outDir: 'typechain',
