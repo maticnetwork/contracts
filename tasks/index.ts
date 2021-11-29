@@ -1,6 +1,7 @@
 export * from './task-names'
 export * from './verify-storage'
 export * from './verify-bytecode'
+export * from './verify-ci'
 export * from './release'
 export * from './compile'
 export * from './deploy'
