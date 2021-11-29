@@ -26,7 +26,7 @@ task(TASKS.DEPLOY_CHILD, 'run full deployment on a child chain')
       return instance
     }
 
-    console.log(`Deploying Child contracts on ${network.name}...`)
+    console.log(`Deploying Child contracts at ${url}...`)
 
     const ChildChain = artifacts.require('ChildChain')
     ChildChain.setProvider(childProvider)

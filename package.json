@@ -5,7 +5,8 @@
   "main": "hardhat.config.ts",
   "scripts": {
     "postinstall": "yarn typechain --network goerli",
-    "testrpc:root": "hardhat node --port 9545",
+    "deploy:all": "npx hardhat deploy-all",
+    "testrpc": "hardhat node --port 9545",
     "template:process": "node scripts/process-templates.js",
     "typechain": "npx hardhat typechain",
     "compile": "npx hardhat compile --network mainnet",
@@ -27,7 +28,7 @@
     "url": "https://github.com/maticnetwork/contracts.git"
   },
   "author": "Polygon Network",
-  "license": "Check LICENSE file",
+  "license": "GPL-3.0-or-later",
   "bugs": {
     "url": "https://github.com/maticnetwork/contracts/issues"
   },

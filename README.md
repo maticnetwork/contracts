@@ -1,43 +1,48 @@
-# Matic contracts
+# Polygon contracts
 
 ![Build Status](https://github.com/maticnetwork/contracts/workflows/CI/badge.svg)
 
-Ethereum smart contracts that power the [Matic Network](https://matic.network).
+Ethereum smart contracts that power [Polygon sidechain](https://polygon.technology).
+
+### Prerequesties
+
+Yarn and Node 14
 
 ### Install dependencies with
 
 ```
-npm install
+yarn
 ```
 
-### Compile
+### Preprocess templates for local BOR
 
 bor-chain-id for Mainnet = 137
-bor-chain-id for TestnetV4 (Mumbai) = 80001
+bor-chain-id for Testnet (Mumbai) = 15001
+
+For local development you should go with 15001 chain id
 
 ```
 npm run template:process -- --bor-chain-id <bor-chain-id>
-npm run truffle:compile
 ```
 
-### Start main chain and side chain
+### Start root chain and child chain
 
-- Start Main chain
+- Start Root chain
 
 ```
-npm run testrpc
+yarn testrpc
 ```
 
 - Start Matic side chain. Requires docker.
 
 ```
-npm run bor:simulate
+yarn bor:simulate
 ```
 
 - If you ran a bor instance before, a dead docker container might still be lying around, clean it with
 
 ```
-npm run bor:clean
+yarn bor:clean
 ```
 
 - Run a bor (our matic chain node) instance.
@@ -47,13 +52,14 @@ npm run bor:clean
 - For local development
 
 ```
-npm run truffle:migrate
+yarn deploy:all --network root --child-url CHILD_URL
 ```
 
-- For a properly initialized set of contracts, follow the instructions [here](./deploy-migrations/README.md).
+By default child url is http://localhost:8545
+
 
 ### Run tests
 
 ```
-npm test
+yarn test
 ```

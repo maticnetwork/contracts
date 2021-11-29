@@ -19,7 +19,7 @@ task(TASKS.DEPLOY_ROOT, 'run full deployment on a root chain')
       return instance
     }
 
-    console.log(`Deploying Root contracts on ${network.name}...`)
+    console.log(`Deploying Root contracts at ${network.name}...`)
 
     let { HEIMDALL_ID } = process.env
     if (!HEIMDALL_ID) {

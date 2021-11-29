@@ -16,6 +16,8 @@ task(TASKS.DEPLOY_INIT, 'initialize root and child chains')
     const DepositManager = artifacts.require('DepositManager')
     const StateSender = artifacts.require('StateSender')
 
+    console.log(`Initializing contracts on ${network.name}...`)
+
     const registryInstance = await Registry.at(registry)
     const governanceInstance = await Governance.at(governance)
 
