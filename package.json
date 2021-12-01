@@ -77,6 +77,7 @@
     "hardhat-contract-sizer": "^2.1.1",
     "merkle-patricia-tree": "2.3.2",
     "minimist": "^1.2.5",
+    "nunjucks": "^3.2.3",
     "openzeppelin-solidity": "2.2.0",
     "safe-buffer": "5.1.2",
     "solc": "^0.8.9",
