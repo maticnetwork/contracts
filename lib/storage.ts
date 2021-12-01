@@ -1,17 +1,9 @@
 
-import { StorageError } from "."
-import { ReleaseRegistry } from "./registry"
+import { StorageError } from '.'
+import { ReleaseRegistry } from './registry'
 import { StorageSlot, StorageVerificationReport } from './types'
 
 const SOURCE_FILENAME = 'source.sol'
-
-type ActionType = 'rename'|'add'|'remove'|'update-type'
-
-interface StorageOperation {
-  action: ActionType
-  original: StorageSlot
-  updated: StorageSlot
-}
 
 function printSlot(original: StorageSlot, updated: StorageSlot) {
   return `    Original: ${original.type} ${original.label}     Updated: ${updated.type} ${updated.label}`

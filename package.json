@@ -4,7 +4,7 @@
   "description": "Set of Solidity smart contracts for running Staking and Plasma contracts for Polygon sidechain",
   "main": "hardhat.config.ts",
   "scripts": {
-    "postinstall": "yarn typechain --network goerli",
+    "postinstall": "TS_NODE_TRANSPILE_ONLY=1 yarn typechain --network goerli",
     "deploy:all": "npx hardhat deploy-all",
     "testrpc": "hardhat node --port 9545",
     "template:process": "node scripts/process-templates.js",
