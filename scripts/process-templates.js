@@ -19,6 +19,10 @@ glob(directoryPath, function (err, files) {
 
   //listing all files using forEach
   files.forEach(function (file) {
+    if (fs.statSync(file).isDirectory()) {
+      return
+    }
+
     // Do whatever you want to do with the file
     const borChainIdHex = parseInt(program.borChainId, 10)
       .toString(16)
