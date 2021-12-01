@@ -12,4 +12,4 @@ export interface StorageVerificationReport {
   errors: StorageError[]
 }
 
-export type DeployFunction = (artifacts: Artifacts, network: string, from: string|null) => Promise<void>
+export type DeployFunction = (artifacts: Artifacts, network: string, from: string|null, params: string) => Promise<void>

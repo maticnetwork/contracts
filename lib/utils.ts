@@ -50,3 +50,7 @@ export const cc = {
 
 export const GovernanceRepositoryLink = 'Governance Repository (https://github.com/maticnetwork/governance)'
 export const ZeroAddress = '0x0000000000000000000000000000000000000000'
+
+export function extractParameters(params: string) {
+  return params.split(',').map(x => x.trim())
+}
