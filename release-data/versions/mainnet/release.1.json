@@ -1,5 +1,5 @@
 {
-  "date": 1636944561,
+  "date": 1638423409,
   "contracts": {
     "Governance": {
       "address": "0x98165b71cdDea047C0A49413350C40571195fd07"
@@ -34,11 +34,11 @@
           "label": "_blockDepositId"
         },
         {
-          "type": "t_mapping(t_uint256,t_struct(HeaderBlock)1629_storage)",
+          "type": "t_mapping(t_uint256,t_struct(HeaderBlock)",
           "label": "headerBlocks"
         },
         {
-          "type": "t_contract(Registry)1475",
+          "type": "t_contract(Registry)",
           "label": "registry"
         }
       ]
@@ -67,11 +67,11 @@
           "label": "_blockDepositId"
         },
         {
-          "type": "t_mapping(t_uint256,t_struct(HeaderBlock)731_storage)",
+          "type": "t_mapping(t_uint256,t_struct(HeaderBlock)",
           "label": "headerBlocks"
         },
         {
-          "type": "t_contract(Registry)577",
+          "type": "t_contract(Registry)",
           "label": "registry"
         }
       ]
@@ -94,7 +94,7 @@
           "label": "locked"
         },
         {
-          "type": "t_contract(IGovernance)1593",
+          "type": "t_contract(IGovernance)",
           "label": "governance"
         },
         {
@@ -106,7 +106,7 @@
           "label": "rootChain"
         },
         {
-          "type": "t_contract(IERC20)68",
+          "type": "t_contract(IERC20)",
           "label": "token"
         },
         {
@@ -114,15 +114,15 @@
           "label": "registry"
         },
         {
-          "type": "t_contract(StakingInfo)4070",
+          "type": "t_contract(StakingInfo)",
           "label": "logger"
         },
         {
-          "type": "t_contract(StakingNFT)7085",
+          "type": "t_contract(StakingNFT)",
           "label": "NFTContract"
         },
         {
-          "type": "t_contract(ValidatorShareFactory)7446",
+          "type": "t_contract(ValidatorShareFactory)",
           "label": "validatorShareFactory"
         },
         {
@@ -198,7 +198,7 @@
           "label": "delegationEnabled"
         },
         {
-          "type": "t_mapping(t_uint256,t_struct(Validator)7552_storage)",
+          "type": "t_mapping(t_uint256,t_struct(Validator)",
           "label": "validators"
         },
         {
@@ -206,11 +206,11 @@
           "label": "signerToValidator"
         },
         {
-          "type": "t_struct(State)7520_storage",
+          "type": "t_struct(State)",
           "label": "validatorState"
         },
         {
-          "type": "t_mapping(t_uint256,t_struct(StateChange)7525_storage)",
+          "type": "t_mapping(t_uint256,t_struct(StateChange)",
           "label": "validatorStateChanges"
         },
         {
@@ -218,7 +218,7 @@
           "label": "userFeeExit"
         },
         {
-          "type": "t_mapping(t_uint256,t_struct(Auction)7515_storage)",
+          "type": "t_mapping(t_uint256,t_struct(Auction)",
           "label": "validatorAuction"
         },
         {
@@ -246,7 +246,7 @@
           "label": "extensionCode"
         },
         {
-          "type": "t_array(t_address)dyn_storage",
+          "type": "t_array(t_address)",
           "label": "signers"
         },
         {
@@ -299,23 +299,23 @@
           "label": "locked"
         },
         {
-          "type": "t_contract(IGovernance)580",
+          "type": "t_contract(IGovernance)",
           "label": "governance"
         },
         {
-          "type": "t_contract(Registry)1148",
+          "type": "t_contract(Registry)",
           "label": "registry"
         },
         {
-          "type": "t_contract(RootChain)3077",
+          "type": "t_contract(RootChain)",
           "label": "rootChain"
         },
         {
-          "type": "t_contract(StateSender)3205",
+          "type": "t_contract(StateSender)",
           "label": "stateSender"
         },
         {
-          "type": "t_mapping(t_uint256,t_struct(DepositBlock)3301_storage)",
+          "type": "t_mapping(t_uint256,t_struct(DepositBlock)",
           "label": "deposits"
         },
         {
@@ -344,23 +344,23 @@
           "label": "locked"
         },
         {
-          "type": "t_contract(IGovernance)9",
+          "type": "t_contract(IGovernance)",
           "label": "governance"
         },
         {
-          "type": "t_contract(Registry)577",
+          "type": "t_contract(Registry)",
           "label": "registry"
         },
         {
-          "type": "t_contract(RootChain)2194",
+          "type": "t_contract(RootChain)",
           "label": "rootChain"
         },
         {
-          "type": "t_contract(StateSender)2322",
+          "type": "t_contract(StateSender)",
           "label": "stateSender"
         },
         {
-          "type": "t_mapping(t_uint256,t_struct(DepositBlock)2418_storage)",
+          "type": "t_mapping(t_uint256,t_struct(DepositBlock)",
           "label": "deposits"
         },
         {
@@ -389,11 +389,11 @@
           "label": "HALF_EXIT_PERIOD"
         },
         {
-          "type": "t_contract(Registry)4527",
+          "type": "t_contract(Registry)",
           "label": "registry"
         },
         {
-          "type": "t_contract(RootChain)5501",
+          "type": "t_contract(RootChain)",
           "label": "rootChain"
         },
         {
@@ -401,7 +401,7 @@
           "label": "isKnownExit"
         },
         {
-          "type": "t_mapping(t_uint256,t_struct(PlasmaExit)6652_storage)",
+          "type": "t_mapping(t_uint256,t_struct(PlasmaExit)",
           "label": "exits"
         },
         {
@@ -413,7 +413,7 @@
           "label": "exitsQueues"
         },
         {
-          "type": "t_contract(ExitNFT)4598",
+          "type": "t_contract(ExitNFT)",
           "label": "exitNft"
         },
         {
@@ -442,11 +442,11 @@
           "label": "HALF_EXIT_PERIOD"
         },
         {
-          "type": "t_contract(Registry)577",
+          "type": "t_contract(Registry)",
           "label": "registry"
         },
         {
-          "type": "t_contract(RootChain)2367",
+          "type": "t_contract(RootChain)",
           "label": "rootChain"
         },
         {
@@ -454,7 +454,7 @@
           "label": "isKnownExit"
         },
         {
-          "type": "t_mapping(t_uint256,t_struct(PlasmaExit)3240_storage)",
+          "type": "t_mapping(t_uint256,t_struct(PlasmaExit)",
           "label": "exits"
         },
         {
@@ -466,7 +466,7 @@
           "label": "exitsQueues"
         },
         {
-          "type": "t_contract(ExitNFT)3215",
+          "type": "t_contract(ExitNFT)",
           "label": "exitNft"
         },
         {
@@ -495,15 +495,15 @@
           "label": "_tokenApprovals"
         },
         {
-          "type": "t_mapping(t_address,t_struct(Counter)277_storage)",
+          "type": "t_mapping(t_address,t_struct(Counter)",
           "label": "_ownedTokensCount"
         },
         {
-          "type": "t_mapping(t_address,t_mapping(t_address,t_bool))",
+          "type": "t_mapping(t_address,t_mapping(t_address,t_bool)",
           "label": "_operatorApprovals"
         },
         {
-          "type": "t_contract(Registry)1481",
+          "type": "t_contract(Registry)",
           "label": "registry"
         }
       ]
@@ -538,7 +538,7 @@
           "label": "inited"
         },
         {
-          "type": "t_contract(Registry)577",
+          "type": "t_contract(Registry)",
           "label": "registry"
         }
       ]
