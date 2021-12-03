@@ -34,10 +34,12 @@ task(TASK_COMPILE, async function(args, { config, network }, runSuper) {
     // remove code that doesn't match network choice
     for (const networkCondition in blocks) {
       const block = blocks[networkCondition]
-      if (network.name !== networkCondition) {
-        content = content.replace(block.ifblock, '')
-      } else {
+      const conditions = networkCondition.match(/\b\w+/igm)!
+      const hasNetwork = conditions.some(x => x === network.name)
+      if (hasNetwork) {
         content = content.replace(block.ifblock, block.code)
+      } else {
+        content = content.replace(block.ifblock, '')
       }
     }
 
@@ -45,7 +47,7 @@ task(TASK_COMPILE, async function(args, { config, network }, runSuper) {
     const outFile = path.join(config.paths.sources, file.replace(config.paths.sourceTemplates, ''))
 
     // remove file name from the path and create folders
-    const outDir = outFile.replace(/[^\/]*$/, '');
+    const outDir = outFile.replace(/[^\/]*$/, '')
     if (!fs.existsSync(outDir)) {
       fs.mkdirSync(outDir, { recursive: true })
     }

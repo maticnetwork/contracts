@@ -20,7 +20,7 @@ cleanup() {
 }
 
 start_testrpc() {
-  yarn testrpc:root > /dev/null &
+  yarn testrpc > /dev/null &
 }
 
 start_blockchain() {

@@ -312,7 +312,7 @@ contract ValidatorShare is IValidatorShare, ERC20NonTradable, OwnableLockable, I
 
     function _getRatePrecision() private view returns (uint256) {
         // if foundation validator, use old precision
-        #if mainnet
+        #if mainnet root
         if (validatorId < 8) {
             return EXCHANGE_RATE_PRECISION;
         }

@@ -40,11 +40,11 @@ library TransferWithSigUtils {
     bytes32 EIP712_DOMAIN_SCHEMA_HASH = keccak256(abi.encodePacked(EIP712_DOMAIN_SCHEMA));
     string memory EIP712_DOMAIN_NAME = "Matic Network";
     string memory EIP712_DOMAIN_VERSION = "1";
+    #if mainnet root
+    uint256 EIP712_DOMAIN_CHAINID = 137;
+    #endif
     #if goerli
     uint256 EIP712_DOMAIN_CHAINID = 15001;
-    #endif
-    #if mainnet
-    uint256 EIP712_DOMAIN_CHAINID = 137;
     #endif
     bytes32 EIP712_DOMAIN_HASH = keccak256(abi.encode(
       EIP712_DOMAIN_SCHEMA_HASH,
