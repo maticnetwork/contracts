@@ -170,7 +170,7 @@ export function buildsubmitCheckpointPaylod(
 
   let data = web3.eth.abi.encodeParameters(
     ['address', 'uint256', 'uint256', 'bytes32', 'bytes32', 'uint256'],
-    [proposer, start, end, root, options.rewardsRootHash, 15001]
+    [proposer, start, end, root, options.rewardsRootHash, 137]
   )
   const sigData = Buffer.concat([ethUtils.toBuffer(options.sigPrefix || '0x01'), ethUtils.toBuffer(data)])
 
