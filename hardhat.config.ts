@@ -71,6 +71,7 @@ const config: HardhatUserConfig = {
     contracts: [
       'StakeManagerProxy',
       'StakeManager',
+      'StakeManagerExtension',
       'RootChainProxy',
       'RootChain',
       'WithdrawManagerProxy',

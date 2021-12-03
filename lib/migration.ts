@@ -39,6 +39,8 @@ export async function deployProxyImplementation(artifacts: Artifacts, contractNa
     printProxyUpdateCommand(registry.getAddress(`${contractName}Proxy`), registry.getAddress(contractName))
     cc.logLn()
   }, 'Deployment result:')
+
+  return deployedAddress
 }
 
 export async function deployPredicate(artifacts: Artifacts, network: string, from: string, params: string) {
@@ -59,4 +61,6 @@ export async function deployPredicate(artifacts: Artifacts, network: string, fro
     printGovernanceUpdateCommand(registry.getAddress('GovernanceProxy'), registry.getAddress('Registry'), calldata)
     cc.logLn()
   }, 'Deployment result:')
+
+  return deployedAddress
 }

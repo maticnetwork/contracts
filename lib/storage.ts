@@ -59,7 +59,7 @@ export async function getStorageLayout(contractName: string, sourceCode: string,
 
   return output.contracts[SOURCE_FILENAME][contractName].storageLayout.storage.map(x => {
     return  {
-      type: x.type.match(/^t_\w+((\([\w,]*\))|(\([\w,]+\([\w]+\))|)/)[0], // extract type without id, it looks like it might change for some hidden reason on a different machine
+      type: x.type,// .match(/^t_\w+((\([\w,]*\))|(\([\w,]+\([\w,]+\))|)/)[0], // extract type without id, it looks like it might change for some hidden reason on a different machine
       label: x.label
     }
   }) as StorageSlot[]

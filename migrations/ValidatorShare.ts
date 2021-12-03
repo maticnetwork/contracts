@@ -22,4 +22,6 @@ export async function deploy(artifacts: Artifacts, network: string, from: string
     printGovernanceUpdateCommand(registry.getAddress('GovernanceProxy'), registry.getAddress('Registry'), calldata)
     cc.logLn()
   }, 'Deployment result:')
+
+  return deployedAddress
 }
