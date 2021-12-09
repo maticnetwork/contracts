@@ -7,8 +7,8 @@ const StateSender = artifacts.require('StateSender')
 const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
 const StakeManagerProxy = artifacts.require('StakeManagerProxy')
 const SlashingManager = artifacts.require('SlashingManager')
-const ERC20Predicate = artifacts.require('ERC20Predicate')
-const ERC721Predicate = artifacts.require('ERC721Predicate')
+const ERC20PredicateBurnOnly = artifacts.require('ERC20PredicateBurnOnly')
+const ERC721PredicateBurnOnly = artifacts.require('ERC721PredicateBurnOnly')
 const MarketplacePredicate = artifacts.require('MarketplacePredicate')
 const TransferWithSigPredicate = artifacts.require('TransferWithSigPredicate')
 const MaticWeth = artifacts.require('MaticWETH')
@@ -33,8 +33,8 @@ module.exports = async function(deployer) {
         WithdrawManagerProxy.deployed(),
         StakeManagerProxy.deployed(),
         SlashingManager.deployed(),
-        ERC20Predicate.deployed(),
-        ERC721Predicate.deployed(),
+        ERC20PredicateBurnOnly.deployed(),
+        ERC721PredicateBurnOnly.deployed(),
         MarketplacePredicate.deployed(),
         TransferWithSigPredicate.deployed(),
         EventsHubProxy.deployed()
@@ -47,8 +47,8 @@ module.exports = async function(deployer) {
         withdrawManagerProxy,
         stakeManagerProxy,
         slashingManager,
-        ERC20Predicate,
-        ERC721Predicate,
+        ERC20PredicateBurnOnly,
+        ERC721PredicateBurnOnly,
         MarketplacePredicate,
         TransferWithSigPredicate,
         EventsHubProxy
@@ -99,12 +99,12 @@ module.exports = async function(deployer) {
         // whitelist predicates
         await governance.update(
           registry.address,
-          registry.contract.methods.addErc20Predicate(ERC20Predicate.address).encodeABI()
+          registry.contract.methods.addErc20Predicate(ERC20PredicateBurnOnly.address).encodeABI()
         )
 
         await governance.update(
           registry.address,
-          registry.contract.methods.addErc721Predicate(ERC721Predicate.address).encodeABI()
+          registry.contract.methods.addErc721Predicate(ERC721PredicateBurnOnly.address).encodeABI()
         )
 
         await governance.update(

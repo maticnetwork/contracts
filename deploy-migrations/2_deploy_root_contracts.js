@@ -33,8 +33,8 @@ const StakeManagerProxy = artifacts.require('StakeManagerProxy')
 const StakingInfo = artifacts.require('StakingInfo')
 const StakingNFT = artifacts.require('StakingNFT')
 const ValidatorShareFactory = artifacts.require('ValidatorShareFactory')
-const ERC20Predicate = artifacts.require('ERC20Predicate')
-const ERC721Predicate = artifacts.require('ERC721Predicate')
+const ERC20PredicateBurnOnly = artifacts.require('ERC20PredicateBurnOnly')
+const ERC721PredicateBurnOnly = artifacts.require('ERC721PredicateBurnOnly')
 const MintableERC721Predicate = artifacts.require('MintableERC721Predicate')
 const MarketplacePredicate = artifacts.require('MarketplacePredicate')
 const TransferWithSigPredicate = artifacts.require('TransferWithSigPredicate')
@@ -50,8 +50,8 @@ const libDeps = [
     lib: BytesLib,
     contracts: [
       WithdrawManager,
-      ERC20Predicate,
-      ERC721Predicate,
+      ERC20PredicateBurnOnly,
+      ERC721PredicateBurnOnly,
       MintableERC721Predicate
     ]
   },
@@ -59,8 +59,8 @@ const libDeps = [
     lib: Common,
     contracts: [
       WithdrawManager,
-      ERC20Predicate,
-      ERC721Predicate,
+      ERC20PredicateBurnOnly,
+      ERC721PredicateBurnOnly,
       MintableERC721Predicate,
       MarketplacePredicate,
       TransferWithSigPredicate
@@ -77,11 +77,11 @@ const libDeps = [
   },
   {
     lib: Merkle,
-    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate, StakeManager, MintableERC721Predicate]
+    contracts: [WithdrawManager, ERC20PredicateBurnOnly, ERC721PredicateBurnOnly, StakeManager, MintableERC721Predicate]
   },
   {
     lib: MerklePatriciaProof,
-    contracts: [WithdrawManager, ERC20Predicate, ERC721Predicate, MintableERC721Predicate]
+    contracts: [WithdrawManager, ERC20PredicateBurnOnly, ERC721PredicateBurnOnly, MintableERC721Predicate]
   },
   {
     lib: PriorityQueue,
@@ -91,8 +91,8 @@ const libDeps = [
     lib: RLPEncode,
     contracts: [
       WithdrawManager,
-      ERC20Predicate,
-      ERC721Predicate,
+      ERC20PredicateBurnOnly,
+      ERC721PredicateBurnOnly,
       MarketplacePredicate
     ]
   },
@@ -101,8 +101,8 @@ const libDeps = [
     contracts: [
       RootChain,
       StakeManager,
-      ERC20Predicate,
-      ERC721Predicate,
+      ERC20PredicateBurnOnly,
+      ERC721PredicateBurnOnly,
       MintableERC721Predicate,
       MarketplacePredicate,
       TransferWithSigPredicate
@@ -112,7 +112,7 @@ const libDeps = [
     lib: SafeMath,
     contracts: [
       RootChain,
-      ERC20Predicate,
+      ERC20PredicateBurnOnly,
       StakeManager,
       SlashingManager,
       StateSender,
@@ -184,13 +184,13 @@ module.exports = async function(deployer) {
 
     console.log('deploying predicates...')
     await deployer.deploy(
-      ERC20Predicate,
+      ERC20PredicateBurnOnly,
       WithdrawManagerProxy.address,
       DepositManagerProxy.address,
       Registry.address
     )
     await deployer.deploy(
-      ERC721Predicate,
+      ERC721PredicateBurnOnly,
       WithdrawManagerProxy.address,
       DepositManagerProxy.address
     )
@@ -227,8 +227,8 @@ module.exports = async function(deployer) {
         ExitNFT: ExitNFT.address,
         StateSender: StateSender.address,
         predicates: {
-          ERC20Predicate: ERC20Predicate.address,
-          ERC721Predicate: ERC721Predicate.address,
+          ERC20PredicateBurnOnly: ERC20PredicateBurnOnly.address,
+          ERC721PredicateBurnOnly: ERC721PredicateBurnOnly.address,
           MarketplacePredicate: MarketplacePredicate.address,
           TransferWithSigPredicate: TransferWithSigPredicate.address
         },
