@@ -11,7 +11,7 @@
     "typechain": "npx hardhat typechain",
     "compile": "npx hardhat compile",
     "release": "npx hardhat release",
-    "test": "npx hardhat test --network goerli",
+    "test": "npx hardhat test --network child",
     "coverage": "scripts/run-coverage.sh",
     "test:ci": "scripts/run-test.sh",
     "bor:simulate": "cd test-blockchain && bash run-docker.sh",
