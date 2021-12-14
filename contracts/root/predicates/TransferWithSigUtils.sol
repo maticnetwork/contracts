@@ -43,7 +43,7 @@ library TransferWithSigUtils {
     #if mainnet root
     uint256 EIP712_DOMAIN_CHAINID = 137;
     #endif
-    #if goerli
+    #if goerli child
     uint256 EIP712_DOMAIN_CHAINID = 15001;
     #endif
     bytes32 EIP712_DOMAIN_HASH = keccak256(abi.encode(

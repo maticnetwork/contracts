@@ -6,7 +6,7 @@ contract ChainIdMixin {
   uint256 constant public CHAINID = 137;
   #endif
 
-  #if goerli
+  #if goerli child
   bytes constant public networkId = hex"3A99";
   uint256 constant public CHAINID = 15001;
   #endif
