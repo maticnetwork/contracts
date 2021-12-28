@@ -190,6 +190,14 @@ contract StakeManager is
         Governance Methods
      */
 
+    function setMinBidStakeFraction(uint256 fraction) public onlyGovernance {
+        minBidStakeFraction = fraction;
+    }
+
+    function setBidCooldown(uint256 cooldown) public onlyGovernance {
+        bidCooldown = cooldown;
+    }
+
     function setDelegationEnabled(bool enabled) public onlyGovernance {
         delegationEnabled = enabled;
     }
@@ -451,7 +459,7 @@ contract StakeManager is
         bytes memory signerPubkey
     ) public onlyWhenUnlocked {
         require(currentValidatorSetSize() < validatorThreshold, "no more slots");
-        require(amount >= minDeposit, "not enough deposit");
+        require(amount >= validatorState.amount.mul(minBidStakeFraction).div(MIN_BID_PRECISION), "not enough deposit");
         _transferAndTopUp(user, msg.sender, heimdallFee, amount);
         _stakeFor(user, amount, acceptDelegation, signerPubkey);
     }

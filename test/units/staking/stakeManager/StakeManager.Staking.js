@@ -6,6 +6,7 @@ import {
 } from '../../../helpers/utils.js'
 import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
 import { wallets, walletAmounts, freshDeploy, approveAndStake } from '../deployment'
+const { toWei } = web3.utils
 
 module.exports = function(accounts) {
   let owner = accounts[0]
@@ -17,7 +18,7 @@ module.exports = function(accounts) {
       let _aproveAmount = aproveAmount || walletAmounts[user].amount
       let _stakeAmount = stakeAmount || walletAmounts[user].stakeAmount
 
-      await approveAndStake.call(this, { wallet, stakeAmount: _stakeAmount, approveAmount: _aproveAmount, noMinting, signer })
+      return approveAndStake.call(this, { wallet, stakeAmount: _stakeAmount, approveAmount: _aproveAmount, noMinting, signer })
     }
   }
 
@@ -76,7 +77,7 @@ module.exports = function(accounts) {
       })
     }
 
-    function testStake(user, userPubkey, amount, stakeAmount, validatorId, fee) {
+    function testStake({ user, userPubkey, amount, stakeAmount, validatorId, fee, totalStake }) {
       before('Approve', async function() {
         this.user = user
         this.fee = new BN(fee || this.defaultHeimdallFee)
@@ -116,7 +117,7 @@ module.exports = function(accounts) {
 
       it('must have correct total staked balance', async function() {
         const stake = await this.stakeManager.currentValidatorSetTotalStake()
-        assertBigNumberEquality(stake, stakeAmount)
+        assertBigNumberEquality(stake, totalStake || stakeAmount)
       })
 
       it(`must have validatorId == ${validatorId}`, async function() {
@@ -174,21 +175,21 @@ module.exports = function(accounts) {
 
       describe('when stakes first time', function() {
         const amounts = walletAmounts[wallets[1].getAddressString()]
-        testStake(
-          wallets[1].getChecksumAddressString(),
-          wallets[1].getPublicKeyString(),
-          amounts.amount,
-          amounts.stakeAmount,
-          1
-        )
+        testStake({
+          user: wallets[1].getChecksumAddressString(),
+          userPubkey: wallets[1].getPublicKeyString(),
+          amount: amounts.amount,
+          stakeAmount: amounts.stakeAmount,
+          validatorId: 1
+        })
       })
 
       describe('when stakes again', function() {
         testStakeRevert(
           wallets[1].getChecksumAddressString(),
           wallets[1].getPublicKeyString(),
-          web3.utils.toWei('200'),
-          web3.utils.toWei('200')
+          toWei('200'),
+          toWei('200')
         )
       })
     })
@@ -213,13 +214,13 @@ module.exports = function(accounts) {
         testStakeRevert(
           wallets[2].getChecksumAddressString(),
           wallets[2].getPublicKeyString(),
-          web3.utils.toWei('250'),
-          web3.utils.toWei('150')
+          toWei('250'),
+          toWei('150')
         )
       })
       describe('when reStakes while on going auction', function() {
         it('when auction is active', async function() {
-          let auctionBid = web3.utils.toWei('10000')
+          let auctionBid = toWei('10000')
           const auctionUser = wallets[4].getAddressString()
           await this.stakeToken.mint(auctionUser, auctionBid)
           await this.stakeToken.approve(this.stakeManager.address, auctionBid, {
@@ -245,21 +246,21 @@ module.exports = function(accounts) {
 
       describe('when user stakes', function() {
         const amounts = walletAmounts[wallets[3].getAddressString()]
-        testStake(
-          wallets[3].getChecksumAddressString(),
-          wallets[3].getPublicKeyString(),
-          amounts.amount,
-          amounts.stakeAmount,
-          1
-        )
+        testStake({
+          user: wallets[3].getChecksumAddressString(),
+          userPubkey: wallets[3].getPublicKeyString(),
+          amount: amounts.amount,
+          stakeAmount: amounts.stakeAmount,
+          validatorId: 1
+        })
       })
 
       describe('when other user stakes beyond validator threshold', function() {
         testStakeRevert(
           wallets[4].getChecksumAddressString(),
           wallets[4].getPublicKeyString(),
-          web3.utils.toWei('100'),
-          web3.utils.toWei('100'),
+          toWei('100'),
+          toWei('100'),
           true
         )
       })
@@ -272,7 +273,7 @@ module.exports = function(accounts) {
         const _wallets = [wallets[1], wallets[2], wallets[3]]
         let expectedValidatorId = 1
         for (const wallet of _wallets) {
-          await doStake(wallet, { approveAmount: web3.utils.toWei('100'), stakeAmount: web3.utils.toWei('100') }).call(this)
+          await doStake(wallet, { approveAmount: toWei('100'), stakeAmount: toWei('100') }).call(this)
 
           const validatorId = await this.stakeManager.getValidatorId(wallet.getAddressString())
           assertBigNumberEquality(expectedValidatorId, validatorId)
@@ -284,14 +285,14 @@ module.exports = function(accounts) {
     describe('stake with heimdall fee', function() {
       before(freshDeploy)
 
-      testStake(
-        wallets[0].getChecksumAddressString(),
-        wallets[0].getPublicKeyString(),
-        web3.utils.toWei('200'),
-        web3.utils.toWei('150'),
-        1,
-        web3.utils.toWei('50')
-      )
+      testStake({
+        user: wallets[0].getChecksumAddressString(),
+        userPubkey: wallets[0].getPublicKeyString(),
+        amount: toWei('200'),
+        stakeAmount: toWei('150'),
+        validatorId: 1,
+        fee: toWei('50')
+      })
     })
 
     describe('when Alice stakes, change signer and stakes with old signer', function() {
@@ -312,6 +313,33 @@ module.exports = function(accounts) {
 
       it('reverts', async function() {
         await expectRevert(doStake(wallets[3], { signer: AliceWallet.getPublicKeyString() }).call(this), 'Invalid signer')
+      })
+    })
+
+    describe('minimum deposit', function() {
+      const MinBidFraction = '1000' // 10%
+      const CorrectDeposit = toWei('100.1')
+      before(freshDeploy)
+      before(doStake(wallets[1], { aproveAmount: toWei('1001'), stakeAmount: toWei('1000') }))
+      before(async function() {
+        await this.stakeManager.setMinBidStakeFraction(MinBidFraction)
+      })
+
+      testStakeRevert(
+        wallets[2].getChecksumAddressString(),
+        wallets[2].getPublicKeyString(),
+        toWei('100'),
+        toWei('1'),
+        true
+      )
+
+      testStake({
+        user: wallets[2].getChecksumAddressString(),
+        userPubkey: wallets[2].getPublicKeyString(),
+        amount: toWei('200'),
+        stakeAmount: CorrectDeposit,
+        validatorId: '2',
+        totalStake: new BN(toWei('1000')).add(new BN(CorrectDeposit))
       })
     })
   })
@@ -454,7 +482,7 @@ module.exports = function(accounts) {
       })
 
       it('when unstakes during auction', async function() {
-        const amount = web3.utils.toWei('1200')
+        const amount = toWei('1200')
         const auctionUser = wallets[4].getAddressString()
         await this.stakeToken.mint(auctionUser, amount)
 
@@ -580,7 +608,7 @@ module.exports = function(accounts) {
       const Alice = wallets[2]
       const Bob = wallets[3]
       const Eve = wallets[4]
-      const stakeAmount = web3.utils.toWei('100')
+      const stakeAmount = toWei('100')
 
       before('Alice stake', doStake(Alice, { noMinting: true, stakeAmount }))
       before('Bob stake', doStake(Bob, { noMinting: true, stakeAmount }))
@@ -606,13 +634,13 @@ module.exports = function(accounts) {
         })
 
         it('must have correct reward', async function() {
-          assertBigNumberEquality(this.reward, web3.utils.toWei('3000'))
+          assertBigNumberEquality(this.reward, toWei('3000'))
         })
 
         it('must emit ClaimRewards', async function() {
           await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ClaimRewards', {
             validatorId: this.validatorId,
-            amount: web3.utils.toWei('3000'),
+            amount: toWei('3000'),
             totalAmount: await this.stakeManager.totalRewardsLiquidated()
           })
         })
@@ -635,13 +663,13 @@ module.exports = function(accounts) {
         })
 
         it('must have correct reward', async function() {
-          assertBigNumberEquality(this.reward, web3.utils.toWei('3000'))
+          assertBigNumberEquality(this.reward, toWei('3000'))
         })
 
         it('must emit ClaimRewards', async function() {
           await expectEvent.inTransaction(this.receipt.tx, StakingInfo, 'ClaimRewards', {
             validatorId: this.validatorId,
-            amount: web3.utils.toWei('3000'),
+            amount: toWei('3000'),
             totalAmount: await this.stakeManager.totalRewardsLiquidated()
           })
         })
@@ -666,21 +694,21 @@ module.exports = function(accounts) {
         it('Eve must have correct rewards', async function() {
           const validatorId = await this.stakeManager.getValidatorId(Eve.getAddressString())
           this.reward = await this.stakeManager.validatorReward(validatorId)
-          assertBigNumberEquality(this.reward, web3.utils.toWei('12000'))
+          assertBigNumberEquality(this.reward, toWei('12000'))
         })
       })
     })
   })
 
   describe('restake', function() {
-    const initialStake = web3.utils.toWei('1000')
+    const initialStake = toWei('1000')
     const initialStakers = [wallets[0], wallets[1]]
 
     function doDeploy(acceptDelegation) {
       return async function() {
         await prepareForTest(8, 8).call(this)
 
-        const checkpointReward = new BN(web3.utils.toWei('10000'))
+        const checkpointReward = new BN(toWei('10000'))
 
         await this.governance.update(
           this.stakeManager.address,
@@ -710,7 +738,7 @@ module.exports = function(accounts) {
         this.validatorReward = checkpointReward.mul(new BN(100 - proposerBonus)).div(new BN(100)).mul(new BN(auctionPeriod - currentEpoch))
         this.validatorId = '1'
         this.user = initialStakers[0].getAddressString()
-        this.amount = web3.utils.toWei('100')
+        this.amount = toWei('100')
 
         await this.stakeToken.mint(this.user, this.amount)
         await this.stakeToken.approve(this.stakeManager.address, this.amount, {
