@@ -2128,11 +2128,11 @@ contract('StakeManager', async function(accounts) {
         prepareToTest()
         testConfirmAuctionBidForNewValidator()
       })
-      describe('when 1000 dynasties has passed', function() {
+      describe('when 10 dynasties has passed', function() {
         prepareToTest()
         before(async function() {
           const currentDynasty = await this.stakeManager.dynasty()
-          await this.stakeManager.advanceEpoch(currentDynasty.mul(new BN('1000')))
+          await this.stakeManager.advanceEpoch(currentDynasty.mul(new BN('10')))
         })
 
         testConfirmAuctionBidForNewValidator()
@@ -2178,10 +2178,10 @@ contract('StakeManager', async function(accounts) {
         })
       })
 
-      describe('when 1000 dynasties has passed', function() {
+      describe('when 10 dynasties has passed', function() {
         beforeEach(async function() {
           const currentDynasty = await this.stakeManager.dynasty()
-          await this.stakeManager.advanceEpoch(currentDynasty.mul(new BN('1000')))
+          await this.stakeManager.advanceEpoch(currentDynasty.mul(new BN('10')))
         })
 
         it('reverts', async function() {
@@ -2377,6 +2377,41 @@ contract('StakeManager', async function(accounts) {
         await approveAndStake.call(this, { wallet, stakeAmount, acceptDelegation: true })
       }
     }
+
+    describe('when Chad moves stake to unstaked validator', function() {
+      const aliceId = '2'
+      const bobId = '8'
+      const delegator = wallets[9].getChecksumAddressString()
+
+      before(prepareForTest)
+      before(async function() {
+        await this.stakeManager.updateDynastyValue(1)
+        await this.stakeToken.mint(delegator, delegationAmount)
+        await this.stakeToken.approve(this.stakeManager.address, delegationAmount, {
+          from: delegator
+        })
+
+        {
+          // stake towards Alice validator
+          const validator = await this.stakeManager.validators(aliceId)
+          const validatorContract = await ValidatorShare.at(validator.contractAddress)
+
+          await buyVoucher(validatorContract, delegationAmount, delegator)
+        }
+
+        // unstake Bob validator
+
+        {
+          await this.stakeManager.unstake(bobId, { from: initialStakers[7].getChecksumAddressString() })
+          await this.stakeManager.advanceEpoch(100)
+          await this.stakeManager.unstakeClaim(bobId, { from: initialStakers[7].getChecksumAddressString() })
+        }
+      })
+
+      it('reverts', async function() {
+        await expectRevert(this.stakeManager.migrateDelegation(aliceId, bobId, migrationAmount, { from: delegator }), 'locked')
+      })
+    })
 
     describe('when Chad moves stake from unstaked validator', function() {
       const aliceId = '2'
