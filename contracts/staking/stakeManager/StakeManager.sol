@@ -535,9 +535,14 @@ contract StakeManager is
             require(delegationEnabled, "Delegation is disabled");
         }
 
-        if (validators[validatorId].deactivationEpoch == 0) { // modify timeline only if validator didn't unstake
+        uint256 deactivationEpoch = validators[validatorId].deactivationEpoch;
+
+        if (deactivationEpoch == 0) { // modify timeline only if validator didn't unstake
             updateTimeline(amount, 0, 0);
+        } else if (deactivationEpoch > currentEpoch) { // validator just unstaked, need to wait till next checkpoint
+            revert("unstaking");
         }
+        
 
         if (amount >= 0) {
             increaseValidatorDelegatedAmount(validatorId, uint256(amount));

@@ -2482,7 +2482,9 @@ contract('StakeManager', async function(accounts) {
           totalStakeAfterUnstake = await this.stakeManager.currentValidatorSetTotalStake()
         })
 
-        testMigration()
+        it('reverts', async function() {
+          await expectRevert(this.stakeManager.migrateDelegation(aliceId, bobId, delegationAmount, { from: delegator }), 'unstaking');
+        })
       })
     })
 
