@@ -2417,28 +2417,72 @@ contract('StakeManager', async function(accounts) {
       const aliceId = '2'
       const bobId = '8'
       const delegator = wallets[9].getChecksumAddressString()
-      let aliceContract
 
-      before(prepareForTest)
-      before(async function() {
-        await this.stakeManager.updateDynastyValue(1)
-        await this.stakeToken.mint(delegator, delegationAmount)
-        await this.stakeToken.approve(this.stakeManager.address, delegationAmount, {
-          from: delegator
+      let aliceContract
+      let totalStakeAfterUnstake
+
+      function testMigration() {
+        it('Should migrate', async function() {
+          await this.stakeManager.migrateDelegation(aliceId, bobId, delegationAmount, { from: delegator })
         })
 
-        const aliceValidator = await this.stakeManager.validators(aliceId)
-        aliceContract = await ValidatorShare.at(aliceValidator.contractAddress)
+        it('total stake must be correct', async function() {
+          assertBigNumberEquality(await this.stakeManager.currentValidatorSetTotalStake(), totalStakeAfterUnstake.add(delegationAmountBN))
+        })
+      }
 
-        await buyVoucher(aliceContract, delegationAmount, delegator)
+      function prepare() {
+        before(prepareForTest)
+        before(async function() {
+          await this.stakeManager.updateDynastyValue(1)
+          await this.stakeToken.mint(delegator, delegationAmount)
+          await this.stakeToken.approve(this.stakeManager.address, delegationAmount, {
+            from: delegator
+          })
 
-        await this.stakeManager.unstake(aliceId, { from: initialStakers[1].getChecksumAddressString() })
-        await this.stakeManager.advanceEpoch(100)
-        await this.stakeManager.unstakeClaim(aliceId, { from: initialStakers[1].getChecksumAddressString() })
+          const aliceValidator = await this.stakeManager.validators(aliceId)
+          aliceContract = await ValidatorShare.at(aliceValidator.contractAddress)
+
+          await buyVoucher(aliceContract, delegationAmount, delegator)
+
+          await this.stakeManager.unstake(aliceId, { from: initialStakers[1].getChecksumAddressString() })
+          
+        })
+      }
+
+      describe('when migrating after validator claimed his stake', function() {
+        prepare() 
+
+        before(async function() {
+          await this.stakeManager.advanceEpoch(10)
+          await this.stakeManager.unstakeClaim(aliceId, { from: initialStakers[1].getChecksumAddressString() })
+
+          totalStakeAfterUnstake = await this.stakeManager.currentValidatorSetTotalStake()
+        })
+
+        testMigration()
       })
 
-      it('Should migrate', async function() {
-        await this.stakeManager.migrateDelegation(aliceId, bobId, migrationAmount, { from: delegator })
+      describe('when migrating after 1 epoch', function() {
+        prepare()
+
+        before(async function() {
+          await this.stakeManager.advanceEpoch(10)
+
+          totalStakeAfterUnstake = await this.stakeManager.currentValidatorSetTotalStake()
+        })
+
+        testMigration()
+      })
+
+      describe('when migrating within unstake epoch', function() {
+        prepare()
+
+        before(async function() {
+          totalStakeAfterUnstake = await this.stakeManager.currentValidatorSetTotalStake()
+        })
+
+        testMigration()
       })
     })
 
