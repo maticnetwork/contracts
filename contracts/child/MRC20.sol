@@ -3,9 +3,9 @@ pragma solidity ^0.5.11;
 import "./BaseERC20NoSig.sol";
 
 /**
- * @title Matic token contract
- * @notice This contract is an ECR20 like wrapper over native ether (matic token) transfers on the matic chain
- * @dev ERC20 methods have been made payable while keeping their method signature same as other ChildERC20s on Matic
+ * @title Bone token contract
+ * @notice This contract is an ECR20 like wrapper over native ether (bone token) transfers on the shibarium chain
+ * @dev ERC20 methods have been made payable while keeping their method signature same as other ChildERC20s on shibarium
  */
 contract MRC20 is BaseERC20NoSig {
     event Transfer(address indexed from, address indexed to, uint256 value);
@@ -66,11 +66,11 @@ contract MRC20 is BaseERC20NoSig {
     }
 
     function name() public pure returns (string memory) {
-        return "Matic Token";
+        return "Bone Token";
     }
 
     function symbol() public pure returns (string memory) {
-        return "MATIC";
+        return "BONE";
     }
 
     function decimals() public pure returns (uint8) {
@@ -78,7 +78,7 @@ contract MRC20 is BaseERC20NoSig {
     }
 
     function totalSupply() public view returns (uint256) {
-        return 10000000000 * 10**uint256(DECIMALS);
+        return 250000000 * 10**uint256(DECIMALS);
     }
 
     function balanceOf(address account) public view returns (uint256) {
