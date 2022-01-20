@@ -567,11 +567,17 @@ contract StakeManager is
         address currentSigner = validators[validatorId].signer;
         // update signer event
         logger.logSignerChange(validatorId, currentSigner, signer, signerPubkey);
+        
+        if (validators[validatorId].deactivationEpoch == 0) { 
+            // didn't unstake, safe to remove the signer from the list
+            _removeSigner(currentSigner);
+        }
+        
+        _insertSigner(signer);
 
         signerToValidator[currentSigner] = INCORRECT_VALIDATOR_ID;
         signerToValidator[signer] = validatorId;
         validators[validatorId].signer = signer;
-        _updateSigner(currentSigner, signer);
 
         // reset update time to current time
         latestSignerUpdateEpoch[validatorId] = _currentEpoch;
@@ -1200,11 +1206,6 @@ contract StakeManager is
         if (i != lastIndex) {
             signers[i] = newSigner;
         }
-    }
-
-    function _updateSigner(address prevSigner, address newSigner) internal {
-        _removeSigner(prevSigner);
-        _insertSigner(newSigner);
     }
 
     function _removeSigner(address signerToDelete) internal {
