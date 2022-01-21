@@ -569,11 +569,10 @@ contract StakeManager is
         logger.logSignerChange(validatorId, currentSigner, signer, signerPubkey);
         
         if (validators[validatorId].deactivationEpoch == 0) { 
-            // didn't unstake, safe to remove the signer from the list
+            // didn't unstake, swap signer in the list
             _removeSigner(currentSigner);
+            _insertSigner(signer);
         }
-        
-        _insertSigner(signer);
 
         signerToValidator[currentSigner] = INCORRECT_VALIDATOR_ID;
         signerToValidator[signer] = validatorId;

@@ -351,12 +351,9 @@ module.exports = function(accounts) {
         })
       })
 
-      it('Signers list should have new Alice\'s signer and Bob\'s signer', async function() {
-        const signers = [await this.stakeManager.signers(0), await this.stakeManager.signers(1)]
-
-
-        assert(signers.findIndex(x => x == AliceNewWallet.getChecksumAddressString()) !== -1, 'no Alice signer!')
-        assert(signers.findIndex(x => x == BobWallet.getChecksumAddressString()) !== -1, 'no Bob signer!')
+      it('Signers list should haveonly Bob\'s signer', async function() {
+        assert((await this.stakeManager.signers(0)) == BobWallet.getChecksumAddressString(), 'no Bob signer!')
+        await expectRevert.unspecified(this.stakeManager.signers(1))
       })
     })
 
