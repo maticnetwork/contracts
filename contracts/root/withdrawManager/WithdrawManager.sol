@@ -109,6 +109,7 @@ contract WithdrawManager is WithdrawManagerStorage, IWithdrawManager {
 
         vars.headerNumber = payload.getHeaderNumber();
         vars.branchMaskBytes = payload.getBranchMaskAsBytes();
+        require(vars.branchMaskBytes[0] == 0, "incorrect mask");
         vars.txRoot = payload.getTxRoot();
         vars.receiptRoot = payload.getReceiptRoot();
         require(
