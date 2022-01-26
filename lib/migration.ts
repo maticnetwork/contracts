@@ -40,7 +40,7 @@ export async function deployProxyImplementation(artifacts: Artifacts, contractNa
     cc.logLn()
   }, 'Deployment result:')
 
-  return deployedAddress
+  return { address: deployedAddress }
 }
 
 export async function deployPredicate(artifacts: Artifacts, network: string, from: string, params: string) {
@@ -62,5 +62,5 @@ export async function deployPredicate(artifacts: Artifacts, network: string, fro
     cc.logLn()
   }, 'Deployment result:')
 
-  return deployedAddress
+  return { address: deployedAddress, args: ctorArgs }
 }

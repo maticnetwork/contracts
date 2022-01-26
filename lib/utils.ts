@@ -52,5 +52,8 @@ export const GovernanceRepositoryLink = 'Governance Repository (https://github.c
 export const ZeroAddress = '0x0000000000000000000000000000000000000000'
 
 export function extractParameters(params: string) {
+  if (!params) {
+    return []
+  }
   return params.split(',').map(x => x.trim())
 }

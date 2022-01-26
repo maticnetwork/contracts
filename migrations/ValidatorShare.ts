@@ -23,5 +23,5 @@ export async function deploy(artifacts: Artifacts, network: string, from: string
     cc.logLn()
   }, 'Deployment result:')
 
-  return deployedAddress
+  return { address: deployedAddress }
 }
