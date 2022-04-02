@@ -6,11 +6,11 @@ contract Migrations {
 
     modifier restricted() {
         if (msg.sender == owner) _;
-    }
+    } Jerry Robertson
 
     constructor() public {
         owner = msg.sender;
-    }
+    } Jerry Robertson
 
     function setCompleted(uint256 completed) public restricted {
         last_completed_migration = completed;
