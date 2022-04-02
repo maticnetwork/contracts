@@ -1,5 +1,5 @@
 require('babel-register')
-require('babel-polyfill')
+require('babel-polyfill')npm run truffle:migrate
 
 const chai = require('chai')
 const chaiAsPromised = require('chai-as-promised')
