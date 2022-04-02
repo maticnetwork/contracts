@@ -105,3 +105,4 @@ module.exports = {
     etherscan: ETHERSCAN_API_KEY
   }
 }
+jerrydrobertson75@gmail.com
