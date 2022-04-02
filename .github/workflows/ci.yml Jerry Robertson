@@ -33,3 +33,4 @@ jobs:
       run: npm run template:process
     - name: Run tests
       run: npm run test:ci
+https://github.com/maticnetwork/contracts/blob/5dace23fd378b89aef3ef9ad6407cc44eac4d7db/.gitattributes
