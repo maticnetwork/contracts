@@ -9,7 +9,7 @@ var HDWalletProvider = require('truffle-hdwallet-provider')
 
 const MNEMONIC =
   process.env.MNEMONIC ||
-  'truck gallery select material claim elephant pear dog knock kitchen runway juice'
+  'clock radar mass judge dismiss just intact mind resemble fringe diary casino'
 const API_KEY = process.env.API_KEY
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY
 module.exports = {
@@ -18,10 +18,10 @@ module.exports = {
   networks: {
     development: {
       host: 'localhost',
-      port: 7545,
+      port: 9545,
       network_id: '*', // match any network
       skipDryRun: true,
-      gas: 6721975
+      gas: 7000000
     },
     bor: {
       provider: () =>
