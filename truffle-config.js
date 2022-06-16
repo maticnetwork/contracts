@@ -5,7 +5,7 @@ const chai = require('chai')
 const chaiAsPromised = require('chai-as-promised')
 chai.use(chaiAsPromised).should()
 
-var HDWalletProvider = require('truffle-hdwallet-provider')
+var HDWalletProvider = require('@truffle/hdwallet-provider')
 
 const MNEMONIC =
   process.env.MNEMONIC ||
@@ -30,7 +30,7 @@ module.exports = {
           `http://localhost:8545`
         ),
       network_id: '*', // match any network
-      gasPrice: '0'
+      gasPrice: '90000000000'
     },
     matic: {
       provider: () =>
