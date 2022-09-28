@@ -62,12 +62,12 @@ module.exports = async function (callback) {
   // args starts with index 6, example: first arg == process.args[6]
   console.log(process.argv)
   try {
-    const accounts = await web3.eth.getAccounts()
-    console.log("Current configured address to make transactions:", accounts[0])
+    const account = await web3.eth.getCoinbase()
+    console.log("Current configured address to make transactions:", account)
 
     // -- network <main network> <root token> <amount>
     await depositERC20({
-      addr: accounts[0],
+      addr: account,
       rootToken: process.argv[6],
       amount: process.argv[7],
     })
