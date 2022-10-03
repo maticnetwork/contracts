@@ -1,4 +1,4 @@
-# Shibarium contracts
+# Matic contracts
 
 ![Build Status](https://github.com/maticnetwork/contracts/workflows/CI/badge.svg)
 
@@ -29,7 +29,7 @@ npm run truffle:compile
 npm run testrpc
 ```
 
-- Start Shibarium side chain. Requires docker.
+- Start Matic side chain. Requires docker.
 
 ```
 npm run bor:simulate
