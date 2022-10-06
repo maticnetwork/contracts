@@ -1,18 +1,18 @@
-pragma solidity ^0.5.2;
-
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
 import {BytesLib} from "../../common/lib/BytesLib.sol";
 import {Common} from "../../common/lib/Common.sol";
 import {ECVerify} from "../../common/lib/ECVerify.sol";
-import {Math} from "openzeppelin-solidity/contracts/math/Math.sol";
+import "@openzeppelin/contracts/math/Math.sol";
 import {RLPEncode} from "../../common/lib/RLPEncode.sol";
 import {RLPReader} from "solidity-rlp/contracts/RLPReader.sol";
-import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import {IPredicate, PredicateUtils} from "./IPredicate.sol";
 import {IRootChain} from "../IRootChain.sol";
 import {IWithdrawManager} from "../withdrawManager/IWithdrawManager.sol";
 import {Registry} from "../../common/Registry.sol";
-import {TransferWithSigUtils} from "./TransferWithSigUtils.sol";
+import {TransferWithSigUtils} from "./TransferWithSigUtils.sol.template";
 
 contract MarketplacePredicate is PredicateUtils {
     using RLPReader for bytes;

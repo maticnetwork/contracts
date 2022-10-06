@@ -4,9 +4,9 @@
  *
  * @dev Library for verifing merkle patricia proofs.
  */
-pragma solidity ^0.5.2;
-
-import {RLPReader} from "solidity-rlp/contracts/RLPReader.sol";
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
+import "solidity-rlp/contracts/RLPReader.sol";
 
 library MerklePatriciaProof {
     /*
@@ -22,7 +22,7 @@ library MerklePatriciaProof {
         bytes memory encodedPath,
         bytes memory rlpParentNodes,
         bytes32 root
-    ) internal pure returns (bool) {
+    ) internal pure returns (bool status) {
         RLPReader.RLPItem memory item = RLPReader.toRlpItem(rlpParentNodes);
         RLPReader.RLPItem[] memory parentNodes = RLPReader.toList(item);
 

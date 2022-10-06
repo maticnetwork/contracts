@@ -1,9 +1,9 @@
-pragma solidity ^0.5.2;
-
-import {Ownable} from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {RLPReader} from "solidity-rlp/contracts/RLPReader.sol";
-import {IERC20} from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {BytesLib} from "../../common/lib/BytesLib.sol";
 import {ECVerify} from "../../common/lib/ECVerify.sol";
@@ -30,7 +30,7 @@ contract SlashingManager is ISlashingManager, Ownable {
         address _registry,
         address _logger,
         string memory _heimdallId
-    ) public {
+    ) {
         registry = Registry(_registry);
         logger = StakingInfo(_logger);
         heimdallId = keccak256(abi.encodePacked(_heimdallId));

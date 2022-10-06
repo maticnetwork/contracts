@@ -1,6 +1,6 @@
-pragma solidity ^0.5.2;
-
-import {ERC721Full} from "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
+import "@openzeppelin/contracts/token/ERC721/ERC721Full.sol";
 
 import "./ChildToken.sol";
 import "./misc/IParentToken.sol";
@@ -29,7 +29,7 @@ contract ChildERC721 is ChildToken, ERC721Full, StateSyncerVerifier, StateReceiv
         address _token,
         string memory name,
         string memory symbol
-    ) public ERC721Full(name, symbol) {
+    ) ERC721Full(name, symbol) {
         require(_token != address(0x0));
         token = _token;
     }

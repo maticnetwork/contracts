@@ -1,5 +1,5 @@
-pragma solidity ^0.5.2;
-
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
 import {RLPReader} from "solidity-rlp/contracts/RLPReader.sol";
 
 import {Common} from "../../common/lib/Common.sol";
@@ -8,7 +8,7 @@ import {RLPEncode} from "../../common/lib/RLPEncode.sol";
 import {IWithdrawManager} from "../withdrawManager/IWithdrawManager.sol";
 import {IDepositManager} from "../depositManager/IDepositManager.sol";
 import {ExitsDataStructure} from "../withdrawManager/WithdrawManagerStorage.sol";
-import {ChainIdMixin} from "../../common/mixin/ChainIdMixin.sol";
+import {ChainIdMixin} from "../../common/mixin/ChainIdMixin.sol.template";
 
 interface IPredicate {
     /**
@@ -160,7 +160,7 @@ contract IErcPredicate is IPredicate, PredicateUtils {
 
     uint256 internal constant MAX_LOGS = 10;
 
-    constructor(address _withdrawManager, address _depositManager) public {
+    constructor(address _withdrawManager, address _depositManager) {
         withdrawManager = IWithdrawManager(_withdrawManager);
         depositManager = IDepositManager(_depositManager);
     }

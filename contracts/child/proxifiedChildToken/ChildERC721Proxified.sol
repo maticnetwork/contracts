@@ -1,5 +1,5 @@
-pragma solidity ^0.5.2;
-
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
 import {Initializable} from "../../common/mixin/Initializable.sol";
 import "../ChildERC721.sol";
 
@@ -7,7 +7,7 @@ contract ChildERC721Proxified is ChildERC721, Initializable {
     string public name;
     string public symbol;
 
-    constructor() public ChildERC721(address(0x1), address(0x1), "", "") {}
+    constructor() ChildERC721(address(0x1), address(0x1), "", "") {}
 
     function initialize(
         address _token,

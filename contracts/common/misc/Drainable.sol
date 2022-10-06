@@ -1,15 +1,15 @@
-pragma solidity ^0.5.2;
-
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
 import { DepositManagerStorage } from "../../root/depositManager/DepositManagerStorage.sol";
 import { GovernanceLockable } from "../mixin/GovernanceLockable.sol";
-import { IERC20 } from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
-import { IERC721 } from "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { WETH } from "../tokens/WETH.sol";
 
 
 contract Drainable is DepositManagerStorage {
 
-  constructor() public GovernanceLockable(address(0x0)) {}
+  constructor() GovernanceLockable(address(0x0)) {}
 
   function drainErc20(
     address[] calldata tokens,

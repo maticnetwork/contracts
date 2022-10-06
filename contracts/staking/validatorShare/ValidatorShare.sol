@@ -1,8 +1,8 @@
-pragma solidity 0.5.17;
-
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
 import {Registry} from "../../common/Registry.sol";
 import {ERC20NonTradable} from "../../common/tokens/ERC20NonTradable.sol";
-import {ERC20} from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {StakingInfo} from "./../StakingInfo.sol";
 import {EventsHub} from "./../EventsHub.sol";
 import {OwnableLockable} from "../../common/mixin/OwnableLockable.sol";

@@ -1,5 +1,5 @@
-pragma solidity ^0.5.2;
-
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
 import {StakeManager} from "../staking/stakeManager/StakeManager.sol";
 
 

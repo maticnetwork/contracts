@@ -1,5 +1,5 @@
-pragma solidity ^0.5.2;
-
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
 import "./BytesLib.sol";
 
 library Common {

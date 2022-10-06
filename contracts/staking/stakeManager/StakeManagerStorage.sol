@@ -1,6 +1,6 @@
-pragma solidity 0.5.17;
-
-import {IERC20} from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {Registry} from "../../common/Registry.sol";
 import {GovernanceLockable} from "../../common/mixin/GovernanceLockable.sol";

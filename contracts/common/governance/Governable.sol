@@ -1,11 +1,11 @@
-pragma solidity ^0.5.2;
-
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
 import {IGovernance} from "./IGovernance.sol";
 
 contract Governable {
     IGovernance public governance;
 
-    constructor(address _governance) public {
+    constructor(address _governance){
         governance = IGovernance(_governance);
     }
 

@@ -1,5 +1,5 @@
-pragma solidity ^0.5.2;
-
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
 interface IDepositManager {
     function depositEther() external payable;
     function transferAssets(

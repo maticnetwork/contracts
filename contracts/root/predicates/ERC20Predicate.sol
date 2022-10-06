@@ -1,11 +1,11 @@
-pragma solidity ^0.5.2;
-
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
 import {BytesLib} from "../../common/lib/BytesLib.sol";
 import {Common} from "../../common/lib/Common.sol";
-import {Math} from "openzeppelin-solidity/contracts/math/Math.sol";
+import {Math} from "@openzeppelin/contracts/math/Math.sol";
 import {RLPEncode} from "../../common/lib/RLPEncode.sol";
 import {RLPReader} from "solidity-rlp/contracts/RLPReader.sol";
-import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import {IErcPredicate} from "./IPredicate.sol";
 import {Registry} from "../../common/Registry.sol";

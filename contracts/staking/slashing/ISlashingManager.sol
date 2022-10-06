@@ -1,7 +1,7 @@
-pragma solidity ^0.5.2;
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
 import {StakingInfo} from "../StakingInfo.sol";
 import {Registry} from "../../common/Registry.sol";
-
 
 contract ISlashingManager {
     bytes32 public heimdallId;

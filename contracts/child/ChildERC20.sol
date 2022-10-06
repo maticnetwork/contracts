@@ -1,7 +1,7 @@
-pragma solidity ^0.5.2;
-
-import {ERC20Detailed} from "./ERC20Detailed.sol";
-import {ERC20} from "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
 
 import {StateSyncerVerifier} from "./bor/StateSyncerVerifier.sol";
 import {StateReceiver} from "./bor/StateReceiver.sol";
@@ -15,7 +15,7 @@ contract ChildERC20 is BaseERC20, ERC20, ERC20Detailed, StateSyncerVerifier, Sta
         string memory _name,
         string memory _symbol,
         uint8 _decimals
-    ) public ERC20Detailed(_name, _symbol, _decimals) {
+    ) ERC20Detailed(_name, _symbol, _decimals) {
         require(_token != address(0x0));
         token = _token;
     }

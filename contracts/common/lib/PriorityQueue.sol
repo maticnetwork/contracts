@@ -1,7 +1,7 @@
-pragma solidity ^0.5.2;
-
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 /**
  * @title PriorityQueue
@@ -13,7 +13,7 @@ contract PriorityQueue is Ownable {
     uint256[] heapList;
     uint256 public currentSize;
 
-    constructor() public {
+    constructor() {
         heapList = [0];
     }
 
@@ -47,7 +47,7 @@ contract PriorityQueue is Ownable {
         delete heapList[currentSize];
         currentSize = currentSize.sub(1);
         _percDown(1);
-        heapList.length = heapList.length.sub(1);
+        heapList.pop();
         return _splitElement(retVal);
     }
 

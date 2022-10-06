@@ -1,7 +1,7 @@
-pragma solidity ^0.5.2;
-
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
 import { GovernanceLockable } from "../common/mixin/GovernanceLockable.sol";
 
 contract GovernanceLockableTest is GovernanceLockable {
-    constructor(address governance) public GovernanceLockable(governance) {}
+    constructor(address governance) GovernanceLockable(governance) {}
 }

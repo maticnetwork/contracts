@@ -1,6 +1,6 @@
-pragma solidity ^0.5.2;
-
-import {Ownable} from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 import {StateSyncerVerifier} from "./bor/StateSyncerVerifier.sol";
 import {StateReceiver} from "./bor/StateReceiver.sol";
@@ -38,7 +38,7 @@ contract ChildChain is Ownable, StateSyncerVerifier, StateReceiver {
         uint256 withrawCount
     );
 
-    constructor() public {
+    constructor() {
         //Mapping matic Token
         tokens[0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0] = 0x0000000000000000000000000000000000001010;
     }

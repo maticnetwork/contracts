@@ -1,8 +1,8 @@
-pragma solidity ^0.5.2;
-
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
 import {Registry} from "../common/Registry.sol";
-import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import {Ownable} from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 
 // dummy interface to avoid cyclic dependency
@@ -209,7 +209,7 @@ contract StakingInfo is Ownable {
         _;
     }
 
-    constructor(address _registry) public {
+    constructor(address _registry) {
         registry = Registry(_registry);
     }
 

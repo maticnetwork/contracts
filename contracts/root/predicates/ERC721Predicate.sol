@@ -1,7 +1,7 @@
-pragma solidity ^0.5.2;
-
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
 import {RLPReader} from "solidity-rlp/contracts/RLPReader.sol";
-import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import {BytesLib} from "../../common/lib/BytesLib.sol";
 import {Common} from "../../common/lib/Common.sol";
@@ -26,7 +26,7 @@ contract ERC721Predicate is IErcPredicate {
     bytes4 constant TRANSFER_FROM_FUNC_SIG = 0x23b872dd;
 
     constructor(address _withdrawManager, address _depositManager)
-        public
+        
         IErcPredicate(_withdrawManager, _depositManager)
     {}
 

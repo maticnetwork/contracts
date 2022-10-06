@@ -1,5 +1,5 @@
-pragma solidity ^0.5.2;
-
+//SPDX-License-Identifier:MIT
+pragma solidity 0.8.17;
 
 library TransferWithSigUtils {
   function getTokenTransferOrderHash(address token, address spender, uint256 amount, bytes32 data, uint256 expiration)
@@ -34,13 +34,14 @@ library TransferWithSigUtils {
   function hashEIP712Message(address token, bytes32 hashStruct)
     internal
     pure
-    returns (bytes32 result)
+    returns(bytes32 result)
   {
     string memory EIP712_DOMAIN_SCHEMA = "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)";
     bytes32 EIP712_DOMAIN_SCHEMA_HASH = keccak256(abi.encodePacked(EIP712_DOMAIN_SCHEMA));
     string memory EIP712_DOMAIN_NAME = "Matic Network";
     string memory EIP712_DOMAIN_VERSION = "1";
-    uint256 EIP712_DOMAIN_CHAINID = {{ borChainId }};
+    string memory CHAINID= "borChainId";
+    bytes32 EIP712_DOMAIN_CHAINID= keccak256(abi.encodePacked(CHAINID));
     bytes32 EIP712_DOMAIN_HASH = keccak256(abi.encode(
       EIP712_DOMAIN_SCHEMA_HASH,
       keccak256(bytes(EIP712_DOMAIN_NAME)),

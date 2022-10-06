@@ -1,12 +1,12 @@
-pragma solidity ^0.5.2;
-
-import {ERC721Mintable} from "openzeppelin-solidity/contracts/token/ERC721/ERC721Mintable.sol";
-import {ERC721MetadataMintable} from "openzeppelin-solidity/contracts/token/ERC721/ERC721MetadataMintable.sol";
-import {ERC721Metadata} from "openzeppelin-solidity/contracts/token/ERC721/ERC721Metadata.sol";
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
+import "@openzeppelin/contracts/token/ERC721/ERC721Mintable.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721MetadataMintable.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721Metadata.sol";
 
 contract ERC721PlasmaMintable is ERC721Mintable, ERC721MetadataMintable {
     constructor(string memory name, string memory symbol)
-        public
+        
         ERC721Metadata(name, symbol)
     {}
 

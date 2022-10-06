@@ -1,5 +1,5 @@
-pragma solidity ^0.5.2;
-
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
 /**
  * @title ERC20Detailed token
  * @dev The decimals are only for visualization purposes.
@@ -11,10 +11,10 @@ contract ERC20Detailed {
     string internal _symbol;
     uint8 internal _decimals;
 
-    constructor (string memory name, string memory symbol, uint8 decimals) public {
-        _name = name;
-        _symbol = symbol;
-        _decimals = decimals;
+    constructor (string memory name_, string memory symbol_, uint8 decimals_) {
+        _name = name_;
+        _symbol = symbol_;
+        _decimals = decimals_;
     }
 
     /**

@@ -1,7 +1,7 @@
-pragma solidity 0.5.17;
-
-import {RLPReader} from "solidity-rlp/contracts/RLPReader.sol";
-import {BytesLib} from "./BytesLib.sol";
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
+import "solidity-rlp/contracts/RLPReader.sol";
+import "./BytesLib.sol";
 
 library ExitPayloadReader {
   using RLPReader for bytes;

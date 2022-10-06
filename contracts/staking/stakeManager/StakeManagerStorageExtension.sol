@@ -1,5 +1,5 @@
-pragma solidity 0.5.17;
-
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
 contract StakeManagerStorageExtension {
     address public eventsHub;
     uint256 public rewardPerStake;

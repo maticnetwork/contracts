@@ -1,5 +1,5 @@
-pragma solidity ^0.5.2;
-
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
 
 library ECVerify {
     function ecrecovery(bytes32 hash, uint[3] memory sig)

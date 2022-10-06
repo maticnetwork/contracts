@@ -1,7 +1,7 @@
-pragma solidity ^0.5.2;
-
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
 import {RLPReader} from "solidity-rlp/contracts/RLPReader.sol";
-import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import {BytesLib} from "../../common/lib/BytesLib.sol";
 import {Common} from "../../common/lib/Common.sol";
@@ -24,7 +24,7 @@ contract ERC721PredicateBurnOnly is IErcPredicate {
     bytes32 constant WITHDRAW_EVENT_SIG = 0x9b1bfa7fa9ee420a16e124f794c35ac9f90472acc99140eb2f6447c714cad8eb;
 
     constructor(address _withdrawManager, address _depositManager)
-        public
+        
         IErcPredicate(_withdrawManager, _depositManager)
     {}
 

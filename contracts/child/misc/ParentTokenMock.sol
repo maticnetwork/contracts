@@ -1,6 +1,6 @@
-pragma solidity ^0.5.2;
-
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "./IParentToken.sol";
 // demo token parent contract

@@ -1,7 +1,7 @@
-pragma solidity ^0.5.2;
-
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
 import {RLPReader} from "solidity-rlp/contracts/RLPReader.sol";
-import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import {BytesLib} from "../../common/lib/BytesLib.sol";
 import {Common} from "../../common/lib/Common.sol";
@@ -22,7 +22,7 @@ contract MintableERC721Predicate is ERC721Predicate {
     mapping(uint256 => MintableTokenInfo) public exitToMintableTokenInfo;
 
     constructor(address _withdrawManager, address _depositManager)
-        public
+        
         ERC721Predicate(_withdrawManager, _depositManager)
     {}
 

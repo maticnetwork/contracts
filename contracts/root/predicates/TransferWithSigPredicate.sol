@@ -1,8 +1,8 @@
-pragma solidity ^0.5.2;
-
-import {Math} from "openzeppelin-solidity/contracts/math/Math.sol";
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
+import "@openzeppelin/contracts/math/Math.sol";
 import {RLPReader} from "solidity-rlp/contracts/RLPReader.sol";
-import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import {BytesLib} from "../../common/lib/BytesLib.sol";
 import {ECVerify} from "../../common/lib/ECVerify.sol";
@@ -11,7 +11,7 @@ import {IPredicate, PredicateUtils} from "./IPredicate.sol";
 import {IRootChain} from "../IRootChain.sol";
 import {IWithdrawManager} from "../withdrawManager/IWithdrawManager.sol";
 import {Registry} from "../../common/Registry.sol";
-import {TransferWithSigUtils} from "./TransferWithSigUtils.sol";
+import {TransferWithSigUtils} from "./TransferWithSigUtils.sol.template";
 
 contract TransferWithSigPredicate is PredicateUtils {
     using RLPReader for bytes;
@@ -39,7 +39,7 @@ contract TransferWithSigPredicate is PredicateUtils {
     }
 
     constructor(address _rootChain, address _withdrawManager, address _registry)
-        public
+        
     {
         withdrawManager = IWithdrawManager(_withdrawManager);
         rootChain = IRootChain(_rootChain);

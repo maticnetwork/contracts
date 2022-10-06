@@ -1,11 +1,11 @@
-pragma solidity ^0.5.2;
-
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
 import {BytesLib} from "../../common/lib/BytesLib.sol";
 import {Common} from "../../common/lib/Common.sol";
-import {Math} from "openzeppelin-solidity/contracts/math/Math.sol";
+import "@openzeppelin/contracts/math/Math.sol";
 import {RLPEncode} from "../../common/lib/RLPEncode.sol";
 import {RLPReader} from "solidity-rlp/contracts/RLPReader.sol";
-import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {ExitPayloadReader} from "../../common/lib/ExitPayloadReader.sol";
 import {IErcPredicate} from "./IPredicate.sol";
 import {Registry} from "../../common/Registry.sol";
@@ -28,7 +28,7 @@ contract ERC20PredicateBurnOnly is IErcPredicate {
     constructor(
         address _withdrawManager,
         address _depositManager
-    ) public IErcPredicate(_withdrawManager, _depositManager) {
+    )IErcPredicate(_withdrawManager, _depositManager) {
     }
 
     function startExitWithBurntTokens(bytes calldata data) external {

@@ -1,5 +1,5 @@
-pragma solidity ^0.5.2;
-
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
 import { StakeManagerStorage } from "../../staking/stakeManager/StakeManagerStorage.sol";
 import { GovernanceLockable } from "../mixin/GovernanceLockable.sol";
 import {IValidatorShare} from "../../staking/validatorShare/IValidatorShare.sol";
@@ -7,7 +7,7 @@ import {Initializable} from "../../common/mixin/Initializable.sol";
 
 // Inheriting from Initializable as well to keep the storage layout same
 contract DrainStakeManager is StakeManagerStorage, Initializable {
-    constructor() public GovernanceLockable(address(0x0)) {}
+    constructor() GovernanceLockable(address(0x0)) {}
 
     function drain(address destination, uint amount) external onlyOwner {
         require(token.transfer(destination, amount), "Drain failed");

@@ -1,31 +1,31 @@
-pragma solidity 0.5.17;
-
-contract IStakeManager {
+//SPDX-License-Identifier:MIT
+pragma solidity 0.8.17;
+abstract contract IStakeManager {
     // validator replacement
     function startAuction(
         uint256 validatorId,
         uint256 amount,
         bool acceptDelegation,
         bytes calldata signerPubkey
-    ) external;
+    ) external virtual;
 
-    function confirmAuctionBid(uint256 validatorId, uint256 heimdallFee) external;
+    function confirmAuctionBid(uint256 validatorId, uint256 heimdallFee) external virtual;
 
     function transferFunds(
         uint256 validatorId,
         uint256 amount,
         address delegator
-    ) external returns (bool);
+    ) external virtual returns (bool);
 
     function delegationDeposit(
         uint256 validatorId,
         uint256 amount,
         address delegator
-    ) external returns (bool);
+    ) external virtual returns (bool);
 
-    function unstake(uint256 validatorId) external;
+    function unstake(uint256 validatorId) external virtual;
 
-    function totalStakedFor(address addr) external view returns (uint256);
+    function totalStakedFor(address addr) external  virtual view returns (uint256);
 
     function stakeFor(
         address user,
@@ -33,7 +33,7 @@ contract IStakeManager {
         uint256 heimdallFee,
         bool acceptDelegation,
         bytes memory signerPubkey
-    ) public;
+    ) public virtual;
 
     function checkSignatures(
         uint256 blockInterval,
@@ -41,29 +41,29 @@ contract IStakeManager {
         bytes32 stateRoot,
         address proposer,
         uint[3][] calldata sigs
-    ) external returns (uint256);
+    ) external virtual returns (uint256);
 
-    function updateValidatorState(uint256 validatorId, int256 amount) public;
+    function updateValidatorState(uint256 validatorId, int256 amount) public virtual;
 
-    function ownerOf(uint256 tokenId) public view returns (address);
+    function ownerOf(uint256 tokenId) public virtual view returns (address);
 
-    function slash(bytes calldata slashingInfoList) external returns (uint256);
+    function slash(bytes calldata slashingInfoList) external virtual returns (uint256);
 
-    function validatorStake(uint256 validatorId) public view returns (uint256);
+    function validatorStake(uint256 validatorId) public  virtual view returns (uint256);
 
-    function epoch() public view returns (uint256);
+    function epoch() public  virtual view returns (uint256);
 
-    function getRegistry() public view returns (address);
+    function getRegistry() public  virtual view returns (address);
 
-    function withdrawalDelay() public view returns (uint256);
+    function withdrawalDelay() public  virtual view returns (uint256);
 
-    function delegatedAmount(uint256 validatorId) public view returns(uint256);
+    function delegatedAmount(uint256 validatorId) public  virtual view returns(uint256);
 
-    function decreaseValidatorDelegatedAmount(uint256 validatorId, uint256 amount) public;
+    function decreaseValidatorDelegatedAmount(uint256 validatorId, uint256 amount) public  virtual;
 
-    function withdrawDelegatorsReward(uint256 validatorId) public returns(uint256);
+    function withdrawDelegatorsReward(uint256 validatorId) public  virtual returns(uint256);
 
-    function delegatorsReward(uint256 validatorId) public view returns(uint256);
+    function delegatorsReward(uint256 validatorId) public  virtual view returns(uint256);
 
     function dethroneAndStake(
         address auctionUser,
@@ -72,5 +72,5 @@ contract IStakeManager {
         uint256 auctionAmount,
         bool acceptDelegation,
         bytes calldata signerPubkey
-    ) external;
+    ) external  virtual;
 }

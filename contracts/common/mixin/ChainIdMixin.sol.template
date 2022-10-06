@@ -1,6 +1,6 @@
-pragma solidity ^0.5.2;
-
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
 contract ChainIdMixin {
-  bytes constant public networkId = hex"{{ borChainIdHex }}";
-  uint256 constant public CHAINID = {{ borChainId }};
+  string constant public CHAINID= "borChainId";
+  bytes constant public networkId = bytes(CHAINID);
 }

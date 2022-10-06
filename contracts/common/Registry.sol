@@ -1,5 +1,5 @@
-pragma solidity ^0.5.2;
-
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
 import {Governable} from "./governance/Governable.sol";
 import {IWithdrawManager} from "../root/withdrawManager/IWithdrawManager.sol";
 
@@ -37,7 +37,7 @@ contract Registry is Governable {
     event PredicateRemoved(address indexed predicate, address indexed from);
     event ContractMapUpdated(bytes32 indexed key, address indexed previousContract, address indexed newContract);
 
-    constructor(address _governance) public Governable(_governance) {}
+    constructor(address _governance) Governable(_governance) {}
 
     function updateContractMap(bytes32 _key, address _address) external onlyGovernance {
         emit ContractMapUpdated(_key, contractMap[_key], _address);

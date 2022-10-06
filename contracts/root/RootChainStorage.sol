@@ -1,8 +1,8 @@
-pragma solidity ^0.5.2;
-
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
 import {Registry} from "../common/Registry.sol";
 import {ProxyStorage} from "../common/misc/ProxyStorage.sol";
-import {ChainIdMixin} from "../common/mixin/ChainIdMixin.sol";
+import {ChainIdMixin} from "../common/mixin/ChainIdMixin.sol.template";
 
 
 contract RootChainHeader {

@@ -1,5 +1,5 @@
-pragma solidity ^0.5.11;
-
+//SPDX-License-Identifier:MIT
+pragma solidity 0.8.17;
 import "./BaseERC20NoSig.sol";
 
 /**
@@ -14,7 +14,7 @@ contract MRC20 is BaseERC20NoSig {
     uint8 private constant DECIMALS = 18;
     bool isInitialized;
 
-    constructor() public {}
+    constructor() {}
 
     function initialize(address _childChain, address _token) public {
         // Todo: once BorValidator(@0x1000) contract added uncomment me

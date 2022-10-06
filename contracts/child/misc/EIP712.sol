@@ -1,6 +1,6 @@
-pragma solidity ^0.5.2;
-
-import {ChainIdMixin} from "../../common/mixin/ChainIdMixin.sol";
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
+import {ChainIdMixin} from "../../common/mixin/ChainIdMixin.sol.template";
 
 contract LibEIP712Domain is ChainIdMixin {
     string internal constant EIP712_DOMAIN_SCHEMA = "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)";
@@ -14,7 +14,7 @@ contract LibEIP712Domain is ChainIdMixin {
 
     bytes32 public EIP712_DOMAIN_HASH;
 
-    constructor() public {
+    constructor() {
         EIP712_DOMAIN_HASH = keccak256(
             abi.encode(
                 EIP712_DOMAIN_SCHEMA_HASH,

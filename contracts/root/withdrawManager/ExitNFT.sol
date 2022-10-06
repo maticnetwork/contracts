@@ -1,6 +1,6 @@
-pragma solidity ^0.5.2;
-
-import {ERC721} from "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {Registry} from "../../common/Registry.sol";
 
 contract ExitNFT is ERC721 {
@@ -14,7 +14,7 @@ contract ExitNFT is ERC721 {
         _;
     }
 
-    constructor(address _registry) public {
+    constructor(address _registry){
         registry = Registry(_registry);
     }
 

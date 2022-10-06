@@ -1,5 +1,5 @@
-pragma solidity ^0.5.2;
-
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
 import "./ChildToken.sol";
 
 contract BaseERC20NoSig is ChildToken {
@@ -30,7 +30,7 @@ contract BaseERC20NoSig is ChildToken {
         uint256 output2
     );
 
-    constructor() public {}
+    constructor(){}
 
     function transferWithSig(
         bytes calldata sig,

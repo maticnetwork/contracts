@@ -1,5 +1,5 @@
-pragma solidity ^0.5.2;
-
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
 import {DelegateProxy} from "./DelegateProxy.sol";
 
 contract UpgradableProxy is DelegateProxy {
@@ -9,12 +9,12 @@ contract UpgradableProxy is DelegateProxy {
     bytes32 constant IMPLEMENTATION_SLOT = keccak256("matic.network.proxy.implementation");
     bytes32 constant OWNER_SLOT = keccak256("matic.network.proxy.owner");
 
-    constructor(address _proxyTo) public {
+    constructor(address _proxyTo) {
         setOwner(msg.sender);
         setImplementation(_proxyTo);
     }
 
-    function() external payable {
+    fallback() external payable {
         // require(currentContract != 0, "If app code has not been set yet, do not call");
         // Todo: filter out some calls or handle in the end fallback
         delegatedFwd(loadImplementation(), msg.data);
@@ -38,7 +38,7 @@ contract UpgradableProxy is DelegateProxy {
         return _owner;
     }
 
-    function implementation() external view returns (address) {
+    function implementation() external view override returns (address) {
         return loadImplementation();
     }
 
@@ -76,7 +76,7 @@ contract UpgradableProxy is DelegateProxy {
     function updateAndCall(address _newProxyTo, bytes memory data) payable public onlyProxyOwner {
         updateImplementation(_newProxyTo);
 
-        (bool success, bytes memory returnData) = address(this).call.value(msg.value)(data);
+        (bool success, bytes memory returnData) = address(this).call{value:msg.value}(data);
         require(success, string(returnData));
     }
 
@@ -86,4 +86,5 @@ contract UpgradableProxy is DelegateProxy {
             sstore(position, _newProxyTo)
         }
     }
+    receive() external payable{}
 }

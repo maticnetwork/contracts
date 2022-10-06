@@ -1,8 +1,8 @@
-pragma solidity 0.5.17;
-
-import {IERC20} from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
-import {Math} from "openzeppelin-solidity/contracts/math/Math.sol";
-import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+//SPDX-License-Identifier:MIT
+pragma solidity 0.8.17;
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/math/Math.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {RLPReader} from "solidity-rlp/contracts/RLPReader.sol";
 
 import {BytesLib} from "../../common/lib/BytesLib.sol";
@@ -67,7 +67,7 @@ contract StakeManager is
         require(validators[validatorId].contractAddress == msg.sender, "Invalid contract address");
     }
 
-    constructor() public GovernanceLockable(address(0x0)) initializer {}
+    constructor() GovernanceLockable(address(0x0)) initializer {}
 
     function initialize(
         address _registry,

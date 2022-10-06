@@ -1,13 +1,13 @@
 /**
  *Submitted for verification at Etherscan.io on 2019-12-26
 */
-
-pragma solidity >=0.5.0 <0.7.0;
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
 
 /// @title SelfAuthorized - authorizes current contract to perform actions
 /// @author Richard Meissner - <richard@gnosis.pm>
 contract SelfAuthorized {
-    modifier authorized() {
+    modifier authorized() virtual{
         require(msg.sender == address(this), "Method can only be called from this contract");
         _;
     }
@@ -47,7 +47,7 @@ contract Module is MasterCopy {
 
     ModuleManager public manager;
 
-    modifier authorized() {
+    modifier authorized() override{
         require(msg.sender == address(manager), "Method can only be called from manager");
         _;
     }
@@ -137,7 +137,7 @@ contract SecuredTokenTransfer {
         bytes memory data = abi.encodeWithSignature("transfer(address,uint256)", receiver, amount);
         // solium-disable-next-line security/no-inline-assembly
         assembly {
-            let success := call(sub(gas, 10000), token, 0, add(data, 0x20), mload(data), 0, 0)
+            let success := call(sub(gas(), 10000), token, 0, add(data, 0x20), mload(data), 0, 0)
             let ptr := mload(0x40)
             mstore(0x40, add(ptr, returndatasize()))
             returndatacopy(ptr, 0, returndatasize())
@@ -268,10 +268,10 @@ contract ModuleManager is SelfAuthorized, Executor {
         return array;
     }
 
-    /// @dev Returns array of modules.
-    /// @param start Start of the page.
-    /// @param pageSize Maximum number of modules that should be returned.
-    /// @return Array of modules.
+    
+   
+   
+   
     function getModulesPaginated(address start, uint256 pageSize)
         public
         view
@@ -493,7 +493,7 @@ contract FallbackManager is SelfAuthorized {
         internalSetFallbackHandler(handler);
     }
 
-    function ()
+    fallback ()
         external
         payable
     {
@@ -512,7 +512,7 @@ contract FallbackManager is SelfAuthorized {
             // solium-disable-next-line security/no-inline-assembly
             assembly {
                 calldatacopy(0, 0, calldatasize())
-                let success := call(gas, handler, 0, 0, calldatasize(), 0, 0)
+                let success := call(gas(), handler, 0, 0, calldatasize(), 0, 0)
                 returndatacopy(0, 0, returndatasize())
                 if eq(success, 0) { revert(0, returndatasize()) }
                 return(0, returndatasize())
@@ -587,7 +587,7 @@ contract ISignatureValidatorConstants {
     bytes4 constant internal EIP1271_MAGIC_VALUE = 0x20c13b0b;
 }
 
-contract ISignatureValidator is ISignatureValidatorConstants {
+abstract contract ISignatureValidator is ISignatureValidatorConstants {
 
     /**
     * @dev Should return whether the signature provided is valid for the provided data
@@ -602,7 +602,7 @@ contract ISignatureValidator is ISignatureValidatorConstants {
         bytes memory _data,
         bytes memory _signature)
         public
-        view
+        view virtual
         returns (bytes4);
 }
 
@@ -831,7 +831,7 @@ contract GnosisSafe
         returns (uint256 payment)
     {
         // solium-disable-next-line security/no-tx-origin
-        address payable receiver = refundReceiver == address(0) ? tx.origin : refundReceiver;
+        address payable receiver = refundReceiver == payable(address(0))? payable(tx.origin) : refundReceiver;
         if (gasToken == address(0)) {
             // For ETH we will only adjust the gas price to not be higher than the actual used gas price
             payment = gasUsed.add(baseGas).mul(gasPrice < tx.gasprice ? gasPrice : tx.gasprice);
@@ -871,7 +871,7 @@ contract GnosisSafe
             // If v is 0 then it is a contract signature
             if (v == 0) {
                 // When handling contract signatures the address of the contract is encoded into r
-                currentOwner = address(uint256(r));
+                currentOwner = address(uint160(uint256(r)));
 
                 // Check that signature data pointer (s) is not pointing inside the static part of the signatures bytes
                 // This check is not completely accurate, since it is possible that more signatures than the threshold are send.
@@ -900,7 +900,7 @@ contract GnosisSafe
             // If v is 1 then it is an approved hash
             } else if (v == 1) {
                 // When handling approved hashes the address of the approver is encoded into r
-                currentOwner = address(uint256(r));
+                currentOwner = address(uint160(uint256(r)));
                 // Hashes are automatically approved by the sender of the message or when they have been pre-approved via a separate transaction
                 require(msg.sender == currentOwner || approvedHashes[currentOwner][dataHash] != 0, "Hash has not been approved");
                 // Hash has been marked for consumption. If this hash was pre-approved free storage
@@ -1009,7 +1009,7 @@ contract GnosisSafe
             abi.encode(SAFE_MSG_TYPEHASH, keccak256(message))
         );
         return keccak256(
-            abi.encodePacked(byte(0x19), byte(0x01), domainSeparator, safeMessageHash)
+            abi.encodePacked(bytes1(0x19), bytes1(0x01), domainSeparator, safeMessageHash)
         );
     }
 
@@ -1044,7 +1044,7 @@ contract GnosisSafe
         bytes32 safeTxHash = keccak256(
             abi.encode(SAFE_TX_TYPEHASH, to, value, keccak256(data), operation, safeTxGas, baseGas, gasPrice, gasToken, refundReceiver, _nonce)
         );
-        return abi.encodePacked(byte(0x19), byte(0x01), domainSeparator, safeTxHash);
+        return abi.encodePacked(bytes1(0x19), bytes1(0x01), domainSeparator, safeTxHash);
     }
 
     /// @dev Returns hash to be signed by owners.

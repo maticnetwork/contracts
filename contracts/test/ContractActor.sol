@@ -1,6 +1,6 @@
-pragma solidity ^0.5.2;
-
-import {IERC20} from "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../root/depositManager/IDepositManager.sol";
 import "../root/withdrawManager/WithdrawManager.sol";
 
@@ -18,7 +18,7 @@ contract ContractWithFallback {
     WithdrawManager(withdrawManager).startExitWithDepositedTokens.value(10**17)(depositId, token, amountOrToken);
   }
 
-  function() external payable {}
+  fallback() external payable {}
 }
 
 contract ContractWithoutFallback {
@@ -50,7 +50,7 @@ contract ContractWitRevertingFallback {
     WithdrawManager(withdrawManager).startExitWithDepositedTokens.value(10**17)(depositId, token, amountOrToken);
   }
 
-  function() external payable {
+  fallback() external payable {
     revert("not implemented");
   }
 }

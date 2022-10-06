@@ -1,6 +1,6 @@
-pragma solidity ^0.5.2;
-
-import {Ownable} from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+//SPDX-License-Identifier:MIT
+pragma solidity ^0.8.17;
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract StateSyncerVerifier is Ownable {
     address public stateSyncer;
@@ -22,7 +22,7 @@ contract StateSyncerVerifier is Ownable {
     }
 
     // initial setup
-    constructor() public {
+    constructor() {
         // default state syncer contract
         stateSyncer = 0x0000000000000000000000000000000000001001;
 
