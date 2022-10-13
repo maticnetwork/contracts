@@ -58,7 +58,7 @@
     "eslint-plugin-standard": "4.0.0",
     "eth-gas-reporter": "0.1.12",
     "eth-sig-util": "^2.1.1",
-    "ethereumjs-wallet": "0.6.5",
+    "ethereumjs-wallet": "0.6.3",
     "ethers": "4.0.13",
     "moonwalker": "github:gatsbyz/moonwalker",
     "pre-commit": "^1.2.2",
