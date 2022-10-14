@@ -952,7 +952,7 @@ contract('ValidatorShare', async function() {
         validatorId: '8',
         user: Alice,
         userTotalStaked: toWei('0'),
-        totalStaked: ValidatorDefaultStake,
+        totalStaked: 0,
         shares: aliceStake
       })
     })
