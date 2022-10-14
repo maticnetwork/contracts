@@ -73,6 +73,7 @@
     "@truffle/hdwallet-provider": "^2.0.9",
     "babel-polyfill": "^6.26.0",
     "babel-preset-env": "1.7.0",
+    "babel-register": "^6.26.0",
     "chai": "4.2.0",
     "chai-as-promised": "^7.1.1",
     "commander": "^4.0.1",
