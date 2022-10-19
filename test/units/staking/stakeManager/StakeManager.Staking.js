@@ -6,6 +6,7 @@ import {
 } from '../../../helpers/utils.js'
 import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
 import { wallets, walletAmounts, freshDeploy, approveAndStake } from '../deployment'
+import { assert } from 'chai'
 
 module.exports = function(accounts) {
   let owner = accounts[0]
@@ -317,6 +318,45 @@ module.exports = function(accounts) {
   })
 
   describe('unstake', function() {
+    describe('when Alice unstakes and update the signer', function() {
+      const AliceWallet = wallets[1]
+      const BobWallet = wallets[3]
+      const AliceNewWallet = wallets[2]
+
+      before(freshDeploy)
+      before(doStake(AliceWallet))
+      before(doStake(BobWallet))
+      before('Change signer', async function() {
+        const signerUpdateLimit = await this.stakeManager.signerUpdateLimit()
+        await this.stakeManager.advanceEpoch(signerUpdateLimit)
+
+        this.validatorId = await this.stakeManager.getValidatorId(AliceWallet.getAddressString())
+        
+      })
+
+      it('Alice should unstake', async function() {
+        this.receipt = await this.stakeManager.unstake(this.validatorId, {
+          from: AliceWallet.getAddressString()
+        })
+      })
+
+      it('Signers list should have only Bob\'s signer', async function() {
+        assert((await this.stakeManager.signers(0)) == BobWallet.getChecksumAddressString(), 'no Bob signer!')
+        await expectRevert.unspecified(this.stakeManager.signers(1))
+      })
+
+      it('Alice should update signer', async function() {
+        await this.stakeManager.updateSigner(this.validatorId, AliceNewWallet.getPublicKeyString(), {
+          from: AliceWallet.getAddressString()
+        })
+      })
+
+      it('Signers list should haveonly Bob\'s signer', async function() {
+        assert((await this.stakeManager.signers(0)) == BobWallet.getChecksumAddressString(), 'no Bob signer!')
+        await expectRevert.unspecified(this.stakeManager.signers(1))
+      })
+    })
+
     describe('when user unstakes right after stake', async function() {
       const user = wallets[2].getChecksumAddressString()
       const amounts = walletAmounts[wallets[2].getAddressString()]

@@ -1,5 +1,5 @@
 const EthDeployer = require('moonwalker').default
-const HDWalletProvider = require('truffle-hdwallet-provider')
+const HDWalletProvider = require('@truffle/hdwallet-provider')
 
 const MNEMONIC = process.env.MNEMONIC || 'clock radar mass judge dismiss just intact mind resemble fringe diary casino'
 const API_KEY =  process.env.API_KEY
