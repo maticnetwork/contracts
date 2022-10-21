@@ -152,7 +152,10 @@ contract StakeManager is
     }
 
     function delegatorsReward(uint256 validatorId) public view returns (uint256) {
-        (, uint256 _delegatorsReward) = _evaluateValidatorAndDelegationReward(validatorId);
+        uint256 _delegatorsReward;
+        if (validators[validatorId].deactivationEpoch == 0) {
+            (, _delegatorsReward) = _evaluateValidatorAndDelegationReward(validatorId);
+        }
         return validators[validatorId].delegatorsReward.add(_delegatorsReward).sub(INITIALIZED_AMOUNT);
     }
 
@@ -935,6 +938,11 @@ contract StakeManager is
         uint256 currentRewardPerStake,
         uint256 newRewardPerStake
     ) private {
+        uint256 deactivationEpoch = validators[validatorId].deactivationEpoch;
+        if (deactivationEpoch != 0 && currentEpoch >= deactivationEpoch) {
+            return;
+        }
+
         uint256 initialRewardPerStake = validators[validatorId].initialRewardPerStake;
 
         // attempt to save gas in case if rewards were updated previosuly
