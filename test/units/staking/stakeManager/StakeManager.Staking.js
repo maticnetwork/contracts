@@ -1,9 +1,6 @@
 import { StakingInfo, TestToken, ValidatorShare } from '../../../helpers/artifacts'
 
-import {
-  checkPoint,
-  assertBigNumberEquality
-} from '../../../helpers/utils.js'
+import { checkPoint, assertBigNumberEquality } from '../../../helpers/utils.js'
 import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
 import { wallets, walletAmounts, freshDeploy, approveAndStake } from '../deployment'
 import { assert } from 'chai'
@@ -411,7 +408,9 @@ module.exports = function(accounts) {
 
       const user = wallets[3].getChecksumAddressString()
       const amounts = walletAmounts[wallets[3].getAddressString()]
+      const w = [wallets[2], wallets[3]]
 
+      before(doStake(wallets[2]))
       before(doStake(wallets[3]))
       before(async function() {
         this.validatorId = await this.stakeManager.getValidatorId(user)
@@ -419,7 +418,6 @@ module.exports = function(accounts) {
       })
 
       before(async function() {
-        const w = [wallets[3]]
         await checkPoint(w, this.rootChainOwner, this.stakeManager)
         await checkPoint(w, this.rootChainOwner, this.stakeManager)
 
@@ -460,6 +458,16 @@ module.exports = function(accounts) {
       it('must have increased balance by reward', async function() {
         const balance = await this.stakeToken.balanceOf(user)
         assertBigNumberEquality(balance, this.afterStakeBalance.add(this.reward))
+      })
+
+      it('should not distribute additional rewards after unstaking', async function() {
+        // complete unstake and remove validator
+        await checkPoint(w, this.rootChainOwner, this.stakeManager)
+
+        const validatorId = await this.stakeManager.getValidatorId(user)
+        const rewardsBefore = await this.stakeManager.validatorReward(validatorId)
+        await checkPoint([wallets[2]], this.rootChainOwner, this.stakeManager)
+        assertBigNumberEquality(await this.stakeManager.validatorReward(validatorId), rewardsBefore)
       })
     })
 
