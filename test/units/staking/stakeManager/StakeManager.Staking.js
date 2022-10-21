@@ -481,10 +481,16 @@ module.exports = function(accounts) {
 
         assertBigNumbergt(validatorRewardsAfter, validatorRewardsBefore)
         assertBigNumbergt(delegationRewardsAfter, delegationRewardsBefore)
+        
+        await this.stakeManager.withdrawRewards(validatorId, { from: user })
+        const balanceBefore = await this.stakeToken.balanceOf(user)
 
         await checkPoint([wallets[2]], this.rootChainOwner, this.stakeManager)
         
-        assertBigNumberEquality(await this.stakeManager.validatorReward(validatorId), validatorRewardsAfter)
+        await this.stakeManager.withdrawRewards(validatorId, { from: user })
+        assertBigNumberEquality(await this.stakeToken.balanceOf(user), balanceBefore)
+        
+        assertBigNumberEquality(await this.stakeManager.validatorReward(validatorId), new BN(0))
         assertBigNumberEquality(await this.stakeManager.delegatorsReward(validatorId), delegationRewardsAfter)
       })
     })
