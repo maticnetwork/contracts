@@ -1,6 +1,6 @@
 import { StakingInfo, TestToken, ValidatorShare } from '../../../helpers/artifacts'
 
-import { checkPoint, assertBigNumberEquality } from '../../../helpers/utils.js'
+import { checkPoint, assertBigNumberEquality, assertBigNumbergt } from '../../../helpers/utils.js'
 import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
 import { wallets, walletAmounts, freshDeploy, approveAndStake } from '../deployment'
 import { assert } from 'chai'
@@ -8,14 +8,14 @@ import { assert } from 'chai'
 module.exports = function(accounts) {
   let owner = accounts[0]
 
-  function doStake(wallet, { aproveAmount, stakeAmount, noMinting = false, signer } = {}) {
+  function doStake(wallet, { aproveAmount, stakeAmount, noMinting = false, acceptDelegation = false, signer } = {}) {
     return async function() {
       let user = wallet.getAddressString()
 
       let _aproveAmount = aproveAmount || walletAmounts[user].amount
       let _stakeAmount = stakeAmount || walletAmounts[user].stakeAmount
 
-      await approveAndStake.call(this, { wallet, stakeAmount: _stakeAmount, approveAmount: _aproveAmount, noMinting, signer })
+      await approveAndStake.call(this, { wallet, stakeAmount: _stakeAmount, approveAmount: _aproveAmount, acceptDelegation, noMinting, signer })
     }
   }
 
@@ -411,9 +411,16 @@ module.exports = function(accounts) {
       const w = [wallets[2], wallets[3]]
 
       before(doStake(wallets[2]))
-      before(doStake(wallets[3]))
+      before(doStake(wallets[3], { acceptDelegation: true }))
       before(async function() {
         this.validatorId = await this.stakeManager.getValidatorId(user)
+
+        // delegate tokens to validator
+        const validatorShareAddr = await this.stakeManager.getValidatorContract(this.validatorId)
+        this.stakeToken.approve(this.stakeManager.address, web3.utils.toWei('100'), { from: wallets[4].getAddressString() })
+        const validator = await ValidatorShare.at(validatorShareAddr)
+        await validator.buyVoucher(web3.utils.toWei('100'), 0, { from: wallets[4].getAddressString() })
+
         this.afterStakeBalance = await this.stakeToken.balanceOf(user)
       })
 
@@ -460,14 +467,25 @@ module.exports = function(accounts) {
         assertBigNumberEquality(balance, this.afterStakeBalance.add(this.reward))
       })
 
-      it('should not distribute additional rewards after unstaking', async function() {
+      it('should not distribute additional staking or delegation rewards after unstaking', async function() {
+        const validatorId = await this.stakeManager.getValidatorId(user)
+
+        let validatorRewardsBefore = await this.stakeManager.validatorReward(validatorId)
+        let delegationRewardsBefore = await this.stakeManager.delegatorsReward(validatorId)
+
         // complete unstake and remove validator
         await checkPoint(w, this.rootChainOwner, this.stakeManager)
+        
+        let validatorRewardsAfter = await this.stakeManager.validatorReward(validatorId)
+        let delegationRewardsAfter = await this.stakeManager.delegatorsReward(validatorId)
 
-        const validatorId = await this.stakeManager.getValidatorId(user)
-        const rewardsBefore = await this.stakeManager.validatorReward(validatorId)
+        assertBigNumbergt(validatorRewardsAfter, validatorRewardsBefore)
+        assertBigNumbergt(delegationRewardsAfter, delegationRewardsBefore)
+
         await checkPoint([wallets[2]], this.rootChainOwner, this.stakeManager)
-        assertBigNumberEquality(await this.stakeManager.validatorReward(validatorId), rewardsBefore)
+        
+        assertBigNumberEquality(await this.stakeManager.validatorReward(validatorId), validatorRewardsAfter)
+        assertBigNumberEquality(await this.stakeManager.delegatorsReward(validatorId), delegationRewardsAfter)
       })
     })
 
