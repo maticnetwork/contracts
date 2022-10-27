@@ -131,15 +131,24 @@ module.exports = function(accounts) {
       it('must pay out rewards correctly', async function() {
         const validatorId = await this.stakeManager.getValidatorId(user)
         const reward = await this.stakeManager.validatorReward(validatorId)
+        const balanceBefore = await this.stakeToken.balanceOf(user)
         assertBigNumberEquality(reward, new BN(0))
+
         await checkPoint(wallets, this.rootChainOwner, this.stakeManager)
         await checkPoint(wallets, this.rootChainOwner, this.stakeManager)
         const newReward = await this.stakeManager.validatorReward(validatorId)
         assertBigNumbergt(newReward, reward)
+        await this.stakeManager.withdrawRewards(validatorId, { from: user })
+        const balanceAfter = await this.stakeToken.balanceOf(user)
+        assertBigNumberEquality(balanceAfter.sub(balanceBefore), newReward)
+
         await checkPoint(wallets, this.rootChainOwner, this.stakeManager)
         await checkPoint(wallets, this.rootChainOwner, this.stakeManager)
         const newReward2 = await this.stakeManager.validatorReward(validatorId)
-        assertBigNumberEquality(newReward2, newReward.mul(new BN(2)))
+        await this.stakeManager.withdrawRewards(validatorId, { from: user })
+        const balanceAfter2 = await this.stakeToken.balanceOf(user)
+        assertBigNumberEquality(balanceAfter2.sub(balanceAfter), newReward2)
+        assertBigNumberEquality(newReward2, newReward)
       })
     }
 
