@@ -915,7 +915,7 @@ contract StakeManager is
         // distribute rewards between signed validators
         rewardPerStake = newRewardPerStake;
 
-        // evaluate rewards for unstaked validators to avoid getting new rewards until they claim their stake
+        // evaluate rewards for unstaked validators to ensure they get the reward for signing during their deactivationEpoch
         _updateValidatorsRewards(deactivatedValidators, totalDeactivatedValidators, newRewardPerStake);
 
         _finalizeCommit();
@@ -1163,7 +1163,6 @@ contract StakeManager is
         uint256 reward = validators[validatorId].reward.sub(INITIALIZED_AMOUNT);
         totalRewardsLiquidated = totalRewardsLiquidated.add(reward);
         validators[validatorId].reward = INITIALIZED_AMOUNT;
-        validators[validatorId].initialRewardPerStake = rewardPerStake;
         _transferToken(validatorUser, reward);
         logger.logClaimRewards(validatorId, reward, totalRewardsLiquidated);
     }

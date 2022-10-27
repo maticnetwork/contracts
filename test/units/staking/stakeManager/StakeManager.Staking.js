@@ -127,6 +127,20 @@ module.exports = function(accounts) {
         const value = await this.stakeManager.isValidator(validatorId.toString())
         assert.isTrue(value)
       })
+
+      it('must pay out rewards correctly', async function() {
+        const validatorId = await this.stakeManager.getValidatorId(user)
+        const reward = await this.stakeManager.validatorReward(validatorId)
+        assertBigNumberEquality(reward, new BN(0))
+        await checkPoint(wallets, this.rootChainOwner, this.stakeManager)
+        await checkPoint(wallets, this.rootChainOwner, this.stakeManager)
+        const newReward = await this.stakeManager.validatorReward(validatorId)
+        assertBigNumbergt(newReward, reward)
+        await checkPoint(wallets, this.rootChainOwner, this.stakeManager)
+        await checkPoint(wallets, this.rootChainOwner, this.stakeManager)
+        const newReward2 = await this.stakeManager.validatorReward(validatorId)
+        assertBigNumberEquality(newReward2, newReward.mul(new BN(2)))
+      })
     }
 
     function testRestake(user, amount, stakeAmount, restakeAmount, totalStaked) {
