@@ -7,7 +7,7 @@
     "contracts": "RootChain StakeManager"
   },
   "scripts": {
-    "testrpc": "ganache-cli --hardfork istanbul --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' -p 9545 --gasLimit 10000000 --gasPrice 0 --allowUnlimitedContractSize --accounts 200",
+    "testrpc": "ganache --hardfork istanbul --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' -p 9545 --gasLimit 10000000 --gasPrice 0 --allowUnlimitedContractSize --accounts 200",
     "template:process": "node scripts/process-templates.js",
     "truffle": "truffle",
     "truffle:test": "truffle test",
@@ -80,6 +80,7 @@
     "ethereumjs-tx": "1.3.7",
     "ethereumjs-util": "6.0.0",
     "ethereumjs-wallet": "^0.6.5",
+    "ganache": "^7.5.0",
     "glob": "^7.1.6",
     "merkle-patricia-tree": "2.3.2",
     "nunjucks": "^3.2.0",

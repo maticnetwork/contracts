@@ -11,7 +11,7 @@ PWD=$(pwd)
 
 cleanup() {
   echo "Cleaning up"
-  pkill -f ganache-cli
+  pkill -f ganache
   cd $PWD/test-blockchain
   bash stop-docker.sh
   bash clean.sh
