@@ -21,7 +21,7 @@ module.exports = {
       port: 9545,
       network_id: '*', // match any network
       skipDryRun: true,
-      gas: 7000000
+      gas: 0
     },
     bor: {
       provider: () =>
