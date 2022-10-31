@@ -8,8 +8,14 @@ chai.use(chaiAsPromised).should()
 var HDWalletProvider = require('@truffle/hdwallet-provider')
 
 const MNEMONIC =
-  process.env.MNEMONIC ||
-  'clock radar mass judge dismiss just intact mind resemble fringe diary casino'
+  process.env.MNEMONIC ? {
+    privateKeys: [MNEMONIC]
+  } : {
+    mnemonic: {
+      phrase: 'clock radar mass judge dismiss just intact mind resemble fringe diary casino'
+    },
+  }
+  
 const API_KEY = process.env.API_KEY
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY
 module.exports = {
@@ -27,7 +33,7 @@ module.exports = {
     bor: {
       provider: () =>
         new HDWalletProvider({
-          privateKeys: [MNEMONIC],
+          ...MNEMONIC,
           providerOrUrl: `http://localhost:8545`
       }),
       network_id: '*', // match any network
@@ -36,7 +42,7 @@ module.exports = {
     matic: {
       provider: () =>
         new HDWalletProvider({
-          privateKeys: [MNEMONIC],
+          ...MNEMONIC,
           providerOrUrl: `https://rpc-mainnet.matic.network`
         }),
       network_id: '137',
@@ -45,7 +51,7 @@ module.exports = {
     mumbai: {
       provider: () =>
         new HDWalletProvider({
-          privateKeys: [MNEMONIC],
+          ...MNEMONIC,
           providerOrUrl: `https://rpc-mumbai.matic.today`
         }),
       network_id: '80001',
@@ -53,7 +59,7 @@ module.exports = {
     goerli: {
       provider: function() {
         return new HDWalletProvider({
-          privateKeys: [MNEMONIC],
+          ...MNEMONIC,
           providerOrUrl: `https://goerli.infura.io/v3/${API_KEY}`
         })
       },
@@ -65,7 +71,7 @@ module.exports = {
     mainnet: {
       provider: function() {
         return new HDWalletProvider({
-          privateKeys: [MNEMONIC],
+          ...MNEMONIC,
           providerOrUrl: `https://mainnet.infura.io/v3/${API_KEY}`
         })
       },
