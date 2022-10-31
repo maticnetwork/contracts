@@ -452,6 +452,7 @@ module.exports = function(accounts) {
         await checkPoint(w, this.rootChainOwner, this.stakeManager)
 
         this.reward = await this.stakeManager.validatorReward(this.validatorId)
+        this.delegatorReward = await this.stakeManager.delegatorsReward(this.validatorId)
       })
 
       it('must unstake', async function() {
@@ -495,6 +496,7 @@ module.exports = function(accounts) {
 
         let validatorRewardsBefore = await this.stakeManager.validatorReward(validatorId)
         let delegationRewardsBefore = await this.stakeManager.delegatorsReward(validatorId)
+        assertBigNumberEquality(delegationRewardsBefore, this.delegatorReward)
 
         // complete unstake and remove validator
         await checkPoint(w, this.rootChainOwner, this.stakeManager)
