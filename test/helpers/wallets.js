@@ -1,7 +1,7 @@
 import bip39 from 'bip39'
-import hdkey from 'ethereumjs-wallet/hdkey'
-
 import packageJSON from '../../package.json'
+
+const { hdkey } = require('ethereumjs-wallet')
 
 export const mnemonics = packageJSON.config.mnemonics
 export function generateFirstWallets(mnemonics, n, hdPathIndex = 0) {
