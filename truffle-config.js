@@ -19,7 +19,7 @@ const MNEMONIC =
 const API_KEY = process.env.API_KEY
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY
 module.exports = {
-  // See <http://truffleframework.com/docs/advanced/configuration>
+  // See <https://trufflesuite.com/docs/truffle/reference/configuration/>
   // to customize your Truffle configuration!
   networks: {
     development: {
@@ -27,8 +27,7 @@ module.exports = {
       port: 9545,
       network_id: '*', // match any network
       skipDryRun: true,
-      gas: 0,
-      confirmations: 1
+      gas: 0
     },
     bor: {
       provider: () =>
