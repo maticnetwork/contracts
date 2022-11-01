@@ -608,11 +608,11 @@ contract ISignatureValidator is ISignatureValidatorConstants {
 
 
 /**
- * @title SafeMath
+ * @title SafeMath2
  * @dev Math operations with safety checks that revert on error
  * TODO: remove once open zeppelin update to solc 0.5.0
  */
-library SafeMath {
+library SafeMath2 {
 
   /**
   * @dev Multiplies two numbers, reverts on overflow.
@@ -679,7 +679,7 @@ library SafeMath {
 contract GnosisSafe
     is MasterCopy, ModuleManager, OwnerManager, SignatureDecoder, SecuredTokenTransfer, ISignatureValidatorConstants, FallbackManager {
 
-    using SafeMath for uint256;
+    using SafeMath2 for uint256;
 
     string public constant NAME = "Gnosis Safe";
     string public constant VERSION = "1.1.1";
