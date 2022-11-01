@@ -9,7 +9,7 @@ var HDWalletProvider = require('@truffle/hdwallet-provider')
 
 const MNEMONIC =
   process.env.MNEMONIC ? {
-    privateKeys: [MNEMONIC]
+    privateKeys: [process.env.MNEMONIC]
   } : {
     mnemonic: {
       phrase: 'clock radar mass judge dismiss just intact mind resemble fringe diary casino'
