@@ -24,3 +24,5 @@ coverage/
 coverage.json
 
 .idea
+
+.dccache

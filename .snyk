@@ -119,3 +119,11 @@ ignore:
         reason: 'As open source org, we have no issues with licenses'
         created: 2022-11-14T15:20:13.000Z
 patch: {}
+exclude:
+  global:
+    - moonwalker-migrations/*.js
+        reason: Used in tests. Mocked private key
+        created: 2022-11-14T15:51:30.104Z
+    - scripts/*.js:
+        reason: Used in tests. Mocked private key
+        created: 2022-11-14T15:52:39.534Z
