@@ -8,8 +8,7 @@ ignore:
         created: 2022-11-14T15:15:06.869Z
   'snyk:lic:npm:ethereumjs-account:MPL-2.0':
     - '*':
-        reason: None Given
-        expires: 2022-12-14T15:23:25.362Z
+        reason: 'As open source org, we have no issues with licenses'
         created: 2022-11-14T15:23:25.369Z
   'snyk:lic:npm:ethereumjs-block:MPL-2.0':
     - '*':
