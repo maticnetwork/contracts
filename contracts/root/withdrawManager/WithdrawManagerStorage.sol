@@ -45,7 +45,8 @@ contract WithdrawManagerHeader is ExitsDataStructure {
 
 
 contract WithdrawManagerStorage is ProxyStorage, WithdrawManagerHeader {
-    uint256 public HALF_EXIT_PERIOD = 1 weeks;
+    // 0.5 week = 7 * 86400 / 2 = 302400
+    uint256 public HALF_EXIT_PERIOD = 302400;
 
     // Bonded exits collaterized at 0.1 ETH
     uint256 internal constant BOND_AMOUNT = 10**17;
@@ -65,7 +66,7 @@ contract WithdrawManagerStorage is ProxyStorage, WithdrawManagerHeader {
     // uint32 constant internal ITERATION_GAS = 52000;
 
     // So putting an upper limit of 155000 + 52000 + leeway
-    uint32 internal constant ON_FINALIZE_GAS_LIMIT = 210000;
+    uint32 public ON_FINALIZE_GAS_LIMIT = 300000;
 
     uint256 public exitWindow;
 }

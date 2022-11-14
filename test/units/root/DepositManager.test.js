@@ -17,7 +17,7 @@ contract('DepositManager', async function(accounts) {
   const amount = web3.utils.toBN('10').pow(web3.utils.toBN('18'))
 
   async function freshDeploy() {
-    this.contracts = await deployer.freshDeploy()
+    this.contracts = await deployer.freshDeploy(accounts[0])
     await deployer.deployRootChain()
     this.depositManager = await deployer.deployDepositManager()
   }
@@ -345,7 +345,7 @@ contract('DepositManager', async function(accounts) {
         await expectRevert(this.depositManager.depositEther({
           value,
           from: accounts[0]
-        }), 'Is Locked')
+        }), 'locked')
       })
     })
 
@@ -361,7 +361,7 @@ contract('DepositManager', async function(accounts) {
       })
 
       it('must revert', async function() {
-        await expectRevert(this.depositManager.depositERC20(this.testToken.address, amount), 'Is Locked')
+        await expectRevert(this.depositManager.depositERC20(this.testToken.address, amount), 'locked')
       })
     })
 
@@ -381,7 +381,7 @@ contract('DepositManager', async function(accounts) {
       })
 
       it('must revert', async function() {
-        await expectRevert(this.depositManager.depositERC721(this.testToken.address, tokenId), 'Is Locked')
+        await expectRevert(this.depositManager.depositERC721(this.testToken.address, tokenId), 'locked')
       })
     })
 
@@ -416,7 +416,7 @@ contract('DepositManager', async function(accounts) {
       })
 
       it('must revert', async function() {
-        await expectRevert(this.depositManager.depositBulk(tokens, amounts, user), 'Is Locked')
+        await expectRevert(this.depositManager.depositBulk(tokens, amounts, user), 'locked')
       })
     })
   })

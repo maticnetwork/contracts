@@ -23,11 +23,14 @@ export MNEMONIC=<mnemonic>
 export HEIMDALL_ID=<>
 e.g. export HEIMDALL_ID="heimdall-P5rXwg"
 ```
+
 ### :three: Choose Bor Chain Id
+
 ```
 npm run template:process -- --bor-chain-id <bor-chain-id>
-for instance, npm run template:process -- --bor-chain-id 15001
+for instance, npm run template:process -- --bor-chain-id 80001
 ```
+
 ### :four: Compile contracts
 
 ```
@@ -42,18 +45,17 @@ We need to deploy our set of contracts on 2 chains:
 - Child Chain: EVM compatible chain to work as our sidechain. For testing note that using `ganache` for child-chain is not recommended, instead invoking `npm run bor:simulate` would be better.
 
 ```
-mv migrations dev-migrations && cp -r deploy-migrations migrations
 
 // Root contracts are deployed on base chain
-npm run truffle:migrate -- --reset --to 3 --network <base_chain_network_name>
+npm run truffle:migrate -- --reset --to 4 --network <base_chain_network_name>
 
 // Contracts like ChildERC20Token are deployed on child chain aka BOR chain
 // NOTE: You need to deploy or simulate BOR before running the below command
-npm run truffle:migrate -- --reset -f 4 --to 4 --network <child_chain_network_name>
+npm run truffle:migrate -- --reset -f 5 --to 5 --network <child_chain_network_name>
 
 
 // Contracts deployed on BOR are mapped to the registry contract deployed on-chain
-npm run truffle:migrate -- -f 5 --to 5 --network <base_chain_network_name>
+npm run truffle:migrate -- -f 6 --to 6 --network <base_chain_network_name>
 ```
 
 Post successfull deployment all contract addresses will be written to a `contractAddresses.json` file.
@@ -61,6 +63,7 @@ Post successfull deployment all contract addresses will be written to a `contrac
 > Check account that you are deploying from has ether for the network you are deploying on.
 
 ### :six: Stake to become a validator
+
 ```
 // (Optional) Export mnemonic or the private key (without the 0x prefix)
 // This account needs to have test token

@@ -42,6 +42,8 @@ export async function freshDeploy() {
   this.rootChainOwner = contracts.rootChainOwner
   this.registry = contracts.registry
   this.governance = contracts.governance
+  this.validatorShare = deployer.validatorShare
+  this.slashingManager = contracts.slashingManager
 
   await this.stakeManager.updateCheckpointReward(web3.utils.toWei('10000'))
   await this.stakeManager.updateCheckPointBlockInterval(1)
@@ -78,7 +80,7 @@ export async function approveAndStake({ wallet, stakeAmount, approveAmount, acce
     from: wallet.getAddressString()
   })
 
-  await this.stakeManager.stake(stakeAmount, fee, acceptDelegation, signer || wallet.getPublicKeyString(), {
+  await this.stakeManager.stakeFor(wallet.getAddressString(), stakeAmount, fee, acceptDelegation, signer || wallet.getPublicKeyString(), {
     from: wallet.getAddressString()
   })
 }

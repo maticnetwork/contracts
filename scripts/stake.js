@@ -3,6 +3,9 @@ const contracts = require('../contractAddresses.json')
 const RootToken = artifacts.require('TestToken')
 const Registry = artifacts.require('Registry')
 const StakeManager = artifacts.require('StakeManager')
+const StakingInfo = artifacts.require('StakingInfo')
+const DrainStakeManager = artifacts.require('DrainStakeManager')
+const StakeManagerProxy = artifacts.require('StakeManagerProxy')
 const TestToken = artifacts.require('TestToken')
 const DepositManager = artifacts.require('DepositManager')
 const Governance = artifacts.require('Governance')
@@ -29,12 +32,10 @@ async function stake() {
   const maticToken = await RootToken.at(contracts.root.tokens.MaticToken)
   console.log({ stakeManager: stakeManager.address, maticToken: maticToken.address, stakeToken: await stakeManager.token() })
   console.log('Sender accounts has a balanceOf', (await maticToken.balanceOf(accounts[0])).toString())
-  maticToken.approve(stakeManager.address, web3.utils.toWei('1000000'))
-  await delay(5)
+  await maticToken.approve(stakeManager.address, web3.utils.toWei('1000000'))
   console.log('sent approve tx, staking now...')
   // Remember to change the 4th parameter to false if delegation is not required
-  stakeManager.stakeFor(validatorAccount, stakeAmount, heimdallFee, true, pubkey)
-  return delay(5)
+  await stakeManager.stakeFor(validatorAccount, stakeAmount, heimdallFee, true, pubkey)
 }
 
 async function topUpForFee() {
@@ -94,14 +95,16 @@ async function updateDynasty() {
   const stakeManager = await getStakeManager()
   let auctionPeriod = await stakeManager.auctionPeriod()
   let dynasty = await stakeManager.dynasty()
-  console.log({ dynasty: dynasty.toString(), auctionPeriod: auctionPeriod.toString(), signerUpdateLimit: await stakeManager.signerUpdateLimit() })
+  console.log({ dynasty: dynasty.toString(), auctionPeriod: auctionPeriod.toString(), signerUpdateLimit: (await stakeManager.signerUpdateLimit()).toString() })
 
-  stakeManager.updateSignerUpdateLimit(10)
-  await delay(5)
-  await stakeManager.updateDynastyValue(8)
+  await stakeManager.updateSignerUpdateLimit(10)
+
+  await stakeManager.updateDynastyValue(888)
   dynasty = await stakeManager.dynasty()
   auctionPeriod = await stakeManager.auctionPeriod()
   console.log({ dynasty: dynasty.toString(), auctionPeriod: auctionPeriod.toString() })
+
+  await stakeManager.stopAuctions('10000')
 }
 
 async function updateExitPeriod() {
@@ -120,16 +123,40 @@ async function child() {
   console.log(await mrc20.owner())
 }
 
+async function updateImplementation() {
+  let stakeManager = await StakeManagerProxy.at(contracts.root.StakeManagerProxy)
+  // const drainContract = '0xF6Fc3a5f0D6389cD96727955c813069B1d47F358' // on goerli for Mumbai
+  const drainContract = '0x3025349b8BbBd3324aFe90c89157dBC567A7E5Ff' // on mainnet
+  stakeManager.updateImplementation(drainContract)
+  await delay(5)
+  stakeManager = await DrainStakeManager.at(contracts.root.StakeManagerProxy)
+  const governance = await Governance.at(contracts.root.GovernanceProxy)
+  await governance.update(
+    contracts.root.StakeManagerProxy,
+    stakeManager.contract.methods.drain(process.env.FROM, web3.utils.toWei('70277')).encodeABI()
+  )
+}
+
+async function setEpoch() {
+  let stakeManager = await StakeManager.at(contracts.root.StakeManagerProxy)
+  console.log((await stakeManager.currentEpoch()).toString())
+  await stakeManager.setCurrentEpoch('1507')
+  console.log((await stakeManager.currentEpoch()).toString())
+}
+
+async function stopAuctions() {
+  let stakeManager = await StakeManager.at(contracts.root.StakeManagerProxy)
+  await stakeManager.stopAuctions('10000')
+}
+
+async function updateNonce() {
+  let stakeInfo = await StakingInfo.at(contracts.root.StakingInfo)
+  await stakeInfo.updateNonce([1], [2])
+}
+
 module.exports = async function (callback) {
   try {
     await stake()
-    // await child()
-    // await mapToken()
-    // await topUpForFee()
-    // await updateDynasty()
-    // await updateExitPeriod()
-    // await updateValidatorThreshold(12)
-    // await deposit()
   } catch (e) {
     // truffle exec <script> doesn't throw errors, so handling it in a verbose manner here
     console.log(e)

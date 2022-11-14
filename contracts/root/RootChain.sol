@@ -21,6 +21,10 @@ contract RootChain is RootChainStorage, IRootChain {
     }
 
     function submitHeaderBlock(bytes calldata data, bytes calldata sigs) external {
+        revert();
+    }
+
+    function submitCheckpoint(bytes calldata data, uint[3][] calldata sigs) external {
         (address proposer, uint256 start, uint256 end, bytes32 rootHash, bytes32 accountHash, uint256 _borChainID) = abi
             .decode(data, (address, uint256, uint256, bytes32, bytes32, uint256));
         require(CHAINID == _borChainID, "Invalid bor chain id");

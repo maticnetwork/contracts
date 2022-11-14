@@ -2,13 +2,11 @@ pragma solidity ^0.5.2;
 
 import {Registry} from "../common/Registry.sol";
 import {SafeMath} from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-
-import {BytesLib} from "../common/lib/BytesLib.sol";
-import {ECVerify} from "../common/lib/ECVerify.sol";
+import {Ownable} from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 
 // dummy interface to avoid cyclic dependency
-contract IStakeManager {
+contract IStakeManagerLocal {
     enum Status {Inactive, Active, Locked, Unstaked}
 
     struct Validator {
@@ -38,8 +36,7 @@ contract IStakeManager {
     function isValidator(uint256 validatorId) public view returns (bool);
 }
 
-
-contract StakingInfo {
+contract StakingInfo is Ownable {
     using SafeMath for uint256;
     mapping(uint256 => uint256) public validatorNonce;
 
@@ -159,8 +156,7 @@ contract StakingInfo {
     event DelegatorClaimedRewards(
         uint256 indexed validatorId,
         address indexed user,
-        uint256 indexed rewards,
-        uint256 tokens
+        uint256 indexed rewards
     );
     event DelegatorRestaked(
         uint256 indexed validatorId,
@@ -182,7 +178,7 @@ contract StakingInfo {
 
     modifier onlyValidatorContract(uint256 validatorId) {
         address _contract;
-        (, , , , , , _contract, ) = IStakeManager(
+        (, , , , , , _contract, ) = IStakeManagerLocal(
             registry.getStakeManagerAddress()
         )
             .validators(validatorId);
@@ -194,7 +190,7 @@ contract StakingInfo {
     modifier StakeManagerOrValidatorContract(uint256 validatorId) {
         address _contract;
         address _stakeManager = registry.getStakeManagerAddress();
-        (, , , , , , _contract, ) = IStakeManager(_stakeManager).validators(
+        (, , , , , , _contract, ) = IStakeManagerLocal(_stakeManager).validators(
             validatorId
         );
         require(_contract == msg.sender || _stakeManager == msg.sender,
@@ -216,6 +212,17 @@ contract StakingInfo {
     constructor(address _registry) public {
         registry = Registry(_registry);
     }
+
+    function updateNonce(
+        uint256[] calldata validatorIds,
+        uint256[] calldata nonces
+    ) external onlyOwner {
+        require(validatorIds.length == nonces.length, "args length mismatch");
+
+        for (uint256 i = 0; i < validatorIds.length; ++i) {
+            validatorNonce[validatorIds[i]] = nonces[i];
+        }
+    } 
 
     function logStaked(
         address signer,
@@ -390,11 +397,11 @@ contract StakingInfo {
             uint256 _status
         )
     {
-        IStakeManager stakeManager = IStakeManager(
+        IStakeManagerLocal stakeManager = IStakeManagerLocal(
             registry.getStakeManagerAddress()
         );
         address _contract;
-        IStakeManager.Status status;
+        IStakeManagerLocal.Status status;
         (
             amount,
             reward,
@@ -405,8 +412,10 @@ contract StakingInfo {
             _contract,
             status
         ) = stakeManager.validators(validatorId);
-        reward += IStakeManager(_contract).validatorRewards();
         _status = uint256(status);
+        if (_contract != address(0x0)) {
+            reward += IStakeManagerLocal(_contract).validatorRewards();
+        }
     }
 
     function totalValidatorStake(uint256 validatorId)
@@ -415,12 +424,12 @@ contract StakingInfo {
         returns (uint256 validatorStake)
     {
         address contractAddress;
-        (validatorStake, , , , , , contractAddress, ) = IStakeManager(
+        (validatorStake, , , , , , contractAddress, ) = IStakeManagerLocal(
             registry.getStakeManagerAddress()
         )
             .validators(validatorId);
         if (contractAddress != address(0x0)) {
-            validatorStake += IStakeManager(contractAddress).activeAmount();
+            validatorStake += IStakeManagerLocal(contractAddress).activeAmount();
         }
     }
 
@@ -429,7 +438,7 @@ contract StakingInfo {
         view
         returns (bytes32 accountStateRoot)
     {
-        accountStateRoot = IStakeManager(registry.getStakeManagerAddress())
+        accountStateRoot = IStakeManagerLocal(registry.getStakeManagerAddress())
             .accountStateRoot();
     }
 
@@ -438,7 +447,7 @@ contract StakingInfo {
         view
         returns (address ValidatorContract)
     {
-        (, , , , , , ValidatorContract, ) = IStakeManager(
+        (, , , , , , ValidatorContract, ) = IStakeManagerLocal(
             registry.getStakeManagerAddress()
         )
             .validators(validatorId);
@@ -466,10 +475,9 @@ contract StakingInfo {
     function logDelegatorClaimRewards(
         uint256 validatorId,
         address user,
-        uint256 rewards,
-        uint256 tokens
+        uint256 rewards
     ) public onlyValidatorContract(validatorId) {
-        emit DelegatorClaimedRewards(validatorId, user, rewards, tokens);
+        emit DelegatorClaimedRewards(validatorId, user, rewards);
     }
 
     function logDelegatorRestaked(
@@ -487,6 +495,7 @@ contract StakingInfo {
         emit DelegatorUnstaked(validatorId, user, amount);
     }
 
+    // deprecated
     function logUpdateCommissionRate(
         uint256 validatorId,
         uint256 newCommissionRate,

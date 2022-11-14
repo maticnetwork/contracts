@@ -11,7 +11,7 @@ PWD=$(pwd)
 
 cleanup() {
   echo "Cleaning up"
-  pkill -f ganache-cli
+  pkill -f ganache
   cd $PWD/test-blockchain
   bash stop-docker.sh
   bash clean.sh
@@ -35,8 +35,6 @@ start_testrpc
 
 echo "Starting our own geth instance"
 start_blockchain
-
-npm run truffle:migrate "$@"
 
 if [ "$SOLIDITY_COVERAGE" = true ]; then
   npm run truffle:coverage "$@"
