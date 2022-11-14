@@ -1,0 +1,122 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.25.0
+# ignores vulnerabilities until expiry date; change duration by modifying expiry date
+ignore:
+  'snyk:lic:npm:ethereumjs:tx:MPL-2.0':
+    - '*':
+        reason: 'As open source org, we have no issues with licenses'
+        created: 2022-11-14T15:15:06.869Z
+  'snyk:lic:npm:ethereumjs-account:MPL-2.0':
+    - '*':
+        reason: None Given
+        expires: 2022-12-14T15:23:25.362Z
+        created: 2022-11-14T15:23:25.369Z
+  'snyk:lic:npm:ethereumjs-block:MPL-2.0':
+    - '*':
+        reason: 'As open source org, we have no issues with licenses'
+        created: 2022-11-14T15:15:15.843Z
+  'snyk:lic:npm:ethereumjs-tx:MPL-2.0':
+    - '*':
+        reason: 'As open source org, we have no issues with licenses'
+        created: 2022-11-14T15:15:16.050Z
+  'snyk:lic:npm:ethereumjs-util:MPL-2.0':
+    - '*':
+        reason: 'As open source org, we have no issues with licenses'
+        created: 2022-11-14T15:16:10.153Z
+  'snyk:lic:npm:ethereumjs-vm:MPL-2.0':
+    - '*':
+        reason: 'As open source org, we have no issues with licenses'
+        created: 2022-11-14T15:16:11.002Z
+  'snyk:lic:npm:merkle-patricia-tree:MPL-2.0':
+    - '*':
+        reason: 'As open source org, we have no issues with licenses'
+        created: 2022-11-14T15:16:48.133Z
+  'snyk:lic:npm:rlp:MPL-2.0':
+    - '*':
+        reason: 'As open source org, we have no issues with licenses'
+        created: 2022-11-14T15:17:01.101Z
+  'snyk:lic:npm:web3:LGPL-3.0':
+    - '*':
+        reason: 'As open source org, we have no issues with licenses'
+        created: 2022-11-14T15:18:01.101Z
+  'snyk:lic:npm:web3-bzz:LGPL-3.0':
+    - '*':
+        reason: 'As open source org, we have no issues with licenses'
+        created: 2022-11-14T15:19:01.101Z
+  'snyk:lic:npm:web3-core:LGPL-3.0':
+    - '*':
+        reason: 'As open source org, we have no issues with licenses'
+        created: 2022-11-14T15:19:02.520Z
+  'snyk:lic:npm:web3-core-helpers:LGPL-3.0':
+    - '*':
+        reason: 'As open source org, we have no issues with licenses'
+        created: 2022-11-14T15:19:03.100Z
+  'snyk:lic:npm:web3-core-method:LGPL-3.0':
+    - '*':
+        reason: 'As open source org, we have no issues with licenses'
+        created: 2022-11-14T15:19:03.585Z
+  'snyk:lic:npm:web3-core-promievent:LGPL-3.0':
+    - '*':
+        reason: 'As open source org, we have no issues with licenses'
+        created: 2022-11-14T15:19:03.733Z
+  'snyk:lic:npm:web3-core-requestmanager:LGPL-3.0':
+    - '*':
+        reason: 'As open source org, we have no issues with licenses'
+        created: 2022-11-14T15:20:00.000Z
+  'snyk:lic:npm:web3-core-subscriptions:LGPL-3.0':
+    - '*':
+        reason: 'As open source org, we have no issues with licenses'
+        created: 2022-11-14T15:20:00.000Z
+  'snyk:lic:npm:web3-eth:LGPL-3.0':
+    - '*':
+        reason: 'As open source org, we have no issues with licenses'
+        created: 2022-11-14T15:20:01.000Z
+  'snyk:lic:npm:web3-eth-abi:LGPL-3.0':
+    - '*':
+        reason: 'As open source org, we have no issues with licenses'
+        created: 2022-11-14T15:20:02.000Z
+  'snyk:lic:npm:web3-eth-accounts:LGPL-3.0':
+    - '*':
+        reason: 'As open source org, we have no issues with licenses'
+        created: 2022-11-14T15:20:03.000Z
+  'snyk:lic:npm:web3-eth-contract:LGPL-3.0':
+    - '*':
+        reason: 'As open source org, we have no issues with licenses'
+        created: 2022-11-14T15:20:04.000Z
+  'snyk:lic:npm:web3-eth-ens:LGPL-3.0':
+    - '*':
+        reason: 'As open source org, we have no issues with licenses'
+        created: 2022-11-14T15:20:05.000Z
+  'snyk:lic:npm:web3-eth-iban:LGPL-3.0':
+    - '*':
+        reason: 'As open source org, we have no issues with licenses'
+        created: 2022-11-14T15:20:06.000Z
+  'snyk:lic:npm:web3-eth-personal:LGPL-3.0':
+    - '*':
+        reason: 'As open source org, we have no issues with licenses'
+        created: 2022-11-14T15:20:07.000Z
+  'snyk:lic:npm:web3-net:LGPL-3.0':
+    - '*':
+        reason: 'As open source org, we have no issues with licenses'
+        created: 2022-11-14T15:20:08.000Z
+  'snyk:lic:npm:web3-providers-http:LGPL-3.0':
+    - '*':
+        reason: 'As open source org, we have no issues with licenses'
+        created: 2022-11-14T15:20:09.000Z
+  'snyk:lic:npm:web3-providers-ipc:LGPL-3.0':
+    - '*':
+        reason: 'As open source org, we have no issues with licenses'
+        created: 2022-11-14T15:20:10.000Z
+  'snyk:lic:npm:web3-providers-ws:LGPL-3.0':
+    - '*':
+        reason: 'As open source org, we have no issues with licenses'
+        created: 2022-11-14T15:20:11.000Z
+  'snyk:lic:npm:web3-shh:LGPL-3.0':
+    - '*':
+        reason: 'As open source org, we have no issues with licenses'
+        created: 2022-11-14T15:20:12.000Z
+  'snyk:lic:npm:web3-utils:LGPL-3.0':
+    - '*':
+        reason: 'As open source org, we have no issues with licenses'
+        created: 2022-11-14T15:20:13.000Z
+patch: {}

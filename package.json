@@ -87,6 +87,6 @@
     "openzeppelin-solidity": "2.2.0",
     "solidity-rlp": "^2.0.0",
     "truffle": "5.6.3",
-    "truffle-plugin-verify": "^0.3.8"
+    "truffle-plugin-verify": "^0.5.5"
   }
 }
