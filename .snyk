@@ -118,6 +118,26 @@ ignore:
     - '*':
         reason: 'As open source org, we have no issues with licenses'
         created: 2022-11-14T15:20:13.000Z
+  'SNYK-JS-OPENZEPPELINSOLIDITY-2965800':
+    - '*':
+        reason: 'No upgrade or patch available. See https://security.snyk.io/vuln/SNYK-JS-OPENZEPPELINSOLIDITY-2965800'
+        created: 2022-11-15T09:14:00.000Z
+  'SNYK-JS-MOCHA-2863123':
+    - '*':
+        reason: 'Waiting for issue to be fixed. See https://github.com/trufflesuite/truffle/issues/5703'
+        created: 2022-11-15T09:15:00.000Z
+  'SNYK-JS-GOT-2932019':
+    - '*':
+        reason: 'Waiting for issue to be fixed. See https://github.com/trufflesuite/truffle/issues/5704'
+        created: 2022-11-15T09:16:00.000Z
+  'SNYK-JS-WEB3-174533':
+    - '*':
+        reason: 'Waiting for issue to be fixed. See https://github.com/trufflesuite/truffle/issues/5704'
+        created: 2022-11-15T09:16:30.000Z
+  'SNYK-JS-WS-1296835':
+    - '*':
+        reason: 'Waiting for issue to be fixed. See https://github.com/trufflesuite/truffle/issues/5704'
+        created: 2022-11-15T09:17:00.000Z
 patch: {}
 exclude:
   global: # foollowing are used for tests, therefore private keys are mocked
