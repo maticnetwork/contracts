@@ -10,7 +10,7 @@
     "testrpc": "ganache --chain.hardfork istanbul --wallet.mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' -p 9545 --miner.blockGasLimit 10000000 --miner.defaultGasPrice 0 --chain.allowUnlimitedContractSize --wallet.totalAccounts 200",
     "template:process": "node scripts/process-templates.js",
     "truffle": "truffle",
-    "truffle:test": "truffle test --show-events --verbose-rpc",
+    "truffle:test": "truffle test",
     "truffle:coverage": "truffle run coverage",
     "truffle:compile": "truffle compile",
     "truffle:migrate": "scripts/run-migration.sh",
