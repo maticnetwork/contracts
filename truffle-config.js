@@ -28,7 +28,6 @@ module.exports = {
       network_id: '*', // match any network
       skipDryRun: true,
       gas: 0,
-      confirmations: 1
     },
     bor: {
       provider: () =>
