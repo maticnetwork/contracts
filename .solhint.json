@@ -1,18 +1,12 @@
 {
   "extends": "solhint:recommended",
-  "plugins": ["prettier"],
+  "plugins": [],
   "rules": {
-    "code-complexity": ["error", 8],
-    "compiler-version": ["error", ">=0.8.4"],
+    "code-complexity": ["error", 13],
+    "compiler-version": ["error", "^0.5.0"],
     "func-visibility": ["error", { "ignoreConstructors": true }],
-    "max-line-length": ["error", 120],
+    "max-line-length": ["warn", 120],
     "not-rely-on-time": "off",
-    "prettier/prettier": [
-      "error",
-      {
-        "endOfLine": "auto"
-      }
-    ],
     "reason-string": ["warn", { "maxLength": 64 }]
   }
 }

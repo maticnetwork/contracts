@@ -18,15 +18,6 @@ jobs:
         with:
           sarif_file: snyk.sarif
 
-  slither:
-    name: Slither
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: crytic/slither-action@v0.2.0
-        with:
-          fail-on: medium
-
   solhint:
     runs-on: ubuntu-latest
     steps:
@@ -37,21 +28,3 @@ jobs:
           node-version: "16.x"
       - run: npm ci
       - run: npx solhint "contracts/**/*.sol"
-
-  coverage:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Get node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: "16.x"
-          cache: "npm"
-      - run: npm ci
-      - run: npx hardhat compile
-      - name: solidity-coverage
-        run: npx hardhat coverage
-      - name: coveralls
-        uses: coverallsapp/github-action@1.1.3
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
