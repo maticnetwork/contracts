@@ -122,10 +122,6 @@ ignore:
     - '*':
         reason: 'No upgrade or patch available. See https://security.snyk.io/vuln/SNYK-JS-OPENZEPPELINSOLIDITY-2965800'
         created: 2022-11-15T09:14:00.000Z
-  'SNYK-JS-MOCHA-2863123':
-    - '*':
-        reason: 'Waiting for issue to be fixed. See https://github.com/trufflesuite/truffle/issues/5703'
-        created: 2022-11-15T09:15:00.000Z
   'SNYK-JS-GOT-2932019':
     - '*':
         reason: 'Waiting for issue to be fixed. See https://github.com/trufflesuite/truffle/issues/5704'
