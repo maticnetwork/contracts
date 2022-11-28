@@ -11,6 +11,8 @@ module.exports = async function(deployer, network, accounts) {
     return
   }
 
+  console.log(deployer.network);
+
   deployer.then(async() => {
     await deployer.deploy(SafeMath)
     await deployer.link(SafeMath, [ChildChain])
