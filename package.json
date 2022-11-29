@@ -76,6 +76,7 @@
     "@babel/preset-env": "^7.20.2",
     "@babel/register": "^7.18.9",
     "@truffle/hdwallet-provider": "^2.1.1",
+    "babel-preset-env": "^1.7.0",
     "chai": "4.2.0",
     "chai-as-promised": "^7.1.1",
     "commander": "^4.0.1",
