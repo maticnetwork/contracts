@@ -239,38 +239,36 @@ module.exports = async function(deployer, network, accounts) {
 
     await deployer.deploy(MaticWeth)
 
-    await Promise.all([
-      deployer.deploy(
-        ERC20Predicate,
-        WithdrawManagerProxy.address,
-        DepositManagerProxy.address,
-        Registry.address
-      ),
-      deployer.deploy(
-        ERC721Predicate,
-        WithdrawManagerProxy.address,
-        DepositManagerProxy.address
-      ),
-      deployer.deploy(
-        MintableERC721Predicate,
-        WithdrawManagerProxy.address,
-        DepositManagerProxy.address
-      ),
-      deployer.deploy(Marketplace),
-      deployer.deploy(MarketplacePredicateTest),
-      deployer.deploy(
-        MarketplacePredicate,
-        RootChain.address,
-        WithdrawManagerProxy.address,
-        Registry.address
-      ),
-      deployer.deploy(
-        TransferWithSigPredicate,
-        RootChain.address,
-        WithdrawManagerProxy.address,
-        Registry.address
-      )
-    ])
+    await deployer.deploy(
+      ERC20Predicate,
+      WithdrawManagerProxy.address,
+      DepositManagerProxy.address,
+      Registry.address
+    );
+    await deployer.deploy(
+      ERC721Predicate,
+      WithdrawManagerProxy.address,
+      DepositManagerProxy.address
+    );
+    await deployer.deploy(
+      MintableERC721Predicate,
+      WithdrawManagerProxy.address,
+      DepositManagerProxy.address
+    );
+    await deployer.deploy(Marketplace);
+    await deployer.deploy(MarketplacePredicateTest);
+    await deployer.deploy(
+      MarketplacePredicate,
+      RootChain.address,
+      WithdrawManagerProxy.address,
+      Registry.address
+    );
+    await deployer.deploy(
+      TransferWithSigPredicate,
+      RootChain.address,
+      WithdrawManagerProxy.address,
+      Registry.address
+    );
 
     const contractAddresses = {
       root: {
