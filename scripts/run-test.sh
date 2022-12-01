@@ -10,13 +10,15 @@ trap cleanup EXIT
 PWD=$(pwd)
 
 cleanup() {
-  echo "Cleaning up"
-  pkill -f ganache
-  cd $PWD/test-blockchain
-  bash stop-docker.sh
-  bash clean.sh
-  cd ..
-  echo "Done"
+  if [ "$GITHUB_ACTIONS" != true ] ; then
+    echo "Cleaning up"
+    pkill -f ganache
+    cd $PWD/test-blockchain
+    bash stop-docker.sh
+    bash clean.sh
+    cd ..
+    echo "Done"
+  fi
 }
 
 start_testrpc() {

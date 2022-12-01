@@ -166,10 +166,15 @@ module.exports = async function(deployer, network, accounts) {
   }
 
   deployer.then(async() => {
-    await bluebird.map(libDeps, async e => {
-      await deployer.deploy(e.lib)
-      deployer.link(e.lib, e.contracts)
-    })
+        // await bluebird.map(libDeps, async e => {
+         //     await deployer.deploy(e.lib)
+         //     deployer.link(e.lib, e.contracts)
+         // })
+         // sequential running
+         for (let e of libDeps) {
+          await deployer.deploy(e.lib)
+          deployer.link(e.lib, e.contracts)
+      }
 
     await deployer.deploy(Governance)
     await deployer.deploy(GovernanceProxy, Governance.address)
