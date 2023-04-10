@@ -38,6 +38,10 @@ contract StateSender is Ownable {
         emit StateSynced(counter, receiver, data);
     }
 
+    function setCounter(uint256 _counter) public onlyOwner {
+        counter = _counter;
+    }
+
     // register new contract for state sync
     function register(address sender, address receiver) public {
         require(
