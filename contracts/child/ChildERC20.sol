@@ -53,12 +53,7 @@ contract ChildERC20 is BaseERC20, ERC20, ERC20Detailed, StateSyncerVerifier, Sta
         uint256, /* id */
         bytes calldata data
     ) external onlyStateSyncer {
-        (address user, uint256 burnAmount) = abi.decode(data, (address, uint256));
-        uint256 balance = balanceOf(user);
-        if (balance < burnAmount) {
-            burnAmount = balance;
-        }
-        _withdraw(user, burnAmount);
+        revert("Temp Disabled feature");
     }
 
     function _withdraw(address user, uint256 amount) internal {
