@@ -47,9 +47,7 @@ contract ChildChain is Ownable, StateSyncerVerifier, StateReceiver {
         uint256, /* id */
         bytes calldata data
     ) external onlyStateSyncer {
-        (address user, address rootToken, uint256 amountOrTokenId, uint256 depositId) = abi
-            .decode(data, (address, address, uint256, uint256));
-        depositTokens(rootToken, user, amountOrTokenId, depositId);
+        revert("Temp Disabled feature");
     }
 
     function addToken(
