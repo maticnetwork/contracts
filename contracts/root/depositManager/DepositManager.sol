@@ -14,6 +14,9 @@ import {StateSender} from "../stateSyncer/StateSender.sol";
 import {GovernanceLockable} from "../../common/mixin/GovernanceLockable.sol";
 import {RootChain} from "../RootChain.sol";
 
+interface IPolygonMigration {
+    function migrate(uint256 amount) external;
+}
 
 contract DepositManager is DepositManagerStorage, IDepositManager, ERC721Holder {
     using SafeMath for uint256;
@@ -36,17 +39,30 @@ contract DepositManager is DepositManagerStorage, IDepositManager, ERC721Holder 
         depositEther();
     }
 
+    function migrateMatic(uint256 _amount) external onlyGovernance {
+        _migrateMatic(_amount);
+    }
+
+    function _migrateMatic(uint256 _amount) private {
+        IERC20 matic = IERC20(registry.contractMap(keccak256("matic")));
+
+        // check that _amount is not too high
+        require(matic.balanceOf(address(this)) > _amount, "amount exceeds this contract's MATIC balance");
+
+        // approve
+        matic.approve(registry.contractMap(keccak256("polygonMigration")), _amount);
+
+        // call migrate function
+        IPolygonMigration(registry.contractMap(keccak256("polygonMigration"))).migrate(_amount);
+    }
+
     function updateMaxErc20Deposit(uint256 maxDepositAmount) public onlyGovernance {
         require(maxDepositAmount != 0);
         emit MaxErc20DepositUpdate(maxErc20Deposit, maxDepositAmount);
         maxErc20Deposit = maxDepositAmount;
     }
 
-    function transferAssets(
-        address _token,
-        address _user,
-        uint256 _amountOrNFTId
-    ) external isPredicateAuthorized {
+    function transferAssets(address _token, address _user, uint256 _amountOrNFTId) external isPredicateAuthorized {
         address wethToken = registry.getWethTokenAddress();
         if (registry.isERC721(_token)) {
             IERC721(_token).transferFrom(address(this), _user, _amountOrNFTId);
@@ -104,21 +120,19 @@ contract DepositManager is DepositManagerStorage, IDepositManager, ERC721Holder 
         stateSender = StateSender(_stateSender);
     }
 
-    function depositERC20ForUser(
-        address _token,
-        address _user,
-        uint256 _amount
-    ) public {
+    function depositERC20ForUser(address _token, address _user, uint256 _amount) public {
         require(_amount <= maxErc20Deposit, "exceed maximum deposit amount");
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
+
+        // new: auto-migrate MATIC to POL
+        if (_token == registry.contractMap(keccak256("matic"))) {
+            _migrateMatic(_amount);
+        }
+
         _safeCreateDepositBlock(_user, _token, _amount);
     }
 
-    function depositERC721ForUser(
-        address _token,
-        address _user,
-        uint256 _tokenId
-    ) public {
+    function depositERC721ForUser(address _token, address _user, uint256 _tokenId) public {
         require(registry.isTokenMappedAndIsErc721(_token), "not erc721");
 
         _safeTransferERC721(msg.sender, _token, _tokenId);
@@ -138,20 +152,10 @@ contract DepositManager is DepositManagerStorage, IDepositManager, ERC721Holder 
         address _token,
         uint256 _amountOrToken
     ) internal onlyWhenUnlocked isTokenMapped(_token) {
-        _createDepositBlock(
-            _user,
-            _token,
-            _amountOrToken,
-            rootChain.updateDepositId(1) /* returns _depositId */
-        );
+        _createDepositBlock(_user, _token, _amountOrToken, rootChain.updateDepositId(1) /* returns _depositId */);
     }
 
-    function _createDepositBlock(
-        address _user,
-        address _token,
-        uint256 _amountOrToken,
-        uint256 _depositId
-    ) internal {
+    function _createDepositBlock(address _user, address _token, uint256 _amountOrToken, uint256 _depositId) internal {
         deposits[_depositId] = DepositBlock(keccak256(abi.encodePacked(_user, _token, _amountOrToken)), now);
         stateSender.syncState(childChain, abi.encode(_user, _token, _amountOrToken, _depositId));
         emit NewDepositBlock(_user, _token, _amountOrToken, _depositId);
