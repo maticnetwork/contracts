@@ -18,12 +18,14 @@ interface IPolygonMigration {
     function migrate(uint256 amount) external;
 }
 
+
 contract DepositManager is DepositManagerStorage, IDepositManager, ERC721Holder {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
     modifier isTokenMapped(address _token) {
-        require(registry.isTokenMapped(_token), "TOKEN_NOT_SUPPORTED");
+        // new: exception for POL token
+        require(registry.isTokenMapped(_token) || _token == registry.contractMap(keccak256("pol")), "TOKEN_NOT_SUPPORTED");
         _;
     }
 
@@ -39,6 +41,7 @@ contract DepositManager is DepositManagerStorage, IDepositManager, ERC721Holder 
         depositEther();
     }
 
+    // new: governance function to migrate MATIC to POL
     function migrateMatic(uint256 _amount) external onlyGovernance {
         _migrateMatic(_amount);
     }
@@ -47,7 +50,7 @@ contract DepositManager is DepositManagerStorage, IDepositManager, ERC721Holder 
         IERC20 matic = IERC20(registry.contractMap(keccak256("matic")));
 
         // check that _amount is not too high
-        require(matic.balanceOf(address(this)) > _amount, "amount exceeds this contract's MATIC balance");
+        require(matic.balanceOf(address(this)) >= _amount, "amount exceeds this contract's MATIC balance");
 
         // approve
         matic.approve(registry.contractMap(keccak256("polygonMigration")), _amount);
@@ -64,13 +67,22 @@ contract DepositManager is DepositManagerStorage, IDepositManager, ERC721Holder 
 
     function transferAssets(address _token, address _user, uint256 _amountOrNFTId) external isPredicateAuthorized {
         address wethToken = registry.getWethTokenAddress();
-        if (registry.isERC721(_token)) {
-            IERC721(_token).transferFrom(address(this), _user, _amountOrNFTId);
-        } else if (_token == wethToken) {
-            WETH t = WETH(_token);
+
+        // so we don't assign to a function var
+        address memory token = _token;
+
+        // new: pay out POL when MATIC is withdrawn
+        if (_token == registry.contractMap(keccak256("matic"))) {
+            token = registry.contractMap(keccak256("pol"));
+        }
+
+        if (registry.isERC721(token)) {
+            IERC721(token).transferFrom(address(this), _user, _amountOrNFTId);
+        } else if (token == wethToken) {
+            WETH t = WETH(token);
             t.withdraw(_amountOrNFTId, _user);
         } else {
-            require(IERC20(_token).transfer(_user, _amountOrNFTId), "TRANSFER_FAILED");
+            require(IERC20(token).transfer(_user, _amountOrNFTId), "TRANSFER_FAILED");
         }
     }
 
@@ -124,11 +136,6 @@ contract DepositManager is DepositManagerStorage, IDepositManager, ERC721Holder 
         require(_amount <= maxErc20Deposit, "exceed maximum deposit amount");
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
 
-        // new: auto-migrate MATIC to POL
-        if (_token == registry.contractMap(keccak256("matic"))) {
-            _migrateMatic(_amount);
-        }
-
         _safeCreateDepositBlock(_user, _token, _amount);
     }
 
@@ -156,6 +163,16 @@ contract DepositManager is DepositManagerStorage, IDepositManager, ERC721Holder 
     }
 
     function _createDepositBlock(address _user, address _token, uint256 _amountOrToken, uint256 _depositId) internal {
+        // new: auto-migrate MATIC to POL
+        if (_token == registry.contractMap(keccak256("matic"))) {
+            _migrateMatic(_amountOrToken);
+        }
+
+        // new: bridge POL as MATIC, child chain behaviour does not change
+        if(_token == registry.contractMap(keccak256("pol"))) {
+            _token == registry.contractMap(keccak256("matic"));
+        }
+
         deposits[_depositId] = DepositBlock(keccak256(abi.encodePacked(_user, _token, _amountOrToken)), now);
         stateSender.syncState(childChain, abi.encode(_user, _token, _amountOrToken, _depositId));
         emit NewDepositBlock(_user, _token, _amountOrToken, _depositId);

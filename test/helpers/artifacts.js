@@ -52,6 +52,7 @@ export const ExitNFT = artifacts.require('ExitNFT')
 // Misc
 export const GnosisSafeProxy = artifacts.require('GnosisSafeProxy')
 export const GnosisSafe = artifacts.require('GnosisSafe')
+export const PolygonMigrationTest = artifacts.require('PolygonMigrationTest')
 
 // child chain
 export const childContracts = {

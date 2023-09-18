@@ -47,7 +47,7 @@ module.exports = {
           MNEMONIC,
           `https://rpc-mumbai.matic.today`
         ),
-      network_id: '80001',
+      network_id: '80001'
     },
     goerli: {
       provider: function() {
