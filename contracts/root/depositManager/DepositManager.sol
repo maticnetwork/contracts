@@ -18,14 +18,16 @@ interface IPolygonMigration {
     function migrate(uint256 amount) external;
 }
 
-
 contract DepositManager is DepositManagerStorage, IDepositManager, ERC721Holder {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
     modifier isTokenMapped(address _token) {
         // new: exception for POL token
-        require(registry.isTokenMapped(_token) || _token == registry.contractMap(keccak256("pol")), "TOKEN_NOT_SUPPORTED");
+        require(
+            registry.isTokenMapped(_token) || _token == registry.contractMap(keccak256("pol")),
+            "TOKEN_NOT_SUPPORTED"
+        );
         _;
     }
 
@@ -68,21 +70,21 @@ contract DepositManager is DepositManagerStorage, IDepositManager, ERC721Holder 
     function transferAssets(address _token, address _user, uint256 _amountOrNFTId) external isPredicateAuthorized {
         address wethToken = registry.getWethTokenAddress();
 
-        // so we don't assign to a function var
-        address memory token = _token;
-
-        // new: pay out POL when MATIC is withdrawn
-        if (_token == registry.contractMap(keccak256("matic"))) {
-            token = registry.contractMap(keccak256("pol"));
-        }
-
-        if (registry.isERC721(token)) {
-            IERC721(token).transferFrom(address(this), _user, _amountOrNFTId);
-        } else if (token == wethToken) {
-            WETH t = WETH(token);
+        if (registry.isERC721(_token)) {
+            IERC721(_token).transferFrom(address(this), _user, _amountOrNFTId);
+        } else if (_token == wethToken) {
+            WETH t = WETH(_token);
             t.withdraw(_amountOrNFTId, _user);
         } else {
-            require(IERC20(token).transfer(_user, _amountOrNFTId), "TRANSFER_FAILED");
+            // new: pay out POL when MATIC is withdrawn
+            if (_token == registry.contractMap(keccak256("matic"))) {
+                require(
+                    IERC20(registry.contractMap(keccak256("pol"))).transfer(_user, _amountOrNFTId),
+                    "TRANSFER_FAILED"
+                );
+            } else {
+                require(IERC20(_token).transfer(_user, _amountOrNFTId), "TRANSFER_FAILED");
+            }
         }
     }
 
@@ -167,9 +169,8 @@ contract DepositManager is DepositManagerStorage, IDepositManager, ERC721Holder 
         if (_token == registry.contractMap(keccak256("matic"))) {
             _migrateMatic(_amountOrToken);
         }
-
         // new: bridge POL as MATIC, child chain behaviour does not change
-        if(_token == registry.contractMap(keccak256("pol"))) {
+        else if (_token == registry.contractMap(keccak256("pol"))) {
             _token == registry.contractMap(keccak256("matic"));
         }
 
