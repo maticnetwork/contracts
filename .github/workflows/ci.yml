@@ -10,14 +10,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Setup Node.js environment
-      uses: actions/setup-node@v2-beta
+      uses: actions/setup-node@v3
       with:
-        node-version: '10.x'
+        node-version: '16'
         registry-url: 'https://registry.npmjs.org'
     - name: Cache npm dependencies
-      uses: actions/cache@v1
+      uses: actions/cache@v3
       with:
         path: ~/.npm
         key: ${{ runner.OS }}-npm-cache-${{ hashFiles('**/package-lock.json') }}

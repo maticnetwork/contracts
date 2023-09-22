@@ -1,0 +1,12 @@
+{
+  "extends": "solhint:recommended",
+  "plugins": [],
+  "rules": {
+    "code-complexity": ["error", 13],
+    "compiler-version": ["error", "^0.5.0"],
+    "func-visibility": ["error", { "ignoreConstructors": true }],
+    "max-line-length": ["warn", 120],
+    "not-rely-on-time": "off",
+    "reason-string": ["warn", { "maxLength": 64 }]
+  }
+}

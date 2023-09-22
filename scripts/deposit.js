@@ -66,11 +66,11 @@ module.exports = async function (callback) {
     console.log("Current configured address to make transactions:", accounts[0])
 
     // -- network <main network> <root token> <amount>
-    // await depositERC20({
-    //   addr: accounts[0], 
-    //   rootToken: process.argv[6],
-    //   amount: process.argv[7],
-    // })
+    await depositERC20({
+      addr: accounts[0],
+      rootToken: process.argv[6],
+      amount: process.argv[7],
+    })
 
     // -- network <main network> <root token> <amount>
     // await depositERC721({

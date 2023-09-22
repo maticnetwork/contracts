@@ -1,0 +1,30 @@
+name: Security CI
+on: [push, pull_request]
+
+jobs:
+  snyk:
+    name: Snyk
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --org=${{ secrets.SNYK_ORG }} --severity-threshold=medium --sarif-file-output=snyk.sarif
+      - name: Upload result to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: snyk.sarif
+
+  solhint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Get node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: "16.x"
+      - run: npm ci
+      - run: npx solhint "contracts/**/*.sol"
