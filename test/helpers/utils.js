@@ -28,6 +28,8 @@ if (process.env.SOLIDITY_COVERAGE) {
   )
 }
 
+export const childProvider = new web3.providers.HttpProvider('http://localhost:8545')
+
 export const ZeroAddress = '0x0000000000000000000000000000000000000000'
 export let ChildMaticTokenAddress = '0x0000000000000000000000000000000000001010'
 export const scalingFactor = web3.utils.toBN(10).pow(web3.utils.toBN(18))
@@ -155,7 +157,7 @@ export function buildsubmitCheckpointPaylod(
   end,
   root,
   wallets,
-  options = { rewardsRootHash: '', allValidators: false, getSigs: false, totalStake: 1, sigPrefix: '' } // false vars are to show expected vars
+  options = { rewardsRootHash: '' } // false vars are to show expected vars
 ) {
   if (!root) root = ethUtils.keccak256(encode(start, end)) // dummy root
   if (!wallets) {
@@ -168,7 +170,7 @@ export function buildsubmitCheckpointPaylod(
 
   let data = web3.eth.abi.encodeParameters(
     ['address', 'uint256', 'uint256', 'bytes32', 'bytes32', 'uint256'],
-    [proposer, start, end, root, options.rewardsRootHash, 15001]
+    [proposer, start, end, root, options.rewardsRootHash, 137]
   )
   const sigData = Buffer.concat([ethUtils.toBuffer(options.sigPrefix || '0x01'), ethUtils.toBuffer(data)])
 

@@ -15,7 +15,6 @@ contract('DepositManager @skip-on-coverage', async function(accounts) {
   const amount = web3.utils.toBN('10').pow(web3.utils.toBN('18'))
 
   describe('deposits on root and child', async function() {
-
     beforeEach(async function() {
       const contracts = await deployer.freshDeploy(accounts[0])
       depositManager = contracts.depositManager

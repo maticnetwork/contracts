@@ -5,7 +5,8 @@ on:
     branches: 
       - main
   pull_request:
-
+    branches: 
+      - main
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -14,18 +15,25 @@ jobs:
     - name: Setup Node.js environment
       uses: actions/setup-node@v2-beta
       with:
-        node-version: '10.x'
+        node-version: '14.x'
         registry-url: 'https://registry.npmjs.org'
-    - name: Cache npm dependencies
+    - name: Install yarn
+      run: npm install -g yarn
+    - name: Get yarn cache directory path
+      id: yarn-cache-dir-path
+      run: echo "::set-output name=dir::$(yarn cache dir)"
+    - name: Cache dependencies
       uses: actions/cache@v1
       with:
-        path: ~/.npm
-        key: ${{ runner.OS }}-npm-cache-${{ hashFiles('**/package-lock.json') }}
+        path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+        key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
         restore-keys: |
-          ${{ runner.OS }}-npm-cache-
-    - name: Install npm dependencies
-      run: npm install
+          ${{ runner.os }}-yarn-
+    - name: Install dependencies
+      run: yarn --prefer-offline
     - name: Process templates
-      run: npm run template:process
+      run: yarn template:process
+    - name: Verify contracts storage
+      run: yarn verify:ci
     - name: Run tests
-      run: npm run test:ci
+      run: yarn test:ci

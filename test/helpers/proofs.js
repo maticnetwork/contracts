@@ -3,7 +3,6 @@ import utils from 'ethereumjs-util'
 import EthereumTx from 'ethereumjs-tx'
 import EthereumBlock from 'ethereumjs-block/from-rpc'
 import MerkleTree from '../helpers/merkle-tree.js'
-
 const rlp = utils.rlp
 
 // raw header
@@ -89,7 +88,7 @@ export async function getTxProof(tx, block) {
         if (err) {
           reject(err)
         } else {
-          resolve()
+          resolve(null)
         }
       })
     })

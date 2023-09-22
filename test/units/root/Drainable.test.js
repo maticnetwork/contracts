@@ -123,12 +123,8 @@ contract('Drainable', async function(accounts) {
         before(freshDeploy)
         before(async function() {
           this.maticWeth = await deployer.deployMaticWeth()
-          await web3.eth.sendTransaction({
-            from: accounts[0],
-            to: this.depositManager.address,
-            value: this.amount.toString(),
-            gas: 200000
-          })
+          await this.maticWeth.deposit({ from: accounts[0], value: this.amount })
+          await this.maticWeth.transfer(this.depositManager.address, this.amount, { from: accounts[0] })
         })
 
         describe('before drain', function() {

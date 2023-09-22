@@ -29,6 +29,7 @@ contract('Marketplace @skip-on-coverage', async function(accounts) {
   const address2 = wallets[1].getAddressString()
 
   before(async function() {
+    // accounts = await web3.eth.getAccounts()
     marketplace = await deployer.deployMarketplace()
   })
 

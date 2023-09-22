@@ -30,7 +30,7 @@ contract('ERC721PredicateBurnOnly @skip-on-coverage', async function(accounts) {
 
   describe('startExitWithBurntTokens', async function() {
     beforeEach(async function() {
-      contracts.ERC721Predicate = await deployer.deployErc721Predicate()
+      contracts.ERC721Predicate = await deployer.deployErc721Predicate(true)
       const { rootERC721, childErc721 } = await deployer.deployChildErc721(accounts[0])
       childContracts.rootERC721 = rootERC721
       childContracts.childErc721 = childErc721

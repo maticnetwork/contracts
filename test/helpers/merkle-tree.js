@@ -76,7 +76,7 @@ export default class MerkleTree {
         } else {
           siblingIndex = index - 1
         }
-        index = parseInt(index / 2)
+        index = Math.floor(index / 2)
         proof.push(this.layers[i][siblingIndex])
       }
     }
@@ -97,7 +97,7 @@ export default class MerkleTree {
         hash = sha3(Buffer.concat([node, hash]))
       }
 
-      index = parseInt(index / 2)
+      index = Math.floor(index / 2)
     }
 
     return Buffer.compare(hash, root) === 0

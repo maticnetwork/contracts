@@ -1,0 +1,548 @@
+{
+  "date": 1638423409,
+  "sealed": true,
+  "contracts": {
+    "Governance": {
+      "address": "0x03Ac67D03A06571A059F20425FFD1BEa300d98C2"
+    },
+    "GovernanceProxy": {
+      "address": "0xAcdEADEE4c054A86F5b1e8705126b30Ec999899B"
+    },
+    "Registry": {
+      "address": "0xeE11713Fe713b2BfF2942452517483654078154D"
+    },
+    "RootChain": {
+      "address": "0x77f32d6c7bf3639b2f59c6843420e80e9e3a86af",
+      "storage": [
+        {
+          "type": "t_address",
+          "label": "_owner"
+        },
+        {
+          "type": "t_address",
+          "label": "proxyTo"
+        },
+        {
+          "type": "t_bytes32",
+          "label": "heimdallId"
+        },
+        {
+          "type": "t_uint256",
+          "label": "_nextHeaderBlock"
+        },
+        {
+          "type": "t_uint256",
+          "label": "_blockDepositId"
+        },
+        {
+          "type": "t_mapping(t_uint256,t_struct(HeaderBlock)",
+          "label": "headerBlocks"
+        },
+        {
+          "type": "t_contract(Registry)",
+          "label": "registry"
+        }
+      ]
+    },
+    "RootChainProxy": {
+      "address": "0x2890bA17EfE978480615e330ecB65333b880928e",
+      "storage": [
+        {
+          "type": "t_address",
+          "label": "_owner"
+        },
+        {
+          "type": "t_address",
+          "label": "proxyTo"
+        },
+        {
+          "type": "t_bytes32",
+          "label": "heimdallId"
+        },
+        {
+          "type": "t_uint256",
+          "label": "_nextHeaderBlock"
+        },
+        {
+          "type": "t_uint256",
+          "label": "_blockDepositId"
+        },
+        {
+          "type": "t_mapping(t_uint256,t_struct(HeaderBlock)",
+          "label": "headerBlocks"
+        },
+        {
+          "type": "t_contract(Registry)",
+          "label": "registry"
+        }
+      ]
+    },
+    "ValidatorShareFactory": {
+      "address": "0x5737AD9095AB4d55FeE7F972ea7F86734695E3c1",
+      "storage": []
+    },
+    "StakingInfo": {
+      "address": "0x29C40836C17f22d16a7fE953Fb25DA670C96d69E"
+    },
+    "StakingNFT": {
+      "address": "0x532c7020E0F3666f9440B8B9d899A9763BCc5dB7"
+    },
+    "StakeManager": {
+      "address": "0xc1b9b1ff63ef14502f7c6c8e9f5eed47654695ae",
+      "storage": [
+        {
+          "type": "t_bool",
+          "label": "locked"
+        },
+        {
+          "type": "t_contract(IGovernance)",
+          "label": "governance"
+        },
+        {
+          "type": "t_address",
+          "label": "_owner"
+        },
+        {
+          "type": "t_address",
+          "label": "rootChain"
+        },
+        {
+          "type": "t_contract(IERC20)",
+          "label": "token"
+        },
+        {
+          "type": "t_address",
+          "label": "registry"
+        },
+        {
+          "type": "t_contract(StakingInfo)",
+          "label": "logger"
+        },
+        {
+          "type": "t_contract(StakingNFT)",
+          "label": "NFTContract"
+        },
+        {
+          "type": "t_contract(ValidatorShareFactory)",
+          "label": "validatorShareFactory"
+        },
+        {
+          "type": "t_uint256",
+          "label": "WITHDRAWAL_DELAY"
+        },
+        {
+          "type": "t_uint256",
+          "label": "currentEpoch"
+        },
+        {
+          "type": "t_uint256",
+          "label": "dynasty"
+        },
+        {
+          "type": "t_uint256",
+          "label": "CHECKPOINT_REWARD"
+        },
+        {
+          "type": "t_uint256",
+          "label": "minDeposit"
+        },
+        {
+          "type": "t_uint256",
+          "label": "minHeimdallFee"
+        },
+        {
+          "type": "t_uint256",
+          "label": "checkPointBlockInterval"
+        },
+        {
+          "type": "t_uint256",
+          "label": "signerUpdateLimit"
+        },
+        {
+          "type": "t_uint256",
+          "label": "validatorThreshold"
+        },
+        {
+          "type": "t_uint256",
+          "label": "totalStaked"
+        },
+        {
+          "type": "t_uint256",
+          "label": "NFTCounter"
+        },
+        {
+          "type": "t_uint256",
+          "label": "totalRewards"
+        },
+        {
+          "type": "t_uint256",
+          "label": "totalRewardsLiquidated"
+        },
+        {
+          "type": "t_uint256",
+          "label": "auctionPeriod"
+        },
+        {
+          "type": "t_uint256",
+          "label": "proposerBonus"
+        },
+        {
+          "type": "t_bytes32",
+          "label": "accountStateRoot"
+        },
+        {
+          "type": "t_uint256",
+          "label": "replacementCoolDown"
+        },
+        {
+          "type": "t_bool",
+          "label": "delegationEnabled"
+        },
+        {
+          "type": "t_mapping(t_uint256,t_struct(Validator)",
+          "label": "validators"
+        },
+        {
+          "type": "t_mapping(t_address,t_uint256)",
+          "label": "signerToValidator"
+        },
+        {
+          "type": "t_struct(State)",
+          "label": "validatorState"
+        },
+        {
+          "type": "t_mapping(t_uint256,t_struct(StateChange)",
+          "label": "validatorStateChanges"
+        },
+        {
+          "type": "t_mapping(t_address,t_uint256)",
+          "label": "userFeeExit"
+        },
+        {
+          "type": "t_mapping(t_uint256,t_struct(Auction)",
+          "label": "validatorAuction"
+        },
+        {
+          "type": "t_mapping(t_uint256,t_uint256)",
+          "label": "latestSignerUpdateEpoch"
+        },
+        {
+          "type": "t_uint256",
+          "label": "totalHeimdallFee"
+        },
+        {
+          "type": "t_bool",
+          "label": "inited"
+        },
+        {
+          "type": "t_address",
+          "label": "eventsHub"
+        },
+        {
+          "type": "t_uint256",
+          "label": "rewardPerStake"
+        },
+        {
+          "type": "t_address",
+          "label": "extensionCode"
+        },
+        {
+          "type": "t_array(t_address)",
+          "label": "signers"
+        },
+        {
+          "type": "t_uint256",
+          "label": "prevBlockInterval"
+        },
+        {
+          "type": "t_uint256",
+          "label": "rewardDecreasePerCheckpoint"
+        },
+        {
+          "type": "t_uint256",
+          "label": "maxRewardedCheckpoints"
+        },
+        {
+          "type": "t_uint256",
+          "label": "checkpointRewardDelta"
+        }
+      ]
+    },
+    "StakeManagerExtension": {
+      "address": "0xef49ea6996073752b6840cda34773ffa78f78166"
+    },
+    "StakeManagerProxy": {
+      "address": "0x00200eA4Ee292E253E6Ca07dBA5EdC07c8Aa37A3",
+      "storage": []
+    },
+    "SlashingManager": {
+      "address": "0xDD17DE137c7Cc288E022fE95a3B398C94BDd5b83"
+    },
+    "ValidatorShare": {
+      "address": "0xa7957328580692f6440948c3c479a9cde17de206"
+    },
+    "StateSender": {
+      "address": "0xEAa852323826C71cd7920C3b4c007184234c3945"
+    },
+    "DepositManager": {
+      "address": "0x20339c5Ea91D680E681B9374Fc0a558D5b96a026",
+      "storage": [
+        {
+          "type": "t_address",
+          "label": "_owner"
+        },
+        {
+          "type": "t_address",
+          "label": "proxyTo"
+        },
+        {
+          "type": "t_bool",
+          "label": "locked"
+        },
+        {
+          "type": "t_contract(IGovernance)",
+          "label": "governance"
+        },
+        {
+          "type": "t_contract(Registry)",
+          "label": "registry"
+        },
+        {
+          "type": "t_contract(RootChain)",
+          "label": "rootChain"
+        },
+        {
+          "type": "t_contract(StateSender)",
+          "label": "stateSender"
+        },
+        {
+          "type": "t_mapping(t_uint256,t_struct(DepositBlock)",
+          "label": "deposits"
+        },
+        {
+          "type": "t_address",
+          "label": "childChain"
+        },
+        {
+          "type": "t_uint256",
+          "label": "maxErc20Deposit"
+        }
+      ]
+    },
+    "DepositManagerProxy": {
+      "address": "0x7850ec290A2e2F40B82Ed962eaf30591bb5f5C96",
+      "storage": [
+        {
+          "type": "t_address",
+          "label": "_owner"
+        },
+        {
+          "type": "t_address",
+          "label": "proxyTo"
+        },
+        {
+          "type": "t_bool",
+          "label": "locked"
+        },
+        {
+          "type": "t_contract(IGovernance)",
+          "label": "governance"
+        },
+        {
+          "type": "t_contract(Registry)",
+          "label": "registry"
+        },
+        {
+          "type": "t_contract(RootChain)",
+          "label": "rootChain"
+        },
+        {
+          "type": "t_contract(StateSender)",
+          "label": "stateSender"
+        },
+        {
+          "type": "t_mapping(t_uint256,t_struct(DepositBlock)",
+          "label": "deposits"
+        },
+        {
+          "type": "t_address",
+          "label": "childChain"
+        },
+        {
+          "type": "t_uint256",
+          "label": "maxErc20Deposit"
+        }
+      ]
+    },
+    "WithdrawManager": {
+      "address": "0xb075cdda944d4e1ff19f2201cdc3a440a11d4710",
+      "storage": [
+        {
+          "type": "t_address",
+          "label": "_owner"
+        },
+        {
+          "type": "t_address",
+          "label": "proxyTo"
+        },
+        {
+          "type": "t_uint256",
+          "label": "HALF_EXIT_PERIOD"
+        },
+        {
+          "type": "t_contract(Registry)",
+          "label": "registry"
+        },
+        {
+          "type": "t_contract(RootChain)",
+          "label": "rootChain"
+        },
+        {
+          "type": "t_mapping(t_uint128,t_bool)",
+          "label": "isKnownExit"
+        },
+        {
+          "type": "t_mapping(t_uint256,t_struct(PlasmaExit)",
+          "label": "exits"
+        },
+        {
+          "type": "t_mapping(t_bytes32,t_uint256)",
+          "label": "ownerExits"
+        },
+        {
+          "type": "t_mapping(t_address,t_address)",
+          "label": "exitsQueues"
+        },
+        {
+          "type": "t_contract(ExitNFT)",
+          "label": "exitNft"
+        },
+        {
+          "type": "t_uint32",
+          "label": "ON_FINALIZE_GAS_LIMIT"
+        },
+        {
+          "type": "t_uint256",
+          "label": "exitWindow"
+        }
+      ]
+    },
+    "WithdrawManagerProxy": {
+      "address": "0x2923C8dD6Cdf6b2507ef91de74F1d5E0F11Eac53",
+      "storage": [
+        {
+          "type": "t_address",
+          "label": "_owner"
+        },
+        {
+          "type": "t_address",
+          "label": "proxyTo"
+        },
+        {
+          "type": "t_uint256",
+          "label": "HALF_EXIT_PERIOD"
+        },
+        {
+          "type": "t_contract(Registry)",
+          "label": "registry"
+        },
+        {
+          "type": "t_contract(RootChain)",
+          "label": "rootChain"
+        },
+        {
+          "type": "t_mapping(t_uint128,t_bool)",
+          "label": "isKnownExit"
+        },
+        {
+          "type": "t_mapping(t_uint256,t_struct(PlasmaExit)",
+          "label": "exits"
+        },
+        {
+          "type": "t_mapping(t_bytes32,t_uint256)",
+          "label": "ownerExits"
+        },
+        {
+          "type": "t_mapping(t_address,t_address)",
+          "label": "exitsQueues"
+        },
+        {
+          "type": "t_contract(ExitNFT)",
+          "label": "exitNft"
+        },
+        {
+          "type": "t_uint32",
+          "label": "ON_FINALIZE_GAS_LIMIT"
+        },
+        {
+          "type": "t_uint256",
+          "label": "exitWindow"
+        }
+      ]
+    },
+    "ExitNFT": {
+      "address": "0xE2Ab047326B38e4DDb6791551e8d593D30E02724",
+      "storage": [
+        {
+          "type": "t_mapping(t_bytes4,t_bool)",
+          "label": "_supportedInterfaces"
+        },
+        {
+          "type": "t_mapping(t_uint256,t_address)",
+          "label": "_tokenOwner"
+        },
+        {
+          "type": "t_mapping(t_uint256,t_address)",
+          "label": "_tokenApprovals"
+        },
+        {
+          "type": "t_mapping(t_address,t_struct(Counter)",
+          "label": "_ownedTokensCount"
+        },
+        {
+          "type": "t_mapping(t_address,t_mapping(t_address,t_bool)",
+          "label": "_operatorApprovals"
+        },
+        {
+          "type": "t_contract(Registry)",
+          "label": "registry"
+        }
+      ]
+    },
+    "ERC20PredicateBurnOnly": {
+      "address": "0xf213e8ff5d797ed2b052d3b96c11ac71db358027"
+    },
+    "ERC721PredicateBurnOnly": {
+      "address": "0x473cb675c9214f79dee10948443509c441a678e7"
+    },
+    "MaticToken": {
+      "address": "0x499d11E0b6eAC7c0593d8Fb292DCBbF815Fb29Ae"
+    },
+    "TestToken": {
+      "address": "0x3f152B63Ec5CA5831061B2DccFb29a874C317502"
+    },
+    "RootERC721": {
+      "address": "0xfA08B72137eF907dEB3F202a60EfBc610D2f224b"
+    },
+    "MaticWeth": {
+      "address": "0x60D4dB9b534EF9260a88b0BED6c486fe13E604Fc"
+    },
+    "EventsHubProxy": {
+      "address": "0x158d5fa3Ef8e4dDA8a5367deCF76b94E7efFCe95",
+      "storage": []
+    },
+    "EventsHub": {
+      "address": "0xf0efee1c8b295fa57933301a645817bfffd3a1d3",
+      "storage": [
+        {
+          "type": "t_bool",
+          "label": "inited"
+        },
+        {
+          "type": "t_contract(Registry)",
+          "label": "registry"
+        }
+      ]
+    }
+  }
+}

@@ -1,10 +1,9 @@
 node_modules
 build
 contractAddresses.json
+artifacts
 
 # ignore generated files
-contracts/root/predicates/TransferWithSigUtils.sol
-contracts/common/mixin/ChainIdMixin.sol
 test-blockchain/genesis.json
 test-blockchain/start.sh
 test/helpers/marketplaceUtils.js
@@ -22,3 +21,13 @@ test-blockchain/data
 coverage/
 
 coverage.json
+
+*.dbg.json
+
+cache/
+
+debug.json
+
+typechain/
+
+contracts-out/

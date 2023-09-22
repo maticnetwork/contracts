@@ -1,6 +1,6 @@
 pragma solidity ^0.5.2;
 
-import {RootChainStorage} from "./RootChainStorage.sol";
+import {RootChainStorage} from "./RootChainStorage.sol"; 
 import {Proxy} from "../common/misc/Proxy.sol";
 import {Registry} from "../common/Registry.sol";
 
