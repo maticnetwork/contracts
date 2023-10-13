@@ -58,7 +58,7 @@ npm run truffle:migrate -- --reset -f 5 --to 5 --network <child_chain_network_na
 npm run truffle:migrate -- -f 6 --to 6 --network <base_chain_network_name>
 ```
 
-Post successfull deployment all contract addresses will be written to a `contractAddresses.json` file.
+Post successful deployment all contract addresses will be written to a `contractAddresses.json` file.
 
 > Check account that you are deploying from has ether for the network you are deploying on.
 
