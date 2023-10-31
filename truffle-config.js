@@ -17,11 +17,14 @@ module.exports = {
   // to customize your Truffle configuration!
   networks: {
     development: {
-      host: 'localhost',
-      port: 9545,
+      provider: () =>
+        new HDWalletProvider(
+          MNEMONIC,
+          `http://localhost:9545`
+        ),
       network_id: '*', // match any network
       skipDryRun: true,
-      gas: 7000000
+      gas: 30000000
     },
     bor: {
       provider: () =>
@@ -47,7 +50,7 @@ module.exports = {
           MNEMONIC,
           `https://rpc-mumbai.matic.today`
         ),
-      network_id: '80001',
+      network_id: '80001'
     },
     goerli: {
       provider: function() {
@@ -59,6 +62,17 @@ module.exports = {
       network_id: 5,
       gas: 8000000,
       gasPrice: 10000000000, // 10 gwei
+      skipDryRun: true
+    },
+    sepolia: {
+      provider: function() {
+        return new HDWalletProvider(
+          MNEMONIC,
+          `https://sepolia.infura.io/v3/${API_KEY}`
+        )
+      },
+      network_id: 11155111,
+      gasPrice: 1000000000, // 1 gwei
       skipDryRun: true
     },
     mainnet: {
@@ -103,5 +117,6 @@ module.exports = {
   },
   api_keys: {
     etherscan: ETHERSCAN_API_KEY
-  }
+  },
+  migrations_directory: process.env.MIGRATION_DIRECTORY || 'migrations'
 }

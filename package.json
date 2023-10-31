@@ -25,7 +25,8 @@
     "lint": "npm run lint:sol && npm run lint:js",
     "lint:js": "eslint test/**/*.js",
     "lint:sol:fix": "solium -d contracts/ --fix",
-    "lint:sol": "solium -d contracts/"
+    "lint:sol": "solium -d contracts/",
+    "deploy:sepolia": "truffle migrate --network sepolia --reset --to 2"
   },
   "pre-commit": [],
   "repository": {

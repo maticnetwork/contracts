@@ -1,13 +1,14 @@
 const ethUtils = require('ethereumjs-util')
 const bluebird = require('bluebird')
-
+const utils = require('./utils')
 const Registry = artifacts.require('Registry')
+const ValidatorShare = artifacts.require('ValidatorShare')
 const DepositManagerProxy = artifacts.require('DepositManagerProxy')
 const StateSender = artifacts.require('StateSender')
 const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
 const StakeManagerProxy = artifacts.require('StakeManagerProxy')
 const SlashingManager = artifacts.require('SlashingManager')
-const ERC20Predicate = artifacts.require('ERC20Predicate')
+const ERC20PredicateBurnOnly = artifacts.require('ERC20PredicateBurnOnly')
 const ERC721Predicate = artifacts.require('ERC721Predicate')
 const MarketplacePredicate = artifacts.require('MarketplacePredicate')
 const TransferWithSigPredicate = artifacts.require('TransferWithSigPredicate')
@@ -24,35 +25,44 @@ async function updateContractMap(governance, registry, nameHash, value) {
 
 module.exports = async function(deployer) {
   deployer.then(async() => {
+    const contractAddresses = utils.getContractAddresses()
+    const governance = await Governance.at(contractAddresses.root.GovernanceProxy)
+
     await bluebird
       .all([
-        Governance.deployed(),
         Registry.deployed(),
+        ValidatorShare.deployed(),
         DepositManagerProxy.deployed(),
         StateSender.deployed(),
         WithdrawManagerProxy.deployed(),
         StakeManagerProxy.deployed(),
         SlashingManager.deployed(),
-        ERC20Predicate.deployed(),
+        ERC20PredicateBurnOnly.deployed(),
         ERC721Predicate.deployed(),
         MarketplacePredicate.deployed(),
         TransferWithSigPredicate.deployed(),
         EventsHubProxy.deployed()
       ])
       .spread(async function(
-        governance,
         registry,
+        validatorShare,
         depositManagerProxy,
         stateSender,
         withdrawManagerProxy,
         stakeManagerProxy,
         slashingManager,
-        ERC20Predicate,
+        ERC20PredicateBurnOnly,
         ERC721Predicate,
         MarketplacePredicate,
         TransferWithSigPredicate,
         EventsHubProxy
       ) {
+        await updateContractMap(
+          governance,
+          registry,
+          ethUtils.keccak256('validatorShare'),
+          validatorShare.address
+        )
         await updateContractMap(
           governance,
           registry,
@@ -99,7 +109,7 @@ module.exports = async function(deployer) {
         // whitelist predicates
         await governance.update(
           registry.address,
-          registry.contract.methods.addErc20Predicate(ERC20Predicate.address).encodeABI()
+          registry.contract.methods.addErc20Predicate(ERC20PredicateBurnOnly.address).encodeABI()
         )
 
         await governance.update(
