@@ -98,7 +98,7 @@ contract StakeManager is
         minDeposit = (10**18); // in ERC20 token
         minHeimdallFee = (10**18); // in ERC20 token
         checkPointBlockInterval = 1024;
-        signerUpdateLimit = 1;
+        signerUpdateLimit = 100;
 
         validatorThreshold = 7; //128
         NFTCounter = 1;
