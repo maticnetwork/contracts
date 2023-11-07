@@ -10,8 +10,6 @@ const StakeManagerProxy = artifacts.require('StakeManagerProxy')
 const SlashingManager = artifacts.require('SlashingManager')
 const ERC20PredicateBurnOnly = artifacts.require('ERC20PredicateBurnOnly')
 const ERC721Predicate = artifacts.require('ERC721Predicate')
-const MarketplacePredicate = artifacts.require('MarketplacePredicate')
-const TransferWithSigPredicate = artifacts.require('TransferWithSigPredicate')
 const MaticWeth = artifacts.require('MaticWETH')
 const Governance = artifacts.require('Governance')
 const EventsHubProxy = artifacts.require('EventsHubProxy')
@@ -39,8 +37,6 @@ module.exports = async function(deployer) {
         SlashingManager.deployed(),
         ERC20PredicateBurnOnly.deployed(),
         ERC721Predicate.deployed(),
-        MarketplacePredicate.deployed(),
-        TransferWithSigPredicate.deployed(),
         EventsHubProxy.deployed()
       ])
       .spread(async function(
@@ -53,8 +49,6 @@ module.exports = async function(deployer) {
         slashingManager,
         ERC20PredicateBurnOnly,
         ERC721Predicate,
-        MarketplacePredicate,
-        TransferWithSigPredicate,
         EventsHubProxy
       ) {
         await updateContractMap(
@@ -115,15 +109,6 @@ module.exports = async function(deployer) {
         await governance.update(
           registry.address,
           registry.contract.methods.addErc721Predicate(ERC721Predicate.address).encodeABI()
-        )
-
-        await governance.update(
-          registry.address,
-          registry.contract.methods.addPredicate(MarketplacePredicate.address, 3).encodeABI()
-        )
-        await governance.update(
-          registry.address,
-          registry.contract.methods.addPredicate(TransferWithSigPredicate.address, 3).encodeABI()
         )
       })
   })
