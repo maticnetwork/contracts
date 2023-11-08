@@ -16,7 +16,7 @@
     "truffle:migrate": "scripts/run-migration.sh",
     "truffle:migrate:dev": "truffle migrate --network development",
     "truffle:migrate:dev:bor": "truffle migrate --network bor",
-    "truffle:verify": "truffle run verify $npm_package_verify_contracts --network ropsten",
+    "truffle:verify": "truffle run verify $npm_package_verify_contracts --network sepolia",
     "test": "truffle test",
     "coverage": "scripts/run-coverage.sh",
     "test:ci": "scripts/run-test.sh",

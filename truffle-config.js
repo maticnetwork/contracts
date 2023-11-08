@@ -66,10 +66,14 @@ module.exports = {
     },
     sepolia: {
       provider: function() {
-        return new HDWalletProvider(
-          MNEMONIC,
-          `https://sepolia.infura.io/v3/${API_KEY}`
-        )
+        return new HDWalletProvider({
+          mnemonic: {
+            phrase: MNEMONIC
+          },
+          providerOrUrl: `https://sepolia.infura.io/v3/${API_KEY}`,
+          pollingInterval: 32000,
+          addressIndex: 3
+        })
       },
       network_id: 11155111,
       gasPrice: 1000000000, // 1 gwei

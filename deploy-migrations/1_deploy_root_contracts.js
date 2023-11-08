@@ -35,7 +35,6 @@ const ERC20PredicateBurnOnly = artifacts.require('ERC20PredicateBurnOnly')
 const ERC721Predicate = artifacts.require('ERC721Predicate')
 
 const MaticToken = artifacts.require('MaticToken')
-const TestToken = artifacts.require('TestToken')
 const RootERC721 = artifacts.require('RootERC721')
 const MaticWeth = artifacts.require('MaticWETH')
 
@@ -136,7 +135,6 @@ module.exports = async function(deployer, network, accounts) {
     await deployer.deploy(ValidatorShareFactory)
     await deployer.deploy(ValidatorShare)
     const maticToken = await deployer.deploy(MaticToken, 'MATIC', 'MATIC')
-    await deployer.deploy(TestToken, 'Test ERC20', 'TEST20')
     await deployer.deploy(RootERC721, 'Test ERC721', 'TST721')
     await deployer.deploy(StakingInfo, Registry.address)
     await deployer.deploy(StakingNFT, 'Matic Validator', 'MV')
@@ -212,6 +210,7 @@ module.exports = async function(deployer, network, accounts) {
       root: {
         Registry: Registry.address,
         RootChain: RootChain.address,
+        Governance: Governance.address,
         GovernanceProxy: GovernanceProxy.address,
         RootChainProxy: RootChainProxy.address,
         DepositManager: DepositManager.address,
@@ -225,13 +224,12 @@ module.exports = async function(deployer, network, accounts) {
         ExitNFT: ExitNFT.address,
         StateSender: StateSender.address,
         predicates: {
-          ERC20Predicate: ERC20PredicateBurnOnly.address,
+          ERC20PredicateBurnOnly: ERC20PredicateBurnOnly.address,
           ERC721Predicate: ERC721Predicate.address
         },
         tokens: {
           MaticToken: maticToken.address,
           MaticWeth: MaticWeth.address,
-          TestToken: TestToken.address,
           RootERC721: RootERC721.address
         }
       }
