@@ -44,7 +44,7 @@ contract('DepositManager Update @skip-on-coverage', async function(accounts) {
         registry.contract.methods.updateContractMap(ethUtils.keccak256('polygonMigration'), polygonMigrationTest.address).encodeABI()
       )
 
-      pol = await artifacts.TestToken.new('Polygon Ecosystem Token', 'POL')
+      pol = await artifacts.POLTokenMock.new('Polygon Ecosystem Token', 'POL')
 
       await governance.update(
         registry.address,
