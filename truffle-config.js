@@ -52,6 +52,20 @@ module.exports = {
         ),
       network_id: '80001'
     },
+    amoy: {
+      provider: () =>
+        new HDWalletProvider({
+          mnemonic: {
+            phrase: MNEMONIC
+          },
+          providerOrUrl: process.env.AMOY_RPC,
+          pollingInterval: 32000,
+          addressIndex: 0
+        }),
+      network_id: '80002',
+      gasPrice: 1000000000, // 1 gwei
+      skipDryRun: true
+    },
     goerli: {
       provider: function() {
         return new HDWalletProvider(
