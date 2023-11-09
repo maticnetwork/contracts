@@ -102,14 +102,18 @@ contract('DepositManager Update @skip-on-coverage', async function(accounts) {
       const bob = '0x' + crypto.randomBytes(20).toString('hex')
 
       // using the utils function more granularly here so we can call fireDepositFromMainToMatic with the correct token address
-      const depositBlockId = await utils.depositOnRoot(
+      const newDepositBlockEvent = await utils.depositOnRoot(
         depositManager,
         pol,
         bob,
         amount,
         { rootDeposit: true, erc20: true }
       )
-      await utils.fireDepositFromMainToMatic(childContracts.childChain, '0xa', bob, e20.rootERC20.address, amount, depositBlockId)
+
+      // token has been changed to MATIC
+      assert.strictEqual(newDepositBlockEvent.args.token, e20.rootERC20.address)
+
+      await utils.fireDepositFromMainToMatic(childContracts.childChain, '0xa', bob, e20.rootERC20.address, amount, newDepositBlockEvent.args.depositBlockId)
 
       // deposit on child chain is technically still in MATIC
       utils.assertBigNumberEquality(await e20.childToken.balanceOf(bob), amount)

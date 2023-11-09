@@ -171,7 +171,7 @@ contract DepositManager is DepositManagerStorage, IDepositManager, ERC721Holder 
         }
         // new: bridge POL as MATIC, child chain behaviour does not change
         else if (_token == registry.contractMap(keccak256("pol"))) {
-            _token == registry.contractMap(keccak256("matic"));
+            _token = registry.contractMap(keccak256("matic"));
         }
 
         deposits[_depositId] = DepositBlock(keccak256(abi.encodePacked(_user, _token, _amountOrToken)), now);
