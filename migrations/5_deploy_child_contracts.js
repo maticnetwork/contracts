@@ -29,6 +29,7 @@ module.exports = async function(deployer, network, accounts) {
       18,
       false // _isERC721
     )
+    await MaticWeth.changeChildChain(ChildChain.address)
 
     let TestToken = await childChain.addToken(
       accounts[0],
@@ -38,6 +39,7 @@ module.exports = async function(deployer, network, accounts) {
       18,
       false // _isERC721
     )
+    await TestToken.changeChildChain(ChildChain.address)
 
     let RootERC721 = await childChain.addToken(
       accounts[0],
@@ -47,6 +49,7 @@ module.exports = async function(deployer, network, accounts) {
       0,
       true // _isERC721
     )
+    await RootERC721.changeChildChain(ChildChain.address)
 
     const maticToken = await MRC20.at('0x0000000000000000000000000000000000001010')
     const maticOwner = await maticToken.owner()
