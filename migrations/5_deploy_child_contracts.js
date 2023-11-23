@@ -25,8 +25,8 @@ module.exports = async function(deployer, network, accounts) {
 
     // Deploy MaticWeth (ERC20) child contract and its proxy.
     // Initialize the contract, update the child chain and map the token with its root contract.
-    const childMaticWethProxified = await deployer.deploy(ChildERC20Proxified)
-    const childMaticWethProxy = await deployer.deploy(ChildTokenProxy, childMaticWethProxified.address)
+    const childMaticWethProxified = await ChildERC20Proxified.new()
+    const childMaticWethProxy = await ChildTokenProxy.new(childMaticWethProxified.address)
     const childMaticWeth = await ChildERC20Proxified.at(childMaticWethProxy.address)
 
     await childMaticWeth.initialize(contractAddresses.root.tokens.MaticWeth, 'Eth on Matic', 'ETH', 18)
@@ -35,8 +35,8 @@ module.exports = async function(deployer, network, accounts) {
 
 
     // Same thing for TestToken (ERC20).
-    const childTestTokenProxified = await deployer.deploy(ChildERC20Proxified)
-    const childTestTokenProxy = await deployer.deploy(ChildTokenProxy, childTestTokenProxified.address)
+    const childTestTokenProxified = await ChildERC20Proxified.new()
+    const childTestTokenProxy = await ChildTokenProxy.new(childTestTokenProxified.address)
     const childTestToken = await ChildERC20Proxified.at(childTestTokenProxy.address)
 
     await childTestToken.initialize(contractAddresses.root.tokens.TestToken, 'Test Token', 'TST', 18)
@@ -44,8 +44,8 @@ module.exports = async function(deployer, network, accounts) {
     await childChain.mapToken(contractAddresses.root.tokens.TestToken, childTestToken.address, false)
 
     // Same thing for TestERC721.
-    const childTestERC721Proxified = await deployer.deploy(ChildERC721Proxified)
-    const childTestERC721Proxy = await deployer.deploy(ChildTokenProxy, childTestERC721Proxified.address)
+    const childTestERC721Proxified = await ChildERC721Proxified.new()
+    const childTestERC721Proxy = await ChildTokenProxy.new(childTestERC721Proxified.address)
     const childTestERC721 = await ChildERC721Proxified.at(childTestERC721Proxy.address)
 
     await childTestERC721.initialize(contractAddresses.root.tokens.RootERC721, 'Test ERC721', 'TST721')
