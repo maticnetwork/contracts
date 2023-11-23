@@ -28,6 +28,7 @@ module.exports = async function(deployer, network, accounts) {
     const childMaticWethProxified = await deployer.deploy(ChildERC20Proxified)
     const childMaticWethProxy = await deployer.deploy(ChildTokenProxy, childMaticWethProxified.address)
     const childMaticWeth = await ChildERC20Proxified.at(childMaticWethProxy.address)
+
     await childMaticWeth.initialize(contractAddresses.root.tokens.MaticWeth, 'Eth on Matic', 'ETH', 18)
     await childMaticWeth.changeChildChain(childChain.address)
     await childChain.mapToken(contractAddresses.root.tokens.MaticWeth, childMaticWeth.address, false)
@@ -37,6 +38,7 @@ module.exports = async function(deployer, network, accounts) {
     const childTestTokenProxified = await deployer.deploy(ChildERC20Proxified)
     const childTestTokenProxy = await deployer.deploy(ChildTokenProxy, childTestTokenProxified.address)
     const childTestToken = await ChildERC20Proxified.at(childTestTokenProxy.address)
+
     await childTestToken.initialize(contractAddresses.root.tokens.TestToken, 'Test Token', 'TST', 18)
     await childTestToken.changeChildChain(childChain.address)
     await childChain.mapToken(contractAddresses.root.tokens.TestToken, childTestToken.address, false)
@@ -45,7 +47,8 @@ module.exports = async function(deployer, network, accounts) {
     const childTestERC721Proxified = await deployer.deploy(ChildERC721Proxified)
     const childTestERC721Proxy = await deployer.deploy(ChildTokenProxy, childTestERC721Proxified.address)
     const childTestERC721 = await ChildERC721Proxified.at(childTestERC721Proxy.address)
-    await childTestERC721.initialize(contractAddresses.root.tokens.TestToken, 'Test ERC721', 'TST721', 0)
+
+    await childTestERC721.initialize(contractAddresses.root.tokens.RootERC721, 'Test ERC721', 'TST721', 0)
     await childTestERC721.changeChildChain(childChain.address)
     await childChain.mapToken(contractAddresses.root.tokens.RootERC721, childTestERC721.address, true) // ERC721
 
