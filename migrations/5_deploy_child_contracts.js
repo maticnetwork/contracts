@@ -5,7 +5,8 @@ const SafeMath = artifacts.require(
 )
 const ChildChain = artifacts.require('ChildChain')
 const MRC20 = artifacts.require('MRC20')
-const ChildToken = artifacts.require('ChildToken')
+const ChildERC20 = artifacts.require('ChildERC20')
+const ChildERC721 = artifacts.require('ChildERC721')
 
 module.exports = async function(deployer, network, accounts) {
   if (deployer.network !== 'bor') {
@@ -20,7 +21,7 @@ module.exports = async function(deployer, network, accounts) {
     const childChain = await ChildChain.deployed()
     const contractAddresses = utils.getContractAddresses()
 
-    let MaticWeth = await childChain.addToken(
+    const maticWethTx = await childChain.addToken(
       accounts[0],
       contractAddresses.root.tokens.MaticWeth,
       'ETH on Matic',
@@ -28,9 +29,11 @@ module.exports = async function(deployer, network, accounts) {
       18,
       false // _isERC721
     )
-    //await MaticWeth.changeChildChain(ChildChain.address)
+    const maticWethAddress = maticWethTx.logs.find(log => log.event === 'NewToken').args.token
+    const maticWethContract = await ChildERC20.at(maticWethAddress)
+    await maticWethContract.changeChildChain(contractAddresses.child.ChildChain, {from: accounts[0]})
 
-    const addTestTokenToChildChainTx = await childChain.addToken(
+    const testERC20Tx = await childChain.addToken(
       accounts[0],
       contractAddresses.root.tokens.TestToken,
       'Test Token',
@@ -38,11 +41,11 @@ module.exports = async function(deployer, network, accounts) {
       18,
       false // _isERC721
     )
-    const childTestTokenAddress = addTestTokenToChildChainTx.logs.find(log => log.event === 'NewToken').args.token
-    const childTesTokenContract = await ChildToken.at(childTestTokenAddress)
-    await childTesTokenContract.changeChildChain(ChildChain.address, {from: ChildChain.address})
+    const testERC20Address = testERC20Tx.logs.find(log => log.event === 'NewToken').args.token
+    const testERC20Contract = await ChildERC20.at(testERC20Address)
+    await testERC20Contract.changeChildChain(contractAddresses.child.ChildChain, {from: accounts[0]})
 
-    let RootERC721 = await childChain.addToken(
+    const testERC721Tx = await childChain.addToken(
       accounts[0],
       contractAddresses.root.tokens.RootERC721,
       'Test ERC721',
@@ -50,7 +53,9 @@ module.exports = async function(deployer, network, accounts) {
       0,
       true // _isERC721
     )
-    //await RootERC721.changeChildChain(ChildChain.address)
+    const testERC721Address = testERC721Tx.logs.find(log => log.event === 'NewToken').args.token
+    const testERC721Contract = await ChildERC721.at(maticWethAddress)
+    await testERC721Contract.changeChildChain(contractAddresses.child.ChildChain, {from: accounts[0]})
 
     const maticToken = await MRC20.at('0x0000000000000000000000000000000000001010')
     const maticOwner = await maticToken.owner()
@@ -61,12 +66,12 @@ module.exports = async function(deployer, network, accounts) {
     await childChain.mapToken(contractAddresses.root.tokens.MaticToken, '0x0000000000000000000000000000000000001010', false)
 
     contractAddresses.child = {
-      ChildChain: ChildChain.address,
+      ChildChain: childChain.address,
       tokens: {
-        MaticWeth: MaticWeth.logs.find(log => log.event === 'NewToken').args.token,
+        MaticWeth: maticWethAddress,
         MaticToken: '0x0000000000000000000000000000000000001010',
-        TestToken: TestToken.logs.find(log => log.event === 'NewToken').args.token,
-        RootERC721: RootERC721.logs.find(log => log.event === 'NewToken').args.token
+        TestToken: testERC20Address,
+        RootERC721: testERC721Address
       }
     }
     utils.writeContractAddresses(contractAddresses)
