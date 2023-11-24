@@ -4,11 +4,12 @@ const SafeMath = artifacts.require(
   'openzeppelin-solidity/contracts/math/SafeMath.sol'
 )
 const ChildChain = artifacts.require('ChildChain')
-const MRC20 = artifacts.require('MRC20')
 
 const ChildERC20Proxified = artifacts.require('ChildERC20Proxified')
 const ChildERC721Proxified = artifacts.require('ChildERC721Proxified')
 const ChildTokenProxy = artifacts.require('ChildTokenProxy')
+
+const MRC20 = artifacts.require('MRC20')
 
 module.exports = async function(deployer, network, accounts) {
   if (deployer.network !== 'bor') {
@@ -32,7 +33,6 @@ module.exports = async function(deployer, network, accounts) {
     await childMaticWeth.initialize(contractAddresses.root.tokens.MaticWeth, 'Eth on Matic', 'ETH', 18)
     await childMaticWeth.changeChildChain(childChain.address)
     await childChain.mapToken(contractAddresses.root.tokens.MaticWeth, childMaticWeth.address, false)
-
 
     // Same thing for TestToken (ERC20).
     const childTestTokenProxified = await ChildERC20Proxified.new()
