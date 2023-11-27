@@ -41,7 +41,7 @@ module.exports = async function(deployer, _, _) {
 
     // Same thing for TestToken (ERC20).
     const childTestTokenProxified = await ChildERC20Proxified.new()
-    console.log('Child TestTokenProxified contract deployed')
+    console.log('\nChild TestTokenProxified contract deployed')
     const childTestTokenProxy = await ChildTokenProxy.new(childTestTokenProxified.address)
     console.log('Child TestToken proxy contract deployed')
     const childTestToken = await ChildERC20Proxified.at(childTestTokenProxy.address)
@@ -55,7 +55,7 @@ module.exports = async function(deployer, _, _) {
 
     // Same thing for TestERC721.
     const childTestERC721Proxified = await ChildERC721Proxified.new()
-    console.log('Child TestERC721Proxified contract deployed')
+    console.log('\nChild TestERC721Proxified contract deployed')
     const childTestERC721Proxy = await ChildTokenProxy.new(childTestERC721Proxified.address)
     console.log('Child TestERC721 proxy contract deployed')
     const childTestERC721 = await ChildERC721Proxified.at(childTestERC721Proxy.address)
