@@ -1,23 +1,21 @@
 import { StakingInfo, TestToken, ValidatorShare } from '../../../helpers/artifacts'
 
-import {
-  checkPoint,
-  assertBigNumberEquality
-} from '../../../helpers/utils.js'
+import { checkPoint, assertBigNumberEquality, assertBigNumbergt } from '../../../helpers/utils.js'
 import { expectEvent, expectRevert, BN } from '@openzeppelin/test-helpers'
 import { wallets, walletAmounts, freshDeploy, approveAndStake } from '../deployment'
+import { assert } from 'chai'
 
 module.exports = function(accounts) {
   let owner = accounts[0]
 
-  function doStake(wallet, { aproveAmount, stakeAmount, noMinting = false, signer } = {}) {
+  function doStake(wallet, { aproveAmount, stakeAmount, noMinting = false, acceptDelegation = false, signer } = {}) {
     return async function() {
       let user = wallet.getAddressString()
 
       let _aproveAmount = aproveAmount || walletAmounts[user].amount
       let _stakeAmount = stakeAmount || walletAmounts[user].stakeAmount
 
-      await approveAndStake.call(this, { wallet, stakeAmount: _stakeAmount, approveAmount: _aproveAmount, noMinting, signer })
+      await approveAndStake.call(this, { wallet, stakeAmount: _stakeAmount, approveAmount: _aproveAmount, acceptDelegation, noMinting, signer })
     }
   }
 
@@ -128,6 +126,29 @@ module.exports = function(accounts) {
         const validatorId = await this.stakeManager.getValidatorId(user)
         const value = await this.stakeManager.isValidator(validatorId.toString())
         assert.isTrue(value)
+      })
+
+      it('must pay out rewards correctly', async function() {
+        const validatorId = await this.stakeManager.getValidatorId(user)
+        const reward = await this.stakeManager.validatorReward(validatorId)
+        const balanceBefore = await this.stakeToken.balanceOf(user)
+        assertBigNumberEquality(reward, new BN(0))
+
+        await checkPoint(wallets, this.rootChainOwner, this.stakeManager)
+        await checkPoint(wallets, this.rootChainOwner, this.stakeManager)
+        const newReward = await this.stakeManager.validatorReward(validatorId)
+        assertBigNumbergt(newReward, reward)
+        await this.stakeManager.withdrawRewards(validatorId, { from: user })
+        const balanceAfter = await this.stakeToken.balanceOf(user)
+        assertBigNumberEquality(balanceAfter.sub(balanceBefore), newReward)
+
+        await checkPoint(wallets, this.rootChainOwner, this.stakeManager)
+        await checkPoint(wallets, this.rootChainOwner, this.stakeManager)
+        const newReward2 = await this.stakeManager.validatorReward(validatorId)
+        await this.stakeManager.withdrawRewards(validatorId, { from: user })
+        const balanceAfter2 = await this.stakeToken.balanceOf(user)
+        assertBigNumberEquality(balanceAfter2.sub(balanceAfter), newReward2)
+        assertBigNumberEquality(newReward2, newReward)
       })
     }
 
@@ -317,6 +338,45 @@ module.exports = function(accounts) {
   })
 
   describe('unstake', function() {
+    describe('when Alice unstakes and update the signer', function() {
+      const AliceWallet = wallets[1]
+      const BobWallet = wallets[3]
+      const AliceNewWallet = wallets[2]
+
+      before(freshDeploy)
+      before(doStake(AliceWallet))
+      before(doStake(BobWallet))
+      before('Change signer', async function() {
+        const signerUpdateLimit = await this.stakeManager.signerUpdateLimit()
+        await this.stakeManager.advanceEpoch(signerUpdateLimit)
+
+        this.validatorId = await this.stakeManager.getValidatorId(AliceWallet.getAddressString())
+        
+      })
+
+      it('Alice should unstake', async function() {
+        this.receipt = await this.stakeManager.unstake(this.validatorId, {
+          from: AliceWallet.getAddressString()
+        })
+      })
+
+      it('Signers list should have only Bob\'s signer', async function() {
+        assert((await this.stakeManager.signers(0)) == BobWallet.getChecksumAddressString(), 'no Bob signer!')
+        await expectRevert.unspecified(this.stakeManager.signers(1))
+      })
+
+      it('Alice should update signer', async function() {
+        await this.stakeManager.updateSigner(this.validatorId, AliceNewWallet.getPublicKeyString(), {
+          from: AliceWallet.getAddressString()
+        })
+      })
+
+      it('Signers list should haveonly Bob\'s signer', async function() {
+        assert((await this.stakeManager.signers(0)) == BobWallet.getChecksumAddressString(), 'no Bob signer!')
+        await expectRevert.unspecified(this.stakeManager.signers(1))
+      })
+    })
+
     describe('when user unstakes right after stake', async function() {
       const user = wallets[2].getChecksumAddressString()
       const amounts = walletAmounts[wallets[2].getAddressString()]
@@ -371,19 +431,28 @@ module.exports = function(accounts) {
 
       const user = wallets[3].getChecksumAddressString()
       const amounts = walletAmounts[wallets[3].getAddressString()]
+      const w = [wallets[2], wallets[3]]
 
-      before(doStake(wallets[3]))
+      before(doStake(wallets[2]))
+      before(doStake(wallets[3], { acceptDelegation: true }))
       before(async function() {
         this.validatorId = await this.stakeManager.getValidatorId(user)
+
+        // delegate tokens to validator
+        const validatorShareAddr = await this.stakeManager.getValidatorContract(this.validatorId)
+        this.stakeToken.approve(this.stakeManager.address, web3.utils.toWei('100'), { from: wallets[4].getAddressString() })
+        const validator = await ValidatorShare.at(validatorShareAddr)
+        await validator.buyVoucher(web3.utils.toWei('100'), 0, { from: wallets[4].getAddressString() })
+
         this.afterStakeBalance = await this.stakeToken.balanceOf(user)
       })
 
       before(async function() {
-        const w = [wallets[3]]
         await checkPoint(w, this.rootChainOwner, this.stakeManager)
         await checkPoint(w, this.rootChainOwner, this.stakeManager)
 
         this.reward = await this.stakeManager.validatorReward(this.validatorId)
+        this.delegatorReward = await this.stakeManager.delegatorsReward(this.validatorId)
       })
 
       it('must unstake', async function() {
@@ -420,6 +489,34 @@ module.exports = function(accounts) {
       it('must have increased balance by reward', async function() {
         const balance = await this.stakeToken.balanceOf(user)
         assertBigNumberEquality(balance, this.afterStakeBalance.add(this.reward))
+      })
+
+      it('should not distribute additional staking or delegation rewards after unstaking', async function() {
+        const validatorId = await this.stakeManager.getValidatorId(user)
+
+        let validatorRewardsBefore = await this.stakeManager.validatorReward(validatorId)
+        let delegationRewardsBefore = await this.stakeManager.delegatorsReward(validatorId)
+        assertBigNumberEquality(delegationRewardsBefore, this.delegatorReward)
+
+        // complete unstake and remove validator
+        await checkPoint(w, this.rootChainOwner, this.stakeManager)
+        
+        let validatorRewardsAfter = await this.stakeManager.validatorReward(validatorId)
+        let delegationRewardsAfter = await this.stakeManager.delegatorsReward(validatorId)
+
+        assertBigNumbergt(validatorRewardsAfter, validatorRewardsBefore)
+        assertBigNumbergt(delegationRewardsAfter, delegationRewardsBefore)
+        
+        await this.stakeManager.withdrawRewards(validatorId, { from: user })
+        const balanceBefore = await this.stakeToken.balanceOf(user)
+
+        await checkPoint([wallets[2]], this.rootChainOwner, this.stakeManager)
+        
+        await this.stakeManager.withdrawRewards(validatorId, { from: user })
+        assertBigNumberEquality(await this.stakeToken.balanceOf(user), balanceBefore)
+        
+        assertBigNumberEquality(await this.stakeManager.validatorReward(validatorId), new BN(0))
+        assertBigNumberEquality(await this.stakeManager.delegatorsReward(validatorId), delegationRewardsAfter)
       })
     })
 

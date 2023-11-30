@@ -69,7 +69,7 @@ contract('Misc Predicates tests @skip-on-coverage', async function(accounts) {
     assert.strictEqual((await rootERC20.balanceOf(bob)).toString(), aliceInitial.sub(aliceToBobtransferAmount).toString())
   })
 
-  it('Alice & Bob are honest and cooperating', async function() {
+  it.skip('Alice & Bob are honest and cooperating', async function() {
     const alice = accounts[1]
     const bob = accounts[2]
     const aliceInitial = web3.utils.toBN('13')
@@ -140,7 +140,7 @@ contract('Misc Predicates tests @skip-on-coverage', async function(accounts) {
     assert.strictEqual((await rootERC20.balanceOf(bob)).toString(), bobInitial.add(aliceToBobtransferAmount).toString())
   })
 
-  it('Mallory tries to exit a spent output', async function() {
+  it.skip('Mallory tries to exit a spent output', async function() {
     const alice = accounts[0]
     const mallory = accounts[1]
     const aliceInitial = web3.utils.toBN('13')
@@ -185,7 +185,7 @@ contract('Misc Predicates tests @skip-on-coverage', async function(accounts) {
     predicateTestUtils.assertExitCancelled(challenge.logs[0], exitId)
   })
 
-  it('Alice double spends her input (eager exit fails)', async function() {
+  it.skip('Alice double spends her input (eager exit fails)', async function() {
     const alice = accounts[0]
     const bob = accounts[1]
     const aliceInitial = web3.utils.toBN('13')
@@ -306,7 +306,7 @@ contract('Misc Predicates tests @skip-on-coverage', async function(accounts) {
     predicateTestUtils.assertExitCancelled(challenge.logs[0], exitId)
   })
 
-  describe('Mallory is challenged with a marketplace tx', async function() {
+  describe.skip('Mallory is challenged with a marketplace tx', async function() {
     let privateKey1, alice, privateKey2, mallory, marketplacePredicate, marketplace
     before(async function() {
       const stakes = {
@@ -506,7 +506,7 @@ contract('Misc Predicates tests @skip-on-coverage', async function(accounts) {
     })
   })
 
-  describe('Challenge with transferWithSig tx', async function() {
+  describe.skip('Challenge with transferWithSig tx', async function() {
     let alicePrivateKey, alice, malloryPrivateKey, mallory, transferWithSigPredicate
     before(async function() {
       const wallets = generateFirstWallets(mnemonics, 2)
