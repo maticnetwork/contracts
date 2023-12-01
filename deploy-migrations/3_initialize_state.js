@@ -16,6 +16,13 @@ const MaticWeth = artifacts.require('MaticWETH')
 const Governance = artifacts.require('Governance')
 const EventsHubProxy = artifacts.require('EventsHubProxy')
 
+async function updateContractMap(governance, registry, nameHash, value) {
+  return governance.update(
+    registry.address,
+    registry.contract.methods.updateContractMap(nameHash, value).encodeABI()
+  )
+}
+
 module.exports = async function(deployer) {
   deployer.then(async() => {
     await bluebird
@@ -47,46 +54,46 @@ module.exports = async function(deployer) {
         TransferWithSigPredicate,
         EventsHubProxy
       ) {
-        await utils.updateContractMap(
+        await updateContractMap(
           governance,
           registry,
-          'depositManager',
+          ethUtils.keccak256('depositManager'),
           depositManagerProxy.address
         )
-        await utils.updateContractMap(
+        await updateContractMap(
           governance,
           registry,
-          'withdrawManager',
+          ethUtils.keccak256('withdrawManager'),
           withdrawManagerProxy.address
         )
-        await utils.updateContractMap(
+        await updateContractMap(
           governance,
           registry,
-          'stakeManager',
+          ethUtils.keccak256('stakeManager'),
           stakeManagerProxy.address
         )
-        await utils.updateContractMap(
+        await updateContractMap(
           governance,
           registry,
-          'slashingManager',
+          ethUtils.keccak256('slashingManager'),
           slashingManager.address
         )
-        await utils.updateContractMap(
+        await updateContractMap(
           governance,
           registry,
-          'stateSender',
+          ethUtils.keccak256('stateSender'),
           stateSender.address
         )
-        await utils.updateContractMap(
+        await updateContractMap(
           governance,
           registry,
-          'wethToken',
+          ethUtils.keccak256('wethToken'),
           MaticWeth.address
         )
-        await utils.updateContractMap(
+        await updateContractMap(
           governance,
           registry,
-          'eventsHub',
+          ethUtils.keccak256('eventsHub'),
           EventsHubProxy.address
         )
 
