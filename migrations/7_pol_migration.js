@@ -77,15 +77,17 @@ module.exports = async function(deployer, network, accounts) {
     const depositManagerProxy = await DepositManagerProxy.at(contractAddresses.root.DepositManagerProxy)
 
     // Deploy contracts.
-    console.log('Deploying POL token contracts...')
+    console.log('> Deploying POL token contracts...')
     const mintAmount = web3.utils.toBN('10').pow(web3.utils.toBN('18')).toString()
 
-    console.log('\nUpdating DepositManager...')
+    console.log('\n> Updating DepositManager...')
     const { polToken, polygonMigration } = await deployPOLToken(governance, mintAmount)
     const newDepositManager = await deployNewDepositManager(depositManagerProxy)
+
+    // Migrate MATIC.
+    console.log('\n> Migrating MATIC to POL...')
     await migrateMatic(governance, depositManagerProxy, mintAmount)
 
-    // Check that MATIC balance has been converted to POL
     const newDepositManagerPOLBalance = await polToken.balanceOf(newDepositManager.address).call()
     utils.assertBigNumberEquality(newDepositManagerPOLBalance, mintAmount)
 
@@ -94,5 +96,6 @@ module.exports = async function(deployer, network, accounts) {
     contractAddresses.root.PolToken = polToken.address
     contractAddresses.root.PolygonMigration = polygonMigration.address
     utils.writeContractAddresses(contractAddresses)
+    console.log('\n> Contract addresses updated!')
   })
 }
