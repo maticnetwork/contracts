@@ -11,7 +11,7 @@ const Governance = artifacts.require('Governance')
 const Registry = artifacts.require('Registry')
 
 async function deployPOLToken(sender, governance, mintAmount) {
-  const registry = await Registry.at(contractAddresses.root.registry)
+  const registry = await Registry.at(contractAddresses.root.Registry)
 
   // Deploy POLToken.
   const polToken = await POLTokenMock.new('Polygon Ecosystem Token', 'POL')
