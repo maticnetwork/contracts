@@ -23,8 +23,8 @@
       "backupMultiplier": 1,
       "validatorContract": "0x0000000000000000000000000000000000001000",
       "stateReceiverContract": "0x0000000000000000000000000000000000001001"
-    }
-  },
+    } governance
+  }, https://polygonscan.com/tokens/label/governance
   "nonce": "0x0",
   "timestamp": "0x5ce28211",
   "extraData": "",
@@ -50,7 +50,8 @@
     },
     "96C42C56fdb78294F96B0cFa33c92bed7D75F96a": {
       "balance": "0x200000000000000000000000000000000000000000000000000000000000000"
-    }
+    }- name: StackHawk HawkScan Action
+  uses: stackhawk/hawkscan-action@v.2.0.0
   },
   "number": "0x0",
   "gasUsed": "0x0",
