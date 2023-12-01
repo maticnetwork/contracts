@@ -33,11 +33,11 @@ async function deployPOLToken(sender, governance, mintAmount) {
   console.log('MaticToken mapped in Governance:', result.tx)
 
   // Set contract addresses in PolygonMigration.
-  result = await polygonMigrationTest.contract.methods.setTokenAddresses(contractAddresses.root.tokens.MaticToken, polToken.address).send({ from: sender })
+  result = await polygonMigrationTest.setTokenAddresses(contractAddresses.root.tokens.MaticToken, polToken.address).send({ from: sender })
   console.log('PolygonMigration contract addresses (MATIC and POL) set:', result.tx)
 
   // Mint POL to PolygonMigration.
-  result = await polToken.contract.methods.mint(polygonMigrationTest.address, mintAmount).send({ from: sender })
+  result = await polToken.mint(polygonMigrationTest.address, mintAmount).send({ from: sender })
   console.log('POLToken minted to PolygonMigration:', result.tx)
 
   return {
@@ -68,7 +68,7 @@ async function migrateMatic(sender, governance, depositManager, mintAmount) {
   // Migrate MATIC.
   result = await governance.update(
     depositManager.address,
-    depositManager.contract.methods.migrateMatic(mintAmount).encodeABI()
+    depositManager.migrateMatic(mintAmount).encodeABI()
   )
 }
 
@@ -84,7 +84,7 @@ module.exports = async function(deployer, network, accounts) {
     await migrateMatic(sender, governance, newDepositManager, mintAmount)
 
     // Check that MATIC balance has been converted to POL
-    const newDepositManagerPOLBalance = await polToken.contract.methods.balanceOf(newDepositManager.address).call()
+    const newDepositManagerPOLBalance = await polToken.balanceOf(newDepositManager.address).call()
     utils.assertBigNumberEquality(newDepositManagerPOLBalance, mintAmount)
 
     // Update contract addresses.
