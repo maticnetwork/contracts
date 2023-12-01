@@ -10,3 +10,10 @@ export function writeContractAddresses(contractAddresses) {
     JSON.stringify(contractAddresses, null, 2) // Indent 2 spaces
   )
 }
+
+export async function updateContractMap(governance, registry, nameHash, value) {
+  return governance.update(
+    registry.address,
+    registry.contract.methods.updateContractMap(nameHash, value).encodeABI()
+  )
+}

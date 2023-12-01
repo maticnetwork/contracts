@@ -1,6 +1,7 @@
 const ethUtils = require('ethereumjs-util')
 const bluebird = require('bluebird')
 const utils = require('./utils')
+
 const Registry = artifacts.require('Registry')
 const ValidatorShare = artifacts.require('ValidatorShare')
 const DepositManagerProxy = artifacts.require('DepositManagerProxy')
@@ -15,13 +16,6 @@ const TransferWithSigPredicate = artifacts.require('TransferWithSigPredicate')
 const MaticWeth = artifacts.require('MaticWETH')
 const Governance = artifacts.require('Governance')
 const EventsHubProxy = artifacts.require('EventsHubProxy')
-
-async function updateContractMap(governance, registry, nameHash, value) {
-  return governance.update(
-    registry.address,
-    registry.contract.methods.updateContractMap(nameHash, value).encodeABI()
-  )
-}
 
 module.exports = async function(deployer) {
   deployer.then(async() => {
@@ -57,49 +51,49 @@ module.exports = async function(deployer) {
         TransferWithSigPredicate,
         EventsHubProxy
       ) {
-        await updateContractMap(
+        await utils.updateContractMap(
           governance,
           registry,
           ethUtils.keccak256('validatorShare'),
           validatorShare.address
         )
-        await updateContractMap(
+        await utils.updateContractMap(
           governance,
           registry,
           ethUtils.keccak256('depositManager'),
           depositManagerProxy.address
         )
-        await updateContractMap(
+        await utils.updateContractMap(
           governance,
           registry,
           ethUtils.keccak256('withdrawManager'),
           withdrawManagerProxy.address
         )
-        await updateContractMap(
+        await utils.updateContractMap(
           governance,
           registry,
           ethUtils.keccak256('stakeManager'),
           stakeManagerProxy.address
         )
-        await updateContractMap(
+        await utils.updateContractMap(
           governance,
           registry,
           ethUtils.keccak256('slashingManager'),
           slashingManager.address
         )
-        await updateContractMap(
+        await utils.updateContractMap(
           governance,
           registry,
           ethUtils.keccak256('stateSender'),
           stateSender.address
         )
-        await updateContractMap(
+        await utils.updateContractMap(
           governance,
           registry,
           ethUtils.keccak256('wethToken'),
           MaticWeth.address
         )
-        await updateContractMap(
+        await utils.updateContractMap(
           governance,
           registry,
           ethUtils.keccak256('eventsHub'),
