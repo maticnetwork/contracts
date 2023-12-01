@@ -10,19 +10,6 @@ const PolygonMigrationTest = artifacts.require('PolygonMigrationTest')
 const Governance = artifacts.require('Governance')
 const Registry = artifacts.require('Registry')
 
-async function deployAndUpdateDepositManager() {
-  const newDepositManager = await DepositManager.new()
-  console.log('New DepositManager deployed at ', newDepositManager.address)
-
-  const depositManagerProxy = await DepositManagerProxy.at(contractAddresses.root.DepositManagerProxy)
-  const result = await depositManagerProxy.updateImplementation(newDepositManager.address)
-  console.log('Update DepositManagerProxy implementation: ', result.tx)
-
-  const implementation = await depositManagerProxy.implementation()
-  console.log('New implementation: ', implementation)
-  return newDepositManager.address
-}
-
 async function deployPOLToken(sender) {
   const governance = await Governance.at(contractAddresses.root.GovernanceProxy)
   const registry = await Registry.at(contractAddresses.root.registry)
@@ -56,11 +43,24 @@ async function deployPOLToken(sender) {
   }
 }
 
+async function deployNewDepositManager() {
+  const newDepositManager = await DepositManager.new()
+  console.log('New DepositManager deployed at ', newDepositManager.address)
+
+  const depositManagerProxy = await DepositManagerProxy.at(contractAddresses.root.DepositManagerProxy)
+  const result = await depositManagerProxy.updateImplementation(newDepositManager.address)
+  console.log('Update DepositManagerProxy implementation: ', result.tx)
+
+  const implementation = await depositManagerProxy.implementation()
+  console.log('New implementation: ', implementation)
+  return newDepositManager.address
+}
+
 module.exports = async function(deployer, network, accounts) {
   deployer.then(async() => {
     // Deploy contracts.
-    const newDepositManagerAddress = await deployAndUpdateDepositManager()
     const { polTokenAddress, polygonMigrationAddress } = await deployPOLToken(accounts[0])
+    const newDepositManagerAddress = await deployNewDepositManager()
 
     // Update contract addresses.
     contractAddresses.root.DepositManager = newDepositManagerAddress
