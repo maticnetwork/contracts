@@ -63,7 +63,7 @@ module.exports = async function(deployer, network, accounts) {
 
     const stateSenderContract = await StateSender.at(contractAddresses.root.StateSender)
     await stateSenderContract.register(contractAddresses.root.DepositManagerProxy, contractAddresses.child.ChildChain)
-    //let depositManager = await DepositManager.at(contractAddresses.root.DepositManagerProxy)
-    //await depositManager.updateChildChainAndStateSender()
+    let depositManager = await DepositManager.at(contractAddresses.root.DepositManagerProxy)
+    await depositManager.updateChildChainAndStateSender()
   })
 }

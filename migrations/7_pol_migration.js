@@ -29,11 +29,11 @@ async function deployPOLToken(sender, governance, mintAmount) {
   result = await utils.updateContractMap(governance, registry, 'polygonMigration', polygonMigrationTest.address)
   console.log('PolygonMigration mapped in Governance:', result.tx)
 
-  result = await utils.updateContractMap(governance, registry, 'matic', contractAddresses.root.MaticToken)
+  result = await utils.updateContractMap(governance, registry, 'matic', contractAddresses.root.tokens.MaticToken)
   console.log('MaticToken mapped in Governance:', result.tx)
 
   // Set contract addresses in PolygonMigration.
-  result = await polygonMigrationTest.contract.methods.setTokenAddresses(contractAddresses.root.MaticToken, polToken.address).send({ from: sender })
+  result = await polygonMigrationTest.contract.methods.setTokenAddresses(contractAddresses.root.tokens.MaticToken, polToken.address).send({ from: sender })
   console.log('PolygonMigration contract addresses (MATIC and POL) set:', result.tx)
 
   // Mint POL to PolygonMigration.
@@ -61,7 +61,7 @@ async function deployNewDepositManager() {
 
 async function migrateMatic(sender, governance, depositManager, mintAmount) {
   // Mint MATIC to DepositManager.
-  const maticToken = await TestToken.at(contractAddresses.root.MaticToken)
+  const maticToken = await TestToken.at(contractAddresses.root.tokens.MaticToken)
   let result = await maticToken.methods.mint(depositManager.address, mintAmount).send({ from: sender })
   console.log('MaticToken minted to DepositManager:', result.tx)
 
