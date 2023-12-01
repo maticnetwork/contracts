@@ -1,4 +1,3 @@
-const ethUtils = require('ethereumjs-util')
 const utils = require('./utils')
 const contractAddresses = require('../contractAddresses.json')
 
@@ -18,14 +17,14 @@ async function deployPOLToken(sender) {
   const polygonMigrationTest = await PolygonMigrationTest.new()
   console.log('New PolygonMigration deployed at ', polygonMigrationTest.address)
 
-  let result = await utils.updateContractMap(governance, registry, ethUtils.keccak256('polygonMigration'), polygonMigrationTest.address)
+  let result = await utils.updateContractMap(governance, registry, 'polygonMigration', polygonMigrationTest.address)
   console.log('PolygonMigration added to Governance: ', result.tx)
 
   // Deploy POLToken.
   const polToken = await POLTokenMock.new('Polygon Ecosystem Token', 'POL')
   console.log('New POLToken deployed at ', polToken.address)
 
-  result = await utils.updateContractMap(governance, registry, ethUtils.keccak256('pol'), polToken.address)
+  result = await utils.updateContractMap(governance, registry, 'pol', polToken.address)
   console.log('POLToken added to Governance: ', result.tx)
 
   // Link contracts.

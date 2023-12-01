@@ -54,49 +54,49 @@ module.exports = async function(deployer) {
         await utils.updateContractMap(
           governance,
           registry,
-          ethUtils.keccak256('validatorShare'),
+          'validatorShare',
           validatorShare.address
         )
         await utils.updateContractMap(
           governance,
           registry,
-          ethUtils.keccak256('depositManager'),
+          'depositManager',
           depositManagerProxy.address
         )
         await utils.updateContractMap(
           governance,
           registry,
-          ethUtils.keccak256('withdrawManager'),
+          'withdrawManager',
           withdrawManagerProxy.address
         )
         await utils.updateContractMap(
           governance,
           registry,
-          ethUtils.keccak256('stakeManager'),
+          'stakeManager',
           stakeManagerProxy.address
         )
         await utils.updateContractMap(
           governance,
           registry,
-          ethUtils.keccak256('slashingManager'),
+          'slashingManager',
           slashingManager.address
         )
         await utils.updateContractMap(
           governance,
           registry,
-          ethUtils.keccak256('stateSender'),
+          'stateSender',
           stateSender.address
         )
         await utils.updateContractMap(
           governance,
           registry,
-          ethUtils.keccak256('wethToken'),
+          'wethToken',
           MaticWeth.address
         )
         await utils.updateContractMap(
           governance,
           registry,
-          ethUtils.keccak256('eventsHub'),
+          'eventsHub',
           EventsHubProxy.address
         )
 

@@ -1,4 +1,5 @@
 const fs = require('fs')
+const ethUtils = require('ethereumjs-util')
 
 export function getContractAddresses() {
   return JSON.parse(fs.readFileSync(`${process.cwd()}/contractAddresses.json`).toString())
@@ -11,9 +12,9 @@ export function writeContractAddresses(contractAddresses) {
   )
 }
 
-export async function updateContractMap(governance, registry, nameHash, value) {
+export async function updateContractMap(governance, registry, name, value) {
   return governance.update(
     registry.address,
-    registry.contract.methods.updateContractMap(nameHash, value).encodeABI()
+    registry.contract.methods.updateContractMap(ethUtils.keccak256(name), value).encodeABI()
   )
 }
