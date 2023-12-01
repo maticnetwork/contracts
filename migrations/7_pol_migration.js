@@ -10,7 +10,7 @@ const PolygonMigrationTest = artifacts.require('PolygonMigrationTest')
 const Governance = artifacts.require('Governance')
 const Registry = artifacts.require('Registry')
 
-async function deployPOLToken(sender, governance, mintAmount) {
+async function deployPOLToken(governance, mintAmount) {
   const registry = await Registry.at(contractAddresses.root.Registry)
 
   // Deploy POLToken.
@@ -33,11 +33,11 @@ async function deployPOLToken(sender, governance, mintAmount) {
   console.log('MaticToken mapped in Governance:', result.tx)
 
   // Set contract addresses in PolygonMigration.
-  result = await polygonMigrationTest.setTokenAddresses(contractAddresses.root.tokens.MaticToken, polToken.address).send({ from: sender })
+  result = await polygonMigrationTest.setTokenAddresses(contractAddresses.root.tokens.MaticToken, polToken.address)
   console.log('PolygonMigration contract addresses (MATIC and POL) set:', result.tx)
 
   // Mint POL to PolygonMigration.
-  result = await polToken.mint(polygonMigrationTest.address, mintAmount).send({ from: sender })
+  result = await polToken.mint(polygonMigrationTest.address, mintAmount)
   console.log('POLToken minted to PolygonMigration:', result.tx)
 
   return {
@@ -59,10 +59,10 @@ async function deployNewDepositManager() {
   return newDepositManager
 }
 
-async function migrateMatic(sender, governance, depositManager, mintAmount) {
+async function migrateMatic(governance, depositManager, mintAmount) {
   // Mint MATIC to DepositManager.
   const maticToken = await TestToken.at(contractAddresses.root.tokens.MaticToken)
-  let result = await maticToken.methods.mint(depositManager.address, mintAmount).send({ from: sender })
+  let result = await maticToken.methods.mint(depositManager.address, mintAmount)
   console.log('MaticToken minted to DepositManager:', result.tx)
 
   // Migrate MATIC.
@@ -74,14 +74,13 @@ async function migrateMatic(sender, governance, depositManager, mintAmount) {
 
 module.exports = async function(deployer, network, accounts) {
   deployer.then(async() => {
-    const sender = accounts[0]
     const governance = await Governance.at(contractAddresses.root.GovernanceProxy)
 
     // Deploy contracts.
     const mintAmount = web3.utils.toBN('10').pow(web3.utils.toBN('18')).toString()
-    const { polToken, polygonMigration } = await deployPOLToken(sender, governance, mintAmount)
+    const { polToken, polygonMigration } = await deployPOLToken(governance, mintAmount)
     const newDepositManager = await deployNewDepositManager()
-    await migrateMatic(sender, governance, newDepositManager, mintAmount)
+    await migrateMatic(governance, newDepositManager, mintAmount)
 
     // Check that MATIC balance has been converted to POL
     const newDepositManagerPOLBalance = await polToken.balanceOf(newDepositManager.address).call()
