@@ -13,25 +13,30 @@ async function deployPOLToken(sender) {
   const governance = await Governance.at(contractAddresses.root.GovernanceProxy)
   const registry = await Registry.at(contractAddresses.root.registry)
 
-  // Deploy PolygonMigration.
-  const polygonMigrationTest = await PolygonMigrationTest.new()
-  console.log('New PolygonMigration deployed at ', polygonMigrationTest.address)
-
-  let result = await utils.updateContractMap(governance, registry, 'polygonMigration', polygonMigrationTest.address)
-  console.log('PolygonMigration added to Governance: ', result.tx)
-
   // Deploy POLToken.
   const polToken = await POLTokenMock.new('Polygon Ecosystem Token', 'POL')
   console.log('New POLToken deployed at ', polToken.address)
 
-  result = await utils.updateContractMap(governance, registry, 'pol', polToken.address)
-  console.log('POLToken added to Governance: ', result.tx)
+  // Deploy PolygonMigration.
+  const polygonMigrationTest = await PolygonMigrationTest.new()
+  console.log('New PolygonMigration deployed at ', polygonMigrationTest.address)
 
-  // Link contracts.
+  // Map contracts in governance.
+  // Note: also add an entry for 'matic'.
+  let result = await utils.updateContractMap(governance, registry, 'pol', polToken.address)
+  console.log('POLToken mapped in Governance: ', result.tx)
+
+  result = await utils.updateContractMap(governance, registry, 'polygonMigration', polygonMigrationTest.address)
+  console.log('PolygonMigration mapped in Governance: ', result.tx)
+
+  result = await utils.updateContractMap(governance, registry, 'matic', contractAddresses.root.MaticToken)
+  console.log('MaticToken mapped in Governance: ', result.tx)
+
+  // Set contract addresses in PolygonMigration.
   result = await polygonMigrationTest.contract.methods.setTokenAddresses(contractAddresses.root.MaticToken, polToken.address).send({ from: sender })
-  console.log('POLToken linked to PolygonMigration: ', result.tx)
+  console.log('PolygonMigration contract addresses (MATIC and POL) set: ', result.tx)
 
-  // Mint POL to PolygonMigrationTest.
+  // Mint POL to PolygonMigration.
   const amount = web3.utils.toBN('10').pow(web3.utils.toBN('18'))
   result = await polToken.contract.methods.mint(polygonMigrationTest.address, amount.toString()).send({ from: sender })
   console.log('POLToken minted to PolygonMigration: ', result.tx)
