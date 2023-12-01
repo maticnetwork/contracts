@@ -67,7 +67,7 @@ contract StakeManager is
         require(validators[validatorId].contractAddress == msg.sender, "Invalid contract address");
     }
 
-    constructor() public GovernanceLockable(address(0x0)) {}
+    constructor() public GovernanceLockable(address(0x0)) initializer {}
 
     function initialize(
         address _registry,
@@ -152,7 +152,10 @@ contract StakeManager is
     }
 
     function delegatorsReward(uint256 validatorId) public view returns (uint256) {
-        (, uint256 _delegatorsReward) = _evaluateValidatorAndDelegationReward(validatorId);
+        uint256 _delegatorsReward;
+        if (validators[validatorId].deactivationEpoch == 0) {
+            (, _delegatorsReward) = _evaluateValidatorAndDelegationReward(validatorId);
+        }
         return validators[validatorId].delegatorsReward.add(_delegatorsReward).sub(INITIALIZED_AMOUNT);
     }
 
@@ -535,7 +538,14 @@ contract StakeManager is
             require(delegationEnabled, "Delegation is disabled");
         }
 
-        updateTimeline(amount, 0, 0);
+        uint256 deactivationEpoch = validators[validatorId].deactivationEpoch;
+
+        if (deactivationEpoch == 0) { // modify timeline only if validator didn't unstake
+            updateTimeline(amount, 0, 0);
+        } else if (deactivationEpoch > currentEpoch) { // validator just unstaked, need to wait till next checkpoint
+            revert("unstaking");
+        }
+        
 
         if (amount >= 0) {
             increaseValidatorDelegatedAmount(validatorId, uint256(amount));
@@ -560,11 +570,16 @@ contract StakeManager is
         address currentSigner = validators[validatorId].signer;
         // update signer event
         logger.logSignerChange(validatorId, currentSigner, signer, signerPubkey);
+        
+        if (validators[validatorId].deactivationEpoch == 0) { 
+            // didn't unstake, swap signer in the list
+            _removeSigner(currentSigner);
+            _insertSigner(signer);
+        }
 
         signerToValidator[currentSigner] = INCORRECT_VALIDATOR_ID;
         signerToValidator[signer] = validatorId;
         validators[validatorId].signer = signer;
-        _updateSigner(currentSigner, signer);
 
         // reset update time to current time
         latestSignerUpdateEpoch[validatorId] = _currentEpoch;
@@ -900,7 +915,7 @@ contract StakeManager is
         // distribute rewards between signed validators
         rewardPerStake = newRewardPerStake;
 
-        // evaluate rewards for unstaked validators to avoid getting new rewards until they claim their stake
+        // evaluate rewards for unstaked validators to ensure they get the reward for signing during their deactivationEpoch
         _updateValidatorsRewards(deactivatedValidators, totalDeactivatedValidators, newRewardPerStake);
 
         _finalizeCommit();
@@ -923,6 +938,11 @@ contract StakeManager is
         uint256 currentRewardPerStake,
         uint256 newRewardPerStake
     ) private {
+        uint256 deactivationEpoch = validators[validatorId].deactivationEpoch;
+        if (deactivationEpoch != 0 && currentEpoch >= deactivationEpoch) {
+            return;
+        }
+
         uint256 initialRewardPerStake = validators[validatorId].initialRewardPerStake;
 
         // attempt to save gas in case if rewards were updated previosuly
@@ -1143,7 +1163,6 @@ contract StakeManager is
         uint256 reward = validators[validatorId].reward.sub(INITIALIZED_AMOUNT);
         totalRewardsLiquidated = totalRewardsLiquidated.add(reward);
         validators[validatorId].reward = INITIALIZED_AMOUNT;
-        validators[validatorId].initialRewardPerStake = rewardPerStake;
         _transferToken(validatorUser, reward);
         logger.logClaimRewards(validatorId, reward, totalRewardsLiquidated);
     }
@@ -1193,11 +1212,6 @@ contract StakeManager is
         if (i != lastIndex) {
             signers[i] = newSigner;
         }
-    }
-
-    function _updateSigner(address prevSigner, address newSigner) internal {
-        _removeSigner(prevSigner);
-        _insertSigner(newSigner);
     }
 
     function _removeSigner(address signerToDelete) internal {
