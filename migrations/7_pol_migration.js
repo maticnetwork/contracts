@@ -62,7 +62,7 @@ async function deployNewDepositManager() {
 async function migrateMatic(governance, depositManager, mintAmount) {
   // Mint MATIC to DepositManager.
   const maticToken = await TestToken.at(contractAddresses.root.tokens.MaticToken)
-  let result = await maticToken.methods.mint(depositManager.address, mintAmount)
+  let result = await maticToken.mint(depositManager.address, mintAmount)
   console.log('MaticToken minted to DepositManager:', result.tx)
 
   // Migrate MATIC.
