@@ -17,6 +17,7 @@ test-blockchain/data
 *.log
 
 .DS_Store
+.vscode
 *.env
 
 coverage/
