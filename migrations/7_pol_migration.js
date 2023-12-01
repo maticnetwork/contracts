@@ -46,11 +46,10 @@ async function deployPOLToken(governance, mintAmount) {
   }
 }
 
-async function deployNewDepositManager() {
+async function deployNewDepositManager(depositManagerProxy) {
   const newDepositManager = await DepositManager.new()
   console.log('New DepositManager deployed at', newDepositManager.address)
 
-  const depositManagerProxy = await DepositManagerProxy.at(contractAddresses.root.DepositManagerProxy)
   const result = await depositManagerProxy.updateImplementation(newDepositManager.address)
   console.log('Update DepositManagerProxy implementation:', result.tx)
 
@@ -59,28 +58,32 @@ async function deployNewDepositManager() {
   return newDepositManager
 }
 
-async function migrateMatic(governance, depositManager, mintAmount) {
+async function migrateMatic(governance, depositManagerProxy, mintAmount) {
   // Mint MATIC to DepositManager.
   const maticToken = await TestToken.at(contractAddresses.root.tokens.MaticToken)
-  let result = await maticToken.mint(depositManager.address, mintAmount)
+  let result = await maticToken.mint(depositManagerProxy.address, mintAmount)
   console.log('MaticToken minted to DepositManager:', result.tx)
 
   // Migrate MATIC.
   result = await governance.update(
-    depositManager.address,
-    depositManager.migrateMatic(mintAmount).encodeABI()
+    depositManagerProxy.address,
+    depositManagerProxy.migrateMatic(mintAmount).encodeABI()
   )
 }
 
 module.exports = async function(deployer, network, accounts) {
   deployer.then(async() => {
     const governance = await Governance.at(contractAddresses.root.GovernanceProxy)
+    const depositManagerProxy = await DepositManagerProxy.at(contractAddresses.root.DepositManagerProxy)
 
     // Deploy contracts.
+    console.log('Deploying POL token contracts...')
     const mintAmount = web3.utils.toBN('10').pow(web3.utils.toBN('18')).toString()
+
+    console.log('\nUpdating DepositManager...')
     const { polToken, polygonMigration } = await deployPOLToken(governance, mintAmount)
-    const newDepositManager = await deployNewDepositManager()
-    await migrateMatic(governance, newDepositManager, mintAmount)
+    const newDepositManager = await deployNewDepositManager(depositManagerProxy)
+    await migrateMatic(governance, depositManagerProxy, mintAmount)
 
     // Check that MATIC balance has been converted to POL
     const newDepositManagerPOLBalance = await polToken.balanceOf(newDepositManager.address).call()
