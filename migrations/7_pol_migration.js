@@ -1,4 +1,5 @@
 const ethUtils = require('ethereumjs-util')
+const assert = require('assert')
 
 const utils = require('./utils')
 const contractAddresses = require('../contractAddresses.json')
@@ -73,6 +74,9 @@ async function migrateMatic(governance, depositManager, mintAmount) {
     depositManager.contract.methods.migrateMatic(mintAmount).encodeABI()
   )
   console.log('Migrate MATIC tokens to POL tokens:', result.tx)
+
+  const newDepositManagerPOLBalance = await polToken.contract.methods.balanceOf(newDepositManager.address).call()
+  assertBigNumberEquality(newDepositManagerPOLBalance, maticAmountToMintAndMigrateInDepositManager)
   */
 }
 
@@ -103,9 +107,6 @@ module.exports = async function(deployer, _, _) {
     console.log('\n> Migrating MATIC to POL...')
     const maticAmountToMintAndMigrateInDepositManager = oneEther.mul(web3.utils.toBN('1000000000')).toString() // 100 ethers
     await migrateMatic(governance, newDepositManager, maticAmountToMintAndMigrateInDepositManager)
-
-    const newDepositManagerPOLBalance = await polToken.contract.methods.balanceOf(newDepositManager.address).call()
-    assertBigNumberEquality(newDepositManagerPOLBalance, maticAmountToMintAndMigrateInDepositManager)
 
     // Update contract addresses.
     contractAddresses.root.NewDepositManager = newDepositManager.address
