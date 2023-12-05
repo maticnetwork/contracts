@@ -25,7 +25,7 @@ contract DepositManager is DepositManagerStorage, IDepositManager, ERC721Holder 
     modifier isTokenMapped(address _token) {
         // new: exception for POL token
         require(
-            registry.isTokenMapped(_token) || _token == registry.contractMap(keccak256("pol")),
+            registry.isTokenMapped(_token),
             "TOKEN_NOT_SUPPORTED"
         );
         _;
