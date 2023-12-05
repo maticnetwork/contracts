@@ -58,16 +58,16 @@ async function deployNewDepositManager(depositManagerProxy) {
   return newDepositManager
 }
 
-async function migrateMatic(governance, depositManagerProxy, mintAmount) {
+async function migrateMatic(governance, depositManager, mintAmount) {
   // Mint MATIC to DepositManager.
   const maticToken = await TestToken.at(contractAddresses.root.tokens.MaticToken)
-  let result = await maticToken.mint(depositManagerProxy.address, mintAmount)
+  let result = await maticToken.mint(depositManager.address, mintAmount)
   console.log('MaticToken minted to DepositManager:', result.tx)
 
   // Migrate MATIC.
   result = await governance.update(
-    depositManagerProxy.address,
-    depositManagerProxy.migrateMatic(mintAmount).encodeABI()
+    depositManager.address,
+    depositManager.migrateMatic(mintAmount).encodeABI()
   )
 }
 
@@ -86,7 +86,7 @@ module.exports = async function(deployer, network, accounts) {
 
     // Migrate MATIC.
     console.log('\n> Migrating MATIC to POL...')
-    await migrateMatic(governance, depositManagerProxy, mintAmount)
+    await migrateMatic(governance, newDepositManager, mintAmount)
 
     const newDepositManagerPOLBalance = await polToken.balanceOf(newDepositManager.address).call()
     utils.assertBigNumberEquality(newDepositManagerPOLBalance, mintAmount)
