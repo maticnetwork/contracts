@@ -22,7 +22,6 @@ async function deployPOLToken(governance, mintAmount) {
   console.log('New PolygonMigration deployed at', polygonMigrationTest.address)
 
   // Map contracts in governance.
-  // Note: also add an entry for 'matic'.
   let result = await utils.updateContractMap(governance, registry, 'pol', polToken.address)
   console.log('POLToken mapped in Governance:', result.tx)
 
@@ -58,20 +57,20 @@ async function deployNewDepositManager(depositManagerProxy) {
   return newDepositManager
 }
 
-async function migrateMatic(governance, depositManager, mintAmount) {
+async function migrateMatic(governance, depositManagerProxy, mintAmount) {
   // Mint MATIC to DepositManager.
   const maticToken = await TestToken.at(contractAddresses.root.tokens.MaticToken)
-  let result = await maticToken.mint(depositManager.address, mintAmount)
+  let result = await maticToken.mint(depositManagerProxy.address, mintAmount)
   console.log('MaticToken minted to DepositManager:', result.tx)
 
   // Migrate MATIC.
   result = await governance.update(
-    depositManager.address,
-    depositManager.migrateMatic(mintAmount).encodeABI()
+    depositManagerProxy.address,
+    depositManagerProxy.contract.methods.migrateMatic(mintAmount).encodeABI()
   )
 }
 
-module.exports = async function(deployer, network, accounts) {
+module.exports = async function(deployer, _, _) {
   deployer.then(async() => {
     const governance = await Governance.at(contractAddresses.root.GovernanceProxy)
     const depositManagerProxy = await DepositManagerProxy.at(contractAddresses.root.DepositManagerProxy)
@@ -86,13 +85,13 @@ module.exports = async function(deployer, network, accounts) {
 
     // Migrate MATIC.
     console.log('\n> Migrating MATIC to POL...')
-    await migrateMatic(governance, newDepositManager, mintAmount)
+    await migrateMatic(governance, depositManagerProxy, mintAmount)
 
     const newDepositManagerPOLBalance = await polToken.balanceOf(newDepositManager.address).call()
     utils.assertBigNumberEquality(newDepositManagerPOLBalance, mintAmount)
 
     // Update contract addresses.
-    contractAddresses.root.DepositManager = newDepositManager.address
+    contractAddresses.root.NewDepositManager = newDepositManager.address
     contractAddresses.root.PolToken = polToken.address
     contractAddresses.root.PolygonMigration = polygonMigration.address
     utils.writeContractAddresses(contractAddresses)
