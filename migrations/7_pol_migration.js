@@ -77,13 +77,11 @@ module.exports = async function(deployer, _, _) {
 
     // Deploy contracts.
     console.log('> Deploying POL token contracts...')
+    const governance = await Governance.at(contractAddresses.root.GovernanceProxy)
     const polTokenAmountInMigrationContract = oneEther.mul(web3.utils.toBN('1000000000000000000')).toString()
     const { polToken, polygonMigration } = await deployPOLToken(governance, polTokenAmountInMigrationContract)
 
     console.log('\n> Updating DepositManager...')
-    const governance = await Governance.at(contractAddresses.root.GovernanceProxy)
-
-
     const depositManagerProxy = await DepositManagerProxy.at(contractAddresses.root.DepositManagerProxy)
     const newDepositManager = await deployNewDepositManager(depositManagerProxy)
 
