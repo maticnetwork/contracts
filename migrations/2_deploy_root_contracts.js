@@ -190,7 +190,12 @@ module.exports = async function(deployer, network, accounts) {
     await deployer.deploy(RootChain)
     await deployer.deploy(RootChainProxy, RootChain.address, Registry.address, process.env.HEIMDALL_ID)
     await deployer.deploy(StateSender)
-    await deployer.deploy(StakeManagerTestable)
+    /* StakeManagerTest is only used in tests.
+     We avoid to deploy it in devnets as it requires huge amount of gas.
+     This is possible by using ganache `--chain.allowUnlimitedContractSize true`
+     but we're facing issues bumping ganache to v7.7.0 to allow that
+    */
+    // await deployer.deploy(StakeManagerTestable)
     await deployer.deploy(StakeManagerTest)
 
     await deployer.deploy(DepositManager)
