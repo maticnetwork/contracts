@@ -74,6 +74,15 @@ async function migrateMatic(governance, depositManager, mintAmount) {
   */
 }
 
+function assertBigNumberEquality(num1, num2) {
+  if (!ethUtils.BN.isBN(num1)) num1 = web3.utils.toBN(num1.toString())
+  if (!ethUtils.BN.isBN(num2)) num2 = web3.utils.toBN(num2.toString())
+  assert(
+    num1.eq(num2),
+    `expected ${num1.toString(10)} and ${num2.toString(10)} to be equal`
+  )
+}
+
 module.exports = async function(deployer, _, _) {
   deployer.then(async() => {
     const oneEther = web3.utils.toBN('10').pow(web3.utils.toBN('18'))
@@ -94,7 +103,7 @@ module.exports = async function(deployer, _, _) {
     await migrateMatic(governance, newDepositManager, maticAmountToMintAndMigrateInDepositManager)
 
     const newDepositManagerPOLBalance = await polToken.contract.methods.balanceOf(newDepositManager.address).call()
-    utils.assertBigNumberEquality(newDepositManagerPOLBalance, maticAmountToMintAndMigrateInDepositManager)
+    assertBigNumberEquality(newDepositManagerPOLBalance, maticAmountToMintAndMigrateInDepositManager)
 
     // Update contract addresses.
     contractAddresses.root.NewDepositManager = newDepositManager.address
