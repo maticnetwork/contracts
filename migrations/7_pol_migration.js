@@ -93,7 +93,7 @@ module.exports = async function(deployer, _, _) {
     const maticAmountToMintAndMigrateInDepositManager = oneEther.mul(web3.utils.toBN('1000000000')).toString() // 100 ethers
     await migrateMatic(governance, newDepositManager, maticAmountToMintAndMigrateInDepositManager)
 
-    const newDepositManagerPOLBalance = await polToken.methods.balanceOf(newDepositManager.address).call()
+    const newDepositManagerPOLBalance = await polToken.contract.methods.balanceOf(newDepositManager.address).call()
     utils.assertBigNumberEquality(newDepositManagerPOLBalance, maticAmountToMintAndMigrateInDepositManager)
 
     // Update contract addresses.
