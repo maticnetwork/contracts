@@ -73,23 +73,27 @@ async function migrateMatic(governance, depositManager, mintAmount) {
 
 module.exports = async function(deployer, _, _) {
   deployer.then(async() => {
+    const oneEther = web3.utils.toBN('10').pow(web3.utils.toBN('18'))
+
     // Deploy contracts.
     console.log('> Deploying POL token contracts...')
-    const oneEther = web3.utils.toBN('10').pow(web3.utils.toBN('18'))
-    const mintAmount = oneEther.mul(web3.utils.toBN('100')).toString() // 100 ethers
+    const polTokenAmountInMigrationContract = oneEther.mul(web3.utils.toBN('1000000000000000000')).toString()
+    const { polToken, polygonMigration } = await deployPOLToken(governance, polTokenAmountInMigrationContract)
 
     console.log('\n> Updating DepositManager...')
     const governance = await Governance.at(contractAddresses.root.GovernanceProxy)
-    const { polToken, polygonMigration } = await deployPOLToken(governance, mintAmount)
+
+
     const depositManagerProxy = await DepositManagerProxy.at(contractAddresses.root.DepositManagerProxy)
     const newDepositManager = await deployNewDepositManager(depositManagerProxy)
 
     // Migrate MATIC.
     console.log('\n> Migrating MATIC to POL...')
-    await migrateMatic(governance, newDepositManager, mintAmount)
+    const maticAmountToMintAndMigrateInDepositManager = oneEther.mul(web3.utils.toBN('1000000000')).toString() // 100 ethers
+    await migrateMatic(governance, newDepositManager, maticAmountToMintAndMigrateInDepositManager)
 
     const newDepositManagerPOLBalance = await polToken.balanceOf(newDepositManager.address).call()
-    utils.assertBigNumberEquality(newDepositManagerPOLBalance, mintAmount)
+    utils.assertBigNumberEquality(newDepositManagerPOLBalance, maticAmountToMintAndMigrateInDepositManager)
 
     // Update contract addresses.
     contractAddresses.root.NewDepositManager = newDepositManager.address
