@@ -210,15 +210,15 @@ module.exports = async function (callback) {
     const accounts = await web3.eth.getAccounts()
     console.log("Current configured address to make transactions:", accounts[0])
 
-    // -- network <child network> <child token>
+    // -- --network <child network> <child token>
     // await checkChildERC20(process.argv[6])
     // await checkChildERC721(process.argv[6])
 
-    // -- network <main network>
+    // -- --network <main network>
     // await deployTestERC20OnMainchain(accounts[0])
     // await deployTestERC721OnMainchain(accounts[0])
 
-    // -- network <child network> <token> <name> <symbol> <decimals> <true/false for mapping>
+    // -- --network <child network> <token> <name> <symbol> <decimals> <true/false for mapping>
     // await deployChildERC20AndMap({
     //   token: process.argv[6],
     //   name: process.argv[7],
@@ -227,7 +227,7 @@ module.exports = async function (callback) {
     //   doMapping: process.argv[10] === 'true'
     // })
 
-    // -- network <child network> <token> <name> <symbol> <true/false for mapping>
+    // -- --network <child network> <token> <name> <symbol> <true/false for mapping>
     // await deployChildERC721AndMap({
     //   token: process.argv[6],
     //   name: process.argv[7],
@@ -235,7 +235,7 @@ module.exports = async function (callback) {
     //   doMapping: process.argv[9] === 'true'
     // })
 
-    // -- network <mainchain network> <root> <child> <true/false for erc721>
+    // -- --network <mainchain network> <root> <child> <true/false for erc721>
     // await mapTokenOnMainchain(
     //   process.argv[6], // root token
     //   process.argv[7], // child token

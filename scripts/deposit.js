@@ -65,29 +65,29 @@ module.exports = async function (callback) {
     const accounts = await web3.eth.getAccounts()
     console.log("Current configured address to make transactions:", accounts[0])
 
-    // -- network <main network> <root token> <amount>
+    // -- --network <main network> <root token> <amount>
     // await depositERC20({
-    //   addr: accounts[0], 
+    //   addr: accounts[0],
     //   rootToken: process.argv[6],
     //   amount: process.argv[7],
     // })
 
-    // -- network <main network> <root token> <amount>
+    // -- --network <main network> <root token> <amount>
     // await depositERC721({
-    //   addr: accounts[0], 
+    //   addr: accounts[0],
     //   rootToken: process.argv[6], // root token
     //   tokenID: process.argv[7], // nft id
     // })
 
-    // -- network <matic network> <child token>
+    // -- --network <matic network> <child token>
     // await checkDepositedERC20Balance({
-    //   addr: accounts[0], 
+    //   addr: accounts[0],
     //   token: process.argv[6], // child token
     // })
 
-    // -- network <matic network> <child token> <nft id>
+    // -- --network <matic network> <child token> <nft id>
     // await checkDepositedERC721Balance({
-    //   addr: accounts[0], 
+    //   addr: accounts[0],
     //   token: process.argv[6], // child token
     //   tokenID: process.argv[7], // nft id
     // })
