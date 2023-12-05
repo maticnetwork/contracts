@@ -57,35 +57,34 @@ async function deployNewDepositManager(depositManagerProxy) {
   return newDepositManager
 }
 
-async function migrateMatic(governance, depositManagerProxy, mintAmount) {
+async function migrateMatic(governance, depositManager, mintAmount) {
   // Mint MATIC to DepositManager.
   const maticToken = await TestToken.at(contractAddresses.root.tokens.MaticToken)
-  let result = await maticToken.mint(depositManagerProxy.address, mintAmount)
+  let result = await maticToken.mint(depositManager.address, mintAmount)
   console.log('MaticToken minted to DepositManager:', result.tx)
 
   // Migrate MATIC.
   result = await governance.update(
-    depositManagerProxy.address,
-    depositManagerProxy.contract.methods.migrateMatic(mintAmount).encodeABI()
+    depositManager.address,
+    depositManager.contract.methods.migrateMatic(mintAmount).encodeABI()
   )
 }
 
 module.exports = async function(deployer, _, _) {
   deployer.then(async() => {
-    const governance = await Governance.at(contractAddresses.root.GovernanceProxy)
-    const depositManagerProxy = await DepositManagerProxy.at(contractAddresses.root.DepositManagerProxy)
-
     // Deploy contracts.
     console.log('> Deploying POL token contracts...')
     const mintAmount = web3.utils.toBN('10').pow(web3.utils.toBN('18')).toString()
 
     console.log('\n> Updating DepositManager...')
+    const governance = await Governance.at(contractAddresses.root.GovernanceProxy)
     const { polToken, polygonMigration } = await deployPOLToken(governance, mintAmount)
+    const depositManagerProxy = await DepositManagerProxy.at(contractAddresses.root.DepositManagerProxy)
     const newDepositManager = await deployNewDepositManager(depositManagerProxy)
 
     // Migrate MATIC.
     console.log('\n> Migrating MATIC to POL...')
-    await migrateMatic(governance, depositManagerProxy, mintAmount)
+    await migrateMatic(governance, newDepositManager, mintAmount)
 
     const newDepositManagerPOLBalance = await polToken.balanceOf(newDepositManager.address).call()
     utils.assertBigNumberEquality(newDepositManagerPOLBalance, mintAmount)
