@@ -64,11 +64,14 @@ async function migrateMatic(governance, depositManager, mintAmount) {
   console.log('MaticToken minted to DepositManager:', result.tx)
 
   // Migrate MATIC.
+  /*
+  // TODO: Understand why this call reverts.
   result = await governance.update(
     depositManager.address,
     depositManager.contract.methods.migrateMatic(mintAmount).encodeABI()
   )
   console.log('Migrate MATIC tokens to POL tokens:', result.tx)
+  */
 }
 
 module.exports = async function(deployer, _, _) {
@@ -90,7 +93,7 @@ module.exports = async function(deployer, _, _) {
     const maticAmountToMintAndMigrateInDepositManager = oneEther.mul(web3.utils.toBN('1000000000')).toString() // 100 ethers
     await migrateMatic(governance, newDepositManager, maticAmountToMintAndMigrateInDepositManager)
 
-    const newDepositManagerPOLBalance = await polToken.balanceOf(newDepositManager.address).call()
+    const newDepositManagerPOLBalance = await polToken.methods.balanceOf(newDepositManager.address).call()
     utils.assertBigNumberEquality(newDepositManagerPOLBalance, maticAmountToMintAndMigrateInDepositManager)
 
     // Update contract addresses.
