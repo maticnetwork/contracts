@@ -1,3 +1,5 @@
+const ethUtils = require('ethereumjs-util')
+
 const utils = require('./utils')
 const contractAddresses = require('../contractAddresses.json')
 
