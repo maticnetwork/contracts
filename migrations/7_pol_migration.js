@@ -68,13 +68,15 @@ async function migrateMatic(governance, depositManager, mintAmount) {
     depositManager.address,
     depositManager.contract.methods.migrateMatic(mintAmount).encodeABI()
   )
+  console.log('Migrate MATIC tokens to POL tokens:', result.tx)
 }
 
 module.exports = async function(deployer, _, _) {
   deployer.then(async() => {
     // Deploy contracts.
     console.log('> Deploying POL token contracts...')
-    const mintAmount = web3.utils.toBN('10').pow(web3.utils.toBN('18')).toString()
+    const oneEther = web3.utils.toBN('10').pow(web3.utils.toBN('18'))
+    const mintAmount = oneEther.mul(web3.utils.toBN('100')).toString() // 100 ethers
 
     console.log('\n> Updating DepositManager...')
     const governance = await Governance.at(contractAddresses.root.GovernanceProxy)
