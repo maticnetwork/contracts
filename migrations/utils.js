@@ -15,6 +15,6 @@ export function writeContractAddresses(contractAddresses) {
 export async function updateContractMap(governance, registry, name, value) {
   return governance.update(
     registry.address,
-    registry.contract.methods.updateContractMap(ethUtils.keccak256(name), value).encodeABI()
+    registry.updateContractMap(ethUtils.keccak256(name), value).encodeABI()
   )
 }
