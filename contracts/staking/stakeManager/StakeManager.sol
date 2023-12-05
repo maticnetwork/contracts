@@ -91,7 +91,7 @@ contract StakeManager is
         validatorShareFactory = ValidatorShareFactory(_validatorShareFactory);
         _transferOwnership(_owner);
 
-        WITHDRAWAL_DELAY = (2**13); // unit: epoch
+        WITHDRAWAL_DELAY = 0; // unit: epoch
         currentEpoch = 1;
         dynasty = 886; // unit: epoch 50 days
         CHECKPOINT_REWARD = 20188 * (10**18); // update via governance
@@ -545,7 +545,7 @@ contract StakeManager is
         } else if (deactivationEpoch > currentEpoch) { // validator just unstaked, need to wait till next checkpoint
             revert("unstaking");
         }
-        
+
 
         if (amount >= 0) {
             increaseValidatorDelegatedAmount(validatorId, uint256(amount));
@@ -570,8 +570,8 @@ contract StakeManager is
         address currentSigner = validators[validatorId].signer;
         // update signer event
         logger.logSignerChange(validatorId, currentSigner, signer, signerPubkey);
-        
-        if (validators[validatorId].deactivationEpoch == 0) { 
+
+        if (validators[validatorId].deactivationEpoch == 0) {
             // didn't unstake, swap signer in the list
             _removeSigner(currentSigner);
             _insertSigner(signer);
@@ -850,7 +850,7 @@ contract StakeManager is
             if (prevBlockInterval != 0) {
                 // give more reward for faster and less for slower checkpoint
                 uint256 delta = (ckpReward * checkpointRewardDelta / CHK_REWARD_PRECISION);
-                
+
                 if (prevBlockInterval > fullIntervals) {
                     // checkpoint is faster
                     ckpReward += delta;
@@ -858,7 +858,7 @@ contract StakeManager is
                     ckpReward -= delta;
                 }
             }
-            
+
             prevBlockInterval = fullIntervals;
         }
 
