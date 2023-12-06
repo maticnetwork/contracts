@@ -2,24 +2,29 @@ name: CI
 
 on:
   push:
-    branches: 
-      - develop
-      - master
-      - release-0.3-3
+    branches:
+      - main
   pull_request:
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "16"
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Setup Node.js environment
-      uses: actions/setup-node@v2-beta
+      uses: actions/setup-node@v4
       with:
-        node-version: '10.x'
+        node-version: ${{ env.NODE_VERSION }}
         registry-url: 'https://registry.npmjs.org'
     - name: Cache npm dependencies
-      uses: actions/cache@v1
+      uses: actions/cache@v3
       with:
         path: ~/.npm
         key: ${{ runner.OS }}-npm-cache-${{ hashFiles('**/package-lock.json') }}
