@@ -18,6 +18,7 @@ interface IPolygonMigration {
     function migrate(uint256 amount) external;
 }
 
+
 contract DepositManager is DepositManagerStorage, IDepositManager, ERC721Holder {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
@@ -50,15 +51,16 @@ contract DepositManager is DepositManagerStorage, IDepositManager, ERC721Holder 
 
     function _migrateMatic(uint256 _amount) private {
         IERC20 matic = IERC20(registry.contractMap(keccak256("matic")));
+        address polygonMigration = registry.contractMap(keccak256("polygonMigration"));
 
         // check that _amount is not too high
         require(matic.balanceOf(address(this)) >= _amount, "amount exceeds this contract's MATIC balance");
 
         // approve
-        matic.approve(registry.contractMap(keccak256("polygonMigration")), _amount);
+        matic.approve(polygonMigration, _amount);
 
         // call migrate function
-        IPolygonMigration(registry.contractMap(keccak256("polygonMigration"))).migrate(_amount);
+        IPolygonMigration(polygonMigration).migrate(_amount);
     }
 
     function updateMaxErc20Deposit(uint256 maxDepositAmount) public onlyGovernance {
@@ -161,17 +163,19 @@ contract DepositManager is DepositManagerStorage, IDepositManager, ERC721Holder 
         address _token,
         uint256 _amountOrToken
     ) internal onlyWhenUnlocked isTokenMapped(_token) {
-        _createDepositBlock(_user, _token, _amountOrToken, rootChain.updateDepositId(1) /* returns _depositId */);
+        _createDepositBlock(_user, _token, _amountOrToken, rootChain.updateDepositId(1)); // returns _depositId
     }
 
     function _createDepositBlock(address _user, address _token, uint256 _amountOrToken, uint256 _depositId) internal {
+        address matic = registry.contractMap(keccak256("matic"));
+
         // new: auto-migrate MATIC to POL
-        if (_token == registry.contractMap(keccak256("matic"))) {
+        if (_token == matic) {
             _migrateMatic(_amountOrToken);
         }
         // new: bridge POL as MATIC, child chain behaviour does not change
         else if (_token == registry.contractMap(keccak256("pol"))) {
-            _token = registry.contractMap(keccak256("matic"));
+            _token = matic;
         }
 
         deposits[_depositId] = DepositBlock(keccak256(abi.encodePacked(_user, _token, _amountOrToken)), now);
