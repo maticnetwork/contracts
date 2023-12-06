@@ -4,6 +4,7 @@ import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import * as artifacts from '../../helpers/artifacts.js'
 import StatefulUtils from '../../helpers/StatefulUtils'
+import logDecoder from '../../helpers/log-decoder'
 
 const predicateTestUtils = require('./predicates/predicateTestUtils')
 const ethUtils = require('ethereumjs-util')
@@ -49,6 +50,12 @@ contract('DepositManager Update @skip-on-coverage', async function(accounts) {
       await governance.update(
         registry.address,
         registry.contract.methods.updateContractMap(ethUtils.keccak256('pol'), pol.address).encodeABI()
+      )
+
+      // map POL token
+      await governance.update(
+        registry.address,
+        registry.contract.methods.mapToken(pol.address, e20.childToken.address, false).encodeABI()
       )
 
       await polygonMigrationTest.contract.methods.setTokenAddresses(e20.rootERC20.address, pol.address).send({
@@ -117,6 +124,27 @@ contract('DepositManager Update @skip-on-coverage', async function(accounts) {
 
       // deposit on child chain is technically still in MATIC
       utils.assertBigNumberEquality(await e20.childToken.balanceOf(bob), amount)
+    })
+
+    it('depositBulk: bridges MATIC when depositing POL', async() => {
+      const bob = '0x' + crypto.randomBytes(20).toString('hex')
+      const totalAmount = amount.mul(web3.utils.toBN(2))
+
+      await pol.approve(depositManager.address, totalAmount)
+
+      const result = await depositManager.depositBulk([pol.address, pol.address], [amount, amount], bob)
+
+      const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
+      const newDepositBlockEvent = logs.find(
+        log => log.event === 'NewDepositBlock'
+      )
+
+      // token has been changed to MATIC
+      assert.strictEqual(newDepositBlockEvent.args.token, e20.rootERC20.address)
+      await utils.fireDepositFromMainToMatic(childContracts.childChain, '0xa', bob, e20.rootERC20.address, totalAmount, newDepositBlockEvent.args.depositBlockId)
+
+      // deposit on child chain is technically still in MATIC
+      utils.assertBigNumberEquality(await e20.childToken.balanceOf(bob), totalAmount)
     })
 
     it('returns POL when withdrawing MATIC', async() => {
