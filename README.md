@@ -1,8 +1,8 @@
-# Matic contracts
+# Shibarium contracts
 
 ![Build Status](https://github.com/maticnetwork/contracts/workflows/CI/badge.svg)
 
-Ethereum smart contracts that power the [Matic Network](https://matic.network).
+Ethereum smart contracts that power the [Shibarium Network](https://matic.network).
 
 ### Install dependencies with
 
@@ -14,6 +14,7 @@ npm install
 
 bor-chain-id for Mainnet = 137
 bor-chain-id for TestnetV4 (Mumbai) = 80001
+bor-chain-id for unit tests = 15001
 
 ```
 npm run template:process -- --bor-chain-id <bor-chain-id>

@@ -1,3 +1,4 @@
+require('dotenv').config()
 require('babel-register')
 require('babel-polyfill')
 
@@ -71,6 +72,18 @@ module.exports = {
       network_id: 1,
       gas: 3000000,
       gasPrice: '45000000000'
+    },
+    rinkeby: {
+      provider: function() {
+        return new HDWalletProvider(
+          MNEMONIC,
+          `https://rinkeby.infura.io/v3/${API_KEY}`
+        )
+      },
+      network_id: 4,
+      gas: 7000000,
+      gasPrice: 20000000000, // 20 gwei
+      skipDryRun: true
     }
   },
   compilers: {
