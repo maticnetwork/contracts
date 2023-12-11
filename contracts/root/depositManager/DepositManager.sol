@@ -24,7 +24,6 @@ contract DepositManager is DepositManagerStorage, IDepositManager, ERC721Holder 
     using SafeERC20 for IERC20;
 
     modifier isTokenMapped(address _token) {
-        // new: exception for POL token
         require(
             registry.isTokenMapped(_token),
             "TOKEN_NOT_SUPPORTED"
