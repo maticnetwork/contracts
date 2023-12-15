@@ -252,7 +252,7 @@ export async function depositOnRoot(
   const NewDepositBlockEvent = logs.find(
     log => log.event === 'NewDepositBlock'
   )
-  return NewDepositBlockEvent.args.depositBlockId
+  return NewDepositBlockEvent
 }
 
 export async function deposit(
@@ -265,13 +265,14 @@ export async function deposit(
 ) {
   let depositBlockId
   if (options.rootDeposit) {
-    depositBlockId = await depositOnRoot(
+    const newDepositBlockEvent = await depositOnRoot(
       depositManager,
       rootContract,
       user,
       amountOrToken,
       options
     )
+    depositBlockId = newDepositBlockEvent.args.depositBlockId
   } else {
     depositBlockId = '0x' + crypto.randomBytes(32).toString('hex')
   }
