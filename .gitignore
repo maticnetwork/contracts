@@ -1,13 +1,17 @@
 node_modules
-build
+artifacts
+out
 contractAddresses.json
+.vscode
+
 
 # ignore generated files
-contracts/root/predicates/TransferWithSigUtils.sol
-contracts/common/mixin/ChainIdMixin.sol
-test-blockchain/genesis.json
-test-blockchain/start.sh
+src/root/predicates/TransferWithSigUtils.sol
+src/common/mixin/ChainIdMixin.sol
 test/helpers/marketplaceUtils.js
+cache_hardhat
+forge-cache
+
 
 test-blockchain/geth
 test-blockchain/history
