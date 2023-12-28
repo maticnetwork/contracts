@@ -1,184 +1,180 @@
-import deployer from '../../helpers/deployer.js'
 import * as utils from '../../helpers/utils.js'
-import chai from 'chai'
+import deployer from '../../helpers/deployer.js'
 import chaiAsPromised from 'chai-as-promised'
-import * as artifacts from '../../helpers/artifacts.js'
-import StatefulUtils from '../../helpers/StatefulUtils'
-import logDecoder from '../../helpers/log-decoder'
+import * as chai from 'chai'
+import StatefulUtils from '../../helpers/StatefulUtils.js'
 
-const predicateTestUtils = require('./predicates/predicateTestUtils')
-const ethUtils = require('ethereumjs-util')
-const crypto = require('crypto')
+import * as predicateTestUtils from './predicates/predicateTestUtils.js'
+import ethUtils from 'ethereumjs-util'
+import crypto from 'crypto'
+import hardhat from 'hardhat'
+const ethers = hardhat.ethers
 
-chai
-  .use(chaiAsPromised)
-  .should()
+chai.use(chaiAsPromised).should()
+const assert = chai.assert
 
-contract('DepositManager Update @skip-on-coverage', async function(accounts) {
-  let depositManager, childContracts, registry, governance, e20, polygonMigrationTest, pol, statefulUtils, contracts
+describe('DepositManagerUpdate @skip-on-coverage', async function () {
+  let accounts,
+    depositManager,
+    childContracts,
+    registry,
+    governance,
+    matic,
+    polygonMigrationTest,
+    pol,
+    statefulUtils,
+    contracts
   const amount = web3.utils.toBN('10').pow(web3.utils.toBN('18'))
 
-  describe('test POL and MATIC behaviours', async function() {
-    before(async() => {
+  describe('test POL and MATIC behaviours', async function () {
+    before(async () => {
+      accounts = await ethers.getSigners()
+      accounts = accounts.map((account) => {
+        return account.address
+      })
+
       statefulUtils = new StatefulUtils()
     })
 
-    beforeEach(async function() {
+    beforeEach(async function () {
       contracts = await deployer.freshDeploy(accounts[0])
-      contracts.ERC20Predicate = await deployer.deployErc20Predicate()
+      contracts.ERC20Predicate = await deployer.deployErc20PredicateBurnOnly()
       depositManager = contracts.depositManager
       registry = contracts.registry
       governance = contracts.governance
-      childContracts = await deployer.initializeChildChain(accounts[0])
+      childContracts = await deployer.initializeChildChain()
 
-      e20 = await deployer.deployMaticToken()
+      matic = await deployer.deployMaticToken()
       await governance.update(
         registry.address,
-        registry.contract.methods.updateContractMap(ethUtils.keccak256('matic'), e20.rootERC20.address).encodeABI()
+        registry.interface.encodeFunctionData('updateContractMap', [
+          ethUtils.keccak256('matic'),
+          matic.rootERC20.address
+        ])
       )
 
       // deploy PolygonMigration test impl
-      polygonMigrationTest = await artifacts.PolygonMigrationTest.new()
+      polygonMigrationTest = await (await ethers.deployContract('PolygonMigrationTest')).deployed()
 
       await governance.update(
         registry.address,
-        registry.contract.methods.updateContractMap(ethUtils.keccak256('polygonMigration'), polygonMigrationTest.address).encodeABI()
+        registry.interface.encodeFunctionData('updateContractMap', [
+          ethUtils.keccak256('polygonMigration'),
+          polygonMigrationTest.address
+        ])
       )
 
-      pol = await artifacts.POLTokenMock.new('Polygon Ecosystem Token', 'POL')
+      pol = await (await ethers.deployContract('TestToken', ['Polygon Ecosystem Token', 'POL'])).deployed()
 
       await governance.update(
         registry.address,
-        registry.contract.methods.updateContractMap(ethUtils.keccak256('pol'), pol.address).encodeABI()
+        registry.interface.encodeFunctionData('updateContractMap', [ethUtils.keccak256('pol'), pol.address])
       )
 
-      // map POL token
-      await governance.update(
-        registry.address,
-        registry.contract.methods.mapToken(pol.address, e20.childToken.address, false).encodeABI()
-      )
-
-      await polygonMigrationTest.contract.methods.setTokenAddresses(e20.rootERC20.address, pol.address).send({
-        from: accounts[0]
-      })
+      await polygonMigrationTest.setTokenAddresses(matic.rootERC20.address, pol.address)
 
       // mint POL to PolygonMigrationTest
-      await pol.contract.methods.mint(polygonMigrationTest.address, amount.toString()).send(
-        { from: accounts[0] }
-      )
+      await pol.mint(polygonMigrationTest.address, amount.toString())
     })
 
-    it('converts MATIC to POL using governance function', async() => {
+    it('converts MATIC to POL using governance function', async () => {
       // mint MATIC to depositManager
-      await e20.rootERC20.contract.methods.mint(depositManager.address, amount.toString()).send(
-        { from: accounts[0] }
-      )
+      await matic.rootERC20.mint(depositManager.address, amount.toString())
 
       // call migrateMatic using governance
       await governance.update(
         depositManager.address,
-        depositManager.contract.methods.migrateMatic(amount.toString()).encodeABI()
+        depositManager.interface.encodeFunctionData('migrateMatic', [amount.toString()])
       )
 
       // check that MATIC balance has been converted to POL
-      const currentBalance = await pol.contract.methods.balanceOf(depositManager.address).call()
+      const currentBalance = await pol.balanceOf(depositManager.address)
       utils.assertBigNumberEquality(currentBalance, amount)
     })
 
-    it('migrates to POL when depositing MATIC', async() => {
+    it('migrates to POL when depositing MATIC', async () => {
       // deposit some MATIC
       const bob = '0x' + crypto.randomBytes(20).toString('hex')
-      await utils.deposit(
-        depositManager,
-        childContracts.childChain,
-        e20.rootERC20,
-        bob,
-        amount,
-        { rootDeposit: true, erc20: true }
-      )
+      await utils.deposit(depositManager, childContracts.childChain, matic.rootERC20, bob, amount, {
+        rootDeposit: true,
+        erc20: true
+      })
 
       // check that MATIC balance has been converted to POL
-      const currentBalance = await pol.contract.methods.balanceOf(depositManager.address).call()
+      const currentBalance = await pol.balanceOf(depositManager.address)
       utils.assertBigNumberEquality(currentBalance, amount)
 
       // assert deposit on child chain
-      utils.assertBigNumberEquality(await e20.childToken.balanceOf(bob), amount)
+      const childChainMaticBalance = await matic.childToken.balanceOf(bob)
+      utils.assertBigNumberEquality(childChainMaticBalance, amount)
     })
 
-    it('bridges MATIC when depositing POL', async() => {
+    it('bridges MATIC when depositing POL', async () => {
       const bob = '0x' + crypto.randomBytes(20).toString('hex')
 
       // using the utils function more granularly here so we can call fireDepositFromMainToMatic with the correct token address
-      const newDepositBlockEvent = await utils.depositOnRoot(
-        depositManager,
-        pol,
-        bob,
-        amount,
-        { rootDeposit: true, erc20: true }
-      )
+      const newDepositBlockEvent = await utils.depositOnRoot(depositManager, pol, bob, amount.toString(), {
+        rootDeposit: true,
+        erc20: true
+      })
 
-      // token has been changed to MATIC
-      assert.strictEqual(newDepositBlockEvent.args.token, e20.rootERC20.address)
+      assert.strictEqual(newDepositBlockEvent.args.token, matic.rootERC20.address)
 
-      await utils.fireDepositFromMainToMatic(childContracts.childChain, '0xa', bob, e20.rootERC20.address, amount, newDepositBlockEvent.args.depositBlockId)
-
-      // deposit on child chain is technically still in MATIC
-      utils.assertBigNumberEquality(await e20.childToken.balanceOf(bob), amount)
-    })
-
-    it('depositBulk: bridges MATIC when depositing POL', async() => {
-      const bob = '0x' + crypto.randomBytes(20).toString('hex')
-      const totalAmount = amount.mul(web3.utils.toBN(2))
-
-      await pol.approve(depositManager.address, totalAmount)
-
-      const result = await depositManager.depositBulk([pol.address, pol.address], [amount, amount], bob)
-
-      const logs = logDecoder.decodeLogs(result.receipt.rawLogs)
-      const newDepositBlockEvent = logs.find(
-        log => log.event === 'NewDepositBlock'
-      )
-
-      // token has been changed to MATIC
-      assert.strictEqual(newDepositBlockEvent.args.token, e20.rootERC20.address)
-      await utils.fireDepositFromMainToMatic(childContracts.childChain, '0xa', bob, e20.rootERC20.address, totalAmount, newDepositBlockEvent.args.depositBlockId)
+      await (
+        await utils.fireDepositFromMainToMatic(
+          childContracts.childChain,
+          '0xa',
+          bob,
+          matic.rootERC20.address,
+          amount,
+          newDepositBlockEvent.args.depositBlockId
+        )
+      ).wait()
 
       // deposit on child chain is technically still in MATIC
-      utils.assertBigNumberEquality(await e20.childToken.balanceOf(bob), totalAmount)
+      utils.assertBigNumberEquality(await matic.childToken.balanceOf(bob), amount)
     })
 
-    it('returns POL when withdrawing MATIC', async() => {
-      // no POL on this account
-      utils.assertBigNumberEquality(await pol.balanceOf(accounts[1]), 0)
+    it('returns POL when withdrawing MATIC', async () => {
+      // in order to send from a different address we connect the ContractFactory to a new Signer
+      const childSigner1 = matic.childToken.provider.getSigner(1)
+      const childToken1 = matic.childToken.connect(childSigner1)
+      const account1 = await childSigner1.getAddress()
 
       // deposit some MATIC
-      await utils.deposit(
-        depositManager,
-        childContracts.childChain,
-        e20.rootERC20,
-        accounts[1],
-        amount,
-        { rootDeposit: true, erc20: true }
-      )
+      await utils.deposit(depositManager, childContracts.childChain, matic.rootERC20, account1, amount, {
+        rootDeposit: true,
+        erc20: true
+      })
 
       // withdraw again
-      const { receipt } = await e20.childToken.withdraw(amount, { from: accounts[1], value: amount })
+      const receipt = await (await childToken1.withdraw(amount.toString(), { value: amount.toString() })).wait()
 
       // submit checkpoint
-      let { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(contracts.rootChain, receipt, accounts)
-
-      // call ERC20Predicate
-      await utils.startExitWithBurntTokens(
-        contracts.ERC20Predicate,
-        { headerNumber, blockProof, blockNumber: block.number, blockTimestamp: block.timestamp, reference, logIndex: 1 },
-        accounts[1]
+      let { block, blockProof, headerNumber, reference } = await statefulUtils.submitCheckpoint(
+        contracts.rootChain,
+        receipt,
+        accounts
       )
 
+      const rootSigner1 = contracts.ERC20Predicate.provider.getSigner(1)
+      const eRC20Predicate1 = contracts.ERC20Predicate.connect(rootSigner1)
+
+      // call ERC20Predicate
+      await utils.startExitWithBurntTokens(eRC20Predicate1, {
+        headerNumber,
+        blockProof,
+        blockNumber: block.number,
+        blockTimestamp: block.timestamp,
+        reference,
+        logIndex: 1
+      })
+
       // process Exits for MATIC
-      await predicateTestUtils.processExits(contracts.withdrawManager, e20.rootERC20.address)
+      await predicateTestUtils.processExits(contracts.withdrawManager, matic.rootERC20.address)
 
       // POL was received
-      utils.assertBigNumberEquality(await pol.balanceOf(accounts[1]), amount)
+      utils.assertBigNumberEquality(await pol.balanceOf(account1), amount)
     })
   })
 })

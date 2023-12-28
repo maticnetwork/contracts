@@ -1,11 +1,16 @@
 import bip39 from 'bip39'
-import hdkey from 'ethereumjs-wallet/hdkey'
+import wallet from 'ethereumjs-wallet'
+import fs from 'fs';
 
-import packageJSON from '../../package.json'
+function readJSON (path) {
+  return JSON.parse(fs.readFileSync(path));
+}
 
-export const mnemonics = packageJSON.config.mnemonics
+const config = readJSON('package.json').config
+
+export const mnemonics = config.mnemonics
 export function generateFirstWallets(mnemonics, n, hdPathIndex = 0) {
-  const hdwallet = hdkey.fromMasterSeed(bip39.mnemonicToSeed(mnemonics))
+  const hdwallet = wallet.hdkey.fromMasterSeed(bip39.mnemonicToSeed(mnemonics))
   const result = []
   for (let i = 0; i < n; i++) {
     const node = hdwallet.derivePath(`m/44'/60'/0'/0/${i + hdPathIndex}`)

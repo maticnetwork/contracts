@@ -1,5 +1,5 @@
-const ethUtils = require('ethereumjs-util')
-const sigUtils = require('eth-sig-util')
+import ethUtils from 'ethereumjs-util'
+import sigUtils from 'eth-sig-util'
 
 export function getSig({
   privateKey,

@@ -1,10 +1,10 @@
-import { expectRevert } from '@openzeppelin/test-helpers'
+import testHelpers from '@openzeppelin/test-helpers'
 
-const ProxyTestImpl = artifacts.require('ProxyTestImpl')
 
-contract('Initializable', function() {
+describe('Initializable', function() {
   before(async function() {
-    this.impl = await ProxyTestImpl.new()
+    const ProxyTestImpl = await ethers.getContractFactory('ProxyTestImpl')
+    this.impl = await ProxyTestImpl.deploy()
   })
 
   it('must initialize', async function() {
@@ -12,6 +12,6 @@ contract('Initializable', function() {
   })
 
   it('must revert when attempt to initialize again', async function() {
-    await expectRevert(this.impl.init(), 'already inited')
+    await testHelpers.expectRevert(this.impl.init(), 'already inited')
   })
 })
