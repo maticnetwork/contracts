@@ -10,8 +10,13 @@ Ethereum smart contracts that power the [Matic Network](https://matic.network).
 npm install
 ```
 
-### Compile
+### Setup
 
+```
+pre-commit install
+```
+
+### Compile
 
 ```
 npm run template:process -- --bor-chain-id 15001
@@ -21,6 +26,7 @@ bor-chain-id should be:
 **local: 15001**  
 Mainnet = 137  
 TestnetV4 (Mumbai) = 80001
+
 ### Main chain and side chain
 
 - Main chain
@@ -48,11 +54,13 @@ npm run bor:clean
 ### Run tests
 
 Run Hardhat test
+
 ```
 npm test:hardhat
 ```
 
 Run Foundry test
+
 ```
 npm test:foundry
 ```
@@ -60,6 +68,7 @@ npm test:foundry
 ### Coverage
 
 Run coverage with
+
 ```
 npm run coverage
 ```
