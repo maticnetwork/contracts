@@ -13,9 +13,8 @@ cache_hardhat
 forge-cache
 
 
-test-blockchain/geth
-test-blockchain/history
-test-blockchain/data
+test-bor-docker/history
+test-bor-docker/data
 
 *.pid
 *.log
