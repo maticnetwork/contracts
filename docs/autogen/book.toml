@@ -1,0 +1,12 @@
+[book]
+src = "src"
+title = ""
+
+[output.html]
+no-section-label = true
+additional-js = ["solidity.min.js"]
+additional-css = ["book.css"]
+git-repository-url = "https://github.com/maticnetwork/contracts"
+
+[output.html.fold]
+enable = true
