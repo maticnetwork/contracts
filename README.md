@@ -2,7 +2,7 @@
 
 ![Build Status](https://github.com/maticnetwork/contracts/workflows/CI/badge.svg)
 
-Ethereum smart contracts that power the [Matic Network](https://matic.network).
+Ethereum smart contracts that power the [Matic Network](https://polygon.technology/polygon-pos).
 
 ### Install dependencies with
 
