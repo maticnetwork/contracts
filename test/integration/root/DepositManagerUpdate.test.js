@@ -73,6 +73,8 @@ describe('DepositManagerUpdate @skip-on-coverage', async function () {
 
       await polygonMigrationTest.setTokenAddresses(matic.rootERC20.address, pol.address)
 
+      deployer.mapToken(pol.address, matic.childToken.address)
+
       // mint POL to PolygonMigrationTest
       await pol.mint(polygonMigrationTest.address, amount.toString())
     })

@@ -59,8 +59,8 @@ const networks = () => {
         accounts: [process.env.PK_MAINNET],
       },
     };
-  } else if (process.env.SOLIDITY_COVERAGE) {
-    console.log("using local hardhat network, so we don't overload infura")
+  } else if (process.env.LOCAL_NETWORK) {
+    console.log("using local hardhat network");
     return {
       hardhat: {
         blockGasLimit: 20000000,

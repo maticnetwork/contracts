@@ -51,14 +51,13 @@ export const GnosisSafe = await ethers.getContractFactory('GnosisSafe')
 export const PolygonMigrationTest = await ethers.getContractFactory('PolygonMigrationTest')
 
 // child chain
-if (!process.env.BOR_CHAIN_URL) {
-    throw("BOR_CHAIN_URL not defined in .env")
-}
-const borProvider = new ethers.providers.JsonRpcProvider(process.env.BOR_CHAIN_URL)
+const borProvider = new ethers.providers.JsonRpcProvider(
+  process.env.BOR_CHAIN_URL ? process.env.BOR_CHAIN_URL : 'http://localhost:9545'
+)
 let childSigner = borProvider.getSigner()
 
 if (hre.__SOLIDITY_COVERAGE_RUNNING) {
-    childSigner = undefined
+  childSigner = undefined
 }
 
 export const ChildChain = await ethers.getContractFactory('ChildChain', childSigner)

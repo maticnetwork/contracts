@@ -21,7 +21,9 @@ export let web3Child
 if (hre.__SOLIDITY_COVERAGE_RUNNING) {
   web3Child = new web3.constructor(web3.currentProvider)
 } else {
-  web3Child = new web3.constructor(new web3.providers.HttpProvider(process.env.BOR_CHAIN_URL))
+  web3Child = new web3.constructor(
+    new web3.providers.HttpProvider(process.env.BOR_CHAIN_URL ? process.env.BOR_CHAIN_URL : 'http://localhost:9545')
+  )
 }
 
 export const ZeroAddress = '0x0000000000000000000000000000000000000000'

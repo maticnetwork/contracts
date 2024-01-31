@@ -99,9 +99,12 @@ async function execSafe(gSafe, address, data, confirmingAccounts) {
   let signatureBytes = '0x'
   confirmingAccounts.sort()
   for (var i = 0; i < confirmingAccounts.length; i++) {
-    // Adjust v (it is + 27 => EIP-155 and + 4 to differentiate them from typed data signatures in the Safe)
+    // Adjust v (it is + 4 to differentiate them from typed data signatures in the Safe)
+    // ethSign already returns 27 or 28
     let signature = (await ethSign(confirmingAccounts[i], txHash))
       .replace('0x', '')
+      .replace(/1b$/, '1f')
+      .replace(/1c$/, '20')
     signatureBytes += signature
   }
   params[9] = signatureBytes
