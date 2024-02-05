@@ -1,8 +1,11 @@
-import ethUtils from 'ethereumjs-util'
-import MerkleTree from '../helpers/merkle-tree'
+import MerkleTree from '../helpers/merkle-tree.js'
 
-const Proofs = require('../helpers/proofs')
-const getBlockHeader = require('../helpers/blocks').getBlockHeader
+import * as Proofs from '../helpers/proofs.js'
+import { getBlockHeader } from '../helpers/blocks.js'
+import * as chai from 'chai'
+
+const assert = chai.assert
+
 
 let headerNumber = 0
 export async function build(event) {
@@ -28,12 +31,4 @@ export async function build(event) {
     receiptsRoot: Buffer.from(event.block.receiptsRoot.slice(2), 'hex'),
     proof: await tree.getProof(blockHeader)
   }
-}
-
-export function buildInFlight(tx) {
-  const exitTx = Proofs.getTxBytes(tx)
-  // For debugging, use these
-  // console.log('exitTx', ethUtils.bufferToHex(exitTx))
-  // console.log('rlp.decode', ethUtils.rlp.decode(exitTx).map(ethUtils.bufferToHex))
-  return exitTx
 }

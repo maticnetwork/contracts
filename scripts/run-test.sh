@@ -11,10 +11,9 @@ PWD=$(pwd)
 
 cleanup() {
   echo "Cleaning up"
-  pkill -f ganache-cli
-  cd $PWD/test-blockchain
+  pkill -f ganache
+  cd $PWD/test-bor-docker
   bash stop-docker.sh
-  bash clean.sh
   cd ..
   echo "Done"
 }
@@ -24,7 +23,7 @@ start_testrpc() {
 }
 
 start_blockchain() {
-  cd $PWD/test-blockchain
+  cd $PWD/test-bor-docker
   bash run-docker.sh
   cd ..
 }
@@ -36,10 +35,6 @@ start_testrpc
 echo "Starting our own geth instance"
 start_blockchain
 
-if [ "$SOLIDITY_COVERAGE" = true ]; then
-  npm run truffle:coverage "$@"
-else
-  npm run truffle:test "$@"
-fi
-
-
+export LOCAL_NETWORK=true
+npm run coverage "$@"
+npm run test:hardhat "$@"

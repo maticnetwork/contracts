@@ -1,7 +1,7 @@
 import Trie from 'merkle-patricia-tree'
 import utils from 'ethereumjs-util'
 import EthereumTx from 'ethereumjs-tx'
-import EthereumBlock from 'ethereumjs-block/from-rpc'
+import EthereumBlock from 'ethereumjs-block/from-rpc.js'
 import MerkleTree from '../helpers/merkle-tree.js'
 
 const rlp = utils.rlp
@@ -111,7 +111,7 @@ export async function getTxProof(tx, block) {
         const prf = {
           blockHash: utils.toBuffer(tx.blockHash),
           parentNodes: stack.map(s => s.raw),
-          root: getRawHeader(block).transactionsTrie,
+          root: block.transactionsRoot,
           path: rlp.encode(tx.transactionIndex),
           value: rlp.decode(rawTxNode.value)
         }
@@ -137,7 +137,7 @@ export function verifyTxProof(proof) {
         utils.keccak256(rlp.encode(currentNode)),
         'hex'
       )
-      if (!nodeKey.equals(encodedNode)) {
+      if (!nodeKey == encodedNode) {
         return false
       }
       if (pathPtr > path.length) {
@@ -250,7 +250,7 @@ export async function getReceiptProof(receipt, block, web3, receipts) {
         const prf = {
           blockHash: utils.toBuffer(receipt.blockHash),
           parentNodes: stack.map(s => s.raw),
-          root: getRawHeader(block).receiptTrie,
+          root: block.receiptsRoot,
           path: rlp.encode(receipt.transactionIndex),
           value: rlp.decode(rawReceiptNode.value)
         }

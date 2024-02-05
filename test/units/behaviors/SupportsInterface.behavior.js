@@ -1,5 +1,6 @@
-import { makeInterfaceId } from '@openzeppelin/test-helpers'
-import { assertBigNumbergt } from '../../helpers/utils'
+import makeInterfaceId from '@openzeppelin/test-helpers/src/makeInterfaceId.js'
+import { assertBigNumbergt } from '../../helpers/utils.js'
+import * as chai from 'chai'
 
 export const InterfaceIds = {
   ERC721: 'ERC721',
@@ -65,11 +66,11 @@ export function shouldSupportInterfaces(interfaces = []) {
 
       describe(k, function() {
         it('should use less than 30k gas', async function() {
-          assertBigNumbergt(30000, await this.contract.supportsInterface.estimateGas(interfaceId))
+          assertBigNumbergt(30000, await this.contract.estimateGas.supportsInterface(interfaceId))
         })
 
         it('is supported', async function() {
-          assert.ok(await this.contract.supportsInterface(interfaceId))
+          chai.assert.ok(await this.contract.supportsInterface(interfaceId))
         })
       })
     }

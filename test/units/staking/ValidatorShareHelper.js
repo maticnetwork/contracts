@@ -1,8 +1,6 @@
-
 export async function buyVoucher(validatorContract, amount, delegator, minSharesToMint) {
-  return validatorContract.buyVoucher(amount, minSharesToMint || 0, {
-    from: delegator
-  })
+  const validatorContract_Delegator = validatorContract.connect(validatorContract.provider.getSigner(delegator))
+  return validatorContract_Delegator.buyVoucher(amount.toString(), minSharesToMint || 0)
 }
 
 export async function sellVoucher(validatorContract, delegator, minClaimAmount, maxShares) {
@@ -14,11 +12,10 @@ export async function sellVoucher(validatorContract, delegator, minClaimAmount, 
     minClaimAmount = await validatorContract.amountStaked(delegator)
   }
 
-  return validatorContract.sellVoucher(minClaimAmount, maxShares, {
-    from: delegator
-  })
-}
+  const validatorContract_Delegator = validatorContract.connect(validatorContract.provider.getSigner(delegator))
 
+  return validatorContract_Delegator.sellVoucher(minClaimAmount, maxShares)
+}
 
 export async function sellVoucherNew(validatorContract, delegator, minClaimAmount, maxShares) {
   if (maxShares === undefined) {
@@ -28,8 +25,7 @@ export async function sellVoucherNew(validatorContract, delegator, minClaimAmoun
   if (minClaimAmount === undefined) {
     minClaimAmount = await validatorContract.amountStaked(delegator)
   }
+  const validatorContract_Delegator = validatorContract.connect(validatorContract.provider.getSigner(delegator))
 
-  return validatorContract.sellVoucher_new(minClaimAmount, maxShares, {
-    from: delegator
-  })
+  return validatorContract_Delegator.sellVoucher_new(minClaimAmount.toString(), maxShares)
 }
