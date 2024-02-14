@@ -1,85 +1,73 @@
 import ethUtils from 'ethereumjs-util'
-
-import * as contracts from './artifacts'
-import * as utils from './utils'
+import * as utils from './utils.js'
+import * as contractFactories from './artifacts.js'
 
 class Deployer {
-  constructor() {
-    Object.keys(contracts.childContracts).forEach(c => {
-      // hack for quick fix
-      contracts[c] = contracts.childContracts[c]
-      if (!process.env.SOLIDITY_COVERAGE) {
-        contracts[c].web3 = utils.web3Child
-      }
-    })
-  }
-
   async deployEventsHub(registryAddr) {
-    let eventsHubImpl = await contracts.EventsHub.new()
-    let proxy = await contracts.EventsHubProxy.new(
-      utils.ZeroAddress
+    let eventsHubImpl = await contractFactories.EventsHub.deploy()
+    let proxy = await contractFactories.EventsHubProxy.deploy(utils.ZeroAddress)
+
+    await proxy.updateAndCall(
+      eventsHubImpl.address,
+      eventsHubImpl.interface.encodeFunctionData('initialize', [registryAddr])
     )
 
-    await proxy.updateAndCall(eventsHubImpl.address, eventsHubImpl.contract.methods.initialize(
-      registryAddr
-    ).encodeABI())
+    await this.updateContractMap(ethUtils.keccak256('eventsHub'), proxy.address)
 
-    await this.updateContractMap(
-      ethUtils.keccak256('eventsHub'),
-      proxy.address
-    )
-
-    return contracts.EventsHub.at(proxy.address)
+    return contractFactories.EventsHub.attach(proxy.address)
   }
 
   async freshDeploy(owner) {
     this.governance = await this.deployGovernance()
-    this.registry = await contracts.Registry.new(this.governance.address)
+    this.registry = await contractFactories.Registry.deploy(this.governance.address)
 
     this.eventsHub = await this.deployEventsHub(this.registry.address)
-    this.validatorShareFactory = await contracts.ValidatorShareFactory.new()
-    this.stakeToken = await contracts.TestToken.new('Stake Token', 'ST')
-    this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
-    this.slashingManager = await contracts.SlashingManager.new(this.registry.address, this.stakingInfo.address, 'heimdall-P5rXwg')
-    this.rootChain = await this.deployRootChain()
-    this.stakingNFT = await contracts.StakingNFT.new('Matic Validator', 'MV')
-
-    let proxy = await contracts.StakeManagerProxy.new(
-      utils.ZeroAddress
-    )
-    let stakeManager = await contracts.StakeManagerTest.new()
-    const auctionImpl = await contracts.StakeManagerExtension.new()
-    await proxy.updateAndCall(stakeManager.address, stakeManager.contract.methods.initialize(
+    this.validatorShareFactory = await contractFactories.ValidatorShareFactory.deploy()
+    this.stakeToken = await contractFactories.TestToken.deploy('Stake Token', 'ST')
+    this.stakingInfo = await contractFactories.StakingInfo.deploy(this.registry.address)
+    this.slashingManager = await contractFactories.SlashingManager.deploy(
       this.registry.address,
-      this.rootChain.address,
-      this.stakeToken.address,
-      this.stakingNFT.address,
       this.stakingInfo.address,
-      this.validatorShareFactory.address,
-      this.governance.address,
-      owner,
-      auctionImpl.address
-    ).encodeABI())
+      'heimdall-P5rXwg'
+    )
+    this.rootChain = await this.deployRootChain()
+    this.stakingNFT = await contractFactories.StakingNFT.deploy('Matic Validator', 'MV')
 
-    this.stakeManager = await contracts.StakeManager.at(proxy.address)
-    this.buildStakeManagerObject(this.stakeManager, this.governance)
-    this.stakeManager.updateCheckPointBlockInterval(1)
+    let stakeManagerProxy = await contractFactories.StakeManagerProxy.deploy(utils.ZeroAddress)
+    let stakeManager = await contractFactories.StakeManagerTest.deploy()
+    const auctionImpl = await contractFactories.StakeManagerExtension.deploy()
+    await stakeManagerProxy.updateAndCall(
+      stakeManager.address,
+      stakeManager.interface.encodeFunctionData('initialize', [
+        this.registry.address,
+        this.rootChain.address,
+        this.stakeToken.address,
+        this.stakingNFT.address,
+        this.stakingInfo.address,
+        this.validatorShareFactory.address,
+        this.governance.address,
+        owner,
+        auctionImpl.address
+      ])
+    )
+
+    this.stakeManager = await contractFactories.StakeManager.attach(stakeManagerProxy.address)
+    // TODO cannot alter functions like we used to here, replace usage with actual impl like below
+    // this.buildStakeManagerObject(this.stakeManager, this.governance)
+    await this.governance.update(
+      this.stakeManager.address,
+      this.stakeManager.interface.encodeFunctionData('updateCheckPointBlockInterval', [1])
+    )
 
     await this.stakingNFT.transferOwnership(this.stakeManager.address)
-    this.exitNFT = await contracts.ExitNFT.new(this.registry.address)
+    this.exitNFT = await contractFactories.ExitNFT.deploy(this.registry.address)
 
     await this.deployStateSender()
     const depositManager = await this.deployDepositManager()
     const withdrawManager = await this.deployWithdrawManager()
 
-    await this.updateContractMap(
-      ethUtils.keccak256('stakeManager'),
-      this.stakeManager.address
-    )
-    await this.updateContractMap(
-      ethUtils.keccak256('slashingManager'),
-      this.slashingManager.address
-    )
+    await this.updateContractMap(ethUtils.keccak256('stakeManager'), this.stakeManager.address)
+    await this.updateContractMap(ethUtils.keccak256('slashingManager'), this.slashingManager.address)
     let _contracts = {
       registry: this.registry,
       rootChain: this.rootChain,
@@ -95,131 +83,48 @@ class Deployer {
     return _contracts
   }
 
-  buildStakeManagerObject(stakeManager, governance) {
-    stakeManager.updateDynastyValue = (val) => {
-      return governance.update(
-        stakeManager.address,
-        stakeManager.contract.methods.updateDynastyValue(val).encodeABI()
-      )
-    }
-
-    stakeManager.updateCheckPointBlockInterval = (val) => {
-      return governance.update(
-        stakeManager.address,
-        stakeManager.contract.methods.updateCheckPointBlockInterval(val).encodeABI()
-      )
-    }
-
-    stakeManager.setStakingToken = (val) => {
-      return governance.update(
-        stakeManager.address,
-        stakeManager.contract.methods.setStakingToken(val).encodeABI()
-      )
-    }
-
-    stakeManager.updateValidatorThreshold = (val, options) => {
-      const params = [stakeManager.address, stakeManager.contract.methods.updateValidatorThreshold(val).encodeABI()]
-      if (options) params.push(options)
-      return governance.update(...params)
-    }
-
-    stakeManager.updateCheckpointReward = (val) => {
-      return governance.update(
-        stakeManager.address,
-        stakeManager.contract.methods.updateCheckpointReward(val).encodeABI()
-      )
-    }
-
-    stakeManager.stopAuctions = (val) => {
-      return governance.update(
-        stakeManager.address,
-        stakeManager.contract.methods.stopAuctions(val).encodeABI()
-      )
-    }
-
-    stakeManager.updateProposerBonus = (val) => {
-      return governance.update(
-        stakeManager.address,
-        stakeManager.contract.methods.updateProposerBonus(val).encodeABI()
-      )
-    }
-
-    stakeManager.updateSignerUpdateLimit = (val) => {
-      return governance.update(
-        stakeManager.address,
-        stakeManager.contract.methods.updateSignerUpdateLimit(val).encodeABI()
-      )
-    }
-
-    stakeManager.updateSignerUpdateLimit = (val) => {
-      return governance.update(
-        stakeManager.address,
-        stakeManager.contract.methods.updateSignerUpdateLimit(val).encodeABI()
-      )
-    }
-
-    stakeManager.updateSignerUpdateLimit = (val) => {
-      return governance.update(
-        stakeManager.address,
-        stakeManager.contract.methods.updateSignerUpdateLimit(val).encodeABI()
-      )
-    }
-
-    stakeManager.updateCheckpointRewardParams = (val1, val2, val3) => {
-      return governance.update(
-        stakeManager.address,
-        stakeManager.contract.methods.updateCheckpointRewardParams(val1, val2, val3).encodeABI()
-      )
-    }
-  }
-
   async deployStakeManager(wallets) {
     this.governance = await this.deployGovernance()
-    this.registry = await contracts.Registry.new(this.governance.address)
+    this.registry = await contractFactories.Registry.deploy(this.governance.address)
 
     this.eventsHub = await this.deployEventsHub(this.registry.address)
-    this.validatorShareFactory = await contracts.ValidatorShareFactory.new()
-    this.validatorShare = await contracts.ValidatorShare.new()
+    this.validatorShareFactory = await contractFactories.ValidatorShareFactory.deploy()
+    this.validatorShare = await contractFactories.ValidatorShare.deploy()
     this.rootChain = await this.deployRootChain()
-    this.stakingInfo = await contracts.StakingInfo.new(this.registry.address)
-    this.stakeToken = await contracts.TestToken.new('Stake Token', 'STAKE')
-    this.stakingNFT = await contracts.StakingNFT.new('Matic Validator', 'MV')
+    this.stakingInfo = await contractFactories.StakingInfo.deploy(this.registry.address)
+    this.stakeToken = await contractFactories.TestToken.deploy('Stake Token', 'STAKE')
+    this.stakingNFT = await contractFactories.StakingNFT.deploy('Matic Validator', 'MV')
 
-    let stakeManager = await contracts.StakeManagerTestable.new()
+    let stakeManager = await contractFactories.StakeManagerTestable.deploy()
     const rootChainOwner = wallets[1]
-    let proxy = await contracts.StakeManagerProxy.new(
-      utils.ZeroAddress
+    let proxy = await contractFactories.StakeManagerProxy.deploy(utils.ZeroAddress)
+    const auctionImpl = await contractFactories.StakeManagerExtension.deploy()
+    await proxy.updateAndCall(
+      stakeManager.address,
+      stakeManager.interface.encodeFunctionData('initialize', [
+        this.registry.address,
+        rootChainOwner.getAddressString(),
+        this.stakeToken.address,
+        this.stakingNFT.address,
+        this.stakingInfo.address,
+        this.validatorShareFactory.address,
+        this.governance.address,
+        wallets[0].getAddressString(),
+        auctionImpl.address
+      ])
     )
-    const auctionImpl = await contracts.StakeManagerExtension.new()
-    await proxy.updateAndCall(stakeManager.address, stakeManager.contract.methods.initialize(
-      this.registry.address,
-      rootChainOwner.getAddressString(),
-      this.stakeToken.address,
-      this.stakingNFT.address,
-      this.stakingInfo.address,
-      this.validatorShareFactory.address,
-      this.governance.address,
-      wallets[0].getAddressString(),
-      auctionImpl.address
-    ).encodeABI())
 
-    this.stakeManager = await contracts.StakeManagerTestable.at(proxy.address)
-    this.buildStakeManagerObject(this.stakeManager, this.governance)
-    this.slashingManager = await contracts.SlashingManager.new(this.registry.address, this.stakingInfo.address, 'heimdall-P5rXwg')
+    this.stakeManager = await contractFactories.StakeManagerTestable.attach(proxy.address)
+    this.slashingManager = await contractFactories.SlashingManager.deploy(
+      this.registry.address,
+      this.stakingInfo.address,
+      'heimdall-P5rXwg'
+    )
 
     await this.stakingNFT.transferOwnership(this.stakeManager.address)
-    await this.updateContractMap(
-      ethUtils.keccak256('stakeManager'),
-      this.stakeManager.address
-    )
-    await this.updateContractMap(
-      ethUtils.keccak256('validatorShare'),
-      this.validatorShare.address
-    )
-    await this.updateContractMap(
-      ethUtils.keccak256('slashingManager'),
-      this.slashingManager.address
-    )
+    await this.updateContractMap(ethUtils.keccak256('stakeManager'), this.stakeManager.address)
+    await this.updateContractMap(ethUtils.keccak256('validatorShare'), this.validatorShare.address)
+    await this.updateContractMap(ethUtils.keccak256('slashingManager'), this.slashingManager.address)
     let _contracts = {
       rootChainOwner: rootChainOwner,
       registry: this.registry,
@@ -237,185 +142,113 @@ class Deployer {
   }
 
   async deployRootChain() {
-    const rootChain = await contracts.RootChain.new()
-    const rootChainProxy = await contracts.RootChainProxy.new(
+    const rootChain = await contractFactories.RootChain.deploy()
+    const rootChainProxy = await contractFactories.RootChainProxy.deploy(
       rootChain.address,
       this.registry.address,
       'heimdall-P5rXwg'
     )
-    this.rootChain = await contracts.RootChain.at(rootChainProxy.address)
+    this.rootChain = await contractFactories.RootChain.attach(rootChainProxy.address)
     return this.rootChain
   }
 
   async deployMaticWeth() {
-    const maticWeth = await contracts.MaticWETH.new()
+    const maticWeth = await contractFactories.MaticWETH.deploy()
     await Promise.all([
       this.mapToken(maticWeth.address, maticWeth.address, false /* isERC721 */),
-      this.updateContractMap(
-        ethUtils.keccak256('wethToken'),
-        maticWeth.address
-      )
+      this.updateContractMap(ethUtils.keccak256('wethToken'), maticWeth.address)
     ])
     return maticWeth
   }
 
   async deployGovernance() {
-    const governance = await contracts.Governance.new()
-    this.governanceProxy = await contracts.GovernanceProxy.new(governance.address)
-    return contracts.Governance.at(this.governanceProxy.address)
+    const governance = await contractFactories.Governance.deploy()
+    this.governanceProxy = await contractFactories.GovernanceProxy.deploy(governance.address)
+    return contractFactories.Governance.attach(this.governanceProxy.address)
   }
 
   async deployStateSender() {
-    this.stateSender = await contracts.StateSender.new()
-    await this.updateContractMap(
-      ethUtils.keccak256('stateSender'),
-      this.stateSender.address
-    )
+    this.stateSender = await contractFactories.StateSender.deploy()
+    await this.updateContractMap(ethUtils.keccak256('stateSender'), this.stateSender.address)
     return this.stateSender
   }
 
   async deployDepositManager() {
-    this.depositManager = await contracts.DepositManager.new()
-    this.depositManagerProxy = await contracts.DepositManagerProxy.new(
+    this.depositManager = await contractFactories.DepositManager.deploy()
+    this.depositManagerProxy = await contractFactories.DepositManagerProxy.deploy(
       this.depositManager.address,
       this.registry.address,
       this.rootChain.address,
       this.governance.address
     )
-    await this.updateContractMap(
-      ethUtils.keccak256('depositManager'),
-      this.depositManagerProxy.address
-    )
-    this.depositManager = await contracts.DepositManager.at(
-      this.depositManagerProxy.address
-    )
+    await this.updateContractMap(ethUtils.keccak256('depositManager'), this.depositManagerProxy.address)
+    this.depositManager = await contractFactories.DepositManager.attach(this.depositManagerProxy.address)
     if (this.stateSender) {
       // child chain is expected to be null at this point
-      await this.stateSender.register(
-        this.depositManager.address,
-        '0x0000000000000000000000000000000000000000'
-      )
+      await this.stateSender.register(this.depositManager.address, '0x0000000000000000000000000000000000000000')
       await this.depositManager.updateChildChainAndStateSender()
     }
     return this.depositManager
   }
 
   async deployDrainable() {
-    this.drainable = await contracts.Drainable.new()
+    this.drainable = await contractFactories.Drainable.deploy()
     await this.depositManagerProxy.updateImplementation(this.drainable.address)
-    this.drainable = await contracts.Drainable.at(this.depositManagerProxy.address)
+    this.drainable = await contractFactories.Drainable.attach(this.depositManagerProxy.address)
     return this.drainable
   }
 
   async deployWithdrawManager() {
-    this.withdrawManager = await contracts.WithdrawManager.new()
-    this.withdrawManagerProxy = await contracts.WithdrawManagerProxy.new(
+    this.withdrawManager = await contractFactories.WithdrawManager.deploy()
+    this.withdrawManagerProxy = await contractFactories.WithdrawManagerProxy.deploy(
       this.withdrawManager.address,
       this.registry.address,
       this.rootChain.address,
       this.exitNFT.address
     )
-    await this.updateContractMap(
-      ethUtils.keccak256('withdrawManager'),
-      this.withdrawManagerProxy.address
-    )
-    return contracts.WithdrawManager.at(this.withdrawManagerProxy.address)
+    await this.updateContractMap(ethUtils.keccak256('withdrawManager'), this.withdrawManagerProxy.address)
+    return contractFactories.WithdrawManager.attach(this.withdrawManagerProxy.address)
   }
 
-  async deployErc20Predicate(burnOnly) {
-    let predicate = contracts.ERC20Predicate
-    let args = [
-      this.withdrawManagerProxy.address,
-      this.depositManagerProxy.address,
-      this.registry.address
-    ]
-    if (burnOnly) {
-      predicate = contracts.ERC20PredicateBurnOnly
-      args.pop()
-    }
-    const ERC20Predicate = await predicate.new(
-      ...args
-    )
+  async deployErc20PredicateBurnOnly() {
+    // there used to be a bool to decide wether to use BurnOnly or not
+    // it has been removed, as we only use BurnOnly now
+    let args = [this.withdrawManagerProxy.address, this.depositManagerProxy.address]
+    const ERC20PredicateBurnOnly = await contractFactories.ERC20PredicateBurnOnly.deploy(...args)
     await this.governance.update(
       this.registry.address,
-      this.registry.contract.methods.addErc20Predicate(ERC20Predicate.address).encodeABI()
+      this.registry.interface.encodeFunctionData('addErc20Predicate', [ERC20PredicateBurnOnly.address])
     )
-    return ERC20Predicate
+    return ERC20PredicateBurnOnly
   }
 
-  async deployErc721Predicate(burnOnly) {
-    let predicate = contracts.ERC721Predicate
-    if (burnOnly) predicate = contracts.ERC721PredicateBurnOnly
-    const ERC721Predicate = await predicate.new(
+  async deployErc721Predicate() {
+    // there used to be a bool to decide wether to use BurnOnly or not
+    // it has been removed, as we only use BurnOnly now
+    const ERC721Predicate = await contractFactories.ERC721PredicateBurnOnly.deploy(
       this.withdrawManagerProxy.address,
       this.depositManagerProxy.address
     )
     await this.governance.update(
       this.registry.address,
-      this.registry.contract.methods.addErc721Predicate(ERC721Predicate.address).encodeABI()
+      this.registry.interface.encodeFunctionData('addErc721Predicate', [ERC721Predicate.address])
     )
     return ERC721Predicate
   }
 
-  async deployMintableErc721Predicate() {
-    const predicate = await contracts.MintableERC721Predicate.new(
-      this.withdrawManagerProxy.address,
-      this.depositManagerProxy.address
-    )
-    await this.addPredicate(
-      predicate.address,
-      3 /* Type.Custom */
-    )
-    return predicate
-  }
-
-  async deployMarketplacePredicate() {
-    const MarketplacePredicate = await contracts.MarketplacePredicate.new(
-      this.rootChain.address,
-      this.withdrawManagerProxy.address,
-      this.registry.address
-    )
-    await this.addPredicate(
-      MarketplacePredicate.address,
-      3 /* Type.Custom */
-    )
-    return MarketplacePredicate
-  }
-
-  async deployTransferWithSigPredicate() {
-    const TransferWithSigPredicate = await contracts.TransferWithSigPredicate.new(
-      this.rootChain.address,
-      this.withdrawManagerProxy.address,
-      this.registry.address
-    )
-    await this.addPredicate(
-      TransferWithSigPredicate.address,
-      3 /* Type.Custom */
-    )
-    return TransferWithSigPredicate
-  }
-
   async deployTestErc20(options = { mapToken: true }) {
     // TestToken auto-assigns 10000 to msg.sender
-    const testToken = await contracts.TestToken.new('TestToken', 'TST')
+    const testToken = await contractFactories.TestToken.deploy('TestToken', 'TST')
     if (options.mapToken) {
-      await this.mapToken(
-        testToken.address,
-        options.childTokenAdress || testToken.address,
-        false /* isERC721 */
-      )
+      await this.mapToken(testToken.address, options.childTokenAdress || testToken.address, false /* isERC721 */)
     }
     return testToken
   }
 
   async deployTestErc721(options = { mapToken: true }) {
-    const rootERC721 = await contracts.RootERC721.new('RootERC721', 'T721')
+    const rootERC721 = await contractFactories.RootERC721.deploy('RootERC721', 'T721')
     if (options.mapToken) {
-      await this.mapToken(
-        rootERC721.address,
-        options.childTokenAdress || rootERC721.address,
-        true /* isERC721 */
-      )
+      await this.mapToken(rootERC721.address, options.childTokenAdress || rootERC721.address, true /* isERC721 */)
     }
     return rootERC721
   }
@@ -423,31 +256,31 @@ class Deployer {
   mapToken(rootTokenAddress, childTokenAddress, isERC721 = false) {
     return this.governance.update(
       this.registry.address,
-      this.registry.contract.methods.mapToken(rootTokenAddress, childTokenAddress, isERC721).encodeABI()
+      this.registry.interface.encodeFunctionData('mapToken', [rootTokenAddress, childTokenAddress, isERC721])
     )
   }
 
   updateContractMap(key, value) {
     return this.governance.update(
       this.registry.address,
-      this.registry.contract.methods.updateContractMap(key, value).encodeABI()
+      this.registry.interface.encodeFunctionData('updateContractMap', [key, value])
     )
   }
 
   addPredicate(predicate, type) {
     return this.governance.update(
       this.registry.address,
-      this.registry.contract.methods.addPredicate(predicate, type).encodeABI()
+      this.registry.interface.encodeFunctionData('addPredicate', [predicate, type])
     )
   }
 
-  async deployChildErc20(owner, options = { mapToken: true }) {
+  async deployChildErc20(options = { mapToken: true }) {
     const rootERC20 = await this.deployTestErc20({ mapToken: false })
     if (!this.childERC20Proxified) {
-      this.childERC20Proxified = await contracts.ChildERC20Proxified.new({ gas: 20000000 })
+      this.childERC20Proxified = await contractFactories.ChildERC20Proxified.deploy()
     }
-    const childTokenProxy = await contracts.ChildTokenProxy.new(this.childERC20Proxified.address)
-    const childToken = await contracts.ChildERC20Proxified.at(childTokenProxy.address)
+    const childTokenProxy = await contractFactories.ChildTokenProxy.deploy(this.childERC20Proxified.address)
+    const childToken = await contractFactories.ChildERC20Proxified.attach(childTokenProxy.address)
     await childToken.initialize(
       rootERC20.address,
       'ChildToken',
@@ -458,15 +291,12 @@ class Deployer {
     // set child chain address
     await childToken.changeChildChain(this.childChain.address)
 
-    await this.childChain.mapToken(rootERC20.address, childToken.address, false)
     if (options.mapToken) {
-      await this.mapToken(
-        rootERC20.address,
-        childToken.address,
-        false /* isERC721 */
-      )
+      await this.mapToken(rootERC20.address, childToken.address, false /* isERC721 */)
     }
-    return { rootERC20, childToken, childTokenProxy  }
+    await (await this.childChain.mapToken(rootERC20.address, childToken.address, false)).wait()
+
+    return { rootERC20, childToken, childTokenProxy }
   }
 
   async deployMaticToken() {
@@ -474,149 +304,123 @@ class Deployer {
     if (!this.childChain) throw Error('child chain is not initialized')
     // Since we cannot initialize MRC20 repeatedly, deploy a dummy MRC20 to test it
     // not mentioning the gas limit fails with "The contract code couldn't be stored, please check your gas limit." intermittently which is super weird
-    const childToken = await contracts.TestMRC20.new({ gas: 7500000 })
+    const childToken = await contractFactories.TestMRC20.deploy()
     const rootERC20 = await this.deployTestErc20({ mapToken: true, childTokenAdress: childToken.address })
     // initialize this like we would have done for MRC20 once
     await childToken.initialize(this.childChain.address, rootERC20.address)
     await this.childChain.mapToken(rootERC20.address, childToken.address, false /* isERC721 */)
     // send some ether to dummy MRC20, so that deposits can be processed
-    await this.globalMatic.childToken.deposit(childToken.address, web3.utils.toBN(100).mul(utils.scalingFactor))
+
+    const value = web3.utils.toBN(100).mul(utils.scalingFactor)
+    await this.globalMatic.childToken.deposit(childToken.address, web3.utils.toHex(value))
     return { rootERC20, childToken }
   }
 
-  async deployChildErc721(owner, options = { mapToken: true }) {
+  async deployChildErc721(options = { mapToken: true }) {
     const rootERC721 = await this.deployTestErc721({ mapToken: false })
     if (!this.childERC721Proxified) {
-      this.childERC721Proxified = await contracts.ChildERC721Proxified.new({ gas: 20000000 })
+      this.childERC721Proxified = await contractFactories.ChildERC721Proxified.deploy()
     }
-    const childTokenProxy = await contracts.ChildTokenProxy.new(this.childERC721Proxified.address)
-    const childErc721 = await contracts.ChildERC721Proxified.at(childTokenProxy.address)
-    await childErc721.initialize(
-      rootERC721.address,
-      'ChildERC721',
-      'C721'
-    )
+    const childTokenProxy = await contractFactories.ChildTokenProxy.deploy(this.childERC721Proxified.address)
+    const childErc721 = await contractFactories.ChildERC721Proxified.attach(childTokenProxy.address)
+    await childErc721.initialize(rootERC721.address, 'ChildERC721', 'C721')
     // set child chain address
     await childErc721.changeChildChain(this.childChain.address)
-    await this.childChain.mapToken(rootERC721.address, childErc721.address, true)
     if (options.mapToken) {
-      await this.mapToken(
-        rootERC721.address,
-        childErc721.address,
-        true /* isERC721 */
-      )
+      await this.mapToken(rootERC721.address, childErc721.address, true /* isERC721 */)
     }
+    await (await this.childChain.mapToken(rootERC721.address, childErc721.address, true)).wait()
     return { rootERC721, childErc721, childTokenProxy }
   }
 
   async deployChildErc721Mintable(options = { mapToken: true }) {
-    const rootERC721 = await contracts.ERC721PlasmaMintable.new('Mintable721', 'M721')
-    const childErc721 = await contracts.ChildERC721Mintable.new(
-      rootERC721.address,
-      'ERC721Mintable',
-      'M721'
-    )
+    const rootERC721 = await contractFactories.ERC721PlasmaMintable.deploy('Mintable721', 'M721')
+    const childErc721 = await contractFactories.ChildERC721Mintable.deploy(rootERC721.address, 'ERC721Mintable', 'M721')
     await childErc721.changeChildChain(this.childChain.address) // required to process deposits via childChain
-    await this.childChain.mapToken(
-      rootERC721.address,
-      childErc721.address,
-      true /* isERC721 */
-    )
+    await this.childChain.mapToken(rootERC721.address, childErc721.address, true /* isERC721 */)
     if (options.mapToken) {
-      await this.mapToken(
-        rootERC721.address,
-        childErc721.address,
-        true /* isERC721 */
-      )
+      await this.mapToken(rootERC721.address, childErc721.address, true /* isERC721 */)
     }
     return { rootERC721, childErc721 }
   }
 
   async deployChildErc721MetadataMintable(options = { mapToken: true }) {
-    const rootERC721 = await contracts.ERC721PlasmaMintable.new('E721MM', 'E721MM')
-    const childErc721 = await contracts.ChildERC721Mintable.new(
-      rootERC721.address
-    )
+    const rootERC721 = await contractFactories.ERC721PlasmaMintable.deploy('E721MM', 'E721MM')
+    const childErc721 = await contractFactories.ChildERC721Mintable.deploy(rootERC721.address)
     await childErc721.changeChildChain(this.childChain.address) // required to process deposits via childChain
-    await this.childChain.mapToken(
-      rootERC721.address,
-      childErc721.address,
-      true /* isERC721 */
-    )
+    await this.childChain.mapToken(rootERC721.address, childErc721.address, true /* isERC721 */)
     if (options.mapToken) {
-      await this.mapToken(
-        rootERC721.address,
-        childErc721.address,
-        true /* isERC721 */
-      )
+      await this.mapToken(rootERC721.address, childErc721.address, true /* isERC721 */)
     }
     return { rootERC721, childErc721 }
   }
 
-  async initializeChildChain(owner, options = { updateRegistry: true }) {
-    // not mentioning the gas limit fails with "The contract code couldn't be stored, please check your gas limit." intermittently which is super weird
-    if (process.env.SOLIDITY_COVERAGE) {
-      this.childChain = await contracts.ChildChain.new({ gas: 75000000 })
-    } else {
-      this.childChain = await contracts.ChildChain.new({ gas: 7500000 })
-    }
+  async initializeChildChain(options = { updateRegistry: true }) {
+    this.childChain = await contractFactories.ChildChain.deploy()
 
-    await this.childChain.changeStateSyncerAddress(owner)
+    const childSigner0 = await this.childChain.provider.getSigner(0).getAddress()
+
+    await this.childChain.changeStateSyncerAddress(childSigner0)
+    
+    let childMaticTokenAddress = utils.ChildMaticTokenAddress
     if (!this.globalMatic) {
       // MRC20 comes as a genesis-contract at utils.ChildMaticTokenAddress
-      if (process.env.SOLIDITY_COVERAGE) {
-        utils.ChildMaticTokenAddress = (await contracts.MRC20.new()).address
-        Object.freeze(utils.ChildMaticTokenAddress)
+      if (hre.__SOLIDITY_COVERAGE_RUNNING) {
+        childMaticTokenAddress = (await contractFactories.MRC20.deploy()).address
       }
 
-      this.globalMatic = { childToken: await contracts.MRC20.at(utils.ChildMaticTokenAddress) }
+      this.globalMatic = { childToken: await contractFactories.MRC20.attach(childMaticTokenAddress) }
       const maticOwner = await this.globalMatic.childToken.owner()
       if (maticOwner === '0x0000000000000000000000000000000000000000') {
         // matic contract at 0x1010 can only be initialized once, after the bor image starts to run
-        await this.globalMatic.childToken.initialize(owner, utils.ZeroAddress)
+        await this.globalMatic.childToken.initialize(childSigner0, utils.ZeroAddress)
       }
     }
     if (this.registry) {
       // When a new set of contracts is deployed, we should map MRC20 on root, though we cannot initialize it more than once in its lifetime
-      this.globalMatic.rootERC20 = await this.deployTestErc20({ mapToken: true, childTokenAdress: utils.ChildMaticTokenAddress })
+      this.globalMatic.rootERC20 = await this.deployTestErc20({
+        mapToken: true,
+        childTokenAdress: childMaticTokenAddress
+      })
     }
     if (options.updateRegistry) {
-      await this.updateContractMap(
-        ethUtils.keccak256('childChain'),
-        this.childChain.address
-      )
-      await this.stateSender.register(
-        this.depositManager.address,
-        this.childChain.address
-      )
+      await this.updateContractMap(ethUtils.keccak256('childChain'), this.childChain.address)
+      await this.stateSender.register(this.depositManager.address, this.childChain.address)
       await this.depositManager.updateChildChainAndStateSender()
     }
     let res = { childChain: this.childChain }
     if (options.erc20) {
-      const r = await this.deployChildErc20(owner)
+      const r = await this.deployChildErc20()
       res.rootERC20 = r.rootERC20
       res.childToken = r.childToken // rename to childErc20
     }
     if (options.erc721) {
-      const r = await this.deployChildErc721(owner)
+      const r = await this.deployChildErc721()
       res.rootERC721 = r.rootERC721
       res.childErc721 = r.childErc721
     }
     return res
   }
 
-  async deployMarketplace(owner) {
-    return contracts.Marketplace.new()
+  async deployMarketplace() {
+    return contractFactories.Marketplace.deploy()
   }
 
   async deployGnosisMultisig(signers) {
-    let gnosisSafe = await contracts.GnosisSafe.new()
-    let proxy = await contracts.GnosisSafeProxy.new(gnosisSafe.address)
-    gnosisSafe = await contracts.GnosisSafe.at(proxy.address)
+    let gnosisSafe = await contractFactories.GnosisSafe.deploy()
+    let proxy = await contractFactories.GnosisSafeProxy.deploy(gnosisSafe.address)
+    gnosisSafe = await contractFactories.GnosisSafe.attach(proxy.address)
     await gnosisSafe.setup(
-      [...signers], 2, utils.ZeroAddress, "0x", utils.ZeroAddress, utils.ZeroAddress, 0, utils.ZeroAddress
+      [...signers],
+      2,
+      utils.ZeroAddress,
+      '0x',
+      utils.ZeroAddress,
+      utils.ZeroAddress,
+      0,
+      utils.ZeroAddress
     )
-  return gnosisSafe
+    return gnosisSafe
   }
 }
 

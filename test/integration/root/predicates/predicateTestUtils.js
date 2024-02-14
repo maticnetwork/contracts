@@ -1,6 +1,9 @@
-import { increaseBlockTime, mineOneBlock } from '../../../helpers/chain'
-const Proofs = require('../../../helpers/proofs')
-const utils = require('../../../helpers/utils')
+import { increaseBlockTime, mineOneBlock } from '../../../helpers/chain.js'
+import * as Proofs from '../../../helpers/proofs.js'
+import * as utils from '../../../helpers/utils.js'
+
+import * as chai from 'chai'
+const assert = chai.assert
 
 const MAX_LOGS = web3.utils.toBN(10)
 const BOND_AMOUNT = web3.utils.toBN(10).pow(web3.utils.toBN(17))
@@ -27,24 +30,7 @@ export function getAge(utxo) {
     .or(web3.utils.toBN(utxo.checkpoint.block.number).shln(32))
     .or(web3.utils.toBN(parseInt(utxo.checkpoint.reference.path.toString('hex'), 16)))
     .add(web3.utils.toBN(utxo.logIndex).mul(MAX_LOGS))
-    // oIndex
-}
-
-// this is hack to generate a raw tx that is expected to be inflight
-// Fire the tx with less gas and get payload from the reverted tx
-export async function getRawInflightTx(fn, from, web3, gas, options = {}) {
-  Object.assign(options, { from: from || options.from, gas: gas || 30232 }) // minimal: 30232 is required, not sure why
-  try {
-    await fn(options)
-    assert.fail('should have failed')
-  } catch (e) {
-    const txHash = /transactionHash": "(0[xX][0-9a-fA-F]+)"/g.exec(e)[1]
-    return buildInFlight(await web3.eth.getTransaction(txHash))
-  }
-}
-
-export function buildInFlight(tx) {
-  return Proofs.getTxBytes(tx)
+  // oIndex
 }
 
 export async function assertStartExit(log, exitor, token, amount, isRegularExit, exitId, exitNFT) {
@@ -89,5 +75,5 @@ export async function assertChallengeBondReceived(challenge, originalBalance) {
 export async function processExits(withdrawManager, token) {
   await increaseBlockTime(14 * 86400)
   await mineOneBlock()
-  return withdrawManager.processExits(token, { gas: 5000000 })
+  return withdrawManager.processExits(token, { gasLimit: 5000000 })
 }

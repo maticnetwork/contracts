@@ -1,68 +1,71 @@
-export const RootChain = artifacts.require('RootChain')
-export const RootChainProxy = artifacts.require('RootChainProxy')
-export const Registry = artifacts.require('Registry')
-export const Governance = artifacts.require('Governance')
-export const GovernanceLockableTest = artifacts.require('GovernanceLockableTest')
-export const GovernanceProxy = artifacts.require('GovernanceProxy')
-export const StakeManager = artifacts.require('StakeManager')
-export const StakeManagerExtension = artifacts.require('StakeManagerExtension')
-export const StakeManagerTest = artifacts.require('StakeManagerTest')
-export const StakeManagerProxy = artifacts.require('StakeManagerProxy')
-export const DrainStakeManager = artifacts.require('DrainStakeManager')
+import hardhat from 'hardhat'
+const ethers = hardhat.ethers
 
-export const StakingInfo = artifacts.require('StakingInfo')
-export const EventsHubProxy = artifacts.require('EventsHubProxy')
-export const EventsHub = artifacts.require('EventsHub')
-export const StakingNFT = artifacts.require('StakingNFT')
-export const ValidatorShareProxy = artifacts.require('ValidatorShareProxy')
-export const ValidatorShare = artifacts.require('ValidatorShareTest')
-export const IValidatorShare = artifacts.require('IValidatorShare')
+export const RootChain = await ethers.getContractFactory('RootChain')
+export const RootChainProxy = await ethers.getContractFactory('RootChainProxy')
+export const Registry = await ethers.getContractFactory('Registry')
+export const Governance = await ethers.getContractFactory('Governance')
+export const GovernanceLockableTest = await ethers.getContractFactory('GovernanceLockableTest')
+export const GovernanceProxy = await ethers.getContractFactory('GovernanceProxy')
+export const StakeManager = await ethers.getContractFactory('StakeManager')
+export const StakeManagerExtension = await ethers.getContractFactory('StakeManagerExtension')
+export const StakeManagerTest = await ethers.getContractFactory('StakeManagerTest')
+export const StakeManagerProxy = await ethers.getContractFactory('StakeManagerProxy')
+export const DrainStakeManager = await ethers.getContractFactory('DrainStakeManager')
 
-export const StakeManagerTestable = artifacts.require('StakeManagerTestable')
-export const ValidatorShareFactory = artifacts.require('ValidatorShareFactory')
-export const SlashingManager = artifacts.require('SlashingManager')
+export const StakingInfo = await ethers.getContractFactory('StakingInfo')
+export const EventsHubProxy = await ethers.getContractFactory('EventsHubProxy')
+export const EventsHub = await ethers.getContractFactory('EventsHub')
+export const StakingNFT = await ethers.getContractFactory('StakingNFT')
+export const ValidatorShareProxy = await ethers.getContractFactory('ValidatorShareProxy')
+export const ValidatorShare = await ethers.getContractFactory('ValidatorShareTest')
 
-export const DepositManager = artifacts.require('DepositManager')
-export const DepositManagerProxy = artifacts.require('DepositManagerProxy')
-export const Drainable = artifacts.require('Drainable')
-export const WithdrawManager = artifacts.require('WithdrawManager')
-export const WithdrawManagerProxy = artifacts.require('WithdrawManagerProxy')
-export const StateSender = artifacts.require('StateSender')
+export const StakeManagerTestable = await ethers.getContractFactory('StakeManagerTestable')
+export const ValidatorShareFactory = await ethers.getContractFactory('ValidatorShareFactory')
+export const SlashingManager = await ethers.getContractFactory('SlashingManager')
 
-export const ERC20Predicate = artifacts.require('ERC20Predicate')
-export const ERC20PredicateBurnOnly = artifacts.require('ERC20PredicateBurnOnly')
-export const ERC721Predicate = artifacts.require('ERC721Predicate')
-export const ERC721PredicateBurnOnly = artifacts.require('ERC721PredicateBurnOnly')
-export const MintableERC721Predicate = artifacts.require('MintableERC721Predicate')
-export const MarketplacePredicate = artifacts.require('MarketplacePredicate')
-export const MarketplacePredicateTest = artifacts.require(
-  'MarketplacePredicateTest'
-)
-export const TransferWithSigPredicate = artifacts.require(
-  'TransferWithSigPredicate'
-)
+export const DepositManager = await ethers.getContractFactory('DepositManager')
+export const DepositManagerProxy = await ethers.getContractFactory('DepositManagerProxy')
+export const Drainable = await ethers.getContractFactory('Drainable')
+export const WithdrawManager = await ethers.getContractFactory('WithdrawManager')
+export const WithdrawManagerProxy = await ethers.getContractFactory('WithdrawManagerProxy')
+export const StateSender = await ethers.getContractFactory('StateSender')
+
+export const ContractWithFallback = await ethers.getContractFactory('ContractWithFallback')
+export const ContractWithoutFallback = await ethers.getContractFactory('ContractWithoutFallback')
+export const ContractWitRevertingFallback = await ethers.getContractFactory('ContractWitRevertingFallback')
+
+export const ERC20PredicateBurnOnly = await ethers.getContractFactory('ERC20PredicateBurnOnly')
+export const ERC721PredicateBurnOnly = await ethers.getContractFactory('ERC721PredicateBurnOnly')
 
 // tokens
-export const MaticWETH = artifacts.require('MaticWETH')
-export const TestToken = artifacts.require('TestToken')
-export const RootERC721 = artifacts.require('RootERC721')
-export const ERC721PlasmaMintable = artifacts.require('ERC721PlasmaMintable')
-export const ExitNFT = artifacts.require('ExitNFT')
+export const MaticWETH = await ethers.getContractFactory('MaticWETH')
+export const TestToken = await ethers.getContractFactory('TestToken')
+export const RootERC721 = await ethers.getContractFactory('RootERC721')
+export const ERC721PlasmaMintable = await ethers.getContractFactory('ERC721PlasmaMintable')
+export const ExitNFT = await ethers.getContractFactory('ExitNFT')
 
 // Misc
-export const GnosisSafeProxy = artifacts.require('GnosisSafeProxy')
-export const GnosisSafe = artifacts.require('GnosisSafe')
+export const GnosisSafeProxy = await ethers.getContractFactory('GnosisSafeProxy')
+export const GnosisSafe = await ethers.getContractFactory('GnosisSafe')
+export const PolygonMigrationTest = await ethers.getContractFactory('PolygonMigrationTest')
 
 // child chain
-export const childContracts = {
-  Marketplace: artifacts.require('Marketplace'),
-  ChildChain: artifacts.require('ChildChain'),
-  ChildTokenProxy: artifacts.require('ChildTokenProxy'),
-  ChildERC20: artifacts.require('ChildERC20'),
-  ChildERC20Proxified: artifacts.require('ChildERC20Proxified'),
-  ChildERC721: artifacts.require('ChildERC721'),
-  ChildERC721Proxified: artifacts.require('ChildERC721Proxified'),
-  ChildERC721Mintable: artifacts.require('ChildERC721Mintable'),
-  MRC20: artifacts.require('MRC20'),
-  TestMRC20: artifacts.require('TestMRC20')
+const borProvider = new ethers.providers.JsonRpcProvider(
+  process.env.BOR_CHAIN_URL ? process.env.BOR_CHAIN_URL : 'http://localhost:9545'
+)
+let childSigner = borProvider.getSigner()
+
+if (hre.__SOLIDITY_COVERAGE_RUNNING) {
+  childSigner = undefined
 }
+
+export const ChildChain = await ethers.getContractFactory('ChildChain', childSigner)
+export const ChildTokenProxy = await ethers.getContractFactory('ChildTokenProxy', childSigner)
+export const ChildERC20 = await ethers.getContractFactory('ChildERC20', childSigner)
+export const ChildERC20Proxified = await ethers.getContractFactory('ChildERC20Proxified', childSigner)
+export const ChildERC721 = await ethers.getContractFactory('ChildERC721', childSigner)
+export const ChildERC721Proxified = await ethers.getContractFactory('ChildERC721Proxified', childSigner)
+export const ChildERC721Mintable = await ethers.getContractFactory('ChildERC721Mintable', childSigner)
+export const MRC20 = await ethers.getContractFactory('MRC20', childSigner)
+export const TestMRC20 = await ethers.getContractFactory('TestMRC20', childSigner)

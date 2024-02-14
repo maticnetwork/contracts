@@ -1,0 +1,53 @@
+[profile.default]
+src = 'contracts'
+out = 'out'
+libs = ['node_modules']
+match-path = 'test/foundry'
+optimizer = true
+optimizer_runs = 200
+via_ir = true
+cache_path = 'forge-cache'
+verbosity = 2
+solc_version = '0.5.17'
+ffi = true
+
+remappings = [
+  "openzeppelin-solidity/=node_modules/openzeppelin-solidity/",
+  "solidity-rlp/=node_modules/solidity-rlp/"
+]
+
+[invariant]
+fail_on_revert = false
+call_override = false
+dictionary_weight = 80
+include_storage = true
+include_push_bytes = true
+
+[profile.intense.fuzz]
+runs = 10000
+max_test_rejects = 999999
+
+[fmt]
+line_length = 160
+number_underscore = "thousands"
+
+[rpc_endpoints]
+anvil = "http://127.0.0.1:8545"
+mainnet = "https://mainnet.infura.io/v3/${INFURA_KEY}"
+goerli = "https://goerli.infura.io/v3/${INFURA_KEY}"
+sepolia = "https://sepolia.infura.io/v3/${INFURA_KEY}"
+polygon_pos = "https://polygon-mainnet.infura.io/v3/${INFURA_KEY}"
+mumbai = "https://polygon-mumbai.infura.io/v3/${INFURA_KEY}"
+polygon_zkevm = "https://zkevm-rpc.com"
+polygon_zkevm_testnet = "https://rpc.public.zkevm-test.net"
+
+[etherscan]
+mainnet = { key = "${ETHERSCAN_API_KEY}" }
+goerli = { key = "${ETHERSCAN_API_KEY}" }
+sepolia = { key = "${ETHERSCAN_API_KEY}" }
+polygon_pos = { key = "${POLYGONSCAN_API_KEY}" }
+mumbai = { key = "${POLYGONSCAN_API_KEY}" }
+polygon_zkevm = { key = "${POLYGONSCAN_ZKEVM_API_KEY}" }
+polygon_zkevm_testnet = { key = "${POLYGONSCAN_ZKEVM_API_KEY}" }
+
+# See more config options https://github.com/foundry-rs/foundry/tree/master/config

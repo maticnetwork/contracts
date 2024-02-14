@@ -1,8 +1,8 @@
-import utils from 'ethereumjs-util'
+import ethUtils from 'ethereumjs-util'
 import { Buffer } from 'safe-buffer'
 
-const sha3 = utils.keccak256
-const BN = utils.BN
+const sha3 = ethUtils.keccak256
+const BN = ethUtils.BN
 
 export async function getHeaders(start, end, web3) {
   if (start >= end) {
@@ -31,7 +31,7 @@ export async function getHeaders(start, end, web3) {
 export function getBlockHeader(block) {
   const n = new BN(block.number).toArrayLike(Buffer, 'be', 32)
   const ts = new BN(block.timestamp).toArrayLike(Buffer, 'be', 32)
-  const txRoot = utils.toBuffer(block.transactionsRoot)
-  const receiptsRoot = utils.toBuffer(block.receiptsRoot)
+  const txRoot = ethUtils.toBuffer(block.transactionsRoot)
+  const receiptsRoot = ethUtils.toBuffer(block.receiptsRoot)
   return sha3(Buffer.concat([n, ts, txRoot, receiptsRoot]))
 }

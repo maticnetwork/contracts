@@ -1,92 +1,74 @@
 {
   "name": "matic-protocol",
+  "description": "New repo using Hardhat and Foundry",
   "version": "0.3.2",
-  "description": "",
-  "main": "index.js",
-  "verify": {
-    "contracts": "RootChain StakeManager"
+  "main": "hardhat.config.cjs",
+  "type": "module",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
   },
   "scripts": {
-    "testrpc": "ganache-cli --hardfork istanbul --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' -p 9545 --gasLimit 10000000 --gasPrice 0 --allowUnlimitedContractSize --accounts 200",
-    "template:process": "node scripts/process-templates.js",
-    "truffle": "truffle",
-    "truffle:test": "truffle test",
-    "truffle:coverage": "truffle run coverage",
-    "truffle:compile": "truffle compile",
-    "truffle:migrate": "scripts/run-migration.sh",
-    "truffle:migrate:dev": "truffle migrate --network development",
-    "truffle:migrate:dev:bor": "truffle migrate --network bor",
-    "truffle:verify": "truffle run verify $npm_package_verify_contracts --network ropsten",
-    "test": "truffle test",
-    "coverage": "scripts/run-coverage.sh",
+    "build": "forge build",
+    "test:hardhat": "npx hardhat test",
+    "test:foundry": "forge test",
     "test:ci": "scripts/run-test.sh",
-    "bor:simulate": "cd test-blockchain && bash run-docker.sh",
-    "bor:clean": "cd test-blockchain && bash stop-docker.sh",
-    "lint": "npm run lint:sol && npm run lint:js",
-    "lint:js": "eslint test/**/*.js",
-    "lint:sol:fix": "solium -d contracts/ --fix",
-    "lint:sol": "solium -d contracts/"
+    "testrpc": "ganache --chain.hardfork istanbul --wallet.mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' -p 8545 --gasLimit 10000000 --gasPrice 0 --chain.allowUnlimitedContractSize --accounts 200",
+    "template:process": "node scripts/process-templates.cjs",
+    "coverage": "LOCAL_NETWORK=true npx hardhat coverage --solcoverjs .solcover.cjs",
+    "bor:simulate": "cd test-bor-docker && bash run-docker.sh",
+    "bor:stop": "cd test-bor-docker && bash stop-docker.sh",
+    "bor:clean": "cd test-bor-docker && bash clean.sh"
   },
-  "pre-commit": [],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/maticnetwork/contracts.git"
-  },
-  "author": "Jaynti Kanani <jdkanani@gmail.com>",
+  "keywords": [],
+  "author": "Jaynti Kanani <jdkanani@gmail.com>, Simon Dosch <sdosch@polygon.technology",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/maticnetwork/contracts/issues"
-  },
-  "homepage": "https://github.com/maticnetwork/contracts",
   "config": {
     "mnemonics": "clock radar mass judge dismiss just intact mind resemble fringe diary casino"
   },
   "devDependencies": {
-    "@openzeppelin/test-helpers": "^0.5.5",
-    "babel-cli": "^6.26.0",
-    "babel-eslint": "10.0.1",
-    "babel-polyfill": "^6.26.0",
-    "babel-preset-env": "1.7.0",
-    "babel-preset-es2015": "^6.24.1",
-    "babel-preset-stage-2": "^6.24.1",
-    "babel-preset-stage-3": "^6.24.1",
+    "@openzeppelin/test-helpers": "^0.5.16",
+    "@nomicfoundation/hardhat-toolbox": "^2.0.0",
+    "@nomiclabs/hardhat-web3": "2.0.0",
+    "esm": "3.2.25",
     "bip39": "^2.5.0",
-    "bluebird": "^3.5.5",
-    "chai": "4.2.0",
-    "chai-as-promised": "^7.1.1",
-    "eslint": "5.9.0",
-    "eslint-config-standard": "12.0.0",
-    "eslint-plugin-import": "2.14.0",
-    "eslint-plugin-node": "8.0.0",
-    "eslint-plugin-promise": "4.0.1",
-    "eslint-plugin-standard": "4.0.0",
-    "eth-gas-reporter": "0.1.12",
+    "dotenv": "^16.3.1",
+    "ethereumjs-wallet": "1.0.2",
     "eth-sig-util": "^2.1.1",
-    "ethereumjs-wallet": "0.6.2",
-    "ethers": "4.0.13",
-    "moonwalker": "github:atvanguard/moonwalker#4c4592e2d6c1744fbcd9452cf0f00e9beb236b21",
-    "pre-commit": "^1.2.2",
-    "safe-buffer": "5.1.2",
-    "solidity-coverage": "^0.7.4",
-    "solium": "^1.1.8",
-    "truffle": "5.0.34",
-    "web3": "^1.0.0-beta.33",
-    "web3-eth-abi": "^1.0.0-beta.51",
-    "truffle-contract-size": "^1.0.1"
+    "prettier": "^3.0.3",
+    "prettier-plugin-solidity": "1.1.3",
+    "solhint": "^3.6.2",
+    "solidity-coverage": "0.8.4",
+    "eslint": "^8.55.0"
   },
   "dependencies": {
-    "@truffle/hdwallet-provider": "^1.4.0",
-    "commander": "^4.0.1",
-    "ethereumjs-abi": "^0.6.5",
-    "ethereumjs-block": "2.1.0",
-    "ethereumjs-tx": "1.3.7",
-    "ethereumjs-util": "6.0.0",
-    "ganache-cli": "^6.8.0-istanbul.0",
-    "glob": "^7.1.6",
-    "merkle-patricia-tree": "2.3.2",
+    "ethereumjs-block": "^2.2.2",
+    "ethereumjs-tx": "^1.3.7",
+    "ethereumjs-util": "^6.0.0",
+    "ganache": "7.9.2",
+    "import-toml": "^1.0.0",
+    "merkle-patricia-tree": "^2.3.2",
+    "mocha": "10.2.0",
     "nunjucks": "^3.2.0",
     "openzeppelin-solidity": "2.2.0",
-    "solidity-rlp": "^2.0.0",
-    "truffle-plugin-verify": "^0.3.8"
+    "solidity-rlp": "^2.0.0"
+  },
+  "eslintConfig": {
+    "env": {
+      "browser": false,
+      "es2022": true,
+      "mocha": true,
+      "node": true
+    },
+    "parserOptions": {
+      "sourceType": "module"
+    },
+    "globals": {
+      "web3": true
+    }
+  },
+  "mocha": {
+    "require": "hardhat/register",
+    "timeout": 40000000
   }
 }

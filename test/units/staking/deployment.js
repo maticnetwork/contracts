@@ -45,14 +45,17 @@ export async function freshDeploy() {
   this.validatorShare = deployer.validatorShare
   this.slashingManager = contracts.slashingManager
 
-  await this.stakeManager.updateCheckpointReward(web3.utils.toWei('10000'))
-  await this.stakeManager.updateCheckPointBlockInterval(1)
+  await this.governance.update(
+    this.stakeManager.address,
+    this.stakeManager.interface.encodeFunctionData('updateCheckpointReward', [web3.utils.toWei('10000')])
+  )
+  await this.governance.update(
+    this.stakeManager.address,
+    this.stakeManager.interface.encodeFunctionData('updateCheckPointBlockInterval', [1])
+  )
 
   for (const walletAddr in walletAmounts) {
-    await this.stakeToken.mint(
-      walletAddr,
-      walletAmounts[walletAddr].initialBalance
-    )
+    await this.stakeToken.mint(walletAddr, walletAmounts[walletAddr].initialBalance)
   }
 
   await this.stakeToken.mint(this.stakeManager.address, web3.utils.toWei('10000000'))
@@ -60,7 +63,15 @@ export async function freshDeploy() {
   this.defaultHeimdallFee = new BN(web3.utils.toWei('1'))
 }
 
-export async function approveAndStake({ wallet, stakeAmount, approveAmount, acceptDelegation = false, heimdallFee, noMinting = false, signer }) {
+export async function approveAndStake({
+  wallet,
+  stakeAmount,
+  approveAmount,
+  acceptDelegation = false,
+  heimdallFee,
+  noMinting = false,
+  signer
+}) {
   const fee = heimdallFee || this.defaultHeimdallFee
 
   const mintAmount = new BN(approveAmount || stakeAmount).add(new BN(fee))
@@ -68,19 +79,23 @@ export async function approveAndStake({ wallet, stakeAmount, approveAmount, acce
   if (noMinting) {
     // check if allowance covers fee
     const balance = await this.stakeToken.balanceOf(wallet.getAddressString())
-    if (balance.lt(mintAmount)) {
+    if (balance.lt(mintAmount.toString())) {
       // mint more
-      await this.stakeToken.mint(wallet.getAddressString(), mintAmount.sub(balance))
+      await this.stakeToken.mint(wallet.getAddressString(), mintAmount.sub(balance).toString())
     }
   } else {
-    await this.stakeToken.mint(wallet.getAddressString(), mintAmount)
+    await this.stakeToken.mint(wallet.getAddressString(), mintAmount.toString())
   }
 
-  await this.stakeToken.approve(this.stakeManager.address, new BN(mintAmount), {
-    from: wallet.getAddressString()
-  })
+  const stakeTokenWallet = this.stakeToken.connect(this.stakeToken.provider.getSigner(wallet.getAddressString()))
+  await stakeTokenWallet.approve(this.stakeManager.address, mintAmount.toString())
 
-  await this.stakeManager.stakeFor(wallet.getAddressString(), stakeAmount, fee, acceptDelegation, signer || wallet.getPublicKeyString(), {
-    from: wallet.getAddressString()
-  })
+  const stakeManagerWallet = this.stakeManager.connect(this.stakeManager.provider.getSigner(wallet.getAddressString()))
+  await stakeManagerWallet.stakeFor(
+    wallet.getAddressString(),
+    stakeAmount.toString(),
+    fee.toString(),
+    acceptDelegation,
+    signer || wallet.getPublicKeyString()
+  )
 }

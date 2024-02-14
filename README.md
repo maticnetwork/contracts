@@ -10,23 +10,28 @@ Ethereum smart contracts that power the [Matic Network](https://polygon.technolo
 npm install
 ```
 
+### Setup
+
+```
+pre-commit install
+```
+
 ### Compile
 
-bor-chain-id for Mainnet = 137
-bor-chain-id for TestnetV4 (Mumbai) = 80001
-
 ```
-npm run template:process -- --bor-chain-id <bor-chain-id>
-npm run truffle:compile
+npm run template:process -- --bor-chain-id 15001
 ```
 
-### Start main chain and side chain
+bor-chain-id should be:  
+**local: 15001**  
+Mainnet = 137  
+TestnetV4 (Mumbai) = 80001
 
-- Start Main chain
+### Main chain and side chain
 
-```
-npm run testrpc
-```
+- Main chain
+
+All tests are run against a fork of mainnet using Hardhat's forking functionality. No need to run any local chain!
 
 - Start Matic side chain. Requires docker.
 
@@ -34,26 +39,36 @@ npm run testrpc
 npm run bor:simulate
 ```
 
-- If you ran a bor instance before, a dead docker container might still be lying around, clean it with
+- Stop with
+
+```
+npm run bor:stop
+```
+
+- If you want a clean chain, this also deletes your /data folder containing the chain state.
 
 ```
 npm run bor:clean
 ```
 
-- Run a bor (our matic chain node) instance.
-
-### Deploy Contracts
-
-- For local development
-
-```
-npm run truffle:migrate
-```
-
-- For a properly initialized set of contracts, follow the instructions [here](./deploy-migrations/README.md).
-
 ### Run tests
 
+Run Hardhat test
+
 ```
-npm test
+npm test:hardhat
+```
+
+Run Foundry test
+
+```
+npm test:foundry
+```
+
+### Coverage
+
+Run coverage with
+
+```
+npm run coverage
 ```
