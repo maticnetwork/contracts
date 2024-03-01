@@ -1,3 +1,6 @@
+> [!WARNING]
+> This repository is no longer in use, and has been migrated to https://github.com/0xPolygon/pos-contracts
+
 # Matic contracts
 
 ![Build Status](https://github.com/maticnetwork/contracts/workflows/CI/badge.svg)
