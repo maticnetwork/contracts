@@ -116,6 +116,25 @@ contract RootChain is RootChainStorage, IRootChain {
         emit ResetHeaderBlock(msg.sender, _nextHeaderBlock);
     }
 
+    function overrideHeaderBlock(
+        uint256 _headerBlockId,
+        address _proposer,
+        uint256 _start,
+        uint256 _end,
+        bytes32 _rootHash) public onlyOwner {
+        _nextHeaderBlock = _headerBlockId;
+
+        HeaderBlock memory headerBlock = HeaderBlock({
+            root: _rootHash,
+            start: _start,
+            end: _end,
+            createdAt: now,
+            proposer: _proposer
+        });
+
+        headerBlocks[currentHeaderBlock()] = headerBlock;
+    }
+
     // Housekeeping function. @todo remove later
     function setHeimdallId(string memory _heimdallId) public onlyOwner {
         heimdallId = keccak256(abi.encodePacked(_heimdallId));
